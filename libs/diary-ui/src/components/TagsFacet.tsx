@@ -1,4 +1,4 @@
-import { useTheme } from '@themoltnet/design-system';
+import { Button, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { useMemo, useState } from 'react';
 
 import type { TagCloudItem } from '../types.js';
@@ -68,36 +68,47 @@ export function TagsFacet({
   return (
     <Popover label="Tags" ariaLabel="Tags filter" badge={activeCount}>
       {() => (
-        <div style={{ display: 'grid', gap: theme.spacing[2] }}>
-          <input
-            type="search"
-            role="searchbox"
-            aria-label="Filter tags"
-            placeholder="Search tags…"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            style={{
-              padding: '6px 8px',
-              borderRadius: theme.radius.sm,
-              border: `1px solid ${theme.color.border.DEFAULT}`,
-              background: theme.color.bg.surface,
-              color: theme.color.text.DEFAULT,
-              font: 'inherit',
-            }}
-          />
+        <Stack gap={3}>
+          <Stack gap={1}>
+            <Text variant="overline" color="muted">
+              Filter by tag
+            </Text>
+            <input
+              type="search"
+              role="searchbox"
+              aria-label="Filter tags"
+              placeholder="Type to search…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              style={{
+                padding: '0.5rem 0.75rem',
+                borderRadius: theme.radius.sm,
+                border: `1px solid ${theme.color.border.DEFAULT}`,
+                background: theme.color.bg.surface,
+                color: theme.color.text.DEFAULT,
+                fontFamily: 'inherit',
+                fontSize: '0.875rem',
+                outline: 'none',
+                transition: `border-color ${theme.transition.fast}`,
+              }}
+            />
+          </Stack>
+
           <div
             role="list"
             style={{
               display: 'grid',
               gap: 2,
-              maxHeight: 260,
+              maxHeight: 280,
               overflowY: 'auto',
+              margin: `0 -${theme.spacing[2]}`,
+              padding: `0 ${theme.spacing[2]}`,
             }}
           >
             {filtered.length === 0 && (
-              <span style={{ color: theme.color.text.muted, padding: 6 }}>
+              <Text color="muted" variant="caption">
                 No tags match.
-              </span>
+              </Text>
             )}
             {filtered.map((item) => {
               const isIncluded = selected.includes(item.tag);
@@ -107,10 +118,11 @@ export function TagsFacet({
                   key={item.tag}
                   role="listitem"
                   style={{
-                    display: 'flex',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto',
                     alignItems: 'center',
-                    gap: 4,
-                    padding: 4,
+                    gap: 6,
+                    padding: '2px 0',
                   }}
                 >
                   <button
@@ -121,40 +133,79 @@ export function TagsFacet({
                       isIncluded ? clearOne(item.tag) : include(item.tag)
                     }
                     style={{
-                      flex: 1,
-                      textAlign: 'left',
-                      padding: '4px 8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      padding: '6px 10px',
                       borderRadius: theme.radius.sm,
                       border: `1px solid ${
-                        isIncluded
-                          ? theme.color.primary.DEFAULT
-                          : theme.color.border.DEFAULT
+                        isIncluded ? theme.color.primary.DEFAULT : 'transparent'
                       }`,
                       background: isIncluded
                         ? theme.color.primary.muted
-                        : theme.color.bg.surface,
+                        : 'transparent',
                       color: theme.color.text.DEFAULT,
                       cursor: 'pointer',
                       font: 'inherit',
+                      fontSize: '0.875rem',
+                      textAlign: 'left',
+                      transition: `background ${theme.transition.fast}, border-color ${theme.transition.fast}`,
                     }}
                   >
-                    {isIncluded ? '✓ ' : ''}
-                    {item.tag}{' '}
                     <span
-                      style={{ color: theme.color.text.muted, fontSize: 11 }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 999,
+                          background: isIncluded
+                            ? theme.color.primary.DEFAULT
+                            : theme.color.border.DEFAULT,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {item.tag}
+                      </span>
+                    </span>
+                    <Text
+                      variant="caption"
+                      color="muted"
+                      mono
+                      style={{ flexShrink: 0 }}
                     >
                       {item.count}
-                    </span>
+                    </Text>
                   </button>
                   <button
                     type="button"
                     aria-pressed={isExcluded}
                     aria-label={`Exclude tag: ${item.tag}`}
+                    title="Exclude"
                     onClick={() =>
                       isExcluded ? clearOne(item.tag) : exclude(item.tag)
                     }
                     style={{
-                      padding: '4px 6px',
+                      width: 28,
+                      height: 28,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       borderRadius: theme.radius.sm,
                       border: `1px solid ${
                         isExcluded
@@ -163,41 +214,36 @@ export function TagsFacet({
                       }`,
                       background: isExcluded
                         ? theme.color.error.DEFAULT
-                        : theme.color.bg.surface,
+                        : 'transparent',
                       color: isExcluded
                         ? theme.color.text.inverse
-                        : theme.color.text.DEFAULT,
+                        : theme.color.text.muted,
                       cursor: 'pointer',
                       font: 'inherit',
+                      fontSize: '0.875rem',
+                      lineHeight: 1,
+                      transition: `background ${theme.transition.fast}, color ${theme.transition.fast}, border-color ${theme.transition.fast}`,
                     }}
-                    title="Exclude"
                   >
-                    −
+                    <span aria-hidden="true">−</span>
                   </button>
                 </div>
               );
             })}
           </div>
+
           {activeCount > 0 && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={onClear}
               aria-label="Clear tags"
-              style={{
-                marginTop: 4,
-                padding: '6px 8px',
-                borderRadius: theme.radius.sm,
-                border: `1px solid ${theme.color.border.DEFAULT}`,
-                background: theme.color.bg.surface,
-                color: theme.color.text.DEFAULT,
-                cursor: 'pointer',
-                font: 'inherit',
-              }}
             >
               Clear tags
-            </button>
+            </Button>
           )}
-        </div>
+        </Stack>
       )}
     </Popover>
   );

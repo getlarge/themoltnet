@@ -37,10 +37,15 @@ describe('ActiveFilterChips', () => {
         onClear={() => {}}
       />,
     );
-    expect(screen.getByText(/query: auth/i)).toBeInTheDocument();
-    expect(screen.getByText(/tag: x/i)).toBeInTheDocument();
-    expect(screen.getByText(/exclude: y/i)).toBeInTheDocument();
-    expect(screen.getByText(/type: semantic/i)).toBeInTheDocument();
+    // Labels and values are rendered in separate spans (label uppercase + mono value)
+    expect(screen.getByText(/^query$/i)).toBeInTheDocument();
+    expect(screen.getByText('auth')).toBeInTheDocument();
+    expect(screen.getAllByText(/^tag$/i).length).toBeGreaterThan(0);
+    expect(screen.getByText('x')).toBeInTheDocument();
+    expect(screen.getByText(/^exclude$/i)).toBeInTheDocument();
+    expect(screen.getByText('y')).toBeInTheDocument();
+    expect(screen.getByText(/^type$/i)).toBeInTheDocument();
+    expect(screen.getByText('semantic')).toBeInTheDocument();
   });
 
   it('removes individual filters', () => {

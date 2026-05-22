@@ -56,7 +56,8 @@ export function ActiveFilterChips({
     >
       {state.q && (
         <Chip
-          label={`Query: ${state.q}`}
+          label="Query"
+          value={state.q}
           ariaLabel="Remove query filter"
           onRemove={removeQuery}
         />
@@ -64,7 +65,8 @@ export function ActiveFilterChips({
       {state.tags.map((tag) => (
         <Chip
           key={`t-${tag}`}
-          label={`Tag: ${tag}`}
+          label="Tag"
+          value={tag}
           ariaLabel={`Remove tag: ${tag}`}
           onRemove={() => removeTag(tag)}
         />
@@ -72,7 +74,9 @@ export function ActiveFilterChips({
       {state.excludeTags.map((tag) => (
         <Chip
           key={`e-${tag}`}
-          label={`Exclude: ${tag}`}
+          label="Exclude"
+          value={tag}
+          tone="danger"
           ariaLabel={`Remove exclude: ${tag}`}
           onRemove={() => removeExcluded(tag)}
         />
@@ -80,7 +84,8 @@ export function ActiveFilterChips({
       {state.types.map((type) => (
         <Chip
           key={`ty-${type}`}
-          label={`Type: ${type}`}
+          label="Type"
+          value={type}
           ariaLabel={`Remove type: ${type}`}
           onRemove={() => removeType(type)}
         />
@@ -90,13 +95,15 @@ export function ActiveFilterChips({
         onClick={onClear}
         aria-label="Clear all filters"
         style={{
-          padding: '4px 8px',
-          borderRadius: theme.radius.sm,
-          border: `1px solid ${theme.color.border.DEFAULT}`,
-          background: theme.color.bg.surface,
-          color: theme.color.text.DEFAULT,
+          padding: '2px 8px',
+          borderRadius: theme.radius.full,
+          border: `1px dashed ${theme.color.border.DEFAULT}`,
+          background: 'transparent',
+          color: theme.color.text.muted,
           cursor: 'pointer',
           font: 'inherit',
+          fontSize: '0.75rem',
+          letterSpacing: '0.04em',
         }}
       >
         Clear all
@@ -107,14 +114,23 @@ export function ActiveFilterChips({
 
 function Chip({
   label,
+  value,
   ariaLabel,
   onRemove,
+  tone = 'default',
 }: {
   label: string;
+  value: string;
   ariaLabel: string;
   onRemove: () => void;
+  tone?: 'default' | 'danger';
 }) {
   const theme = useTheme();
+  const isDanger = tone === 'danger';
+  const fg = isDanger ? theme.color.error.DEFAULT : theme.color.primary.DEFAULT;
+  const bg = isDanger
+    ? `${theme.color.error.DEFAULT}1f`
+    : theme.color.primary.muted;
   return (
     <span
       role="listitem"
@@ -122,25 +138,58 @@ function Chip({
         display: 'inline-flex',
         alignItems: 'center',
         gap: 6,
-        padding: '4px 8px',
+        padding: '3px 4px 3px 10px',
         borderRadius: theme.radius.full,
-        background: theme.color.primary.muted,
-        color: theme.color.primary.DEFAULT,
+        background: bg,
+        color: fg,
         fontSize: 12,
+        lineHeight: 1.4,
+        border: `1px solid ${isDanger ? `${theme.color.error.DEFAULT}55` : 'transparent'}`,
+        animation: 'diary-ui-chip-in 140ms ease-out',
       }}
     >
-      {label}
+      <style>{`
+        @keyframes diary-ui-chip-in {
+          from { opacity: 0; transform: translateY(-1px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [role="listitem"] { animation: none !important; }
+        }
+      `}</style>
+      <span
+        style={{
+          textTransform: 'uppercase',
+          fontSize: 10,
+          letterSpacing: '0.08em',
+          opacity: 0.7,
+          fontWeight: 600,
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ fontFamily: theme.font.family.mono }}>{value}</span>
       <button
         type="button"
         aria-label={ariaLabel}
         onClick={onRemove}
         style={{
+          width: 18,
+          height: 18,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: theme.radius.full,
           background: 'transparent',
           border: 0,
           color: 'inherit',
+          opacity: 0.7,
           cursor: 'pointer',
           padding: 0,
           font: 'inherit',
+          fontSize: 14,
+          lineHeight: 1,
+          transition: `background ${theme.transition.fast}, opacity ${theme.transition.fast}`,
         }}
       >
         ×
