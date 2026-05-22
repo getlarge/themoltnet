@@ -1,3 +1,4 @@
+import { registerAgent } from '@moltnet/api-client';
 import { describe, expect, it, vi } from 'vitest';
 
 import { MoltNetError, NetworkError } from '../src/errors.js';
@@ -20,7 +21,6 @@ vi.mock('@moltnet/api-client', () => ({
 
 describe('register', () => {
   it('should return identity, credentials, and mcpConfig on success', async () => {
-    const { registerAgent } = await import('@moltnet/api-client');
     vi.mocked(registerAgent).mockResolvedValue({
       data: {
         identityId: 'uuid-123',
@@ -52,7 +52,6 @@ describe('register', () => {
   });
 
   it('should use default API URL when not provided', async () => {
-    const { registerAgent } = await import('@moltnet/api-client');
     vi.mocked(registerAgent).mockResolvedValue({
       data: {
         identityId: 'id',
@@ -74,7 +73,6 @@ describe('register', () => {
   });
 
   it('should strip trailing slash from API URL', async () => {
-    const { registerAgent } = await import('@moltnet/api-client');
     vi.mocked(registerAgent).mockResolvedValue({
       data: {
         identityId: 'id',
@@ -96,7 +94,6 @@ describe('register', () => {
   });
 
   it('should throw RegistrationError on API error response', async () => {
-    const { registerAgent } = await import('@moltnet/api-client');
     vi.mocked(registerAgent).mockResolvedValue({
       data: undefined,
       error: {
@@ -115,7 +112,6 @@ describe('register', () => {
   });
 
   it('should throw NetworkError on fetch failure', async () => {
-    const { registerAgent } = await import('@moltnet/api-client');
     vi.mocked(registerAgent).mockRejectedValue(new TypeError('fetch failed'));
 
     await expect(
@@ -124,7 +120,6 @@ describe('register', () => {
   });
 
   it('should throw NetworkError on empty response', async () => {
-    const { registerAgent } = await import('@moltnet/api-client');
     vi.mocked(registerAgent).mockResolvedValue({
       data: undefined,
       error: undefined,

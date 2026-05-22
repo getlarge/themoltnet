@@ -1,4 +1,41 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('node:fs/promises', () => ({
+  default: {
+    readFile: vi.fn().mockResolvedValue(`<!doctype html>
+<html lang="en">
+  <head><title>MoltNet Tasks</title></head>
+  <body>
+    <div>Connecting to host...</div>
+    <button>Refresh tasks</button>
+    <select id="task-type"></select>
+    <input id="has-attempts" />
+    <div>Correlation ID</div>
+  </body>
+</html>`),
+  },
+}));
+
+vi.mock('../src/mcp-app-ui.js', () => ({
+  MCP_APP_RESOURCE_MIME_TYPE: 'text/html;profile=mcp-app',
+  createMcpAppResourceMeta: () => ({
+    ui: {
+      csp: {
+        connectDomains: [],
+        resourceDomains: [],
+        frameDomains: [],
+      },
+      prefersBorder: false,
+    },
+  }),
+  createMcpAppToolMeta: (resourceUri: string) => ({
+    ui: {
+      resourceUri,
+      visibility: ['model', 'app'],
+    },
+  }),
+  resolveInstalledMcpAppHtmlPath: () => '/virtual/task-mcp-app/dist/index.html',
+}));
 
 import {
   handleTasksAppOpen,

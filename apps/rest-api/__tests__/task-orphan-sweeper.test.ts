@@ -1,8 +1,6 @@
-import type * as Database from '@moltnet/database';
-import type { Task, TaskAttempt } from '@moltnet/database';
+import type * as DatabaseModule from '@moltnet/database';
+import { DBOS, type Task, type TaskAttempt } from '@moltnet/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-type DatabaseModule = typeof Database;
 
 // Mock DBOS BEFORE importing the module under test. We capture each
 // registered workflow/step by name so the test can drive the sweeper
@@ -161,7 +159,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     vi.resetModules();
   });
 
-  async function init(): Promise<DatabaseModule['DBOS']> {
+  async function init(): Promise<typeof DBOS> {
     const { initMaintenanceWorkflows: init } =
       await import('../src/workflows/maintenance.js');
     init(
@@ -176,7 +174,6 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
         TASK_ORPHAN_SWEEPER_BATCH_SIZE: BATCH_SIZE,
       },
     );
-    const { DBOS } = await import('@moltnet/database');
     return DBOS;
   }
 
