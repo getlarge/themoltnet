@@ -211,7 +211,24 @@ runs:
           exit 1
         fi
         if [ -n "${MOLTNET_GITHUB_APP_PRIVATE_KEY:-}" ]; then
-          export MOLTNET_GITHUB_APP_PRIVATE_KEY="$(printf '%s' "$MOLTNET_GITHUB_APP_PRIVATE_KEY" | python3 -c 'import sys; value = sys.stdin.read().strip(); if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'"'"'", "\""): value = value[1:-1]; value = value.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\r", "\n"); value = value.replace("\r\n", "\n").replace("\r", "\n"); print(value + ("\n" if "\n" in value and not value.endswith("\n") else ""), end="")')"
+          pem_normalized="${MOLTNET_GITHUB_APP_PRIVATE_KEY#"${MOLTNET_GITHUB_APP_PRIVATE_KEY%%[![:space:]]*}"}"
+          pem_normalized="${pem_normalized%"${pem_normalized##*[![:space:]]}"}"
+          if [[ "$pem_normalized" == \"*\" && "$pem_normalized" == *\" ]]; then
+            pem_normalized="${pem_normalized#\"}"
+            pem_normalized="${pem_normalized%\"}"
+          elif [[ "$pem_normalized" == \'*\' ]]; then
+            pem_normalized="${pem_normalized#\'}"
+            pem_normalized="${pem_normalized%\'}"
+          fi
+          pem_normalized="${pem_normalized//$'\r\n'/$'\n'}"
+          pem_normalized="${pem_normalized//$'\r'/$'\n'}"
+          pem_normalized="${pem_normalized//\\r\\n/$'\n'}"
+          pem_normalized="${pem_normalized//\\n/$'\n'}"
+          pem_normalized="${pem_normalized//\\r/$'\n'}"
+          if [[ "$pem_normalized" == *$'\n'* && "$pem_normalized" != *$'\n' ]]; then
+            pem_normalized+=$'\n'
+          fi
+          export MOLTNET_GITHUB_APP_PRIVATE_KEY="$pem_normalized"
         fi
         # Reconstruct the agent's .moltnet/<agent>/ tree (moltnet.json,
         # SSH keys, gitconfig, optional GitHub App PEM) from the

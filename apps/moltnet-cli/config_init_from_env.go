@@ -29,6 +29,9 @@ func getenv(key string, fileVars map[string]string, override bool) string {
 
 func normalizePEMEnvValue(raw string) string {
 	value := strings.TrimSpace(raw)
+	// Best effort: accept a full Go-style quoted string when present, but
+	// fall back to a simple outer-quote strip so dotenv-style PEM payloads
+	// normalize even when they are not valid Go string literals.
 	if unquoted, err := strconv.Unquote(value); err == nil {
 		value = unquoted
 	} else if len(value) >= 2 {
@@ -38,6 +41,7 @@ func normalizePEMEnvValue(raw string) string {
 		}
 	}
 	value = strings.ReplaceAll(value, "\r\n", "\n")
+	value = strings.ReplaceAll(value, "\r", "\n")
 	value = strings.ReplaceAll(value, "\\r\\n", "\n")
 	value = strings.ReplaceAll(value, "\\n", "\n")
 	value = strings.ReplaceAll(value, "\\r", "\n")

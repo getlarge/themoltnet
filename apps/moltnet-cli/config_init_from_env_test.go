@@ -621,3 +621,47 @@ func TestConfigInitFromEnvNormalizesGitHubAppPEM(t *testing.T) {
 		t.Fatalf("unexpected PEM contents:\nwant:\n%q\ngot:\n%q", want, string(pemData))
 	}
 }
+
+func TestNormalizePEMEnvValue(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "raw multiline gets trailing newline",
+			input: "-----BEGIN KEY-----\nline\n-----END KEY-----",
+			want:  "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+		},
+		{
+			name:  "single quoted escaped pem",
+			input: "'-----BEGIN KEY-----\\r\\nline\\n-----END KEY-----'",
+			want:  "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+		},
+		{
+			name:  "actual crlf bytes normalize",
+			input: "-----BEGIN KEY-----\r\nline\r\n-----END KEY-----\r\n",
+			want:  "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+		},
+		{
+			name:  "bare cr bytes normalize",
+			input: "-----BEGIN KEY-----\rline\r-----END KEY-----\r",
+			want:  "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+		},
+		{
+			name:  "already normalized is idempotent",
+			input: "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+			want:  "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := normalizePEMEnvValue(tt.input); got != tt.want {
+				t.Fatalf("normalizePEMEnvValue() mismatch:\nwant: %q\ngot:  %q", tt.want, got)
+			}
+		})
+	}
+}
