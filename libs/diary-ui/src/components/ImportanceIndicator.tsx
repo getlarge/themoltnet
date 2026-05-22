@@ -1,12 +1,14 @@
 import { Stack, Text, useTheme } from '@themoltnet/design-system';
 
+export interface ImportanceIndicatorProps {
+  value: number;
+  compact?: boolean;
+}
+
 export function ImportanceIndicator({
   value,
   compact = false,
-}: {
-  value: number;
-  compact?: boolean;
-}) {
+}: ImportanceIndicatorProps) {
   const theme = useTheme();
 
   return (

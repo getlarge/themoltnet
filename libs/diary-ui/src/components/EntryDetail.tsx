@@ -5,30 +5,57 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { Link } from 'wouter';
 
-import type { EntryDetailData } from '../../diaries/utils.js';
-import {
-  buildDiaryQuery,
-  estimateTokenCount,
-  formatDateTime,
-} from '../../diaries/utils.js';
+import type {
+  DiaryCatalog,
+  DiaryEntryWithRelations,
+  EntryVerifyResult,
+} from '../types.js';
+import { estimateTokenCount, formatDateTime } from '../utils/format.js';
 import { ImportanceIndicator } from './ImportanceIndicator.js';
 import { TagChip } from './TagChip.js';
 import { TypeBadge } from './TypeBadge.js';
 
-export function EntryDetail({ data }: { data: EntryDetailData }) {
+export interface EntryDetailData {
+  diary: DiaryCatalog | null;
+  entry: DiaryEntryWithRelations;
+  verification: EntryVerifyResult | null;
+}
+
+export interface EntryDetailProps {
+  data: EntryDetailData;
+  onBack: () => void;
+  onTagClick: (tag: string) => void;
+  onRelationOpen: (entryId: string) => void;
+}
+
+export function EntryDetail({
+  data,
+  onBack,
+  onTagClick,
+  onRelationOpen,
+}: EntryDetailProps) {
   const theme = useTheme();
   const { diary, entry, verification } = data;
 
   return (
     <Stack gap={6}>
-      <Link
-        href={`/diaries/${entry.diaryId}`}
-        style={{ color: theme.color.text.muted, textDecoration: 'none' }}
+      <button
+        type="button"
+        onClick={onBack}
+        style={{
+          alignSelf: 'flex-start',
+          background: 'transparent',
+          border: 0,
+          padding: 0,
+          color: theme.color.text.muted,
+          cursor: 'pointer',
+          textDecoration: 'none',
+          font: 'inherit',
+        }}
       >
         &larr; {diary?.name ?? 'Diary'}
-      </Link>
+      </button>
 
       <Card variant="elevated" padding="lg">
         <Stack gap={5}>
@@ -76,15 +103,7 @@ export function EntryDetail({ data }: { data: EntryDetailData }) {
               </Text>
               <Stack direction="row" gap={2} wrap>
                 {entry.tags.map((tag) => (
-                  <Link
-                    key={tag}
-                    href={`/diaries/${entry.diaryId}${buildDiaryQuery({
-                      tag,
-                    })}`}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <TagChip tag={tag} />
-                  </Link>
+                  <TagChip key={tag} tag={tag} onClick={onTagClick} />
                 ))}
               </Stack>
             </Stack>
@@ -113,10 +132,19 @@ export function EntryDetail({ data }: { data: EntryDetailData }) {
                       : relation.sourceId;
 
                   return (
-                    <Link
+                    <button
                       key={relation.id}
-                      href={`/diaries/${entry.diaryId}/entries/${relatedEntryId}`}
-                      style={{ textDecoration: 'none', color: 'inherit' }}
+                      type="button"
+                      onClick={() => onRelationOpen(relatedEntryId)}
+                      style={{
+                        background: 'transparent',
+                        border: 0,
+                        padding: 0,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        color: 'inherit',
+                        font: 'inherit',
+                      }}
                     >
                       <Card variant="surface" padding="sm">
                         <Stack direction="row" gap={3} wrap align="center">
@@ -126,7 +154,7 @@ export function EntryDetail({ data }: { data: EntryDetailData }) {
                           </Text>
                         </Stack>
                       </Card>
-                    </Link>
+                    </button>
                   );
                 })}
               </Stack>

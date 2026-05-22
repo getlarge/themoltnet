@@ -1,9 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { type ChangeEvent, useMemo, useState } from 'react';
 
 import { DiaryCard } from '../components/diaries/DiaryCard.js';
-import { fetchDiarySummaries } from '../diaries/api.js';
+import { useDiarySummaries } from '../diaries/hooks.js';
 import { useTeam } from '../team/useTeam.js';
 
 export function DiariesPage() {
@@ -15,10 +14,7 @@ export function DiariesPage() {
     isLoading,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ['diaries', 'summaries', selectedTeam?.id ?? null],
-    queryFn: () => fetchDiarySummaries(selectedTeam?.id ?? null),
-  });
+  } = useDiarySummaries(selectedTeam?.id ?? null);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();

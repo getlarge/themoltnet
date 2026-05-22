@@ -1,9 +1,9 @@
+import { EntryDetail } from '@moltnet/diary-ui';
 import { Card, Stack, Text } from '@themoltnet/design-system';
-import { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 
-import { EntryDetail } from '../components/diaries/EntryDetail.js';
-import { fetchEntryDetail } from '../diaries/api.js';
-import type { EntryDetailData } from '../diaries/utils.js';
+import { useEntryDetail } from '../diaries/hooks.js';
+import { buildDiaryQuery } from '../diaries/utils.js';
 
 export function EntryDetailPage({
   diaryId,
@@ -12,39 +12,14 @@ export function EntryDetailPage({
   diaryId: string;
   entryId: string;
 }) {
-  const [data, setData] = useState<EntryDetailData | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
-    'loading',
-  );
+  const [, navigate] = useLocation();
+  const { data, isLoading, isError } = useEntryDetail(diaryId, entryId);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setStatus('loading');
-
-      try {
-        const result = await fetchEntryDetail(diaryId, entryId);
-        if (!cancelled) {
-          setData(result);
-          setStatus('ready');
-        }
-      } catch {
-        if (!cancelled) setStatus('error');
-      }
-    }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [diaryId, entryId]);
-
-  if (status === 'loading') {
+  if (isLoading) {
     return <Text color="muted">Loading entry…</Text>;
   }
 
-  if (status === 'error' || !data) {
+  if (isError || !data) {
     return (
       <Card style={{ padding: '1.5rem' }}>
         <Stack gap={2}>
@@ -57,5 +32,16 @@ export function EntryDetailPage({
     );
   }
 
-  return <EntryDetail data={data} />;
+  return (
+    <EntryDetail
+      data={data}
+      onBack={() => navigate(`/diaries/${diaryId}`)}
+      onTagClick={(tag) =>
+        navigate(`/diaries/${diaryId}${buildDiaryQuery({ tag })}`)
+      }
+      onRelationOpen={(relatedEntryId) =>
+        navigate(`/diaries/${diaryId}/entries/${relatedEntryId}`)
+      }
+    />
+  );
 }

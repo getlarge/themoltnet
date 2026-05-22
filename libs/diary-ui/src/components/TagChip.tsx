@@ -1,15 +1,13 @@
 import { Badge, useTheme } from '@themoltnet/design-system';
 import type { KeyboardEvent, MouseEvent } from 'react';
 
-export function TagChip({
-  tag,
-  active = false,
-  onClick,
-}: {
+export interface TagChipProps {
   tag: string;
   active?: boolean;
   onClick?: (tag: string) => void;
-}) {
+}
+
+export function TagChip({ tag, active = false, onClick }: TagChipProps) {
   const theme = useTheme();
 
   function handleClick(event: MouseEvent | KeyboardEvent) {

@@ -4,6 +4,7 @@ import { AuthGuard } from './auth/AuthGuard.js';
 import { DashboardLayout } from './layout/DashboardLayout.js';
 import { DiariesPage } from './pages/DiariesPage.js';
 import { DiaryDetailPage } from './pages/DiaryDetailPage.js';
+import { DiaryExplorePage } from './pages/DiaryExplorePage.js';
 import { EntryDetailPage } from './pages/EntryDetailPage.js';
 import { GroupDetailPage } from './pages/GroupDetailPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
@@ -28,6 +29,9 @@ export function App() {
                 entryId={params.entryId}
               />
             )}
+          </Route>
+          <Route path="/diaries/:id/explore">
+            {(params: { id: string }) => <DiaryExplorePage id={params.id} />}
           </Route>
           <Route path="/diaries/:id">
             {(params: { id: string }) => <DiaryDetailPage id={params.id} />}

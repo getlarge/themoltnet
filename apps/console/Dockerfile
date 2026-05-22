@@ -18,6 +18,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/console/package.json apps/console/
 COPY libs/design-system/package.json libs/design-system/
 COPY libs/task-ui/package.json libs/task-ui/
+COPY libs/diary-ui/package.json libs/diary-ui/
 COPY libs/api-client/package.json libs/api-client/
 COPY libs/models/package.json libs/models/
 
