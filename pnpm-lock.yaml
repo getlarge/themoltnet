@@ -509,6 +509,9 @@ importers:
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
+      '@moltnet/diary-ui':
+        specifier: workspace:*
+        version: link:../../libs/diary-ui
       '@moltnet/models':
         specifier: workspace:*
         version: link:../../libs/models

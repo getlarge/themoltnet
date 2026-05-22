@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_WEIGHTS, EMPTY_FILTER_STATE } from '../../types.js';
+import {
+  DEFAULT_WEIGHTS,
+  type DiaryFilterState,
+  EMPTY_FILTER_STATE,
+} from '../../types.js';
 import {
   parseDiaryFiltersFromQuery,
   serializeDiaryFiltersToQuery,
@@ -57,12 +61,12 @@ describe('parseDiaryFiltersFromQuery', () => {
   });
 
   it('round-trips through serialize', () => {
-    const original = {
+    const original: DiaryFilterState = {
       q: 'foo bar',
       tags: ['x', 'y'],
       excludeTags: ['z'],
-      types: ['semantic'] as const,
-      view: 'timeline' as const,
+      types: ['semantic'],
+      view: 'timeline',
       weights: { relevance: 2, recency: 0.1, importance: 0 },
     };
     const qs = serializeDiaryFiltersToQuery(original);

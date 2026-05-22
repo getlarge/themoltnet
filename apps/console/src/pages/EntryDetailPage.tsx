@@ -1,9 +1,10 @@
+import { EntryDetail } from '@moltnet/diary-ui';
 import { Card, Stack, Text } from '@themoltnet/design-system';
 import { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 
-import { EntryDetail } from '../components/diaries/EntryDetail.js';
 import { fetchEntryDetail } from '../diaries/api.js';
-import type { EntryDetailData } from '../diaries/utils.js';
+import { buildDiaryQuery, type EntryDetailData } from '../diaries/utils.js';
 
 export function EntryDetailPage({
   diaryId,
@@ -12,6 +13,7 @@ export function EntryDetailPage({
   diaryId: string;
   entryId: string;
 }) {
+  const [, navigate] = useLocation();
   const [data, setData] = useState<EntryDetailData | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
     'loading',
@@ -57,5 +59,16 @@ export function EntryDetailPage({
     );
   }
 
-  return <EntryDetail data={data} />;
+  return (
+    <EntryDetail
+      data={data}
+      onBack={() => navigate(`/diaries/${diaryId}`)}
+      onTagClick={(tag) =>
+        navigate(`/diaries/${diaryId}${buildDiaryQuery({ tag })}`)
+      }
+      onRelationOpen={(relatedEntryId) =>
+        navigate(`/diaries/${diaryId}/entries/${relatedEntryId}`)
+      }
+    />
+  );
 }

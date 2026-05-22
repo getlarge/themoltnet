@@ -1,21 +1,15 @@
 import { Stack, Text, useTheme } from '@themoltnet/design-system';
 
+import type { TagCloudItem } from '../types.js';
 import { TagChip } from './TagChip.js';
 
-export interface TagCloudItem {
-  tag: string;
-  count: number;
-}
-
-export function TagCloud({
-  items,
-  activeTag,
-  onTagClick,
-}: {
-  items: Array<TagCloudItem>;
+export interface TagCloudProps {
+  items: TagCloudItem[];
   activeTag?: string | null;
   onTagClick?: (tag: string | null) => void;
-}) {
+}
+
+export function TagCloud({ items, activeTag, onTagClick }: TagCloudProps) {
   const theme = useTheme();
 
   if (items.length === 0) {

@@ -1,10 +1,9 @@
 import type { DiaryEntry } from '@moltnet/api-client';
+import { EntryCard, TagCloud, type TagCloudItem } from '@moltnet/diary-ui';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
 
-import { EntryCard } from '../components/diaries/EntryCard.js';
-import { TagCloud, type TagCloudItem } from '../components/diaries/TagCloud.js';
 import { TransferDiaryDialog } from '../components/diaries/TransferDiaryDialog.js';
 import {
   fetchDiaryDetails,
@@ -275,9 +274,11 @@ export function DiaryDetailPage({ id }: { id: string }) {
             {entries.map((entry) => (
               <EntryCard
                 key={entry.id}
-                diaryId={id}
                 entry={entry}
                 view={view}
+                onOpen={(entryId) =>
+                  navigate(`/diaries/${id}/entries/${entryId}`)
+                }
                 onTagClick={(tag) => updateFilters({ tag })}
               />
             ))}
