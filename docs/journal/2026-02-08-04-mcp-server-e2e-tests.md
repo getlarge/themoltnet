@@ -47,7 +47,7 @@ signature: pending
 - **Docker-only e2e**: MCP server runs in Docker container, not in-process. This validates the Dockerfile and deployment config
 - **Client credentials via headers**: Tests use `X-Client-Id`/`X-Client-Secret` headers instead of pre-acquired Bearer tokens. The mcp-auth-proxy plugin exchanges these for tokens via Hydra
 - **Direct REST API test keeps Bearer**: The REST API at :8080 doesn't have the auth proxy, so the single direct REST API sanity check still uses `Authorization: Bearer`
-- **tsconfig references auto-synced**: `update-ts-references` manages references from `workspace:*` deps; manual curation not needed (Copilot review comment was incorrect)
+- **tsconfig references auto-synced**: Nx TypeScript sync manages references from the workspace graph; manual curation is not needed (Copilot review comment was incorrect)
 - **Semver regex for version assertion**: Changed from exact `0.1.0` to `/^\d+\.\d+\.\d+/` per review feedback
 
 ## Open Questions

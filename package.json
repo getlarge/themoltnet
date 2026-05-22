@@ -22,7 +22,7 @@
     "go:fmt:check": "test -z \"$(gofmt -l apps/moltnet-cli/ libs/moltnet-api-client/ libs/dspy-adapters/)\"",
     "go:lint": "pnpm run go:vet && pnpm exec nx run-many -t lint --projects=tag:lang:go",
     "go:generate": "go generate ./libs/moltnet-api-client/...",
-    "postinstall": "update-ts-references",
+    "postinstall": "nx sync",
     "dev:mcp": "npx dotenvx run --env-file .env.local -- pnpm exec nx run @moltnet/mcp-server:dev",
     "dev:api": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/rest-api dev",
     "dev:landing": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/landing dev",
@@ -112,7 +112,6 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
-    "update-ts-references": "catalog:",
     "vite": "catalog:",
     "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
