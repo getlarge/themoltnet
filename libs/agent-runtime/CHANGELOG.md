@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.4](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.18.3...agent-runtime-v0.18.4) (2026-05-22)
+
+
+### Bug Fixes
+
+* **tasks:** make submit output a success criterion ([cf60fd8](https://github.com/getlarge/themoltnet/commit/cf60fd8192c4358b7a4346aacb956e4c46db4bc5))
+
 ## [0.18.3](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.18.2...agent-runtime-v0.18.3) (2026-05-21)
 
 
