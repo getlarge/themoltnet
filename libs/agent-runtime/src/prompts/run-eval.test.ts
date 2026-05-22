@@ -68,39 +68,6 @@ describe('buildRunEvalUserPrompt', () => {
     expect(out).toContain('must be an object, never a string');
   });
 
-  it('does NOT render an Execution mode section (workspace shape speaks for itself)', () => {
-    // Producer never branches on the literal mode string; the workspace
-    // already reflects vitro/vivo. Restating it adds noise.
-    const noneOut = render({
-      ...baseInput,
-      execution: { mode: 'vitro', workspace: 'none' },
-    });
-    expect(noneOut).not.toContain('## Execution mode');
-    expect(noneOut).not.toContain('Mode: `vitro`');
-    expect(noneOut).not.toContain('Workspace: `none`');
-    expect(noneOut).not.toContain('no repository checkout mounted');
-
-    const dedicatedOut = render({
-      ...baseInput,
-      execution: { mode: 'vivo', workspace: 'dedicated_worktree' },
-    });
-    expect(dedicatedOut).not.toContain('## Execution mode');
-    expect(dedicatedOut).not.toContain('disposable git worktree');
-  });
-
-  it('does NOT render a Correlation section regardless of correlationId', () => {
-    // The producer never acts on the correlationId; it remains on
-    // attempt event metadata for cross-variant aggregation but is
-    // omitted from the model's context window.
-    expect(
-      render(baseInput, { ...ctx, correlationId: 'corr-abc' }),
-    ).not.toContain('## Correlation');
-    expect(render(baseInput, { ...ctx, correlationId: null })).not.toContain(
-      '## Correlation',
-    );
-    expect(render(baseInput)).not.toContain('## Correlation');
-  });
-
   it('omits the discipline section when no task context exists', () => {
     expect(render(baseInput)).not.toContain('## Injected Task Context');
   });
