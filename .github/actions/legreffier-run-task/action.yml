@@ -74,6 +74,26 @@ runs:
         set -euo pipefail
         : "${MOLTNET_AGENT_NAME:?MOLTNET_AGENT_NAME must be set at the job level}"
         AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
+        if [ -n "${MOLTNET_GITHUB_APP_PRIVATE_KEY:-}" ]; then
+          pem_normalized="${MOLTNET_GITHUB_APP_PRIVATE_KEY#"${MOLTNET_GITHUB_APP_PRIVATE_KEY%%[![:space:]]*}"}"
+          pem_normalized="${pem_normalized%"${pem_normalized##*[![:space:]]}"}"
+          if [[ "$pem_normalized" == \"*\" && "$pem_normalized" == *\" ]]; then
+            pem_normalized="${pem_normalized#\"}"
+            pem_normalized="${pem_normalized%\"}"
+          elif [[ "$pem_normalized" == \'*\' ]]; then
+            pem_normalized="${pem_normalized#\'}"
+            pem_normalized="${pem_normalized%\'}"
+          fi
+          pem_normalized="${pem_normalized//$'\r\n'/$'\n'}"
+          pem_normalized="${pem_normalized//$'\r'/$'\n'}"
+          pem_normalized="${pem_normalized//\\r\\n/$'\n'}"
+          pem_normalized="${pem_normalized//\\n/$'\n'}"
+          pem_normalized="${pem_normalized//\\r/$'\n'}"
+          if [[ "$pem_normalized" == *$'\n'* && "$pem_normalized" != *$'\n' ]]; then
+            pem_normalized+=$'\n'
+          fi
+          export MOLTNET_GITHUB_APP_PRIVATE_KEY="$pem_normalized"
+        fi
         # Idempotent: a caller workflow that needs the agent dir earlier
         # (e.g. to run an imposer script) may already have materialized it.
         if [ ! -f "$AGENT_DIR/moltnet.json" ]; then
@@ -104,7 +124,7 @@ runs:
         # past a regex check).
         if ! openssl rsa -in "$PEM" -noout -check >/dev/null 2>&1 \
           && ! openssl pkey -in "$PEM" -noout >/dev/null 2>&1; then
-          echo "::error::GitHub App PEM at $PEM failed openssl parse. This usually means MOLTNET_GITHUB_APP_PRIVATE_KEY was passed through a composite-action input, which collapses newlines. Set it as a JOB env var instead."
+          echo "::error::GitHub App PEM at $PEM failed openssl parse. Common causes: MOLTNET_GITHUB_APP_PRIVATE_KEY passed through a composite-action input (newline collapse), or the stored secret contains literal \\n escapes / surrounding quotes instead of raw PEM lines. Prefer a JOB env var and upload the raw PEM block as the secret value."
           exit 1
         fi
         echo "::notice::GitHub App PEM at $PEM parses cleanly."

@@ -584,3 +584,84 @@ func TestConfigInitFromEnvWithGitHubApp(t *testing.T) {
 		t.Errorf("env file missing installation ID, got:\n%s", envContent)
 	}
 }
+
+func TestConfigInitFromEnvNormalizesGitHubAppPEM(t *testing.T) {
+	tmpDir := t.TempDir()
+	const escapedPEM = "\"-----BEGIN RSA PRIVATE KEY-----\\r\\nline-one\\nline-two\\r\\n-----END RSA PRIVATE KEY-----\""
+
+	t.Setenv("MOLTNET_IDENTITY_ID", "gh-app-identity")
+	t.Setenv("MOLTNET_CLIENT_ID", "gh-app-client-id")
+	t.Setenv("MOLTNET_CLIENT_SECRET", "gh-app-client-secret")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:ghappfingerprint")
+	t.Setenv("MOLTNET_GITHUB_APP_ID", "123456")
+	t.Setenv("MOLTNET_GITHUB_APP_INSTALLATION_ID", "78901234")
+	t.Setenv("MOLTNET_GITHUB_APP_PRIVATE_KEY", escapedPEM)
+	t.Setenv("MOLTNET_GITHUB_APP_SLUG", "my-gh-app")
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--agent", "gh-app-agent",
+		"--dir", tmpDir,
+		"--skip-git",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	pemPath := filepath.Join(tmpDir, ".moltnet", "gh-app-agent", "my-gh-app.pem")
+	pemData, err := os.ReadFile(pemPath)
+	if err != nil {
+		t.Fatalf("failed to read PEM: %v", err)
+	}
+
+	const want = "-----BEGIN RSA PRIVATE KEY-----\nline-one\nline-two\n-----END RSA PRIVATE KEY-----\n"
+	if string(pemData) != want {
+		t.Fatalf("unexpected PEM contents:\nwant:\n%q\ngot:\n%q", want, string(pemData))
+	}
+}
+
+func TestNormalizePEMEnvValue(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "raw multiline gets trailing newline",
+			input: "-----BEGIN KEY-----\nline\n-----END KEY-----",
+			want:  "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+		},
+		{
+			name:  "single quoted escaped pem",
+			input: "'-----BEGIN KEY-----\\r\\nline\\n-----END KEY-----'",
+			want:  "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+		},
+		{
+			name:  "actual crlf bytes normalize",
+			input: "-----BEGIN KEY-----\r\nline\r\n-----END KEY-----\r\n",
+			want:  "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+		},
+		{
+			name:  "bare cr bytes normalize",
+			input: "-----BEGIN KEY-----\rline\r-----END KEY-----\r",
+			want:  "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+		},
+		{
+			name:  "already normalized is idempotent",
+			input: "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+			want:  "-----BEGIN KEY-----\nline\n-----END KEY-----\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := normalizePEMEnvValue(tt.input); got != tt.want {
+				t.Fatalf("normalizePEMEnvValue() mismatch:\nwant: %q\ngot:  %q", tt.want, got)
+			}
+		})
+	}
+}

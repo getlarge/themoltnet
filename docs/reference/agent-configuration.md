@@ -167,6 +167,10 @@ The output contains all `MOLTNET_*` variables needed to reconstruct the agent
 directory. Store the file securely; it contains private keys and OAuth2
 secrets.
 
+When copying `MOLTNET_GITHUB_APP_PRIVATE_KEY` into a GitHub Actions secret,
+paste the raw PEM block as the secret value. Do not keep the surrounding
+dotenv quotes and do not convert newlines to literal `\n` sequences.
+
 ### Reconstruct agent config
 
 Set the `MOLTNET_*` variables in the target environment, then run:
