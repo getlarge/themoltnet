@@ -1,4 +1,8 @@
 export {
+  ActiveFilterChips,
+  type ActiveFilterChipsProps,
+} from './components/ActiveFilterChips.js';
+export {
   EntryCard,
   type EntryCardEntry,
   type EntryCardProps,
