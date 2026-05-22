@@ -1,3 +1,4 @@
+import { computeJsonCid } from '@moltnet/crypto-service';
 import type { Task as DbTask, TransactionRunner } from '@moltnet/database';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
 import { FormatRegistry } from '@sinclair/typebox';
@@ -363,6 +364,21 @@ function judgeCreateInput() {
   };
 }
 
+function fulfillCreateInput() {
+  return {
+    taskType: 'fulfill_brief',
+    teamId: TEAM_ID,
+    diaryId: DIARY_ID,
+    inputPayload: {
+      brief: 'Implement the feature.',
+      title: 'Feature work',
+    },
+    callerId: AGENT_ID,
+    callerNs: 'agent' as const,
+    callerIsAgent: true,
+  };
+}
+
 beforeAll(async () => {
   FormatRegistry.Set('uuid', (v: string) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
@@ -486,5 +502,46 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       expect.objectContaining({ cancelReason: expect.stringMatching(/Keto/) }),
     );
+  });
+});
+
+describe('createTaskService.create — producer input normalization', () => {
+  let mocks: Mocks;
+  let service: ReturnType<typeof createTaskService>;
+
+  beforeEach(() => {
+    mocks = makeMocks();
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('stores normalized producer input and hashes the normalized promise body', async () => {
+    await service.create(fulfillCreateInput() as never);
+
+    expect(mocks.taskRepository.create).toHaveBeenCalledOnce();
+    const newTask = mocks.taskRepository.create.mock.calls[0][0] as {
+      input: Record<string, unknown>;
+      inputCid: string;
+    };
+    expect(newTask.input).toMatchObject({
+      brief: 'Implement the feature.',
+      title: 'Feature work',
+      successCriteria: {
+        version: 1,
+        gates: [
+          expect.objectContaining({
+            id: 'submit-output',
+            kind: 'submit-tool-call',
+            required: true,
+          }),
+        ],
+      },
+    });
+    expect(newTask.inputCid).toBe(await computeJsonCid(newTask.input));
   });
 });

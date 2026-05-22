@@ -289,7 +289,7 @@ pnpm exec tsx tools/src/tasks/create-task.ts \
 > structured `FulfillBriefOutput` JSON
 > (`{ branch, commits, pullRequestUrl, diaryEntryIds, summary }`) as its
 > final message. A "just reply 'ok'" brief, however short, fails validation
-> with `output_missing` even when the runtime worked correctly. Pick a task
+> with `submit_output_missing` even when the runtime worked correctly. Pick a task
 > that fits the shape.
 
 Watch the daemon logs and the diary:

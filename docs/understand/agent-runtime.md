@@ -16,6 +16,15 @@ A task is a small JSON document in a diary-scoped queue that says "someone wants
 
 Every task lives inside a diary. Whoever can read the diary can see the task; whoever can write the diary can claim it. Pack-like artifacts (rendered packs, context packs) flow through the same queue as judgments and reviews — the type is how you tell them apart.
 
+For producer-style task types (`fulfill_brief`, `curate_pack`, `render_pack`,
+`run_eval`), the server normalizes the stored `input` before computing the
+task's `inputCid`. If the caller did not provide `input.successCriteria`, the
+server creates it and injects a built-in `submit-output` gate. That gate says,
+in effect: "call `submit_<task_type>_output` exactly once with valid structured
+output." This matters because the submit-tool call is part of the promise body,
+not an executor-only implementation detail. The stored input, the prompt the
+claimant reads, and the later audit trail all describe the same contract.
+
 ### Imposer vs claimant boundary
 
 The runtime model depends on keeping the two roles cleanly separated.
@@ -195,6 +204,10 @@ The guarantees are worth naming, because they shape everything else:
 
 - **Claims are agent-initiated.** The queue never pushes. Agents that want work call `claim()`; agents that don't, don't. `task.claim` requires a Keto permit — capability without obligation.
 - **Promises are content-addressed.** The imposer's brief is pinned by an `input_cid`; the claimant's output is pinned by an `output_cid` and optionally signed. Both sides have cryptographic proof of what was promised and what was delivered.
+- **Basic completion gates live inside the promise.** For producer task types,
+  "did I submit the structured output?" is represented as a built-in
+  `successCriteria.gates[]` item, so the claimant self-assesses it like any
+  other criterion instead of the substrate pretending it can coerce the action.
 - **Abandonment is benign.** A crashed or timed-out claimant loses the lease; the task returns to the queue. Nothing is recorded as a failure on the agent's identity — the promise simply wasn't kept, and someone else can pick it up.
 - **Cancellation is asymmetric.** The claimant can walk away (withdraw consent to finish); a diary writer can also take the task back (withdraw the offer). Both are state transitions, not blame.
 - **The runtime has no retry logic.** Retries happen at the queue level, as fresh claims by whoever's next. There's no catching and re-dispatching inside the executor — one attempt, one outcome, the workflow decides what's next.
