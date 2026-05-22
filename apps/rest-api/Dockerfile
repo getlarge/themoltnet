@@ -62,8 +62,12 @@ COPY . .
 RUN pnpm --filter @moltnet/rest-api exec vite build && \
     pnpm --filter @moltnet/rest-api exec vite build --ssr src/migrate.ts --outDir dist --emptyOutDir false
 
-# Extract rest-api with production-only dependencies
-RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /app/deploy
+# Extract rest-api with production-only dependencies.
+# Keep scripts off in deploy trees so root postinstall does not run `nx sync`
+# against the partial /app/deploy workspace. The long-term fix is tracked in
+# #1223, where images should package prebuilt outputs and stop relying on
+# pnpm deploy for this path.
+RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod --ignore-scripts /app/deploy
 
 # Re-run onnxruntime-node postinstall in the deployed tree (pnpm deploy copies
 # node_modules but does not re-run install scripts)

@@ -42,8 +42,12 @@ COPY . .
 RUN pnpm --filter @moltnet/task-mcp-app exec vite build && \
     pnpm --filter @moltnet/mcp-server exec vite build
 
-# Extract mcp-server with production-only dependencies
-RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod /app/deploy
+# Extract mcp-server with production-only dependencies.
+# Keep scripts off in deploy trees so root postinstall does not run `nx sync`
+# against the partial /app/deploy workspace. The long-term fix is tracked in
+# #1223, where images should package prebuilt outputs and stop relying on
+# pnpm deploy for this path.
+RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod --ignore-scripts /app/deploy
 
 # ---------- production ----------
 # No pnpm needed at runtime — just node
