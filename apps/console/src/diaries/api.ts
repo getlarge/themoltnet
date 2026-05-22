@@ -4,13 +4,14 @@ import {
   getDiary,
   getDiaryEntryById,
   listDiaries,
-  listDiaryEntries,
-  listDiaryTags,
   verifyDiaryEntryById,
 } from '@moltnet/api-client';
 
 import { getApiClient } from '../api.js';
+import { createRestDiaryAdapter } from './adapter.js';
 import type { DiarySummary, EntryDetailData, EntryType } from './utils.js';
+
+export const restDiaryAdapter = createRestDiaryAdapter();
 
 export async function fetchDiarySummaries(
   teamId?: string | null,
@@ -24,23 +25,20 @@ export async function fetchDiarySummaries(
 
   const summaries = await Promise.all(
     diaries.map(async (diary) => {
-      const [entriesResponse, tagsResponse] = await Promise.all([
-        listDiaryEntries({
-          client: getApiClient(),
-          path: { diaryId: diary.id },
-          query: { limit: 1, offset: 0 },
+      const [entries, tags] = await Promise.all([
+        restDiaryAdapter.listEntries({
+          diaryId: diary.id,
+          limit: 1,
+          offset: 0,
         }),
-        listDiaryTags({
-          client: getApiClient(),
-          path: { diaryId: diary.id },
-        }),
+        restDiaryAdapter.listTags(diary.id),
       ]);
 
       return {
         ...diary,
-        entryCount: entriesResponse.data?.total ?? 0,
-        tagCount: tagsResponse.data?.total ?? 0,
-        latestEntryAt: entriesResponse.data?.items[0]?.createdAt ?? null,
+        entryCount: entries.total ?? 0,
+        tagCount: tags.length,
+        latestEntryAt: entries.items[0]?.createdAt ?? null,
       } satisfies DiarySummary;
     }),
   );
@@ -81,36 +79,17 @@ export async function fetchDiaryEntries(input: {
   limit: number;
   offset: number;
 }> {
-  const { data } = await listDiaryEntries({
-    client: getApiClient(),
-    path: { diaryId: input.diaryId },
-    query: {
-      limit: input.limit ?? 20,
-      offset: input.offset ?? 0,
-      tags: input.tag ? [input.tag] : undefined,
-      entryType: input.entryType ? [input.entryType] : undefined,
-    },
+  return restDiaryAdapter.listEntries({
+    diaryId: input.diaryId,
+    limit: input.limit ?? 20,
+    offset: input.offset ?? 0,
+    tags: input.tag ? [input.tag] : undefined,
+    entryType: input.entryType ? [input.entryType] : undefined,
   });
-
-  if (!data) {
-    return {
-      items: [],
-      total: 0,
-      limit: input.limit ?? 20,
-      offset: input.offset ?? 0,
-    };
-  }
-
-  return data;
 }
 
 export async function fetchDiaryTagCloud(diaryId: string) {
-  const { data } = await listDiaryTags({
-    client: getApiClient(),
-    path: { diaryId },
-  });
-
-  return data?.tags ?? [];
+  return restDiaryAdapter.listTags(diaryId);
 }
 
 export async function fetchEntryDetail(
@@ -118,19 +97,13 @@ export async function fetchEntryDetail(
   entryId: string,
 ): Promise<EntryDetailData> {
   const [diaryResponse, entryResponse, verifyResponse] = await Promise.all([
-    getDiary({
-      client: getApiClient(),
-      path: { id: diaryId },
-    }),
+    getDiary({ client: getApiClient(), path: { id: diaryId } }),
     getDiaryEntryById({
       client: getApiClient(),
       path: { entryId },
       query: { expand: 'relations', depth: 2 },
     }),
-    verifyDiaryEntryById({
-      client: getApiClient(),
-      path: { entryId },
-    }),
+    verifyDiaryEntryById({ client: getApiClient(), path: { entryId } }),
   ]);
 
   if (!entryResponse.data) throw new Error('Entry not found');
