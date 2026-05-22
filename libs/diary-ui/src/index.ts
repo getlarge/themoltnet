@@ -7,4 +7,8 @@ export {
   parseDiaryFiltersFromQuery,
   serializeDiaryFiltersToQuery,
 } from './filters/url.js';
+export {
+  useDiaryFilters,
+  type UseDiaryFiltersResult,
+} from './filters/use-diary-filters.js';
 export * from './types.js';
