@@ -43,7 +43,7 @@ describe('curate_pack prompt', () => {
         recipe: 'topic-focused-v1',
       },
     });
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('incidents related to CI pipelines');
     expect(prompt).toContain('aaaaaaaa-0000-4000-8000-000000000001');
     expect(prompt).toContain('`scope:ci`');
@@ -76,7 +76,7 @@ describe('render_pack prompt', () => {
         pinned: false,
       },
     });
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('bbbbbbbb-0000-4000-8000-000000000002');
     expect(prompt).toContain('moltnet_pack_render');
     expect(prompt).toContain('Persist**: `true`');
@@ -106,7 +106,7 @@ describe('judge_pack prompt', () => {
         successCriteria: { version: 1, rubric: testRubric },
       },
     });
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('cccccccc-0000-4000-8000-000000000003');
     expect(prompt).toContain('dddddddd-0000-4000-8000-000000000004');
     expect(prompt).toContain('pack-fidelity');

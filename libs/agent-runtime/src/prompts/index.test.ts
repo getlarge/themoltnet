@@ -19,7 +19,7 @@ describe('buildTaskUserPrompt', () => {
         scopeHint: 'misc',
       },
     });
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('Implement feature X');
     expect(prompt).toContain('t1');
   });
@@ -54,7 +54,7 @@ describe('buildTaskUserPrompt', () => {
         },
       },
     });
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     // The judge should be told the target's id and instructed to fetch
     // it via the MoltNet tools — no pre-resolved bundle required.
     expect(prompt).toContain(targetTaskId);
@@ -85,7 +85,7 @@ describe('buildTaskUserPrompt', () => {
         },
       },
     });
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('moltnet_list_task_attempts');
     expect(prompt).toContain('moltnet_list_task_messages');
     expect(prompt).toContain('Do not delegate');
@@ -121,8 +121,8 @@ describe('buildTaskUserPrompt', () => {
         attached: true,
         source: 'producer_copy',
       },
-    });
-    expect(prompt).toContain('### Workspace');
+    }).text;
+    expect(prompt).toContain('## Workspace');
     expect(prompt).toContain('already attached to the producer attempt');
     expect(prompt).toContain('artifact_<taskId>');
     expect(prompt).toContain(
@@ -157,8 +157,8 @@ describe('buildTaskUserPrompt', () => {
         mode: 'dedicated_worktree',
         branch: 'task/assess-brief-11111111',
       },
-    });
-    expect(prompt).toContain('### Workspace');
+    }).text;
+    expect(prompt).toContain('## Workspace');
     expect(prompt).toContain('dedicated disposable git');
     expect(prompt).toContain('If you need to check out the target');
     expect(prompt).toContain('task/assess-brief-11111111');
@@ -193,7 +193,7 @@ describe('buildTaskUserPrompt', () => {
         },
       },
     });
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('Generated change review');
     expect(prompt).toContain('https://example.test/review/123');
     expect(prompt).toContain('submit_pr_review_output');
@@ -210,7 +210,7 @@ describe('buildTaskUserPrompt', () => {
       correlationId,
       input: { brief: 'do the thing', title: 'thing' },
     });
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain(correlationId);
     expect(prompt).toContain(`moltnet/${correlationId}/<short-slug>`);
     expect(prompt).toContain(`Moltnet-Correlation-Id: ${correlationId}`);
@@ -228,8 +228,8 @@ describe('buildTaskUserPrompt', () => {
         mode: 'dedicated_worktree',
         branch: `moltnet/${correlationId}/thing`,
       },
-    });
-    expect(prompt).toContain('### Workspace');
+    }).text;
+    expect(prompt).toContain('## Workspace');
     expect(prompt).toContain('dedicated git worktree');
     expect(prompt).toContain(`moltnet/${correlationId}/thing`);
     expect(prompt).toContain('already-provisioned dedicated worktree branch');
@@ -240,9 +240,9 @@ describe('buildTaskUserPrompt', () => {
       correlationId: null,
       input: { brief: 'no chain', title: 'x' },
     });
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).not.toContain('Moltnet-Correlation-Id');
-    expect(prompt).not.toMatch(/^### Correlation/m);
+    expect(prompt).not.toMatch(/^## Correlation/m);
   });
 
   it('throws on unknown taskType', () => {

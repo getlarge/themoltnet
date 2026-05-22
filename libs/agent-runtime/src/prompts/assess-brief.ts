@@ -1,5 +1,10 @@
 import type { AssessBriefInput } from '@moltnet/tasks';
 
+import {
+  type AssembledPrompt,
+  assembleTaskPrompt,
+  type PromptSection,
+} from './assemble.js';
 import { buildFinalOutputBlock } from './final-output.js';
 import {
   renderRubricCriteriaList,
@@ -21,50 +26,21 @@ interface Ctx {
  *
  * Design note — no pre-resolved `target` projection
  * --------------------------------------------------
- * Earlier drafts hand-wired a `target` bundle (branch, PR url,
- * commits, summary, diary entry ids) into the prompt before the
- * judge started. That coupled the daemon to one specific producer
- * shape (`FulfillBriefOutput`), forced every executor to know how
- * to project it, and went stale every time a producer task type
- * grew a field. Trade-off was wrong: the runtime is meant to be
- * task-type-agnostic, and judges are perfectly capable of
- * fetching their own data.
- *
- * Now: the prompt tells the judge the `targetTaskId` and instructs
- * it to call `moltnet_get_task` + `moltnet_list_task_attempts`
- * itself. The judge sees whatever the producer's accepted attempt
- * actually wrote — no projection, no lossiness, no daemon-side
- * type knowledge required. Different producers (fulfill_brief,
- * future task types whose products are docs / configs / changes /
- * anything) work without any code path here.
+ * Earlier drafts hand-wired a `target` bundle (branch, PR url, commits,
+ * summary, diary entry ids) into the prompt before the judge started.
+ * That coupled the daemon to one specific producer shape, forced every
+ * executor to know how to project it, and went stale every time a
+ * producer task type grew a field. Now: the prompt tells the judge
+ * the `targetTaskId` and instructs it to call `moltnet_get_task` +
+ * `moltnet_list_task_attempts` itself.
  */
 export function buildAssessBriefUserPrompt(
   input: AssessBriefInput,
   ctx: Ctx,
-): string {
-  // Per-type validateInput already ensured rubric is present for
-  // judgment tasks — narrow safely.
+): AssembledPrompt {
   const rubric = input.successCriteria.rubric!;
 
-  const criteriaList = renderRubricCriteriaList(rubric);
-  const preambleSection = renderRubricPreambleSection(rubric) ?? '';
-
-  const workspaceSection =
-    ctx.workspace?.mode === 'dedicated_worktree'
-      ? [
-          '### Workspace',
-          '',
-          'This review attempt is running inside a dedicated disposable git',
-          'worktree created for this task. If you need to check out the target',
-          'branch or inspect refs locally, do it only inside this worktree.',
-          ctx.workspace.branch
-            ? `The current review branch is \`${ctx.workspace.branch}\`. You may replace it with the target branch locally if that helps your inspection.`
-            : 'The current checkout is disposable and will be cleaned up when the task ends.',
-          '',
-        ].join('\n')
-      : '';
-
-  const lines = [
+  const header = [
     '# Assess Brief Judge',
     '',
     'You are an independent judge. You did NOT produce the work under review.',
@@ -73,9 +49,9 @@ export function buildAssessBriefUserPrompt(
     '',
     `Your diary ID is: ${ctx.diaryId}`,
     `This task's id is: ${ctx.taskId}`,
-    '',
-    '## Target of assessment',
-    '',
+  ].join('\n');
+
+  const target = [
     `**Producer task id:** \`${input.targetTaskId}\``,
     '',
     'Investigate the producer task before scoring:',
@@ -93,9 +69,9 @@ export function buildAssessBriefUserPrompt(
     "   - `diaryEntryIds[]` listed → fetch each via `moltnet_get_entry` to read the producer's reasoning.",
     '   - `summary` set → use as orientation, not as ground truth.',
     "Adapt your investigation to whatever the output actually contains. Score conservatively when the producer's output is opaque or thin.",
-    '',
-    "### Querying the producer's diary entries",
-    '',
+  ].join('\n');
+
+  const diaryQuery = [
     `Beyond the explicit \`diaryEntryIds[]\` from step 3, the producer's`,
     'attempts auto-tag every entry with the `task:*` provenance namespace.',
     'You can pull the full set without enumerating ids by passing the',
@@ -107,39 +83,90 @@ export function buildAssessBriefUserPrompt(
     '- The producer plus any prior chain (when a correlationId was set):',
     '  read it from the task you fetched in step 1 and pass',
     '  `taskFilter: { correlationId: "<id>" }`.',
-    '',
-    workspaceSection,
-    preambleSection,
-    '## Criteria',
-    '',
-    criteriaList,
-    '',
-    '### Scoring rules',
-    '',
+  ].join('\n');
+
+  const workspace =
+    ctx.workspace?.mode === 'dedicated_worktree'
+      ? [
+          'This review attempt is running inside a dedicated disposable git',
+          'worktree created for this task. If you need to check out the target',
+          'branch or inspect refs locally, do it only inside this worktree.',
+          ctx.workspace.branch
+            ? `The current review branch is \`${ctx.workspace.branch}\`. You may replace it with the target branch locally if that helps your inspection.`
+            : 'The current checkout is disposable and will be cleaned up when the task ends.',
+        ].join('\n')
+      : '';
+
+  const preamble = renderRubricPreambleSection(rubric) ?? '';
+  const criteria = renderRubricCriteriaList(rubric);
+
+  const scoring = [
     '- `llm_score`: score 0..1 continuous. `rationale` REQUIRED (2–4 sentences).',
     '- `boolean`: score exactly 0 or 1. `rationale` optional.',
     '- `deterministic_signature_check`: run `moltnet entry verify` on every diary entry returned by step 3 above AND `git verify-commit` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate `evidence.commitsVerified`, `evidence.commitsTotal`, `evidence.signatureFailures`.',
     '',
     'Write a signed diary entry (tags: "judgment", "assess_brief") capturing the rationale before reporting structured output.',
-    '',
-    buildFinalOutputBlock({
-      taskType: 'assess_brief',
-      outputSchemaName: 'AssessBriefOutput',
-      shapeSketch: [
-        '{',
-        '  "scores": [',
-        '    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} }',
-        '  ],',
-        '  "composite": <sum>,',
-        '  "verdict": "<1-3 sentence overall>",',
-        '  "judgeModel": "<provider:model>"',
-        '}',
-      ].join('\n'),
-      extraNotes: [
-        '`composite` = Σ(weight_i × score_i) recomputed. The runtime rejects a mismatch.',
-      ],
-    }),
+  ].join('\n');
+
+  const sections: PromptSection[] = [
+    { id: 'assess_brief.header', source: 'header', body: header },
+    {
+      id: 'assess_brief.target',
+      source: 'task_input',
+      header: 'Target of assessment',
+      body: target,
+    },
+    {
+      id: 'assess_brief.diary_query',
+      source: 'static',
+      header: "Querying the producer's diary entries",
+      body: diaryQuery,
+    },
+    {
+      id: 'assess_brief.workspace',
+      source: 'workspace',
+      header: 'Workspace',
+      body: workspace,
+    },
+    {
+      id: 'assess_brief.preamble',
+      source: 'rubric_judge',
+      body: preamble,
+    },
+    {
+      id: 'assess_brief.criteria',
+      source: 'rubric_judge',
+      header: 'Criteria',
+      body: criteria,
+    },
+    {
+      id: 'assess_brief.scoring',
+      source: 'rubric_judge',
+      header: 'Scoring rules',
+      body: scoring,
+    },
+    {
+      id: 'assess_brief.final_output',
+      source: 'final_output',
+      body: buildFinalOutputBlock({
+        taskType: 'assess_brief',
+        outputSchemaName: 'AssessBriefOutput',
+        shapeSketch: [
+          '{',
+          '  "scores": [',
+          '    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} }',
+          '  ],',
+          '  "composite": <sum>,',
+          '  "verdict": "<1-3 sentence overall>",',
+          '  "judgeModel": "<provider:model>"',
+          '}',
+        ].join('\n'),
+        extraNotes: [
+          '`composite` = Σ(weight_i × score_i) recomputed. The runtime rejects a mismatch.',
+        ],
+      }),
+    },
   ];
 
-  return lines.filter(Boolean).join('\n');
+  return assembleTaskPrompt('assess_brief', sections);
 }

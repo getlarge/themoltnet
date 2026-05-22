@@ -1,5 +1,10 @@
 import type { JudgePackInput } from '@moltnet/tasks';
 
+import {
+  type AssembledPrompt,
+  assembleTaskPrompt,
+  type PromptSection,
+} from './assemble.js';
 import { buildFinalOutputBlock } from './final-output.js';
 import {
   renderRubricCriteriaList,
@@ -14,16 +19,11 @@ interface Ctx {
 export function buildJudgePackUserPrompt(
   input: JudgePackInput,
   ctx: Ctx,
-): string {
+): AssembledPrompt {
   const { renderedPackId, sourcePackId, successCriteria } = input;
-  // Per-type validateInput already ensured rubric is present for
-  // judgment tasks — narrow safely.
   const rubric = successCriteria.rubric!;
 
-  const criteriaList = renderRubricCriteriaList(rubric);
-  const preambleSection = renderRubricPreambleSection(rubric);
-
-  const lines: Array<string | null> = [
+  const header = [
     '# Judge Pack Agent',
     '',
     'You are an independent judge. You did NOT curate or render the pack',
@@ -33,16 +33,17 @@ export function buildJudgePackUserPrompt(
     '',
     `Your diary ID is: ${ctx.diaryId}`,
     `This task's id is: ${ctx.taskId}`,
-    '',
-    '## Target',
-    '',
+  ].join('\n');
+
+  const target = [
     `- **Rendered pack**: \`${renderedPackId}\``,
     `- **Source pack**: \`${sourcePackId}\``,
     `- **Rubric**: \`${rubric.rubricId}\` v${rubric.version}`,
-    '',
-    preambleSection,
-    '## Workflow',
-    '',
+  ].join('\n');
+
+  const preamble = renderRubricPreambleSection(rubric) ?? '';
+
+  const workflow = [
     '1. Call `moltnet_rendered_pack_get` for the rendered pack. Keep the',
     '   `content` string — you will score it.',
     '2. Call `moltnet_pack_get` with `expandEntries: true` for the source',
@@ -51,13 +52,11 @@ export function buildJudgePackUserPrompt(
     '   Scoring rules below). Produce rationales where required.',
     '4. Compute `composite = Σ(weight_i × score_i)` and sanity-check it',
     '   equals the sum you will emit — the runtime rejects mismatches.',
-    '',
-    '## Criteria',
-    '',
-    criteriaList,
-    '',
-    '### Scoring rules',
-    '',
+  ].join('\n');
+
+  const criteria = renderRubricCriteriaList(rubric);
+
+  const scoring = [
     '- `llm_score`: score 0..1 continuous. `rationale` REQUIRED (2–4',
     '  sentences pointing at specific evidence in the rendered content or',
     '  the source entries). NOTE: this mode smooths individual failures',
@@ -97,46 +96,86 @@ export function buildJudgePackUserPrompt(
     '  whether its `entryId` (or a stable reference like title + CID',
     '  prefix) appears in the rendered `content`. Score 1 iff coverage is',
     '  complete; otherwise 0. Populate `evidence` with `{ covered, total, missing: [entryIds] }`.',
-    '',
-    '## Constraints',
-    '',
+  ].join('\n');
+
+  const constraints = [
     '- Do NOT call `moltnet_pack_create` or `moltnet_pack_render`.',
     "- Do NOT fetch the curator's or renderer's task output directly — they",
     '  may leak guidance that biases judgment.',
     '- Keep the session focused on scoring; no speculative exploration.',
     '',
-    'Write a signed diary entry (tags: `judgment`, `judge_pack`, ' +
-      `\`rubric:${rubric.rubricId}\`) capturing the rationale before`,
-    'reporting structured output.',
-    '',
-    buildFinalOutputBlock({
-      taskType: 'judge_pack',
-      outputSchemaName: 'JudgePackOutput',
-      shapeSketch: [
-        '{',
-        '  "scores": [',
-        '    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} },',
-        '    {',
-        '      "criterionId": "<llm_checklist criterion>",',
-        '      "score": 0,                          // 1 iff every assertion passed',
-        '      "assertions": [',
-        '        { "id": "claim-1", "text": "...", "passed": false, "evidence": "..." }',
-        '      ]',
-        '    }',
-        '  ],',
-        '  "composite": <sum-of-weighted-scores>,',
-        '  "verdict": "<1-3 sentence overall>",',
-        '  "judgeModel": "<provider:model>",',
-        '  "rendererBinaryCid": "<cid-string-only-if-available>"',
-        '}',
-      ].join('\n'),
-      extraNotes: [
-        'Omit `rendererBinaryCid` entirely when no binary CID is exposed by',
-        '`moltnet_rendered_pack_get`. Do NOT emit `null` — the field is',
-        'optional and absence is the correct representation when unavailable.',
-      ],
-    }),
+    `Write a signed diary entry (tags: \`judgment\`, \`judge_pack\`, \`rubric:${rubric.rubricId}\`) capturing the rationale before reporting structured output.`,
+  ].join('\n');
+
+  const sections: PromptSection[] = [
+    { id: 'judge_pack.header', source: 'header', body: header },
+    {
+      id: 'judge_pack.target',
+      source: 'task_input',
+      header: 'Target',
+      body: target,
+    },
+    {
+      id: 'judge_pack.preamble',
+      source: 'rubric_judge',
+      body: preamble,
+    },
+    {
+      id: 'judge_pack.workflow',
+      source: 'static',
+      header: 'Workflow',
+      body: workflow,
+    },
+    {
+      id: 'judge_pack.criteria',
+      source: 'rubric_judge',
+      header: 'Criteria',
+      body: criteria,
+    },
+    {
+      id: 'judge_pack.scoring',
+      source: 'rubric_judge',
+      header: 'Scoring rules',
+      body: scoring,
+    },
+    {
+      id: 'judge_pack.constraints',
+      source: 'static',
+      header: 'Constraints',
+      body: constraints,
+    },
+    {
+      id: 'judge_pack.final_output',
+      source: 'final_output',
+      body: buildFinalOutputBlock({
+        taskType: 'judge_pack',
+        outputSchemaName: 'JudgePackOutput',
+        shapeSketch: [
+          '{',
+          '  "scores": [',
+          '    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} },',
+          '    {',
+          '      "criterionId": "<llm_checklist criterion>",',
+          '      "score": 0,                          // 1 iff every assertion passed',
+          '      "assertions": [',
+          '        { "id": "claim-1", "text": "...", "passed": false, "evidence": "..." }',
+          '      ]',
+          '    }',
+          '  ],',
+          '  "composite": <sum-of-weighted-scores>,',
+          '  "verdict": "<1-3 sentence overall>",',
+          '  "judgeModel": "<provider:model>",',
+          '  "rendererBinaryCid": "<cid-string-only-if-available>"',
+          '}',
+        ].join('\n'),
+        extraNotes: [
+          'Omit `rendererBinaryCid` entirely when no binary CID is exposed by',
+          '`moltnet_rendered_pack_get`. Do NOT emit `null` — the field is',
+          'optional and absence is the correct representation when unavailable.',
+        ],
+      }),
+    },
   ];
 
-  return lines.filter((l): l is string => l !== null).join('\n');
+  return assembleTaskPrompt('judge_pack', sections);
 }

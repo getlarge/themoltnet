@@ -480,7 +480,15 @@ export async function executePiTask(
         },
         extras: opts.promptExtras,
       };
-      taskPrompt = buildTaskUserPrompt(task, promptCtx);
+      const assembled = buildTaskUserPrompt(task, promptCtx);
+      taskPrompt = assembled.text;
+      // Forward the per-section trace for replay tooling — answers
+      // "what did the model actually see, section by section?".
+      await emit('info', {
+        event: 'prompt_assembled',
+        taskType: assembled.taskType,
+        sections: assembled.trace,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'prompt_build' });

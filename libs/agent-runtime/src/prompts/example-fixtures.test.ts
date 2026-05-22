@@ -17,7 +17,7 @@ describe('examples/tasks pack-pipeline fixtures', () => {
   it('curate-ci-incidents.json validates and builds a prompt', () => {
     const task = load('curate-ci-incidents.json');
     expect(task.taskType).toBe('curate_pack');
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('CI pipelines');
     expect(prompt).toContain('moltnet_pack_create');
   });
@@ -25,7 +25,7 @@ describe('examples/tasks pack-pipeline fixtures', () => {
   it('render-pack.json validates and builds a prompt', () => {
     const task = load('render-pack.json');
     expect(task.taskType).toBe('render_pack');
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('moltnet_pack_render');
     expect(prompt).toContain('## Fidelity Discipline');
   });
@@ -33,7 +33,7 @@ describe('examples/tasks pack-pipeline fixtures', () => {
   it('judge-pack.json validates and builds a prompt', () => {
     const task = load('judge-pack.json');
     expect(task.taskType).toBe('judge_pack');
-    const prompt = buildTaskUserPrompt(task, ctx);
+    const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('pack-fidelity-v3');
     expect(prompt).toContain('coverage');
     expect(prompt).toContain('deterministic_coverage_check');

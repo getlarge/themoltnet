@@ -19,6 +19,7 @@ import {
 } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
 
+import type { AssembledPrompt } from './assemble.js';
 import { buildAssessBriefUserPrompt } from './assess-brief.js';
 import { buildCuratePackUserPrompt } from './curate-pack.js';
 import { buildFulfillBriefUserPrompt } from './fulfill-brief.js';
@@ -28,6 +29,7 @@ import { buildPrReviewUserPrompt } from './pr-review.js';
 import { buildRenderPackUserPrompt } from './render-pack.js';
 import { buildRunEvalUserPrompt } from './run-eval.js';
 
+export * from './assemble.js';
 export * from './assess-brief.js';
 export * from './curate-pack.js';
 export * from './fulfill-brief.js';
@@ -72,7 +74,7 @@ export interface TaskUserPromptContext {
 export function buildTaskUserPrompt(
   task: Task,
   ctx: TaskUserPromptContext,
-): string {
+): AssembledPrompt {
   switch (task.taskType) {
     case FULFILL_BRIEF_TYPE: {
       if (!Value.Check(FulfillBriefInput, task.input)) {
