@@ -176,9 +176,19 @@ test.describe.serial('Diary detail filter bar', () => {
       .click();
     await page.keyboard.press('Escape');
 
-    // Active chip row reflects filters
-    await expect(page.getByText(seeded.authTag)).toBeVisible();
-    await expect(page.getByText(seeded.excludeTag)).toBeVisible();
+    // Active chip row reflects filters. Target the chip listitems specifically
+    // (the same tag appears in EntryCard tag chips, so getByText is ambiguous).
+    const activeFilters = page.getByRole('list').filter({
+      has: page.getByRole('button', { name: /clear all filters/i }),
+    });
+    await expect(
+      activeFilters.getByRole('listitem').filter({ hasText: seeded.authTag }),
+    ).toBeVisible();
+    await expect(
+      activeFilters
+        .getByRole('listitem')
+        .filter({ hasText: seeded.excludeTag }),
+    ).toBeVisible();
     await expect(page.getByText(seeded.reflectionTitle)).not.toBeVisible();
 
     // Clear all
