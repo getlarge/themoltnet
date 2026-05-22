@@ -12,6 +12,7 @@ export {
   type EntryDetailData,
   type EntryDetailProps,
 } from './components/EntryDetail.js';
+export { FilterBar, type FilterBarProps } from './components/FilterBar.js';
 export {
   estimateTokenCount,
   formatDateTime,
