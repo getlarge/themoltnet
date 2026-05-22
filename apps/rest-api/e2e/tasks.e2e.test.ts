@@ -145,6 +145,21 @@ describe('Tasks API', () => {
     return { executorFingerprint, executorSignature };
   }
 
+  function buildProducerVerification(inputCid = 'bafy-e2e-input') {
+    return {
+      inputCid,
+      results: [
+        {
+          id: 'submit-output',
+          kind: 'gate' as const,
+          status: 'pass' as const,
+          detail: 'submit tool criterion satisfied in e2e fixture',
+        },
+      ],
+      passed: true,
+    };
+  }
+
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
   describe('auth', () => {
@@ -531,6 +546,7 @@ describe('Tasks API', () => {
         ],
         recipeParams: { recipe: 'topic-focused-v1' },
         summary: 'Created a pack receipt for the curated diary entries.',
+        verification: buildProducerVerification(),
       };
       const outputCid = await computeJsonCid(output);
 
@@ -726,6 +742,7 @@ describe('Tasks API', () => {
         ],
         recipeParams: { recipe: 'topic-focused-v1' },
         summary: 'heartbeat-then-complete should succeed',
+        verification: buildProducerVerification(),
       };
       const outputCid = await computeJsonCid(output);
 
@@ -843,6 +860,7 @@ describe('Tasks API', () => {
         ],
         recipeParams: { recipe: 'executor-trust-v1' },
         summary: 'Completed with signed executor manifest.',
+        verification: buildProducerVerification(),
       };
       const outputCid = await computeJsonCid(output);
       const completeAttestation = await signedExecutorComplete(
