@@ -1,10 +1,9 @@
 import { EntryDetail } from '@moltnet/diary-ui';
 import { Card, Stack, Text } from '@themoltnet/design-system';
-import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 
-import { fetchEntryDetail } from '../diaries/api.js';
-import { buildDiaryQuery, type EntryDetailData } from '../diaries/utils.js';
+import { useEntryDetail } from '../diaries/hooks.js';
+import { buildDiaryQuery } from '../diaries/utils.js';
 
 export function EntryDetailPage({
   diaryId,
@@ -14,39 +13,13 @@ export function EntryDetailPage({
   entryId: string;
 }) {
   const [, navigate] = useLocation();
-  const [data, setData] = useState<EntryDetailData | null>(null);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
-    'loading',
-  );
+  const { data, isLoading, isError } = useEntryDetail(diaryId, entryId);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setStatus('loading');
-
-      try {
-        const result = await fetchEntryDetail(diaryId, entryId);
-        if (!cancelled) {
-          setData(result);
-          setStatus('ready');
-        }
-      } catch {
-        if (!cancelled) setStatus('error');
-      }
-    }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [diaryId, entryId]);
-
-  if (status === 'loading') {
+  if (isLoading) {
     return <Text color="muted">Loading entry…</Text>;
   }
 
-  if (status === 'error' || !data) {
+  if (isError || !data) {
     return (
       <Card style={{ padding: '1.5rem' }}>
         <Stack gap={2}>
