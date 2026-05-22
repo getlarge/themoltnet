@@ -66,8 +66,8 @@ describe('Task MCP App', () => {
     expect(result.structuredContent).toMatchObject(parsed);
   });
 
-  it('serves an MCP App HTML resource with CSP metadata', () => {
-    const result = handleTasksAppResource();
+  it('serves an MCP App HTML resource with CSP metadata', async () => {
+    const result = await handleTasksAppResource();
     const content = result.contents[0] as {
       uri: string;
       mimeType: string;
@@ -77,15 +77,12 @@ describe('Task MCP App', () => {
 
     expect(content.uri).toBe(TASK_APP_RESOURCE_URI);
     expect(content.mimeType).toBe(TASK_APP_MIME_TYPE);
-    expect(content.text).toContain("name: 'teams_list'");
-    expect(content.text).toContain("name: 'team_members_list'");
-    expect(content.text).toContain("name: 'tasks_list'");
+    expect(content.text).toContain('<title>MoltNet Tasks</title>');
+    expect(content.text).toContain('Connecting to host...');
+    expect(content.text).toContain('Refresh tasks');
     expect(content.text).toContain('id="task-type"');
     expect(content.text).toContain('id="has-attempts"');
     expect(content.text).toContain('Correlation ID');
-    expect(content.text).toContain('No correlation ID');
-    expect(content.text).toContain('queued_after: optionalDateTime');
-    expect(content.text).toContain('claimed_by_agent_id: optionalValue');
     expect(content._meta).toMatchObject({
       ui: {
         csp: {

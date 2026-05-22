@@ -1,0 +1,39 @@
+{
+  "name": "@moltnet/task-mcp-app",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "index.html"
+  ],
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "catalog:",
+    "@themoltnet/design-system": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-singlefile": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:ui",
+      "scope:mcp",
+      "platform:isomorphic"
+    ]
+  }
+}

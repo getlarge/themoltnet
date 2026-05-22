@@ -130,10 +130,9 @@ describe('Task MCP App E2E', () => {
     expect(resource.uri).toBe(TASK_APP_RESOURCE_URI);
     expect(resource.mimeType).toBe(TASK_APP_MIME_TYPE);
     expect(resource.text).toContain('MoltNet Tasks');
-    expect(resource.text).toContain("name: 'teams_list'");
-    expect(resource.text).toContain("name: 'team_members_list'");
-    expect(resource.text).toContain("name: 'tasks_list'");
-    expect(resource.text).toContain("name: 'tasks_get'");
+    expect(resource.text).toContain('id="filters"');
+    expect(resource.text).toContain('id="queue"');
+    expect(resource.text).toContain('id="task-detail"');
     expect(resource._meta).toMatchObject({
       ui: {
         csp: {

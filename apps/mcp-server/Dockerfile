@@ -23,6 +23,8 @@ COPY libs/crypto-service/package.json libs/crypto-service/
 COPY libs/database/package.json libs/database/
 COPY libs/design-system/package.json libs/design-system/
 COPY libs/models/package.json libs/models/
+COPY libs/task-mcp-app/package.json libs/task-mcp-app/
+COPY libs/entry-explore-mcp-app/package.json libs/entry-explore-mcp-app/
 COPY libs/auth/package.json libs/auth/
 COPY libs/diary-service/package.json libs/diary-service/
 COPY libs/api-client/package.json libs/api-client/
@@ -41,7 +43,7 @@ FROM deps AS build
 # Copy all source (needed for workspace resolution since exports point to src)
 COPY . .
 
-RUN pnpm --filter @moltnet/mcp-server exec vite build
+RUN pnpm exec nx run @moltnet/mcp-server:build
 
 # Extract mcp-server with production-only dependencies
 RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod /app/deploy
