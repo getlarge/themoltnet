@@ -91,6 +91,13 @@
       "tag": "0012_correlation_seals",
       "version": "7",
       "when": 1778497531107
+    },
+    {
+      "breakpoints": true,
+      "idx": 13,
+      "tag": "0013_rebalance_diary_search_scoring",
+      "version": "7",
+      "when": 1779478182805
     }
   ],
   "version": "7"
