@@ -3,8 +3,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
+  globalSetup: './global-setup.ts',
   use: {
-    baseURL: process.env['BASE_URL'] || 'http://127.0.0.1:8080',
+    baseURL: process.env['BASE_URL'] || 'http://127.0.0.1:8082',
     trace: 'on-first-retry',
   },
   projects: [

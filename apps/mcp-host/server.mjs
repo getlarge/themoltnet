@@ -58,6 +58,12 @@ function createHandler(fallbackFile, isHostServer) {
         `http://${request.headers.host ?? 'localhost'}`,
       );
 
+      if (isHostServer && url.pathname === '/healthz') {
+        reply.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        reply.end('ok');
+        return;
+      }
+
       if (isHostServer && url.pathname === '/config.js') {
         const hostname = (request.headers.host ?? 'localhost').split(':')[0];
         const body = `window.__MCP_HOST_E2E_CONFIG__ = ${JSON.stringify(runtimeConfig(hostname))};`;

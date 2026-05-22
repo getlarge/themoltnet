@@ -696,6 +696,7 @@ jobs:
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
       DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
       CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
       # Pre-set the URLs the e2e tests need. Without this, Nx's bin/nx.js
       # loads workspace-root .env at startup; our .env is dotenvx-encrypted,
       # so plain-dotenv pulls ciphertext into DATABASE_URL and pg silently
@@ -762,6 +763,7 @@ jobs:
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
       DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
       CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v5
@@ -801,6 +803,19 @@ jobs:
           CONSOLE_BASE_URL: http://localhost:5174
           MAILSLURPER_API_URL: http://localhost:4437
         run: pnpm exec nx run @moltnet/console:e2e
+      - name: Run MCP Host Browser E2E tests
+        env:
+          BASE_URL: http://127.0.0.1:8082
+          MCP_SERVER_URL: http://127.0.0.1:8001
+          REST_API_URL: http://127.0.0.1:8080
+          DATABASE_URL: postgresql://moltnet:moltnet_secret@127.0.0.1:5433/moltnet
+          ORY_HYDRA_PUBLIC_URL: http://127.0.0.1:4444
+          ORY_HYDRA_ADMIN_URL: http://127.0.0.1:4445
+          ORY_KETO_PUBLIC_URL: http://127.0.0.1:4466
+          ORY_KETO_ADMIN_URL: http://127.0.0.1:4467
+          ORY_KRATOS_PUBLIC_URL: http://127.0.0.1:4433
+          ORY_KRATOS_ADMIN_URL: http://127.0.0.1:4434
+        run: pnpm exec nx run @moltnet/mcp-host-e2e:e2e
       - name: Docker Compose logs
         if: failure()
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
@@ -826,6 +841,7 @@ jobs:
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
       DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
       CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v5
@@ -973,6 +989,9 @@ jobs:
             needed-when: landing
           - image: console
             dockerfile: apps/console/Dockerfile
+            needed-when: e2e-any
+          - image: mcp-host
+            dockerfile: apps/mcp-host/Dockerfile
             needed-when: e2e-any
     steps:
       - name: Skip if image not needed
