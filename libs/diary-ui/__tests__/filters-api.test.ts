@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { EMPTY_FILTER_STATE } from '../../types.js';
-import { toListEntriesArgs, toSearchDiaryArgs } from '../api.js';
+import { toListEntriesArgs, toSearchDiaryArgs } from '../src/filters/api.js';
+import { EMPTY_FILTER_STATE } from '../src/types.js';
 
 const DIARY_ID = 'd1';
 

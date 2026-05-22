@@ -12,6 +12,7 @@ import { Link, useLocation, useSearch } from 'wouter';
 
 import { TransferDiaryDialog } from '../components/diaries/TransferDiaryDialog.js';
 import {
+  SEARCH_LIMIT,
   useDebouncedFilters,
   useDiaryDetails,
   useDiaryTags,
@@ -214,9 +215,10 @@ export function DiaryDetailPage({ id }: { id: string }) {
       {entries.items.length > 0 &&
         state.q !== '' &&
         entries.items.length >= entries.total &&
-        entries.total === 50 && (
+        entries.total === SEARCH_LIMIT && (
           <Text variant="caption" color="muted">
-            Search results capped at 50. Refine your query to narrow further.
+            Search results capped at {SEARCH_LIMIT}. Refine your query to narrow
+            further.
           </Text>
         )}
     </Stack>

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  parseDiaryFiltersFromQuery,
+  serializeDiaryFiltersToQuery,
+} from '../src/filters/url.js';
+import {
   DEFAULT_WEIGHTS,
   type DiaryFilterState,
   EMPTY_FILTER_STATE,
-} from '../../types.js';
-import {
-  parseDiaryFiltersFromQuery,
-  serializeDiaryFiltersToQuery,
-} from '../url.js';
+} from '../src/types.js';
 
 describe('parseDiaryFiltersFromQuery', () => {
   it('returns empty state for empty query', () => {

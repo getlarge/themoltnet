@@ -3,8 +3,8 @@ import { MoltThemeProvider } from '@themoltnet/design-system';
 import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ActiveFilterChips } from '../components/ActiveFilterChips.js';
-import { EMPTY_FILTER_STATE } from '../types.js';
+import { ActiveFilterChips } from '../src/components/ActiveFilterChips.js';
+import { EMPTY_FILTER_STATE } from '../src/types.js';
 
 function renderWithTheme(element: ReactElement) {
   return render(<MoltThemeProvider>{element}</MoltThemeProvider>);

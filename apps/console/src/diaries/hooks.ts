@@ -31,7 +31,14 @@ import { getApiClient } from '../api.js';
 import type { DiarySummary, EntryDetailData } from './utils.js';
 
 const DEFAULT_LIMIT = 20;
-const SEARCH_LIMIT = 50;
+
+/**
+ * Maximum results returned by the search endpoint in a single call.
+ * `DiarySearchResult` is non-paginated (single ranked set); the UI uses this
+ * constant to detect when the cap is hit and surface a "refine your query"
+ * hint.
+ */
+export const SEARCH_LIMIT = 50;
 
 function client() {
   return getApiClient();

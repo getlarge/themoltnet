@@ -11,7 +11,7 @@ import type {
   DiaryEntryWithRelations,
   EntryVerifyResult,
 } from '../types.js';
-import { estimateTokenCount, formatDateTime } from './format.js';
+import { estimateTokenCount, formatDateTime } from '../utils/format.js';
 import { ImportanceIndicator } from './ImportanceIndicator.js';
 import { TagChip } from './TagChip.js';
 import { TypeBadge } from './TypeBadge.js';

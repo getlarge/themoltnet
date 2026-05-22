@@ -1,5 +1,4 @@
-import { Button } from '@themoltnet/design-system';
-import { useTheme } from '@themoltnet/design-system';
+import { Button, useTheme } from '@themoltnet/design-system';
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 export interface PopoverProps {
@@ -20,7 +19,9 @@ export function Popover({
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const panelId = useId();
+  const labelId = useId();
   const reduceMotion =
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -44,6 +45,30 @@ export function Popover({
     };
   }, [open]);
 
+  // Focus management: move focus into the panel on open, return to trigger on
+  // close. This is lighter than a full focus trap (Tab still escapes the panel)
+  // and matches the WAI-ARIA non-modal "group" pattern. role="dialog" would
+  // require aria-modal + a trap, which is overkill for a filter facet.
+  useEffect(() => {
+    if (open) {
+      // Defer to next frame so the panel exists in the DOM.
+      const handle = window.requestAnimationFrame(() => {
+        const first = panelRef.current?.querySelector<HTMLElement>(
+          'input, button, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        (first ?? panelRef.current)?.focus();
+      });
+      return () => window.cancelAnimationFrame(handle);
+    }
+    // The trigger is the first <button> child of the container (it precedes
+    // the panel in DOM order). design-system's Button doesn't forward refs in
+    // its public type, so we locate it via the container instead.
+    const trigger =
+      containerRef.current?.querySelector<HTMLButtonElement>(':scope > button');
+    trigger?.focus();
+    return undefined;
+  }, [open]);
+
   return (
     <div
       ref={containerRef}
@@ -53,7 +78,7 @@ export function Popover({
         type="button"
         variant={open ? 'secondary' : 'ghost'}
         size="sm"
-        aria-haspopup="dialog"
+        aria-haspopup="true"
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={ariaLabel}
@@ -61,7 +86,7 @@ export function Popover({
         onClick={() => setOpen((prev) => !prev)}
       >
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          {label}
+          <span id={labelId}>{label}</span>
           {typeof badge === 'number' && badge > 0 && (
             <span
               aria-hidden="true"
@@ -86,7 +111,10 @@ export function Popover({
       {open && (
         <div
           id={panelId}
-          role="dialog"
+          ref={panelRef}
+          role="group"
+          aria-labelledby={labelId}
+          tabIndex={-1}
           style={{
             position: 'absolute',
             top: 'calc(100% + 6px)',
@@ -102,8 +130,9 @@ export function Popover({
               '0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 32px rgba(0,0,0,0.35)',
             animation: reduceMotion
               ? undefined
-              : `diary-ui-popover-in 160ms ${theme.transition.fast.includes('cubic') ? theme.transition.fast.split(' ').slice(1).join(' ') : 'ease-out'}`,
+              : 'diary-ui-popover-in 160ms ease-out',
             transformOrigin: 'top left',
+            outline: 'none',
           }}
         >
           <style>{`

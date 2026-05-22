@@ -3,8 +3,8 @@ import { MoltThemeProvider } from '@themoltnet/design-system';
 import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { FilterBar } from '../components/FilterBar.js';
-import { EMPTY_FILTER_STATE } from '../types.js';
+import { FilterBar } from '../src/components/FilterBar.js';
+import { EMPTY_FILTER_STATE } from '../src/types.js';
 
 const TAGS = [
   { tag: 'auth', count: 3 },

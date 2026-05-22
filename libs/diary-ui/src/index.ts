@@ -14,11 +14,6 @@ export {
 } from './components/EntryDetail.js';
 export { FilterBar, type FilterBarProps } from './components/FilterBar.js';
 export {
-  estimateTokenCount,
-  formatDateTime,
-  formatRelativeTime,
-} from './components/format.js';
-export {
   ImportanceIndicator,
   type ImportanceIndicatorProps,
 } from './components/ImportanceIndicator.js';
@@ -46,3 +41,8 @@ export {
   type UseDiaryFiltersResult,
 } from './filters/use-diary-filters.js';
 export * from './types.js';
+export {
+  estimateTokenCount,
+  formatDateTime,
+  formatRelativeTime,
+} from './utils/format.js';

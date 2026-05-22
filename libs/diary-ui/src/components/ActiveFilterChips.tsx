@@ -1,6 +1,7 @@
 import { useTheme } from '@themoltnet/design-system';
 
 import type { DiaryFilterState, EntryType } from '../types.js';
+import { ensureChipKeyframes } from './chip-keyframes.js';
 
 export interface ActiveFilterChipsProps {
   state: DiaryFilterState;
@@ -125,6 +126,7 @@ function Chip({
   onRemove: () => void;
   tone?: 'default' | 'danger';
 }) {
+  ensureChipKeyframes();
   const theme = useTheme();
   const isDanger = tone === 'danger';
   const fg = isDanger ? theme.color.error.DEFAULT : theme.color.primary.DEFAULT;
@@ -133,6 +135,7 @@ function Chip({
     : theme.color.primary.muted;
   return (
     <span
+      className="diary-ui-chip"
       role="listitem"
       style={{
         display: 'inline-flex',
@@ -145,18 +148,8 @@ function Chip({
         fontSize: 12,
         lineHeight: 1.4,
         border: `1px solid ${isDanger ? `${theme.color.error.DEFAULT}55` : 'transparent'}`,
-        animation: 'diary-ui-chip-in 140ms ease-out',
       }}
     >
-      <style>{`
-        @keyframes diary-ui-chip-in {
-          from { opacity: 0; transform: translateY(-1px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          [role="listitem"] { animation: none !important; }
-        }
-      `}</style>
       <span
         style={{
           textTransform: 'uppercase',

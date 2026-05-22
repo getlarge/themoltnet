@@ -3,7 +3,7 @@ import { MoltThemeProvider } from '@themoltnet/design-system';
 import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { TagsFacet } from '../components/TagsFacet.js';
+import { TagsFacet } from '../src/components/TagsFacet.js';
 
 const TAGS = [
   { tag: 'auth', count: 5 },

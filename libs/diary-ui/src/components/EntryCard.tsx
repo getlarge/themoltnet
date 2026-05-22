@@ -1,8 +1,7 @@
 import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
-import type { KeyboardEventHandler } from 'react';
 
 import type { EntryType } from '../types.js';
-import { formatRelativeTime } from './format.js';
+import { formatRelativeTime } from '../utils/format.js';
 import { ImportanceIndicator } from './ImportanceIndicator.js';
 import { TagChip } from './TagChip.js';
 import { TypeBadge } from './TypeBadge.js';
@@ -31,21 +30,23 @@ export function EntryCard({
   onTagClick,
 }: EntryCardProps) {
   const theme = useTheme();
-  const handleClick = () => onOpen(entry.id);
-  const handleKey: KeyboardEventHandler<HTMLDivElement> = (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      onOpen(entry.id);
-    }
-  };
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={handleClick}
-      onKeyDown={handleKey}
-      style={{ cursor: 'pointer' }}
+    <button
+      type="button"
+      onClick={() => onOpen(entry.id)}
+      style={{
+        display: 'block',
+        width: '100%',
+        padding: 0,
+        margin: 0,
+        border: 0,
+        background: 'transparent',
+        textAlign: 'left',
+        color: 'inherit',
+        font: 'inherit',
+        cursor: 'pointer',
+      }}
     >
       <Card
         variant="surface"
@@ -94,6 +95,6 @@ export function EntryCard({
           <ImportanceIndicator value={entry.importance} />
         </Stack>
       </Card>
-    </div>
+    </button>
   );
 }
