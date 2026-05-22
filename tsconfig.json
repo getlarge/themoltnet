@@ -123,6 +123,9 @@
     },
     {
       "path": "docs"
+    },
+    {
+      "path": "libs/mcp-test-harness"
     }
   ]
 }

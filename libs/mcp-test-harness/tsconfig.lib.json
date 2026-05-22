@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../database/tsconfig.lib.json"
+    },
+    {
+      "path": "../bootstrap"
+    }
+  ]
+}

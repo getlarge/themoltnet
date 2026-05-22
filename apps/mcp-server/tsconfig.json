@@ -31,6 +31,9 @@
       "path": "../../libs/bootstrap"
     },
     {
+      "path": "../../libs/mcp-test-harness"
+    },
+    {
       "path": "../../libs/crypto-service"
     },
     {
