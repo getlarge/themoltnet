@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +25,26 @@ func getenv(key string, fileVars map[string]string, override bool) string {
 		return v
 	}
 	return fileVars[key]
+}
+
+func normalizePEMEnvValue(raw string) string {
+	value := strings.TrimSpace(raw)
+	if unquoted, err := strconv.Unquote(value); err == nil {
+		value = unquoted
+	} else if len(value) >= 2 {
+		if (value[0] == '"' && value[len(value)-1] == '"') ||
+			(value[0] == '\'' && value[len(value)-1] == '\'') {
+			value = value[1 : len(value)-1]
+		}
+	}
+	value = strings.ReplaceAll(value, "\r\n", "\n")
+	value = strings.ReplaceAll(value, "\\r\\n", "\n")
+	value = strings.ReplaceAll(value, "\\n", "\n")
+	value = strings.ReplaceAll(value, "\\r", "\n")
+	if strings.Contains(value, "\n") && !strings.HasSuffix(value, "\n") {
+		value += "\n"
+	}
+	return value
 }
 
 // runConfigInitFromEnvCmd reconstructs an agent's .moltnet/<agent>/ directory
@@ -129,7 +150,9 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 	// Optional GitHub App section
 	ghAppID := getenv("MOLTNET_GITHUB_APP_ID", fileVars, override)
 	ghInstallID := getenv("MOLTNET_GITHUB_APP_INSTALLATION_ID", fileVars, override)
-	ghAppPEM := getenv("MOLTNET_GITHUB_APP_PRIVATE_KEY", fileVars, override)
+	ghAppPEM := normalizePEMEnvValue(
+		getenv("MOLTNET_GITHUB_APP_PRIVATE_KEY", fileVars, override),
+	)
 	ghAppSlug := getenv("MOLTNET_GITHUB_APP_SLUG", fileVars, override)
 	if ghAppID != "" && ghInstallID != "" && ghAppPEM != "" {
 		pemPath := filepath.Join(agentDir, ghAppSlug+".pem")

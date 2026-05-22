@@ -74,6 +74,24 @@ runs:
         set -euo pipefail
         : "${MOLTNET_AGENT_NAME:?MOLTNET_AGENT_NAME must be set at the job level}"
         AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
+        if [ -n "${MOLTNET_GITHUB_APP_PRIVATE_KEY:-}" ]; then
+          export MOLTNET_GITHUB_APP_PRIVATE_KEY="$(
+            python3 - <<'PY'
+import os
+
+value = os.environ["MOLTNET_GITHUB_APP_PRIVATE_KEY"].strip()
+if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+    value = value[1:-1]
+value = value.replace("\\r\\n", "\n")
+value = value.replace("\\n", "\n")
+value = value.replace("\\r", "\n")
+value = value.replace("\r\n", "\n").replace("\r", "\n")
+if "\n" in value and not value.endswith("\n"):
+    value += "\n"
+print(value, end="")
+PY
+          )"
+        fi
         # Idempotent: a caller workflow that needs the agent dir earlier
         # (e.g. to run an imposer script) may already have materialized it.
         if [ ! -f "$AGENT_DIR/moltnet.json" ]; then
@@ -104,7 +122,7 @@ runs:
         # past a regex check).
         if ! openssl rsa -in "$PEM" -noout -check >/dev/null 2>&1 \
           && ! openssl pkey -in "$PEM" -noout >/dev/null 2>&1; then
-          echo "::error::GitHub App PEM at $PEM failed openssl parse. This usually means MOLTNET_GITHUB_APP_PRIVATE_KEY was passed through a composite-action input, which collapses newlines. Set it as a JOB env var instead."
+          echo "::error::GitHub App PEM at $PEM failed openssl parse. Common causes: MOLTNET_GITHUB_APP_PRIVATE_KEY passed through a composite-action input (newline collapse), or the stored secret contains literal \\n escapes / surrounding quotes instead of raw PEM lines. Prefer a JOB env var and upload the raw PEM block as the secret value."
           exit 1
         fi
         echo "::notice::GitHub App PEM at $PEM parses cleanly."
