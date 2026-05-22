@@ -1142,12 +1142,6 @@ exports[`prompt snapshots (assembler refactor pin) > run_eval — baseline (no c
 You are running an evaluation scenario as variant \`baseline\`.
 Task id: \`t-1\`
 
-## Execution mode
-
-Mode: \`vitro\`
-Workspace: \`none\`
-You are running in a scratch workspace with no repository checkout mounted. Do not assume git history or repo files are present unless the scenario provided them explicitly.
-
 ## Scenario
 
 List the top 3 risks in this code.
@@ -1197,30 +1191,21 @@ exports[`prompt snapshots (assembler refactor pin) > run_eval — with-context +
 You are running an evaluation scenario as variant \`with-pack\`.
 Task id: \`t-1\`
 
-## Correlation
+## Injected Task Context
 
-This task carries correlationId \`corr-abc\`. It joins
-this variant to its sibling \`run_eval\` tasks (other variants of the
-same scenario and to any later \`judge_eval_attempt\` tasks created
-against those variants. You do not need to act on it directly — it
-is recorded for cross-variant aggregation at query time.
+This task includes Injected Task Context supplied by the task
+creator. You MUST inspect it BEFORE you write solution files or
+draft your final answer — not after.
 
-## Execution mode
-
-Mode: \`vivo\`
-Workspace: \`dedicated_worktree\`
-You are running in a dedicated disposable git worktree isolated from the daemon shared checkout.
-
-## Injected context discipline
-
-This task includes extra injected context from the task creator.
-You MUST inspect and use that context BEFORE you write solution
-files or draft your final answer.
-Do not solve first and only review the context afterward.
-For \`context_inline\`, your FIRST content-inspection step should be a \`read\` of \`/workspace/context-pack.md\` before your first \`write\` call. The same content is also mirrored in \`/workspace/AGENTS.md\` and may be referenced from \`/workspace/.claude/CLAUDE.md\`.
-If \`/workspace/context-pack.md\` exists and you skip reading it before writing solution files, you are not following the task instructions.
-If the injected context contains repo- or workflow-specific rules,
-those rules override your generic instincts.
+Reconcile every constraint from that context **into the code path
+itself**: function bodies, control flow, transaction boundaries,
+guard clauses. Quoting a constraint back in a comment, a
+\`// note:\` line, the task summary, or the \`verification\` field is
+NOT following the task. If the constraint affects behavior, it
+must affect behavior.
+For \`context_inline\`, your FIRST content-inspection step is a \`read\` of \`/workspace/context-pack.md\` before your first \`write\` call. The same content is also mirrored in \`/workspace/AGENTS.md\` and may be referenced from \`/workspace/.claude/CLAUDE.md\`.
+If the Injected Task Context contains repo- or workflow-specific
+rules, those rules override your generic instincts.
 
 ## Scenario
 

@@ -68,19 +68,44 @@ describe('buildRunEvalUserPrompt', () => {
     expect(out).toContain('must be an object, never a string');
   });
 
-  it('describes the requested execution mode and workspace', () => {
-    const out = render(baseInput);
-    expect(out).toContain('## Execution mode');
-    expect(out).toContain('Mode: `vitro`');
-    expect(out).toContain('Workspace: `none`');
-    expect(out).toContain('no repository checkout mounted');
+  it('does NOT render an Execution mode section (workspace shape speaks for itself)', () => {
+    // Producer never branches on the literal mode string; the workspace
+    // already reflects vitro/vivo. Restating it adds noise.
+    const noneOut = render({
+      ...baseInput,
+      execution: { mode: 'vitro', workspace: 'none' },
+    });
+    expect(noneOut).not.toContain('## Execution mode');
+    expect(noneOut).not.toContain('Mode: `vitro`');
+    expect(noneOut).not.toContain('Workspace: `none`');
+    expect(noneOut).not.toContain('no repository checkout mounted');
+
+    const dedicatedOut = render({
+      ...baseInput,
+      execution: { mode: 'vivo', workspace: 'dedicated_worktree' },
+    });
+    expect(dedicatedOut).not.toContain('## Execution mode');
+    expect(dedicatedOut).not.toContain('disposable git worktree');
   });
 
-  it('omits injected-context discipline when no task context exists', () => {
-    expect(render(baseInput)).not.toContain('## Injected context discipline');
+  it('does NOT render a Correlation section regardless of correlationId', () => {
+    // The producer never acts on the correlationId; it remains on
+    // attempt event metadata for cross-variant aggregation but is
+    // omitted from the model's context window.
+    expect(
+      render(baseInput, { ...ctx, correlationId: 'corr-abc' }),
+    ).not.toContain('## Correlation');
+    expect(render(baseInput, { ...ctx, correlationId: null })).not.toContain(
+      '## Correlation',
+    );
+    expect(render(baseInput)).not.toContain('## Correlation');
   });
 
-  it('requires inspecting context before solving when task context exists', () => {
+  it('omits the discipline section when no task context exists', () => {
+    expect(render(baseInput)).not.toContain('## Injected Task Context');
+  });
+
+  it('requires reconciling injected context INTO the code (not into comments)', () => {
     const out = render({
       ...baseInput,
       context: [
@@ -91,32 +116,37 @@ describe('buildRunEvalUserPrompt', () => {
         },
       ],
     });
-    expect(out).toContain('## Injected context discipline');
-    expect(out).toContain(
-      'MUST inspect and use that context BEFORE you write solution',
-    );
-    expect(out).toContain(
-      'Do not solve first and only review the context afterward.',
-    );
-    expect(out).toContain(
-      'your FIRST content-inspection step should be a `read` of `/workspace/context-pack.md` before your first `write` call',
-    );
-    expect(out).toContain('skip reading it before writing solution files');
+    // Section uses the exact phrase "Injected Task Context" so weaker
+    // models see one anchor repeated between this heading and the
+    // materialized context block header.
+    expect(out).toContain('## Injected Task Context');
+    expect(out).toContain('MUST inspect it BEFORE you write solution files');
+    // The reconciliation rule is explicit: code, not comments.
+    expect(out).toContain('Reconcile every constraint from that context');
+    expect(out).toContain('into the code path');
+    expect(out).toContain('Quoting a constraint back in a comment');
+    expect(out).toContain('NOT following the task');
+    // Inline-context path still names the materialized files.
     expect(out).toContain('/workspace/context-pack.md');
     expect(out).toContain('/workspace/AGENTS.md');
   });
 
-  it('omits the correlation section when correlationId is null/absent', () => {
-    expect(render(baseInput)).not.toContain('## Correlation');
-    expect(render(baseInput, { ...ctx, correlationId: null })).not.toContain(
-      '## Correlation',
+  it('does NOT leak the judge rubric or judge-only sections', () => {
+    // RunEvalSuccessCriteria intentionally excludes `rubric` so the
+    // producer cannot see the judge's answer key. Assert the rendered
+    // prompt and trace reflect that contract.
+    const assembled = buildRunEvalUserPrompt(
+      { ...baseInput, successCriteria: { version: 1 as const } },
+      ctx,
     );
-  });
-
-  it('emits the correlation section when correlationId is set', () => {
-    const out = render(baseInput, { ...ctx, correlationId: 'corr-abc' });
-    expect(out).toContain('## Correlation');
-    expect(out).toContain('corr-abc');
+    const out = assembled.text;
+    expect(out).not.toContain('## Rubric');
+    expect(out).not.toContain('## Criteria');
+    expect(out).not.toMatch(/\| Criterion \| Weight \|/);
+    expect(out).not.toContain('Composite arithmetic');
+    expect(
+      assembled.trace.find((t) => t.source === 'rubric_judge'),
+    ).toBeUndefined();
   });
 
   it('exposes a structured per-section trace alongside the text', () => {
@@ -126,10 +156,9 @@ describe('buildRunEvalUserPrompt', () => {
     expect(ids).toContain('run_eval.header');
     expect(ids).toContain('run_eval.scenario');
     expect(ids).toContain('run_eval.final_output');
-    // Absent optional sections are kept in the trace with char_count 0.
-    const correlation = assembled.trace.find(
-      (t) => t.id === 'run_eval.correlation',
-    );
-    expect(correlation?.char_count).toBe(0);
+    // Dropped sections must not appear in the trace either — replay
+    // tooling treats "absent from trace" as "never rendered".
+    expect(ids).not.toContain('run_eval.correlation');
+    expect(ids).not.toContain('run_eval.execution_mode');
   });
 });
