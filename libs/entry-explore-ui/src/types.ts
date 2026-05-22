@@ -29,6 +29,18 @@ export interface ExplorePivot {
     | { kind: 'query'; value: string };
 }
 
+export interface ExploreSuggestedDirection {
+  label: string;
+  why: string;
+}
+
+export interface ExploreSelectionBasis {
+  description: string;
+  queries?: string[];
+  includedTags?: string[];
+  excludedTags?: string[];
+}
+
 export interface ExploreCluster {
   id: string;
   label: string;
@@ -55,6 +67,9 @@ export interface ExploreSurfaceState {
   diaryName: string;
   estimatedEntryCount: number;
   sampleCount: number;
+  orientationSummary: string | null;
+  suggestedDirections: ExploreSuggestedDirection[];
+  selectionBasis: ExploreSelectionBasis | null;
   queryState: ExploreQueryState;
   visibleEntries: ExploreEntry[];
   topTags: ExploreTagCount[];

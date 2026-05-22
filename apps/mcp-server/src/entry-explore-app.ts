@@ -1,5 +1,6 @@
 import {
   getDiary,
+  getDiaryEntryById,
   listDiaryEntries,
   listDiaryTags,
   searchDiary,
@@ -96,6 +97,9 @@ function toOutput(state: StoredExplorationState): EntryExploreOutput {
     diaryId: state.diaryId,
     diaryName: state.diaryName,
     estimatedEntryCount: state.estimatedEntryCount,
+    orientationSummary: state.orientationSummary,
+    suggestedDirections: state.suggestedDirections,
+    selectionBasis: state.selectionBasis,
     sampleEntries: state.sampleEntries,
     visibleEntries: state.visibleEntries,
     topTags:
@@ -112,6 +116,51 @@ function toOutput(state: StoredExplorationState): EntryExploreOutput {
     surface_html: renderExploreSurfaceHtml(surfaceState),
     surface_state: surfaceState,
   };
+}
+
+async function resolveVisibleEntries(
+  args: EntryExploreOpenInput,
+  deps: McpDeps,
+  token: string,
+  sampleEntries: ExploreEntry[],
+): Promise<ExploreEntry[]> {
+  if (!args.visible_entry_ids?.length) {
+    return sampleEntries.slice(0, 60);
+  }
+
+  const sampleById = new Map(sampleEntries.map((entry) => [entry.id, entry]));
+  const found: ExploreEntry[] = [];
+  const missingIds: string[] = [];
+
+  for (const entryId of args.visible_entry_ids) {
+    const cached = sampleById.get(entryId);
+    if (cached) {
+      found.push(cached);
+      continue;
+    }
+    missingIds.push(entryId);
+  }
+
+  if (missingIds.length > 0) {
+    const fetched = await Promise.all(
+      missingIds.map(async (entryId) => {
+        const { data, error } = await getDiaryEntryById({
+          client: deps.client,
+          auth: () => token,
+          path: { entryId },
+        });
+        if (error || !data) {
+          throw new Error(
+            extractApiErrorMessage(error, `Failed to load entry ${entryId}`),
+          );
+        }
+        return mapEntry(data);
+      }),
+    );
+    found.push(...fetched);
+  }
+
+  return found.slice(0, 60);
 }
 
 async function handleExploreOpen(
@@ -162,6 +211,12 @@ async function handleExploreOpen(
   }
 
   const sampleEntries = (entriesResponse.data?.items ?? []).map(mapEntry);
+  const visibleEntries = await resolveVisibleEntries(
+    args,
+    deps,
+    token,
+    sampleEntries,
+  );
   const now = new Date().toISOString();
   const explorationId = crypto.randomUUID();
   const stored: StoredExplorationState = {
@@ -170,6 +225,16 @@ async function handleExploreOpen(
     diaryId: args.diary_id,
     diaryName: diaryResponse.data.name,
     estimatedEntryCount: entriesResponse.data?.total ?? sampleEntries.length,
+    orientationSummary: args.orientation_summary ?? null,
+    suggestedDirections: args.suggested_directions ?? [],
+    selectionBasis: args.selection_basis
+      ? {
+          description: args.selection_basis.description,
+          queries: args.selection_basis.queries,
+          includedTags: args.selection_basis.included_tags,
+          excludedTags: args.selection_basis.excluded_tags,
+        }
+      : null,
     sampleEntries,
     topTags: tagsResponse.data?.tags ?? countTagsFromEntries(sampleEntries),
     queryState: {
@@ -177,7 +242,7 @@ async function handleExploreOpen(
       includeTag: null,
       entryType: null,
     },
-    visibleEntries: sampleEntries.slice(0, 60),
+    visibleEntries,
     createdAt: now,
     updatedAt: now,
   };

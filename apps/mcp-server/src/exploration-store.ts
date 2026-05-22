@@ -1,6 +1,8 @@
 import type {
   ExploreEntry,
   ExploreQueryState,
+  ExploreSelectionBasis,
+  ExploreSuggestedDirection,
   ExploreTagCount,
 } from '@moltnet/entry-explore-ui';
 
@@ -10,6 +12,9 @@ export interface StoredExplorationState {
   diaryId: string;
   diaryName: string;
   estimatedEntryCount: number;
+  orientationSummary: string | null;
+  suggestedDirections: ExploreSuggestedDirection[];
+  selectionBasis: ExploreSelectionBasis | null;
   sampleEntries: ExploreEntry[];
   topTags: ExploreTagCount[];
   queryState: ExploreQueryState;

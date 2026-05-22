@@ -1,6 +1,31 @@
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
+const ExploreSuggestedDirectionSchema = Type.Object({
+  label: Type.String({
+    minLength: 1,
+    maxLength: 160,
+    description: 'Human-readable exploration direction label.',
+  }),
+  why: Type.String({
+    minLength: 1,
+    maxLength: 500,
+    description: 'Short explanation for why this direction is interesting.',
+  }),
+});
+
+const ExploreSelectionBasisSchema = Type.Object({
+  description: Type.String({
+    minLength: 1,
+    maxLength: 1000,
+    description:
+      'Lightweight provenance for how the current visible set was selected.',
+  }),
+  queries: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+  included_tags: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+  excluded_tags: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+});
+
 export const EntryExploreOpenSchema = Type.Object({
   diary_id: Type.String({
     description: 'Diary identifier (UUID) to explore visually.',
@@ -12,6 +37,31 @@ export const EntryExploreOpenSchema = Type.Object({
       description: 'How many entries to sample initially. Default 72.',
     }),
   ),
+  orientation_summary: Type.Optional(
+    Type.String({
+      minLength: 1,
+      maxLength: 500,
+      description:
+        'Optional one-sentence framing of what the agent believes is in the diary.',
+    }),
+  ),
+  suggested_directions: Type.Optional(
+    Type.Array(ExploreSuggestedDirectionSchema, {
+      minItems: 1,
+      maxItems: 5,
+      description:
+        'Optional human-readable directions to show from the first render.',
+    }),
+  ),
+  visible_entry_ids: Type.Optional(
+    Type.Array(Type.String({ minLength: 1 }), {
+      minItems: 1,
+      maxItems: 120,
+      description:
+        'Optional snapshot of entry ids to render first for a guided exploration view.',
+    }),
+  ),
+  selection_basis: Type.Optional(ExploreSelectionBasisSchema),
 });
 export type EntryExploreOpenInput = Static<typeof EntryExploreOpenSchema>;
 
@@ -62,6 +112,17 @@ export const EntryExploreOutputSchema = Type.Object({
     diaryName: Type.String(),
     estimatedEntryCount: Type.Integer(),
     sampleCount: Type.Integer(),
+    orientationSummary: Type.Union([Type.String(), Type.Null()]),
+    suggestedDirections: Type.Array(ExploreSuggestedDirectionSchema),
+    selectionBasis: Type.Union([
+      Type.Object({
+        description: Type.String(),
+        queries: Type.Optional(Type.Array(Type.String())),
+        includedTags: Type.Optional(Type.Array(Type.String())),
+        excludedTags: Type.Optional(Type.Array(Type.String())),
+      }),
+      Type.Null(),
+    ]),
     queryState: Type.Object({
       query: Type.Union([Type.String(), Type.Null()]),
       includeTag: Type.Union([Type.String(), Type.Null()]),

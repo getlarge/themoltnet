@@ -5,6 +5,8 @@
  *   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
  */
 
+import { networkInterfaces } from 'node:os';
+
 import { createClient, createDiaryEntry } from '@moltnet/api-client';
 
 import { connectMcpTestClient, parseToolResult } from './mcp-client.js';
@@ -36,8 +38,24 @@ interface SeedEntryInput {
     | 'reflection'
     | 'identity'
     | 'soul';
-  importance: number;
+  importance: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
   tags: string[];
+}
+
+function findReachableHost(): string {
+  const interfaces = networkInterfaces();
+  for (const entries of Object.values(interfaces)) {
+    for (const entry of entries ?? []) {
+      if (
+        entry.family === 'IPv4' &&
+        !entry.internal &&
+        entry.address !== '127.0.0.1'
+      ) {
+        return entry.address;
+      }
+    }
+  }
+  return 'localhost';
 }
 
 async function seedDiaryEntries(
@@ -53,7 +71,7 @@ async function seedDiaryEntries(
       content:
         'Sketching identity traits, long-term preferences, and recurring personal themes for later curation.',
       entryType: 'identity',
-      importance: 0.9,
+      importance: 9,
       tags: ['identity', 'profile', 'curation'],
     },
     {
@@ -61,7 +79,7 @@ async function seedDiaryEntries(
       content:
         'Loose exploration of autonomy, responsibility, and how to share those ideas with humans and agents.',
       entryType: 'reflection',
-      importance: 0.8,
+      importance: 8,
       tags: ['autonomy', 'ideas', 'reflection'],
     },
     {
@@ -69,7 +87,7 @@ async function seedDiaryEntries(
       content:
         'Thoughts about making a large diary feel closer to browsing a photo library than scrolling a log.',
       entryType: 'semantic',
-      importance: 0.85,
+      importance: 9,
       tags: ['product', 'ux', 'entry-exploration'],
     },
     {
@@ -77,7 +95,7 @@ async function seedDiaryEntries(
       content:
         'Notes about sharing explorations with humans and agents without forcing everything into technical workflows.',
       entryType: 'procedural',
-      importance: 0.7,
+      importance: 7,
       tags: ['agents', 'humans', 'collaboration'],
     },
     {
@@ -85,7 +103,7 @@ async function seedDiaryEntries(
       content:
         'Early curation questions: what belongs together, what should remain separate, and how to avoid overload.',
       entryType: 'reflection',
-      importance: 0.75,
+      importance: 8,
       tags: ['packs', 'curation', 'questions'],
     },
     {
@@ -93,7 +111,7 @@ async function seedDiaryEntries(
       content:
         'A more personal fragment about where this work feels energizing and which paths seem too operational.',
       entryType: 'soul',
-      importance: 0.65,
+      importance: 7,
       tags: ['personal', 'direction', 'energy'],
     },
   ];
@@ -143,18 +161,26 @@ async function main(): Promise<void> {
     const firstPivot = parsed.surface_state.pivots[0] ?? null;
     const firstTag = parsed.surface_state.topTags[0]?.tag ?? null;
     const firstEntryId = parsed.surface_state.visibleEntries[0]?.id ?? null;
+    const reachableHost = findReachableHost();
+    const hostMcpUrl = `http://${reachableHost}:8001/mcp`;
 
     const summary = {
       mcp_url: `${harness.mcpBaseUrl}/mcp`,
+      basic_host_servers_env: JSON.stringify([hostMcpUrl]),
       console_url: 'http://localhost:5174',
       auth_headers: {
         'X-Client-Id': harness.agent.clientId,
         'X-Client-Secret': harness.agent.clientSecret,
       },
       basic_host_env: {
+        SERVERS: JSON.stringify([hostMcpUrl]),
         VITE_MCP_CLIENT_ID: harness.agent.clientId,
         VITE_MCP_CLIENT_SECRET: harness.agent.clientSecret,
       },
+      basic_host_start_example:
+        `SERVERS='${JSON.stringify([hostMcpUrl])}' ` +
+        `VITE_MCP_CLIENT_ID='${harness.agent.clientId}' ` +
+        `VITE_MCP_CLIENT_SECRET='${harness.agent.clientSecret}' npm run dev`,
       private_diary_id: harness.privateDiaryId,
       entries_explore_open: {
         diary_id: harness.privateDiaryId,
@@ -192,6 +218,7 @@ async function main(): Promise<void> {
         },
       },
       host_notes: [
+        'If basic-host runs on a different device or origin, use SERVERS from this output instead of localhost.',
         'Connect ext-apps basic-host to mcp_url.',
         'Call entries_explore_open with entries_explore_open to render the entry exploration UI.',
         'Use entries_explore_refine_examples.query or .tag to manually verify refinement.',

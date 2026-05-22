@@ -11,6 +11,8 @@ export type {
   ExploreEntry,
   ExplorePivot,
   ExploreQueryState,
+  ExploreSelectionBasis,
+  ExploreSuggestedDirection,
   ExploreSurfaceState,
   ExploreTagCount,
   ExploreTimelineBucket,

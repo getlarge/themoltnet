@@ -2,6 +2,7 @@ import type {
   ExploreCluster,
   ExploreEntry,
   ExplorePivot,
+  ExploreSuggestedDirection,
   ExploreSurfaceState,
   ExploreTagCount,
   ExploreTimelineBucket,
@@ -122,22 +123,39 @@ export function buildExploreSurfaceState(input: {
   diaryId: string;
   diaryName: string;
   estimatedEntryCount: number;
+  orientationSummary?: string | null;
+  suggestedDirections?: ExploreSuggestedDirection[];
+  selectionBasis?: ExploreSurfaceState['selectionBasis'];
   sampleEntries: ExploreEntry[];
   visibleEntries: ExploreEntry[];
   topTags: ExploreTagCount[];
   queryState: ExploreSurfaceState['queryState'];
 }): ExploreSurfaceState {
   const visibleEntries = distillEntries(input.visibleEntries);
+  const fallbackPivots = buildPivots(input.topTags, visibleEntries);
   return {
     explorationId: input.explorationId,
     diaryId: input.diaryId,
     diaryName: input.diaryName,
     estimatedEntryCount: input.estimatedEntryCount,
     sampleCount: input.sampleEntries.length,
+    orientationSummary: input.orientationSummary ?? null,
+    suggestedDirections: input.suggestedDirections ?? [],
+    selectionBasis: input.selectionBasis ?? null,
     queryState: input.queryState,
     visibleEntries,
     topTags: input.topTags.slice(0, 8),
-    pivots: buildPivots(input.topTags, visibleEntries),
+    pivots: input.suggestedDirections?.length
+      ? input.suggestedDirections.map((direction, index) => ({
+          id: `direction:${index}`,
+          label: direction.label,
+          description: direction.why,
+          action: fallbackPivots[index]?.action ?? {
+            kind: 'query',
+            value: direction.label,
+          },
+        }))
+      : fallbackPivots,
     clusters: buildClusters(input.topTags, visibleEntries),
     timeline: buildTimeline(input.sampleEntries),
   };

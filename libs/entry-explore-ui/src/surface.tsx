@@ -42,6 +42,9 @@ export function ExploreSurface({ state }: { state: ExploreSurfaceState }) {
                 {state.estimatedEntryCount} total entries · {state.sampleCount}{' '}
                 sampled · {state.visibleEntries.length} visible
               </Text>
+              {state.orientationSummary && (
+                <Text color="secondary">{state.orientationSummary}</Text>
+              )}
               {(state.queryState.query ||
                 state.queryState.includeTag ||
                 state.queryState.entryType) && (
@@ -65,7 +68,11 @@ export function ExploreSurface({ state }: { state: ExploreSurfaceState }) {
             <div className="molt-explore-main">
               <Card variant="surface" padding="md">
                 <Stack gap={3}>
-                  <Text variant="h4">Suggested pivots</Text>
+                  <Text variant="h4">
+                    {state.suggestedDirections.length > 0
+                      ? 'Suggested directions'
+                      : 'Suggested pivots'}
+                  </Text>
                   <div className="molt-chip-list">
                     {state.pivots.map((pivot) => (
                       <button
@@ -86,6 +93,11 @@ export function ExploreSurface({ state }: { state: ExploreSurfaceState }) {
               <Card variant="surface" padding="md">
                 <Stack gap={3}>
                   <Text variant="h4">Entry mosaic</Text>
+                  {state.selectionBasis && (
+                    <Text variant="caption" color="muted">
+                      {state.selectionBasis.description}
+                    </Text>
+                  )}
                   <div className="molt-entry-mosaic">
                     {state.visibleEntries.map((entry) => (
                       <button

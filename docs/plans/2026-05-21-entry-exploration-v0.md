@@ -55,12 +55,33 @@ The remote MoltNet API remains the source of truth for:
 
 ## v0 Interaction Contract
 
-### 1. Open diary
+### 1. Agent briefing
+
+The LLM should not be pushed straight into rendering.
+
+Before opening the exploration UI, it should:
+
+- understand what the user wants to discover
+- inspect available diary tools
+- discuss a few candidate territories with the user when needed
+
+A future `entries_explore_plan` tool can support this by returning:
+
+- which diary tools are available
+- what each tool unlocks
+- when to discuss candidate directions before rendering
+- how to call `entries_explore_open` once a direction is chosen
+
+### 2. Open diary
 
 Inputs:
 
 - `diary_id`
-- optional initial search or tag pivot
+- optional agent-shaped framing:
+  - `orientation_summary`
+  - `suggested_directions`
+  - `visible_entry_ids`
+  - `selection_basis`
 
 Background MCP calls:
 
@@ -74,7 +95,19 @@ Target sample size:
 - not necessarily the full diary
 - expected initial window: 50-150 entries depending on diary size
 
-### 2. First-pass exploration state
+`entries_explore_open` should support two modes:
+
+- generic open: only `diary_id`
+- guided open: `diary_id` plus optional framing fields from the agent
+
+Guided open is more opinionated from the beginning:
+
+- the agent can pass one short summary sentence
+- it can suggest a few human-readable directions
+- it can choose the initial visible snapshot via `visible_entry_ids`
+- it can annotate the snapshot with lightweight provenance via `selection_basis`
+
+### 3. First-pass exploration state
 
 The LLM builds a transient `moltnet.entry-exploration/v1` state with:
 
@@ -90,7 +123,7 @@ Important:
 - labels are human language, not internal taxonomy
 - uncertainty should be preserved
 
-### 3. Initial render
+### 4. Initial render
 
 The UI should render immediately once the first exploration state exists.
 
@@ -105,7 +138,7 @@ Optional if cheap:
 
 - cluster strip above the mosaic
 
-### 4. User narrowing
+### 5. User narrowing
 
 The human can click:
 
@@ -116,7 +149,7 @@ The human can click:
 
 Each action becomes a new retrieval intent for the LLM.
 
-### 5. Focused retrieval
+### 6. Focused retrieval
 
 Background MCP calls:
 
@@ -127,7 +160,7 @@ Background MCP calls:
 The LLM updates the transient exploration state incrementally instead of
 rebuilding everything from scratch.
 
-### 6. Visual update
+### 7. Visual update
 
 The visible entry set changes.
 
@@ -140,6 +173,40 @@ The UI should explain why:
 - selected time band
 
 This explanation is important for trust.
+
+## Guided Open Contract
+
+Minimal guided-open shape:
+
+```json
+{
+  "diary_id": "uuid",
+  "orientation_summary": "This diary seems to mix product ideas, reflective notes, and collaboration threads.",
+  "selection_basis": {
+    "description": "These entries were selected after sampling the diary and probing reflective notes about autonomy and direction.",
+    "excluded_tags": [],
+    "included_tags": ["reflection"],
+    "queries": ["autonomy direction identity"]
+  },
+  "suggested_directions": [
+    {
+      "label": "Product and UX ideas",
+      "why": "Several entries focus on shaping interfaces and discovery flows."
+    },
+    {
+      "label": "Reflective entries",
+      "why": "A smaller set explores autonomy, values, and direction."
+    }
+  ],
+  "visible_entry_ids": ["entry-1", "entry-2", "entry-3"]
+}
+```
+
+Notes:
+
+- `visible_entry_ids` is a snapshot, not a durable recipe
+- `selection_basis` is lightweight provenance, not an executable workflow
+- refine calls remain available after open
 
 ## Minimal Exploration State
 

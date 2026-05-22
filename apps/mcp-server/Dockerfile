@@ -22,6 +22,7 @@ COPY libs/observability/package.json libs/observability/
 COPY libs/crypto-service/package.json libs/crypto-service/
 COPY libs/database/package.json libs/database/
 COPY libs/design-system/package.json libs/design-system/
+COPY libs/entry-explore-ui/package.json libs/entry-explore-ui/
 COPY libs/models/package.json libs/models/
 COPY libs/auth/package.json libs/auth/
 COPY libs/diary-service/package.json libs/diary-service/
