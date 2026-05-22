@@ -52,6 +52,21 @@ const silentLogger: AgentRuntimeLogger = {
   child: () => silentLogger,
 };
 
+function buildProducerVerification(inputCid: string) {
+  return {
+    inputCid,
+    results: [
+      {
+        id: 'submit-output',
+        kind: 'gate' as const,
+        status: 'pass' as const,
+        detail: 'submit tool criterion satisfied in daemon e2e stub',
+      },
+    ],
+    passed: true,
+  };
+}
+
 /**
  * The realistic local-daemon scenario is "one agent, one team, one
  * daemon" — the same agent imposes a task and runs the daemon that
@@ -317,6 +332,7 @@ describe('Agent daemon (e2e)', () => {
           recipeParams: {},
           summary:
             'e2e stub curation summary, two sentences satisfy minLength.',
+          verification: buildProducerVerification(claimedTask.task.inputCid),
         };
         const output = {
           taskId: claimedTask.task.id,
@@ -975,11 +991,31 @@ async function buildStubbedTaskOutput(
         totalTokens: 10,
         durationMs: 100,
         traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
-        verification: {
-          inputCid: 'bafye2eeval',
-          results: [],
-          passed: true,
-        },
+        verification: buildProducerVerification(claimedTask.task.inputCid),
+      };
+    case 'fulfill_brief':
+      return {
+        branch: executionPlan.worktreeBranch ?? 'feat/daemon-e2e',
+        commits: [],
+        pullRequestUrl: null,
+        diaryEntryIds: [],
+        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
+        verification: buildProducerVerification(claimedTask.task.inputCid),
+      };
+    case 'curate_pack':
+      return {
+        packId: '00000000-0000-4000-8000-000000000001',
+        packCid: 'bafyreidlnv7nu7y4kdxkxv5e2onbpoq5o3i6gw7r6xkk7d3w5b3xrylkqe',
+        entries: [
+          {
+            entryId: '00000000-0000-4000-8000-000000000002',
+            rank: 1,
+            rationale: 'e2e stub entry',
+          },
+        ],
+        recipeParams: {},
+        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
+        verification: buildProducerVerification(claimedTask.task.inputCid),
       };
     case 'judge_eval_attempt':
       return {
