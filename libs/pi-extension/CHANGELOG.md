@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.19.5](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.19.4...pi-extension-v0.19.5) (2026-05-22)
+
+
+### Bug Fixes
+
+* **tasks:** make submit output a success criterion ([cf60fd8](https://github.com/getlarge/themoltnet/commit/cf60fd8192c4358b7a4346aacb956e4c46db4bc5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.18.4
+
 ## [0.19.4](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.19.3...pi-extension-v0.19.4) (2026-05-21)
 
 

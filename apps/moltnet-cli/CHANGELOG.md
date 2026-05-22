@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.43.1](https://github.com/getlarge/themoltnet/compare/cli-v1.43.0...cli-v1.43.1) (2026-05-22)
+
+
+### Bug Fixes
+
+* **ci:** harden PEM normalization in actions ([90ddbca](https://github.com/getlarge/themoltnet/commit/90ddbca0695242d4aab1d58aa87bd129af16cbd1))
+* **ci:** normalize GitHub App PEM before agent materialization ([e187543](https://github.com/getlarge/themoltnet/commit/e187543cb8a84fde8120b1f75b71883fc3cbd684))
+* **ci:** normalize GitHub App PEM before agent materialization ([93f7926](https://github.com/getlarge/themoltnet/commit/93f792618a27ec3db670c3fbf1ed84b24d66a374))
+
 ## [1.43.0](https://github.com/getlarge/themoltnet/compare/cli-v1.42.0...cli-v1.43.0) (2026-05-21)
 
 
