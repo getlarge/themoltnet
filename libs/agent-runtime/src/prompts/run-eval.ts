@@ -1,5 +1,10 @@
 import type { RunEvalInput } from '@moltnet/tasks';
 
+import {
+  type AssembledPrompt,
+  assembleTaskPrompt,
+  type PromptSection,
+} from './assemble.js';
 import { buildFinalOutputBlock } from './final-output.js';
 import { buildSelfVerificationBlock } from './self-verification.js';
 
@@ -20,8 +25,7 @@ interface Ctx {
  *
  * Free-form: no git workflow, no commit ceremony. The executor produces
  * a textual response (and optional file artifacts) that later
- * `judge_eval_attempt` task(s) grade against their own hidden
- * rubric.
+ * `judge_eval_attempt` task(s) grade against their own hidden rubric.
  *
  * Context delivery is handled by `resolveTaskContext` (see
  * libs/agent-runtime/src/context-bindings.ts) and runs BEFORE this
@@ -30,42 +34,32 @@ interface Ctx {
  * and `user_inline` items are appended to the first user message. This
  * builder does NOT inline `input.context[]` itself.
  */
-export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
+export function buildRunEvalUserPrompt(
+  input: RunEvalInput,
+  ctx: Ctx,
+): AssembledPrompt {
   const { scenario, variantLabel, execution, successCriteria } = input;
   const hasContext = input.context.length > 0;
   const hasInlineContext = input.context.some(
     (entry) => entry.binding === 'context_inline',
   );
 
-  const inputFilesSection = scenario.inputFiles?.length
-    ? [
-        '### Input files',
-        '',
-        ...scenario.inputFiles.map((f) => `- \`${f}\``),
-        '',
-      ].join('\n')
-    : '';
+  const header =
+    `# Run Eval Agent\n\n` +
+    `You are running an evaluation scenario as variant \`${variantLabel}\`.\n` +
+    `Task id: \`${ctx.taskId}\``;
 
-  const verificationSection = successCriteria
-    ? buildSelfVerificationBlock(ctx.taskId)
-    : '';
-
-  const correlationSection = ctx.correlationId
+  const correlation = ctx.correlationId
     ? [
-        '### Correlation',
-        '',
         `This task carries correlationId \`${ctx.correlationId}\`. It joins`,
         'this variant to its sibling `run_eval` tasks (other variants of the',
         'same scenario and to any later `judge_eval_attempt` tasks created',
         'against those variants. You do not need to act on it directly — it',
         'is recorded for cross-variant aggregation at query time.',
-        '',
       ].join('\n')
     : '';
 
-  const executionSection = [
-    '### Execution mode',
-    '',
+  const executionMode = [
     `Mode: \`${execution.mode}\``,
     `Workspace: \`${execution.workspace}\``,
     execution.workspace === 'none'
@@ -73,13 +67,10 @@ export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
       : execution.workspace === 'shared_mount'
         ? 'You are running against the daemon shared mount. Treat any repository mutations as affecting the mounted checkout directly.'
         : 'You are running in a dedicated disposable git worktree isolated from the daemon shared checkout.',
-    '',
   ].join('\n');
 
-  const contextDisciplineSection = hasContext
+  const contextDiscipline = hasContext
     ? [
-        '### Injected context discipline',
-        '',
         'This task includes extra injected context from the task creator.',
         'You MUST inspect and use that context BEFORE you write solution',
         'files or draft your final answer.',
@@ -92,11 +83,18 @@ export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
           : 'Do not rely on memory alone when task-injected context is available; inspect it first.',
         'If the injected context contains repo- or workflow-specific rules,',
         'those rules override your generic instincts.',
-        '',
       ].join('\n')
     : '';
 
-  const finalOutputBlock = buildFinalOutputBlock({
+  const inputFiles = scenario.inputFiles?.length
+    ? scenario.inputFiles.map((f) => `- \`${f}\``).join('\n')
+    : '';
+
+  const verification = successCriteria
+    ? buildSelfVerificationBlock(ctx.taskId)
+    : '';
+
+  const finalOutput = buildFinalOutputBlock({
     taskType: 'run_eval',
     outputSchemaName: 'RunEvalOutput',
     shapeSketch: [
@@ -117,19 +115,49 @@ export function buildRunEvalUserPrompt(input: RunEvalInput, ctx: Ctx): string {
     ].join('\n'),
   });
 
-  // Each section already carries its own internal blank lines. Drop
-  // sections that are absent so we never emit consecutive blanks.
-  const sections = [
-    '# Run Eval Agent\n',
-    `You are running an evaluation scenario as variant \`${variantLabel}\`.\nTask id: \`${ctx.taskId}\`\n`,
-    correlationSection,
-    executionSection,
-    contextDisciplineSection,
-    `### Scenario\n\n${scenario.prompt}\n`,
-    inputFilesSection,
-    verificationSection,
-    finalOutputBlock,
-  ].filter((s) => s !== '');
+  const sections: PromptSection[] = [
+    { id: 'run_eval.header', source: 'header', body: header },
+    {
+      id: 'run_eval.correlation',
+      source: 'task_input',
+      header: 'Correlation',
+      body: correlation,
+    },
+    {
+      id: 'run_eval.execution_mode',
+      source: 'task_input',
+      header: 'Execution mode',
+      body: executionMode,
+    },
+    {
+      id: 'run_eval.context_discipline',
+      source: 'discipline',
+      header: 'Injected context discipline',
+      body: contextDiscipline,
+    },
+    {
+      id: 'run_eval.scenario',
+      source: 'task_input',
+      header: 'Scenario',
+      body: scenario.prompt,
+    },
+    {
+      id: 'run_eval.input_files',
+      source: 'task_input',
+      header: 'Input files',
+      body: inputFiles,
+    },
+    {
+      id: 'run_eval.verification',
+      source: 'verification',
+      body: verification,
+    },
+    {
+      id: 'run_eval.final_output',
+      source: 'final_output',
+      body: finalOutput,
+    },
+  ];
 
-  return sections.join('\n');
+  return assembleTaskPrompt('run_eval', sections);
 }

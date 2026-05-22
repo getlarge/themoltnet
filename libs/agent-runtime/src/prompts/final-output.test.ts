@@ -39,7 +39,7 @@ const TASK_FIXTURES: Array<{
           input: { brief: 'do', title: 'x' },
         }),
         ctx,
-      ),
+      ).text,
   },
   {
     label: 'assess_brief',
@@ -55,7 +55,7 @@ const TASK_FIXTURES: Array<{
           },
         }),
         ctx,
-      ),
+      ).text,
   },
   {
     label: 'curate_pack',
@@ -71,7 +71,7 @@ const TASK_FIXTURES: Array<{
           },
         }),
         ctx,
-      ),
+      ).text,
   },
   {
     label: 'render_pack',
@@ -84,7 +84,7 @@ const TASK_FIXTURES: Array<{
           input: { packId: 'bbbbbbbb-0000-4000-8000-000000000002' },
         }),
         ctx,
-      ),
+      ).text,
   },
   {
     label: 'judge_pack',
@@ -101,7 +101,7 @@ const TASK_FIXTURES: Array<{
           },
         }),
         ctx,
-      ),
+      ).text,
   },
   {
     label: 'pr_review',
@@ -134,7 +134,7 @@ const TASK_FIXTURES: Array<{
           },
         }),
         ctx,
-      ),
+      ).text,
   },
   {
     label: 'run_eval',
@@ -152,7 +152,7 @@ const TASK_FIXTURES: Array<{
           },
         }),
         ctx,
-      ),
+      ).text,
   },
 ];
 

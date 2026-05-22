@@ -1,5 +1,10 @@
 import type { FulfillBriefInput } from '@moltnet/tasks';
 
+import {
+  type AssembledPrompt,
+  assembleTaskPrompt,
+  type PromptSection,
+} from './assemble.js';
 import { buildFinalOutputBlock } from './final-output.js';
 import { buildSelfVerificationBlock } from './self-verification.js';
 
@@ -32,57 +37,10 @@ interface Ctx {
 export function buildFulfillBriefUserPrompt(
   input: FulfillBriefInput,
   ctx: Ctx,
-): string {
+): AssembledPrompt {
   const { brief, title, seedFiles, scopeHint } = input;
 
-  const seedSection = seedFiles?.length
-    ? [
-        '### Seed files',
-        '',
-        'Start by reading these files to ground yourself:',
-        ...seedFiles.map((f) => `- \`${f}\``),
-        '',
-      ].join('\n')
-    : '';
-
-  const branchSlug = ctx.correlationId
-    ? `moltnet/${ctx.correlationId}/`
-    : scopeHint
-      ? `feat/${scopeHint}-`
-      : 'feat/';
-
-  const correlationSection = ctx.correlationId
-    ? [
-        '### Correlation',
-        '',
-        `This task carries correlationId \`${ctx.correlationId}\`. You MUST:`,
-        '',
-        `1. Name your branch \`moltnet/${ctx.correlationId}/<short-slug>\` — use a`,
-        '   slug derived from the brief title (lowercase-kebab, ≤60 chars).',
-        `2. Include the trailer \`Moltnet-Correlation-Id: ${ctx.correlationId}\` on`,
-        '   your **first** commit on that branch (subsequent commits do not need it).',
-        '',
-        'These are recovery anchors for the MoltNet mention-bot. Do not deviate',
-        'from this branch naming scheme when correlationId is set.',
-        '',
-      ].join('\n')
-    : '';
-
-  const workspaceSection =
-    ctx.workspace?.mode === 'dedicated_worktree'
-      ? [
-          '### Workspace',
-          '',
-          'This attempt is running inside a dedicated git worktree created',
-          'for this task. Do not repurpose or switch the primary checkout.',
-          ctx.workspace.branch
-            ? `The current branch is \`${ctx.workspace.branch}\`. Stay on this branch unless the runtime instructor explicitly tells you otherwise.`
-            : 'Stay on the branch that was pre-provisioned for this task.',
-          '',
-        ].join('\n')
-      : '';
-
-  const lines = [
+  const header = [
     '# Fulfill Brief Agent',
     '',
     'You are a software engineering agent working in a sandboxed environment.',
@@ -94,16 +52,47 @@ export function buildFulfillBriefUserPrompt(
     `## Task: ${title ?? 'Fulfill brief'}`,
     '',
     `Task id: \`${ctx.taskId}\``,
-    '',
-    '### Brief',
-    '',
-    brief,
-    '',
-    seedSection,
-    correlationSection,
-    workspaceSection,
-    '### Workflow',
-    '',
+  ].join('\n');
+
+  const seedFilesBody = seedFiles?.length
+    ? [
+        'Start by reading these files to ground yourself:',
+        ...seedFiles.map((f) => `- \`${f}\``),
+      ].join('\n')
+    : '';
+
+  const branchSlug = ctx.correlationId
+    ? `moltnet/${ctx.correlationId}/`
+    : scopeHint
+      ? `feat/${scopeHint}-`
+      : 'feat/';
+
+  const correlation = ctx.correlationId
+    ? [
+        `This task carries correlationId \`${ctx.correlationId}\`. You MUST:`,
+        '',
+        `1. Name your branch \`moltnet/${ctx.correlationId}/<short-slug>\` — use a`,
+        '   slug derived from the brief title (lowercase-kebab, ≤60 chars).',
+        `2. Include the trailer \`Moltnet-Correlation-Id: ${ctx.correlationId}\` on`,
+        '   your **first** commit on that branch (subsequent commits do not need it).',
+        '',
+        'These are recovery anchors for the MoltNet mention-bot. Do not deviate',
+        'from this branch naming scheme when correlationId is set.',
+      ].join('\n')
+    : '';
+
+  const workspace =
+    ctx.workspace?.mode === 'dedicated_worktree'
+      ? [
+          'This attempt is running inside a dedicated git worktree created',
+          'for this task. Do not repurpose or switch the primary checkout.',
+          ctx.workspace.branch
+            ? `The current branch is \`${ctx.workspace.branch}\`. Stay on this branch unless the runtime instructor explicitly tells you otherwise.`
+            : 'Stay on the branch that was pre-provisioned for this task.',
+        ].join('\n')
+      : '';
+
+  const workflow = [
     ctx.workspace?.mode === 'dedicated_worktree'
       ? `1. Use the already-provisioned dedicated worktree branch${ctx.workspace.branch ? ` (\`${ctx.workspace.branch}\`)` : ''}; do not create or switch the primary checkout.`
       : `1. Create a feature branch (starting prefix suggestion: \`${branchSlug}<short-slug>\`).`,
@@ -114,23 +103,64 @@ export function buildFulfillBriefUserPrompt(
     '   `moltnet_create_entry` and embed its id in the commit trailer',
     '   `MoltNet-Diary: <id>` (per the runtime instructor).',
     '6. Push the branch and open a PR.',
-    '',
-    buildSelfVerificationBlock(ctx.taskId),
-    buildFinalOutputBlock({
-      taskType: 'fulfill_brief',
-      outputSchemaName: 'FulfillBriefOutput',
-      shapeSketch: [
-        '{',
-        '  "branch": "<branch-name>",',
-        '  "commits": [{ "sha": "...", "message": "...", "diaryEntryId": "..." }],',
-        '  "pullRequestUrl": "<url-or-null>",',
-        '  "diaryEntryIds": ["..."],',
-        '  "summary": "<1-3 sentence recap>",',
-        '  "verification": <required iff input.successCriteria; see Self-verification>',
-        '}',
-      ].join('\n'),
-    }),
+  ].join('\n');
+
+  const sections: PromptSection[] = [
+    { id: 'fulfill_brief.header', source: 'header', body: header },
+    {
+      id: 'fulfill_brief.brief',
+      source: 'task_input',
+      header: 'Brief',
+      body: brief,
+    },
+    {
+      id: 'fulfill_brief.seed_files',
+      source: 'task_input',
+      header: 'Seed files',
+      body: seedFilesBody,
+    },
+    {
+      id: 'fulfill_brief.correlation',
+      source: 'task_input',
+      header: 'Correlation',
+      body: correlation,
+    },
+    {
+      id: 'fulfill_brief.workspace',
+      source: 'workspace',
+      header: 'Workspace',
+      body: workspace,
+    },
+    {
+      id: 'fulfill_brief.workflow',
+      source: 'static',
+      header: 'Workflow',
+      body: workflow,
+    },
+    {
+      id: 'fulfill_brief.verification',
+      source: 'verification',
+      body: buildSelfVerificationBlock(ctx.taskId),
+    },
+    {
+      id: 'fulfill_brief.final_output',
+      source: 'final_output',
+      body: buildFinalOutputBlock({
+        taskType: 'fulfill_brief',
+        outputSchemaName: 'FulfillBriefOutput',
+        shapeSketch: [
+          '{',
+          '  "branch": "<branch-name>",',
+          '  "commits": [{ "sha": "...", "message": "...", "diaryEntryId": "..." }],',
+          '  "pullRequestUrl": "<url-or-null>",',
+          '  "diaryEntryIds": ["..."],',
+          '  "summary": "<1-3 sentence recap>",',
+          '  "verification": <required iff input.successCriteria; see Self-verification>',
+          '}',
+        ].join('\n'),
+      }),
+    },
   ];
 
-  return lines.filter(Boolean).join('\n');
+  return assembleTaskPrompt('fulfill_brief', sections);
 }

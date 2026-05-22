@@ -182,7 +182,7 @@ describe('pack-pipeline prompts only reference exposed tools', () => {
 
   for (const [name, task] of tasks) {
     it(`${name} prompt references only tools exposed by createMoltNetTools`, () => {
-      const prompt = buildTaskUserPrompt(task, ctx);
+      const prompt = buildTaskUserPrompt(task, ctx).text;
       const refs = promptToolRefs(prompt);
       const missing = [...refs].filter((r) => !exposed.has(r));
       expect(

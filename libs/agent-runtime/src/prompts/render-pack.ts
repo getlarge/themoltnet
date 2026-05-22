@@ -1,5 +1,10 @@
 import type { RenderPackInput } from '@moltnet/tasks';
 
+import {
+  type AssembledPrompt,
+  assembleTaskPrompt,
+  type PromptSection,
+} from './assemble.js';
 import { buildFinalOutputBlock } from './final-output.js';
 import { buildSelfVerificationBlock } from './self-verification.js';
 
@@ -15,10 +20,10 @@ interface Ctx {
 export function buildRenderPackUserPrompt(
   input: RenderPackInput,
   ctx: Ctx,
-): string {
+): AssembledPrompt {
   const { packId, persist = true, pinned = false } = input;
 
-  const lines = [
+  const header = [
     '# Render Pack Agent',
     '',
     'You are rendering a context pack to markdown. Step 2 of the',
@@ -27,15 +32,15 @@ export function buildRenderPackUserPrompt(
     '',
     `Your agent-session diary ID is: ${ctx.diaryId}`,
     `This task's id is: ${ctx.taskId}`,
-    '',
-    '## Input',
-    '',
+  ].join('\n');
+
+  const inputBlock = [
     `- **Pack**: \`${packId}\``,
     `- **Persist**: \`${persist}\``,
     `- **Pinned**: \`${pinned}\``,
-    '',
-    '## Workflow',
-    '',
+  ].join('\n');
+
+  const workflow = [
     '1. Call `moltnet_pack_get` with `expandEntries: true` to inspect the',
     '   source entries. Read it — you need the entry count for your output.',
     '2. Call `moltnet_pack_render` with:',
@@ -44,15 +49,15 @@ export function buildRenderPackUserPrompt(
     `   - \`pinned\`: \`${pinned}\``,
     '   Record the returned `renderedPackId`, `cid`, `renderMethod`, and',
     '   `content` byte length.',
-    '',
-    '## Constraints',
-    '',
+  ].join('\n');
+
+  const constraints = [
     '- Do NOT modify the source pack or its entries.',
     '- Do NOT write diary entries unless a genuine incident occurs',
     '  (rendering failure, invariant violation).',
-    '',
-    '## Fidelity Discipline',
-    '',
+  ].join('\n');
+
+  const fidelity = [
     'These rules apply when you are producing the markdown yourself rather',
     'than relying on a deterministic `server:*` renderer.',
     '',
@@ -73,24 +78,59 @@ export function buildRenderPackUserPrompt(
     '   claim-by-claim audit", not "shorter at any cost". When compressing, prefer',
     '   tightening prose around a quote rather than altering the quote,',
     '   and prefer summarising a list over silently truncating it.',
-    '',
-    buildSelfVerificationBlock(ctx.taskId),
-    buildFinalOutputBlock({
-      taskType: 'render_pack',
-      outputSchemaName: 'RenderPackOutput',
-      shapeSketch: [
-        '{',
-        '  "renderedPackId": "<uuid-or-null>",',
-        '  "renderedCid": "<cid>",',
-        '  "renderMethod": "<label>",',
-        '  "byteSize": <int>,',
-        '  "entriesRendered": <int>,',
-        '  "summary": "<1-3 sentence recap>",',
-        '  "verification": <required iff input.successCriteria; see Self-verification>',
-        '}',
-      ].join('\n'),
-    }),
+  ].join('\n');
+
+  const sections: PromptSection[] = [
+    { id: 'render_pack.header', source: 'header', body: header },
+    {
+      id: 'render_pack.input',
+      source: 'task_input',
+      header: 'Input',
+      body: inputBlock,
+    },
+    {
+      id: 'render_pack.workflow',
+      source: 'static',
+      header: 'Workflow',
+      body: workflow,
+    },
+    {
+      id: 'render_pack.constraints',
+      source: 'static',
+      header: 'Constraints',
+      body: constraints,
+    },
+    {
+      id: 'render_pack.fidelity',
+      source: 'static',
+      header: 'Fidelity Discipline',
+      body: fidelity,
+    },
+    {
+      id: 'render_pack.verification',
+      source: 'verification',
+      body: buildSelfVerificationBlock(ctx.taskId),
+    },
+    {
+      id: 'render_pack.final_output',
+      source: 'final_output',
+      body: buildFinalOutputBlock({
+        taskType: 'render_pack',
+        outputSchemaName: 'RenderPackOutput',
+        shapeSketch: [
+          '{',
+          '  "renderedPackId": "<uuid-or-null>",',
+          '  "renderedCid": "<cid>",',
+          '  "renderMethod": "<label>",',
+          '  "byteSize": <int>,',
+          '  "entriesRendered": <int>,',
+          '  "summary": "<1-3 sentence recap>",',
+          '  "verification": <required iff input.successCriteria; see Self-verification>',
+          '}',
+        ].join('\n'),
+      }),
+    },
   ];
 
-  return lines.join('\n');
+  return assembleTaskPrompt('render_pack', sections);
 }
