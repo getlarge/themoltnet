@@ -4,18 +4,13 @@
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     }
   },
-  "scripts": {
-    "build": "vite build",
-    "test": "vitest run --passWithNoTests"
-  },
+  "scripts": {},
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
     "@themoltnet/design-system": "workspace:*",
@@ -29,8 +24,6 @@
     "@vitejs/plugin-react": "catalog:",
     "jsdom": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "nx": {
