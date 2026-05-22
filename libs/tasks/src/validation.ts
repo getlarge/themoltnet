@@ -8,6 +8,7 @@ import {
   type TaskCreateSideEffect,
   type TaskValidationError,
 } from './async-validation.js';
+import type { Gate } from './success-criteria.js';
 import { BUILT_IN_TASK_TYPES } from './task-types/index.js';
 import type { TaskRef } from './wire.js';
 
@@ -34,6 +35,26 @@ interface TaskTypeDefinition {
   ) => Promise<TaskCreateSideEffect[]>;
 }
 
+const PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE = new Set([
+  'fulfill_brief',
+  'curate_pack',
+  'render_pack',
+  'run_eval',
+]);
+
+export const SUBMIT_OUTPUT_GATE_ID = 'submit-output';
+
+function getSubmitOutputGate(taskType: string): Gate {
+  return {
+    id: SUBMIT_OUTPUT_GATE_ID,
+    kind: 'submit-tool-call',
+    description:
+      `Call \`submit_${taskType}_output\` exactly once with valid ` +
+      'structured output.',
+    required: true,
+  };
+}
+
 function getTaskTypeEntry(taskType: string) {
   const taskTypes = BUILT_IN_TASK_TYPES as Record<
     string,
@@ -49,6 +70,50 @@ function getTaskTypeEntry(taskType: string) {
 
 function formatField(prefix: string, path: string): string {
   return path ? `${prefix}${path}` : prefix;
+}
+
+export function normalizeTaskInputForCreate(
+  taskType: string,
+  input: unknown,
+): unknown {
+  if (!PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE.has(taskType)) {
+    return input;
+  }
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    return input;
+  }
+
+  const taskInput = input as Record<string, unknown>;
+  const rawCriteria =
+    typeof taskInput.successCriteria === 'object' &&
+    taskInput.successCriteria !== null &&
+    !Array.isArray(taskInput.successCriteria)
+      ? (taskInput.successCriteria as Record<string, unknown>)
+      : null;
+  const gates = Array.isArray(rawCriteria?.gates)
+    ? [...(rawCriteria.gates as Gate[])]
+    : [];
+
+  if (
+    !gates.some(
+      (gate) =>
+        typeof gate === 'object' &&
+        gate !== null &&
+        'id' in gate &&
+        gate.id === SUBMIT_OUTPUT_GATE_ID,
+    )
+  ) {
+    gates.push(getSubmitOutputGate(taskType));
+  }
+
+  return {
+    ...taskInput,
+    successCriteria: {
+      version: 1,
+      ...(rawCriteria ?? {}),
+      gates,
+    },
+  };
 }
 
 function schemaErrors(

@@ -946,10 +946,10 @@ export async function executePiTask(
         }
       } else if (submitToolHandle) {
         parseError = {
-          code: 'output_missing',
+          code: 'submit_output_missing',
           message:
-            'Agent did not submit output through the task submit tool. ' +
-            'A valid submit tool call is required to complete this task type.',
+            'Agent did not satisfy the promised submit-output criterion: ' +
+            'no valid task submit tool call was captured before the session ended.',
         };
         await emit('error', {
           message: parseError.message,

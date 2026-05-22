@@ -33,6 +33,7 @@ import {
   type ExecutorTrustLevel as WireExecutorTrustLevel,
   getTaskCreateSideEffects,
   getTaskTypeRegistry,
+  normalizeTaskInputForCreate,
   type OutputKind,
   type ResolvedContextPack,
   type ResolvedRenderedPack,
@@ -397,9 +398,13 @@ export function createTaskService(deps: TaskServiceDeps) {
 
   return {
     async create(input: CreateTaskInput): Promise<Task> {
+      const normalizedInput = normalizeTaskInputForCreate(
+        input.taskType,
+        input.inputPayload,
+      ) as Record<string, unknown>;
       const createErrors = validateTaskCreateRequest({
         taskType: input.taskType,
-        input: input.inputPayload,
+        input: normalizedInput,
         references: input.references as Task['references'] | undefined,
       });
       if (createErrors.length > 0) {
@@ -445,7 +450,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       );
       const asyncErrors = await validateTaskInputAsync(
         input.taskType,
-        input.inputPayload,
+        normalizedInput,
         asyncCtx,
       );
       if (asyncErrors.length > 0) {
@@ -520,7 +525,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           ],
         );
       }
-      const inputCid = await computeJsonCid(input.inputPayload);
+      const inputCid = await computeJsonCid(normalizedInput);
 
       const expiresAt = input.expiresInSec
         ? new Date(Date.now() + input.expiresInSec * 1000)
@@ -531,7 +536,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         teamId: input.teamId,
         diaryId: input.diaryId,
         outputKind: taskTypeDef.outputKind,
-        input: input.inputPayload,
+        input: normalizedInput,
         inputSchemaCid,
         inputCid,
         taskRefs: (input.references ?? []) as NewTask['taskRefs'],
@@ -556,7 +561,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       // effects are pure data; applying them is what the tx wraps.
       const sideEffects = await getTaskCreateSideEffects(
         input.taskType,
-        input.inputPayload,
+        normalizedInput,
         asyncCtx,
       );
 

@@ -40,6 +40,7 @@ describe('buildRunEvalUserPrompt', () => {
       ctx,
     );
     expect(out).toContain('## Self-verification');
+    expect(out).toContain('part of the promise you made when you claimed');
     expect(out).toContain('`verification` MUST be a JSON object');
     expect(out).toContain('Minimal valid example:');
   });

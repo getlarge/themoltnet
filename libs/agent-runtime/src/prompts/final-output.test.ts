@@ -167,6 +167,7 @@ describe('buildFinalOutputBlock', () => {
     expect(block).toMatch(/submit_fulfill_brief_output/);
     expect(block).toMatch(/FulfillBriefOutput/);
     expect(block).toMatch(/Do NOT emit the output as plain assistant text/);
+    expect(block).toMatch(/promised submit-output criterion/);
     expect(block).not.toMatch(/Fallback/);
     expect(block).not.toMatch(/single JSON object matching/);
   });

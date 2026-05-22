@@ -12,7 +12,7 @@
  * attaches to any task type. It has four orthogonal sections — pick
  * whichever apply per task type:
  *
- *   - `gates`        Deterministic structural checks (CID/schema match)
+ *   - `gates`        Promise-level structural/process checks
  *   - `assertions`   Declarative claims about output JSON
  *   - `rubric`       Weighted-criteria scoring instrument, reused
  *                    verbatim from `./rubric.ts`.
@@ -57,10 +57,11 @@ import { type Static, Type } from '@sinclair/typebox';
 import { Rubric } from './rubric.js';
 
 // ---------------------------------------------------------------------------
-// Gates — pure JSON evaluation, server-re-verifiable. v1 is intentionally
-// narrow: `schema-check` and `cid-equals` only. `http`/`shell` are
-// deferred (SSRF design and executor-sandbox capability declarations
-// needed first).
+// Gates — structural or process checks that belong to the task's promise
+// body. Some are server-re-verifiable (`schema-check`, `cid-equals`);
+// others are producer self-reported (`submit-tool-call`). Keep the shape
+// explicit so the same `successCriteria` document tells the agent what it
+// promised and later tells auditors what was checked.
 // ---------------------------------------------------------------------------
 
 const SchemaCheckSpec = Type.Object(
@@ -87,8 +88,25 @@ const CidEqualsSpec = Type.Object(
   { additionalProperties: false },
 );
 
+export const SubmitToolCallGate = Type.Object(
+  {
+    id: Type.String({ minLength: 1 }),
+    kind: Type.Literal('submit-tool-call'),
+    /**
+     * Human-readable contract text shown to the producer when it fetches
+     * `input.successCriteria`. This is a promise-level gate rather than a
+     * transport-level runtime hint.
+     */
+    description: Type.String({ minLength: 1 }),
+    required: Type.Boolean(),
+  },
+  { additionalProperties: false },
+);
+export type SubmitToolCallGate = Static<typeof SubmitToolCallGate>;
+
 export const Gate = Type.Union(
   [
+    SubmitToolCallGate,
     Type.Object(
       {
         id: Type.String({ minLength: 1 }),

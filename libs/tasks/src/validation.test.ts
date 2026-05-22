@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getTaskExecutionPolicy,
+  normalizeTaskInputForCreate,
+  SUBMIT_OUTPUT_GATE_ID,
   taskTypeResumable,
   taskTypeSessionScope,
   taskTypeUsesSubagents,
@@ -143,6 +145,69 @@ describe('validateTaskCreateRequest', () => {
     expect(errors.some((e) => e.field.includes('acceptanceCriteria'))).toBe(
       true,
     );
+  });
+});
+
+describe('normalizeTaskInputForCreate', () => {
+  it('injects the submit-output gate for producer task types', () => {
+    const normalized = normalizeTaskInputForCreate('fulfill_brief', {
+      brief: 'Implement feature X',
+    }) as {
+      successCriteria: { version: 1; gates: Array<{ id: string }> };
+    };
+
+    expect(normalized.successCriteria.version).toBe(1);
+    expect(normalized.successCriteria.gates).toEqual([
+      expect.objectContaining({
+        id: SUBMIT_OUTPUT_GATE_ID,
+        kind: 'submit-tool-call',
+        required: true,
+      }),
+    ]);
+  });
+
+  it('preserves existing criteria while appending the built-in gate once', () => {
+    const normalized = normalizeTaskInputForCreate('run_eval', {
+      scenario: { prompt: 'Do the thing.' },
+      variantLabel: 'baseline',
+      execution: { mode: 'vitro', workspace: 'none' },
+      context: [],
+      successCriteria: {
+        version: 1,
+        assertions: [{ id: 'has-response', path: 'response', op: 'exists' }],
+        gates: [
+          {
+            id: SUBMIT_OUTPUT_GATE_ID,
+            kind: 'submit-tool-call',
+            description: 'existing gate',
+            required: true,
+          },
+        ],
+      },
+    }) as {
+      successCriteria: {
+        assertions: Array<{ id: string }>;
+        gates: Array<{ id: string; description: string }>;
+      };
+    };
+
+    expect(normalized.successCriteria.assertions).toEqual([
+      { id: 'has-response', path: 'response', op: 'exists' },
+    ]);
+    expect(normalized.successCriteria.gates).toHaveLength(1);
+    expect(normalized.successCriteria.gates[0]).toMatchObject({
+      id: SUBMIT_OUTPUT_GATE_ID,
+      description: 'existing gate',
+    });
+  });
+
+  it('leaves judgment task inputs untouched', () => {
+    const input = {
+      targetTaskId: '11111111-1111-4111-8111-111111111111',
+      successCriteria: { version: 1 },
+    };
+
+    expect(normalizeTaskInputForCreate('assess_brief', input)).toEqual(input);
   });
 });
 
