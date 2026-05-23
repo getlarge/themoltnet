@@ -1,4 +1,41 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('node:fs/promises', () => ({
+  default: {
+    readFile: vi.fn().mockResolvedValue(`<!doctype html>
+<html lang="en">
+  <head><title>MoltNet Tasks</title></head>
+  <body>
+    <div>Connecting to host...</div>
+    <button>Refresh tasks</button>
+    <select id="task-type"></select>
+    <input id="has-attempts" />
+    <div>Correlation ID</div>
+  </body>
+</html>`),
+  },
+}));
+
+vi.mock('../src/mcp-app-ui.js', () => ({
+  MCP_APP_RESOURCE_MIME_TYPE: 'text/html;profile=mcp-app',
+  createMcpAppResourceMeta: () => ({
+    ui: {
+      csp: {
+        connectDomains: [],
+        resourceDomains: [],
+        frameDomains: [],
+      },
+      prefersBorder: false,
+    },
+  }),
+  createMcpAppToolMeta: (resourceUri: string) => ({
+    ui: {
+      resourceUri,
+      visibility: ['model', 'app'],
+    },
+  }),
+  resolveInstalledMcpAppHtmlPath: () => '/virtual/task-mcp-app/dist/index.html',
+}));
 
 import {
   handleTasksAppOpen,
@@ -66,8 +103,8 @@ describe('Task MCP App', () => {
     expect(result.structuredContent).toMatchObject(parsed);
   });
 
-  it('serves an MCP App HTML resource with CSP metadata', () => {
-    const result = handleTasksAppResource();
+  it('serves an MCP App HTML resource with CSP metadata', async () => {
+    const result = await handleTasksAppResource();
     const content = result.contents[0] as {
       uri: string;
       mimeType: string;
@@ -77,20 +114,17 @@ describe('Task MCP App', () => {
 
     expect(content.uri).toBe(TASK_APP_RESOURCE_URI);
     expect(content.mimeType).toBe(TASK_APP_MIME_TYPE);
-    expect(content.text).toContain("name: 'teams_list'");
-    expect(content.text).toContain("name: 'team_members_list'");
-    expect(content.text).toContain("name: 'tasks_list'");
+    expect(content.text).toContain('<title>MoltNet Tasks</title>');
+    expect(content.text).toContain('Connecting to host...');
+    expect(content.text).toContain('Refresh tasks');
     expect(content.text).toContain('id="task-type"');
     expect(content.text).toContain('id="has-attempts"');
     expect(content.text).toContain('Correlation ID');
-    expect(content.text).toContain('No correlation ID');
-    expect(content.text).toContain('queued_after: optionalDateTime');
-    expect(content.text).toContain('claimed_by_agent_id: optionalValue');
     expect(content._meta).toMatchObject({
       ui: {
         csp: {
-          connectDomains: ['https://esm.sh'],
-          resourceDomains: ['https://esm.sh'],
+          connectDomains: [],
+          resourceDomains: [],
         },
         prefersBorder: false,
       },

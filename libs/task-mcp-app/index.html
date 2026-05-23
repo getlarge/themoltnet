@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MoltNet Tasks</title>
+    <script type="module" src="./src/main.ts"></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="stack">
+          <h1>MoltNet Tasks</h1>
+          <span id="connection" class="muted">Connecting to host...</span>
+        </div>
+        <button id="open-console" type="button" hidden>Open in console</button>
+      </header>
+
+      <form id="filters">
+        <div class="fields">
+          <label>
+            <span>Team</span>
+            <select id="team-select"></select>
+          </label>
+          <label>
+            <span>Team ID</span>
+            <input id="team-id" type="text" placeholder="team UUID" />
+          </label>
+          <label>
+            <span>Status</span>
+            <select id="status">
+              <option value="">Any status</option>
+              <option value="queued">queued</option>
+              <option value="claimed">claimed</option>
+              <option value="completed">completed</option>
+              <option value="failed">failed</option>
+              <option value="canceled">canceled</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="fields" style="margin-top: 8px">
+          <label>
+            <span>Claimed By Agent</span>
+            <select id="agent">
+              <option value="">Any agent</option>
+            </select>
+          </label>
+          <label>
+            <span>Task Type</span>
+            <input id="task-type" type="text" placeholder="curate_pack" />
+          </label>
+          <div style="display: flex; align-items: end">
+            <button class="primary" type="submit">Refresh tasks</button>
+          </div>
+        </div>
+
+        <details id="advanced-filters">
+          <summary>Advanced filters</summary>
+          <div class="advanced-fields">
+            <label>
+              <span>Diary ID</span>
+              <input id="diary-id" type="text" />
+            </label>
+            <label>
+              <span>Correlation ID</span>
+              <input id="correlation-id" type="text" />
+            </label>
+            <label>
+              <span>Requested By Agent</span>
+              <input id="requested-agent-id" type="text" />
+            </label>
+            <label>
+              <span>Requested By Human</span>
+              <input id="requested-human-id" type="text" />
+            </label>
+            <label>
+              <span>Has Attempts</span>
+              <select id="has-attempts">
+                <option value="">Either</option>
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </label>
+            <label>
+              <span>Queued After</span>
+              <input id="queued-after" type="datetime-local" />
+            </label>
+            <label>
+              <span>Queued Before</span>
+              <input id="queued-before" type="datetime-local" />
+            </label>
+            <label>
+              <span>Completed After</span>
+              <input id="completed-after" type="datetime-local" />
+            </label>
+            <label>
+              <span>Completed Before</span>
+              <input id="completed-before" type="datetime-local" />
+            </label>
+          </div>
+        </details>
+      </form>
+
+      <section class="grid">
+        <div class="panel">
+          <div class="row">
+            <h2>Queue</h2>
+            <span id="queue-count" class="muted">No tasks</span>
+          </div>
+          <div id="queue" class="stack muted">Select a team to load tasks.</div>
+          <div style="margin-top: 12px">
+            <button id="load-more" type="button" hidden>Load more</button>
+          </div>
+        </div>
+
+        <div class="stack">
+          <section>
+            <div class="row">
+              <h2>Selected Task</h2>
+              <span id="selected-status" class="status" hidden></span>
+            </div>
+            <div id="task-detail" class="muted">
+              Select a task to inspect it.
+            </div>
+          </section>
+
+          <section>
+            <h2>Attempts</h2>
+            <div id="attempts" class="muted">No task selected.</div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

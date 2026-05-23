@@ -27,6 +27,12 @@
       "path": "apps/landing"
     },
     {
+      "path": "apps/mcp-host-e2e"
+    },
+    {
+      "path": "apps/mcp-host"
+    },
+    {
       "path": "apps/mcp-server"
     },
     {
@@ -72,7 +78,13 @@
       "path": "libs/embedding-service"
     },
     {
+      "path": "libs/entry-explore-mcp-app"
+    },
+    {
       "path": "libs/mcp-auth-proxy"
+    },
+    {
+      "path": "libs/mcp-test-harness"
     },
     {
       "path": "libs/models"
@@ -85,6 +97,9 @@
     },
     {
       "path": "libs/sdk"
+    },
+    {
+      "path": "libs/task-mcp-app"
     },
     {
       "path": "libs/task-service"

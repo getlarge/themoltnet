@@ -1,3 +1,4 @@
+import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -177,7 +178,6 @@ describe('GET /diaries/:id/rendered-packs', () => {
   });
 
   it('returns 404 when diary does not exist', async () => {
-    const { DiaryServiceError } = await import('@moltnet/diary-service');
     mocks.diaryService.findDiary.mockRejectedValue(
       new DiaryServiceError('not_found', 'Diary not found'),
     );
@@ -192,7 +192,6 @@ describe('GET /diaries/:id/rendered-packs', () => {
   });
 
   it('returns 403 when diary access is forbidden', async () => {
-    const { DiaryServiceError } = await import('@moltnet/diary-service');
     mocks.diaryService.findDiary.mockRejectedValue(
       new DiaryServiceError('forbidden', 'Access denied'),
     );

@@ -1,0 +1,242 @@
+:root {
+  color-scheme: dark;
+  font-family: var(--molt-font-sans, sans-serif);
+  background: var(--molt-bg-void, #0d1321);
+  color: var(--molt-text, #f4f7fb);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    linear-gradient(
+      180deg,
+      var(--molt-primary-subtle, rgba(59, 130, 246, 0.12)),
+      transparent 260px
+    ),
+    var(--molt-bg-void, #0d1321);
+}
+
+main {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--molt-border, rgba(255, 255, 255, 0.12));
+  padding-bottom: 14px;
+}
+
+section,
+form,
+.panel {
+  border: 1px solid var(--molt-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--molt-radius-md, 12px);
+  background: var(--molt-bg-surface, rgba(15, 23, 42, 0.72));
+  padding: 14px;
+}
+
+h1,
+h2 {
+  margin: 0;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 20px;
+}
+
+h2 {
+  font-size: 14px;
+}
+
+.muted {
+  color: var(--molt-text-secondary, rgba(244, 247, 251, 0.72));
+  font-size: 12px;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 840px) {
+  .grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  }
+}
+
+label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+input,
+select,
+button {
+  min-height: 36px;
+  border: 1px solid var(--molt-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--molt-radius-md, 12px);
+  background: var(--molt-bg-elevated, rgba(15, 23, 42, 0.9));
+  color: var(--molt-text, #f4f7fb);
+  font: inherit;
+}
+
+input,
+select {
+  padding: 6px 8px;
+  min-width: 0;
+}
+
+button {
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--molt-primary, #3b82f6);
+  border-color: var(--molt-primary, #3b82f6);
+  color: var(--molt-text-inverse, #08101d);
+  font-weight: 600;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--molt-border-hover, rgba(255, 255, 255, 0.24));
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--molt-primary-hover, #60a5fa);
+  border-color: var(--molt-primary-hover, #60a5fa);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.fields {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(120px, 160px);
+  }
+}
+
+details {
+  margin-top: 10px;
+  border-top: 1px solid var(--molt-border, rgba(255, 255, 255, 0.12));
+  padding-top: 10px;
+}
+
+summary {
+  cursor: pointer;
+  color: var(--molt-text-secondary, rgba(244, 247, 251, 0.72));
+  font-size: 12px;
+}
+
+.advanced-fields {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 10px;
+}
+
+@media (min-width: 720px) {
+  .advanced-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--molt-border, rgba(255, 255, 255, 0.12));
+  padding: 10px 0;
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.stack {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+code,
+pre {
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: var(--molt-font-mono, monospace);
+}
+
+pre {
+  max-height: 280px;
+  overflow: auto;
+  border-radius: var(--molt-radius-sm, 8px);
+  background: var(--molt-bg-overlay, rgba(15, 23, 42, 0.96));
+  padding: 10px;
+}
+
+.status {
+  border-radius: var(--molt-radius-full, 999px);
+  padding: 2px 8px;
+  background: var(--molt-primary-muted, rgba(59, 130, 246, 0.14));
+  color: var(--molt-primary, #3b82f6);
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.queue-status {
+  align-self: start;
+  min-width: 86px;
+}
+
+.queue-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+  text-align: left;
+}
+
+.queue-item:first-child {
+  margin-top: 0;
+}
+
+.facts {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fact {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--molt-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--molt-radius-sm, 8px);
+  padding: 8px;
+}

@@ -22,8 +22,8 @@
     "go:fmt:check": "test -z \"$(gofmt -l apps/moltnet-cli/ libs/moltnet-api-client/ libs/dspy-adapters/)\"",
     "go:lint": "pnpm run go:vet && pnpm exec nx run-many -t lint --projects=tag:lang:go",
     "go:generate": "go generate ./libs/moltnet-api-client/...",
-    "postinstall": "update-ts-references",
-    "dev:mcp": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/mcp-server dev",
+    "postinstall": "nx sync",
+    "dev:mcp": "npx dotenvx run --env-file .env.local -- pnpm exec nx run @moltnet/mcp-server:dev",
     "dev:api": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/rest-api dev",
     "dev:landing": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/landing dev",
     "dev:console": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/console dev",
@@ -80,19 +80,30 @@
     "@dotenvx/dotenvx": "catalog:",
     "@eslint/js": "catalog:",
     "@nx-go/nx-go": "catalog:",
+    "@nx/devkit": "catalog:",
     "@nx/docker": "catalog:",
     "@nx/eslint": "catalog:",
     "@nx/eslint-plugin": "catalog:",
+    "@nx/js": "catalog:",
     "@nx/playwright": "catalog:",
     "@nx/vite": "catalog:",
     "@nx/vitest": "catalog:",
+    "@nx/web": "catalog:",
     "@playwright/test": "catalog:",
+    "@swc-node/register": "catalog:",
+    "@swc/core": "catalog:",
+    "@swc/helpers": "catalog:",
     "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/ui": "catalog:",
     "eslint": "catalog:",
+    "eslint-plugin-playwright": "catalog:",
     "eslint-plugin-react-hooks": "catalog:",
     "eslint-plugin-simple-import-sort": "catalog:",
     "husky": "catalog:",
     "jiti": "catalog:",
+    "jsdom": "catalog:",
+    "jsonc-eslint-parser": "catalog:",
     "knip": "catalog:",
     "lint-staged": "catalog:",
     "nx": "catalog:",
@@ -101,8 +112,8 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
-    "update-ts-references": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "pnpm": {
@@ -140,5 +151,8 @@
   },
   "engines": {
     "node": ">=22.19.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
   }
 }

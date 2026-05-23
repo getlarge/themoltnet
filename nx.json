@@ -1,6 +1,14 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "analytics": false,
+  "generators": {
+    "@nx/web:application": {
+      "e2eTestRunner": "playwright",
+      "linter": "eslint",
+      "style": "css",
+      "unitTestRunner": "vitest"
+    }
+  },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
@@ -9,7 +17,10 @@
       "!{projectRoot}/__tests__/**/*",
       "!{projectRoot}/**/*.{md,mdx}",
       "!{projectRoot}/tsconfig.test.json",
-      "!{projectRoot}/vitest.config.*"
+      "!{projectRoot}/vitest.config.*",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/tsconfig.spec.json",
+      "!{projectRoot}/src/test-setup.[jt]s"
     ],
     "sharedGlobals": [
       "{workspaceRoot}/tsconfig.json",
@@ -80,6 +91,9 @@
     },
     "@nx-go/nx-go"
   ],
+  "sync": {
+    "applyChanges": true
+  },
   "targetDefaults": {
     "build": {
       "cache": true,

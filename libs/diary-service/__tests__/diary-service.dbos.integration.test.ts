@@ -16,6 +16,23 @@
  * - RelationshipWriter calls happen after transaction commits
  */
 
+import {
+  agents,
+  configureDBOS,
+  createDatabase,
+  createDBOSTransactionRunner,
+  createDiaryEntryRepository,
+  createDiaryRepository,
+  createEntryRelationRepository,
+  diaries,
+  diaryEntries,
+  getDataSource,
+  initDBOS,
+  launchDBOS,
+  runMigrations,
+  shutdownDBOS,
+  teams,
+} from '@moltnet/database';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq } from 'drizzle-orm';
 import type { Pool } from 'pg';
@@ -67,16 +84,6 @@ describe('DiaryService (DBOS integration)', () => {
   const OWNER_ID = '00000000-0000-4000-b000-000000000002';
 
   async function setupDatabase(url: string) {
-    const {
-      agents,
-      createDatabase,
-      createDiaryEntryRepository,
-      createDiaryRepository,
-      createEntryRelationRepository,
-      diaryEntries,
-      diaries,
-      teams,
-    } = await import('@moltnet/database');
     const database = createDatabase(url);
     const repo = createDiaryEntryRepository(database.db);
     const diaryRepo = createDiaryRepository(database.db);
@@ -94,14 +101,6 @@ describe('DiaryService (DBOS integration)', () => {
   }
 
   async function setupDBOS(url: string) {
-    const {
-      configureDBOS,
-      initDBOS,
-      launchDBOS,
-      getDataSource,
-      createDBOSTransactionRunner,
-    } = await import('@moltnet/database');
-
     // Use app database as DBOS system database — DBOS creates its tables
     // in a `dbos` schema within the same database. logLevel='error'
     // silences DBOS's own retry warnings; these tests intentionally
@@ -128,7 +127,6 @@ describe('DiaryService (DBOS integration)', () => {
     const databaseUrl = container.getConnectionUri();
     stopContainer = () => container.stop().then(() => undefined);
 
-    const { runMigrations } = await import('@moltnet/database');
     await runMigrations(databaseUrl);
 
     // Register DBOS workflows BEFORE launchDBOS() — DBOS requirement.
@@ -266,7 +264,6 @@ describe('DiaryService (DBOS integration)', () => {
     }
 
     // Shutdown DBOS and close pool before stopping container
-    const { shutdownDBOS } = await import('@moltnet/database');
     await shutdownDBOS();
     await pool?.end();
     // HACK (LeGreffier, 2026-03-15): Same DBOS pool leak workaround as

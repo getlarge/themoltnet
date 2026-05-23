@@ -228,3 +228,32 @@ services:
       timeout: 3s
       retries: 15
       start_period: 15s
+
+  mcp-host:
+    build:
+      context: .
+      dockerfile: apps/mcp-host/Dockerfile
+    ports:
+      - '8082:8080'
+      - '8083:8081'
+    environment:
+      AUTORUN: '0'
+      DEFAULT_ARGS: '{}'
+      DEFAULT_TOOL: tasks_app_open
+      MCP_SERVER_URL: http://localhost:8001/mcp
+      SANDBOX_BASE_URL: http://localhost:8083/sandbox.html
+    depends_on:
+      mcp-server:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8080/healthz').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 15s

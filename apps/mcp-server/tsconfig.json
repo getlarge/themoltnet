@@ -10,19 +10,10 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../libs/api-client"
-    },
-    {
-      "path": "../../libs/bootstrap"
-    },
-    {
-      "path": "../../libs/crypto-service"
-    },
-    {
-      "path": "../../libs/database"
-    },
-    {
       "path": "../../libs/design-system"
+    },
+    {
+      "path": "../../libs/tasks"
     },
     {
       "path": "../../libs/mcp-auth-proxy"
@@ -34,7 +25,19 @@
       "path": "../../libs/observability"
     },
     {
-      "path": "../../libs/tasks"
+      "path": "../../libs/database"
+    },
+    {
+      "path": "../../libs/bootstrap"
+    },
+    {
+      "path": "../../libs/mcp-test-harness"
+    },
+    {
+      "path": "../../libs/crypto-service"
+    },
+    {
+      "path": "../../libs/api-client"
     }
   ]
 }

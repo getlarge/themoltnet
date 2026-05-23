@@ -13,6 +13,7 @@
     }
   },
   "scripts": {
+    "build": "vite build",
     "dev": "tsx watch src/main.ts",
     "seed:task-app": "tsx e2e/seed-task-app.ts",
     "start": "node dist/main.js",
@@ -24,6 +25,7 @@
     "@moltnet/models": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/mcp-auth-proxy": "workspace:*",
+    "@moltnet/task-mcp-app": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@themoltnet/design-system": "workspace:*",
     "@getlarge/fastify-mcp": "catalog:",
@@ -54,6 +56,7 @@
   "devDependencies": {
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/database": "workspace:*",
+    "@moltnet/mcp-test-harness": "workspace:*",
     "@modelcontextprotocol/sdk": "catalog:",
     "drizzle-orm": "catalog:",
     "pino-pretty": "catalog:",
@@ -69,6 +72,11 @@
       "platform:server"
     ],
     "targets": {
+      "dev": {
+        "dependsOn": [
+          "build-deps"
+        ]
+      },
       "e2e": {
         "cache": true,
         "executor": "nx:run-commands",

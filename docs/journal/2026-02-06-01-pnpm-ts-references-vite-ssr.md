@@ -21,7 +21,7 @@ Investigated the best way to configure pnpm with TypeScript project references (
 
 1. **`tsc -b` for libs** — Changed all lib `build` scripts from `tsc` to `tsc -b` for incremental compilation with `.tsbuildinfo` caching. This respects project references and builds in dependency order.
 
-2. **`update-ts-references`** — Added to postinstall. Auto-syncs tsconfig `references` from `workspace:*` dependencies so they never drift.
+2. **Nx TypeScript sync** — `nx sync` now runs from `postinstall`. It keeps tsconfig `references` aligned with the workspace graph so they do not drift.
 
 3. **`inject-workspace-packages=false`** — Changed from pnpm v10 default (`true`, hardlinked copies) to `false` (symlinks). Changes propagate instantly without re-running `pnpm install`.
 

@@ -14,23 +14,21 @@ FROM base AS deps
 # Copy workspace config
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 
-# Copy all workspace package.json files to leverage Docker layer caching
+# Copy only the workspace package.json files needed by the direct build path
 COPY apps/mcp-server/package.json apps/mcp-server/
-COPY apps/rest-api/package.json apps/rest-api/
-COPY apps/landing/package.json apps/landing/
 COPY libs/observability/package.json libs/observability/
 COPY libs/crypto-service/package.json libs/crypto-service/
 COPY libs/database/package.json libs/database/
 COPY libs/design-system/package.json libs/design-system/
 COPY libs/models/package.json libs/models/
+COPY libs/task-mcp-app/package.json libs/task-mcp-app/
+COPY libs/mcp-test-harness/package.json libs/mcp-test-harness/
 COPY libs/auth/package.json libs/auth/
 COPY libs/diary-service/package.json libs/diary-service/
 COPY libs/api-client/package.json libs/api-client/
 COPY libs/bootstrap/package.json libs/bootstrap/
-COPY libs/embedding-service/package.json libs/embedding-service/
 COPY libs/mcp-auth-proxy/package.json libs/mcp-auth-proxy/
 COPY libs/tasks/package.json libs/tasks/
-COPY tools/package.json tools/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
@@ -38,13 +36,18 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # ---------- build ----------
 FROM deps AS build
 
-# Copy all source (needed for workspace resolution since exports point to src)
 COPY . .
 
-RUN pnpm --filter @moltnet/mcp-server exec vite build
+# Build the bundled task UI artifact first so pnpm deploy packages it for runtime.
+RUN pnpm --filter @moltnet/task-mcp-app exec vite build && \
+    pnpm --filter @moltnet/mcp-server exec vite build
 
-# Extract mcp-server with production-only dependencies
-RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod /app/deploy
+# Extract mcp-server with production-only dependencies.
+# Keep scripts off in deploy trees so root postinstall does not run `nx sync`
+# against the partial /app/deploy workspace. The long-term fix is tracked in
+# #1223, where images should package prebuilt outputs and stop relying on
+# pnpm deploy for this path.
+RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod --ignore-scripts /app/deploy
 
 # ---------- production ----------
 # No pnpm needed at runtime — just node

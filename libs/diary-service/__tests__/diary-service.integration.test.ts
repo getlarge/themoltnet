@@ -16,6 +16,24 @@
  */
 
 import { KetoNamespace } from '@moltnet/auth';
+import {
+  agents,
+  configureDBOS,
+  createDatabase,
+  createDBOSTransactionRunner,
+  createDiaryEntryRepository,
+  createDiaryRepository,
+  createEntryRelationRepository,
+  diaries,
+  diaryEntries,
+  getDataSource,
+  initDBOS,
+  launchDBOS,
+  runMigrations,
+  shutdownDBOS,
+  teams,
+} from '@moltnet/database';
+import { createEmbeddingService } from '@moltnet/embedding-service';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq } from 'drizzle-orm';
 import {
@@ -46,21 +64,10 @@ async function loadEmbeddingService(): Promise<EmbeddingService> {
   if (process.env.EMBEDDING_MODEL !== 'true') {
     return createNoopEmbeddingService();
   }
-  const { createEmbeddingService } = await import('@moltnet/embedding-service');
   return createEmbeddingService();
 }
 
 async function setupDatabase(url: string) {
-  const {
-    agents,
-    createDatabase,
-    createDiaryEntryRepository,
-    createDiaryRepository,
-    createEntryRelationRepository,
-    diaryEntries,
-    diaries,
-    teams,
-  } = await import('@moltnet/database');
   const { db, pool } = createDatabase(url);
   const repo = createDiaryEntryRepository(db);
   const diaryRepo = createDiaryRepository(db);
@@ -79,14 +86,6 @@ async function setupDatabase(url: string) {
 }
 
 async function setupDBOS(url: string) {
-  const {
-    configureDBOS,
-    initDBOS,
-    launchDBOS,
-    getDataSource,
-    createDBOSTransactionRunner,
-  } = await import('@moltnet/database');
-
   // Use app database as DBOS system database — DBOS creates its tables
   // in a `dbos` schema within the same database.
   configureDBOS(url);
@@ -134,7 +133,6 @@ describe('DiaryService (integration)', () => {
     const databaseUrl = container.getConnectionUri();
     stopContainer = () => container.stop().then(() => undefined);
 
-    const { runMigrations } = await import('@moltnet/database');
     await runMigrations(databaseUrl);
 
     // Register DBOS workflows BEFORE launchDBOS() — DBOS requirement.
@@ -308,7 +306,6 @@ describe('DiaryService (integration)', () => {
         .where(eq(tables.diaries.id, OTHER_DIARY_ID));
     }
 
-    const { shutdownDBOS } = await import('@moltnet/database');
     await shutdownDBOS();
     await pool?.end();
     // HACK (LeGreffier, 2026-03-15): DBOS does not close its internal
