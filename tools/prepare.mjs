@@ -13,6 +13,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import process from 'node:process';
 
 if (process.env.HUSKY === '0' || process.env.CI === 'true') {
   process.exit(0);

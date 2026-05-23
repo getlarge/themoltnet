@@ -10,6 +10,7 @@
 // Same pattern as HUSKY=0 (which silences `prepare: husky` in the same envs).
 
 import { spawnSync } from 'node:child_process';
+import process from 'node:process';
 
 if (process.env.MOLTNET_SKIP_NX_SYNC === '1') {
   process.exit(0);
