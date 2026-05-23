@@ -19,8 +19,8 @@ LABEL org.opencontainers.image.licenses="MIT"
 ENV NODE_ENV=production
 WORKDIR /app
 
-# Host-built static bundle (nx run @moltnet/mcp-host:build → dist/apps/mcp-host).
-COPY dist/apps/mcp-host/ ./dist/
+# Host-built static bundle (nx run @moltnet/mcp-host:build → apps/mcp-host/dist).
+COPY apps/mcp-host/dist/ ./dist/
 COPY apps/mcp-host/server.mjs ./server.mjs
 
 EXPOSE 8080 8081
