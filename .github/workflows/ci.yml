@@ -982,7 +982,7 @@ jobs:
             needed-when: e2e-any
           # Smaller images stay on GHA cache (good enough, no extra GHCR tag).
           - image: db-migrate
-            dockerfile: libs/database/Dockerfile.migrate
+            dockerfile: libs/database/Dockerfile
             needed-when: e2e-any
           - image: landing
             dockerfile: apps/landing/Dockerfile

@@ -35,6 +35,10 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "drizzle"
+  ],
   "nx": {
     "tags": [
       "type:data-access",
