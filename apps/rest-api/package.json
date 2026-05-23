@@ -87,6 +87,12 @@
       "platform:server"
     ],
     "targets": {
+      "build": {
+        "outputs": [
+          "{projectRoot}/dist/main.js",
+          "{projectRoot}/dist/openapi.json"
+        ]
+      },
       "build:migrate": {
         "cache": true,
         "dependsOn": [
@@ -102,11 +108,14 @@
           "cwd": "apps/rest-api"
         },
         "outputs": [
-          "{projectRoot}/dist"
+          "{projectRoot}/dist/migrate.js"
         ]
       },
       "download-model": {
         "cache": true,
+        "dependsOn": [
+          "build"
+        ],
         "executor": "nx:run-commands",
         "inputs": [
           {
