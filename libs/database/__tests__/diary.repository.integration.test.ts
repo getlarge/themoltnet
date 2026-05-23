@@ -143,6 +143,7 @@ describe('DiaryEntryRepository (integration)', () => {
   let repo: ReturnType<typeof createDiaryEntryRepository>;
 
   const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
+  const PUBLIC_DIARY_ID = '880e8400-e29b-41d4-a716-446655440005';
   const CREATED_BY = '00000000-0000-4000-a000-000000000001';
   const TEAM_ID = '00000000-0000-4000-b000-000000000001';
   const createEntry = (
@@ -190,6 +191,17 @@ describe('DiaryEntryRepository (integration)', () => {
         teamId: TEAM_ID,
         name: 'Test Diary',
         visibility: 'private',
+      })
+      .onConflictDoNothing();
+
+    await sharedDb
+      .insert(diaries)
+      .values({
+        id: PUBLIC_DIARY_ID,
+        creatorAgentId: CREATED_BY,
+        teamId: TEAM_ID,
+        name: 'Public Search Test Diary',
+        visibility: 'public',
       })
       .onConflictDoNothing();
   });
@@ -510,6 +522,421 @@ describe('DiaryEntryRepository (integration)', () => {
       expect(results[0].diaryId).toBe(DIARY_ID);
       expect(results[0].createdAt).toBeInstanceOf(Date);
       expect(results[0].updatedAt).toBeInstanceOf(Date);
+    });
+
+    it('keeps a clear relevance match above unrelated recency and importance boosts', async () => {
+      const fishingEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i === 0 ? 1 : 0,
+      );
+      const unrelatedEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i === 1 ? 1 : 0,
+      );
+
+      const relevant = await createEntry({
+        title: 'Fishing notes',
+        content: 'Fishing requires patience, knots, bait, and reading water.',
+        embedding: fishingEmbedding,
+        importance: 1,
+      });
+      const unrelated = await createEntry({
+        title: 'JWT rollout',
+        content: 'JWT authentication rollout and deployment checklist.',
+        embedding: unrelatedEmbedding,
+        importance: 10,
+      });
+
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+          lastAccessedAt: new Date('2024-01-01T00:00:00Z'),
+        })
+        .where(eq(diaryEntries.id, relevant.id));
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date(),
+          lastAccessedAt: new Date(),
+        })
+        .where(eq(diaryEntries.id, unrelated.id));
+
+      const results = await repo.search({
+        diaryId: DIARY_ID,
+        query: 'fishing',
+        embedding: fishingEmbedding,
+        wRelevance: 1,
+        wRecency: 0.2,
+        wImportance: 0.2,
+        limit: 10,
+      });
+
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results[0].id).toBe(relevant.id);
+      expect(results.findIndex((entry) => entry.id === unrelated.id)).toBe(-1);
+    });
+
+    it('keeps a semantic vector match above unrelated recency and importance boosts', async () => {
+      const anglingEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i === 0 ? 1 : 0,
+      );
+      const unrelatedEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i === 1 ? 1 : 0,
+      );
+
+      const relevant = await createEntry({
+        title: 'Angling field notes',
+        content: 'Knots, bait choice, and reading river structure.',
+        embedding: anglingEmbedding,
+        importance: 1,
+      });
+      const unrelated = await createEntry({
+        title: 'JWT rollout',
+        content: 'JWT authentication rollout and deployment checklist.',
+        embedding: unrelatedEmbedding,
+        importance: 10,
+      });
+
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+          lastAccessedAt: new Date('2024-01-01T00:00:00Z'),
+        })
+        .where(eq(diaryEntries.id, relevant.id));
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date(),
+          lastAccessedAt: new Date(),
+        })
+        .where(eq(diaryEntries.id, unrelated.id));
+
+      const results = await repo.search({
+        diaryId: DIARY_ID,
+        query: 'fishing',
+        embedding: anglingEmbedding,
+        wRelevance: 1,
+        wRecency: 0.2,
+        wImportance: 0.2,
+        limit: 10,
+      });
+
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results[0].id).toBe(relevant.id);
+      expect(results.findIndex((entry) => entry.id === unrelated.id)).toBe(-1);
+    });
+
+    it('does not need recency or importance disabled to rank exact matches first', async () => {
+      const relevant = await createEntry({
+        title: 'Fishing notes',
+        content: 'Fishing requires patience, knots, bait, and reading water.',
+        importance: 1,
+      });
+      const unrelated = await createEntry({
+        title: 'JWT rollout',
+        content: 'JWT authentication rollout and deployment checklist.',
+        importance: 10,
+      });
+
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+          lastAccessedAt: new Date('2024-01-01T00:00:00Z'),
+        })
+        .where(eq(diaryEntries.id, relevant.id));
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date(),
+          lastAccessedAt: new Date(),
+        })
+        .where(eq(diaryEntries.id, unrelated.id));
+
+      const results = await repo.search({
+        diaryId: DIARY_ID,
+        query: 'fishing',
+        wRelevance: 1,
+        wRecency: 1,
+        wImportance: 1,
+        limit: 10,
+      });
+
+      expect(results.map((entry) => entry.id)).toEqual([relevant.id]);
+    });
+
+    it('ranks the best long-query match above ambiguous diary entries', async () => {
+      const queryEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i < 12 ? 1 : 0,
+      );
+      const exactEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i < 12 ? 1 : 0,
+      );
+      const partialEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i < 6 ? 1 : 0,
+      );
+      const unrelatedEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i >= 12 && i < 24 ? 1 : 0,
+      );
+
+      const best = await createEntry({
+        title: 'Diary search ranking incident',
+        content:
+          'Why does diary search return recent important entries instead of relevant RRF scoring matches? Investigated the ranking bug and normalized RRF scoring so relevance dominates recency and importance boosts.',
+        embedding: exactEmbedding,
+        importance: 3,
+        tags: ['search', 'ranking'],
+      });
+      const lexicalOnly = await createEntry({
+        title: 'Search UI copy',
+        content:
+          'Why does diary search return recent important entries instead of relevant RRF scoring matches? Updated UI copy for this troubleshooting prompt, without changing retrieval behavior.',
+        embedding: unrelatedEmbedding,
+        importance: 8,
+        tags: ['search', 'ui'],
+      });
+      const semanticOnly = await createEntry({
+        title: 'Memory retrieval tuning',
+        content:
+          'Tuned retrieval so task-relevant memories are selected before generic recent notes.',
+        embedding: partialEmbedding,
+        importance: 8,
+        tags: ['retrieval'],
+      });
+      const freshDistractor = await createEntry({
+        title: 'Recent deployment notes',
+        content:
+          'JWT auth deployment checklist, release coordination, and rollback notes.',
+        embedding: unrelatedEmbedding,
+        importance: 10,
+        tags: ['deploy'],
+      });
+
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+          lastAccessedAt: new Date('2024-01-01T00:00:00Z'),
+        })
+        .where(eq(diaryEntries.id, best.id));
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date('2025-01-01T00:00:00Z'),
+          lastAccessedAt: new Date('2025-01-01T00:00:00Z'),
+        })
+        .where(eq(diaryEntries.id, lexicalOnly.id));
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date('2025-06-01T00:00:00Z'),
+          lastAccessedAt: new Date('2025-06-01T00:00:00Z'),
+        })
+        .where(eq(diaryEntries.id, semanticOnly.id));
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date(),
+          lastAccessedAt: new Date(),
+        })
+        .where(eq(diaryEntries.id, freshDistractor.id));
+
+      const results = await repo.search({
+        diaryId: DIARY_ID,
+        query:
+          'why does diary search return recent important entries instead of relevant RRF scoring matches',
+        embedding: queryEmbedding,
+        wRelevance: 1,
+        wRecency: 0.2,
+        wImportance: 0.2,
+        limit: 10,
+      });
+
+      const ids = results.map((entry) => entry.id);
+      expect(ids[0]).toBe(best.id);
+      expect(ids).toContain(lexicalOnly.id);
+      expect(ids).toContain(semanticOnly.id);
+      expect(ids).not.toContain(freshDistractor.id);
+      expect(ids.indexOf(best.id)).toBeLessThan(ids.indexOf(lexicalOnly.id));
+      expect(ids.indexOf(best.id)).toBeLessThan(ids.indexOf(semanticOnly.id));
+    });
+
+    it('does not return vector-only rows for a query with no meaningful match', async () => {
+      const queryEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i === 0 ? 1 : 0,
+      );
+      const unrelatedEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i === 1 ? 1 : 0,
+      );
+
+      await createEntry({
+        title: 'Deployment checklist',
+        content: 'JWT authentication rollout and deployment checklist.',
+        embedding: unrelatedEmbedding,
+        importance: 10,
+      });
+      await createEntry({
+        title: 'Database maintenance',
+        content: 'Postgres vacuum, indexes, and backup verification.',
+        embedding: unrelatedEmbedding,
+        importance: 10,
+      });
+
+      const results = await repo.search({
+        diaryId: DIARY_ID,
+        query: 'banana-impossible-sentinel',
+        embedding: queryEmbedding,
+        wRelevance: 1,
+        wRecency: 0.2,
+        wImportance: 0.2,
+        limit: 10,
+      });
+
+      expect(results).toEqual([]);
+    });
+
+    it('excludes vector candidates beyond the semantic relevance gate', async () => {
+      const queryEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i === 0 ? 1 : 0,
+      );
+      const closeEmbedding = Array.from({ length: 384 }, (_, i) => {
+        if (i === 0) return 0.8;
+        if (i === 1) return 0.6;
+        return 0;
+      });
+      const farEmbedding = Array.from({ length: 384 }, (_, i) => {
+        if (i === 0) return 0.3;
+        if (i === 1) return Math.sqrt(0.91);
+        return 0;
+      });
+
+      const close = await createEntry({
+        title: 'Close semantic neighbor',
+        content: 'Conceptually related entry without lexical overlap.',
+        embedding: closeEmbedding,
+        importance: 1,
+      });
+      const far = await createEntry({
+        title: 'Far semantic neighbor',
+        content: 'Unrelated entry without lexical overlap.',
+        embedding: farEmbedding,
+        importance: 10,
+      });
+
+      const results = await repo.search({
+        diaryId: DIARY_ID,
+        query: 'semantic-threshold-sentinel',
+        embedding: queryEmbedding,
+        wRelevance: 1,
+        wRecency: 0.2,
+        wImportance: 0.2,
+        limit: 10,
+      });
+
+      const ids = results.map((entry) => entry.id);
+      expect(ids).toContain(close.id);
+      expect(ids).not.toContain(far.id);
+    });
+
+    it('applies tags, excluded tags, and entry type filters to hybrid search', async () => {
+      const embedding = Array.from({ length: 384 }, (_, i) =>
+        i === 0 ? 1 : 0,
+      );
+
+      const included = await createEntry({
+        title: 'Filtered search incident',
+        content: 'Hybrid filter search ranking incident.',
+        embedding,
+        tags: ['search', 'keep'],
+        entryType: 'episodic',
+      });
+      const wrongTag = await createEntry({
+        title: 'Wrong tag search incident',
+        content: 'Hybrid filter search ranking incident.',
+        embedding,
+        tags: ['search', 'drop'],
+        entryType: 'episodic',
+      });
+      const wrongType = await createEntry({
+        title: 'Wrong type search incident',
+        content: 'Hybrid filter search ranking incident.',
+        embedding,
+        tags: ['search', 'keep'],
+        entryType: 'semantic',
+      });
+
+      const results = await repo.search({
+        diaryId: DIARY_ID,
+        query: 'hybrid filter search ranking incident',
+        embedding,
+        tags: ['keep'],
+        excludeTags: ['drop'],
+        entryTypes: ['episodic'],
+        limit: 10,
+      });
+
+      const ids = results.map((entry) => entry.id);
+      expect(ids).toEqual([included.id]);
+      expect(ids).not.toContain(wrongTag.id);
+      expect(ids).not.toContain(wrongType.id);
+    });
+
+    it('uses the same relevance gating for public search', async () => {
+      const queryEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i === 0 ? 1 : 0,
+      );
+      const relevantEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i === 0 ? 1 : 0,
+      );
+      const unrelatedEmbedding = Array.from({ length: 384 }, (_, i) =>
+        i === 1 ? 1 : 0,
+      );
+
+      const relevant = await repo.create({
+        diaryId: PUBLIC_DIARY_ID,
+        creatorAgentId: CREATED_BY,
+        title: 'Public fishing note',
+        content: 'Fishing requires patience and reading water.',
+        embedding: relevantEmbedding,
+        importance: 1,
+        tags: ['public-search'],
+      });
+      const unrelated = await repo.create({
+        diaryId: PUBLIC_DIARY_ID,
+        creatorAgentId: CREATED_BY,
+        title: 'Public JWT rollout',
+        content: 'JWT auth deployment checklist.',
+        embedding: unrelatedEmbedding,
+        importance: 10,
+        tags: ['public-search'],
+      });
+
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+          lastAccessedAt: new Date('2024-01-01T00:00:00Z'),
+        })
+        .where(eq(diaryEntries.id, relevant.id));
+      await sharedDb
+        .update(diaryEntries)
+        .set({
+          createdAt: new Date(),
+          lastAccessedAt: new Date(),
+        })
+        .where(eq(diaryEntries.id, unrelated.id));
+
+      const results = await repo.searchPublic({
+        query: 'fishing',
+        embedding: queryEmbedding,
+        tags: ['public-search'],
+        limit: 10,
+      });
+
+      const ids = results.map((entry) => entry.id);
+      expect(ids).toEqual([relevant.id]);
+      expect(ids).not.toContain(unrelated.id);
+      expect(results[0].author.fingerprint).toBe('TEST-DIAR-Y001-0001');
     });
 
     it('respects limit parameter', async () => {

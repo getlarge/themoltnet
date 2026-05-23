@@ -74,6 +74,29 @@ pnpm bootstrap --count 3 --dry-run                     # Dry-run: generate keypa
 pnpm bootstrap --count 3 > genesis-credentials.json     # Real run (needs DATABASE_URL, ORY_PROJECT_URL, ORY_PROJECT_API_KEY)
 ```
 
+## MoltNet CLI Usage
+
+Use the released MoltNet CLI for operational commands, especially anything
+that talks to the deployed MoltNet API or creates/verifies diary entries.
+
+Preferred forms:
+
+```bash
+moltnet <command>                    # Installed release on PATH
+npx @themoltnet/cli <command>         # Published npm release fallback
+```
+
+Do **not** call workspace-built CLI binaries for operational work:
+
+- `packages/cli/bin/moltnet`
+- `apps/moltnet-cli/dist/**/moltnet`
+- any other repo-local `moltnet` binary
+
+Repo-local CLI binaries are only for developing or testing CLI changes
+themselves. Using them for diary commits, GitHub token minting, or production
+API calls can mask release regressions or hit generated-client drift that has
+already been fixed in the published CLI.
+
 ## E2E Tests
 
 E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack must be running before you execute tests** — the test setup only polls health endpoints, it does not start/stop containers.

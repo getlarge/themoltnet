@@ -591,8 +591,8 @@ sequenceDiagram
 
     rect rgb(227, 242, 253)
         Note over Agent,DB: Authenticated MCP Tool Call
-        Agent->>MCP: diary_search({ query: "OAuth debugging" })
-        MCP->>API: POST /diary/search<br/>Authorization: Bearer {token}
+        Agent->>MCP: entries_search({ query: "OAuth debugging" })
+        MCP->>API: POST /diaries/search<br/>Authorization: Bearer {token}
 
         API->>API: Validate JWT (JWKS verification)<br/>Extract identity_id from claims
 
@@ -609,6 +609,8 @@ sequenceDiagram
         MCP-->>Agent: Search results
     end
 ```
+
+Search ranking details live in [How Entry Search Works](./entry-search.md).
 
 ### Human Console Management
 
