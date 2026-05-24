@@ -222,6 +222,40 @@ When creating a new `libs/` or `apps/` package:
 4. Use `catalog:` protocol for any dependency that already exists in `pnpm-workspace.yaml`; add new dependencies to the catalog first
 5. Run `pnpm install` to register the workspace (this also auto-syncs tsconfig references)
 
+## Docker image contract
+
+All Dockerfiles in this repo are **packaging-only**. Build, typecheck, vendor-trimming and any asset prep (e.g. baking an embedding model) run as Nx targets on the host and are cached by Nx Cloud. `docker build` only assembles already-built artifacts into a runtime image.
+
+The shape:
+
+- **Host targets (cached):** `build`, `build:migrate`, `download-model`, … produce `apps/<app>/dist/` (or `libs/<lib>/dist/`).
+- **Docker `build` stage:** runs `pnpm install --frozen-lockfile --prod` and `pnpm --filter <pkg> deploy --legacy --prod /out` inside a linux container so optional native deps (sharp, onnxruntime-node, esbuild, …) resolve to the right linux binaries. No `nx`, `vite`, or `tsc` runs in here.
+- **Docker `production` stage:** `COPY --from=build /out ./` plus any sibling assets (e.g. `libs/database/drizzle/`). For nginx-only SPAs (landing, console), the whole image is a single `FROM nginx:alpine` + `COPY dist`.
+
+The `@nx/docker` plugin autoinfers a `docker:build` target for every project that has a `Dockerfile`. Cache invalidation is driven by the `docker` named input declared in `nx.json` (Dockerfile + `.dockerignore` + transitive `dist/**` outputs).
+
+### Two env-var skip switches the build relies on
+
+`pnpm install --prod` in the build stage triggers the root `postinstall` and `prepare` scripts, neither of which makes sense in a Docker layer:
+
+| Env var                  | Effect                                                                        | Used by                              |
+| ------------------------ | ----------------------------------------------------------------------------- | ------------------------------------ |
+| `MOLTNET_SKIP_NX_SYNC=1` | Skips `nx sync` in `tools/postinstall.mjs` (no nx binary in `--prod` install) | Dockerfiles, CI minimal-install jobs |
+| `HUSKY=0` (or `CI=true`) | Skips husky bootstrap in `tools/prepare.mjs` (husky is dev-only)              | Dockerfiles, CI                      |
+
+Both Dockerfiles set these via `ENV` in the `base` stage. **Do NOT** add `--ignore-scripts` to `pnpm install` — that also blocks legitimate native-module postinstalls (e.g. `onnxruntime-node`'s no-op CUDA check, `protobufjs`).
+
+### To add a new image
+
+1. Drop a `Dockerfile` in the project root (`apps/<app>/` or `libs/<lib>/`). Copy `apps/mcp-server/Dockerfile` as the canonical template.
+2. Add a `"files": [...]` field to the project's `package.json` listing only the runtime assets (typically `["dist"]` or `["dist", "public"]`) so `pnpm deploy` trims out tests/configs/source.
+3. If the image needs a host-built artifact other than `build` (e.g. `download-model`), declare it as an Nx target in `package.json` `nx.targets` and add it to `docker:build`'s `dependsOn` array.
+4. The image is now available as `nx run @moltnet/<app>:docker:build` — no extra wiring needed.
+
+Local dev workflow: `pnpm exec nx run @moltnet/<app>:build` (or `docker:build`) before `docker compose up --build` so the host artifacts the image expects are present. CI handles this automatically by running affected `build` targets via the orchestrator before the `build-and-push` matrix.
+
+See issue #1223 for the original refactor decision.
+
 ## Project Status
 
 Core infrastructure is complete and deployed. Remaining work is tracked in GitHub Issues:

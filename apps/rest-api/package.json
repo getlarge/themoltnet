@@ -12,6 +12,10 @@
       "types": "./src/index.ts"
     }
   },
+  "files": [
+    "dist",
+    "public"
+  ],
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
@@ -83,6 +87,12 @@
       "platform:server"
     ],
     "targets": {
+      "build": {
+        "outputs": [
+          "{projectRoot}/dist/main.js",
+          "{projectRoot}/dist/openapi.json"
+        ]
+      },
       "build:migrate": {
         "cache": true,
         "dependsOn": [
@@ -98,7 +108,39 @@
           "cwd": "apps/rest-api"
         },
         "outputs": [
-          "{projectRoot}/dist"
+          "{projectRoot}/dist/migrate.js"
+        ]
+      },
+      "download-model": {
+        "cache": true,
+        "dependsOn": [
+          "build"
+        ],
+        "executor": "nx:run-commands",
+        "inputs": [
+          {
+            "runtime": "node --version"
+          },
+          "{workspaceRoot}/tools/download-embedding-model.mjs",
+          {
+            "externalDependencies": [
+              "@huggingface/transformers",
+              "onnxruntime-node"
+            ]
+          }
+        ],
+        "options": {
+          "command": "node tools/download-embedding-model.mjs --cache-dir apps/rest-api/dist/models",
+          "cwd": "{workspaceRoot}"
+        },
+        "outputs": [
+          "{projectRoot}/dist/models"
+        ]
+      },
+      "docker:build": {
+        "dependsOn": [
+          "build:migrate",
+          "download-model"
         ]
       },
       "e2e": {

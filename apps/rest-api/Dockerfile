@@ -1,106 +1,88 @@
-# @moltnet/rest-api — Multi-stage Dockerfile
+# syntax=docker/dockerfile:1.7
+# @moltnet/rest-api — generic packaging Dockerfile.
 #
-# Build from repo root:
-#   docker build -f apps/rest-api/Dockerfile .
+# Build via Nx (autoinferred by @nx/docker):
+#   pnpm exec nx run @moltnet/rest-api:docker:build
+#
+# Architecture (issue #1223):
+#   * Host (Nx targets, Nx Cloud cached): build, build:migrate, download-model
+#     → produces apps/rest-api/dist/{main.js,migrate.js,openapi.json,models/}
+#   * Docker build stage: runs `pnpm install --frozen-lockfile --prod` and
+#     `pnpm deploy` inside a linux container so optional native deps
+#     (onnxruntime-node, sharp, …) resolve to the right linux binaries.
+#   * Production stage: COPYs the deploy tree from build + the host-built
+#     dist artifacts. No `nx`, no `vite`, no `tsc` ever runs in here.
+#
+# This file is intentionally generic — to add a new image, copy it, swap the
+# `--filter` arg, the runtime COPYs, the EXPOSE, and the CMD.
+
+ARG NODE_VERSION=22.19.0
+ARG PNPM_VERSION=10.29.3
 
 # ---------- base ----------
-FROM node:22.19.0-slim AS base
-RUN npm install -g pnpm@10.28.1
-WORKDIR /app
+FROM node:${NODE_VERSION}-slim AS base
+ENV PNPM_HOME="/pnpm" \
+    PATH="/pnpm/bin:$PATH" \
+    HUSKY=0 \
+    MOLTNET_SKIP_NX_SYNC=1
+ARG PNPM_VERSION
+RUN npm install -g pnpm@${PNPM_VERSION}
 
-# ---------- deps ----------
-FROM base AS deps
+# ---------- build (pnpm install + pnpm deploy, in linux) ----------
+FROM base AS build
+WORKDIR /repo
 
-# Copy workspace config
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-
-# Copy workspace package.json files (rest-api + transitive deps, NO landing/design-system)
-COPY apps/rest-api/package.json apps/rest-api/
-COPY apps/mcp-server/package.json apps/mcp-server/
-COPY libs/observability/package.json libs/observability/
-COPY libs/crypto-service/package.json libs/crypto-service/
-COPY libs/database/package.json libs/database/
-COPY libs/models/package.json libs/models/
-COPY libs/auth/package.json libs/auth/
-COPY libs/diary-service/package.json libs/diary-service/
-COPY libs/api-client/package.json libs/api-client/
-COPY libs/bootstrap/package.json libs/bootstrap/
-COPY libs/context-distill/package.json libs/context-distill/
-COPY libs/context-pack-service/package.json libs/context-pack-service/
-COPY libs/embedding-service/package.json libs/embedding-service/
-COPY libs/mcp-auth-proxy/package.json libs/mcp-auth-proxy/
-COPY libs/tasks/package.json libs/tasks/
-COPY libs/task-service/package.json libs/task-service/
-COPY tools/package.json tools/
-
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile --ignore-scripts
-
-# Run postinstall for onnxruntime-node (downloads platform-specific native binaries).
-# --ignore-scripts skips it during install; rebuild targets only this package.
-# Required by the `model` stage below: download-embedding-model.mjs imports
-# @huggingface/transformers which dlopens onnxruntime-node at runtime.
-RUN pnpm rebuild onnxruntime-node
-
-# ---------- model ----------
-# Separate stage so the model download is cached independently of source changes.
-# This layer only rebuilds when deps change (lockfile / package.json), not on
-# every source commit.
-FROM deps AS model
-COPY tools/download-embedding-model.mjs tools/
-RUN pnpm --filter @moltnet/tools download-model -- --cache-dir /app/models
-
-# ---------- build ----------
-FROM deps AS build
-
+# Repo is COPYed wholesale; .dockerignore prunes everything not needed for
+# `pnpm install` + `pnpm deploy`. Per-app prebuilt dist/ trees come along so
+# the deployed tree picks them up via the package's own files glob.
 COPY . .
 
-# Build the main bundle and the migrate bundle (mirrors the
-# `build:migrate` Nx target in apps/rest-api/project.json). Calling
-# vite directly avoids invoking nx inside the container, which would
-# need every devDependency just to enumerate the project graph.
-RUN pnpm --filter @moltnet/rest-api exec vite build && \
-    pnpm --filter @moltnet/rest-api exec vite build --ssr src/migrate.ts --outDir dist --emptyOutDir false
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prod
 
-# Extract rest-api with production-only dependencies.
-# Keep scripts off in deploy trees so root postinstall does not run `nx sync`
-# against the partial /app/deploy workspace. The long-term fix is tracked in
-# #1223, where images should package prebuilt outputs and stop relying on
-# pnpm deploy for this path.
-RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod --ignore-scripts /app/deploy
-
-# Re-run onnxruntime-node postinstall in the deployed tree (pnpm deploy copies
-# node_modules but does not re-run install scripts)
-RUN pnpm rebuild onnxruntime-node --dir /app/deploy
-
-# Copy pre-downloaded model from the model stage (avoids re-downloading on
-# every source change).
-COPY --from=model /app/models /app/models
+RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /out
 
 # ---------- production ----------
-FROM node:22.19.0-slim AS production
+FROM node:${NODE_VERSION}-slim AS production
+
+# Set by buildx automatically (amd64 | arm64). Used to drop foreign-platform
+# native binaries from onnxruntime-node, which ships every os/arch combo in
+# its npm tarball (~80 MB of unused darwin+win32 binaries otherwise).
+ARG TARGETARCH
 
 LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
 LABEL org.opencontainers.image.description="MoltNet REST API"
 LABEL org.opencontainers.image.licenses="MIT"
 
-ENV NODE_ENV=production
-# Model is baked in — no remote download needed at runtime
-ENV EMBEDDING_CACHE_DIR=/app/models
-ENV EMBEDDING_ALLOW_REMOTE_MODELS=false
+ENV NODE_ENV=production \
+    EMBEDDING_CACHE_DIR=/app/dist/models \
+    EMBEDDING_ALLOW_REMOTE_MODELS=false
 WORKDIR /app
 
-# REST API with production-only dependencies (via pnpm deploy)
-COPY --from=build /app/deploy ./
+# Runtime tree: app + production node_modules, linux-native.
+# `pnpm deploy` copies only the package's `files` glob (dist/, public/) plus
+# the trimmed node_modules; dev configs and source are excluded automatically.
+# `dist/models/` rides along inside `dist/` (host-built by `download-model`).
+COPY --from=build /out ./
 
-# Pre-downloaded model files (no huggingface.co access needed at runtime)
-COPY --from=build /app/models ./models
+# Drizzle migration SQL — consumed by the migrate entrypoint and Fly.io
+# release_command. Lives in a sibling workspace, not in rest-api's files glob,
+# so we COPY it explicitly from the build stage's repo checkout.
+COPY --from=build /repo/libs/database/drizzle/ ./drizzle/
 
-# OpenAPI spec for static serving
-COPY --from=build /app/apps/rest-api/public ./public
-
-# Migration SQL files for Fly.io release_command
-COPY --from=build /app/libs/database/drizzle ./drizzle
+# Strip foreign-platform native binaries from onnxruntime-node's
+# pnpm-virtual-store layout. TARGETARCH=amd64 → keep linux/x64;
+# TARGETARCH=arm64 → keep linux/arm64. No-op if the path doesn't exist.
+RUN set -eu; \
+    case "${TARGETARCH}" in \
+      amd64) KEEP_ARCH=x64 ;; \
+      arm64) KEEP_ARCH=arm64 ;; \
+      *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    find node_modules -type d -path '*/onnxruntime-node/bin/napi-v3' | while read -r dir; do \
+      find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name linux -exec rm -rf {} +; \
+      find "$dir/linux" -mindepth 1 -maxdepth 1 -type d ! -name "${KEEP_ARCH}" -exec rm -rf {} +; \
+    done
 
 EXPOSE 8080
 

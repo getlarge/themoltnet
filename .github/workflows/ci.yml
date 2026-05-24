@@ -969,28 +969,33 @@ jobs:
       matrix:
         include:
           # rest-api and mcp-server use registry cache: their layers are large
-          # (ONNX native binaries, embedding model, full pnpm deps tree) and
-          # GHA cache is too slow / too size-limited for them. Registry cache
-          # survives across branches and is pulled in parallel by buildkit.
+          # (full pnpm deps tree, native binaries) and GHA cache is too slow /
+          # size-limited. Registry cache survives across branches.
           - image: rest-api
+            project: '@moltnet/rest-api'
             dockerfile: apps/rest-api/Dockerfile
             cache-ref: ghcr.io/getlarge/themoltnet/rest-api:buildcache
             needed-when: e2e-any
           - image: mcp-server
+            project: '@moltnet/mcp-server'
             dockerfile: apps/mcp-server/Dockerfile
             cache-ref: ghcr.io/getlarge/themoltnet/mcp-server:buildcache
             needed-when: e2e-any
           # Smaller images stay on GHA cache (good enough, no extra GHCR tag).
           - image: db-migrate
-            dockerfile: libs/database/Dockerfile.migrate
+            project: '@moltnet/database'
+            dockerfile: libs/database/Dockerfile
             needed-when: e2e-any
           - image: landing
+            project: '@moltnet/landing'
             dockerfile: apps/landing/Dockerfile
             needed-when: landing
           - image: console
+            project: '@moltnet/console'
             dockerfile: apps/console/Dockerfile
             needed-when: e2e-any
           - image: mcp-host
+            project: '@moltnet/mcp-host'
             dockerfile: apps/mcp-host/Dockerfile
             needed-when: e2e-any
     steps:
@@ -1005,6 +1010,35 @@ jobs:
 
       - uses: actions/checkout@v6
         if: steps.gate.outputs.needed == 'true'
+
+      # Host-built artifacts (Nx Cloud-cached) that the Dockerfile COPYs into
+      # the image — e.g. apps/<app>/dist/, apps/rest-api/dist/models/, etc.
+      # See AGENTS.md → "Docker image contract" and issue #1223.
+      - uses: pnpm/action-setup@v5
+        if: steps.gate.outputs.needed == 'true'
+      - uses: actions/setup-node@v6
+        if: steps.gate.outputs.needed == 'true'
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - name: Install dependencies
+        if: steps.gate.outputs.needed == 'true'
+        env:
+          MOLTNET_SKIP_NX_SYNC: '1'
+          HUSKY: '0'
+        run: pnpm install --frozen-lockfile
+      - name: Build host artifacts for ${{ matrix.project }}
+        if: steps.gate.outputs.needed == 'true'
+        env:
+          NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+          NX_BASE: ${{ needs.affected.outputs.base }}
+          NX_HEAD: ${{ needs.affected.outputs.head }}
+        # Materialize what apps/<app>/Dockerfile COPYs into the image. The
+        # docker:build target's dependsOn chain (build, build:migrate,
+        # download-model, …) is fanned out here as -t targets; Nx skips
+        # targets a project doesn't define. `docker build` itself runs in the
+        # next step via docker/build-push-action (cache + push semantics).
+        run: pnpm exec nx run-many -t build build:migrate download-model --projects="${{ matrix.project }}"
 
       - name: Set up Docker Buildx
         if: steps.gate.outputs.needed == 'true'

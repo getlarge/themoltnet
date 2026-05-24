@@ -1,47 +1,115 @@
-# Dependencies
-node_modules
-**/node_modules
+# Build context for every Docker image in this repo.
+#
+# Issue #1223 moved app/lib BUILDS to host-side Nx targets (cached by Nx
+# Cloud). Dockerfiles still run `pnpm install --frozen-lockfile --prod` and
+# `pnpm deploy` inside a linux container so optional native deps (sharp,
+# onnxruntime-node, esbuild, etc.) resolve to linux binaries. The image then
+# COPYs prebuilt artifacts from `apps/<app>/dist/` into the runtime stage.
+#
+# .dockerignore does NOT inherit .gitignore — every exclusion is explicit.
 
-# Build output
-dist
-**/dist
-
-# Version control
+# --- VCS, IDE, OS scratch ---
 .git
 .gitignore
-
-# Git worktrees and Claude workspaces (can contain full node_modules copies)
-.worktrees
-.claude
-
-# IDE
+.gitattributes
 .vscode
 .idea
+.devcontainer
 *.swp
 *.swo
+.DS_Store
+Thumbs.db
 
-# Test & coverage
+# --- Node / pnpm ---
+# We `pnpm install` fresh in linux; never ship host node_modules.
+node_modules
+**/node_modules
+.npmrc.local
+.pnpm-debug.log
+.pnpm-store
+
+# --- Build / cache artifacts (host-only) ---
+# We DO ship per-app `dist/` (prebuilt vite SSR bundles, models, drizzle SQL),
+# so dist/ itself is NOT excluded. But typescript incremental + Nx caches are
+# never consumed by any Dockerfile.
+**/out-tsc
+**/.tsbuildinfo
+.nx
+.nxignore
+.nx-cloud-rerun-config
+**/.turbo
+**/.next
 coverage
 **/.nyc_output
 test-results
+**/playwright-report
+**/.playwright
 
-# Docs & meta
+# --- Tests, fixtures, dev-only assets ---
+# Source `__tests__/`, `e2e/`, `*.test.ts`, `*.spec.ts` come along with the
+# repo COPY (pnpm install needs them present so workspace resolution works);
+# they get stripped by `pnpm deploy --prod` for the runtime tree. Top-level
+# test scaffolding is never used inside images.
+test-fixtures
+rubrics
+evals
+examples
+demos
+
+# --- Documentation site (only ever published, never run in an image) ---
 docs
+
+# --- Local dev / agent tooling ---
+.agents
+.claude
+.codex
+.cursor
+.pi
+.husky
+.worktrees
+.moltnet
+.mcp.json
+sandbox.json
+.docker
+
+# --- CI / repo-meta ---
+.github
+.release-please-manifest.json
+release-please-config.json
+.changeset
+.lintstagedrc*
+.prettierrc*
+.prettierignore
+eslint.config.*
+knip.config.*
+commitlint.config.*
+dangerfile.*
+
+# --- Top-level docs / licenses ---
 *.md
 !README.md
 LICENSE
+LICENSING.md
 
-# CI/CD
-.github
-
-# Environment secrets
+# --- Secrets (encrypted but still no need in image) ---
 .env.keys
 .env.docker.local
-
-# Ory resolved config (contains secrets)
 infra/ory/project.resolved.json
 
-# Design system demo
+# --- Heavy single-project assets not needed by any image ---
 libs/design-system/demo
+packages/openclaw-skill/dist
+packages/agent-daemon-action/dist
 
-evals
+# --- Docker compose configs (image is the result, doesn't need its own recipes) ---
+docker-compose*.yaml
+Dockerfile*
+!apps/*/Dockerfile
+!libs/*/Dockerfile*
+
+# --- Go cli (not packaged into TS images) ---
+go.work
+go.work.sum
+apps/moltnet-cli
+libs/moltnet-api-client
+libs/dspy-adapters

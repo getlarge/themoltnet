@@ -21,7 +21,7 @@ services:
   app-db-migrate:
     build:
       context: .
-      dockerfile: libs/database/Dockerfile.migrate
+      dockerfile: libs/database/Dockerfile
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-moltnet}:${POSTGRES_PASSWORD:-moltnet_secret}@app-db:5432/${POSTGRES_DB:-moltnet}
 

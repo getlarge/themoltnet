@@ -11,6 +11,14 @@
   },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "docker": [
+      "{projectRoot}/Dockerfile",
+      "{projectRoot}/Dockerfile.*",
+      "{projectRoot}/.dockerignore",
+      { "dependentTasksOutputFiles": "**/dist/**/*", "transitive": true },
+      { "runtime": "docker --version" },
+      { "externalDependencies": ["@nx/docker"] }
+    ],
     "production": [
       "default",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)",
@@ -100,6 +108,11 @@
       "dependsOn": ["^build", "^typecheck"],
       "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/dist"]
+    },
+    "docker:build": {
+      "cache": true,
+      "dependsOn": ["build"],
+      "inputs": ["docker", "^production"]
     },
     "lint": {
       "cache": true,

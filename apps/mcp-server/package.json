@@ -12,6 +12,9 @@
       "types": "./src/index.ts"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "vite build",
     "dev": "tsx watch src/main.ts",
