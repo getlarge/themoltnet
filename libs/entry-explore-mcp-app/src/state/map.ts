@@ -198,10 +198,14 @@ export function mapReducer(
 
     case 'RESTORE_STEP': {
       if (action.index < 0 || action.index >= state.trail.length) return state;
+      // Restoring a past camera position always returns to that step's
+      // overview, so clearing the focused zone is part of this action's own
+      // invariant (callers must not have to pair it with SHOW_OVERVIEW).
       return {
         ...state,
         trail: state.trail.slice(0, action.index + 1),
         activeStep: action.index,
+        activeZoneId: null,
       };
     }
 

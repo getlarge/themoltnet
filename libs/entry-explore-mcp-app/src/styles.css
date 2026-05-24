@@ -285,6 +285,11 @@ body {
   opacity: 0.5;
   cursor: default;
 }
+.next-steps-error {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--molt-error, #f04060);
+}
 
 /* ---- empty / fallback ---- */
 .fallback {

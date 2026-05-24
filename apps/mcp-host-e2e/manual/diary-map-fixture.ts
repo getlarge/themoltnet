@@ -160,6 +160,9 @@ async function main() {
   url.searchParams.set('autorun', '1');
   url.searchParams.set('server', `${harness.mcpBaseUrl}/mcp`);
   url.searchParams.set('clientId', agent.clientId);
+  // Throwaway fixture credentials for a local ephemeral stack ONLY. Putting a
+  // secret in URL params leaks it to browser history / logs / Referer headers —
+  // never do this with real agent credentials.
   url.searchParams.set('clientSecret', agent.clientSecret);
   url.searchParams.set(
     'args',

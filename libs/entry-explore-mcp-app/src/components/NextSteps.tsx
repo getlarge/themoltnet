@@ -13,6 +13,8 @@ export interface NextStepsProps {
   zone: Zone | null;
   onSaveZone: (zone: Zone) => void;
   saving: boolean;
+  /** Surfaced when the last save attempt failed, so it isn't a silent no-op. */
+  saveError?: string | null;
 }
 
 /**
@@ -26,6 +28,7 @@ export function NextSteps({
   zone,
   onSaveZone,
   saving,
+  saveError,
 }: NextStepsProps) {
   const saved = Boolean(zone?.packId);
   return (
@@ -59,6 +62,11 @@ export function NextSteps({
           </button>
         ) : null}
       </div>
+      {saveError ? (
+        <p className="next-steps-error" role="alert">
+          {saveError}
+        </p>
+      ) : null}
     </div>
   );
 }

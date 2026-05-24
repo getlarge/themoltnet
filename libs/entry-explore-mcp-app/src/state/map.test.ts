@@ -107,7 +107,7 @@ describe('mapReducer', () => {
     expect(activeTrailStep(next).why).toBe('narrowed to autonomy');
   });
 
-  it('RESTORE_STEP moves back with ZERO refetch and truncates the future', () => {
+  it('RESTORE_STEP moves back with ZERO refetch, truncates the future, and clears the active zone', () => {
     let next = mapReducer(map, {
       type: 'REFINE_SEARCH',
       label: 'autonomy',
@@ -122,12 +122,17 @@ describe('mapReducer', () => {
       query: 'identity',
       visibleEntryIds: ['e3'],
     })!;
+    // Focus a zone so we can assert RESTORE_STEP clears it on its own.
+    next = mapReducer(next, { type: 'FOCUS_ZONE', zoneId: 'a' })!;
     expect(next.trail).toHaveLength(3);
+    expect(next.activeZoneId).toBe('a');
 
     const restored = mapReducer(next, { type: 'RESTORE_STEP', index: 0 })!;
     // The cached visible set is reused verbatim — no new ids, no fetch needed.
     expect(restored.activeStep).toBe(0);
     expect(restored.trail).toHaveLength(1);
+    // Returning to a past step returns to its overview — zone cleared.
+    expect(restored.activeZoneId).toBeNull();
     expect(activeTrailStep(restored).visibleEntryIds).toEqual([
       'e1',
       'e2',

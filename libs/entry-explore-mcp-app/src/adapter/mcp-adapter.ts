@@ -6,8 +6,9 @@
  * existing deterministic server tools (`entries_list`, `entries_search`,
  * `diary_tags`). Zone materialization/validation wraps the existing packs tools
  * (`packs_create`, `packs_update`, `packs_list`) so a zone becomes an unpinned
- * draft pack carrying its search provenance in `params`, then a pinned pack once
- * the human validates it.
+ * draft pack carrying its search provenance in `params` (`packs_create`), then a
+ * pinned pack once the human validates it (`packs_update`). The pack UUID is
+ * resolved from the create CID via `packs_provenance`.
  *
  * Tool results arrive as `{ content: [{ type:'text', text }], structuredContent }`;
  * {@link parseToolJson} reads either shape (mirrors libs/task-mcp-app).
@@ -176,28 +177,27 @@ export class McpDiaryAdapter implements DiaryDataAdapter {
     const json = parseToolJson(result);
     const packCid = typeof json.packCid === 'string' ? json.packCid : '';
     // packs_create returns only packCid (CustomPackResult), not the pack UUID,
-    // but packs_update (pin) needs the UUID. Resolve it from packs_list by CID.
-    const packId = packCid
-      ? await this.resolvePackIdByCid(input.diaryId, packCid)
-      : '';
+    // but packs_update (pin) needs the UUID. Resolve it deterministically from
+    // the CID via packs_provenance (its metadata.rootPackId IS the UUID) —
+    // never via packs_list, which paginates (default limit 20) and could miss a
+    // freshly-created pack in a diary with many packs.
+    const packId = packCid ? await this.resolvePackIdByCid(packCid) : '';
     return { packId, packCid, pinned: false };
   }
 
-  /** Resolve a pack's UUID from its CID via packs_list (needed to pin later). */
-  private async resolvePackIdByCid(
-    diaryId: string,
-    packCid: string,
-  ): Promise<string> {
+  /**
+   * Resolve a pack's UUID from its CID via packs_provenance, whose
+   * `metadata.rootPackId` is the pack UUID. Deterministic and pagination-free
+   * (packs_update needs the UUID to pin). Returns '' if it can't be resolved.
+   */
+  private async resolvePackIdByCid(packCid: string): Promise<string> {
     const result = await this.app.callServerTool({
-      name: 'packs_list',
-      arguments: { diary_id: diaryId },
+      name: 'packs_provenance',
+      arguments: { pack_cid: packCid, depth: 0 },
     });
     const json = parseToolJson(result);
-    const items = Array.isArray(json.items) ? json.items : [];
-    const match = items
-      .map((item) => asRecord(item))
-      .find((item) => item.packCid === packCid);
-    return match && typeof match.id === 'string' ? match.id : '';
+    const metadata = asRecord(json.metadata);
+    return typeof metadata.rootPackId === 'string' ? metadata.rootPackId : '';
   }
 
   /** Pin (validate) or unpin a zone's draft pack. */
@@ -213,28 +213,5 @@ export class McpDiaryAdapter implements DiaryDataAdapter {
           : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       }),
     });
-  }
-
-  /** List the diary's draft zone packs (unpinned, kind=diary-map-zone). */
-  async listZonePacks(
-    diaryId: string,
-  ): Promise<Array<{ packId: string; label: string; pinned: boolean }>> {
-    const result = await this.app.callServerTool({
-      name: 'packs_list',
-      arguments: { diary_id: diaryId },
-    });
-    const json = parseToolJson(result);
-    const items = Array.isArray(json.items) ? json.items : [];
-    return items
-      .map((item) => asRecord(item))
-      .filter((item) => asRecord(item.params).kind === 'diary-map-zone')
-      .map((item) => ({
-        packId: typeof item.id === 'string' ? item.id : '',
-        label:
-          typeof asRecord(item.params).label === 'string'
-            ? (asRecord(item.params).label as string)
-            : 'Zone',
-        pinned: item.pinned === true,
-      }));
   }
 }

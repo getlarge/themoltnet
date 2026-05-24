@@ -29,7 +29,7 @@ function pivotsForZone(
 ): Pivot[] {
   return zones
     .filter((zone) => zone.id !== activeZoneId)
-    .slice(0, 4)
+    .slice(0, 4) // V1: intentionally cap at 4 pivots to keep the row compact
     .map((zone) => ({ id: zone.id, label: `→ ${zone.label}` }));
 }
 
@@ -62,6 +62,7 @@ export function MapApp() {
   const [entries, setEntries] = useState<EntryCardEntry[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const adapter = useMemo(() => (app ? new McpDiaryAdapter(app) : null), [app]);
 
@@ -107,6 +108,7 @@ export function MapApp() {
     async (zone: typeof activeZone) => {
       if (!adapter || !map || !zone) return;
       setSaving(true);
+      setSaveError(null);
       try {
         if (!zone.packId) {
           const draft = await adapter.createZonePack({
@@ -115,6 +117,12 @@ export function MapApp() {
             entryIds: zone.entryIds,
             provenance: zone.provenance,
           });
+          // createZonePack resolves the UUID from the CID; if that came back
+          // empty, pinning later would no-op — surface it rather than silently
+          // marking the zone saved.
+          if (!draft.packId) {
+            throw new Error('Could not resolve the saved pack id.');
+          }
           dispatch({
             type: 'MATERIALIZE_ZONE',
             zoneId: zone.id,
@@ -124,6 +132,10 @@ export function MapApp() {
           await adapter.setZonePinned(zone.packId, true);
           dispatch({ type: 'PIN_ZONE', zoneId: zone.id, pinned: true });
         }
+      } catch (err) {
+        // Don't let the save fail silently (the button would just reset to
+        // "Save this zone" and re-clicking would retry blindly). Show why.
+        setSaveError(err instanceof Error ? err.message : 'Save failed.');
       } finally {
         setSaving(false);
       }
@@ -163,10 +175,7 @@ export function MapApp() {
       <Breadcrumb
         trail={map.trail}
         activeStep={map.activeStep}
-        onRestore={(index) => {
-          dispatch({ type: 'RESTORE_STEP', index });
-          dispatch({ type: 'SHOW_OVERVIEW' });
-        }}
+        onRestore={(index) => dispatch({ type: 'RESTORE_STEP', index })}
       />
 
       {activeZone ? (
@@ -202,6 +211,7 @@ export function MapApp() {
         zone={activeZone}
         onSaveZone={(zone) => void onSaveZone(zone)}
         saving={saving}
+        saveError={saveError}
       />
     </Shell>
   );

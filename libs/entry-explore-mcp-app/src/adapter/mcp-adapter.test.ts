@@ -122,21 +122,16 @@ describe('McpDiaryAdapter.listTags', () => {
 });
 
 describe('McpDiaryAdapter.createZonePack', () => {
-  it('creates an UNPINNED pack with provenance, then resolves its id by CID', async () => {
-    // packs_create returns only packCid (no id); the adapter must look the id
-    // up via packs_list because packs_update (pin) needs the UUID.
+  it('creates an UNPINNED pack with provenance, then resolves its id from the CID', async () => {
+    // packs_create returns only packCid (no id); the adapter resolves the UUID
+    // via packs_provenance (metadata.rootPackId), not a paginated packs_list.
     const { app, calls } = caller((input) => {
       if (input.name === 'packs_create') {
         return Promise.resolve(textResult({ packCid: 'bafy-zone' }));
       }
-      if (input.name === 'packs_list') {
+      if (input.name === 'packs_provenance') {
         return Promise.resolve(
-          textResult({
-            items: [
-              { id: 'other', packCid: 'bafy-other' },
-              { id: 'pack-1', packCid: 'bafy-zone' },
-            ],
-          }),
+          textResult({ metadata: { rootPackId: 'pack-1' } }),
         );
       }
       return Promise.resolve(textResult({}));
@@ -170,13 +165,35 @@ describe('McpDiaryAdapter.createZonePack', () => {
       { entry_id: 'e2', rank: 1 },
       { entry_id: 'e1', rank: 2 },
     ]);
-    // Second call resolves the UUID from packs_list, matching on packCid.
-    expect(calls[1].name).toBe('packs_list');
+    // The UUID is resolved deterministically from the CID via provenance.
+    expect(calls[1].name).toBe('packs_provenance');
+    expect(calls[1].arguments).toMatchObject({ pack_cid: 'bafy-zone' });
     expect(draft).toEqual({
       packId: 'pack-1',
       packCid: 'bafy-zone',
       pinned: false,
     });
+  });
+
+  it('returns an empty packId when packs_create yields no CID (no provenance call)', async () => {
+    const { app, calls } = caller((input) => {
+      if (input.name === 'packs_create') {
+        return Promise.resolve(textResult({}));
+      }
+      return Promise.resolve(textResult({}));
+    });
+    const adapter = new McpDiaryAdapter(app);
+
+    const draft = await adapter.createZonePack({
+      diaryId: 'd1',
+      label: 'X',
+      entryIds: ['e1'],
+      provenance: { basis: 'x', searches: [] },
+    });
+
+    expect(draft.packId).toBe('');
+    // No CID -> we never attempt provenance resolution.
+    expect(calls.some((c) => c.name === 'packs_provenance')).toBe(false);
   });
 });
 
@@ -202,29 +219,5 @@ describe('McpDiaryAdapter.setZonePinned', () => {
     expect(
       new Date(calls[0].arguments.expires_at as string).getTime(),
     ).toBeGreaterThan(Date.now());
-  });
-});
-
-describe('McpDiaryAdapter.listZonePacks', () => {
-  it('returns only diary-map-zone packs', async () => {
-    const { app } = caller(() =>
-      Promise.resolve(
-        textResult({
-          items: [
-            {
-              id: 'p1',
-              pinned: false,
-              params: { kind: 'diary-map-zone', label: 'A' },
-            },
-            { id: 'p2', pinned: true, params: { kind: 'compile' } },
-          ],
-        }),
-      ),
-    );
-    const adapter = new McpDiaryAdapter(app);
-
-    const out = await adapter.listZonePacks('d1');
-
-    expect(out).toEqual([{ packId: 'p1', label: 'A', pinned: false }]);
   });
 });
