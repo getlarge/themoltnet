@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "lib": [],
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM"],
     "outDir": "./out-tsc/spec",
     "rootDir": ".",
     "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
@@ -9,15 +10,12 @@
       "vitest/importMeta",
       "vite/client",
       "node",
-      "vitest"
+      "vitest",
+      "@testing-library/jest-dom"
     ]
   },
   "extends": "./tsconfig.json",
   "include": [
-    "vite.config.ts",
-    "vite.config.mts",
-    "vitest.config.ts",
-    "vitest.config.mts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/**/*.test.tsx",
@@ -26,6 +24,7 @@
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx",
+    "src/test-setup.ts",
     "src/**/*.d.ts"
   ],
   "references": [

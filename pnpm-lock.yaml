@@ -704,6 +704,10 @@ importers:
       '@moltnet/mcp-test-harness':
         specifier: workspace:*
         version: link:../../libs/mcp-test-harness
+    devDependencies:
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
 
   apps/mcp-server:
     dependencies:
@@ -719,6 +723,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
+      '@moltnet/entry-explore-mcp-app':
+        specifier: workspace:*
+        version: link:../../libs/entry-explore-mcp-app
       '@moltnet/mcp-auth-proxy':
         specifier: workspace:*
         version: link:../../libs/mcp-auth-proxy
@@ -1395,7 +1402,38 @@ importers:
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   libs/entry-explore-mcp-app:
+    dependencies:
+      '@modelcontextprotocol/ext-apps':
+        specifier: 'catalog:'
+        version: 1.7.2(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod@4.4.3)
+      '@moltnet/diary-ui':
+        specifier: workspace:*
+        version: link:../diary-ui
+      '@themoltnet/design-system':
+        specifier: workspace:*
+        version: link:../design-system
+      react:
+        specifier: 'catalog:'
+        version: 19.2.4
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.4(react@19.2.4)
     devDependencies:
+      '@testing-library/jest-dom':
+        specifier: 'catalog:'
+        version: 6.9.1
+      '@testing-library/react':
+        specifier: 'catalog:'
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.10
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.3(@types/react@19.2.10)
+      '@vitejs/plugin-react':
+        specifier: 'catalog:'
+        version: 5.2.0(vite@8.0.3(@types/node@25.1.0)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
       jsdom:
         specifier: 'catalog:'
         version: 25.0.1

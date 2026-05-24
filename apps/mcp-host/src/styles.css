@@ -106,10 +106,14 @@ pre {
 }
 
 iframe {
-  background: #fff;
+  /* Transparent so dark MCP apps don't sit on a white slab; the app paints its
+     own background. A small min-height avoids a 0px flash before autoResize
+     reports the real content height. */
+  background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
-  min-height: 720px;
+  display: block;
+  min-height: 120px;
   width: 100%;
 }
 

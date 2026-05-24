@@ -18,6 +18,7 @@ import {
 } from './config.js';
 import { registerCryptoTools } from './crypto-tools.js';
 import { registerDiaryTools } from './diary-tools.js';
+import { registerEntryExploreApp } from './entry-explore-app.js';
 import { registerGrantTools } from './grant-tools.js';
 import { registerIdentityTools } from './identity-tools.js';
 import { registerPackTools } from './pack-tools.js';
@@ -318,6 +319,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerTeamTools(app, deps);
   registerTaskTools(app, deps);
   registerTaskApp(app, deps);
+  registerEntryExploreApp(app);
   registerResources(app, deps);
   registerPrompts(app, deps);
 

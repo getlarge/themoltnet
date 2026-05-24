@@ -173,7 +173,9 @@ async function runSelectedTool() {
   iframe.hidden = true;
   iframe.removeAttribute('src');
   iframe.style.width = '100%';
-  iframe.style.height = '720px';
+  // Start small; mountToolUi's autoResize grows it to the app's reported
+  // content height. Avoids a tall white box that then collapses on first paint.
+  iframe.style.height = '';
 
   const toolCall = callTool(currentServer, toolSelect.value, parsedArguments());
   if (toolCall.appResourcePromise) {

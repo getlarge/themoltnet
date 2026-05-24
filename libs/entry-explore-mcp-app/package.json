@@ -18,7 +18,19 @@
     }
   },
   "scripts": {},
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "catalog:",
+    "@moltnet/diary-ui": "workspace:*",
+    "@themoltnet/design-system": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
   "devDependencies": {
+    "@testing-library/jest-dom": "catalog:",
+    "@testing-library/react": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
     "jsdom": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
@@ -31,7 +43,7 @@
     "tags": [
       "type:ui",
       "scope:diary",
-      "platform:isomorphic"
+      "platform:browser"
     ]
   }
 }
