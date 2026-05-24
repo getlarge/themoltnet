@@ -13,7 +13,7 @@ export default defineConfig({
       // points to src/index.ts which would cause vite-plugin-dts to inline
       // full class implementations into the .d.ts output.
       rollupTypes: true,
-      tsconfigPath: './tsconfig.json',
+      tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
       compilerOptions: {
         paths: {

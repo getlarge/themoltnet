@@ -86,6 +86,7 @@ import type {
   RenderedPackPreview,
   RenderedPackResult,
   RenderedPackWithContent,
+  RequestRecoveryChallengeData,
   RevokeDiaryGrantData,
   RevokeDiaryGrantResponse,
   RotateSecretResponse,
@@ -107,6 +108,7 @@ import type {
   UpdateRenderedPackData,
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleResponse,
+  VerifyRecoveryChallengeData,
   VerifyResult,
   Voucher,
 } from '@moltnet/api-client';
@@ -345,17 +347,12 @@ export interface AuthNamespace {
 }
 
 export interface RecoveryNamespace {
-  requestChallenge(body: {
-    fingerprint: string;
-    challenge: string;
-    timestamp: string;
-  }): Promise<RecoveryChallengeResponse>;
-  verifyChallenge(body: {
-    fingerprint: string;
-    challenge: string;
-    signature: string;
-    timestamp: string;
-  }): Promise<RecoveryVerifyResponse>;
+  requestChallenge(
+    body: RequestRecoveryChallengeData['body'],
+  ): Promise<RecoveryChallengeResponse>;
+  verifyChallenge(
+    body: VerifyRecoveryChallengeData['body'],
+  ): Promise<RecoveryVerifyResponse>;
 }
 
 export interface PublicNamespace {

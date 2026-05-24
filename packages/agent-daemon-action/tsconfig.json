@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "outDir": "dist",
     "rootDir": "src",
     "tsBuildInfoFile": "dist/.tsbuildinfo",
@@ -11,9 +11,6 @@
   "extends": "../../tsconfig.json",
   "include": ["src/**/*"],
   "references": [
-    {
-      "path": "../../libs/sdk"
-    },
     {
       "path": "../../libs/tasks"
     }

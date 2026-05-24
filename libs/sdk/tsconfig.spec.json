@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "outDir": "./out-tsc/spec",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
+    "types": ["node", "vitest"]
+  },
+  "extends": "./tsconfig.json",
+  "include": ["__tests__/**/*.ts", "src/**/*.d.ts"],
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
+}

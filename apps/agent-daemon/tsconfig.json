@@ -10,25 +10,16 @@
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "references": [
     {
-      "path": "../../libs/agent-runtime"
+      "path": "../../libs/tasks"
+    },
+    {
+      "path": "../../libs/database"
     },
     {
       "path": "../../libs/bootstrap"
     },
     {
       "path": "../../libs/crypto-service"
-    },
-    {
-      "path": "../../libs/database"
-    },
-    {
-      "path": "../../libs/pi-extension"
-    },
-    {
-      "path": "../../libs/sdk"
-    },
-    {
-      "path": "../../libs/tasks"
     }
   ]
 }

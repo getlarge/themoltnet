@@ -14,15 +14,11 @@ export function createRecoveryNamespace(
 
   return {
     async requestChallenge(body) {
-      return unwrapResult(
-        await requestRecoveryChallenge({ client, body: body as never }),
-      );
+      return unwrapResult(await requestRecoveryChallenge({ client, body }));
     },
 
     async verifyChallenge(body) {
-      return unwrapResult(
-        await verifyRecoveryChallenge({ client, body: body as never }),
-      );
+      return unwrapResult(await verifyRecoveryChallenge({ client, body }));
     },
   };
 }
