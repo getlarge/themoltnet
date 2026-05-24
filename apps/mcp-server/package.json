@@ -27,6 +27,7 @@
     "@moltnet/observability": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/entry-explore-mcp-app": "workspace:*",
     "@moltnet/mcp-auth-proxy": "workspace:*",
     "@moltnet/task-mcp-app": "workspace:*",
     "@moltnet/tasks": "workspace:*",

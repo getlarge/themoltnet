@@ -63,6 +63,36 @@ describe('parseOpenPayload', () => {
     expect(init!.sampledEntries).toBe(3);
   });
 
+  it('merges a nested `map` object (opener tool INPUT shape)', () => {
+    const init = parseOpenPayload({
+      diary_id: 'd1',
+      map: {
+        diaryName: 'themoltnet',
+        totalEntries: 2000,
+        overview: 'Nested overview.',
+        zones: [{ id: 'z1', label: 'Infra', entryIds: ['e1'] }],
+      },
+    });
+
+    expect(init).not.toBeNull();
+    expect(init!.diaryName).toBe('themoltnet');
+    expect(init!.totalEntries).toBe(2000);
+    expect(init!.overview).toBe('Nested overview.');
+    expect(init!.zones).toHaveLength(1);
+    expect(init!.zones[0].label).toBe('Infra');
+  });
+
+  it('prefers flattened top-level fields over a nested map', () => {
+    const init = parseOpenPayload({
+      diary_id: 'd1',
+      overview: 'flat',
+      zones: [{ id: 'flat', entryIds: ['e1'] }],
+      map: { overview: 'nested', zones: [{ id: 'nested', entryIds: ['e2'] }] },
+    });
+    expect(init!.overview).toBe('flat');
+    expect(init!.zones[0].id).toBe('flat');
+  });
+
   it('tolerates snake_case zone fields', () => {
     const init = parseOpenPayload({
       diary_id: 'd1',

@@ -84,9 +84,18 @@ function parseZone(value: unknown, index: number): Zone {
  * "waiting for the agent" state rather than rendering a broken map).
  */
 export function parseOpenPayload(raw: unknown): DiaryMapInit | null {
-  const r = asRecord(raw);
-  const diaryId = str(r.diaryId ?? r.diary_id);
+  const outer = asRecord(raw);
+  const diaryId = str(outer.diaryId ?? outer.diary_id);
   if (!diaryId) return null;
+
+  // The map may arrive flattened onto the payload (opener tool OUTPUT) or
+  // nested under `map` (opener tool INPUT, delivered to ontoolinput). Merge the
+  // nested form onto the top level so both paths render zones identically.
+  const nested = asRecord(outer.map);
+  const r: Record<string, unknown> = { ...nested, ...outer };
+  if (outer.zones === undefined && nested.zones !== undefined) {
+    r.zones = nested.zones;
+  }
 
   const zones = Array.isArray(r.zones) ? r.zones.map(parseZone) : [];
   const sampledFromZones = zones.reduce(

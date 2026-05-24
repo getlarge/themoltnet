@@ -1,9 +1,16 @@
 import { useApp } from '@modelcontextprotocol/ext-apps/react';
 import type { EntryCardEntry } from '@moltnet/diary-ui';
 import { MoltThemeProvider } from '@themoltnet/design-system';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 
-import { McpDiaryAdapter } from './adapter/mcp-adapter.js';
+import { McpDiaryAdapter, parseToolJson } from './adapter/mcp-adapter.js';
 import { Breadcrumb } from './components/Breadcrumb.js';
 import { NextSteps, type Pivot } from './components/NextSteps.js';
 import { Overview } from './components/Overview.js';
@@ -27,20 +34,26 @@ function pivotsForZone(
 }
 
 export function MapApp() {
+  // A ref bridges the ext-apps handlers (registered in onAppCreated, BEFORE
+  // connect, so the initial tool-input/result notification is never missed) to
+  // the reducer dispatch, which doesn't exist yet at App-creation time. The
+  // effect below keeps the ref current; dispatch from useReducer is stable.
+  const seedRef = useRef<(init: ReturnType<typeof parseOpenPayload>) => void>(
+    () => {},
+  );
+
   const { app, isConnected, error } = useApp({
     appInfo: { name: ENTRY_EXPLORE_MCP_APP_TITLE, version: '0.1.0' },
     capabilities: {},
     autoResize: true,
     onAppCreated: (created) => {
       created.ontoolinput = (params) => {
-        const init = parseOpenPayload(
-          (params as { arguments?: unknown }).arguments,
+        seedRef.current(
+          parseOpenPayload((params as { arguments?: unknown }).arguments),
         );
-        if (init) pendingInit.value = init;
       };
       created.ontoolresult = (result) => {
-        const init = parseOpenPayload(result);
-        if (init) pendingInit.value = init;
+        seedRef.current(parseOpenPayload(parseToolJson(result)));
       };
     },
   });
@@ -52,13 +65,14 @@ export function MapApp() {
 
   const adapter = useMemo(() => (app ? new McpDiaryAdapter(app) : null), [app]);
 
-  // Drain the open payload captured by the ext-apps callbacks once connected.
+  // The agent seeds the map via the opener tool result (ontoolresult — a raw
+  // CallToolResult envelope to unwrap) or a later push (ontoolinput — already
+  // the raw arguments object). Either way it lands here via the ref.
   useEffect(() => {
-    if (isConnected && pendingInit.value) {
-      dispatch({ type: 'INIT', payload: pendingInit.value });
-      pendingInit.value = null;
-    }
-  }, [isConnected]);
+    seedRef.current = (init) => {
+      if (init) dispatch({ type: 'INIT', payload: init });
+    };
+  }, []);
 
   const activeZone = map ? findZone(map, map.activeZoneId) : null;
 
@@ -209,12 +223,3 @@ function Status({ state, live }: { state: string; live: boolean }) {
     </div>
   );
 }
-
-/**
- * The open payload can arrive (via ontoolinput/ontoolresult) before React has
- * committed the connected state. A module-scoped mailbox bridges that gap; the
- * connect effect drains it. Kept tiny and intentionally outside React state.
- */
-const pendingInit: { value: ReturnType<typeof parseOpenPayload> } = {
-  value: null,
-};

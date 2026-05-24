@@ -719,6 +719,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
+      '@moltnet/entry-explore-mcp-app':
+        specifier: workspace:*
+        version: link:../../libs/entry-explore-mcp-app
       '@moltnet/mcp-auth-proxy':
         specifier: workspace:*
         version: link:../../libs/mcp-auth-proxy

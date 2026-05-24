@@ -122,12 +122,25 @@ describe('McpDiaryAdapter.listTags', () => {
 });
 
 describe('McpDiaryAdapter.createZonePack', () => {
-  it('creates an UNPINNED pack carrying the search provenance in params', async () => {
-    const { app, calls } = caller(() =>
-      Promise.resolve(
-        textResult({ id: 'pack-1', packCid: 'bafy...', pinned: false }),
-      ),
-    );
+  it('creates an UNPINNED pack with provenance, then resolves its id by CID', async () => {
+    // packs_create returns only packCid (no id); the adapter must look the id
+    // up via packs_list because packs_update (pin) needs the UUID.
+    const { app, calls } = caller((input) => {
+      if (input.name === 'packs_create') {
+        return Promise.resolve(textResult({ packCid: 'bafy-zone' }));
+      }
+      if (input.name === 'packs_list') {
+        return Promise.resolve(
+          textResult({
+            items: [
+              { id: 'other', packCid: 'bafy-other' },
+              { id: 'pack-1', packCid: 'bafy-zone' },
+            ],
+          }),
+        );
+      }
+      return Promise.resolve(textResult({}));
+    });
     const adapter = new McpDiaryAdapter(app);
 
     const draft = await adapter.createZonePack({
@@ -157,9 +170,11 @@ describe('McpDiaryAdapter.createZonePack', () => {
       { entry_id: 'e2', rank: 1 },
       { entry_id: 'e1', rank: 2 },
     ]);
+    // Second call resolves the UUID from packs_list, matching on packCid.
+    expect(calls[1].name).toBe('packs_list');
     expect(draft).toEqual({
       packId: 'pack-1',
-      packCid: 'bafy...',
+      packCid: 'bafy-zone',
       pinned: false,
     });
   });

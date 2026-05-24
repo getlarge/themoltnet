@@ -174,11 +174,30 @@ export class McpDiaryAdapter implements DiaryDataAdapter {
       },
     });
     const json = parseToolJson(result);
-    return {
-      packId: typeof json.id === 'string' ? json.id : '',
-      packCid: typeof json.packCid === 'string' ? json.packCid : '',
-      pinned: json.pinned === true,
-    };
+    const packCid = typeof json.packCid === 'string' ? json.packCid : '';
+    // packs_create returns only packCid (CustomPackResult), not the pack UUID,
+    // but packs_update (pin) needs the UUID. Resolve it from packs_list by CID.
+    const packId = packCid
+      ? await this.resolvePackIdByCid(input.diaryId, packCid)
+      : '';
+    return { packId, packCid, pinned: false };
+  }
+
+  /** Resolve a pack's UUID from its CID via packs_list (needed to pin later). */
+  private async resolvePackIdByCid(
+    diaryId: string,
+    packCid: string,
+  ): Promise<string> {
+    const result = await this.app.callServerTool({
+      name: 'packs_list',
+      arguments: { diary_id: diaryId },
+    });
+    const json = parseToolJson(result);
+    const items = Array.isArray(json.items) ? json.items : [];
+    const match = items
+      .map((item) => asRecord(item))
+      .find((item) => item.packCid === packCid);
+    return match && typeof match.id === 'string' ? match.id : '';
   }
 
   /** Pin (validate) or unpin a zone's draft pack. */
