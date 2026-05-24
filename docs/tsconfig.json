@@ -11,9 +11,6 @@
   "include": [".vitepress/**/*", "scripts/**/*"],
   "references": [
     {
-      "path": "../libs/sdk"
-    },
-    {
       "path": "../libs/api-client"
     }
   ]

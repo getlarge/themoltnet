@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "declarationDir": "out-tsc",
+    "outDir": "out-tsc",
+    "rootDir": "src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
+  },
+  "exclude": ["node_modules", "dist", "out-tsc", "__tests__"],
+  "extends": "./tsconfig.json",
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../api-client"
+    },
+    {
+      "path": "../crypto-service"
+    }
+  ]
+}

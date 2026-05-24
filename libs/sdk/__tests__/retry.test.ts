@@ -15,7 +15,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function flushRetryDelay(): Promise<void> {
+function flushRetryDelay(): Promise<unknown> {
   return vi.advanceTimersByTimeAsync(35_000);
 }
 

@@ -11,9 +11,6 @@
   "references": [
     {
       "path": "../../libs/crypto-service"
-    },
-    {
-      "path": "../../libs/sdk"
     }
   ]
 }

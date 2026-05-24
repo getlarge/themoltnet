@@ -1,24 +1,13 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "lib": ["ES2022"],
-    "outDir": "./out-tsc",
-    "rootDir": "./src",
-    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
-    "types": ["node"]
-  },
-  "exclude": ["node_modules", "dist"],
   "extends": "../../tsconfig.json",
-  "include": ["src"],
+  "files": [],
+  "include": [],
   "references": [
     {
-      "path": "../agent-runtime"
+      "path": "./tsconfig.lib.json"
     },
     {
-      "path": "../crypto-service"
-    },
-    {
-      "path": "../sdk"
+      "path": "./tsconfig.spec.json"
     }
   ]
 }

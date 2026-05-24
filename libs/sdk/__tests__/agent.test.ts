@@ -988,14 +988,14 @@ describe('Agent facade', () => {
 
       const agent = makeAgent();
       await agent.diaries.compile('diary-1', {
-        query: 'auth flow',
+        taskPrompt: 'auth flow',
         tokenBudget: 1000,
       });
 
       expect(compileDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           path: { id: 'diary-1' },
-          body: { query: 'auth flow', tokenBudget: 1000 },
+          body: { taskPrompt: 'auth flow', tokenBudget: 1000 },
         }),
       );
     });

@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [
     dts({
       rollupTypes: true,
-      tsconfigPath: './tsconfig.json',
+      tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts'],
       compilerOptions: {

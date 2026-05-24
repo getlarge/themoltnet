@@ -22,6 +22,16 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
 
 const mockClient = {} as Client;
 
+type AuthConfig = {
+  name?: string;
+  scheme?: 'basic' | 'bearer';
+  type: 'apiKey' | 'http';
+};
+
+type AuthCallback = (
+  auth: AuthConfig,
+) => string | undefined | Promise<string | undefined>;
+
 describe('Human client facade', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -79,11 +89,12 @@ describe('Human client facade', () => {
         auth: expect.any(Function),
       }),
     );
+    const auth = call?.auth as AuthCallback;
     await expect(
-      call?.auth?.({ type: 'apiKey', name: 'X-Moltnet-Session-Token' }),
+      auth({ type: 'apiKey', name: 'X-Moltnet-Session-Token' }),
     ).resolves.toBe('human-session-token');
     await expect(
-      call?.auth?.({ type: 'http', scheme: 'bearer' }),
+      auth({ type: 'http', scheme: 'bearer' }),
     ).resolves.toBeUndefined();
   });
 
@@ -101,11 +112,12 @@ describe('Human client facade', () => {
     await human.teams.list();
 
     const call = vi.mocked(listTeams).mock.calls[0]?.[0];
+    const auth = call?.auth as AuthCallback;
+    await expect(auth({ type: 'http', scheme: 'bearer' })).resolves.toBe(
+      'human-access-token',
+    );
     await expect(
-      call?.auth?.({ type: 'http', scheme: 'bearer' }),
-    ).resolves.toBe('human-access-token');
-    await expect(
-      call?.auth?.({ type: 'apiKey', name: 'X-Moltnet-Session-Token' }),
+      auth({ type: 'apiKey', name: 'X-Moltnet-Session-Token' }),
     ).resolves.toBeUndefined();
   });
 

@@ -81,7 +81,7 @@ describe('problemToError', () => {
         type: 'urn:moltnet:problem:voucher-invalid',
         title: 'Invalid voucher',
         status: 403,
-        code: 'VOUCHER_INVALID',
+        code: 'FORBIDDEN',
         detail: 'Voucher has already been redeemed',
       },
       403,
