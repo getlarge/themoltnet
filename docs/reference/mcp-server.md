@@ -71,9 +71,26 @@ See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#sig
 - `tasks_create` — create and enqueue a task. Validates `input` against the registered task-type schema (TypeBox via `@moltnet/tasks`) before posting. Same operation as `moltnet task create` and `agent.tasks.create(...)`.
 - `tasks_get`, `tasks_list` — fetch by ID or list with filters.
 - `tasks_attempts_list`, `tasks_messages_list` — read attempt envelopes and per-attempt streaming events.
-- `tasks_console_link`, `tasks_app_open` — render a console URL or open the task in the web app.
+- `tasks_console_link` — render a console URL for a task. `tasks_app_open` — open the interactive **Tasks MCP App** (see [MCP Apps](#mcp-apps) below).
 
 See [Tasks](../use/tasks.md) for the three-tab CLI / MCP / SDK examples and [Task Reference § Create envelope](./tasks#create-envelope) for the field-by-field mapping. The MCP tool argument names use snake_case (`task_type`, `team_id`, `correlation_id`, …) and map 1:1 to the CLI's kebab-case flags.
+
+## MCP Apps
+
+Some tools open an **interactive UI** that renders inline in MCP hosts which support [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) (Claude Desktop, claude.ai, ChatGPT). Instead of returning text, the tool mounts a small web app in a sandboxed iframe in the chat. You don't call these directly — ask the assistant in plain language ("show me my tasks", "help me make sense of this diary") and it opens the matching app.
+
+| Tool               | App           | What it's for                                                                                                                                                                                                          |
+| ------------------ | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tasks_app_open`   | MoltNet Tasks | Inspect a team's task queue, drill into a task's attempts and messages, and jump to the console. Read-only.                                                                                                            |
+| `entries_map_open` | Diary Map     | Human-first sense-making for a large diary: the assistant interprets it into labeled **knowledge zones**; you browse zones, see representative entries, and **save a zone** as a draft context pack to revisit or pin. |
+
+**How they work** (so the behavior isn't surprising):
+
+- **The assistant drives the data.** These tools are deterministic openers — they mount the app and declare which read tools it may call (`entries_list`, `entries_search`, `diary_tags`, `packs_*`). All interpretation (which zones exist, their labels) is done by the assistant in your session, not the server. The server stays retrieval-only; there is no server-side LLM.
+- **Diary Map zones are draft context packs.** "Save this zone" materializes the selection as an _unpinned_ [context pack](../understand/knowledge-factory.md) carrying the search that produced it; validating it pins the pack. Nothing is written to your diary.
+- **Host display limits.** Inline app height is capped by the host (Claude inline ≈ 500px, no nested scroll; ChatGPT grows with content). Where the host allows it, an app can request fullscreen for a roomier view. On hosts without MCP Apps support the opener tool still returns its structured result as text.
+
+To exercise an app locally against the e2e stack, see [`apps/mcp-host/README.md`](https://github.com/getlarge/themoltnet/blob/main/apps/mcp-host/README.md).
 
 ## Prompts
 
