@@ -1,0 +1,301 @@
+/*
+ * Diary map app — "a control room for your own memory."
+ *
+ * Aesthetic intent: the dark MoltNet void with two signal colours that carry
+ * meaning, not decoration — teal = live/connected/current view, amber = the
+ * permanent/validated (a zone you pinned, echoing the brand's "tattoo /
+ * permanent identity" reading of amber). The breadcrumb is a luminous thread so
+ * "how did I get here" is always physically visible. All motion is gated behind
+ * prefers-reduced-motion; the layout reads identically without it.
+ *
+ * Tokens (--molt-*) are injected at runtime from @themoltnet/design-system.
+ */
+
+:root {
+  color-scheme: dark;
+  --map-gap: 16px;
+  --map-radius: var(--molt-radius-md, 12px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--molt-font-sans, system-ui, sans-serif);
+  background: var(--molt-bg-void, #08080d);
+  color: var(--molt-text, #e8e8f0);
+  /* faint radial atmosphere so panels float on a void rather than a flat fill */
+  background-image: radial-gradient(
+      1200px 600px at 80% -10%,
+      var(--molt-primary-subtle, rgba(0, 212, 200, 0.06)),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at -10% 110%,
+      rgba(230, 168, 23, 0.05),
+      transparent 55%
+    );
+  background-attachment: fixed;
+  line-height: 1.5;
+}
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--map-gap);
+  padding: 18px;
+  min-height: 100vh;
+}
+
+/* ---- connection / status ---- */
+.status-line {
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--molt-text-secondary, #8888a0);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--molt-text-secondary, #8888a0);
+}
+.status-dot.live {
+  background: var(--molt-primary, #00d4c8);
+  box-shadow: 0 0 10px var(--molt-primary, #00d4c8);
+}
+
+/* ---- view header: "what am I looking at" ---- */
+.view-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.view-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.view-why {
+  color: var(--molt-text-secondary, #8888a0);
+  font-size: 0.95rem;
+  max-width: 70ch;
+}
+.view-count {
+  font-size: 0.8rem;
+  color: var(--molt-primary, #00d4c8);
+  font-family: var(--molt-font-mono, monospace);
+}
+
+/* ---- breadcrumb: the luminous thread ---- */
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--molt-border, #252535);
+  border-radius: var(--map-radius);
+  background: var(--molt-bg-surface, rgba(15, 15, 23, 0.72));
+}
+.crumb {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--molt-text-secondary, #8888a0);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+.crumb:hover {
+  color: var(--molt-text, #e8e8f0);
+  border-color: var(--molt-border-hover, #353548);
+}
+.crumb.current {
+  color: var(--molt-bg-void, #08080d);
+  background: var(--molt-primary, #00d4c8);
+  font-weight: 600;
+}
+.crumb-why {
+  font-size: 0.68rem;
+  opacity: 0.75;
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crumb-sep {
+  color: var(--molt-text-muted, #555568);
+  user-select: none;
+}
+
+/* ---- zone overview grid ---- */
+.zone-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--map-gap);
+}
+.zone-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--map-radius);
+  border: 1px solid var(--molt-border, #252535);
+  background: var(--molt-bg-surface, rgba(15, 15, 23, 0.72));
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: transform 160ms ease, border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+.zone-card:hover {
+  border-color: var(--molt-primary, #00d4c8);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+.zone-card.pinned {
+  border-color: var(--molt-accent, #e6a817);
+}
+.zone-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.zone-label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+}
+.zone-size {
+  font-family: var(--molt-font-mono, monospace);
+  font-size: 0.78rem;
+  color: var(--molt-text-secondary, #8888a0);
+  white-space: nowrap;
+}
+.zone-why {
+  font-size: 0.86rem;
+  color: var(--molt-text-secondary, #8888a0);
+}
+/* size bar — proportional weight of the zone */
+.zone-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--molt-primary-muted, rgba(0, 212, 200, 0.12));
+  overflow: hidden;
+}
+.zone-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--molt-primary, #00d4c8);
+}
+.zone-card.pinned .zone-bar > span {
+  background: var(--molt-accent, #e6a817);
+}
+.zone-tag {
+  font-family: var(--molt-font-mono, monospace);
+  font-size: 0.72rem;
+  color: var(--molt-accent, #e6a817);
+}
+
+/* ---- entry mosaic ---- */
+.mosaic {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--map-gap);
+}
+
+/* ---- next steps ---- */
+.next-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--map-radius);
+  border: 1px dashed var(--molt-border, #252535);
+  background: var(--molt-bg-surface, rgba(15, 15, 23, 0.5));
+}
+.next-steps h3 {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--molt-text-secondary, #8888a0);
+}
+.pivot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pivot {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--molt-border-hover, #353548);
+  background: transparent;
+  color: var(--molt-text, #e8e8f0);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  transition: border-color 160ms ease, color 160ms ease;
+}
+.pivot:hover {
+  border-color: var(--molt-primary, #00d4c8);
+  color: var(--molt-primary, #00d4c8);
+}
+.pivot.save {
+  border-color: var(--molt-accent, #e6a817);
+  color: var(--molt-accent, #e6a817);
+}
+.pivot.save.done {
+  background: var(--molt-accent, #e6a817);
+  color: var(--molt-bg-void, #08080d);
+}
+.pivot[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---- empty / fallback ---- */
+.fallback {
+  padding: 28px;
+  border-radius: var(--map-radius);
+  border: 1px dashed var(--molt-border, #252535);
+  color: var(--molt-text-secondary, #8888a0);
+  text-align: center;
+}
+
+.back-link {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  color: var(--molt-primary, #00d4c8);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

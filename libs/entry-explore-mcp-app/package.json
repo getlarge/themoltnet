@@ -18,8 +18,14 @@
     }
   },
   "scripts": {},
-  "devDependencies": {
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "catalog:",
     "@moltnet/diary-ui": "workspace:*",
+    "@themoltnet/design-system": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
     "@testing-library/jest-dom": "catalog:",
     "@testing-library/react": "catalog:",
     "@types/react": "catalog:",

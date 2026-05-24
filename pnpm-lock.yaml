@@ -1395,10 +1395,23 @@ importers:
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   libs/entry-explore-mcp-app:
-    devDependencies:
+    dependencies:
+      '@modelcontextprotocol/ext-apps':
+        specifier: 'catalog:'
+        version: 1.7.2(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod@4.4.3)
       '@moltnet/diary-ui':
         specifier: workspace:*
         version: link:../diary-ui
+      '@themoltnet/design-system':
+        specifier: workspace:*
+        version: link:../design-system
+      react:
+        specifier: 'catalog:'
+        version: 19.2.4
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.4(react@19.2.4)
+    devDependencies:
       '@testing-library/jest-dom':
         specifier: 'catalog:'
         version: 6.9.1
