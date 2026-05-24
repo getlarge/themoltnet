@@ -229,14 +229,15 @@ export async function mountToolUi(
 
   appBridge.onsizechange = ({
     height,
-    width,
   }: {
     height?: number;
     width?: number;
   }) => {
-    if (width !== undefined) {
-      iframe.style.width = `min(${Math.round(width)}px, 100%)`;
-    }
+    // Track content HEIGHT only. The iframe stays `width: 100%` so the host owns
+    // horizontal space and the app reflows responsively. Pinning the iframe to
+    // the app's reported content width creates a shrinking feedback loop: a
+    // responsive app re-measures inside the narrower frame, reports an even
+    // smaller width, and the frame creeps leftward on every resize tick.
     if (height !== undefined) {
       iframe.style.height = `${Math.round(height)}px`;
     }

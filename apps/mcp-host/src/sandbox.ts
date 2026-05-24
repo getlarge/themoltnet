@@ -35,6 +35,12 @@ appFrame.style.border = '0';
 appFrame.style.display = 'block';
 appFrame.style.height = '100%';
 appFrame.style.width = '100%';
+// The proxy is a transparent pass-through: html/body must fill the outer
+// #app-frame so the nested appFrame's `height: 100%` resolves against a real
+// height instead of collapsing to its content's initial paint (a sliver).
+// The outer frame's height is driven by ext-apps autoResize measuring the app.
+document.documentElement.style.height = '100%';
+document.body.style.height = '100%';
 document.body.style.margin = '0';
 document.body.append(appFrame);
 

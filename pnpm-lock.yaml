@@ -704,6 +704,10 @@ importers:
       '@moltnet/mcp-test-harness':
         specifier: workspace:*
         version: link:../../libs/mcp-test-harness
+    devDependencies:
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
 
   apps/mcp-server:
     dependencies:

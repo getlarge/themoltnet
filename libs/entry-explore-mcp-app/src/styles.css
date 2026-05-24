@@ -32,7 +32,8 @@ body {
   background: var(--molt-bg-void, #08080d);
   color: var(--molt-text, #e8e8f0);
   /* faint radial atmosphere so panels float on a void rather than a flat fill */
-  background-image: radial-gradient(
+  background-image:
+    radial-gradient(
       1200px 600px at 80% -10%,
       var(--molt-primary-subtle, rgba(0, 212, 200, 0.06)),
       transparent 60%
@@ -51,7 +52,11 @@ body {
   flex-direction: column;
   gap: var(--map-gap);
   padding: 18px;
-  min-height: 100vh;
+  /* No `min-height: 100vh`: this renders inside a host iframe whose height is
+     driven by ext-apps autoResize measuring our content. `100vh` resolves to
+     the iframe's own height, creating a circular dependency that collapses the
+     frame to a sliver. Size to content instead; the host owns the viewport. */
+  box-sizing: border-box;
 }
 
 /* ---- connection / status ---- */
@@ -122,7 +127,10 @@ body {
   font: inherit;
   font-size: 0.85rem;
   text-align: left;
-  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
 }
 .crumb:hover {
   color: var(--molt-text, #e8e8f0);
@@ -164,7 +172,9 @@ body {
   text-align: left;
   color: inherit;
   font: inherit;
-  transition: transform 160ms ease, border-color 160ms ease,
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
     box-shadow 160ms ease;
 }
 .zone-card:hover {
@@ -255,7 +265,9 @@ body {
   cursor: pointer;
   font: inherit;
   font-size: 0.85rem;
-  transition: border-color 160ms ease, color 160ms ease;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
 }
 .pivot:hover {
   border-color: var(--molt-primary, #00d4c8);
