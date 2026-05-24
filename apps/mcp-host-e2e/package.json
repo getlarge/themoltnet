@@ -7,6 +7,9 @@
   "dependencies": {
     "@moltnet/mcp-test-harness": "workspace:*"
   },
+  "devDependencies": {
+    "tsx": "catalog:"
+  },
   "nx": {
     "tags": [
       "type:e2e",
@@ -15,6 +18,16 @@
     ],
     "implicitDependencies": [
       "@moltnet/mcp-host"
-    ]
+    ],
+    "targets": {
+      "diary-map-fixture": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "tsx manual/diary-map-fixture.ts",
+          "cwd": "apps/mcp-host-e2e"
+        }
+      }
+    }
   }
 }
