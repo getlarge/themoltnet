@@ -11,5 +11,9 @@
   "exclude": ["node_modules", "out-tsc", "__tests__"],
   "extends": "../../tsconfig.json",
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "references": [{ "path": "../api-client" }, { "path": "../design-system" }]
+  "references": [
+    {
+      "path": "../api-client"
+    }
+  ]
 }

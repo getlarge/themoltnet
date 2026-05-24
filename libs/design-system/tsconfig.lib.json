@@ -1,15 +1,20 @@
 {
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc",
-    "types": ["node"]
+    "composite": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM"],
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "types": ["vite/client"]
   },
   "exclude": [
-    "src/**/*.spec.ts",
-    "src/**/*.test.ts",
     "vite.config.ts",
     "vite.config.mts",
     "vitest.config.ts",
     "vitest.config.mts",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
     "src/**/*.test.tsx",
     "src/**/*.spec.tsx",
     "src/**/*.test.js",
@@ -18,5 +23,5 @@
     "src/**/*.spec.jsx"
   ],
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

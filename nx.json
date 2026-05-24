@@ -87,10 +87,6 @@
     },
     {
       "options": {
-        "build": {
-          "configName": "tsconfig.lib.json",
-          "targetName": "build"
-        },
         "typecheck": {
           "targetName": "typecheck"
         }

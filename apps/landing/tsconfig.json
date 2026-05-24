@@ -1,28 +1,13 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "outDir": "./out-tsc",
-    "rootDir": "./src",
-    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
-  },
-  "exclude": ["node_modules", "dist", "__tests__"],
   "extends": "../../tsconfig.json",
-  "include": ["src"],
+  "files": [],
+  "include": [],
   "references": [
     {
-      "path": "../../libs/api-client"
+      "path": "./tsconfig.lib.json"
     },
     {
-      "path": "../../libs/design-system"
-    },
-    {
-      "path": "../../libs/discovery"
-    },
-    {
-      "path": "../../libs/models"
+      "path": "./tsconfig.spec.json"
     }
   ]
 }

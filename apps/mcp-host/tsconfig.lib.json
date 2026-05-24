@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
     "composite": true,
-    "declaration": true,
-    "lib": ["ES2022", "DOM"],
+    "isolatedModules": true,
+    "lib": ["ESNext", "DOM"],
     "outDir": "./out-tsc",
     "rootDir": "./src",
     "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
-    "types": ["node", "vite/client"]
+    "types": ["vite/client", "node"],
+    "useDefineForClassFields": true
   },
   "exclude": [
     "vite.config.ts",
@@ -23,10 +24,5 @@
     "src/**/*.spec.jsx"
   ],
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../design-system/tsconfig.lib.json"
-    }
-  ]
+  "include": ["src/**/*.ts"]
 }

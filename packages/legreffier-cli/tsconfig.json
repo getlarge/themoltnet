@@ -12,19 +12,16 @@
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../libs/api-client"
+      "path": "../../libs/sdk"
+    },
+    {
+      "path": "../github-agent"
     },
     {
       "path": "../../libs/crypto-service"
     },
     {
-      "path": "../../libs/design-system"
-    },
-    {
-      "path": "../../libs/sdk"
-    },
-    {
-      "path": "../github-agent"
+      "path": "../../libs/api-client"
     }
   ]
 }

@@ -186,6 +186,19 @@ See `libs/database/drizzle/README.md` for the full workflow, rollback strategy, 
 - **Typecheck**: Each workspace runs `tsc -b --emitDeclarationOnly` via `pnpm -r run typecheck`. This emits `.d.ts` + `.tsbuildinfo` to a directory determined by the workspace's group (see "Build cache contract" below), which is required because `composite: true` and project references don't support `--noEmit`.
 - **Workspace linking**: `inject-workspace-packages=false` in `.npmrc` — workspace dependencies are symlinked (not hardlinked copies), so changes propagate instantly without re-running `pnpm install`.
 
+### Vite/Nx multi-tsconfig layout
+
+New and migrated Vite projects use the Nx multi-tsconfig pattern:
+
+- `tsconfig.json` is the glue file only: it extends the root config, has `files: []` and `include: []`, and references the local source and spec configs.
+- `tsconfig.lib.json` compiles production source. It owns `compilerOptions`, `include`, `exclude`, dependency references, and writes typecheck output to `./out-tsc`.
+- `tsconfig.spec.json` covers Vitest test files and source declarations. It writes to `./out-tsc/spec` and references `./tsconfig.lib.json`.
+- Vite library builds that use `vite-plugin-dts` point `tsconfigPath` at `./tsconfig.lib.json`, not the glue config.
+- Reference maintenance belongs to Nx sync (`nx sync`, `@nx/js:typescript-sync`), not custom scripts such as `update-ts-references`.
+- `@nx/vite/plugin` owns the normal `build` target for Vite projects. `@nx/js/typescript` is configured for `typecheck`/sync only so `tsconfig.lib.json` does not make browser apps build with `tsc`.
+
+For Vite browser apps and Vite UI libs, prefer `tsconfig.lib.json` over `tsconfig.app.json` so the workspace has a consistent source-config name across app and library projects.
+
 ### Build cache contract (three groups)
 
 Nx Cloud DTE caches `build` and `typecheck` artifacts independently. For caching to be coherent, the directory tsc actually writes to must match what `nx.json` declares as the target's outputs. Every workspace belongs to exactly one of these groups; **`dist/` and `out-tsc/` must never overlap within a workspace**.
