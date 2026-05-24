@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@moltnet/api-client": "workspace:*",
     "@moltnet/mcp-test-harness": "workspace:*"
   },
   "devDependencies": {

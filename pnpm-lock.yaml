@@ -701,6 +701,9 @@ importers:
 
   apps/mcp-host-e2e:
     dependencies:
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../../libs/api-client
       '@moltnet/mcp-test-harness':
         specifier: workspace:*
         version: link:../../libs/mcp-test-harness
@@ -1471,6 +1474,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: 'catalog:'
         version: 1.29.0(zod@4.4.3)
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../api-client
       '@moltnet/bootstrap':
         specifier: workspace:*
         version: link:../bootstrap

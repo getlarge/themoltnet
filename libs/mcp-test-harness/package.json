@@ -12,6 +12,7 @@
   },
   "scripts": {},
   "dependencies": {
+    "@moltnet/api-client": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@modelcontextprotocol/sdk": "catalog:"

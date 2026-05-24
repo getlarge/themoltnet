@@ -1,35 +1,36 @@
 import {
+  type Client,
+  createClient,
+  createDiaryEntry,
+} from '@moltnet/api-client';
+import {
   createMcpTestHarness,
   type McpTestHarness,
 } from '@moltnet/mcp-test-harness';
 import { expect, type Page, test } from '@playwright/test';
 
 let harness: McpTestHarness;
+let client: Client;
 const seededEntryIds: string[] = [];
 
 /** Seed a handful of namespaced-tag entries so a zone resolves a real mosaic. */
 async function seedEntry(content: string, tags: string[]): Promise<string> {
-  const response = await fetch(
-    `${harness.restApiUrl}/diaries/${harness.privateDiaryId}/entries`,
-    {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${harness.agent.accessToken}`,
-        'x-moltnet-team-id': harness.personalTeamId,
-      },
-      body: JSON.stringify({ content, tags, entryType: 'semantic' }),
-    },
-  );
-  if (!response.ok) {
-    throw new Error(`seed failed: ${response.status} ${await response.text()}`);
+  const { data, error } = await createDiaryEntry({
+    client,
+    auth: () => harness.agent.accessToken,
+    headers: { 'x-moltnet-team-id': harness.personalTeamId },
+    path: { diaryId: harness.privateDiaryId },
+    body: { content, tags, entryType: 'semantic' },
+  });
+  if (error || !data) {
+    throw new Error(`seed failed: ${JSON.stringify(error)}`);
   }
-  const body = (await response.json()) as { id: string };
-  return body.id;
+  return data.id;
 }
 
 test.beforeAll(async () => {
   harness = await createMcpTestHarness();
+  client = createClient({ baseUrl: harness.restApiUrl });
   seededEntryIds.push(
     await seedEntry('Chose Drizzle migrations over raw SQL.', [
       'scope:infra',
