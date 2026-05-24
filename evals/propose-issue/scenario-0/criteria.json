@@ -1,0 +1,41 @@
+{
+  "checklist": [
+    {
+      "description": "Attempt messages or final answer show use of the propose-issue workflow, including issue metadata gathering and proposal drafting rather than starting implementation",
+      "max_score": 16,
+      "name": "Proposal workflow used"
+    },
+    {
+      "description": "The answer clearly keeps claimant-side actions separate from proposer-side actions",
+      "max_score": 14,
+      "name": "Proposer/claimant boundary"
+    },
+    {
+      "description": "No GitHub assignment, label mutation, branch creation, worktree creation, commit, push, or PR creation is attempted by the proposer",
+      "max_score": 18,
+      "name": "No local claim side effects"
+    },
+    {
+      "description": "The proposed brief tells the daemon claimant to self-assign with its GitHub App identity if it decides to work, and not to assign other agents or humans",
+      "max_score": 14,
+      "name": "Self-assignment instruction"
+    },
+    {
+      "description": "The proposal includes task-relevant enrichment beyond raw issue body, such as labels/comments, local context, non-goals, risks, acceptance criteria, or validation commands",
+      "max_score": 16,
+      "name": "Brief enrichment"
+    },
+    {
+      "description": "The agent previews the task proposal and asks for explicit confirmation before publishing it",
+      "max_score": 16,
+      "name": "Preview before publish"
+    },
+    {
+      "description": "User-facing text uses publish/propose wording and avoids saying the task will be imposed",
+      "max_score": 6,
+      "name": "Correct terminology"
+    }
+  ],
+  "context": "Positive proposal scenario: issue work should be offered to daemon agents without the current session claiming ownership.",
+  "type": "weighted_checklist"
+}

@@ -1,0 +1,1 @@
+Propose a GitHub issue as a daemon task without claiming or assigning it

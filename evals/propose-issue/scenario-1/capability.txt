@@ -1,0 +1,1 @@
+Use published MoltNet SDK and released CLI helpers instead of repo-internal task scripts

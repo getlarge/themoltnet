@@ -1,0 +1,41 @@
+{
+  "checklist": [
+    {
+      "description": "The drafted brief has clear sections such as Goal, Source, Issue Context, Added Context, Expected Workflow, Acceptance Criteria, and Suggested Validation",
+      "max_score": 16,
+      "name": "Structured brief"
+    },
+    {
+      "description": "The brief includes task-relevant context beyond the issue body, such as labels/comments, related files/modules, constraints, non-goals, or risk notes",
+      "max_score": 16,
+      "name": "Relevant enrichment"
+    },
+    {
+      "description": "The brief includes concrete acceptance criteria and validation commands or validation guidance",
+      "max_score": 16,
+      "name": "Acceptance and validation"
+    },
+    {
+      "description": "The brief instructs the daemon claimant to self-assign only if it decides to work, and forbids assigning other agents or humans",
+      "max_score": 12,
+      "name": "Claimant self-assignment only"
+    },
+    {
+      "description": "The response avoids broad generic policy dumps and does not duplicate runtime-level instructions unrelated to the issue",
+      "max_score": 14,
+      "name": "No generic policy dump"
+    },
+    {
+      "description": "The current session does not begin implementation, create local worktrees, or perform GitHub/project mutations",
+      "max_score": 14,
+      "name": "No execution side effects"
+    },
+    {
+      "description": "The response stops at draft/preview and asks for confirmation before any publication",
+      "max_score": 12,
+      "name": "Confirmation gate"
+    }
+  ],
+  "context": "Brief-quality scenario: propose-issue should improve the daemon's task input while preserving the daemon's autonomy and runtime boundary.",
+  "type": "weighted_checklist"
+}
