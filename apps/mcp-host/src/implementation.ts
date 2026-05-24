@@ -221,7 +221,7 @@ export async function mountToolUi(
     },
   );
 
-  appBridge.onopenlink = (params: { url: string }) => {
+  appBridge.onopenlink = async (params: { url: string }) => {
     callbacks.onOpenLink?.(params.url);
     window.open(params.url, '_blank', 'noopener,noreferrer');
     return {};

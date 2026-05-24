@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
     "composite": true,
-    "declaration": true,
-    "lib": ["ES2022", "DOM"],
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "outDir": "./out-tsc",
     "rootDir": "./src",
     "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
-    "types": ["node", "vite/client"]
+    "types": ["vite/client"]
   },
   "exclude": [
     "vite.config.ts",
@@ -23,10 +24,22 @@
     "src/**/*.spec.jsx"
   ],
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts"],
+  "include": ["src"],
   "references": [
     {
-      "path": "../design-system/tsconfig.lib.json"
+      "path": "../../libs/task-ui/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/models"
+    },
+    {
+      "path": "../../libs/diary-ui"
+    },
+    {
+      "path": "../../libs/api-client"
+    },
+    {
+      "path": "../../libs/design-system/tsconfig.lib.json"
     }
   ]
 }

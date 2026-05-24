@@ -11,13 +11,10 @@
   "include": [".vitepress/**/*", "scripts/**/*"],
   "references": [
     {
-      "path": "../libs/api-client"
-    },
-    {
-      "path": "../libs/design-system"
-    },
-    {
       "path": "../libs/sdk"
+    },
+    {
+      "path": "../libs/api-client"
     }
   ]
 }
