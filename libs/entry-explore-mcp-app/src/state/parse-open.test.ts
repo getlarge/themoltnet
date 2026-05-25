@@ -9,12 +9,12 @@ describe('parseOpenPayload', () => {
     expect(parseOpenPayload(undefined)).toBeNull();
   });
 
-  it('accepts both camelCase and snake_case diary id', () => {
+  it('reads the diary id from either wire shape (output `diaryId` / input `diary_id`)', () => {
     expect(parseOpenPayload({ diaryId: 'd1' })?.diaryId).toBe('d1');
     expect(parseOpenPayload({ diary_id: 'd2' })?.diaryId).toBe('d2');
   });
 
-  it('parses a full agent payload', () => {
+  it('parses a full canonical zone (entry_ids, why, territory, provenance)', () => {
     const init = parseOpenPayload({
       diaryId: 'd1',
       diaryName: 'themoltnet',
@@ -27,10 +27,16 @@ describe('parseOpenPayload', () => {
           label: 'Infra',
           why: 'deployment + docker',
           territory: 'scope:infra',
-          entryIds: ['e1', 'e2'],
+          entry_ids: ['e1', 'e2'],
           provenance: {
             basis: 'tag:scope:infra',
-            searches: [{ query: 'docker', tags: ['scope:infra'] }],
+            searches: [
+              {
+                query: 'docker',
+                tags: ['scope:infra'],
+                entry_types: ['semantic'],
+              },
+            ],
           },
         },
       ],
@@ -40,6 +46,7 @@ describe('parseOpenPayload', () => {
     expect(init!.zones[0]).toMatchObject({
       id: 'z1',
       label: 'Infra',
+      why: 'deployment + docker',
       territory: 'scope:infra',
       entryIds: ['e1', 'e2'],
       freshestEntryId: 'e1',
@@ -47,13 +54,34 @@ describe('parseOpenPayload', () => {
     expect(init!.zones[0].provenance.searches[0]).toMatchObject({
       query: 'docker',
       tags: ['scope:infra'],
+      types: ['semantic'], // entry_types -> types (the one canonical mapping)
     });
+  });
+
+  // The empty-zones bug was the agent sending non-canonical names (anchorEntries
+  // /summary) that the app silently accepted-then-dropped. The fix is a typed
+  // schema, so the parser now reads ONLY canonical fields; non-canonical names
+  // are ignored here (and rejected upstream by EntryMapZoneSchema validation).
+  it('ignores non-canonical zone field names (no alias guessing)', () => {
+    const init = parseOpenPayload({
+      diary_id: 'd1',
+      zones: [
+        {
+          id: 'z1',
+          label: 'Infra',
+          summary: 'should be ignored',
+          anchorEntries: ['e1', 'e2'],
+        },
+      ],
+    });
+    expect(init!.zones[0].entryIds).toEqual([]);
+    expect(init!.zones[0].why).toBe('');
   });
 
   it('synthesizes ids/labels and infers sample size from zones when absent', () => {
     const init = parseOpenPayload({
       diary_id: 'd1',
-      zones: [{ entryIds: ['e1', 'e2'] }, { entryIds: ['e3'] }],
+      zones: [{ entry_ids: ['e1', 'e2'] }, { entry_ids: ['e3'] }],
     });
 
     expect(init!.zones[0].id).toBe('zone-1');
@@ -70,7 +98,7 @@ describe('parseOpenPayload', () => {
         diaryName: 'themoltnet',
         totalEntries: 2000,
         overview: 'Nested overview.',
-        zones: [{ id: 'z1', label: 'Infra', entryIds: ['e1'] }],
+        zones: [{ id: 'z1', label: 'Infra', entry_ids: ['e1'] }],
       },
     });
 
@@ -86,18 +114,10 @@ describe('parseOpenPayload', () => {
     const init = parseOpenPayload({
       diary_id: 'd1',
       overview: 'flat',
-      zones: [{ id: 'flat', entryIds: ['e1'] }],
-      map: { overview: 'nested', zones: [{ id: 'nested', entryIds: ['e2'] }] },
+      zones: [{ id: 'flat', entry_ids: ['e1'] }],
+      map: { overview: 'nested', zones: [{ id: 'nested', entry_ids: ['e2'] }] },
     });
     expect(init!.overview).toBe('flat');
     expect(init!.zones[0].id).toBe('flat');
-  });
-
-  it('tolerates snake_case zone fields', () => {
-    const init = parseOpenPayload({
-      diary_id: 'd1',
-      zones: [{ entry_ids: ['e9'], why: 'x' }],
-    });
-    expect(init!.zones[0].entryIds).toEqual(['e9']);
   });
 });

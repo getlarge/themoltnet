@@ -27,13 +27,16 @@ function strArray(value: unknown): string[] {
 }
 
 function parseSearch(value: unknown): ZoneSearch {
+  // Canonical snake_case fields only (EntryMapZoneSearchSchema). The app's
+  // internal ZoneSearch is camelCase, so this is the one place that maps
+  // exclude_tags -> excludeTags and entry_types -> types.
   const r = asRecord(value);
   const weights = asRecord(r.weights);
   return {
     query: typeof r.query === 'string' ? r.query : undefined,
     tags: strArray(r.tags),
-    excludeTags: strArray(r.excludeTags ?? r.exclude_tags),
-    types: strArray(r.types ?? r.entryTypes ?? r.entry_types),
+    excludeTags: strArray(r.exclude_tags),
+    types: strArray(r.entry_types),
     weights:
       Object.keys(weights).length > 0
         ? {
@@ -54,7 +57,13 @@ function parseSearch(value: unknown): ZoneSearch {
 
 function parseZone(value: unknown, index: number): Zone {
   const r = asRecord(value);
-  const entryIds = strArray(r.entryIds ?? r.entry_ids ?? r.visibleEntryIds);
+  // Read the canonical contract fields only (EntryMapZoneSchema). The server
+  // validates the agent's input against that schema before it reaches here, so
+  // there is exactly one accepted field name per concept — no aliases. The
+  // coercions below are just null-safety, not name-guessing.
+  const entryIds = strArray(r.entry_ids);
+  const why = str(r.why);
+  const territory = typeof r.territory === 'string' ? r.territory : null;
   const provenance = asRecord(r.provenance);
   const searches = Array.isArray(provenance.searches)
     ? provenance.searches.map(parseSearch)
@@ -62,12 +71,12 @@ function parseZone(value: unknown, index: number): Zone {
   return {
     id: str(r.id, `zone-${index + 1}`),
     label: str(r.label, `Zone ${index + 1}`),
-    why: str(r.why),
-    territory: typeof r.territory === 'string' ? r.territory : null,
+    why,
+    territory,
     entryIds,
     provenance: {
       searches,
-      basis: str(provenance.basis, str(r.why)),
+      basis: str(provenance.basis, why),
     },
     packId: typeof r.packId === 'string' ? r.packId : null,
     pinned: r.pinned === true,
@@ -85,6 +94,10 @@ function parseZone(value: unknown, index: number): Zone {
  */
 export function parseOpenPayload(raw: unknown): DiaryMapInit | null {
   const outer = asRecord(raw);
+  // `diaryId` vs `diary_id` are NOT name-guessing: they are two distinct,
+  // schema-defined wire shapes — the tool OUTPUT (EntryMapOpenOutputSchema,
+  // flattened, `diaryId`) vs the tool INPUT (`diary_id` + nested `map`). Both
+  // are legitimate envelopes the host delivers; the agent controls neither.
   const diaryId = str(outer.diaryId ?? outer.diary_id);
   if (!diaryId) return null;
 
@@ -106,11 +119,8 @@ export function parseOpenPayload(raw: unknown): DiaryMapInit | null {
   return {
     diaryId,
     diaryName: typeof r.diaryName === 'string' ? r.diaryName : null,
-    totalEntries: num(r.totalEntries ?? r.total_entries, sampledFromZones),
-    sampledEntries: num(
-      r.sampledEntries ?? r.sampled_entries,
-      sampledFromZones,
-    ),
+    totalEntries: num(r.totalEntries, sampledFromZones),
+    sampledEntries: num(r.sampledEntries, sampledFromZones),
     overview: str(r.overview),
     zones,
   };
