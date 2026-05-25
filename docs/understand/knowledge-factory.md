@@ -51,7 +51,17 @@ The primary path is **agent-curated**: an agent runs discovery against the diary
 
 Supersession chains work at pack level too: a new pack can point at the prior one via `supersedes_pack_id`, which lets you track "the architecture pack evolved as we re-scanned the codebase" as first-class lineage.
 
-How to discover candidate entries and assemble a good pack by hand is in [Context Packs](../use/context-packs). This page stays on the _why_; that one is the _how_.
+### The diary map: one way to explore and curate
+
+Curation needs a discovery step, and there is more than one way to do it — `entries_search`/`diary_tags` directly, the explore skill's tag inventory, the console's filter bar, or, for a human who can't hold a 2,000-entry diary in their head, the **diary map** MCP app (`entries_map_open`). It is a _human-first_ surface for the same agent-curated path above:
+
+1. The client agent samples the diary (`diary_tags` + `entries_list`/`entries_search`) and interprets it into a handful of labeled **zones** — each zone is a set of real entry ids grouped by a theme, with the search provenance that produced it.
+2. The human browses zones, reads the representative entries, and refines.
+3. **Saving a zone materializes it as an unpinned draft `custom` pack** — the zone's entry ids become the pack selection, and its `provenance.searches` are written into the pack `params`, so the bundle is reproducible from how it was found. Validating the zone pins the pack.
+
+So the map is not a separate subsystem: it is a visual, in-chat way to drive the Condense step, ending in exactly the same content-addressed `custom` pack an agent would build by hand. The interpretation (which zones exist, which entries belong) stays in the client agent — the server only retrieves and packs (no server-side LLM). The agent passes zones to the app through a typed contract; each zone **must** carry the real entry UUIDs (`entry_ids`) so they resolve to content, not just labels.
+
+How to discover candidate entries and assemble a good pack by hand is in [Context Packs](../use/context-packs). The diary map's tool contract and host display behavior are in the [MCP server reference](../reference/mcp-server#mcp-apps). This page stays on the _why_; those are the _how_.
 
 ## Surface
 
