@@ -22,13 +22,15 @@
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
     "src/**/*.spec.jsx",
-    "src/test-setup.ts"
+    "src/test-setup.ts",
+    "__tests__",
+    "e2e"
   ],
   "extends": "./tsconfig.json",
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../diary-ui"
+      "path": "../diary-ui/tsconfig.lib.json"
     },
     {
       "path": "../design-system/tsconfig.lib.json"

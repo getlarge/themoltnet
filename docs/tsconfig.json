@@ -1,17 +1,10 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "noEmit": false,
-    "outDir": "./dist",
-    "rootDir": ".",
-    "tsBuildInfoFile": "./dist/.tsbuildinfo",
-    "types": ["node"]
-  },
   "extends": "../tsconfig.json",
-  "include": [".vitepress/**/*", "scripts/**/*"],
+  "files": [],
+  "include": [],
   "references": [
     {
-      "path": "../libs/api-client"
+      "path": "./tsconfig.lib.json"
     }
   ]
 }

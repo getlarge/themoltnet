@@ -1,19 +1,10 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM"],
-    "outDir": "./out-tsc",
-    "rootDir": "./src",
-    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
-  },
-  "exclude": ["node_modules", "out-tsc", "__tests__"],
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "files": [],
+  "include": [],
   "references": [
     {
-      "path": "../api-client"
+      "path": "./tsconfig.lib.json"
     }
   ]
 }

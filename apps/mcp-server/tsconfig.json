@@ -1,40 +1,10 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "outDir": "./out-tsc",
-    "rootDir": "./src",
-    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
-  },
-  "exclude": ["node_modules", "dist", "__tests__", "e2e"],
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*.ts"],
+  "files": [],
+  "include": [],
   "references": [
     {
-      "path": "../../libs/tasks"
-    },
-    {
-      "path": "../../libs/mcp-auth-proxy"
-    },
-    {
-      "path": "../../libs/models"
-    },
-    {
-      "path": "../../libs/observability"
-    },
-    {
-      "path": "../../libs/database"
-    },
-    {
-      "path": "../../libs/bootstrap"
-    },
-    {
-      "path": "../../libs/mcp-test-harness"
-    },
-    {
-      "path": "../../libs/crypto-service"
-    },
-    {
-      "path": "../../libs/api-client"
+      "path": "./tsconfig.lib.json"
     }
   ]
 }

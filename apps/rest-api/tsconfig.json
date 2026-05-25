@@ -1,55 +1,10 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "outDir": "./out-tsc",
-    "rootDir": "./src",
-    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
-  },
-  "exclude": ["node_modules", "dist", "__tests__"],
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*.ts"],
+  "files": [],
+  "include": [],
   "references": [
     {
-      "path": "../../libs/api-client"
-    },
-    {
-      "path": "../../libs/auth"
-    },
-    {
-      "path": "../../libs/bootstrap"
-    },
-    {
-      "path": "../../libs/context-distill"
-    },
-    {
-      "path": "../../libs/context-pack-service"
-    },
-    {
-      "path": "../../libs/crypto-service"
-    },
-    {
-      "path": "../../libs/database"
-    },
-    {
-      "path": "../../libs/diary-service"
-    },
-    {
-      "path": "../../libs/discovery"
-    },
-    {
-      "path": "../../libs/embedding-service"
-    },
-    {
-      "path": "../../libs/models"
-    },
-    {
-      "path": "../../libs/observability"
-    },
-    {
-      "path": "../../libs/task-service"
-    },
-    {
-      "path": "../../libs/tasks"
+      "path": "./tsconfig.lib.json"
     }
   ]
 }

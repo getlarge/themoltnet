@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "outDir": "./out-tsc",
+    "rootDir": "src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "types": ["node"]
+  },
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.js",
+    "src/**/*.spec.js",
+    "__tests__",
+    "e2e"
+  ],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../../libs/sdk/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/tasks/tsconfig.lib.json"
+    }
+  ]
+}

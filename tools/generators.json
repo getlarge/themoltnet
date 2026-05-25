@@ -1,0 +1,9 @@
+{
+  "generators": {
+    "split-tsconfigs": {
+      "description": "Split project tsconfig.json files into solution, lib, and spec configs",
+      "factory": "./generators/split-tsconfigs/index.ts",
+      "schema": "./generators/split-tsconfigs/schema.json"
+    }
+  }
+}

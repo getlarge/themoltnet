@@ -21,22 +21,24 @@
     "src/**/*.test.js",
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
-    "src/**/*.spec.jsx"
+    "src/**/*.spec.jsx",
+    "__tests__",
+    "e2e"
   ],
   "extends": "./tsconfig.json",
   "include": ["src"],
   "references": [
     {
-      "path": "../../libs/discovery"
+      "path": "../../libs/discovery/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/api-client"
+      "path": "../../libs/api-client/tsconfig.lib.json"
     },
     {
       "path": "../../libs/design-system/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/models"
+      "path": "../../libs/models/tsconfig.lib.json"
     }
   ]
 }

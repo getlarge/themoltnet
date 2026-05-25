@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "lib": [],
     "outDir": "./out-tsc/spec",
     "rootDir": ".",

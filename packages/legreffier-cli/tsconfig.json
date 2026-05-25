@@ -1,24 +1,10 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "outDir": "./out-tsc",
-    "rootDir": "./src",
-    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
-  },
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "dist", "node_modules"],
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "files": [],
+  "include": [],
   "references": [
     {
-      "path": "../github-agent"
-    },
-    {
-      "path": "../../libs/crypto-service"
-    },
-    {
-      "path": "../../libs/api-client"
+      "path": "./tsconfig.lib.json"
     }
   ]
 }

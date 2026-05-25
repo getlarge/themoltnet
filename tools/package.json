@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "CLI tools for MoltNet operations (bootstrap, admin, etc.)",
+  "generators": "./generators.json",
   "scripts": {
     "bootstrap": "tsx src/bootstrap-genesis-agents.ts",
     "check-secrets": "tsx src/check-secrets.ts",

@@ -1,18 +1,10 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "outDir": "dist",
-    "rootDir": "src",
-    "tsBuildInfoFile": "dist/.tsbuildinfo",
-    "types": ["node"]
-  },
-  "exclude": ["src/**/*.test.ts"],
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*"],
+  "files": [],
+  "include": [],
   "references": [
     {
-      "path": "../../libs/tasks"
+      "path": "./tsconfig.lib.json"
     }
   ]
 }
