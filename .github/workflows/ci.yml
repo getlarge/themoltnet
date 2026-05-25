@@ -41,6 +41,7 @@ jobs:
       head: ${{ steps.shas-fallback.outputs.head }}
       e2e-node: ${{ steps.compute.outputs.e2e-node }}
       e2e-browser: ${{ steps.compute.outputs.e2e-browser }}
+      e2e-mcp: ${{ steps.compute.outputs.e2e-mcp }}
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       landing: ${{ steps.compute.outputs.landing }}
@@ -110,7 +111,9 @@ jobs:
             return 1
           }
 
-          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@themoltnet/agent-daemon"; then
+          # Node e2e: rest-api + agent-daemon (REST/queue suites). mcp-server
+          # e2e moved to the dedicated MCP job below.
+          if contains "@moltnet/rest-api" "@themoltnet/agent-daemon"; then
             echo "e2e-node=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-node=false" >> "$GITHUB_OUTPUT"
@@ -122,16 +125,26 @@ jobs:
             echo "e2e-browser=false" >> "$GITHUB_OUTPUT"
           fi
 
+          # MCP e2e: the mcp-server node suite + the mcp-host browser suite. Any
+          # change to the server, the host fixture, or an MCP app UI lib must
+          # exercise these. (Previously the mcp-host browser suite lived in the
+          # console-gated browser job and silently skipped for MCP-only PRs.)
+          if contains "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness"; then
+            echo "e2e-mcp=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e-mcp=false" >> "$GITHUB_OUTPUT"
+          fi
+
           if contains "moltnet-cli" "moltnet-api-client"; then
             echo "e2e-go-cli=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-go-cli=false" >> "$GITHUB_OUTPUT"
           fi
 
-          # e2e-any: true iff any of the three suites should run. The four
-          # e2e stack images (rest-api, mcp-server, db-migrate, console) are
-          # needed by all three suites, so this single flag gates them.
-          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client"; then
+          # e2e-any: true iff any suite should run. The e2e stack images
+          # (rest-api, mcp-server, db-migrate, console, mcp-host) are shared by
+          # all suites, so this single flag gates the image builds.
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client"; then
             echo "e2e-any=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-any=false" >> "$GITHUB_OUTPUT"
@@ -738,8 +751,6 @@ jobs:
       # suite running against the same stack.
       - name: Run REST API E2E tests
         run: pnpm exec nx run @moltnet/rest-api:e2e
-      - name: Run MCP server E2E tests
-        run: pnpm exec nx run @moltnet/mcp-server:e2e
       - name: Run agent-daemon E2E tests
         run: pnpm exec nx run @themoltnet/agent-daemon:e2e
       - name: Docker Compose logs
@@ -803,6 +814,77 @@ jobs:
           CONSOLE_BASE_URL: http://localhost:5174
           MAILSLURPER_API_URL: http://localhost:4437
         run: pnpm exec nx run @moltnet/console:e2e
+      - name: Docker Compose logs
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+      - name: Teardown Docker Compose
+        if: always()
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+
+  # MCP e2e: the mcp-server node suite + the mcp-host browser suite, against a
+  # dedicated copy of the compose stack. Split out of the Node/Browser jobs so a
+  # change to the MCP server/host/app libs triggers it (the mcp-host browser
+  # suite previously lived in the console-gated browser job and skipped for
+  # MCP-only PRs — see issue #1236).
+  e2e-mcp:
+    name: E2E Tests (MCP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    needs: [affected, orchestrator, build-and-push]
+    if: needs.affected.outputs.e2e-mcp == 'true'
+    env:
+      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
+      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
+      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
+      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Get Playwright version
+        id: pw-version
+        run: echo "version=$(pnpm --silent --filter @moltnet/mcp-host-e2e exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.pw-version.outputs.version }}
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @moltnet/mcp-host-e2e exec playwright install chromium
+      - name: Install Playwright system deps
+        run: pnpm --filter @moltnet/mcp-host-e2e exec playwright install-deps chromium
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start Docker Compose stack
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+      - name: Run MCP server E2E tests
+        env:
+          DATABASE_URL: postgresql://moltnet:moltnet_secret@127.0.0.1:5433/moltnet
+          MCP_SERVER_URL: http://127.0.0.1:8001
+          REST_API_URL: http://127.0.0.1:8080
+          ORY_HYDRA_PUBLIC_URL: http://127.0.0.1:4444
+          ORY_HYDRA_ADMIN_URL: http://127.0.0.1:4445
+          ORY_KETO_PUBLIC_URL: http://127.0.0.1:4466
+          ORY_KETO_ADMIN_URL: http://127.0.0.1:4467
+          ORY_KRATOS_PUBLIC_URL: http://127.0.0.1:4433
+          ORY_KRATOS_ADMIN_URL: http://127.0.0.1:4434
+        run: pnpm exec nx run @moltnet/mcp-server:e2e
       - name: Run MCP Host Browser E2E tests
         env:
           BASE_URL: http://127.0.0.1:8082
