@@ -25,7 +25,9 @@ export function TaskDetailPage({ id }: { id: string }) {
     }),
     refetchInterval: (query) =>
       query.state.data &&
-      ['queued', 'dispatched', 'running'].includes(query.state.data.status)
+      ['waiting', 'queued', 'dispatched', 'running'].includes(
+        query.state.data.status,
+      )
         ? 5_000
         : false,
   });

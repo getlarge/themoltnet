@@ -70,8 +70,8 @@ function targetTask(overrides: Partial<Task> = {}): Task {
     inputCid: 'bafy-input',
     references: [],
     correlationId: CORRELATION,
-    imposedByAgentId: null,
-    imposedByHumanId: null,
+    proposedByAgentId: null,
+    proposedByHumanId: null,
     acceptedAttemptN: 1,
     requiredExecutorTrustLevel: 'untrusted',
     allowedExecutors: [],
@@ -93,10 +93,12 @@ interface CtxOverrides {
   target?: Task | null;
   siblings?: Task[];
   seal?: CorrelationSeal | null;
+  currentTaskId?: string;
 }
 
 function makeCtx(o: CtxOverrides = {}): AsyncTaskValidationContext {
   return {
+    currentTaskId: o.currentTaskId,
     async resolveTask(id) {
       return id === TARGET_TASK ? (o.target ?? targetTask()) : null;
     },
@@ -197,6 +199,36 @@ describe('validateJudgeEvalAttemptInputAsync', () => {
       }),
     );
     expect(errors.some((e) => /already exists/.test(e.message))).toBe(true);
+  });
+
+  it('does not treat the task being revalidated as its own duplicate', async () => {
+    const errors = await validateJudgeEvalAttemptInputAsync(
+      {
+        targetTaskId: TARGET_TASK,
+        targetAttemptN: 1,
+        successCriteria: rubric(),
+      },
+      makeCtx({
+        currentTaskId: OTHER_JUDGE,
+        siblings: [
+          targetTask(),
+          {
+            ...targetTask({
+              id: OTHER_JUDGE,
+              taskType: 'judge_eval_attempt',
+              outputKind: 'judgment',
+              status: 'waiting',
+            }),
+            input: {
+              targetTaskId: TARGET_TASK,
+              targetAttemptN: 1,
+              successCriteria: rubric(),
+            },
+          },
+        ],
+      }),
+    );
+    expect(errors).toEqual([]);
   });
 });
 

@@ -117,7 +117,12 @@ export interface PermissionChecker {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
-  canImposeTask(
+  canViewTasks(
+    taskIds: string[],
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<Map<string, boolean>>;
+  canProposeTask(
     diaryId: string,
     subjectId: string,
     subjectNs: KetoNamespace,
@@ -505,7 +510,31 @@ export function createPermissionChecker(
       );
     },
 
-    canImposeTask(
+    async canViewTasks(
+      taskIds: string[],
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<Map<string, boolean>> {
+      const results = await batchCheckPermissions(
+        permissionApi,
+        taskIds.map((taskId) => ({
+          namespace: KetoNamespace.Task,
+          object: taskId,
+          relation: TaskPermission.View,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
+        })),
+      );
+
+      return new Map(
+        taskIds.map((taskId, index) => [taskId, results[index] ?? false]),
+      );
+    },
+
+    canProposeTask(
       diaryId: string,
       subjectId: string,
       subjectNs: KetoNamespace,

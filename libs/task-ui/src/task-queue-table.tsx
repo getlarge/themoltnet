@@ -70,7 +70,7 @@ export function TaskQueueTable({
           <span>Status</span>
           <span>Correlation</span>
           <span>Diary</span>
-          <span>Requester</span>
+          <span>Proposer</span>
           <span>Age</span>
           <span>Accepted</span>
         </div>
@@ -146,9 +146,9 @@ export function TaskQueueTable({
                 {renderDiaryLabel?.(task.diaryId) ?? task.diaryId ?? '—'}
               </span>
               <span>
-                {renderAgentLabel?.(task.imposedByAgentId) ??
-                  task.imposedByAgentId ??
-                  task.imposedByHumanId ??
+                {renderAgentLabel?.(task.proposedByAgentId) ??
+                  task.proposedByAgentId ??
+                  task.proposedByHumanId ??
                   '—'}
               </span>
               <span title={task.queuedAt}>

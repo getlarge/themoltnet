@@ -44,7 +44,7 @@ inputs:
     default: 'latest'
   running-timeout-sec:
     description: >
-      Imposer-side cap on a single attempt's wall-clock runtime, in
+      Proposer-side cap on a single attempt's wall-clock runtime, in
       seconds. Forwarded as `runningTimeoutSec` when the dispatcher
       creates the fulfill_brief / assess_brief task. Range: 1..86400.
       Server default when unset is 7200s (2h).

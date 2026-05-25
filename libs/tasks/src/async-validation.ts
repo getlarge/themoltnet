@@ -81,6 +81,21 @@ export interface CorrelationSeal {
  */
 export interface AsyncTaskValidationContext {
   /**
+   * Conditional tasks may be proposed before their producer tasks are ready.
+   * Validators must still check stable facts (existence, visibility, type,
+   * duplicate guards), but may defer readiness facts until the task is about
+   * to become claimable.
+   */
+  readonly deferReadinessChecks?: boolean;
+
+  /**
+   * Task id currently being revalidated, when validation runs for an existing
+   * waiting task that is about to become claimable. Uniqueness checks use this
+   * to avoid treating the task as its own duplicate.
+   */
+  readonly currentTaskId?: string;
+
+  /**
    * Resolve a task by id. Returns null if not found OR if the
    * caller cannot read it (the implementation runs the same
    * permission check the GET endpoint uses, so validators can't

@@ -57,7 +57,7 @@ export interface ResolvedContext {
  *                       declared order, same separator.
  *
  * No fetching, no hashing — bytes are inlined in `ContextRef.content`,
- * and the task's `inputCid` already pins the entire input. The imposer
+ * and the task's `inputCid` already pins the entire input. The proposer
  * chose these bytes; the resolver just dispatches them.
  *
  * The function is pure with respect to its arguments: file writes are

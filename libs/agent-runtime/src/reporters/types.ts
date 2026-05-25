@@ -40,7 +40,7 @@ export interface TaskReporter {
   close(): Promise<void>;
 
   /**
-   * Signal that aborts when the task is cancelled by the imposer (or a
+   * Signal that aborts when the task is cancelled by the proposer (or a
    * diary writer) while the executor is running. `ApiTaskReporter`
    * aborts this on the next heartbeat that observes `cancelled: true`
    * in the response (#938). Local reporters (`StdoutReporter`,

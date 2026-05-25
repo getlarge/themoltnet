@@ -98,6 +98,13 @@
       "tag": "0013_rebalance_diary_search_scoring",
       "version": "7",
       "when": 1779478182805
+    },
+    {
+      "breakpoints": true,
+      "idx": 14,
+      "tag": "0014_task_claim_conditions",
+      "version": "7",
+      "when": 1779642247522
     }
   ],
   "version": "7"

@@ -386,7 +386,7 @@ The two `renderMethod` labels are:
 - **`server:pack-to-docs-v1`** — server runs the deterministic renderer over the source pack. No agent involvement; CLI's `moltnet pack render` calls this by default.
 - **`agent:pack-to-docs-v1`** — caller submits caller-authored markdown. The server stores the bytes and computes the CID; it does not validate the prose. Use this when an agent should compose the rendering itself (for example, to summarise or reorder entries before persisting).
 
-For agents running inside the MoltNet runtime, the system imposes a `render_pack` task and an executor agent picks it up. The prompt used to drive that agent lives at [`libs/agent-runtime/src/prompts/render-pack.ts`](../../libs/agent-runtime/src/prompts/render-pack.ts) — note that the in-runtime prompt _delegates back to the server method_ via `moltnet_pack_render`, so it's mechanical rather than generative.
+For agents running inside the MoltNet runtime, the system proposes a `render_pack` task and an executor agent picks it up. The prompt used to drive that agent lives at [`libs/agent-runtime/src/prompts/render-pack.ts`](../../libs/agent-runtime/src/prompts/render-pack.ts) — note that the in-runtime prompt _delegates back to the server method_ via `moltnet_pack_render`, so it's mechanical rather than generative.
 
 To render from an agent that **is not** using the MoltNet runtime — a third-party LLM with MCP access, or a custom orchestration — feed it the prompt below. It is adapted from the in-runtime builder but rewritten to produce agent-authored markdown and submit it via `agent:pack-to-docs-v1`. The 8-step `pack-to-docs` transformation it embeds is the same recipe the [`legreffier-explore` skill](https://github.com/getlarge/themoltnet/blob/main/.claude/skills/legreffier-explore/SKILL.md) uses for its Phase 6.
 
@@ -591,7 +591,7 @@ interactive agent sessions — `to-skill` above gives you activation-driven
 loading, which is strictly better than always-on injection.
 
 For task-based evals, the direct-injection path is usually `context_inline`
-rather than "paste this into the system prompt." The imposer reads the rendered
+rather than "paste this into the system prompt." The proposer reads the rendered
 Markdown bytes and creates a `run_eval` task whose `context[]` contains a
 `binding: "context_inline"` item. At execution time, the daemon:
 

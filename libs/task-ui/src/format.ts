@@ -57,6 +57,8 @@ export function taskStatusTone(
     case 'claimed':
     case 'dispatched':
       return 'info';
+    case 'waiting':
+      return 'warning';
     case 'queued':
     default:
       return 'default';

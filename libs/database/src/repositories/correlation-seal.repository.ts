@@ -50,7 +50,7 @@ export function createCorrelationSealRepository(db: Database) {
     /**
      * Look up the seal for a correlation_id, or null. Used by
      * `validateInputAsync` to surface a clean error when an
-     * imposer tries to create a task in an already-sealed group.
+     * proposer tries to create a task in an already-sealed group.
      */
     async findByCorrelationId(
       correlationId: string,

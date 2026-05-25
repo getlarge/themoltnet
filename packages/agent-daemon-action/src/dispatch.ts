@@ -5,7 +5,7 @@
  *   - **fulfill** (issue context): generates a fresh correlationId,
  *     creates a `fulfill_brief` task with the issue body as the brief,
  *     emits its task-id as an action output. Optional
- *     `input.successCriteria` can be supplied per-imposer (not yet
+ *     `input.successCriteria` can be supplied per-proposer (not yet
  *     wired into the action surface; intentional).
  *   - **assess** (PR context): recovers the chain's correlationId
  *     from PR-side anchors, finds the originating fulfill_brief in
@@ -55,7 +55,7 @@ const NO_CRITERIA_NOTICE =
   '👋 `@moltnet-assess` recognised, but the originating `fulfill_brief` ' +
   'task carried no `input.successCriteria` — there is nothing ' +
   'machine-verifiable to judge against. To enable assessment, the ' +
-  'imposer needs to supply `successCriteria` when creating the fulfill ' +
+  'proposer needs to supply `successCriteria` when creating the fulfill ' +
   'task. See [docs/understand/agent-runtime.md](https://github.com/getlarge/themoltnet/blob/main/docs/understand/agent-runtime.md) ' +
   'for the producer/judge model.';
 

@@ -424,7 +424,7 @@ export class ApiTaskReporter implements TaskReporter {
       this.observedCancelReason = response.cancelReason ?? null;
       this.cancelController.abort(
         new Error(
-          `Task cancelled by imposer${
+          `Task cancelled by proposer${
             this.observedCancelReason ? `: ${this.observedCancelReason}` : ''
           }`,
         ),

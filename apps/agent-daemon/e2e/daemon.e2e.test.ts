@@ -69,7 +69,7 @@ function buildProducerVerification(inputCid: string) {
 
 /**
  * The realistic local-daemon scenario is "one agent, one team, one
- * daemon" — the same agent imposes a task and runs the daemon that
+ * daemon" — the same agent proposes a task and runs the daemon that
  * claims it. Cross-agent claiming requires team membership (canAccessTeam
  * on /tasks list); a diary grant alone is not sufficient for the list
  * endpoint, only for individual claim/heartbeat/complete by id.
@@ -103,7 +103,7 @@ describe('Agent daemon (e2e)', () => {
     await harness?.teardown();
   });
 
-  function imposeCuratePackTask() {
+  function proposeCuratePackTask() {
     return agent.tasks.create({
       taskType: 'curate_pack',
       teamId,
@@ -115,7 +115,7 @@ describe('Agent daemon (e2e)', () => {
     });
   }
 
-  function imposeFulfillBriefTask(correlationId: string) {
+  function proposeFulfillBriefTask(correlationId: string) {
     return agent.tasks.create({
       taskType: 'fulfill_brief',
       teamId,
@@ -129,7 +129,10 @@ describe('Agent daemon (e2e)', () => {
     });
   }
 
-  function imposeRunEvalTask(correlationId: string, variantLabel = 'baseline') {
+  function proposeRunEvalTask(
+    correlationId: string,
+    variantLabel = 'baseline',
+  ) {
     return agent.tasks.create({
       taskType: 'run_eval',
       teamId,
@@ -145,7 +148,7 @@ describe('Agent daemon (e2e)', () => {
     });
   }
 
-  function imposeJudgeEvalAttemptTask(
+  function proposeJudgeEvalAttemptTask(
     correlationId: string,
     targetTaskId: string,
   ) {
@@ -177,7 +180,7 @@ describe('Agent daemon (e2e)', () => {
     });
   }
 
-  function imposePrReviewTask() {
+  function proposePrReviewTask() {
     return agent.tasks.create({
       taskType: 'pr_review',
       teamId,
@@ -218,7 +221,7 @@ describe('Agent daemon (e2e)', () => {
   }
 
   it('PollingApiTaskSource claims a queued task and exits drain mode when empty', async () => {
-    const created = await imposeCuratePackTask();
+    const created = await proposeCuratePackTask();
 
     const source = new PollingApiTaskSource({
       agent: agent,
@@ -249,7 +252,7 @@ describe('Agent daemon (e2e)', () => {
   });
 
   it('two parallel claim() calls race on the same task — server CAS picks one winner', async () => {
-    const created = await imposeCuratePackTask();
+    const created = await proposeCuratePackTask();
 
     const sourceA = new PollingApiTaskSource({
       agent: agent,
@@ -285,7 +288,7 @@ describe('Agent daemon (e2e)', () => {
   });
 
   it('runtime.start() drives a full claim → execute → complete loop', async () => {
-    const created = await imposeCuratePackTask();
+    const created = await proposeCuratePackTask();
 
     const runtime = new AgentRuntime({
       source: new PollingApiTaskSource({
@@ -367,7 +370,7 @@ describe('Agent daemon (e2e)', () => {
   }, 60_000);
 
   it('runtime.start() can drive a full pr_review judgment loop with a stub executor', async () => {
-    const created = await imposePrReviewTask();
+    const created = await proposePrReviewTask();
 
     const runtime = new AgentRuntime({
       source: new PollingApiTaskSource({
@@ -435,7 +438,7 @@ describe('Agent daemon (e2e)', () => {
   }, 60_000);
 
   it('fails a claimed attempt when executor throws before reporter.open()', async () => {
-    const created = await imposeCuratePackTask();
+    const created = await proposeCuratePackTask();
 
     const runtime = new AgentRuntime({
       source: new PollingApiTaskSource({
@@ -469,15 +472,15 @@ describe('Agent daemon (e2e)', () => {
     expect(final.status).toBe('failed');
   }, 60_000);
 
-  it('honors imposer-side cancel — reporter heartbeat trips cancelSignal, runtime returns cancelled', async () => {
-    // The full cancel contract from #938: imposer cancels the task while
+  it('honors proposer-side cancel — reporter heartbeat trips cancelSignal, runtime returns cancelled', async () => {
+    // The full cancel contract from #938: proposer cancels the task while
     // the executor is running. The reporter's periodic heartbeat (250ms)
     // observes cancelled:true on the next tick, aborts cancelSignal, and
     // the executor (which awaits the signal) returns status:'cancelled'
     // promptly. The runtime ensures the final output is 'cancelled' even
     // if the executor returned anything else. finalizeTask is a no-op
     // because the row is already terminal.
-    const created = await imposeCuratePackTask();
+    const created = await proposeCuratePackTask();
 
     const runtime = new AgentRuntime({
       source: new PollingApiTaskSource({
@@ -500,7 +503,7 @@ describe('Agent daemon (e2e)', () => {
           attemptN: claimedTask.attemptN,
         });
 
-        // Cancel from the imposer side after the first heartbeat.
+        // Cancel from the proposer side after the first heartbeat.
         setTimeout(() => {
           void agent.tasks.cancel(claimedTask.task.id, {
             reason: 'e2e test cancellation',
@@ -540,7 +543,8 @@ describe('Agent daemon (e2e)', () => {
           durationMs: 0,
           error: {
             code: 'task_cancelled',
-            message: reporter.cancelReason ?? 'cancelled by imposer during e2e',
+            message:
+              reporter.cancelReason ?? 'cancelled by proposer during e2e',
             retryable: false,
           },
         };
@@ -580,7 +584,7 @@ describe('Agent daemon (e2e)', () => {
     const warmSessionTtlSec = 60;
 
     try {
-      const first = await imposeFulfillBriefTask(correlationId);
+      const first = await proposeFulfillBriefTask(correlationId);
       const firstOutput = await runStubbedSlotAwareTask({
         agent,
         taskId: first.id,
@@ -610,7 +614,7 @@ describe('Agent daemon (e2e)', () => {
       expect(existsSync(firstSessionPath!)).toBe(true);
       expect(existsSync(firstWorktreePath!)).toBe(true);
 
-      const second = await imposeFulfillBriefTask(correlationId);
+      const second = await proposeFulfillBriefTask(correlationId);
       const secondOutput = await runStubbedSlotAwareTask({
         agent,
         taskId: second.id,
@@ -670,7 +674,7 @@ describe('Agent daemon (e2e)', () => {
     const correlationId = randomUUID();
     const warmSessionTtlSec = 60;
     try {
-      const producer = await imposeRunEvalTask(correlationId);
+      const producer = await proposeRunEvalTask(correlationId);
       const producerRun = await runStubbedSlotAwareTask({
         agent,
         taskId: producer.id,
@@ -699,7 +703,7 @@ describe('Agent daemon (e2e)', () => {
       expect(existsSync(producerSessionPath!)).toBe(false);
       expect(existsSync(producerWorkspacePath!)).toBe(false);
 
-      const judge = await imposeJudgeEvalAttemptTask(
+      const judge = await proposeJudgeEvalAttemptTask(
         correlationId,
         producer.id,
       );
@@ -731,7 +735,7 @@ describe('Agent daemon (e2e)', () => {
     // `--task-types`: server filters at SQL level, daemon also pre-
     // filters at the source level. No claim-time rejection.
 
-    function imposePinnedCuratePackTask(
+    function proposePinnedCuratePackTask(
       allowed: {
         provider: string;
         model: string;
@@ -747,7 +751,7 @@ describe('Agent daemon (e2e)', () => {
     }
 
     it('persists allowedExecutors with lowercased provider/model', async () => {
-      const created = await imposePinnedCuratePackTask([
+      const created = await proposePinnedCuratePackTask([
         { provider: 'Anthropic', model: 'Claude-Sonnet-4-5' },
       ]);
       try {
@@ -760,7 +764,7 @@ describe('Agent daemon (e2e)', () => {
     });
 
     it('filters out pinned tasks for a non-matching daemon', async () => {
-      const pinned = await imposePinnedCuratePackTask([
+      const pinned = await proposePinnedCuratePackTask([
         { provider: 'anthropic', model: 'claude-opus-4-7' },
       ]);
       try {
@@ -778,7 +782,7 @@ describe('Agent daemon (e2e)', () => {
     });
 
     it('returns pinned tasks to a matching daemon', async () => {
-      const pinned = await imposePinnedCuratePackTask([
+      const pinned = await proposePinnedCuratePackTask([
         { provider: 'anthropic', model: 'claude-sonnet-4-5' },
       ]);
       try {
@@ -796,7 +800,7 @@ describe('Agent daemon (e2e)', () => {
     });
 
     it('returns unrestricted tasks regardless of daemon executor', async () => {
-      const unrestricted = await imposeCuratePackTask();
+      const unrestricted = await proposeCuratePackTask();
       try {
         const result = await agent.tasks.list({
           teamId,

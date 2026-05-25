@@ -20,8 +20,6 @@ import {
   type NewTaskMessage,
   type RenderedPackRepository,
   type Task as DbTask,
-  type TaskAttempt as DbTaskAttempt,
-  type TaskMessage as DbTaskMessage,
   type TaskRepository,
   taskWorkflows,
   type TransactionRunner,
@@ -29,8 +27,8 @@ import {
 import {
   type AsyncTaskValidationContext,
   BUILT_IN_TASK_TYPES,
+  type ClaimCondition,
   type CorrelationSeal,
-  type ExecutorTrustLevel as WireExecutorTrustLevel,
   getTaskCreateSideEffects,
   getTaskTypeRegistry,
   normalizeTaskInputForCreate,
@@ -48,6 +46,18 @@ import {
   validateTaskOutput,
 } from '@moltnet/tasks';
 import type { TSchema } from '@sinclair/typebox';
+
+import {
+  collectConditionTaskIds,
+  evaluateClaimConditionFromTasks,
+  validateClaimConditionShape,
+} from './claim-condition.js';
+import {
+  dbAttemptToWire,
+  dbMessageToWire,
+  dbTaskToWire,
+  TRUST_LEVEL_TO_WIRE,
+} from './wire-mappers.js';
 
 interface TaskTypeEntry {
   readonly name: string;
@@ -82,16 +92,6 @@ const TRUST_LEVEL_TO_DB = {
 } as const satisfies Record<
   ExecutorTrustLevel,
   DbTask['requiredExecutorTrustLevel']
->;
-
-const TRUST_LEVEL_TO_WIRE = {
-  self_declared: 'selfDeclared',
-  agent_signed: 'agentSigned',
-  release_verified_tool: 'releaseVerifiedTool',
-  sandbox_attested: 'sandboxAttested',
-} as const satisfies Record<
-  DbTask['requiredExecutorTrustLevel'],
-  WireExecutorTrustLevel
 >;
 
 const TRUST_ORDER: Record<ExecutorTrustLevel, number> = {
@@ -134,78 +134,6 @@ function taskWorkflowId(taskId: string, attemptN: number): string {
   return `task:${taskId}:attempt:${attemptN}`;
 }
 
-function dbTaskToWire(row: DbTask): Task {
-  return {
-    id: row.id,
-    taskType: row.taskType,
-    teamId: row.teamId,
-    diaryId: row.diaryId ?? null,
-    outputKind: row.outputKind,
-    input: row.input as Record<string, unknown>,
-    inputSchemaCid: row.inputSchemaCid,
-    inputCid: row.inputCid,
-    references: row.taskRefs as unknown[] as Task['references'],
-    correlationId: row.correlationId ?? null,
-    imposedByAgentId: row.imposedByAgentId ?? null,
-    imposedByHumanId: row.imposedByHumanId ?? null,
-    acceptedAttemptN: row.acceptedAttemptN ?? null,
-    requiredExecutorTrustLevel:
-      TRUST_LEVEL_TO_WIRE[row.requiredExecutorTrustLevel],
-    allowedExecutors: row.allowedExecutors as Task['allowedExecutors'],
-    status: row.status,
-    queuedAt: row.queuedAt.toISOString(),
-    completedAt: row.completedAt?.toISOString() ?? null,
-    expiresAt: row.expiresAt?.toISOString() ?? null,
-    cancelledByAgentId: row.cancelledByAgentId ?? null,
-    cancelledByHumanId: row.cancelledByHumanId ?? null,
-    cancelReason: row.cancelReason ?? null,
-    maxAttempts: row.maxAttempts,
-    dispatchTimeoutSec: row.dispatchTimeoutSec ?? null,
-    runningTimeoutSec: row.runningTimeoutSec ?? null,
-  };
-}
-
-function dbAttemptToWire(
-  row: DbTaskAttempt & {
-    claimedExecutorManifest?: unknown;
-    completedExecutorManifest?: unknown;
-  },
-): TaskAttempt {
-  return {
-    taskId: row.taskId,
-    attemptN: row.attemptN,
-    claimedByAgentId: row.claimedByAgentId,
-    runtimeId: row.runtimeId ?? null,
-    claimedAt: row.claimedAt.toISOString(),
-    startedAt: row.startedAt?.toISOString() ?? null,
-    completedAt: row.completedAt?.toISOString() ?? null,
-    status: row.status,
-    output: (row.output as Record<string, unknown>) ?? null,
-    outputCid: row.outputCid ?? null,
-    claimedExecutorFingerprint: row.claimedExecutorFingerprint ?? null,
-    claimedExecutorManifest:
-      (row.claimedExecutorManifest as Record<string, unknown> | null) ?? null,
-    completedExecutorFingerprint: row.completedExecutorFingerprint ?? null,
-    completedExecutorManifest:
-      (row.completedExecutorManifest as Record<string, unknown> | null) ?? null,
-    error: (row.error as TaskError) ?? null,
-    usage: (row.usage as TaskUsage) ?? null,
-    contentSignature: row.contentSignature ?? null,
-    signedAt: row.signedAt?.toISOString() ?? null,
-  };
-}
-
-function dbMessageToWire(row: DbTaskMessage): TaskMessage {
-  return {
-    taskId: row.taskId,
-    attemptN: row.attemptN,
-    seq: Number(row.seq),
-    timestamp: row.timestamp.toISOString(),
-    kind: row.kind,
-    payload: row.payload as Record<string, unknown>,
-  };
-}
-
 export interface CreateTaskInput {
   taskType: string;
   teamId: string;
@@ -213,13 +141,14 @@ export interface CreateTaskInput {
   inputPayload: Record<string, unknown>;
   references?: unknown[];
   correlationId?: string;
+  claimCondition?: ClaimCondition;
   maxAttempts?: number;
   expiresInSec?: number;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
-  // Imposer-set executor pinning. Empty/undefined = no restriction.
+  // Proposer-set executor pinning. Empty/undefined = no restriction.
   // Provider/model are normalized (lowercased) before persistence.
   allowedExecutors?: { provider: string; model: string }[];
-  // Imposer-set timeout overrides (seconds). Undefined → server
+  // Proposer-set timeout overrides (seconds). Undefined → server
   // defaults (DEFAULT_DISPATCH_TIMEOUT_SECONDS /
   // DEFAULT_RUNNING_TIMEOUT_SECONDS in
   // libs/database/src/workflows/task-workflows.ts).
@@ -301,21 +230,24 @@ export function createTaskService(deps: TaskServiceDeps) {
    * mode of guessing UUIDs is the same as guessing wrong types.
    *
    * `resolveTask` returns the bare DB row mapped to the wire `Task`
-   * shape so validators see the same field names imposers see.
+   * shape so validators see the same field names proposers see.
    *
    * For `findCorrelationSeal`: seal rows are not visibility-scoped
    * — a seal carries only a correlation_id and the sealing task's
    * id/type/timestamp, none of which is sensitive on its own.
-   * Imposers already know the correlation_id (they passed it). The
+   * Proposers already know the correlation_id (they passed it). The
    * sealed-by-task metadata is the same kind of information the
-   * imposer would see when trying to create a duplicate — leaking
+   * proposer would see when trying to create a duplicate — leaking
    * "yes, sealed" is exactly the API contract.
    */
   function makeAsyncValidationContext(
     callerId: string,
     callerNs: KetoNamespace,
+    opts: { deferReadinessChecks?: boolean; currentTaskId?: string } = {},
   ): AsyncTaskValidationContext {
     return {
+      deferReadinessChecks: opts.deferReadinessChecks,
+      currentTaskId: opts.currentTaskId,
       async resolveTask(taskId: string) {
         const canView = await permissionChecker.canViewTask(
           taskId,
@@ -329,15 +261,14 @@ export function createTaskService(deps: TaskServiceDeps) {
       async listTasksByCorrelation(correlationId: string) {
         const rows = await taskRepository.findByCorrelationId(correlationId);
         if (rows.length === 0) return [];
-        // Batched-friendly filter: keep only rows the caller can
-        // view. Done in parallel; permissionChecker is Keto-only
-        // (no DB hit), so this is cheap.
-        const checks = await Promise.all(
-          rows.map((row) =>
-            permissionChecker.canViewTask(row.id, callerId, callerNs),
-          ),
+        const viewMap = await permissionChecker.canViewTasks(
+          rows.map((row) => row.id),
+          callerId,
+          callerNs,
         );
-        return rows.filter((_, i) => checks[i]).map((row) => dbTaskToWire(row));
+        return rows
+          .filter((row) => viewMap.get(row.id) === true)
+          .map((row) => dbTaskToWire(row));
       },
       async findCorrelationSeal(
         correlationId: string,
@@ -396,6 +327,139 @@ export function createTaskService(deps: TaskServiceDeps) {
     };
   }
 
+  async function loadConditionTaskMap(
+    condition: ClaimCondition,
+  ): Promise<Map<string, DbTask>> {
+    const taskIds = [...collectConditionTaskIds(condition)];
+    const rows = await taskRepository.findByIds(taskIds);
+    return new Map(rows.map((row) => [row.id, row]));
+  }
+
+  async function assertClaimConditionReadable(
+    condition: ClaimCondition | undefined,
+    callerId: string,
+    callerNs: KetoNamespace,
+  ): Promise<void> {
+    if (!condition) return;
+    const taskIds = [...collectConditionTaskIds(condition)];
+    if (taskIds.length === 0) return;
+
+    const [rows, viewMap] = await Promise.all([
+      taskRepository.findByIds(taskIds),
+      permissionChecker.canViewTasks(taskIds, callerId, callerNs),
+    ]);
+    const existing = new Set(rows.map((row) => row.id));
+    const unreadable = taskIds.find(
+      (taskId) => !existing.has(taskId) || viewMap.get(taskId) !== true,
+    );
+    if (!unreadable) return;
+
+    throw new TaskServiceError(
+      'invalid',
+      'claimCondition references a task that does not resolve to a readable task',
+      [
+        {
+          field: 'claimCondition',
+          message:
+            'Every task referenced by claimCondition must resolve to a task readable by the proposer',
+        },
+      ],
+    );
+  }
+
+  async function isClaimConditionSatisfied(
+    condition: ClaimCondition,
+  ): Promise<boolean> {
+    const tasksById = await loadConditionTaskMap(condition);
+    return evaluateClaimConditionFromTasks(condition, tasksById);
+  }
+
+  async function promoteSatisfiedWaitingTasks(
+    opts: { triggerTaskId?: string } = {},
+  ): Promise<DbTask[]> {
+    const waitingTasks = opts.triggerTaskId
+      ? await taskRepository.listWaitingTasksReferencingTask(opts.triggerTaskId)
+      : await taskRepository.listWaitingTasks();
+    const conditionalTasks = waitingTasks
+      .map((task) => ({
+        task,
+        condition: task.claimCondition as ClaimCondition | null,
+      }))
+      .filter(
+        (item): item is { task: DbTask; condition: ClaimCondition } =>
+          item.condition !== null,
+      );
+    if (conditionalTasks.length === 0) return [];
+
+    const referencedIds = new Set<string>();
+    for (const { condition } of conditionalTasks) {
+      collectConditionTaskIds(condition, referencedIds);
+    }
+    const referencedRows = await taskRepository.findByIds([...referencedIds]);
+    const tasksById = new Map(referencedRows.map((row) => [row.id, row]));
+    const satisfied = conditionalTasks.filter(({ condition }) =>
+      evaluateClaimConditionFromTasks(condition, tasksById),
+    );
+
+    const promotableIds: string[] = [];
+    for (const { task } of satisfied) {
+      const proposerId = task.proposedByAgentId ?? task.proposedByHumanId;
+      const proposerNs = task.proposedByAgentId
+        ? KetoNamespace.Agent
+        : KetoNamespace.Human;
+      if (!proposerId) {
+        logger.warn(
+          { taskId: task.id },
+          'task.promoteWaiting.missing_proposer',
+        );
+        continue;
+      }
+      const errors = await validateTaskInputAsync(
+        task.taskType,
+        task.input,
+        makeAsyncValidationContext(proposerId, proposerNs, {
+          currentTaskId: task.id,
+        }),
+      );
+      if (errors.length > 0) {
+        logger.warn(
+          { taskId: task.id, errors },
+          'task.promoteWaiting.strict_validation_failed',
+        );
+        continue;
+      }
+      promotableIds.push(task.id);
+    }
+    if (promotableIds.length === 0) return [];
+
+    return transactionRunner.runInTransaction(
+      () => taskRepository.promoteWaitingTasks(promotableIds),
+      { name: 'task.promoteWaiting' },
+    );
+  }
+
+  async function tryPromoteSatisfiedWaitingTasks(opts: {
+    triggerTaskId?: string;
+  }): Promise<void> {
+    try {
+      const promoted = await promoteSatisfiedWaitingTasks(opts);
+      if (promoted.length > 0) {
+        logger.info(
+          {
+            triggerTaskId: opts.triggerTaskId,
+            promotedTaskIds: promoted.map((task) => task.id),
+          },
+          'task.promoteWaiting.promoted',
+        );
+      }
+    } catch (err) {
+      logger.error(
+        { triggerTaskId: opts.triggerTaskId, err },
+        'task.promoteWaiting.failed',
+      );
+    }
+  }
+
   return {
     async create(input: CreateTaskInput): Promise<Task> {
       const normalizedInput = normalizeTaskInputForCreate(
@@ -438,52 +502,15 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      // Async preflight validation (#1096). Runs after sync validators
-      // have established that the input is well-formed but BEFORE any
-      // DB writes — task types use the ctx to resolve referenced ids,
-      // check correlation seals, etc. Errors here come back as a list
-      // (not a single message) because async validators can surface
-      // multiple independent invariant violations in one pass.
-      const asyncCtx = makeAsyncValidationContext(
-        input.callerId,
-        input.callerNs,
-      );
-      const asyncErrors = await validateTaskInputAsync(
-        input.taskType,
-        normalizedInput,
-        asyncCtx,
-      );
-      if (asyncErrors.length > 0) {
-        throw new TaskServiceError(
-          'invalid',
-          `Task create payload failed async validation for task type: ${input.taskType}`,
-          asyncErrors,
+      if (input.claimCondition !== undefined) {
+        const conditionErrors = validateClaimConditionShape(
+          input.claimCondition,
         );
-      }
-
-      // Service-level invariant (#1096): a sealed correlation_id
-      // rejects ALL subsequent task-creates against that group —
-      // regardless of task type. Applies after task-type-specific
-      // async validation so the seal check is the last gate. Task
-      // types that themselves SEAL a correlation (e.g.
-      // a future correlation-snapshot judge) declare that via `onCreate`; the seal
-      // they write is for THEIR correlationId, so it does not block
-      // their own create — there is no seal at validate time, only
-      // at apply time.
-      if (input.correlationId) {
-        const existingSeal = await asyncCtx.findCorrelationSeal(
-          input.correlationId,
-        );
-        if (existingSeal) {
+        if (conditionErrors.length > 0) {
           throw new TaskServiceError(
             'invalid',
-            `correlation_id ${input.correlationId} is sealed by ${existingSeal.sealedByTaskType}/${existingSeal.sealedByTaskId}; no further tasks may be added to this correlation group`,
-            [
-              {
-                field: 'correlationId',
-                message: `correlation_id ${input.correlationId} is sealed (sealed_by_task_id=${existingSeal.sealedByTaskId}, sealed_by_task_type=${existingSeal.sealedByTaskType}, sealed_at=${existingSeal.sealedAt}). Use a fresh correlation_id for new variants.`,
-              },
-            ],
+            'Task claimCondition failed validation',
+            conditionErrors,
           );
         }
       }
@@ -499,17 +526,23 @@ export function createTaskService(deps: TaskServiceDeps) {
         throw new TaskServiceError('not_found', 'Diary not found');
       }
 
-      const canImpose = await permissionChecker.canImposeTask(
+      const canPropose = await permissionChecker.canProposeTask(
         input.diaryId,
         input.callerId,
         input.callerNs,
       );
-      if (!canImpose) {
+      if (!canPropose) {
         throw new TaskServiceError(
           'forbidden',
-          'Not authorized to impose tasks on this diary',
+          'Not authorized to propose tasks on this diary',
         );
       }
+
+      await assertClaimConditionReadable(
+        input.claimCondition,
+        input.callerId,
+        input.callerNs,
+      );
 
       const schemaCids = getTaskTypeRegistry();
       const inputSchemaCid = schemaCids.get(input.taskType);
@@ -530,6 +563,49 @@ export function createTaskService(deps: TaskServiceDeps) {
       const expiresAt = input.expiresInSec
         ? new Date(Date.now() + input.expiresInSec * 1000)
         : null;
+      const conditionSatisfied = input.claimCondition
+        ? await isClaimConditionSatisfied(input.claimCondition)
+        : true;
+      const deferReadinessChecks =
+        input.claimCondition !== undefined && !conditionSatisfied;
+      const asyncCtx = makeAsyncValidationContext(
+        input.callerId,
+        input.callerNs,
+        { deferReadinessChecks },
+      );
+      const asyncErrors = await validateTaskInputAsync(
+        input.taskType,
+        normalizedInput,
+        asyncCtx,
+      );
+      if (asyncErrors.length > 0) {
+        throw new TaskServiceError(
+          'invalid',
+          `Task create payload failed async validation for task type: ${input.taskType}`,
+          asyncErrors,
+        );
+      }
+
+      // Service-level invariant (#1096): a sealed correlation_id
+      // rejects ALL subsequent task-creates against that group —
+      // regardless of task type.
+      if (input.correlationId) {
+        const existingSeal = await asyncCtx.findCorrelationSeal(
+          input.correlationId,
+        );
+        if (existingSeal) {
+          throw new TaskServiceError(
+            'invalid',
+            `correlation_id ${input.correlationId} is sealed by ${existingSeal.sealedByTaskType}/${existingSeal.sealedByTaskId}; no further tasks may be added to this correlation group`,
+            [
+              {
+                field: 'correlationId',
+                message: `correlation_id ${input.correlationId} is sealed (sealed_by_task_id=${existingSeal.sealedByTaskId}, sealed_by_task_type=${existingSeal.sealedByTaskType}, sealed_at=${existingSeal.sealedAt}). Use a fresh correlation_id for new variants.`,
+              },
+            ],
+          );
+        }
+      }
 
       const newTask: NewTask = {
         taskType: input.taskType,
@@ -541,8 +617,10 @@ export function createTaskService(deps: TaskServiceDeps) {
         inputCid,
         taskRefs: (input.references ?? []) as NewTask['taskRefs'],
         correlationId: input.correlationId ?? null,
-        imposedByAgentId: input.callerIsAgent ? input.callerId : null,
-        imposedByHumanId: input.callerIsAgent ? null : input.callerId,
+        proposedByAgentId: input.callerIsAgent ? input.callerId : null,
+        proposedByHumanId: input.callerIsAgent ? null : input.callerId,
+        claimCondition: input.claimCondition ?? null,
+        status: conditionSatisfied ? 'queued' : 'waiting',
         requiredExecutorTrustLevel:
           TRUST_LEVEL_TO_DB[input.requiredExecutorTrustLevel ?? 'selfDeclared'],
         allowedExecutors: (input.allowedExecutors ?? []).map((e) => ({
@@ -719,8 +797,8 @@ export function createTaskService(deps: TaskServiceDeps) {
       executorModel?: string;
       correlationId?: string;
       diaryId?: string;
-      imposedByAgentId?: string;
-      imposedByHumanId?: string;
+      proposedByAgentId?: string;
+      proposedByHumanId?: string;
       claimedByAgentId?: string;
       hasAttempts?: boolean;
       queuedAfter?: string;
@@ -751,8 +829,8 @@ export function createTaskService(deps: TaskServiceDeps) {
         executorModel: opts.executorModel,
         correlationId: opts.correlationId,
         diaryId: opts.diaryId,
-        imposedByAgentId: opts.imposedByAgentId,
-        imposedByHumanId: opts.imposedByHumanId,
+        proposedByAgentId: opts.proposedByAgentId,
+        proposedByHumanId: opts.proposedByHumanId,
         claimedByAgentId: opts.claimedByAgentId,
         hasAttempts: opts.hasAttempts,
         queuedAfter: opts.queuedAfter ? new Date(opts.queuedAfter) : undefined,
@@ -1179,6 +1257,7 @@ export function createTaskService(deps: TaskServiceDeps) {
             { taskId, attemptN, status: updated.status },
             'task.completed',
           );
+          await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
           return dbTaskToWire(updated);
         }
         if (Date.now() >= deadline) {
@@ -1268,6 +1347,7 @@ export function createTaskService(deps: TaskServiceDeps) {
             { taskId, attemptN, status: updated.status },
             'task.failed',
           );
+          await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
           return dbTaskToWire(updated);
         }
         if (Date.now() >= deadline) {
@@ -1376,6 +1456,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
 
       logger.info({ taskId, callerId, reason }, 'task.cancelled');
+      await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
       return dbTaskToWire(updated);
     },
 
@@ -1478,6 +1559,8 @@ export function createTaskService(deps: TaskServiceDeps) {
       );
       return { count: messages.length };
     },
+
+    promoteSatisfiedWaitingTasks,
   };
 }
 

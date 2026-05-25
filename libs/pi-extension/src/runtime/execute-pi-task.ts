@@ -266,7 +266,7 @@ export async function executePiTask(
   let cwdPath = requestedMountPath;
 
   // Pre-execute cancel guard. If the reporter's cancel signal is already
-  // aborted (the imposer cancelled between claim and executor entry), don't
+  // aborted (the proposer cancelled between claim and executor entry), don't
   // burn a snapshot resume + VM boot on work that's already terminal. The
   // daemon's finalizeTask treats `cancelled` outputs as no-ops on the wire,
   // which is correct: the row is already terminal server-side.
@@ -725,7 +725,7 @@ export async function executePiTask(
     const maxBashTimeouts = opts.maxBashTimeouts ?? 3;
 
     // Wire reporter.cancelSignal → session.abort() so the LLM session
-    // tears down promptly when the imposer cancels mid-prompt. Tracked
+    // tears down promptly when the proposer cancels mid-prompt. Tracked
     // via `cancelListener` at function scope so `finally` can remove it
     // even if we throw.
     cancelListener = wireSessionAbort(reporter.cancelSignal, session);
@@ -750,7 +750,7 @@ export async function executePiTask(
     // Trigger a cap abort idempotently. The pi session will emit a final
     // `turn_end` with `stopReason: 'aborted'` in response; we silently
     // ignore that turn_end (no llmAbort flip) and surface the cap reason
-    // in finalization. `cancelled` (imposer-driven) and `capAbort`
+    // in finalization. `cancelled` (proposer-driven) and `capAbort`
     // (executor-driven) are distinct paths; both call session.abort()
     // but the finalization picks the right error code.
     const triggerCapAbort = (code: string, message: string): void => {
@@ -845,7 +845,7 @@ export async function executePiTask(
         // semantics: count only tool-use turns (any turn whose
         // stopReason !== 'end_turn'). The final text-only response
         // does not consume a turn. 'aborted' turns (from our own
-        // session.abort, or imposer cancel) are also excluded; they
+        // session.abort, or proposer cancel) are also excluded; they
         // don't represent forward progress against the cap.
         if (
           maxTurns > 0 &&
@@ -994,15 +994,15 @@ export async function executePiTask(
           code: 'task_cancelled',
           message:
             reporter.cancelReason ??
-            'Task cancelled by imposer while pi session was running.',
+            'Task cancelled by proposer while pi session was running.',
           retryable: false,
         },
       };
     }
 
-    // Cap-driven abort: distinct from imposer cancel. Failed status
+    // Cap-driven abort: distinct from proposer cancel. Failed status
     // (the task didn't complete its work), but with a specific error
-    // code so the imposer can decide whether to retry with a higher cap.
+    // code so the proposer can decide whether to retry with a higher cap.
     // Cast back to the union: TS narrows `capAbort` to `null` in the
     // parent scope because it doesn't follow the closure mutation
     // inside `triggerCapAbort`. The cast restores the full union so

@@ -60,7 +60,7 @@ export async function finalizeTask(
       // we get here, so doing nothing would let the lease expire silently
       // and the attempt would surface as `lease_expired` with no signal
       // of the real cause. Convert into a terminal `tasks.fail` so the
-      // attempt carries the actual server-side reason — the next imposer
+      // attempt carries the actual server-side reason — the next proposer
       // (retry, judge, etc.) can read the failure code and act.
       const reason = errorToFailReason(err);
       ctx.log?.('complete-rejected-falling-back-to-fail', err);
@@ -106,7 +106,7 @@ function errorToFailReason(
         `${err.detail ?? err.message}${fields}`,
       // The model produced output that violated a server-side rule. A
       // bare retry of the same attempt would hit the same rejection.
-      // Mark non-retryable so the next attempt (or imposer) has a clean
+      // Mark non-retryable so the next attempt (or proposer) has a clean
       // signal that this isn't a transient transport failure.
       retryable: false,
     };

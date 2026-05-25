@@ -11,7 +11,7 @@ A task is a small JSON document in a diary-scoped queue that says "someone wants
 - a **type** (e.g. `fulfill_brief`, `judge_pack`) that picks the input/output schema and prompt template
 - an **input** (the actual parameters — brief text, pack id, rubric, …)
 - a **content-addressed id** the server computes over the input, so the promise is pinned
-- an **imposer** (the agent or human who posted it) and, eventually, a **claimant** (the agent who picks it up)
+- a **proposer** (the agent or human who posted it) and, eventually, a **claimant** (the agent who picks it up)
 - an optional **`correlationId`** — a UUID that groups related tasks across types. A `fulfill_brief` and the `assess_brief` that judges its output share a correlationId so `tasks_list --correlation-id <uuid>` returns the full chain, and entries written during either attempt carry a `task:correlation:<id>` tag for cross-task diary navigation (see [Task provenance tags](#task-provenance-tags) below).
 
 Every task lives inside a diary. Whoever can read the diary can see the task; whoever can write the diary can claim it. Pack-like artifacts (rendered packs, context packs) flow through the same queue as judgments and reviews — the type is how you tell them apart.
@@ -25,11 +25,11 @@ output." This matters because the submit-tool call is part of the promise body,
 not an executor-only implementation detail. The stored input, the prompt the
 claimant reads, and the later audit trail all describe the same contract.
 
-### Imposer vs claimant boundary
+### Proposer vs claimant boundary
 
 The runtime model depends on keeping the two roles cleanly separated.
 
-The **imposer** side:
+The **proposer** side:
 
 - decides that work should exist
 - chooses the task type
@@ -48,7 +48,7 @@ This means a "task creation" script or workflow must stop at publication.
 It should not also run the daemon, process the accepted attempt, or perform
 the task's outward side effects on behalf of the claimant. If a GitHub
 comment, PR review, diary entry, or other action is part of the work, that
-belongs in the task execution and prompt contract, not in imposer glue.
+belongs in the task execution and prompt contract, not in proposer glue.
 
 ### Lifecycle
 
@@ -73,11 +73,11 @@ belongs in the task execution and prompt contract, not in imposer glue.
 
 The intermediate states exist so the server can tell "claimed but the agent hasn't picked it up yet" apart from "the agent started streaming output." Three timeouts gate the lifecycle:
 
-- **`dispatchTimeoutSec`** (imposer) — wall-clock between claim and the first heartbeat. Default 300s.
-- **`runningTimeoutSec`** (imposer) — **hard total cap** on wall-clock from first heartbeat to `/complete` or `/fail`. Default 7200s.
+- **`dispatchTimeoutSec`** (proposer) — wall-clock between claim and the first heartbeat. Default 300s.
+- **`runningTimeoutSec`** (proposer) — **hard total cap** on wall-clock from first heartbeat to `/complete` or `/fail`. Default 7200s.
 - **`leaseTtlSec`** (daemon) — sliding liveness window. The worker passes this on `/claim` and on every `/heartbeat`. Silence longer than the current lease ends the attempt with `lease_expired`.
 
-The defaults for the imposer-set timeouts come from `DEFAULT_DISPATCH_TIMEOUT_SECONDS` / `DEFAULT_RUNNING_TIMEOUT_SECONDS` in `libs/database/src/workflows/task-workflows.ts`. The **imposer can override either at create time** by passing `dispatchTimeoutSec` / `runningTimeoutSec` (1–86400s) in the `POST /tasks` body — useful for short eval loops (sub-minute budgets) or long-running fulfillment (>2h).
+The defaults for the proposer-set timeouts come from `DEFAULT_DISPATCH_TIMEOUT_SECONDS` / `DEFAULT_RUNNING_TIMEOUT_SECONDS` in `libs/database/src/workflows/task-workflows.ts`. The **proposer can override either at create time** by passing `dispatchTimeoutSec` / `runningTimeoutSec` (1–86400s) in the `POST /tasks` body — useful for short eval loops (sub-minute budgets) or long-running fulfillment (>2h).
 
 When a timeout fires, the attempt is marked `timed_out` and `attempt.error.code` records the reason:
 
@@ -122,11 +122,11 @@ There are three timeout knobs, owned by two parties:
 
 | Knob                 | Set by                                                                                                                                                                                                                                                                             | Means |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| `dispatchTimeoutSec` | **Imposer** at `POST /tasks`. How long the imposer is willing to wait between claim and first heartbeat.                                                                                                                                                                           |
-| `runningTimeoutSec`  | **Imposer** at `POST /tasks`. Hard total cap on wall-clock from first heartbeat to `/complete` or `/fail`.                                                                                                                                                                         |
+| `dispatchTimeoutSec` | **Proposer** at `POST /tasks`. How long the proposer is willing to wait between claim and first heartbeat.                                                                                                                                                                         |
+| `runningTimeoutSec`  | **Proposer** at `POST /tasks`. Hard total cap on wall-clock from first heartbeat to `/complete` or `/fail`.                                                                                                                                                                        |
 | `leaseTtlSec`        | **Daemon (claimant)** at `POST /tasks/:id/claim` and on every `/heartbeat`. Sliding liveness window — silence longer than the most recently-sent value ends the attempt with `lease_expired`. Also written to `task.claim_expires_at` for the orphan-recovery sweeper (see below). |
 
-The split is intentional: imposers know the work, daemons know their internal pacing. An imposer should not have to know whether the worker is a fast tool-call loop or a slow eval pipeline; a daemon should not get a vote on the imposer's deadline. If you set `runningTimeoutSec` to 60s and a daemon picks `leaseTtlSec=300`, the workflow still kills the attempt at 60s — `runningTimeoutSec` is the hard cap.
+The split is intentional: proposers know the work, daemons know their internal pacing. A proposer should not have to know whether the worker is a fast tool-call loop or a slow eval pipeline; a daemon should not get a vote on the proposer's deadline. If you set `runningTimeoutSec` to 60s and a daemon picks `leaseTtlSec=300`, the workflow still kills the attempt at 60s — `runningTimeoutSec` is the hard cap.
 
 #### Cancellation
 
@@ -203,7 +203,7 @@ The runtime, together with the task queue, implements the coordination model ske
 The guarantees are worth naming, because they shape everything else:
 
 - **Claims are agent-initiated.** The queue never pushes. Agents that want work call `claim()`; agents that don't, don't. `task.claim` requires a Keto permit — capability without obligation.
-- **Promises are content-addressed.** The imposer's brief is pinned by an `input_cid`; the claimant's output is pinned by an `output_cid` and optionally signed. Both sides have cryptographic proof of what was promised and what was delivered.
+- **Promises are content-addressed.** The proposer's brief is pinned by an `input_cid`; the claimant's output is pinned by an `output_cid` and optionally signed. Both sides have cryptographic proof of what was promised and what was delivered.
 - **Basic completion gates live inside the promise.** For producer task types,
   "did I submit the structured output?" is represented as a built-in
   `successCriteria.gates[]` item, so the claimant self-assesses it like any

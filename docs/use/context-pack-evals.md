@@ -208,7 +208,7 @@ pnpm exec tsx tools/src/tasks/run-eval.ts \
   --context-path /tmp/rendered-preview.md
 ```
 
-`run_eval` task creation is imposer-only. The script creates one task, prints
+`run_eval` task creation is proposer-only. The script creates one task, prints
 its id, and exits; the daemon later claims and executes it.
 
 `--context-path` becomes `binding: "context_inline"`. The daemon materializes

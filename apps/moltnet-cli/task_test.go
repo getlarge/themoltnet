@@ -61,7 +61,7 @@ func newTaskFixture(taskID, teamID uuid.UUID) *moltnetapi.Task {
 		Input:                      moltnetapi.TaskInput{},
 		InputCid:                   "bafy-input",
 		InputSchemaCid:             "bafy-schema",
-		ImposedByAgentId:           moltnetapi.NewNilUUID(uuid.MustParse("44444444-4444-4444-8444-444444444444")),
+		ProposedByAgentId:          moltnetapi.NewNilUUID(uuid.MustParse("44444444-4444-4444-8444-444444444444")),
 		MaxAttempts:                1,
 		OutputKind:                 moltnetapi.TaskOutputKindArtifact,
 		QueuedAt:                   time.Date(2026, 5, 11, 12, 0, 0, 0, time.UTC),
@@ -72,11 +72,12 @@ func newTaskFixture(taskID, teamID uuid.UUID) *moltnetapi.Task {
 	t.CancelReason.SetToNull()
 	t.CancelledByAgentId.SetToNull()
 	t.CancelledByHumanId.SetToNull()
+	t.ClaimCondition.SetToNull()
 	t.CompletedAt.SetToNull()
 	t.CorrelationId.SetToNull()
 	t.DispatchTimeoutSec.SetToNull()
 	t.ExpiresAt.SetToNull()
-	t.ImposedByHumanId.SetToNull()
+	t.ProposedByHumanId.SetToNull()
 	t.RunningTimeoutSec.SetToNull()
 	return t
 }
@@ -127,17 +128,17 @@ func TestRunTaskList_UUIDFilters(t *testing.T) {
 	_, _, client := newTestServer(t, h)
 
 	err := runTaskListWithClient(context.Background(), client, taskListOpts{
-		teamID:              "22222222-2222-4222-8222-222222222222",
-		diaryID:             "33333333-3333-4333-8333-333333333333",
-		diaryIDSet:          true,
-		correlationID:       "55555555-5555-4555-8555-555555555555",
-		correlationIDSet:    true,
-		imposedByAgentID:    "44444444-4444-4444-8444-444444444444",
-		imposedByAgentIDSet: true,
-		imposedByHumanID:    "66666666-6666-4666-8666-666666666666",
-		imposedByHumanIDSet: true,
-		claimedByAgentID:    "77777777-7777-4777-8777-777777777777",
-		claimedByAgentIDSet: true,
+		teamID:               "22222222-2222-4222-8222-222222222222",
+		diaryID:              "33333333-3333-4333-8333-333333333333",
+		diaryIDSet:           true,
+		correlationID:        "55555555-5555-4555-8555-555555555555",
+		correlationIDSet:     true,
+		proposedByAgentID:    "44444444-4444-4444-8444-444444444444",
+		proposedByAgentIDSet: true,
+		proposedByHumanID:    "66666666-6666-4666-8666-666666666666",
+		proposedByHumanIDSet: true,
+		claimedByAgentID:     "77777777-7777-4777-8777-777777777777",
+		claimedByAgentIDSet:  true,
 	})
 	if err != nil {
 		t.Fatalf("runTaskListWithClient: %v", err)
@@ -155,8 +156,8 @@ func TestRunTaskList_UUIDFilters(t *testing.T) {
 	}
 	assertOptUUID("DiaryId", h.listParams.DiaryId, "33333333-3333-4333-8333-333333333333")
 	assertOptUUID("CorrelationId", h.listParams.CorrelationId, "55555555-5555-4555-8555-555555555555")
-	assertOptUUID("ImposedByAgentId", h.listParams.ImposedByAgentId, "44444444-4444-4444-8444-444444444444")
-	assertOptUUID("ImposedByHumanId", h.listParams.ImposedByHumanId, "66666666-6666-4666-8666-666666666666")
+	assertOptUUID("ProposedByAgentId", h.listParams.ProposedByAgentId, "44444444-4444-4444-8444-444444444444")
+	assertOptUUID("ProposedByHumanId", h.listParams.ProposedByHumanId, "66666666-6666-4666-8666-666666666666")
 	assertOptUUID("ClaimedByAgentId", h.listParams.ClaimedByAgentId, "77777777-7777-4777-8777-777777777777")
 }
 
@@ -637,7 +638,7 @@ func (h *stubTailHandler) GetTask(_ context.Context, _ moltnetapi.GetTaskParams)
 		Input:                      moltnetapi.TaskInput{},
 		InputCid:                   "bagaa1",
 		InputSchemaCid:             "bagaa2",
-		ImposedByAgentId:           moltnetapi.NewNilUUID(uuid.MustParse("44444444-4444-4444-8444-444444444444")),
+		ProposedByAgentId:          moltnetapi.NewNilUUID(uuid.MustParse("44444444-4444-4444-8444-444444444444")),
 		MaxAttempts:                1,
 		OutputKind:                 moltnetapi.TaskOutputKindArtifact,
 		QueuedAt:                   time.Now().Add(-2 * time.Minute),
@@ -648,11 +649,12 @@ func (h *stubTailHandler) GetTask(_ context.Context, _ moltnetapi.GetTaskParams)
 	t.CancelReason.SetToNull()
 	t.CancelledByAgentId.SetToNull()
 	t.CancelledByHumanId.SetToNull()
+	t.ClaimCondition.SetToNull()
 	t.CompletedAt.SetToNull()
 	t.CorrelationId.SetToNull()
 	t.DispatchTimeoutSec.SetToNull()
 	t.ExpiresAt.SetToNull()
-	t.ImposedByHumanId.SetToNull()
+	t.ProposedByHumanId.SetToNull()
 	t.RunningTimeoutSec.SetToNull()
 	return t, nil
 }

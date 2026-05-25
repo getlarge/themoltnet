@@ -5,8 +5,8 @@
  * create → list → get → claim → heartbeat → complete/fail/cancel
  * and the message append/list flow.
  *
- * Two agents are created: an imposer (creates tasks) and a claimer
- * (claims and executes them). Both share the imposer's diary via a
+ * Two agents are created: a proposer (creates tasks) and a claimer
+ * (claims and executes them). Both share the proposer's diary via a
  * diary grant so the claimer has write access (required by canClaimTask
  * which checks Task/Claim traversing the diary Keto tuple).
  */
@@ -45,14 +45,14 @@ import { createTestHarness, type TestHarness } from './setup.js';
 describe('Tasks API', () => {
   let harness: TestHarness;
   let client: Client;
-  let imposer: TestAgent;
+  let proposer: TestAgent;
   let claimer: TestAgent;
 
   beforeAll(async () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    [imposer, claimer] = await Promise.all([
+    [proposer, claimer] = await Promise.all([
       createAgent({
         baseUrl: harness.baseUrl,
         db: harness.db,
@@ -65,12 +65,12 @@ describe('Tasks API', () => {
       }),
     ]);
 
-    // Grant claimer write access to imposer's private diary so it can claim
-    // tasks imposed against that diary (canClaimTask traverses diary write).
+    // Grant claimer write access to proposer's private diary so it can claim
+    // tasks proposed against that diary (canClaimTask traverses diary write).
     await createDiaryGrant({
       client,
-      auth: () => imposer.accessToken,
-      path: { id: imposer.privateDiaryId },
+      auth: () => proposer.accessToken,
+      path: { id: proposer.privateDiaryId },
       body: {
         subjectId: claimer.identityId,
         subjectNs: 'Agent',
@@ -85,16 +85,16 @@ describe('Tasks API', () => {
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
-  function impose(input: Record<string, unknown> = {}, overrides = {}) {
+  function propose(input: Record<string, unknown> = {}, overrides = {}) {
     return createTask({
       client,
-      auth: () => imposer.accessToken,
+      auth: () => proposer.accessToken,
       body: {
         taskType: 'curate_pack',
-        teamId: imposer.personalTeamId,
-        diaryId: imposer.privateDiaryId,
+        teamId: proposer.personalTeamId,
+        diaryId: proposer.privateDiaryId,
         input: {
-          diaryId: imposer.privateDiaryId,
+          diaryId: proposer.privateDiaryId,
           taskPrompt: 'e2e test curation',
           ...input,
         },
@@ -166,7 +166,7 @@ describe('Tasks API', () => {
     it('returns 401 without a token', async () => {
       const { response } = await listTasks({
         client,
-        query: { teamId: imposer.personalTeamId },
+        query: { teamId: proposer.personalTeamId },
       });
       expect(response.status).toBe(401);
     });
@@ -174,7 +174,7 @@ describe('Tasks API', () => {
     it('returns 400 when teamId is missing from list', async () => {
       const { response } = await listTasks({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         // @ts-expect-error intentionally omitting required teamId
         query: {},
       });
@@ -186,13 +186,13 @@ describe('Tasks API', () => {
 
   describe('POST /tasks', () => {
     it('creates a task and returns queued status', async () => {
-      const { data, error } = await impose();
+      const { data, error } = await propose();
       expect(error).toBeUndefined();
       expect(data).toBeDefined();
       expect(data!.status).toBe('queued');
       expect(data!.taskType).toBe('curate_pack');
-      expect(data!.diaryId).toBe(imposer.privateDiaryId);
-      expect(data!.teamId).toBe(imposer.personalTeamId);
+      expect(data!.diaryId).toBe(proposer.privateDiaryId);
+      expect(data!.teamId).toBe(proposer.personalTeamId);
       expect(data!.inputSchemaCid).toBeTruthy();
       expect(data!.inputCid).toBeTruthy();
     });
@@ -200,25 +200,25 @@ describe('Tasks API', () => {
     it('returns 400 for unknown taskType', async () => {
       const { response } = await createTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         body: {
           taskType: 'does_not_exist',
-          teamId: imposer.personalTeamId,
-          diaryId: imposer.privateDiaryId,
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
           input: {},
         },
       });
       expect(response.status).toBe(400);
     });
 
-    it('returns 403 when imposing on a diary the caller cannot write', async () => {
-      // imposer has no write access to claimer's private diary
+    it('returns 403 when proposing on a diary the caller cannot write', async () => {
+      // proposer has no write access to claimer's private diary
       const { response } = await createTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         body: {
           taskType: 'curate_pack',
-          teamId: imposer.personalTeamId,
+          teamId: proposer.personalTeamId,
           diaryId: claimer.privateDiaryId,
           input: {
             diaryId: claimer.privateDiaryId,
@@ -236,15 +236,15 @@ describe('Tasks API', () => {
     let taskId: string;
 
     beforeAll(async () => {
-      const { data } = await impose();
+      const { data } = await propose();
       taskId = data!.id;
     });
 
     it('lists tasks for the team', async () => {
       const { data, error } = await listTasks({
         client,
-        auth: () => imposer.accessToken,
-        query: { teamId: imposer.personalTeamId },
+        auth: () => proposer.accessToken,
+        query: { teamId: proposer.personalTeamId },
       });
       expect(error).toBeUndefined();
       expect(data!.items.length).toBeGreaterThan(0);
@@ -256,13 +256,13 @@ describe('Tasks API', () => {
     it('filters by repeated taskTypes', async () => {
       const { data: curateTask, error: curateError } = await createTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         body: {
           taskType: 'curate_pack',
-          teamId: imposer.personalTeamId,
-          diaryId: imposer.privateDiaryId,
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
           input: {
-            diaryId: imposer.privateDiaryId,
+            diaryId: proposer.privateDiaryId,
             taskPrompt: 'taskTypes filter curate',
           },
         },
@@ -271,11 +271,11 @@ describe('Tasks API', () => {
 
       const { data: fulfillTask, error: fulfillError } = await createTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         body: {
           taskType: 'fulfill_brief',
-          teamId: imposer.personalTeamId,
-          diaryId: imposer.privateDiaryId,
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
           input: {
             brief: 'taskTypes filter fulfill',
             title: 'taskTypes filter fulfill',
@@ -287,9 +287,9 @@ describe('Tasks API', () => {
       try {
         const { data: fulfillOnly, error: fulfillOnlyError } = await listTasks({
           client,
-          auth: () => imposer.accessToken,
+          auth: () => proposer.accessToken,
           query: {
-            teamId: imposer.personalTeamId,
+            teamId: proposer.personalTeamId,
             taskTypes: ['fulfill_brief'],
             limit: 50,
           },
@@ -304,9 +304,9 @@ describe('Tasks API', () => {
 
         const { data: either, error: eitherError } = await listTasks({
           client,
-          auth: () => imposer.accessToken,
+          auth: () => proposer.accessToken,
           query: {
-            teamId: imposer.personalTeamId,
+            teamId: proposer.personalTeamId,
             taskTypes: ['curate_pack', 'fulfill_brief'],
             limit: 50,
           },
@@ -319,13 +319,13 @@ describe('Tasks API', () => {
         await Promise.all([
           cancelTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: curateTask!.id },
             body: { reason: 'cleanup' },
           }),
           cancelTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: fulfillTask!.id },
             body: { reason: 'cleanup' },
           }),
@@ -337,7 +337,7 @@ describe('Tasks API', () => {
       const { response } = await listTasks({
         client,
         auth: () => claimer.accessToken,
-        query: { teamId: imposer.personalTeamId },
+        query: { teamId: proposer.personalTeamId },
       });
       expect(response.status).toBe(403);
     });
@@ -345,7 +345,7 @@ describe('Tasks API', () => {
     it('gets a task by id', async () => {
       const { data, error } = await getTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(error).toBeUndefined();
@@ -355,21 +355,21 @@ describe('Tasks API', () => {
     it('filters by diaryId, claimedByAgentId, and queued window', async () => {
       const { data: otherDiary, error: otherDiaryError } = await createDiary({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         body: { name: `task-filter-${Date.now()}`, visibility: 'private' },
-        headers: { 'x-moltnet-team-id': imposer.personalTeamId },
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       });
       expect(otherDiaryError).toBeUndefined();
 
       const { data: primaryTask, error: primaryTaskError } = await createTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         body: {
           taskType: 'curate_pack',
-          teamId: imposer.personalTeamId,
-          diaryId: imposer.privateDiaryId,
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
           input: {
-            diaryId: imposer.privateDiaryId,
+            diaryId: proposer.privateDiaryId,
             taskPrompt: 'claimed task filter',
           },
         },
@@ -379,10 +379,10 @@ describe('Tasks API', () => {
       const { data: otherDiaryTask, error: otherDiaryTaskError } =
         await createTask({
           client,
-          auth: () => imposer.accessToken,
+          auth: () => proposer.accessToken,
           body: {
             taskType: 'curate_pack',
-            teamId: imposer.personalTeamId,
+            teamId: proposer.personalTeamId,
             diaryId: otherDiary!.id,
             input: {
               diaryId: otherDiary!.id,
@@ -419,9 +419,9 @@ describe('Tasks API', () => {
 
       const { data: diaryFiltered, error: diaryFilterError } = await listTasks({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         query: {
-          teamId: imposer.personalTeamId,
+          teamId: proposer.personalTeamId,
           diaryId: otherDiary!.id,
         },
       });
@@ -436,9 +436,9 @@ describe('Tasks API', () => {
       const { data: claimedFiltered, error: claimedFilterError } =
         await listTasks({
           client,
-          auth: () => imposer.accessToken,
+          auth: () => proposer.accessToken,
           query: {
-            teamId: imposer.personalTeamId,
+            teamId: proposer.personalTeamId,
             claimedByAgentId: claimer.identityId,
           },
         });
@@ -452,9 +452,9 @@ describe('Tasks API', () => {
 
       const { data: queuedWindow, error: queuedWindowError } = await listTasks({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         query: {
-          teamId: imposer.personalTeamId,
+          teamId: proposer.personalTeamId,
           queuedAfter: '2026-04-28T10:00:00.000Z',
           queuedBefore: '2026-04-28T12:00:00.000Z',
         },
@@ -474,7 +474,7 @@ describe('Tasks API', () => {
       // than leaking existence via 404.
       const { response } = await getTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: '00000000-0000-0000-0000-000000000000' },
       });
       expect(response.status).toBe(403);
@@ -488,7 +488,7 @@ describe('Tasks API', () => {
     let attemptN: number;
 
     beforeAll(async () => {
-      const { data } = await impose();
+      const { data } = await propose();
       taskId = data!.id;
 
       const { data: claimed, error } = await claim(taskId);
@@ -499,7 +499,7 @@ describe('Tasks API', () => {
     it('task is dispatched after claim', async () => {
       const { data } = await getTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(['dispatched', 'running']).toContain(data!.status);
@@ -567,7 +567,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'completed' || t.status === 'failed',
@@ -578,7 +578,7 @@ describe('Tasks API', () => {
     });
 
     it('rejects invalid output with field-level validation errors', async () => {
-      const { data } = await impose({
+      const { data } = await propose({
         taskPrompt: 'Produce a malformed completion.',
       });
       const invalidTaskId = data!.id;
@@ -622,7 +622,7 @@ describe('Tasks API', () => {
     it('lists the completed attempt', async () => {
       const { data, error } = await listTaskAttempts({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(error).toBeUndefined();
@@ -640,7 +640,7 @@ describe('Tasks API', () => {
   // /complete and /fail with 409 when attempt.status === 'claimed'.
   describe('complete/fail without heartbeat', () => {
     it('rejects /complete with 409 when no heartbeat was sent', async () => {
-      const { data: task } = await impose({
+      const { data: task } = await propose({
         taskPrompt: 'complete-without-heartbeat regression',
       });
       const taskId = task!.id;
@@ -681,14 +681,14 @@ describe('Tasks API', () => {
       // Task is still claimed; recovery path is to call /heartbeat then retry.
       const { data: still } = await getTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(still!.status).toBe('dispatched');
     });
 
     it('rejects /fail with 409 when no heartbeat was sent', async () => {
-      const { data: task } = await impose({
+      const { data: task } = await propose({
         taskPrompt: 'fail-without-heartbeat regression',
       });
       const taskId = task!.id;
@@ -715,7 +715,7 @@ describe('Tasks API', () => {
     });
 
     it('completes successfully when heartbeat is sent first', async () => {
-      const { data: task } = await impose({
+      const { data: task } = await propose({
         taskPrompt: 'heartbeat-then-complete happy path',
       });
       const taskId = task!.id;
@@ -762,7 +762,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'completed' || t.status === 'failed',
@@ -783,7 +783,7 @@ describe('Tasks API', () => {
         runtime: { kind: 'e2e', version: 'self-declared' },
       };
       const executorFingerprint = computeExecutorManifestCid(executorManifest);
-      const { data: task } = await impose({
+      const { data: task } = await propose({
         taskPrompt: 'self declared executor manifest task',
       });
       const taskId = task!.id;
@@ -812,7 +812,7 @@ describe('Tasks API', () => {
         schemaVersion: 'moltnet:executor-manifest:v1',
         runtime: { kind: 'e2e', version: '1' },
       };
-      const { data: task } = await impose(
+      const { data: task } = await propose(
         { taskPrompt: 'signed executor manifest task' },
         { requiredExecutorTrustLevel: 'agentSigned' },
       );
@@ -888,7 +888,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'completed',
@@ -897,7 +897,7 @@ describe('Tasks API', () => {
 
       const { data: attempts } = await listTaskAttempts({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(attempts![0].completedExecutorFingerprint).toBe(
@@ -911,7 +911,7 @@ describe('Tasks API', () => {
         schemaVersion: 'moltnet:executor-manifest:v1',
         runtime: { kind: 'e2e', version: '1' },
       };
-      const { data: task } = await impose(
+      const { data: task } = await propose(
         { taskPrompt: 'release verified executor manifest task' },
         { requiredExecutorTrustLevel: 'releaseVerifiedTool' },
       );
@@ -935,7 +935,7 @@ describe('Tasks API', () => {
 
       const { data: unchanged } = await getTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(unchanged!.status).toBe('queued');
@@ -949,7 +949,7 @@ describe('Tasks API', () => {
     let attemptN: number;
 
     beforeAll(async () => {
-      const { data } = await impose({}, { maxAttempts: 1 });
+      const { data } = await propose({}, { maxAttempts: 1 });
       taskId = data!.id;
       const { data: claimed } = await claim(taskId);
       attemptN = claimed!.attempt.attemptN;
@@ -979,7 +979,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'failed' || t.status === 'queued',
@@ -994,12 +994,12 @@ describe('Tasks API', () => {
 
   describe('POST /tasks/:id/cancel', () => {
     it('cancels a queued task', async () => {
-      const { data } = await impose();
+      const { data } = await propose();
       const taskId = data!.id;
 
       const { error } = await cancelTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
         body: { reason: 'no longer needed' },
       });
@@ -1007,7 +1007,7 @@ describe('Tasks API', () => {
 
       const { data: updated } = await getTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(updated!.status).toBe('cancelled');
@@ -1015,7 +1015,7 @@ describe('Tasks API', () => {
     });
 
     it('returns 403 when a non-owner tries to cancel', async () => {
-      // Create a task in claimer's own diary; imposer has no access to it.
+      // Create a task in claimer's own diary; proposer has no access to it.
       const { data } = await createTask({
         client,
         auth: () => claimer.accessToken,
@@ -1031,7 +1031,7 @@ describe('Tasks API', () => {
       });
       const { response } = await cancelTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: data!.id },
         body: { reason: 'unauthorized cancel attempt' },
       });
@@ -1043,13 +1043,13 @@ describe('Tasks API', () => {
 
   describe('cancel-while-dispatched / running / by-claimant', () => {
     it('cancels a dispatched task (claimed but no heartbeat yet)', async () => {
-      const { data: imposed } = await impose();
-      const taskId = imposed!.id;
+      const { data: proposed } = await propose();
+      const taskId = proposed!.id;
       await claim(taskId);
 
       const { data, error } = await cancelTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
         body: { reason: 'cancelled before start' },
       });
@@ -1059,8 +1059,8 @@ describe('Tasks API', () => {
     });
 
     it('cancels a running task (claimed and heartbeating)', async () => {
-      const { data: imposed } = await impose();
-      const taskId = imposed!.id;
+      const { data: proposed } = await propose();
+      const taskId = proposed!.id;
       const { data: claimed } = await claim(taskId);
       const attemptN = claimed!.attempt.attemptN;
 
@@ -1073,7 +1073,7 @@ describe('Tasks API', () => {
 
       const { data, error } = await cancelTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
         body: { reason: 'cancelled mid-run' },
       });
@@ -1082,8 +1082,8 @@ describe('Tasks API', () => {
     });
 
     it('claimant can cancel their own running task', async () => {
-      const { data: imposed } = await impose();
-      const taskId = imposed!.id;
+      const { data: proposed } = await propose();
+      const taskId = proposed!.id;
       const { data: claimed } = await claim(taskId);
       const attemptN = claimed!.attempt.attemptN;
 
@@ -1114,7 +1114,7 @@ describe('Tasks API', () => {
 
   describe('cancel stops the worker (#938)', () => {
     it('heartbeat against a cancelled running task returns 200 with cancelled:true', async () => {
-      const { data } = await impose();
+      const { data } = await propose();
       const taskId = data!.id;
       const { data: claimed } = await claim(taskId);
       const attemptN = claimed!.attempt.attemptN;
@@ -1127,12 +1127,12 @@ describe('Tasks API', () => {
         body: { leaseTtlSec: 30 },
       });
 
-      // Imposer cancels mid-run.
+      // Proposer cancels mid-run.
       await cancelTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
-        body: { reason: 'imposer pulled the plug' },
+        body: { reason: 'proposer pulled the plug' },
       });
 
       // The worker's next heartbeat must be a successful 200 carrying
@@ -1145,11 +1145,11 @@ describe('Tasks API', () => {
       });
       expect(error).toBeUndefined();
       expect(hb!.cancelled).toBe(true);
-      expect(hb!.cancelReason).toBe('imposer pulled the plug');
+      expect(hb!.cancelReason).toBe('proposer pulled the plug');
     });
 
     it('/complete on a cancelled task returns 409, not silent revival', async () => {
-      const { data } = await impose();
+      const { data } = await propose();
       const taskId = data!.id;
       const { data: claimed } = await claim(taskId);
       const attemptN = claimed!.attempt.attemptN;
@@ -1162,7 +1162,7 @@ describe('Tasks API', () => {
       });
       await cancelTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
         body: { reason: 'pulled before complete' },
       });
@@ -1198,14 +1198,14 @@ describe('Tasks API', () => {
       // Status must still be cancelled — no silent revival to completed.
       const { data: still } = await getTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(still!.status).toBe('cancelled');
     });
 
     it('/fail on a cancelled task returns 409', async () => {
-      const { data } = await impose();
+      const { data } = await propose();
       const taskId = data!.id;
       const { data: claimed } = await claim(taskId);
       const attemptN = claimed!.attempt.attemptN;
@@ -1218,7 +1218,7 @@ describe('Tasks API', () => {
       });
       await cancelTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
         body: { reason: 'pulled before fail' },
       });
@@ -1239,14 +1239,14 @@ describe('Tasks API', () => {
 
       const { data: still } = await getTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(still!.status).toBe('cancelled');
     });
 
     it('cancel persists the attempt as cancelled (workflow unblocks)', async () => {
-      const { data } = await impose();
+      const { data } = await propose();
       const taskId = data!.id;
       const { data: claimed } = await claim(taskId);
       const attemptN = claimed!.attempt.attemptN;
@@ -1259,7 +1259,7 @@ describe('Tasks API', () => {
       });
       await cancelTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
         body: { reason: 'unblock workflow' },
       });
@@ -1271,7 +1271,7 @@ describe('Tasks API', () => {
         async () => {
           const { data, error } = await listTaskAttempts({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           });
           // Surface a non-2xx with the actual envelope so the test
@@ -1298,11 +1298,11 @@ describe('Tasks API', () => {
       // initial heartbeat). Then cancel while the loop is parked.
       // Must persist as 'cancelled' with no timeoutReason set, even
       // though a lease window is also ticking.
-      const { data: imposed } = await impose(
+      const { data: proposed } = await propose(
         {},
         { maxAttempts: 1, runningTimeoutSec: 30 },
       );
-      const taskId = imposed!.id;
+      const taskId = proposed!.id;
       const { data: claimed } = await claim(taskId);
       const attemptN = claimed!.attempt.attemptN;
 
@@ -1322,7 +1322,7 @@ describe('Tasks API', () => {
       // Cancel mid-loop. The 'cancelled' event lands in the recv loop.
       await cancelTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
         body: { reason: 'cancel mid-loop' },
       });
@@ -1331,7 +1331,7 @@ describe('Tasks API', () => {
         async () => {
           const { data, error } = await listTaskAttempts({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           });
           if (!data) {
@@ -1360,7 +1360,7 @@ describe('Tasks API', () => {
 
   describe('fail with retry', () => {
     it('re-queues the task when maxAttempts > attemptCount', async () => {
-      const { data } = await impose({}, { maxAttempts: 2 });
+      const { data } = await propose({}, { maxAttempts: 2 });
       const taskId = data!.id;
       const { data: claimed1 } = await claim(taskId);
       const attempt1 = claimed1!.attempt.attemptN;
@@ -1389,7 +1389,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'queued' || t.status === 'failed',
@@ -1403,11 +1403,11 @@ describe('Tasks API', () => {
     });
   });
 
-  // ── Timeout-driven transitions (use imposer-set short timeouts) ──────────────
+  // ── Timeout-driven transitions (use proposer-set short timeouts) ─────────────
 
-  describe('imposer-set timeouts', () => {
+  describe('proposer-set timeouts', () => {
     it('dispatch timeout: claim, never heartbeat → attempt times out', async () => {
-      const { data } = await impose(
+      const { data } = await propose(
         {},
         { maxAttempts: 1, dispatchTimeoutSec: 2 },
       );
@@ -1420,7 +1420,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'failed' || t.status === 'queued',
@@ -1430,7 +1430,7 @@ describe('Tasks API', () => {
 
       const { data: attempts } = await listTaskAttempts({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(attempts![0].status).toBe('timed_out');
@@ -1441,7 +1441,7 @@ describe('Tasks API', () => {
       // Lease (30s) is much larger than the running total budget (2s),
       // so the workflow's hard cap is what fires. Asserts the error
       // code reflects the right reason.
-      const { data } = await impose(
+      const { data } = await propose(
         {},
         { maxAttempts: 1, runningTimeoutSec: 2 },
       );
@@ -1460,7 +1460,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'failed' || t.status === 'queued',
@@ -1470,7 +1470,7 @@ describe('Tasks API', () => {
 
       const { data: attempts } = await listTaskAttempts({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(attempts![0].status).toBe('timed_out');
@@ -1481,7 +1481,7 @@ describe('Tasks API', () => {
       // Lease 1s, total 10s. Worker heartbeats once then goes silent;
       // the sliding window times out at the 1s lease boundary, well
       // before the 10s total. Asserts the new reason taxonomy.
-      const { data } = await impose(
+      const { data } = await propose(
         {},
         { maxAttempts: 1, runningTimeoutSec: 10 },
       );
@@ -1500,7 +1500,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'failed' || t.status === 'queued',
@@ -1510,7 +1510,7 @@ describe('Tasks API', () => {
 
       const { data: attempts } = await listTaskAttempts({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(attempts![0].status).toBe('timed_out');
@@ -1527,7 +1527,7 @@ describe('Tasks API', () => {
       // lease_expired, NOT running_total_exceeded. Generous total
       // budget (8s vs the ~3.5s elapsed) buffers against CI HTTP
       // jitter.
-      const { data } = await impose(
+      const { data } = await propose(
         {},
         { maxAttempts: 1, runningTimeoutSec: 8 },
       );
@@ -1556,7 +1556,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'failed' || t.status === 'queued',
@@ -1566,7 +1566,7 @@ describe('Tasks API', () => {
 
       const { data: attempts } = await listTaskAttempts({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(attempts![0].status).toBe('timed_out');
@@ -1577,7 +1577,7 @@ describe('Tasks API', () => {
     });
 
     it('dispatch timeout with retries → re-queues, then fails on second exhaustion', async () => {
-      const { data } = await impose(
+      const { data } = await propose(
         {},
         { maxAttempts: 2, dispatchTimeoutSec: 2 },
       );
@@ -1589,7 +1589,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'queued' || t.status === 'failed',
@@ -1609,7 +1609,7 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => imposer.accessToken,
+            auth: () => proposer.accessToken,
             path: { id: taskId },
           }).then((r) => r.data!),
         (t) => t.status === 'failed' || t.status === 'queued',
@@ -1624,7 +1624,7 @@ describe('Tasks API', () => {
       // Both attempts persisted as timed_out.
       const { data: attempts } = await listTaskAttempts({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId },
       });
       expect(attempts).toHaveLength(2);
@@ -1640,7 +1640,7 @@ describe('Tasks API', () => {
     let attemptN: number;
 
     beforeAll(async () => {
-      const { data } = await impose();
+      const { data } = await propose();
       taskId = data!.id;
       const { data: claimed } = await claim(taskId);
       attemptN = claimed!.attempt.attemptN;
@@ -1665,7 +1665,7 @@ describe('Tasks API', () => {
     it('lists messages in order', async () => {
       const { data, error } = await listTaskMessages({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId, n: attemptN },
         query: {},
       });
@@ -1698,7 +1698,7 @@ describe('Tasks API', () => {
       // Fetch all 3 messages (no afterSeq filter)
       const { data: all } = await listTaskMessages({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId, n: attemptN },
         query: {},
       });
@@ -1708,7 +1708,7 @@ describe('Tasks API', () => {
 
       const { data: after } = await listTaskMessages({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: taskId, n: attemptN },
         query: { afterSeq: secondSeq },
       });
@@ -1727,7 +1727,7 @@ describe('Tasks API', () => {
     it('handles N concurrent appendMessages without PK collisions', async () => {
       // Fresh task + attempt so we don't have to reason about pre-existing
       // messages from sibling tests in this describe block.
-      const { data: task } = await impose();
+      const { data: task } = await propose();
       const concurrentTaskId = task!.id;
       const { data: claimed } = await claim(concurrentTaskId);
       const concurrentAttemptN = claimed!.attempt.attemptN;
@@ -1759,7 +1759,7 @@ describe('Tasks API', () => {
 
       const { data: messages, error } = await listTaskMessages({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         path: { id: concurrentTaskId, n: concurrentAttemptN },
         query: {},
       });
@@ -1799,7 +1799,7 @@ describe('Tasks API', () => {
     // also indicate flakes in production. If the consistency window
     // grows past ~1.5s (5 attempts × max 400ms backoff) this asserts.
     it('claimant can append messages immediately after claim', async () => {
-      const { data: task } = await impose();
+      const { data: task } = await propose();
       const racyTaskId = task!.id;
       const { data: claimed } = await claim(racyTaskId);
       const racyAttemptN = claimed!.attempt.attemptN;
@@ -1847,7 +1847,7 @@ describe('Tasks API', () => {
 
   describe('concurrent claim race', () => {
     it('only one claimer wins when two race simultaneously', async () => {
-      const { data } = await impose();
+      const { data } = await propose();
       const taskId = data!.id;
 
       // Two concurrent claim attempts from different identities
@@ -1860,7 +1860,7 @@ describe('Tasks API', () => {
         }),
         claimTask({
           client,
-          auth: () => imposer.accessToken,
+          auth: () => proposer.accessToken,
           path: { id: taskId },
           body: { leaseTtlSec: 30 },
         }),

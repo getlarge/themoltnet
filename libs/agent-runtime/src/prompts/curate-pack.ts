@@ -65,7 +65,7 @@ export function buildCuratePackUserPrompt(
   const constraintsLines: string[] = [];
   if (entryTypesPinned) {
     constraintsLines.push(
-      `- Entry types pinned by imposer (do not widen): ${entryTypes!.map((t) => `\`${t}\``).join(', ')}`,
+      `- Entry types pinned by proposer (do not widen): ${entryTypes!.map((t) => `\`${t}\``).join(', ')}`,
     );
   } else {
     constraintsLines.push(

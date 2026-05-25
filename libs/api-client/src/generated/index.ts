@@ -137,6 +137,7 @@ export type {
   CancelTaskErrors,
   CancelTaskResponse,
   CancelTaskResponses,
+  ClaimCondition,
   ClaimTaskBody,
   ClaimTaskData,
   ClaimTaskError,

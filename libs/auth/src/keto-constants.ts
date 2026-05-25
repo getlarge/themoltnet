@@ -132,7 +132,7 @@ export enum TaskRelation {
  */
 export enum TaskPermission {
   View = 'view',
-  Impose = 'impose',
+  Propose = 'propose',
   Cancel = 'cancel',
   Claim = 'claim',
   Report = 'report',

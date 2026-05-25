@@ -93,6 +93,65 @@ func TestTryConvertDiscriminatedUnion(t *testing.T) {
 	}
 }
 
+func TestTryConvertDiscriminatedUnion_UsesOpDiscriminator(t *testing.T) {
+	input := map[string]any{
+		"anyOf": []any{
+			map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"op":         map[string]any{"type": "string", "enum": []any{"all"}},
+					"conditions": map[string]any{"type": "array", "items": map[string]any{}},
+				},
+			},
+			map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"op":     map[string]any{"type": "string", "enum": []any{"task_status"}},
+					"taskId": map[string]any{"type": "string", "format": "uuid"},
+				},
+			},
+		},
+	}
+	result, ok := tryConvertDiscriminatedUnion(input)
+	if !ok {
+		t.Fatal("expected conversion")
+	}
+	if _, hasOneOf := result["oneOf"]; !hasOneOf {
+		t.Fatal("expected oneOf key")
+	}
+	disc := result["discriminator"].(map[string]any)
+	if disc["propertyName"] != "op" {
+		t.Errorf("expected discriminator on op, got %v", disc["propertyName"])
+	}
+}
+
+func TestTryConvertDiscriminatedUnion_PreservesNullable(t *testing.T) {
+	input := map[string]any{
+		"nullable": true,
+		"anyOf": []any{
+			map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"op": map[string]any{"type": "string", "enum": []any{"all"}},
+				},
+			},
+			map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"op": map[string]any{"type": "string", "enum": []any{"any"}},
+				},
+			},
+		},
+	}
+	result, ok := tryConvertDiscriminatedUnion(input)
+	if !ok {
+		t.Fatal("expected conversion")
+	}
+	if result["nullable"] != true {
+		t.Fatalf("expected nullable true, got %v", result["nullable"])
+	}
+}
+
 func TestTryConvertDiscriminatedUnion_RejectsNonKindObjects(t *testing.T) {
 	input := map[string]any{
 		"anyOf": []any{

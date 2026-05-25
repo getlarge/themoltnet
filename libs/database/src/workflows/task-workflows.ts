@@ -97,6 +97,7 @@ export interface TaskWorkflowDeps {
   removeClaimantTuple(taskId: string, agentId: string): Promise<void>;
   countAttempts(taskId: string): Promise<number>;
   getMaxAttempts(taskId: string): Promise<number>;
+  notifyTaskStatusChanged?(taskId: string): Promise<void>;
   /**
    * Read the current task row. Used by timeout branches to detect
    * a cancel that landed on the row while the workflow was parked
@@ -117,7 +118,7 @@ export class TaskWorkflowConfigurationError extends Error {
 // fulfillment that may need to spin up a runtime, consider raising to 600s+
 // via the leaseTtlSec parameter passed to startAttemptWorkflow.
 //
-// These are *defaults* — the imposer can override per-task at create time
+// These are *defaults* — the proposer can override per-task at create time
 // via tasks.dispatch_timeout_sec / running_timeout_sec, which are passed
 // through to startAttemptWorkflow as `dispatchTimeoutSecOverride` and
 // `runningTimeoutSecOverride`.
@@ -231,6 +232,13 @@ export function initTaskWorkflows(): void {
       return { attemptCount, maxAttempts };
     },
     { name: 'task.step.getRetryInfo', ...stepConfig },
+  );
+
+  const notifyTaskStatusChangedStep = DBOS.registerStep(
+    async (taskId: string): Promise<void> => {
+      await getDeps().notifyTaskStatusChanged?.(taskId);
+    },
+    { name: 'task.step.notifyTaskStatusChanged' },
   );
 
   _workflows = {
@@ -362,6 +370,7 @@ export function initTaskWorkflows(): void {
               : {}),
           };
           await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
+          await notifyTaskStatusChangedStep(taskId);
           return event;
         }
 
@@ -494,6 +503,7 @@ export function initTaskWorkflows(): void {
               ? { status: 'completed', taskId, attemptN, output: evt.output }
               : { status: evt.kind, taskId, attemptN };
           await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
+          await notifyTaskStatusChangedStep(taskId);
           return event;
         }
 
@@ -551,6 +561,7 @@ export function initTaskWorkflows(): void {
             ...(finalStatus === 'timed_out' ? { timeoutReason: reason } : {}),
           };
           await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
+          await notifyTaskStatusChangedStep(taskId);
           return event;
         }
 

@@ -556,6 +556,378 @@ type CancelTaskUnauthorized ProblemDetails
 
 func (*CancelTaskUnauthorized) cancelTaskRes() {}
 
+// Ref: #/components/schemas/ClaimCondition
+// ClaimCondition represents sum type.
+type ClaimCondition struct {
+	Type                       ClaimConditionType // switch on this field
+	ClaimConditionAll          ClaimConditionAll
+	ClaimConditionAny          ClaimConditionAny
+	ClaimConditionTaskStatus   ClaimConditionTaskStatus
+	ClaimConditionTaskAccepted ClaimConditionTaskAccepted
+}
+
+// ClaimConditionType is oneOf type of ClaimCondition.
+type ClaimConditionType string
+
+// Possible values for ClaimConditionType.
+const (
+	ClaimConditionAllClaimCondition          ClaimConditionType = "all"
+	ClaimConditionAnyClaimCondition          ClaimConditionType = "any"
+	ClaimConditionTaskStatusClaimCondition   ClaimConditionType = "task_status"
+	ClaimConditionTaskAcceptedClaimCondition ClaimConditionType = "task_accepted"
+)
+
+// IsClaimConditionAll reports whether ClaimCondition is ClaimConditionAll.
+func (s ClaimCondition) IsClaimConditionAll() bool { return s.Type == ClaimConditionAllClaimCondition }
+
+// IsClaimConditionAny reports whether ClaimCondition is ClaimConditionAny.
+func (s ClaimCondition) IsClaimConditionAny() bool { return s.Type == ClaimConditionAnyClaimCondition }
+
+// IsClaimConditionTaskStatus reports whether ClaimCondition is ClaimConditionTaskStatus.
+func (s ClaimCondition) IsClaimConditionTaskStatus() bool {
+	return s.Type == ClaimConditionTaskStatusClaimCondition
+}
+
+// IsClaimConditionTaskAccepted reports whether ClaimCondition is ClaimConditionTaskAccepted.
+func (s ClaimCondition) IsClaimConditionTaskAccepted() bool {
+	return s.Type == ClaimConditionTaskAcceptedClaimCondition
+}
+
+// SetClaimConditionAll sets ClaimCondition to ClaimConditionAll.
+func (s *ClaimCondition) SetClaimConditionAll(v ClaimConditionAll) {
+	s.Type = ClaimConditionAllClaimCondition
+	s.ClaimConditionAll = v
+}
+
+// GetClaimConditionAll returns ClaimConditionAll and true boolean if ClaimCondition is ClaimConditionAll.
+func (s ClaimCondition) GetClaimConditionAll() (v ClaimConditionAll, ok bool) {
+	if !s.IsClaimConditionAll() {
+		return v, false
+	}
+	return s.ClaimConditionAll, true
+}
+
+// NewClaimConditionAllClaimCondition returns new ClaimCondition from ClaimConditionAll.
+func NewClaimConditionAllClaimCondition(v ClaimConditionAll) ClaimCondition {
+	var s ClaimCondition
+	s.SetClaimConditionAll(v)
+	return s
+}
+
+// SetClaimConditionAny sets ClaimCondition to ClaimConditionAny.
+func (s *ClaimCondition) SetClaimConditionAny(v ClaimConditionAny) {
+	s.Type = ClaimConditionAnyClaimCondition
+	s.ClaimConditionAny = v
+}
+
+// GetClaimConditionAny returns ClaimConditionAny and true boolean if ClaimCondition is ClaimConditionAny.
+func (s ClaimCondition) GetClaimConditionAny() (v ClaimConditionAny, ok bool) {
+	if !s.IsClaimConditionAny() {
+		return v, false
+	}
+	return s.ClaimConditionAny, true
+}
+
+// NewClaimConditionAnyClaimCondition returns new ClaimCondition from ClaimConditionAny.
+func NewClaimConditionAnyClaimCondition(v ClaimConditionAny) ClaimCondition {
+	var s ClaimCondition
+	s.SetClaimConditionAny(v)
+	return s
+}
+
+// SetClaimConditionTaskStatus sets ClaimCondition to ClaimConditionTaskStatus.
+func (s *ClaimCondition) SetClaimConditionTaskStatus(v ClaimConditionTaskStatus) {
+	s.Type = ClaimConditionTaskStatusClaimCondition
+	s.ClaimConditionTaskStatus = v
+}
+
+// GetClaimConditionTaskStatus returns ClaimConditionTaskStatus and true boolean if ClaimCondition is ClaimConditionTaskStatus.
+func (s ClaimCondition) GetClaimConditionTaskStatus() (v ClaimConditionTaskStatus, ok bool) {
+	if !s.IsClaimConditionTaskStatus() {
+		return v, false
+	}
+	return s.ClaimConditionTaskStatus, true
+}
+
+// NewClaimConditionTaskStatusClaimCondition returns new ClaimCondition from ClaimConditionTaskStatus.
+func NewClaimConditionTaskStatusClaimCondition(v ClaimConditionTaskStatus) ClaimCondition {
+	var s ClaimCondition
+	s.SetClaimConditionTaskStatus(v)
+	return s
+}
+
+// SetClaimConditionTaskAccepted sets ClaimCondition to ClaimConditionTaskAccepted.
+func (s *ClaimCondition) SetClaimConditionTaskAccepted(v ClaimConditionTaskAccepted) {
+	s.Type = ClaimConditionTaskAcceptedClaimCondition
+	s.ClaimConditionTaskAccepted = v
+}
+
+// GetClaimConditionTaskAccepted returns ClaimConditionTaskAccepted and true boolean if ClaimCondition is ClaimConditionTaskAccepted.
+func (s ClaimCondition) GetClaimConditionTaskAccepted() (v ClaimConditionTaskAccepted, ok bool) {
+	if !s.IsClaimConditionTaskAccepted() {
+		return v, false
+	}
+	return s.ClaimConditionTaskAccepted, true
+}
+
+// NewClaimConditionTaskAcceptedClaimCondition returns new ClaimCondition from ClaimConditionTaskAccepted.
+func NewClaimConditionTaskAcceptedClaimCondition(v ClaimConditionTaskAccepted) ClaimCondition {
+	var s ClaimCondition
+	s.SetClaimConditionTaskAccepted(v)
+	return s
+}
+
+// Ref: #/components/schemas/ClaimConditionAll
+type ClaimConditionAll struct {
+	Conditions []ClaimCondition    `json:"conditions"`
+	Op         ClaimConditionAllOp `json:"op"`
+}
+
+// GetConditions returns the value of Conditions.
+func (s *ClaimConditionAll) GetConditions() []ClaimCondition {
+	return s.Conditions
+}
+
+// GetOp returns the value of Op.
+func (s *ClaimConditionAll) GetOp() ClaimConditionAllOp {
+	return s.Op
+}
+
+// SetConditions sets the value of Conditions.
+func (s *ClaimConditionAll) SetConditions(val []ClaimCondition) {
+	s.Conditions = val
+}
+
+// SetOp sets the value of Op.
+func (s *ClaimConditionAll) SetOp(val ClaimConditionAllOp) {
+	s.Op = val
+}
+
+type ClaimConditionAllOp string
+
+const (
+	ClaimConditionAllOpAll ClaimConditionAllOp = "all"
+)
+
+// AllValues returns all ClaimConditionAllOp values.
+func (ClaimConditionAllOp) AllValues() []ClaimConditionAllOp {
+	return []ClaimConditionAllOp{
+		ClaimConditionAllOpAll,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ClaimConditionAllOp) MarshalText() ([]byte, error) {
+	switch s {
+	case ClaimConditionAllOpAll:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ClaimConditionAllOp) UnmarshalText(data []byte) error {
+	switch ClaimConditionAllOp(data) {
+	case ClaimConditionAllOpAll:
+		*s = ClaimConditionAllOpAll
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ClaimConditionAny
+type ClaimConditionAny struct {
+	Conditions []ClaimCondition    `json:"conditions"`
+	Op         ClaimConditionAnyOp `json:"op"`
+}
+
+// GetConditions returns the value of Conditions.
+func (s *ClaimConditionAny) GetConditions() []ClaimCondition {
+	return s.Conditions
+}
+
+// GetOp returns the value of Op.
+func (s *ClaimConditionAny) GetOp() ClaimConditionAnyOp {
+	return s.Op
+}
+
+// SetConditions sets the value of Conditions.
+func (s *ClaimConditionAny) SetConditions(val []ClaimCondition) {
+	s.Conditions = val
+}
+
+// SetOp sets the value of Op.
+func (s *ClaimConditionAny) SetOp(val ClaimConditionAnyOp) {
+	s.Op = val
+}
+
+type ClaimConditionAnyOp string
+
+const (
+	ClaimConditionAnyOpAny ClaimConditionAnyOp = "any"
+)
+
+// AllValues returns all ClaimConditionAnyOp values.
+func (ClaimConditionAnyOp) AllValues() []ClaimConditionAnyOp {
+	return []ClaimConditionAnyOp{
+		ClaimConditionAnyOpAny,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ClaimConditionAnyOp) MarshalText() ([]byte, error) {
+	switch s {
+	case ClaimConditionAnyOpAny:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ClaimConditionAnyOp) UnmarshalText(data []byte) error {
+	switch ClaimConditionAnyOp(data) {
+	case ClaimConditionAnyOpAny:
+		*s = ClaimConditionAnyOpAny
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ClaimConditionTaskAccepted
+type ClaimConditionTaskAccepted struct {
+	Op     ClaimConditionTaskAcceptedOp `json:"op"`
+	TaskId uuid.UUID                    `json:"taskId"`
+}
+
+// GetOp returns the value of Op.
+func (s *ClaimConditionTaskAccepted) GetOp() ClaimConditionTaskAcceptedOp {
+	return s.Op
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *ClaimConditionTaskAccepted) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// SetOp sets the value of Op.
+func (s *ClaimConditionTaskAccepted) SetOp(val ClaimConditionTaskAcceptedOp) {
+	s.Op = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *ClaimConditionTaskAccepted) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+type ClaimConditionTaskAcceptedOp string
+
+const (
+	ClaimConditionTaskAcceptedOpTaskAccepted ClaimConditionTaskAcceptedOp = "task_accepted"
+)
+
+// AllValues returns all ClaimConditionTaskAcceptedOp values.
+func (ClaimConditionTaskAcceptedOp) AllValues() []ClaimConditionTaskAcceptedOp {
+	return []ClaimConditionTaskAcceptedOp{
+		ClaimConditionTaskAcceptedOpTaskAccepted,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ClaimConditionTaskAcceptedOp) MarshalText() ([]byte, error) {
+	switch s {
+	case ClaimConditionTaskAcceptedOpTaskAccepted:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ClaimConditionTaskAcceptedOp) UnmarshalText(data []byte) error {
+	switch ClaimConditionTaskAcceptedOp(data) {
+	case ClaimConditionTaskAcceptedOpTaskAccepted:
+		*s = ClaimConditionTaskAcceptedOpTaskAccepted
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ClaimConditionTaskStatus
+type ClaimConditionTaskStatus struct {
+	Op       ClaimConditionTaskStatusOp `json:"op"`
+	Statuses []TaskStatus               `json:"statuses"`
+	TaskId   uuid.UUID                  `json:"taskId"`
+}
+
+// GetOp returns the value of Op.
+func (s *ClaimConditionTaskStatus) GetOp() ClaimConditionTaskStatusOp {
+	return s.Op
+}
+
+// GetStatuses returns the value of Statuses.
+func (s *ClaimConditionTaskStatus) GetStatuses() []TaskStatus {
+	return s.Statuses
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *ClaimConditionTaskStatus) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// SetOp sets the value of Op.
+func (s *ClaimConditionTaskStatus) SetOp(val ClaimConditionTaskStatusOp) {
+	s.Op = val
+}
+
+// SetStatuses sets the value of Statuses.
+func (s *ClaimConditionTaskStatus) SetStatuses(val []TaskStatus) {
+	s.Statuses = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *ClaimConditionTaskStatus) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+type ClaimConditionTaskStatusOp string
+
+const (
+	ClaimConditionTaskStatusOpTaskStatus ClaimConditionTaskStatusOp = "task_status"
+)
+
+// AllValues returns all ClaimConditionTaskStatusOp values.
+func (ClaimConditionTaskStatusOp) AllValues() []ClaimConditionTaskStatusOp {
+	return []ClaimConditionTaskStatusOp{
+		ClaimConditionTaskStatusOpTaskStatus,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ClaimConditionTaskStatusOp) MarshalText() ([]byte, error) {
+	switch s {
+	case ClaimConditionTaskStatusOpTaskStatus:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ClaimConditionTaskStatusOp) UnmarshalText(data []byte) error {
+	switch ClaimConditionTaskStatusOp(data) {
+	case ClaimConditionTaskStatusOpTaskStatus:
+		*s = ClaimConditionTaskStatusOpTaskStatus
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type ClaimTaskBadRequest ProblemDetails
 
 func (*ClaimTaskBadRequest) claimTaskRes() {}
@@ -3487,6 +3859,7 @@ func (*CreateTaskForbidden) createTaskRes() {}
 
 type CreateTaskReq struct {
 	AllowedExecutors           []ExecutorRef         `json:"allowedExecutors"`
+	ClaimCondition             OptClaimCondition     `json:"claimCondition"`
 	CorrelationId              OptUUID               `json:"correlationId"`
 	DiaryId                    uuid.UUID             `json:"diaryId"`
 	DispatchTimeoutSec         OptInt                `json:"dispatchTimeoutSec"`
@@ -3503,6 +3876,11 @@ type CreateTaskReq struct {
 // GetAllowedExecutors returns the value of AllowedExecutors.
 func (s *CreateTaskReq) GetAllowedExecutors() []ExecutorRef {
 	return s.AllowedExecutors
+}
+
+// GetClaimCondition returns the value of ClaimCondition.
+func (s *CreateTaskReq) GetClaimCondition() OptClaimCondition {
+	return s.ClaimCondition
 }
 
 // GetCorrelationId returns the value of CorrelationId.
@@ -3563,6 +3941,11 @@ func (s *CreateTaskReq) GetTeamId() uuid.UUID {
 // SetAllowedExecutors sets the value of AllowedExecutors.
 func (s *CreateTaskReq) SetAllowedExecutors(val []ExecutorRef) {
 	s.AllowedExecutors = val
+}
+
+// SetClaimCondition sets the value of ClaimCondition.
+func (s *CreateTaskReq) SetClaimCondition(val OptClaimCondition) {
+	s.ClaimCondition = val
 }
 
 // SetCorrelationId sets the value of CorrelationId.
@@ -13521,6 +13904,51 @@ func (o NilTaskAttemptUsage) Or(d TaskAttemptUsage) TaskAttemptUsage {
 	return d
 }
 
+// NewNilTaskClaimCondition returns new NilTaskClaimCondition with value set to v.
+func NewNilTaskClaimCondition(v TaskClaimCondition) NilTaskClaimCondition {
+	return NilTaskClaimCondition{
+		Value: v,
+	}
+}
+
+// NilTaskClaimCondition is nullable TaskClaimCondition.
+type NilTaskClaimCondition struct {
+	Value TaskClaimCondition
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskClaimCondition) SetTo(v TaskClaimCondition) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskClaimCondition) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskClaimCondition) SetToNull() {
+	o.Null = true
+	var v TaskClaimCondition
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskClaimCondition) Get() (v TaskClaimCondition, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskClaimCondition) Or(d TaskClaimCondition) TaskClaimCondition {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilUUID returns new NilUUID with value set to v.
 func NewNilUUID(v uuid.UUID) NilUUID {
 	return NilUUID{
@@ -13652,6 +14080,52 @@ func (o OptBool) Get() (v bool, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptBool) Or(d bool) bool {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptClaimCondition returns new OptClaimCondition with value set to v.
+func NewOptClaimCondition(v ClaimCondition) OptClaimCondition {
+	return OptClaimCondition{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptClaimCondition is optional ClaimCondition.
+type OptClaimCondition struct {
+	Value ClaimCondition
+	Set   bool
+}
+
+// IsSet returns true if OptClaimCondition was set.
+func (o OptClaimCondition) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptClaimCondition) Reset() {
+	var v ClaimCondition
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptClaimCondition) SetTo(v ClaimCondition) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptClaimCondition) Get() (v ClaimCondition, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptClaimCondition) Or(d ClaimCondition) ClaimCondition {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -20267,19 +20741,20 @@ type Task struct {
 	CancelReason               NilString                      `json:"cancelReason"`
 	CancelledByAgentId         NilUUID                        `json:"cancelledByAgentId"`
 	CancelledByHumanId         NilUUID                        `json:"cancelledByHumanId"`
+	ClaimCondition             NilTaskClaimCondition          `json:"claimCondition"`
 	CompletedAt                NilDateTime                    `json:"completedAt"`
 	CorrelationId              NilUUID                        `json:"correlationId"`
 	DiaryId                    NilUUID                        `json:"diaryId"`
 	DispatchTimeoutSec         NilInt                         `json:"dispatchTimeoutSec"`
 	ExpiresAt                  NilDateTime                    `json:"expiresAt"`
 	ID                         uuid.UUID                      `json:"id"`
-	ImposedByAgentId           NilUUID                        `json:"imposedByAgentId"`
-	ImposedByHumanId           NilUUID                        `json:"imposedByHumanId"`
 	Input                      TaskInput                      `json:"input"`
 	InputCid                   string                         `json:"inputCid"`
 	InputSchemaCid             string                         `json:"inputSchemaCid"`
 	MaxAttempts                float64                        `json:"maxAttempts"`
 	OutputKind                 TaskOutputKind                 `json:"outputKind"`
+	ProposedByAgentId          NilUUID                        `json:"proposedByAgentId"`
+	ProposedByHumanId          NilUUID                        `json:"proposedByHumanId"`
 	QueuedAt                   time.Time                      `json:"queuedAt"`
 	References                 []TaskReferencesItem           `json:"references"`
 	RequiredExecutorTrustLevel TaskRequiredExecutorTrustLevel `json:"requiredExecutorTrustLevel"`
@@ -20314,6 +20789,11 @@ func (s *Task) GetCancelledByHumanId() NilUUID {
 	return s.CancelledByHumanId
 }
 
+// GetClaimCondition returns the value of ClaimCondition.
+func (s *Task) GetClaimCondition() NilTaskClaimCondition {
+	return s.ClaimCondition
+}
+
 // GetCompletedAt returns the value of CompletedAt.
 func (s *Task) GetCompletedAt() NilDateTime {
 	return s.CompletedAt
@@ -20344,16 +20824,6 @@ func (s *Task) GetID() uuid.UUID {
 	return s.ID
 }
 
-// GetImposedByAgentId returns the value of ImposedByAgentId.
-func (s *Task) GetImposedByAgentId() NilUUID {
-	return s.ImposedByAgentId
-}
-
-// GetImposedByHumanId returns the value of ImposedByHumanId.
-func (s *Task) GetImposedByHumanId() NilUUID {
-	return s.ImposedByHumanId
-}
-
 // GetInput returns the value of Input.
 func (s *Task) GetInput() TaskInput {
 	return s.Input
@@ -20377,6 +20847,16 @@ func (s *Task) GetMaxAttempts() float64 {
 // GetOutputKind returns the value of OutputKind.
 func (s *Task) GetOutputKind() TaskOutputKind {
 	return s.OutputKind
+}
+
+// GetProposedByAgentId returns the value of ProposedByAgentId.
+func (s *Task) GetProposedByAgentId() NilUUID {
+	return s.ProposedByAgentId
+}
+
+// GetProposedByHumanId returns the value of ProposedByHumanId.
+func (s *Task) GetProposedByHumanId() NilUUID {
+	return s.ProposedByHumanId
 }
 
 // GetQueuedAt returns the value of QueuedAt.
@@ -20439,6 +20919,11 @@ func (s *Task) SetCancelledByHumanId(val NilUUID) {
 	s.CancelledByHumanId = val
 }
 
+// SetClaimCondition sets the value of ClaimCondition.
+func (s *Task) SetClaimCondition(val NilTaskClaimCondition) {
+	s.ClaimCondition = val
+}
+
 // SetCompletedAt sets the value of CompletedAt.
 func (s *Task) SetCompletedAt(val NilDateTime) {
 	s.CompletedAt = val
@@ -20469,16 +20954,6 @@ func (s *Task) SetID(val uuid.UUID) {
 	s.ID = val
 }
 
-// SetImposedByAgentId sets the value of ImposedByAgentId.
-func (s *Task) SetImposedByAgentId(val NilUUID) {
-	s.ImposedByAgentId = val
-}
-
-// SetImposedByHumanId sets the value of ImposedByHumanId.
-func (s *Task) SetImposedByHumanId(val NilUUID) {
-	s.ImposedByHumanId = val
-}
-
 // SetInput sets the value of Input.
 func (s *Task) SetInput(val TaskInput) {
 	s.Input = val
@@ -20502,6 +20977,16 @@ func (s *Task) SetMaxAttempts(val float64) {
 // SetOutputKind sets the value of OutputKind.
 func (s *Task) SetOutputKind(val TaskOutputKind) {
 	s.OutputKind = val
+}
+
+// SetProposedByAgentId sets the value of ProposedByAgentId.
+func (s *Task) SetProposedByAgentId(val NilUUID) {
+	s.ProposedByAgentId = val
+}
+
+// SetProposedByHumanId sets the value of ProposedByHumanId.
+func (s *Task) SetProposedByHumanId(val NilUUID) {
+	s.ProposedByHumanId = val
 }
 
 // SetQueuedAt sets the value of QueuedAt.
@@ -21000,6 +21485,130 @@ func (s *TaskAttemptUsage) SetProvider(val OptString) {
 // SetToolCalls sets the value of ToolCalls.
 func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
 	s.ToolCalls = val
+}
+
+// TaskClaimCondition represents sum type.
+type TaskClaimCondition struct {
+	Type                       TaskClaimConditionType // switch on this field
+	ClaimConditionAll          ClaimConditionAll
+	ClaimConditionAny          ClaimConditionAny
+	ClaimConditionTaskStatus   ClaimConditionTaskStatus
+	ClaimConditionTaskAccepted ClaimConditionTaskAccepted
+}
+
+// TaskClaimConditionType is oneOf type of TaskClaimCondition.
+type TaskClaimConditionType string
+
+// Possible values for TaskClaimConditionType.
+const (
+	ClaimConditionAllTaskClaimCondition          TaskClaimConditionType = "all"
+	ClaimConditionAnyTaskClaimCondition          TaskClaimConditionType = "any"
+	ClaimConditionTaskStatusTaskClaimCondition   TaskClaimConditionType = "task_status"
+	ClaimConditionTaskAcceptedTaskClaimCondition TaskClaimConditionType = "task_accepted"
+)
+
+// IsClaimConditionAll reports whether TaskClaimCondition is ClaimConditionAll.
+func (s TaskClaimCondition) IsClaimConditionAll() bool {
+	return s.Type == ClaimConditionAllTaskClaimCondition
+}
+
+// IsClaimConditionAny reports whether TaskClaimCondition is ClaimConditionAny.
+func (s TaskClaimCondition) IsClaimConditionAny() bool {
+	return s.Type == ClaimConditionAnyTaskClaimCondition
+}
+
+// IsClaimConditionTaskStatus reports whether TaskClaimCondition is ClaimConditionTaskStatus.
+func (s TaskClaimCondition) IsClaimConditionTaskStatus() bool {
+	return s.Type == ClaimConditionTaskStatusTaskClaimCondition
+}
+
+// IsClaimConditionTaskAccepted reports whether TaskClaimCondition is ClaimConditionTaskAccepted.
+func (s TaskClaimCondition) IsClaimConditionTaskAccepted() bool {
+	return s.Type == ClaimConditionTaskAcceptedTaskClaimCondition
+}
+
+// SetClaimConditionAll sets TaskClaimCondition to ClaimConditionAll.
+func (s *TaskClaimCondition) SetClaimConditionAll(v ClaimConditionAll) {
+	s.Type = ClaimConditionAllTaskClaimCondition
+	s.ClaimConditionAll = v
+}
+
+// GetClaimConditionAll returns ClaimConditionAll and true boolean if TaskClaimCondition is ClaimConditionAll.
+func (s TaskClaimCondition) GetClaimConditionAll() (v ClaimConditionAll, ok bool) {
+	if !s.IsClaimConditionAll() {
+		return v, false
+	}
+	return s.ClaimConditionAll, true
+}
+
+// NewClaimConditionAllTaskClaimCondition returns new TaskClaimCondition from ClaimConditionAll.
+func NewClaimConditionAllTaskClaimCondition(v ClaimConditionAll) TaskClaimCondition {
+	var s TaskClaimCondition
+	s.SetClaimConditionAll(v)
+	return s
+}
+
+// SetClaimConditionAny sets TaskClaimCondition to ClaimConditionAny.
+func (s *TaskClaimCondition) SetClaimConditionAny(v ClaimConditionAny) {
+	s.Type = ClaimConditionAnyTaskClaimCondition
+	s.ClaimConditionAny = v
+}
+
+// GetClaimConditionAny returns ClaimConditionAny and true boolean if TaskClaimCondition is ClaimConditionAny.
+func (s TaskClaimCondition) GetClaimConditionAny() (v ClaimConditionAny, ok bool) {
+	if !s.IsClaimConditionAny() {
+		return v, false
+	}
+	return s.ClaimConditionAny, true
+}
+
+// NewClaimConditionAnyTaskClaimCondition returns new TaskClaimCondition from ClaimConditionAny.
+func NewClaimConditionAnyTaskClaimCondition(v ClaimConditionAny) TaskClaimCondition {
+	var s TaskClaimCondition
+	s.SetClaimConditionAny(v)
+	return s
+}
+
+// SetClaimConditionTaskStatus sets TaskClaimCondition to ClaimConditionTaskStatus.
+func (s *TaskClaimCondition) SetClaimConditionTaskStatus(v ClaimConditionTaskStatus) {
+	s.Type = ClaimConditionTaskStatusTaskClaimCondition
+	s.ClaimConditionTaskStatus = v
+}
+
+// GetClaimConditionTaskStatus returns ClaimConditionTaskStatus and true boolean if TaskClaimCondition is ClaimConditionTaskStatus.
+func (s TaskClaimCondition) GetClaimConditionTaskStatus() (v ClaimConditionTaskStatus, ok bool) {
+	if !s.IsClaimConditionTaskStatus() {
+		return v, false
+	}
+	return s.ClaimConditionTaskStatus, true
+}
+
+// NewClaimConditionTaskStatusTaskClaimCondition returns new TaskClaimCondition from ClaimConditionTaskStatus.
+func NewClaimConditionTaskStatusTaskClaimCondition(v ClaimConditionTaskStatus) TaskClaimCondition {
+	var s TaskClaimCondition
+	s.SetClaimConditionTaskStatus(v)
+	return s
+}
+
+// SetClaimConditionTaskAccepted sets TaskClaimCondition to ClaimConditionTaskAccepted.
+func (s *TaskClaimCondition) SetClaimConditionTaskAccepted(v ClaimConditionTaskAccepted) {
+	s.Type = ClaimConditionTaskAcceptedTaskClaimCondition
+	s.ClaimConditionTaskAccepted = v
+}
+
+// GetClaimConditionTaskAccepted returns ClaimConditionTaskAccepted and true boolean if TaskClaimCondition is ClaimConditionTaskAccepted.
+func (s TaskClaimCondition) GetClaimConditionTaskAccepted() (v ClaimConditionTaskAccepted, ok bool) {
+	if !s.IsClaimConditionTaskAccepted() {
+		return v, false
+	}
+	return s.ClaimConditionTaskAccepted, true
+}
+
+// NewClaimConditionTaskAcceptedTaskClaimCondition returns new TaskClaimCondition from ClaimConditionTaskAccepted.
+func NewClaimConditionTaskAcceptedTaskClaimCondition(v ClaimConditionTaskAccepted) TaskClaimCondition {
+	var s TaskClaimCondition
+	s.SetClaimConditionTaskAccepted(v)
+	return s
 }
 
 // Ref: #/components/schemas/TaskError
@@ -21818,6 +22427,7 @@ func (s *TaskRequiredExecutorTrustLevel) UnmarshalText(data []byte) error {
 type TaskStatus string
 
 const (
+	TaskStatusWaiting    TaskStatus = "waiting"
 	TaskStatusQueued     TaskStatus = "queued"
 	TaskStatusDispatched TaskStatus = "dispatched"
 	TaskStatusRunning    TaskStatus = "running"
@@ -21830,6 +22440,7 @@ const (
 // AllValues returns all TaskStatus values.
 func (TaskStatus) AllValues() []TaskStatus {
 	return []TaskStatus{
+		TaskStatusWaiting,
 		TaskStatusQueued,
 		TaskStatusDispatched,
 		TaskStatusRunning,
@@ -21843,6 +22454,8 @@ func (TaskStatus) AllValues() []TaskStatus {
 // MarshalText implements encoding.TextMarshaler.
 func (s TaskStatus) MarshalText() ([]byte, error) {
 	switch s {
+	case TaskStatusWaiting:
+		return []byte(s), nil
 	case TaskStatusQueued:
 		return []byte(s), nil
 	case TaskStatusDispatched:
@@ -21865,6 +22478,9 @@ func (s TaskStatus) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *TaskStatus) UnmarshalText(data []byte) error {
 	switch TaskStatus(data) {
+	case TaskStatusWaiting:
+		*s = TaskStatusWaiting
+		return nil
 	case TaskStatusQueued:
 		*s = TaskStatusQueued
 		return nil

@@ -8,7 +8,7 @@
  * `assess_brief` flow with the PR-complexity rubric inlined. The thing
  * being judged is the producer's `fulfill_brief` task — which happens
  * to have produced a PR. The PR's URL is on the producer task's output
- * (`fulfill_brief.output.pullRequestUrl`), not in this imposer's input.
+ * (`fulfill_brief.output.pullRequestUrl`), not in this proposer's input.
  *
  * The judge agent reads the producer task's accepted attempt output by
  * calling `moltnet_get_task` and `moltnet_list_task_attempts` itself
@@ -16,7 +16,7 @@
  * `gh pr diff` from inside the sandbox. The PR-complexity rubric
  * drives the scoring.
  *
- * This imposer therefore needs **only the producer task's id**, not
+ * This proposer therefore needs **only the producer task's id**, not
  * the PR reference. The earlier draft of this script took `--pr` and
  * tried to bypass the producer task with a sentinel UUID, which
  * guaranteed every assessment failed at prompt-build time. Fixed.

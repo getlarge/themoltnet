@@ -17,7 +17,7 @@ export const ContextBinding = Type.Union(
 export type ContextBinding = Static<typeof ContextBinding>;
 
 /**
- * One context entry. Bytes are inlined: the imposer chose them, and the
+ * One context entry. Bytes are inlined: the proposer chose them, and the
  * task's `inputCid` already pins the entire input — including
  * `context[]` — so we don't need a separate per-entry hash, fetcher, or
  * flagged-content gate. Tasks reference rendered packs (or any other

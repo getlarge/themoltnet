@@ -31,7 +31,7 @@
       "name": "Preview before publish"
     },
     {
-      "description": "User-facing text uses publish/propose wording and avoids saying the task will be imposed",
+      "description": "User-facing text uses publish/propose wording and avoids the old coercive task terminology",
       "max_score": 6,
       "name": "Correct terminology"
     }

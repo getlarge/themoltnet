@@ -68,9 +68,10 @@ function makeRunEvalTask(id: string): DbTask {
     inputCid: 'bafy-input',
     taskRefs: [],
     correlationId: CORRELATION,
-    imposedByAgentId: AGENT_ID,
-    imposedByHumanId: null,
+    proposedByAgentId: AGENT_ID,
+    proposedByHumanId: null,
     acceptedAttemptN: 1,
+    claimCondition: null,
     requiredExecutorTrustLevel: 'self_declared',
     allowedExecutors: [],
     status: 'completed',
@@ -111,6 +112,7 @@ function makeJudgeTask(
 
 type TaskRepositoryMocks = {
   findById: Mock<(id: string) => Promise<DbTask | null>>;
+  findByIds: Mock<(ids: string[]) => Promise<DbTask[]>>;
   findByCorrelationId: Mock<(correlationId: string) => Promise<DbTask[]>>;
   acquireTaskCreateGuardLock: Mock<(lockKey: string) => Promise<void>>;
   findActiveTaskByInputMatch: Mock<
@@ -124,6 +126,9 @@ type TaskRepositoryMocks = {
     }) => Promise<DbTask | null>
   >;
   create: Mock<(newTask: Record<string, unknown>) => Promise<DbTask>>;
+  listWaitingTasks: Mock<() => Promise<DbTask[]>>;
+  listWaitingTasksReferencingTask: Mock<(taskId: string) => Promise<DbTask[]>>;
+  promoteWaitingTasks: Mock<(ids: string[]) => Promise<DbTask[]>>;
   updateStatus: Mock<
     (
       id: string,
@@ -143,11 +148,18 @@ type CorrelationSealRepositoryMocks = {
 };
 
 type PermissionCheckerMocks = {
-  canImposeTask: Mock<
+  canProposeTask: Mock<
     (diaryId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
   canViewTask: Mock<
     (taskId: string, callerId: string, callerNs: string) => Promise<boolean>
+  >;
+  canViewTasks: Mock<
+    (
+      taskIds: string[],
+      callerId: string,
+      callerNs: string,
+    ) => Promise<Map<string, boolean>>
   >;
   canReadPack: Mock<
     (packId: string, callerId: string, callerNs: string) => Promise<boolean>
@@ -200,6 +212,15 @@ function makeMocks(
       .mockImplementation((id) =>
         Promise.resolve(opts.visibleTasks?.[id] ?? null),
       ),
+    findByIds: vi
+      .fn<(ids: string[]) => Promise<DbTask[]>>()
+      .mockImplementation((ids) =>
+        Promise.resolve(
+          ids
+            .map((id) => opts.visibleTasks?.[id])
+            .filter((task): task is DbTask => task !== undefined),
+        ),
+      ),
     findByCorrelationId: vi
       .fn<(correlationId: string) => Promise<DbTask[]>>()
       .mockImplementation((cid) =>
@@ -234,11 +255,17 @@ function makeMocks(
           ...row,
           ...newTask,
           id: row.id,
-          status: 'queued',
         } as DbTask;
         insertedTasks.push(merged);
         return Promise.resolve(merged);
       }),
+    listWaitingTasks: vi.fn<() => Promise<DbTask[]>>().mockResolvedValue([]),
+    listWaitingTasksReferencingTask: vi
+      .fn<(taskId: string) => Promise<DbTask[]>>()
+      .mockResolvedValue([]),
+    promoteWaitingTasks: vi
+      .fn<(ids: string[]) => Promise<DbTask[]>>()
+      .mockResolvedValue([]),
     updateStatus: vi
       .fn<
         (
@@ -298,7 +325,7 @@ function makeMocks(
         .mockResolvedValue(null),
     },
     permissionChecker: {
-      canImposeTask: vi
+      canProposeTask: vi
         .fn<
           (
             diaryId: string,
@@ -317,6 +344,24 @@ function makeMocks(
         >()
         .mockImplementation((taskId) =>
           Promise.resolve(Boolean(opts.visibleTasks?.[taskId])),
+        ),
+      canViewTasks: vi
+        .fn<
+          (
+            taskIds: string[],
+            callerId: string,
+            callerNs: string,
+          ) => Promise<Map<string, boolean>>
+        >()
+        .mockImplementation((taskIds) =>
+          Promise.resolve(
+            new Map(
+              taskIds.map((taskId) => [
+                taskId,
+                Boolean(opts.visibleTasks?.[taskId]),
+              ]),
+            ),
+          ),
         ),
       canReadPack: vi
         .fn<
@@ -543,5 +588,165 @@ describe('createTaskService.create — producer input normalization', () => {
       },
     });
     expect(newTask.inputCid).toBe(await computeJsonCid(newTask.input));
+  });
+});
+
+describe('createTaskService.create — conditional claimability', () => {
+  let mocks: Mocks;
+  let service: ReturnType<typeof createTaskService>;
+
+  beforeEach(() => {
+    mocks = makeMocks({
+      visibleTasks: {
+        [RUN_TASK]: makeRunEvalTask(RUN_TASK),
+      },
+    });
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('creates waiting task when claim condition is not yet satisfied', async () => {
+    const pendingRun = {
+      ...makeRunEvalTask(RUN_TASK),
+      acceptedAttemptN: null,
+      status: 'running' as const,
+    };
+    mocks = makeMocks({
+      visibleTasks: {
+        [RUN_TASK]: pendingRun,
+      },
+    });
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const task = await service.create({
+      ...judgeCreateInput(),
+      claimCondition: { op: 'task_accepted', taskId: RUN_TASK },
+    } as never);
+
+    expect(task.status).toBe('waiting');
+    const newTask = mocks.taskRepository.create.mock.calls[0][0] as {
+      status: string;
+      claimCondition: unknown;
+    };
+    expect(newTask.status).toBe('waiting');
+    expect(newTask.claimCondition).toEqual({
+      op: 'task_accepted',
+      taskId: RUN_TASK,
+    });
+    expect(mocks.permissionChecker.canViewTasks).toHaveBeenCalledWith(
+      [RUN_TASK],
+      AGENT_ID,
+      'agent',
+    );
+  });
+
+  it('creates queued task when claim condition is already satisfied', async () => {
+    const task = await service.create({
+      ...judgeCreateInput(),
+      claimCondition: { op: 'task_accepted', taskId: RUN_TASK },
+    } as never);
+
+    expect(task.status).toBe('queued');
+    expect(mocks.taskRepository.create.mock.calls[0][0]).toMatchObject({
+      status: 'queued',
+    });
+  });
+
+  it('rejects unreadable condition references with one batched auth check', async () => {
+    const hiddenTaskId = '33333333-3333-3333-8333-333333333333';
+
+    await expect(
+      service.create({
+        ...judgeCreateInput(),
+        claimCondition: { op: 'task_accepted', taskId: hiddenTaskId },
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+    });
+
+    expect(mocks.permissionChecker.canViewTasks).toHaveBeenCalledWith(
+      [hiddenTaskId],
+      AGENT_ID,
+      'agent',
+    );
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('promotes only waiting tasks that reference the changed task', async () => {
+    const waitingJudge = {
+      ...makeJudgeTask(JUDGE_TASK, 'waiting'),
+      claimCondition: { op: 'task_accepted' as const, taskId: RUN_TASK },
+    };
+    mocks.taskRepository.listWaitingTasksReferencingTask.mockResolvedValue([
+      waitingJudge,
+    ]);
+    mocks.taskRepository.promoteWaitingTasks.mockResolvedValue([
+      { ...waitingJudge, status: 'queued' },
+    ]);
+
+    const promoted = await service.promoteSatisfiedWaitingTasks({
+      triggerTaskId: RUN_TASK,
+    });
+
+    expect(
+      mocks.taskRepository.listWaitingTasksReferencingTask,
+    ).toHaveBeenCalledWith(RUN_TASK);
+    expect(mocks.taskRepository.listWaitingTasks).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.promoteWaitingTasks).toHaveBeenCalledWith([
+      JUDGE_TASK,
+    ]);
+    expect(promoted).toHaveLength(1);
+  });
+
+  it('evaluates promotion before opening the short update transaction', async () => {
+    const events: string[] = [];
+    mocks.transactionRunner = {
+      async runInTransaction(fn) {
+        events.push('tx');
+        return fn();
+      },
+    };
+    const waitingJudge = {
+      ...makeJudgeTask(JUDGE_TASK, 'waiting'),
+      claimCondition: { op: 'task_accepted' as const, taskId: RUN_TASK },
+    };
+    mocks.taskRepository.listWaitingTasksReferencingTask.mockImplementation(
+      async () => {
+        events.push('list');
+        return [waitingJudge];
+      },
+    );
+    mocks.taskRepository.findByIds.mockImplementation(async () => {
+      events.push('load-refs');
+      return [makeRunEvalTask(RUN_TASK)];
+    });
+    mocks.permissionChecker.canViewTask.mockImplementation(async () => {
+      events.push('validate-keto');
+      return true;
+    });
+    mocks.taskRepository.promoteWaitingTasks.mockImplementation(async () => {
+      events.push('promote');
+      return [{ ...waitingJudge, status: 'queued' }];
+    });
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    await service.promoteSatisfiedWaitingTasks({ triggerTaskId: RUN_TASK });
+
+    expect(events).toEqual([
+      'list',
+      'load-refs',
+      'validate-keto',
+      'tx',
+      'promote',
+    ]);
   });
 });

@@ -45,7 +45,7 @@ export const JudgePackInput = Type.Object(
      * rubric IS the job spec for this judgment task (the judge applies
      * it). Other sections (`assertions`, `gates`, `sideEffects`) MAY be
      * present and are evaluated against the *judge's output* — e.g. an
-     * imposer can require the judge produce evidence-bearing assertions.
+     * proposer can require the judge produce evidence-bearing assertions.
      */
     successCriteria: SuccessCriteria,
   },

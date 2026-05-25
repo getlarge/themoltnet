@@ -13,7 +13,7 @@ runtime task.
 5. Read what the task produced with
    `moltnet task attempts <id> --accepted-only --field output`. `get` returns
    the envelope; `attempts` returns the payload.
-6. Optionally grade the result by imposing an `assess_brief` judgment task
+6. Optionally grade the result by proposing an `assess_brief` judgment task
    pointing at the producer. The judge reads the producer's accepted
    attempt itself — see the brief → fulfil → assess walkthrough in
    [Tasks](../use/tasks.md#a-typical-workflow-brief-fulfil-assess).

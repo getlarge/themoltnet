@@ -27,12 +27,12 @@ export function TaskDetailHeader({
   onOpenConsole,
 }: TaskDetailHeaderProps) {
   const theme = useTheme();
-  const actorId = task.imposedByAgentId ?? task.imposedByHumanId;
+  const actorId = task.proposedByAgentId ?? task.proposedByHumanId;
 
   const facts = [
     ['Team', renderTeamLabel?.(task.teamId) ?? task.teamId],
     ['Diary', renderDiaryLabel?.(task.diaryId) ?? task.diaryId ?? '—'],
-    ['Imposer', renderActorLabel?.(actorId) ?? actorId ?? '—'],
+    ['Proposer', renderActorLabel?.(actorId) ?? actorId ?? '—'],
     ['Correlation ID', task.correlationId ?? '—'],
     ['Queued', formatDateTime(task.queuedAt)],
     ['Completed', formatDateTime(task.completedAt)],

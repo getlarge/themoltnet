@@ -2304,6 +2304,801 @@ func (s *CancelTaskUnauthorized) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes ClaimCondition as json.
+func (s ClaimCondition) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+func (s ClaimCondition) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case ClaimConditionAllClaimCondition:
+		e.FieldStart("op")
+		e.Str("all")
+		{
+			s := s.ClaimConditionAll
+			{
+				e.FieldStart("conditions")
+				e.ArrStart()
+				for _, elem := range s.Conditions {
+					elem.Encode(e)
+				}
+				e.ArrEnd()
+			}
+		}
+	case ClaimConditionAnyClaimCondition:
+		e.FieldStart("op")
+		e.Str("any")
+		{
+			s := s.ClaimConditionAny
+			{
+				e.FieldStart("conditions")
+				e.ArrStart()
+				for _, elem := range s.Conditions {
+					elem.Encode(e)
+				}
+				e.ArrEnd()
+			}
+		}
+	case ClaimConditionTaskStatusClaimCondition:
+		e.FieldStart("op")
+		e.Str("task_status")
+		{
+			s := s.ClaimConditionTaskStatus
+			{
+				e.FieldStart("statuses")
+				e.ArrStart()
+				for _, elem := range s.Statuses {
+					elem.Encode(e)
+				}
+				e.ArrEnd()
+			}
+			{
+				e.FieldStart("taskId")
+				json.EncodeUUID(e, s.TaskId)
+			}
+		}
+	case ClaimConditionTaskAcceptedClaimCondition:
+		e.FieldStart("op")
+		e.Str("task_accepted")
+		{
+			s := s.ClaimConditionTaskAccepted
+			{
+				e.FieldStart("taskId")
+				json.EncodeUUID(e, s.TaskId)
+			}
+		}
+	}
+}
+
+// Decode decodes ClaimCondition from json.
+func (s *ClaimCondition) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ClaimCondition to nil")
+	}
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "op":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "all":
+					s.Type = ClaimConditionAllClaimCondition
+					found = true
+				case "any":
+					s.Type = ClaimConditionAnyClaimCondition
+					found = true
+				case "task_status":
+					s.Type = ClaimConditionTaskStatusClaimCondition
+					found = true
+				case "task_accepted":
+					s.Type = ClaimConditionTaskAcceptedClaimCondition
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case ClaimConditionAllClaimCondition:
+		if err := s.ClaimConditionAll.Decode(d); err != nil {
+			return err
+		}
+	case ClaimConditionAnyClaimCondition:
+		if err := s.ClaimConditionAny.Decode(d); err != nil {
+			return err
+		}
+	case ClaimConditionTaskStatusClaimCondition:
+		if err := s.ClaimConditionTaskStatus.Decode(d); err != nil {
+			return err
+		}
+	case ClaimConditionTaskAcceptedClaimCondition:
+		if err := s.ClaimConditionTaskAccepted.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ClaimCondition) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ClaimCondition) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ClaimConditionAll) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ClaimConditionAll) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("conditions")
+		e.ArrStart()
+		for _, elem := range s.Conditions {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("op")
+		s.Op.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfClaimConditionAll = [2]string{
+	0: "conditions",
+	1: "op",
+}
+
+// Decode decodes ClaimConditionAll from json.
+func (s *ClaimConditionAll) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ClaimConditionAll to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "conditions":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Conditions = make([]ClaimCondition, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ClaimCondition
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Conditions = append(s.Conditions, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"conditions\"")
+			}
+		case "op":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Op.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"op\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ClaimConditionAll")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfClaimConditionAll) {
+					name = jsonFieldsNameOfClaimConditionAll[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ClaimConditionAll) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ClaimConditionAll) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ClaimConditionAllOp as json.
+func (s ClaimConditionAllOp) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ClaimConditionAllOp from json.
+func (s *ClaimConditionAllOp) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ClaimConditionAllOp to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ClaimConditionAllOp(v) {
+	case ClaimConditionAllOpAll:
+		*s = ClaimConditionAllOpAll
+	default:
+		*s = ClaimConditionAllOp(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ClaimConditionAllOp) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ClaimConditionAllOp) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ClaimConditionAny) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ClaimConditionAny) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("conditions")
+		e.ArrStart()
+		for _, elem := range s.Conditions {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("op")
+		s.Op.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfClaimConditionAny = [2]string{
+	0: "conditions",
+	1: "op",
+}
+
+// Decode decodes ClaimConditionAny from json.
+func (s *ClaimConditionAny) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ClaimConditionAny to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "conditions":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Conditions = make([]ClaimCondition, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ClaimCondition
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Conditions = append(s.Conditions, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"conditions\"")
+			}
+		case "op":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Op.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"op\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ClaimConditionAny")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfClaimConditionAny) {
+					name = jsonFieldsNameOfClaimConditionAny[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ClaimConditionAny) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ClaimConditionAny) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ClaimConditionAnyOp as json.
+func (s ClaimConditionAnyOp) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ClaimConditionAnyOp from json.
+func (s *ClaimConditionAnyOp) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ClaimConditionAnyOp to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ClaimConditionAnyOp(v) {
+	case ClaimConditionAnyOpAny:
+		*s = ClaimConditionAnyOpAny
+	default:
+		*s = ClaimConditionAnyOp(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ClaimConditionAnyOp) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ClaimConditionAnyOp) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ClaimConditionTaskAccepted) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ClaimConditionTaskAccepted) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("op")
+		s.Op.Encode(e)
+	}
+	{
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
+	}
+}
+
+var jsonFieldsNameOfClaimConditionTaskAccepted = [2]string{
+	0: "op",
+	1: "taskId",
+}
+
+// Decode decodes ClaimConditionTaskAccepted from json.
+func (s *ClaimConditionTaskAccepted) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ClaimConditionTaskAccepted to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "op":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Op.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"op\"")
+			}
+		case "taskId":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskId\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ClaimConditionTaskAccepted")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfClaimConditionTaskAccepted) {
+					name = jsonFieldsNameOfClaimConditionTaskAccepted[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ClaimConditionTaskAccepted) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ClaimConditionTaskAccepted) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ClaimConditionTaskAcceptedOp as json.
+func (s ClaimConditionTaskAcceptedOp) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ClaimConditionTaskAcceptedOp from json.
+func (s *ClaimConditionTaskAcceptedOp) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ClaimConditionTaskAcceptedOp to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ClaimConditionTaskAcceptedOp(v) {
+	case ClaimConditionTaskAcceptedOpTaskAccepted:
+		*s = ClaimConditionTaskAcceptedOpTaskAccepted
+	default:
+		*s = ClaimConditionTaskAcceptedOp(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ClaimConditionTaskAcceptedOp) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ClaimConditionTaskAcceptedOp) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ClaimConditionTaskStatus) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ClaimConditionTaskStatus) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("op")
+		s.Op.Encode(e)
+	}
+	{
+		e.FieldStart("statuses")
+		e.ArrStart()
+		for _, elem := range s.Statuses {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
+	}
+}
+
+var jsonFieldsNameOfClaimConditionTaskStatus = [3]string{
+	0: "op",
+	1: "statuses",
+	2: "taskId",
+}
+
+// Decode decodes ClaimConditionTaskStatus from json.
+func (s *ClaimConditionTaskStatus) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ClaimConditionTaskStatus to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "op":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Op.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"op\"")
+			}
+		case "statuses":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				s.Statuses = make([]TaskStatus, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem TaskStatus
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Statuses = append(s.Statuses, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"statuses\"")
+			}
+		case "taskId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskId\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ClaimConditionTaskStatus")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfClaimConditionTaskStatus) {
+					name = jsonFieldsNameOfClaimConditionTaskStatus[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ClaimConditionTaskStatus) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ClaimConditionTaskStatus) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ClaimConditionTaskStatusOp as json.
+func (s ClaimConditionTaskStatusOp) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ClaimConditionTaskStatusOp from json.
+func (s *ClaimConditionTaskStatusOp) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ClaimConditionTaskStatusOp to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ClaimConditionTaskStatusOp(v) {
+	case ClaimConditionTaskStatusOpTaskStatus:
+		*s = ClaimConditionTaskStatusOpTaskStatus
+	default:
+		*s = ClaimConditionTaskStatusOp(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ClaimConditionTaskStatusOp) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ClaimConditionTaskStatusOp) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes ClaimTaskBadRequest as json.
 func (s *ClaimTaskBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -10254,6 +11049,12 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.ClaimCondition.Set {
+			e.FieldStart("claimCondition")
+			s.ClaimCondition.Encode(e)
+		}
+	}
+	{
 		if s.CorrelationId.Set {
 			e.FieldStart("correlationId")
 			s.CorrelationId.Encode(e)
@@ -10317,19 +11118,20 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateTaskReq = [12]string{
+var jsonFieldsNameOfCreateTaskReq = [13]string{
 	0:  "allowedExecutors",
-	1:  "correlationId",
-	2:  "diaryId",
-	3:  "dispatchTimeoutSec",
-	4:  "expiresInSec",
-	5:  "input",
-	6:  "maxAttempts",
-	7:  "references",
-	8:  "requiredExecutorTrustLevel",
-	9:  "runningTimeoutSec",
-	10: "taskType",
-	11: "teamId",
+	1:  "claimCondition",
+	2:  "correlationId",
+	3:  "diaryId",
+	4:  "dispatchTimeoutSec",
+	5:  "expiresInSec",
+	6:  "input",
+	7:  "maxAttempts",
+	8:  "references",
+	9:  "requiredExecutorTrustLevel",
+	10: "runningTimeoutSec",
+	11: "taskType",
+	12: "teamId",
 }
 
 // Decode decodes CreateTaskReq from json.
@@ -10359,6 +11161,16 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"allowedExecutors\"")
 			}
+		case "claimCondition":
+			if err := func() error {
+				s.ClaimCondition.Reset()
+				if err := s.ClaimCondition.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"claimCondition\"")
+			}
 		case "correlationId":
 			if err := func() error {
 				s.CorrelationId.Reset()
@@ -10370,7 +11182,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"correlationId\"")
 			}
 		case "diaryId":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.DiaryId = v
@@ -10402,7 +11214,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresInSec\"")
 			}
 		case "input":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				if err := s.Input.Decode(d); err != nil {
 					return err
@@ -10459,7 +11271,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runningTimeoutSec\"")
 			}
 		case "taskType":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -10471,7 +11283,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
 		case "teamId":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -10492,8 +11304,8 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b00100100,
-		0b00001100,
+		0b01001000,
+		0b00011000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -38417,6 +39229,50 @@ func (s *NilTaskAttemptUsage) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes TaskClaimCondition as json.
+func (o NilTaskClaimCondition) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes TaskClaimCondition from json.
+func (o *NilTaskClaimCondition) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilTaskClaimCondition to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v TaskClaimCondition
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilTaskClaimCondition) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilTaskClaimCondition) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes uuid.UUID as json.
 func (o NilUUID) Encode(e *jx.Encoder) {
 	if o.Null {
@@ -38527,6 +39383,39 @@ func (s OptBool) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptBool) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ClaimCondition as json.
+func (o OptClaimCondition) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes ClaimCondition from json.
+func (o *OptClaimCondition) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptClaimCondition to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptClaimCondition) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptClaimCondition) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -51115,6 +52004,10 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 		s.CancelledByHumanId.Encode(e)
 	}
 	{
+		e.FieldStart("claimCondition")
+		s.ClaimCondition.Encode(e)
+	}
+	{
 		e.FieldStart("completedAt")
 		s.CompletedAt.Encode(e, json.EncodeDateTime)
 	}
@@ -51139,14 +52032,6 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.ID)
 	}
 	{
-		e.FieldStart("imposedByAgentId")
-		s.ImposedByAgentId.Encode(e)
-	}
-	{
-		e.FieldStart("imposedByHumanId")
-		s.ImposedByHumanId.Encode(e)
-	}
-	{
 		e.FieldStart("input")
 		s.Input.Encode(e)
 	}
@@ -51165,6 +52050,14 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("outputKind")
 		s.OutputKind.Encode(e)
+	}
+	{
+		e.FieldStart("proposedByAgentId")
+		s.ProposedByAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("proposedByHumanId")
+		s.ProposedByHumanId.Encode(e)
 	}
 	{
 		e.FieldStart("queuedAt")
@@ -51200,32 +52093,33 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfTask = [25]string{
+var jsonFieldsNameOfTask = [26]string{
 	0:  "acceptedAttemptN",
 	1:  "allowedExecutors",
 	2:  "cancelReason",
 	3:  "cancelledByAgentId",
 	4:  "cancelledByHumanId",
-	5:  "completedAt",
-	6:  "correlationId",
-	7:  "diaryId",
-	8:  "dispatchTimeoutSec",
-	9:  "expiresAt",
-	10: "id",
-	11: "imposedByAgentId",
-	12: "imposedByHumanId",
-	13: "input",
-	14: "inputCid",
-	15: "inputSchemaCid",
-	16: "maxAttempts",
-	17: "outputKind",
-	18: "queuedAt",
-	19: "references",
-	20: "requiredExecutorTrustLevel",
-	21: "runningTimeoutSec",
-	22: "status",
-	23: "taskType",
-	24: "teamId",
+	5:  "claimCondition",
+	6:  "completedAt",
+	7:  "correlationId",
+	8:  "diaryId",
+	9:  "dispatchTimeoutSec",
+	10: "expiresAt",
+	11: "id",
+	12: "input",
+	13: "inputCid",
+	14: "inputSchemaCid",
+	15: "maxAttempts",
+	16: "outputKind",
+	17: "proposedByAgentId",
+	18: "proposedByHumanId",
+	19: "queuedAt",
+	20: "references",
+	21: "requiredExecutorTrustLevel",
+	22: "runningTimeoutSec",
+	23: "status",
+	24: "taskType",
+	25: "teamId",
 }
 
 // Decode decodes Task from json.
@@ -51295,8 +52189,18 @@ func (s *Task) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"cancelledByHumanId\"")
 			}
-		case "completedAt":
+		case "claimCondition":
 			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.ClaimCondition.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"claimCondition\"")
+			}
+		case "completedAt":
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				if err := s.CompletedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -51306,7 +52210,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"completedAt\"")
 			}
 		case "correlationId":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.CorrelationId.Decode(d); err != nil {
 					return err
@@ -51316,7 +52220,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"correlationId\"")
 			}
 		case "diaryId":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.DiaryId.Decode(d); err != nil {
 					return err
@@ -51326,7 +52230,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
 		case "dispatchTimeoutSec":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				if err := s.DispatchTimeoutSec.Decode(d); err != nil {
 					return err
@@ -51336,7 +52240,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"dispatchTimeoutSec\"")
 			}
 		case "expiresAt":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -51346,7 +52250,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
 		case "id":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -51357,28 +52261,8 @@ func (s *Task) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
-		case "imposedByAgentId":
-			requiredBitSet[1] |= 1 << 3
-			if err := func() error {
-				if err := s.ImposedByAgentId.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"imposedByAgentId\"")
-			}
-		case "imposedByHumanId":
-			requiredBitSet[1] |= 1 << 4
-			if err := func() error {
-				if err := s.ImposedByHumanId.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"imposedByHumanId\"")
-			}
 		case "input":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				if err := s.Input.Decode(d); err != nil {
 					return err
@@ -51388,7 +52272,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"input\"")
 			}
 		case "inputCid":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.InputCid = string(v)
@@ -51400,7 +52284,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"inputCid\"")
 			}
 		case "inputSchemaCid":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.InputSchemaCid = string(v)
@@ -51412,7 +52296,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"inputSchemaCid\"")
 			}
 		case "maxAttempts":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := d.Float64()
 				s.MaxAttempts = float64(v)
@@ -51424,7 +52308,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxAttempts\"")
 			}
 		case "outputKind":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				if err := s.OutputKind.Decode(d); err != nil {
 					return err
@@ -51433,8 +52317,28 @@ func (s *Task) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"outputKind\"")
 			}
-		case "queuedAt":
+		case "proposedByAgentId":
+			requiredBitSet[2] |= 1 << 1
+			if err := func() error {
+				if err := s.ProposedByAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"proposedByAgentId\"")
+			}
+		case "proposedByHumanId":
 			requiredBitSet[2] |= 1 << 2
+			if err := func() error {
+				if err := s.ProposedByHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"proposedByHumanId\"")
+			}
+		case "queuedAt":
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.QueuedAt = v
@@ -51446,7 +52350,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"queuedAt\"")
 			}
 		case "references":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				s.References = make([]TaskReferencesItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -51464,7 +52368,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"references\"")
 			}
 		case "requiredExecutorTrustLevel":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				if err := s.RequiredExecutorTrustLevel.Decode(d); err != nil {
 					return err
@@ -51474,7 +52378,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredExecutorTrustLevel\"")
 			}
 		case "runningTimeoutSec":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				if err := s.RunningTimeoutSec.Decode(d); err != nil {
 					return err
@@ -51484,7 +52388,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runningTimeoutSec\"")
 			}
 		case "status":
-			requiredBitSet[2] |= 1 << 6
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -51494,7 +52398,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "taskType":
-			requiredBitSet[2] |= 1 << 7
+			requiredBitSet[3] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -51506,7 +52410,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
 		case "teamId":
-			requiredBitSet[3] |= 1 << 0
+			requiredBitSet[3] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -51530,7 +52434,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 		0b11111111,
 		0b11111111,
 		0b11111111,
-		0b00000001,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -52611,6 +53515,158 @@ func (s *TaskAttemptUsage) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *TaskAttemptUsage) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskClaimCondition as json.
+func (s TaskClaimCondition) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+func (s TaskClaimCondition) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case ClaimConditionAllTaskClaimCondition:
+		e.FieldStart("op")
+		e.Str("all")
+		{
+			s := s.ClaimConditionAll
+			{
+				e.FieldStart("conditions")
+				e.ArrStart()
+				for _, elem := range s.Conditions {
+					elem.Encode(e)
+				}
+				e.ArrEnd()
+			}
+		}
+	case ClaimConditionAnyTaskClaimCondition:
+		e.FieldStart("op")
+		e.Str("any")
+		{
+			s := s.ClaimConditionAny
+			{
+				e.FieldStart("conditions")
+				e.ArrStart()
+				for _, elem := range s.Conditions {
+					elem.Encode(e)
+				}
+				e.ArrEnd()
+			}
+		}
+	case ClaimConditionTaskStatusTaskClaimCondition:
+		e.FieldStart("op")
+		e.Str("task_status")
+		{
+			s := s.ClaimConditionTaskStatus
+			{
+				e.FieldStart("statuses")
+				e.ArrStart()
+				for _, elem := range s.Statuses {
+					elem.Encode(e)
+				}
+				e.ArrEnd()
+			}
+			{
+				e.FieldStart("taskId")
+				json.EncodeUUID(e, s.TaskId)
+			}
+		}
+	case ClaimConditionTaskAcceptedTaskClaimCondition:
+		e.FieldStart("op")
+		e.Str("task_accepted")
+		{
+			s := s.ClaimConditionTaskAccepted
+			{
+				e.FieldStart("taskId")
+				json.EncodeUUID(e, s.TaskId)
+			}
+		}
+	}
+}
+
+// Decode decodes TaskClaimCondition from json.
+func (s *TaskClaimCondition) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskClaimCondition to nil")
+	}
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "op":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "all":
+					s.Type = ClaimConditionAllTaskClaimCondition
+					found = true
+				case "any":
+					s.Type = ClaimConditionAnyTaskClaimCondition
+					found = true
+				case "task_status":
+					s.Type = ClaimConditionTaskStatusTaskClaimCondition
+					found = true
+				case "task_accepted":
+					s.Type = ClaimConditionTaskAcceptedTaskClaimCondition
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case ClaimConditionAllTaskClaimCondition:
+		if err := s.ClaimConditionAll.Decode(d); err != nil {
+			return err
+		}
+	case ClaimConditionAnyTaskClaimCondition:
+		if err := s.ClaimConditionAny.Decode(d); err != nil {
+			return err
+		}
+	case ClaimConditionTaskStatusTaskClaimCondition:
+		if err := s.ClaimConditionTaskStatus.Decode(d); err != nil {
+			return err
+		}
+	case ClaimConditionTaskAcceptedTaskClaimCondition:
+		if err := s.ClaimConditionTaskAccepted.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s TaskClaimCondition) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskClaimCondition) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -54336,6 +55392,8 @@ func (s *TaskStatus) Decode(d *jx.Decoder) error {
 	}
 	// Try to use constant string.
 	switch TaskStatus(v) {
+	case TaskStatusWaiting:
+		*s = TaskStatusWaiting
 	case TaskStatusQueued:
 		*s = TaskStatusQueued
 	case TaskStatusDispatched:

@@ -5,9 +5,9 @@
 //     {anyOf: [{type: string, enum: ["a"]}, {type: string, enum: ["b"]}]}
 //     and this tool converts them to {type: string, enum: ["a", "b"]}.
 //
-//  2. Discriminated unions: anyOf where each variant is an object with a "kind"
-//     property whose enum has exactly one value is converted to oneOf with a
-//     discriminator on "kind". ogen supports oneOf+discriminator but not
+//  2. Discriminated unions: anyOf where each variant is an object with a shared
+//     string literal property (for example "kind" or "op") is converted to
+//     oneOf with a discriminator. ogen supports oneOf+discriminator but not
 //     complex anyOf (see https://github.com/ogen-go/ogen/issues/491).
 //
 // Output JSON has object keys sorted lexicographically for deterministic diffs.
@@ -241,7 +241,11 @@ func walkExtractOneOf(v any, schemas map[string]any) {
 					if kindVal == "" {
 						continue
 					}
-					schemaName := deriveDiscriminatedSchemaName(member, kindVal)
+					schemaName := deriveDiscriminatedSchemaName(
+						member,
+						propName,
+						kindVal,
+					)
 					schemas[schemaName] = member
 					members[i] = map[string]any{
 						"$ref": "#/components/schemas/" + schemaName,
@@ -275,7 +279,7 @@ func capitalize(s string) string {
 // required-property set to distinguish the two oneOf families we currently
 // have (provenance graph nodes vs principal identity) without requiring a
 // schema title.
-func deriveDiscriminatedSchemaName(variant map[string]any, kindVal string) string {
+func deriveDiscriminatedSchemaName(variant map[string]any, propName string, kindVal string) string {
 	props, _ := variant["properties"].(map[string]any)
 	required, _ := variant["required"].([]any)
 	requiredSet := make(map[string]bool, len(required))
@@ -298,6 +302,12 @@ func deriveDiscriminatedSchemaName(variant map[string]any, kindVal string) strin
 	}
 	if hasProp("humanId") {
 		return capitalize(kindVal) + "Principal"
+	}
+
+	// Claim-condition family: { op: "all"|"any", conditions } or
+	// { op: "task_status"|"task_accepted", taskId, ... }.
+	if propName == "op" && (hasProp("conditions") || hasProp("taskId")) {
+		return "ClaimCondition" + titleCase(kindVal)
 	}
 
 	// Default — historical provenance graph node naming (pack/entry/rendered_pack).
@@ -391,14 +401,14 @@ func normalize(v any) any {
 }
 
 // tryConvertDiscriminatedUnion detects an anyOf where every variant is an
-// object with a "kind" property whose enum has exactly one literal value.
+// object with the same string literal discriminator property.
 // It converts:
 //
-//	{anyOf: [{..., kind: {enum:["a"]}}, {..., kind: {enum:["b"]}}]}
+//	{anyOf: [{..., op: {enum:["a"]}}, {..., op: {enum:["b"]}}]}
 //
 // to:
 //
-//	{oneOf: [...], discriminator: {propertyName: "kind"}}
+//	{oneOf: [...], discriminator: {propertyName: "op"}}
 //
 // The variants are recursively normalized before being placed in oneOf.
 func tryConvertDiscriminatedUnion(obj map[string]any) (map[string]any, bool) {
@@ -419,6 +429,11 @@ func tryConvertDiscriminatedUnion(obj map[string]any) (map[string]any, bool) {
 		return nil, false
 	}
 
+	propName, ok := inferDiscriminatorProperty(members)
+	if !ok {
+		return nil, false
+	}
+
 	for _, m := range members {
 		member, ok := m.(map[string]any)
 		if !ok {
@@ -431,7 +446,7 @@ func tryConvertDiscriminatedUnion(obj map[string]any) (map[string]any, bool) {
 		if !ok {
 			return nil, false
 		}
-		kindProp, ok := props["kind"].(map[string]any)
+		kindProp, ok := props[propName].(map[string]any)
 		if !ok {
 			return nil, false
 		}
@@ -447,12 +462,71 @@ func tryConvertDiscriminatedUnion(obj map[string]any) (map[string]any, bool) {
 		normalized[i] = normalize(m)
 	}
 
-	return map[string]any{
+	out := map[string]any{
 		"oneOf": normalized,
 		"discriminator": map[string]any{
-			"propertyName": "kind",
+			"propertyName": propName,
 		},
-	}, true
+	}
+	if nullable, ok := obj["nullable"]; ok {
+		out["nullable"] = nullable
+	}
+	return out, true
+}
+
+func inferDiscriminatorProperty(members []any) (string, bool) {
+	var common map[string]bool
+	for _, m := range members {
+		member, ok := m.(map[string]any)
+		if !ok || member["type"] != "object" {
+			return "", false
+		}
+		props, ok := member["properties"].(map[string]any)
+		if !ok {
+			return "", false
+		}
+		literalProps := make(map[string]bool)
+		for name, raw := range props {
+			prop, ok := raw.(map[string]any)
+			if !ok {
+				continue
+			}
+			if prop["type"] != "string" {
+				continue
+			}
+			enum, ok := prop["enum"].([]any)
+			if !ok || len(enum) != 1 {
+				continue
+			}
+			if _, ok := enum[0].(string); ok {
+				literalProps[name] = true
+			}
+		}
+		if common == nil {
+			common = literalProps
+			continue
+		}
+		for name := range common {
+			if !literalProps[name] {
+				delete(common, name)
+			}
+		}
+	}
+	if len(common) == 0 {
+		return "", false
+	}
+	if common["kind"] {
+		return "kind", true
+	}
+	if common["op"] {
+		return "op", true
+	}
+	names := make([]string, 0, len(common))
+	for name := range common {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names[0], true
 }
 
 // tryConvertNullable detects anyOf patterns like:

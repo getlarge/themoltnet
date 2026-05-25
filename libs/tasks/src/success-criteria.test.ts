@@ -269,7 +269,7 @@ describe('evaluateAssertions', () => {
 
   it('checks every value when path uses * (all-must-pass)', () => {
     // commits.*.sha resolves to ['aaa1111','bbb2222']; both must satisfy
-    // the assertion or the assertion fails. This matters so an imposer
+    // the assertion or the assertion fails. This matters so a proposer
     // can say "every commit sha is at least 7 chars" and have it mean it.
     expect(
       evaluateAssertions(output, [

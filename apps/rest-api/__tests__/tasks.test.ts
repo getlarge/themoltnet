@@ -25,9 +25,10 @@ const MOCK_TASK = {
   inputCid: 'bafy2',
   references: [],
   correlationId: null,
-  imposedByAgentId: OWNER_ID,
-  imposedByHumanId: null,
+  proposedByAgentId: OWNER_ID,
+  proposedByHumanId: null,
   acceptedAttemptN: null,
+  claimCondition: null,
   requiredExecutorTrustLevel: 'selfDeclared' as const,
   allowedExecutors: [],
   status: 'queued' as const,
@@ -192,8 +193,8 @@ describe('GET /tasks', () => {
         '&taskTypes=fulfill_brief' +
         '&taskTypes=curate_pack' +
         `&diaryId=${DIARY_ID}` +
-        `&imposedByAgentId=${OWNER_ID}` +
-        `&imposedByHumanId=550e8400-e29b-41d4-a716-446655440099` +
+        `&proposedByAgentId=${OWNER_ID}` +
+        `&proposedByHumanId=550e8400-e29b-41d4-a716-446655440099` +
         `&claimedByAgentId=${OWNER_ID}` +
         `&hasAttempts=true` +
         `&queuedAfter=2026-04-28T10:00:00.000Z` +
@@ -209,8 +210,8 @@ describe('GET /tasks', () => {
         teamId: TEAM_ID,
         taskTypes: ['fulfill_brief', 'curate_pack'],
         diaryId: DIARY_ID,
-        imposedByAgentId: OWNER_ID,
-        imposedByHumanId: '550e8400-e29b-41d4-a716-446655440099',
+        proposedByAgentId: OWNER_ID,
+        proposedByHumanId: '550e8400-e29b-41d4-a716-446655440099',
         claimedByAgentId: OWNER_ID,
         hasAttempts: true,
         queuedAfter: '2026-04-28T10:00:00.000Z',

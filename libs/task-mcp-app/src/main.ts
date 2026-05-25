@@ -224,8 +224,8 @@ function buildTaskListArguments(append: boolean) {
     task_type: optionalValue(state.taskType),
     correlation_id: optionalValue(state.correlationId),
     diary_id: optionalValue(state.diaryId),
-    imposed_by_agent_id: optionalValue(state.requestedAgentId),
-    imposed_by_human_id: optionalValue(state.requestedHumanId),
+    proposed_by_agent_id: optionalValue(state.requestedAgentId),
+    proposed_by_human_id: optionalValue(state.requestedHumanId),
     claimed_by_agent_id: optionalValue(state.agentId),
     has_attempts: optionalBoolean(state.hasAttempts),
     queued_after: optionalDateTime(state.queuedAfter),
@@ -276,8 +276,8 @@ function renderQueue() {
   loadMore.hidden = !state.nextCursor;
   queue.innerHTML = '';
   for (const task of state.tasks) {
-    const requesterAgentId = stringValue(task.imposedByAgentId);
-    const requesterHumanId = stringValue(task.imposedByHumanId);
+    const requesterAgentId = stringValue(task.proposedByAgentId);
+    const requesterHumanId = stringValue(task.proposedByHumanId);
     const acceptedAttemptN = stringValue(task.acceptedAttemptN);
     const correlationId = stringValue(task.correlationId);
     const requesterText = requesterAgentId
@@ -342,7 +342,7 @@ function renderTask(task: Record<string, unknown>) {
     '</span></div><div class="fact"><strong>Queued</strong><span>' +
     escapeHtml(task.queuedAt ?? 'unknown') +
     '</span></div><div class="fact"><strong>Requester</strong><span class="mono">' +
-    escapeHtml(task.imposedByAgentId ?? task.imposedByHumanId ?? '—') +
+    escapeHtml(task.proposedByAgentId ?? task.proposedByHumanId ?? '—') +
     '</span></div><div class="fact"><strong>Accepted</strong><span>' +
     escapeHtml(task.acceptedAttemptN ?? '—') +
     '</span></div></div><pre>' +
@@ -479,10 +479,10 @@ function applyOpenState(data: Record<string, unknown>) {
     data.correlation_id ?? filters.correlation_id,
   );
   state.requestedAgentId = stringValue(
-    data.imposed_by_agent_id ?? filters.imposed_by_agent_id,
+    data.proposed_by_agent_id ?? filters.proposed_by_agent_id,
   );
   state.requestedHumanId = stringValue(
-    data.imposed_by_human_id ?? filters.imposed_by_human_id,
+    data.proposed_by_human_id ?? filters.proposed_by_human_id,
   );
   state.agentId = stringValue(
     data.claimed_by_agent_id ?? filters.claimed_by_agent_id,

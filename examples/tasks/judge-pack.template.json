@@ -9,8 +9,6 @@
   "dispatchTimeoutSec": null,
   "expiresAt": null,
   "id": "aa100003-0000-4000-8000-000000000003",
-  "imposedByAgentId": null,
-  "imposedByHumanId": null,
   "input": {
     "renderedPackId": "{{renderedPackId}}",
     "sourcePackId": "{{sourcePackId}}",
@@ -48,6 +46,8 @@
   "inputSchemaCid": "cid-placeholder",
   "maxAttempts": 1,
   "outputKind": "judgment",
+  "proposedByAgentId": null,
+  "proposedByHumanId": null,
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [
     {

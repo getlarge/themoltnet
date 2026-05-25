@@ -7295,21 +7295,21 @@ type ListTasksParams struct {
 	TeamId uuid.UUID
 	Status OptTaskStatus `json:",omitempty,omitzero"`
 	// Repeated task type filter. Single value also accepted.
-	TaskTypes        []string    `json:",omitempty"`
-	Provider         OptString   `json:",omitempty,omitzero"`
-	Model            OptString   `json:",omitempty,omitzero"`
-	CorrelationId    OptUUID     `json:",omitempty,omitzero"`
-	DiaryId          OptUUID     `json:",omitempty,omitzero"`
-	ImposedByAgentId OptUUID     `json:",omitempty,omitzero"`
-	ImposedByHumanId OptUUID     `json:",omitempty,omitzero"`
-	ClaimedByAgentId OptUUID     `json:",omitempty,omitzero"`
-	HasAttempts      OptBool     `json:",omitempty,omitzero"`
-	QueuedAfter      OptDateTime `json:",omitempty,omitzero"`
-	QueuedBefore     OptDateTime `json:",omitempty,omitzero"`
-	CompletedAfter   OptDateTime `json:",omitempty,omitzero"`
-	CompletedBefore  OptDateTime `json:",omitempty,omitzero"`
-	Limit            OptInt      `json:",omitempty,omitzero"`
-	Cursor           OptString   `json:",omitempty,omitzero"`
+	TaskTypes         []string    `json:",omitempty"`
+	Provider          OptString   `json:",omitempty,omitzero"`
+	Model             OptString   `json:",omitempty,omitzero"`
+	CorrelationId     OptUUID     `json:",omitempty,omitzero"`
+	DiaryId           OptUUID     `json:",omitempty,omitzero"`
+	ProposedByAgentId OptUUID     `json:",omitempty,omitzero"`
+	ProposedByHumanId OptUUID     `json:",omitempty,omitzero"`
+	ClaimedByAgentId  OptUUID     `json:",omitempty,omitzero"`
+	HasAttempts       OptBool     `json:",omitempty,omitzero"`
+	QueuedAfter       OptDateTime `json:",omitempty,omitzero"`
+	QueuedBefore      OptDateTime `json:",omitempty,omitzero"`
+	CompletedAfter    OptDateTime `json:",omitempty,omitzero"`
+	CompletedBefore   OptDateTime `json:",omitempty,omitzero"`
+	Limit             OptInt      `json:",omitempty,omitzero"`
+	Cursor            OptString   `json:",omitempty,omitzero"`
 }
 
 func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams) {
@@ -7376,20 +7376,20 @@ func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams
 	}
 	{
 		key := middleware.ParameterKey{
-			Name: "imposedByAgentId",
+			Name: "proposedByAgentId",
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.ImposedByAgentId = v.(OptUUID)
+			params.ProposedByAgentId = v.(OptUUID)
 		}
 	}
 	{
 		key := middleware.ParameterKey{
-			Name: "imposedByHumanId",
+			Name: "proposedByHumanId",
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.ImposedByHumanId = v.(OptUUID)
+			params.ProposedByHumanId = v.(OptUUID)
 		}
 	}
 	{
@@ -7867,17 +7867,17 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 			Err:  err,
 		}
 	}
-	// Decode query: imposedByAgentId.
+	// Decode query: proposedByAgentId.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "imposedByAgentId",
+			Name:    "proposedByAgentId",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotImposedByAgentIdVal uuid.UUID
+				var paramsDotProposedByAgentIdVal uuid.UUID
 				if err := func() error {
 					val, err := d.DecodeValue()
 					if err != nil {
@@ -7889,12 +7889,12 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 						return err
 					}
 
-					paramsDotImposedByAgentIdVal = c
+					paramsDotProposedByAgentIdVal = c
 					return nil
 				}(); err != nil {
 					return err
 				}
-				params.ImposedByAgentId.SetTo(paramsDotImposedByAgentIdVal)
+				params.ProposedByAgentId.SetTo(paramsDotProposedByAgentIdVal)
 				return nil
 			}); err != nil {
 				return err
@@ -7903,22 +7903,22 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "imposedByAgentId",
+			Name: "proposedByAgentId",
 			In:   "query",
 			Err:  err,
 		}
 	}
-	// Decode query: imposedByHumanId.
+	// Decode query: proposedByHumanId.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "imposedByHumanId",
+			Name:    "proposedByHumanId",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotImposedByHumanIdVal uuid.UUID
+				var paramsDotProposedByHumanIdVal uuid.UUID
 				if err := func() error {
 					val, err := d.DecodeValue()
 					if err != nil {
@@ -7930,12 +7930,12 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 						return err
 					}
 
-					paramsDotImposedByHumanIdVal = c
+					paramsDotProposedByHumanIdVal = c
 					return nil
 				}(); err != nil {
 					return err
 				}
-				params.ImposedByHumanId.SetTo(paramsDotImposedByHumanIdVal)
+				params.ProposedByHumanId.SetTo(paramsDotProposedByHumanIdVal)
 				return nil
 			}); err != nil {
 				return err
@@ -7944,7 +7944,7 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "imposedByHumanId",
+			Name: "proposedByHumanId",
 			In:   "query",
 			Err:  err,
 		}
