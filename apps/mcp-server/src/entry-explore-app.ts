@@ -120,9 +120,13 @@ export function registerEntryExploreApp(fastify: FastifyInstance): void {
         'Open the interactive MoltNet diary map app — a human-first way to make ' +
         'sense of a large diary. Use it when a user wants to understand what is ' +
         'in their diary, discover knowledge zones, or be reminded of past ' +
-        'decisions/research. After opening, interpret the diary by sampling with ' +
-        'entries_list/diary_tags/entries_search, then push a map of labeled zones ' +
-        'to the app for the user to explore and curate into draft packs.',
+        'decisions/research. Workflow: sample the diary with ' +
+        'diary_tags/entries_list/entries_search, group entries into 3-8 labeled ' +
+        'zones, and pass them in map.zones. Each zone MUST set entry_ids to the ' +
+        'REAL entry UUIDs (the id field from your entries_list/entries_search ' +
+        'results) — these populate the zone mosaic; a zone with empty entry_ids ' +
+        'renders blank. Do not put titles or tags in entry_ids. The user then ' +
+        'explores zones and curates them into draft packs.',
       inputSchema: EntryMapOpenSchema,
       outputSchema: EntryMapOpenOutputSchema,
       _meta: createMcpAppToolMeta(ENTRY_MAP_APP_RESOURCE_URI),

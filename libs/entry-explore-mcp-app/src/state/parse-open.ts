@@ -54,7 +54,20 @@ function parseSearch(value: unknown): ZoneSearch {
 
 function parseZone(value: unknown, index: number): Zone {
   const r = asRecord(value);
-  const entryIds = strArray(r.entryIds ?? r.entry_ids ?? r.visibleEntryIds);
+  // The canonical contract field is `entry_ids` (see EntryMapZoneSchema), but
+  // accept the camelCase + the names a less-guided agent has reached for
+  // (`anchorEntries`) so the mosaic still resolves. This is the bug that made
+  // every zone render empty: the agent sent `anchorEntries`, we only read
+  // `entryIds`.
+  const entryIds = strArray(
+    r.entry_ids ?? r.entryIds ?? r.anchorEntries ?? r.visibleEntryIds,
+  );
+  // `why` is canonical; accept `summary` as the common agent alias.
+  const why = str(r.why ?? r.summary);
+  // `territory` is canonical; fall back to the first of `tags` if present.
+  const tags = strArray(r.tags);
+  const territory =
+    typeof r.territory === 'string' ? r.territory : (tags[0] ?? null);
   const provenance = asRecord(r.provenance);
   const searches = Array.isArray(provenance.searches)
     ? provenance.searches.map(parseSearch)
@@ -62,12 +75,12 @@ function parseZone(value: unknown, index: number): Zone {
   return {
     id: str(r.id, `zone-${index + 1}`),
     label: str(r.label, `Zone ${index + 1}`),
-    why: str(r.why),
-    territory: typeof r.territory === 'string' ? r.territory : null,
+    why,
+    territory,
     entryIds,
     provenance: {
       searches,
-      basis: str(provenance.basis, str(r.why)),
+      basis: str(provenance.basis, why),
     },
     packId: typeof r.packId === 'string' ? r.packId : null,
     pinned: r.pinned === true,

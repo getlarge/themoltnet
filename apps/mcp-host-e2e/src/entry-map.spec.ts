@@ -66,11 +66,8 @@ function mapArgs(): string {
           label: 'Infra decisions',
           why: 'Database and authorization choices.',
           territory: 'scope:infra',
-          entryIds: seededEntryIds.slice(0, 2),
-          provenance: {
-            basis: 'tag:scope:infra',
-            searches: [{ tags: ['scope:infra'] }],
-          },
+          // Canonical contract field (EntryMapZoneSchema): snake_case entry_ids.
+          entry_ids: seededEntryIds.slice(0, 2),
         },
       ],
     },

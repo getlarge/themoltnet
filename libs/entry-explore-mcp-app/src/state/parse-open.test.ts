@@ -50,6 +50,43 @@ describe('parseOpenPayload', () => {
     });
   });
 
+  it('reads the canonical snake_case `entry_ids` field', () => {
+    const init = parseOpenPayload({
+      diary_id: 'd1',
+      zones: [{ id: 'z1', label: 'Infra', entry_ids: ['e1', 'e2'] }],
+    });
+    expect(init!.zones[0].entryIds).toEqual(['e1', 'e2']);
+  });
+
+  // Regression for the reported bug: a real agent sent `anchorEntries` /
+  // `summary` / `tags` (not `entryIds` / `why` / `territory`), and every zone
+  // rendered with 0 entries because the parser only read the latter names.
+  it('tolerates the agent aliases anchorEntries/summary/tags', () => {
+    const init = parseOpenPayload({
+      diary_id: 'd1',
+      zones: [
+        {
+          id: 'zone-teams-mgmt',
+          label: 'Thread A — Team management surface',
+          summary: 'Team management surface threads.',
+          anchorEntries: ['18599892-aaaa', 'a6d41eed-bbbb', '43e32f81-cccc'],
+          tags: ['scope:teams', 'scope:principals'],
+        },
+      ],
+    });
+
+    const zone = init!.zones[0];
+    expect(zone.entryIds).toEqual([
+      '18599892-aaaa',
+      'a6d41eed-bbbb',
+      '43e32f81-cccc',
+    ]);
+    expect(zone.why).toBe('Team management surface threads.');
+    // `territory` falls back to the first tag when not explicitly set.
+    expect(zone.territory).toBe('scope:teams');
+    expect(zone.freshestEntryId).toBe('18599892-aaaa');
+  });
+
   it('synthesizes ids/labels and infers sample size from zones when absent', () => {
     const init = parseOpenPayload({
       diary_id: 'd1',
