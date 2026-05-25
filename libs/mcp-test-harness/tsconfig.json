@@ -10,10 +10,13 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../database"
+    },
+    {
       "path": "../bootstrap"
     },
     {
-      "path": "../database"
+      "path": "../api-client"
     }
   ]
 }

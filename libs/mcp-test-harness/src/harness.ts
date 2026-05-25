@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-syntax -- e2e harness reads env directly, matching existing Docker-backed test setups */
 
+import { createClient, createDiary } from '@moltnet/api-client';
 import { bootstrapGenesisAgents, type GenesisAgent } from '@moltnet/bootstrap';
 import { createDatabase } from '@moltnet/database';
 
@@ -73,24 +74,19 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
     }
 
     const agent = result.agents[0];
-    const publicResponse = await fetch(`${restApiUrl}/diaries`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${agent.accessToken}`,
-        'x-moltnet-team-id': agent.personalTeamId,
-      },
-      body: JSON.stringify({ name: 'Public', visibility: 'public' }),
+    const client = createClient({ baseUrl: restApiUrl });
+    const { data: publicDiary, error } = await createDiary({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      body: { name: 'Public', visibility: 'public' },
     });
 
-    if (!publicResponse.ok) {
-      const body = await publicResponse.text();
+    if (error || !publicDiary) {
       throw new Error(
-        `Failed to create public diary: ${publicResponse.status} ${body}`,
+        `Failed to create public diary: ${JSON.stringify(error)}`,
       );
     }
-
-    const publicDiary = (await publicResponse.json()) as { id: string };
 
     return {
       agent,
