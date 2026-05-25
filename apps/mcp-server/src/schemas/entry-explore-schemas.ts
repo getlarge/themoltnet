@@ -2,6 +2,40 @@ import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
 /**
+ * One search that contributed entries to a zone — recorded for reproducibility
+ * and carried into the pack `params` when a zone is saved. snake_case is the
+ * canonical wire shape (the app maps it to its camelCase internal type).
+ */
+export const EntryMapZoneSearchSchema = Type.Object({
+  query: Type.Optional(Type.String()),
+  tags: Type.Optional(Type.Array(Type.String())),
+  exclude_tags: Type.Optional(Type.Array(Type.String())),
+  entry_types: Type.Optional(Type.Array(Type.String())),
+  weights: Type.Optional(
+    Type.Object({
+      relevance: Type.Optional(Type.Number()),
+      recency: Type.Optional(Type.Number()),
+      importance: Type.Optional(Type.Number()),
+    }),
+  ),
+});
+export type EntryMapZoneSearch = Static<typeof EntryMapZoneSearchSchema>;
+
+export const EntryMapZoneProvenanceSchema = Type.Object({
+  basis: Type.Optional(
+    Type.String({
+      description: 'Human-language selection basis, e.g. "tag:auth + recent".',
+    }),
+  ),
+  searches: Type.Optional(
+    Type.Array(EntryMapZoneSearchSchema, {
+      description:
+        'The searches that produced this zone (for reproducibility).',
+    }),
+  ),
+});
+
+/**
  * A single agent-interpreted knowledge zone in the diary map.
  *
  * This schema is the CONTRACT with the interpreting agent: it must be explicit
@@ -47,6 +81,7 @@ export const EntryMapZoneSchema = Type.Object({
         'Optional approximate total entries in this zone (may exceed entry_ids.length when sampled).',
     }),
   ),
+  provenance: Type.Optional(EntryMapZoneProvenanceSchema),
 });
 export type EntryMapZone = Static<typeof EntryMapZoneSchema>;
 
