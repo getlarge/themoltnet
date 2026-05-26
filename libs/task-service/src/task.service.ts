@@ -438,6 +438,43 @@ export function createTaskService(deps: TaskServiceDeps) {
     );
   }
 
+  async function promoteWaitingTaskIfSatisfied(row: DbTask): Promise<DbTask> {
+    const condition = row.claimCondition as ClaimCondition | null;
+    if (row.status !== 'waiting' || !condition) return row;
+    const tasksById = await loadConditionTaskMap(condition);
+    if (!evaluateClaimConditionFromTasks(condition, tasksById)) return row;
+
+    const proposerId = row.proposedByAgentId ?? row.proposedByHumanId;
+    const proposerNs = row.proposedByAgentId
+      ? KetoNamespace.Agent
+      : KetoNamespace.Human;
+    if (!proposerId) {
+      logger.warn({ taskId: row.id }, 'task.claim.waiting.missing_proposer');
+      return row;
+    }
+
+    const errors = await validateTaskInputAsync(
+      row.taskType,
+      row.input,
+      makeAsyncValidationContext(proposerId, proposerNs, {
+        currentTaskId: row.id,
+      }),
+    );
+    if (errors.length > 0) {
+      logger.warn(
+        { taskId: row.id, errors },
+        'task.claim.waiting.strict_validation_failed',
+      );
+      return row;
+    }
+
+    const [promoted] = await transactionRunner.runInTransaction(
+      () => taskRepository.promoteWaitingTasks([row.id]),
+      { name: 'task.claim.promoteWaiting' },
+    );
+    return promoted ?? row;
+  }
+
   async function tryPromoteSatisfiedWaitingTasks(opts: {
     triggerTaskId?: string;
   }): Promise<void> {
@@ -888,7 +925,23 @@ export function createTaskService(deps: TaskServiceDeps) {
         throw new TaskServiceError('invalid', 'Only agents may claim tasks');
       }
 
-      const row = await taskRepository.findById(taskId);
+      const initialRow = await taskRepository.findById(taskId);
+      if (initialRow?.status === 'waiting') {
+        const canClaimWaiting = await permissionChecker.canClaimTask(
+          taskId,
+          callerId,
+          callerNs,
+        );
+        if (!canClaimWaiting)
+          throw new TaskServiceError(
+            'forbidden',
+            'Not authorized to claim this task',
+          );
+      }
+      const row =
+        initialRow?.status === 'waiting'
+          ? await promoteWaitingTaskIfSatisfied(initialRow)
+          : initialRow;
       if (!row || row.status !== 'queued') {
         throw new TaskServiceError(
           'conflict',

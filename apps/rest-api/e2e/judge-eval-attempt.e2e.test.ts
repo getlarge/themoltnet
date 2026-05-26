@@ -150,8 +150,9 @@ describe('judge_eval_attempt duplicate protection', () => {
         });
         return data!;
       },
-      (task) => task.status === 'completed' || task.status === 'failed',
-      { label: `run_eval.complete[${taskId.slice(0, 8)}]`, maxAttempts: 30 },
+      (task) =>
+        task.status === 'completed' && task.acceptedAttemptN === attemptN,
+      { label: `run_eval.accepted[${taskId.slice(0, 8)}]`, maxAttempts: 30 },
     );
   }
 
@@ -213,6 +214,14 @@ describe('judge_eval_attempt duplicate protection', () => {
     expect(prematureClaim.response.status).toBe(409);
 
     await completeRunEval(firstRunTaskId);
+    const halfReadyClaim = await claimTask({
+      client,
+      auth: () => claimer.accessToken,
+      path: { id: judge!.id },
+      body: { leaseTtlSec: 60 },
+    });
+    expect(halfReadyClaim.response.status).toBe(409);
+
     const stillWaiting = await pollUntil(
       async () => {
         const { data } = await getTask({
@@ -228,20 +237,6 @@ describe('judge_eval_attempt duplicate protection', () => {
     expect(stillWaiting.status).toBe('waiting');
 
     await completeRunEval(secondRunTaskId);
-    const queued = await pollUntil(
-      async () => {
-        const { data } = await getTask({
-          client,
-          auth: () => proposer.accessToken,
-          path: { id: judge!.id },
-        });
-        return data!;
-      },
-      (task) => task.status === 'queued',
-      { label: 'conditional judge promoted', maxAttempts: 30 },
-    );
-    expect(queued.status).toBe('queued');
-
     const claimed = await claimTask({
       client,
       auth: () => claimer.accessToken,
