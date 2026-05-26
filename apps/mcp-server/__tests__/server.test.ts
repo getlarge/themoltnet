@@ -1,7 +1,33 @@
+import { createHash } from 'node:crypto';
+
 import { describe, expect, it, type Mock, vi } from 'vitest';
 
+import pkg from '../package.json' with { type: 'json' };
 import { buildApp } from '../src/app.js';
 import { createMockDeps } from './helpers.js';
+
+function canonicalJson(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalJson);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, child]) => [key, canonicalJson(child)]),
+    );
+  }
+
+  return value;
+}
+
+function schemaFingerprint(schema: unknown): string {
+  return createHash('sha256')
+    .update(JSON.stringify(canonicalJson(schema ?? {})))
+    .digest('hex')
+    .slice(0, 16);
+}
 
 function collectNamedSchemaIds(
   value: unknown,
@@ -94,6 +120,7 @@ describe('buildApp', () => {
         REST_API_URL: 'http://localhost:3000',
       },
       deps,
+      version: pkg.version,
       logger: false,
     });
 
@@ -120,6 +147,7 @@ describe('buildApp', () => {
     expect(body).toHaveProperty('jsonrpc', '2.0');
     expect(body).toHaveProperty('result');
     expect(body.result.serverInfo).toHaveProperty('name', 'moltnet');
+    expect(body.result.serverInfo).toHaveProperty('version', pkg.version);
 
     await app.close();
   });
@@ -368,6 +396,260 @@ describe('buildApp', () => {
     expect(toolNames).not.toContain('diary_update');
     expect(toolNames).not.toContain('diary_delete');
     expect(toolNames).not.toContain('diary_reflect');
+
+    await app.close();
+  });
+
+  it('exposes the expected MCP tool contract', async () => {
+    const deps = createMockDeps();
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+      },
+      deps,
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'content-type': 'application/json' },
+      payload: {
+        jsonrpc: '2.0',
+        method: 'tools/list',
+        id: 1,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    const contract = (
+      body.result.tools as Array<{ name: string; inputSchema?: unknown }>
+    )
+      .map((tool) => ({
+        name: tool.name,
+        inputSchema: schemaFingerprint(tool.inputSchema),
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name));
+
+    expect(contract).toMatchInlineSnapshot(`
+      [
+        {
+          "inputSchema": "0ab9955c191582ff",
+          "name": "agent_lookup",
+        },
+        {
+          "inputSchema": "56de8ac2e1fa313d",
+          "name": "crypto_prepare_signature",
+        },
+        {
+          "inputSchema": "dfdff9c8d53e987a",
+          "name": "crypto_signing_status",
+        },
+        {
+          "inputSchema": "578b0eeede8a4fd3",
+          "name": "crypto_submit_signature",
+        },
+        {
+          "inputSchema": "ad95c699c2f3918a",
+          "name": "crypto_verify",
+        },
+        {
+          "inputSchema": "2c6eaaef8f037305",
+          "name": "diaries_create",
+        },
+        {
+          "inputSchema": "f69fa72afef3cc0b",
+          "name": "diaries_get",
+        },
+        {
+          "inputSchema": "efddc7bd8bbcef73",
+          "name": "diaries_list",
+        },
+        {
+          "inputSchema": "931465d379b6500f",
+          "name": "diary_grants_create",
+        },
+        {
+          "inputSchema": "902fc52fe3a28906",
+          "name": "diary_grants_list",
+        },
+        {
+          "inputSchema": "49ffda98d75c96ec",
+          "name": "diary_grants_revoke",
+        },
+        {
+          "inputSchema": "cef778b784ce9fdb",
+          "name": "diary_tags",
+        },
+        {
+          "inputSchema": "b8384e3c098573a0",
+          "name": "entries_create",
+        },
+        {
+          "inputSchema": "5062b922390dc796",
+          "name": "entries_delete",
+        },
+        {
+          "inputSchema": "3e3d9211a7d1b897",
+          "name": "entries_get",
+        },
+        {
+          "inputSchema": "2e5eb34aca2fdff1",
+          "name": "entries_list",
+        },
+        {
+          "inputSchema": "3dd74a3a8422e86a",
+          "name": "entries_map_open",
+        },
+        {
+          "inputSchema": "57f6b1fb46e90520",
+          "name": "entries_search",
+        },
+        {
+          "inputSchema": "c19f62f8550fe52e",
+          "name": "entries_update",
+        },
+        {
+          "inputSchema": "eaf7752acb2a37ac",
+          "name": "moltnet_whoami",
+        },
+        {
+          "inputSchema": "8d9e802a03674ce4",
+          "name": "packs_create",
+        },
+        {
+          "inputSchema": "1f7e5bd7e8be3f4e",
+          "name": "packs_diff",
+        },
+        {
+          "inputSchema": "ff354f6357228512",
+          "name": "packs_get",
+        },
+        {
+          "inputSchema": "dd99db67b8eb503c",
+          "name": "packs_list",
+        },
+        {
+          "inputSchema": "8d9e802a03674ce4",
+          "name": "packs_preview",
+        },
+        {
+          "inputSchema": "87315fbdd6f9e88f",
+          "name": "packs_provenance",
+        },
+        {
+          "inputSchema": "11c3590d78f15481",
+          "name": "packs_render",
+        },
+        {
+          "inputSchema": "8a31ab23dd3cb813",
+          "name": "packs_render_preview",
+        },
+        {
+          "inputSchema": "729a208876f7c4e0",
+          "name": "packs_update",
+        },
+        {
+          "inputSchema": "50500669829405dc",
+          "name": "relations_create",
+        },
+        {
+          "inputSchema": "7b8745a39480ea61",
+          "name": "relations_delete",
+        },
+        {
+          "inputSchema": "6a3c57bb68fcdfb5",
+          "name": "relations_list",
+        },
+        {
+          "inputSchema": "3c723023712d64ba",
+          "name": "relations_update",
+        },
+        {
+          "inputSchema": "a58d5d4db7e37701",
+          "name": "rendered_packs_get",
+        },
+        {
+          "inputSchema": "c1f5c00d3c1da2b8",
+          "name": "rendered_packs_list",
+        },
+        {
+          "inputSchema": "a80ecff585617f6f",
+          "name": "rendered_packs_update",
+        },
+        {
+          "inputSchema": "e303f025440d8946",
+          "name": "tasks_app_open",
+        },
+        {
+          "inputSchema": "8f3230eca1e8976a",
+          "name": "tasks_attempts_list",
+        },
+        {
+          "inputSchema": "1c9c9b04f93c865c",
+          "name": "tasks_console_link",
+        },
+        {
+          "inputSchema": "e0c176f199411b7d",
+          "name": "tasks_create",
+        },
+        {
+          "inputSchema": "1c9c9b04f93c865c",
+          "name": "tasks_get",
+        },
+        {
+          "inputSchema": "c4687bb6a6cc2314",
+          "name": "tasks_list",
+        },
+        {
+          "inputSchema": "a6465451da69050e",
+          "name": "tasks_messages_list",
+        },
+        {
+          "inputSchema": "efddc7bd8bbcef73",
+          "name": "tasks_schemas",
+        },
+        {
+          "inputSchema": "ed266885cf87734d",
+          "name": "team_members_list",
+        },
+        {
+          "inputSchema": "4f16b4d67ae7e928",
+          "name": "teams_create",
+        },
+        {
+          "inputSchema": "3a62e02b710424ce",
+          "name": "teams_delete",
+        },
+        {
+          "inputSchema": "1d9126b2200a8c9a",
+          "name": "teams_invite_create",
+        },
+        {
+          "inputSchema": "0c13c2e99711416a",
+          "name": "teams_invite_delete",
+        },
+        {
+          "inputSchema": "157d74b577864e0f",
+          "name": "teams_invite_list",
+        },
+        {
+          "inputSchema": "9e89880acb02c75c",
+          "name": "teams_join",
+        },
+        {
+          "inputSchema": "efddc7bd8bbcef73",
+          "name": "teams_list",
+        },
+        {
+          "inputSchema": "ef8493794e9a3d9a",
+          "name": "teams_member_remove",
+        },
+      ]
+    `);
 
     await app.close();
   });

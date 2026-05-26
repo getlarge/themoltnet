@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import pkg from '../package.json' with { type: 'json' };
 import {
   createMockServices,
   createTestApp,
@@ -52,6 +53,26 @@ describe('Health routes', () => {
         error: 'not_configured',
       });
     });
+  });
+});
+
+describe('API metadata', () => {
+  let app: FastifyInstance;
+  let mocks: MockServices;
+
+  beforeEach(async () => {
+    mocks = createMockServices();
+    app = await createTestApp(mocks, null);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('uses the package version in OpenAPI metadata', async () => {
+    await app.ready();
+
+    expect(app.swagger().info.version).toBe(pkg.version);
   });
 });
 
