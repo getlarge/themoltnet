@@ -25,6 +25,13 @@
     "apps/rest-api": {
       "bump-minor-pre-major": true,
       "component": "rest-api",
+      "extra-files": [
+        {
+          "jsonpath": "$.info.version",
+          "path": "public/openapi.json",
+          "type": "json"
+        }
+      ],
       "release-type": "node"
     },
     "libs/agent-runtime": {
