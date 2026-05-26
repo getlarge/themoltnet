@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM"],
     "outDir": "./out-tsc/spec",

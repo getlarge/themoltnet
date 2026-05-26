@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "additionalProperties": false,
+  "cli": "nx",
+  "description": "Split project tsconfig.json files into solution, lib, and spec configs",
+  "properties": {
+    "all": {
+      "default": false,
+      "description": "Migrate every unsplit TypeScript project.",
+      "type": "boolean"
+    },
+    "force": {
+      "default": false,
+      "description": "Regenerate child configs for projects that are already split.",
+      "type": "boolean"
+    },
+    "project": {
+      "description": "Project name to migrate. Omit when using --all.",
+      "type": "string"
+    },
+    "skipFormat": {
+      "default": false,
+      "description": "Skip formatting generated files.",
+      "type": "boolean"
+    }
+  },
+  "title": "Split TypeScript Configs",
+  "type": "object"
+}

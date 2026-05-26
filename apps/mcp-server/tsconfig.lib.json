@@ -1,0 +1,60 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "__tests__",
+    "e2e",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.js",
+    "src/**/*.spec.js"
+  ],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../libs/design-system/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/tasks/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/task-mcp-app/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/mcp-auth-proxy/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/entry-explore-mcp-app/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/models/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/observability/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/database/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/bootstrap/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/mcp-test-harness/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/crypto-service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/api-client/tsconfig.lib.json"
+    }
+  ]
+}

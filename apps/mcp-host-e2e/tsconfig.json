@@ -1,27 +1,10 @@
 {
-  "compilerOptions": {
-    "allowJs": true,
-    "module": "ESNext",
-    "outDir": "../../dist/out-tsc",
-    "sourceMap": false
-  },
   "extends": "../../tsconfig.json",
-  "include": [
-    "**/*.ts",
-    "**/*.js",
-    "playwright.config.ts",
-    "src/**/*.spec.ts",
-    "src/**/*.spec.js",
-    "src/**/*.test.ts",
-    "src/**/*.test.js",
-    "src/**/*.d.ts"
-  ],
+  "files": [],
+  "include": [],
   "references": [
     {
-      "path": "../../libs/api-client"
-    },
-    {
-      "path": "../../libs/mcp-test-harness"
+      "path": "./tsconfig.spec.json"
     }
   ]
 }

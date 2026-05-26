@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
+    "composite": true,
     "outDir": "./out-tsc/spec",
     "rootDir": ".",
     "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
-    "types": ["node", "vitest"]
+    "types": ["node", "vitest", "vitest/globals"]
   },
   "extends": "./tsconfig.json",
   "include": [

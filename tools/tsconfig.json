@@ -1,48 +1,13 @@
 {
-  "compilerOptions": {
-    "composite": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "outDir": "./out-tsc",
-    "rootDir": "src",
-    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
-    "types": ["node"]
-  },
-  "exclude": ["node_modules", "out-tsc"],
   "extends": "../tsconfig.json",
-  "include": ["src"],
+  "files": [],
+  "include": [],
   "references": [
     {
-      "path": "../packages/github-agent"
+      "path": "./tsconfig.lib.json"
     },
     {
-      "path": "../libs/tasks"
-    },
-    {
-      "path": "../apps/rest-api"
-    },
-    {
-      "path": "../libs/models"
-    },
-    {
-      "path": "../apps/mcp-server"
-    },
-    {
-      "path": "../libs/embedding-service"
-    },
-    {
-      "path": "../libs/discovery"
-    },
-    {
-      "path": "../libs/bootstrap"
-    },
-    {
-      "path": "../libs/auth"
-    },
-    {
-      "path": "../libs/database"
-    },
-    {
-      "path": "../libs/crypto-service"
+      "path": "./tsconfig.spec.json"
     }
   ]
 }

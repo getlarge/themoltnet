@@ -1,7 +1,21 @@
 {
   "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
     "types": ["node"]
   },
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.tsx",
+    "src/**/*.test.js",
+    "src/**/*.spec.js",
+    "__tests__",
+    "e2e"
+  ],
   "extends": "./tsconfig.json",
   "include": ["src/**/*.ts"],
   "references": [
@@ -9,10 +23,10 @@
       "path": "../database/tsconfig.lib.json"
     },
     {
-      "path": "../bootstrap"
+      "path": "../bootstrap/tsconfig.lib.json"
     },
     {
-      "path": "../api-client"
+      "path": "../api-client/tsconfig.lib.json"
     }
   ]
 }

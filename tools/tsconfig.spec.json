@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "outDir": "./out-tsc/spec",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
+    "types": ["node", "vitest/globals", "vitest"]
+  },
+  "extends": "./tsconfig.json",
+  "include": ["src", "generators/**/*.ts"],
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
+}

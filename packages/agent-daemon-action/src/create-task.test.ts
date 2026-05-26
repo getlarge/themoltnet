@@ -82,9 +82,10 @@ describe('createTask', () => {
   it('forwards successCriteria when provided', async () => {
     const m = makeAgent();
     const sc: SuccessCriteria = {
+      version: 1,
       gates: [],
       assertions: [],
-      sideEffects: [],
+      sideEffects: {},
     };
     await createTask({ agent: m.agent, ...BASE_INPUT, successCriteria: sc });
     const body = m.create.mock.calls[0][0] as {
@@ -95,9 +96,12 @@ describe('createTask', () => {
 });
 
 const RUBRIC: SuccessCriteria = {
+  version: 1,
   gates: [],
   assertions: [],
   rubric: {
+    rubricId: 'assess-pr',
+    version: 'v1',
     criteria: [
       {
         id: 'has-pr',
@@ -107,7 +111,7 @@ const RUBRIC: SuccessCriteria = {
       },
     ],
   },
-  sideEffects: [],
+  sideEffects: {},
 };
 
 describe('createAssessTask', () => {
