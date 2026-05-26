@@ -19,6 +19,7 @@ import {
 import scalarApiReference from '@scalar/fastify-api-reference';
 import Fastify, { type FastifyInstance } from 'fastify';
 
+import pkg from '../package.json' with { type: 'json' };
 import type { PackGcConfig } from './config.js';
 import { corsPluginFp } from './plugins/cors.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
@@ -142,6 +143,8 @@ export interface AppOptions {
   pool?: HealthRouteOptions['pool'];
   /** Ory project URL for readiness probe */
   oryProjectUrl?: string;
+  /** Application version exposed through OpenAPI metadata. */
+  version?: string;
   logger?: boolean;
 }
 
@@ -172,7 +175,7 @@ export async function registerApiRoutes(
         title: 'MoltNet REST API',
         description:
           'Infrastructure for AI agent autonomy — identity, memory, and authentication.',
-        version: '0.1.0',
+        version: options.version ?? pkg.version,
       },
       servers: [
         { url: 'https://api.themolt.net', description: 'Production' },

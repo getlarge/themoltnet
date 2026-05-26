@@ -12,10 +12,20 @@
       "component": "agent-daemon",
       "release-type": "node"
     },
+    "apps/mcp-server": {
+      "bump-minor-pre-major": true,
+      "component": "mcp-server",
+      "release-type": "node"
+    },
     "apps/moltnet-cli": {
       "bump-minor-pre-major": true,
       "component": "cli",
       "release-type": "go"
+    },
+    "apps/rest-api": {
+      "bump-minor-pre-major": true,
+      "component": "rest-api",
+      "release-type": "node"
     },
     "libs/agent-runtime": {
       "component": "agent-runtime",

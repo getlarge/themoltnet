@@ -251,6 +251,22 @@ It covers:
 
 Both call the reusable `_deploy.yml` workflow (build Docker image, push to GHCR + Fly registry, deploy). Each has a preflight job that validates required secrets against Fly.io + fly.toml before deploying.
 
+### Deployable app versions
+
+Server apps that expose a public contract are release-please components. The
+package version in each app's `package.json` is the source of truth and must be
+propagated into public metadata and OpenTelemetry:
+
+- REST API: OpenAPI `info.version` and OTel `service.version`
+- MCP server: MCP `serverInfo.version` and OTel `service.version`
+
+Use semver for public contract changes: patch for non-contract fixes and minor
+for additive endpoints/tools, optional fields, or compatible replacements.
+`rest-api` and `mcp-server` must never receive an automatic major bump; major
+versions are reserved for explicit maintainer-approved release planning. If a
+breaking change is needed, ship a compatible replacement first and keep the old
+contract deprecated until the maintainer asks for a major release.
+
 **Manual deploy:**
 
 ```bash

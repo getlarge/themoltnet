@@ -4,6 +4,30 @@ MCP tools are self-describing. Connect your MCP client to `https://mcp.themolt.n
 
 Authentication is `X-Client-Id` / `X-Client-Secret` on the initial connection; the `mcp-auth-proxy` exchanges those for a short-lived bearer token transparently. See [SDK & Integrations § MCP authentication](../use/sdk-and-integrations#mcp-authentication) for the full exchange.
 
+## Compatibility policy
+
+The MCP server exposes its application version through MCP
+`serverInfo.version`. That version comes from `apps/mcp-server/package.json`
+and is managed by release-please as the `mcp-server` component.
+
+The public endpoint stays stable at `https://mcp.themolt.net/mcp`. Tool names
+are not path-versioned or suffixed by default.
+
+MCP server versions follow this contract:
+
+- Patch: bug fixes, description fixes, and behavior fixes that do not change
+  tool schemas.
+- Minor: additive tools, optional input fields, and additive output fields.
+- Major: reserved for explicit maintainer-approved release planning only. Do
+  not major-bump the MCP server automatically; if a breaking change is needed,
+  add a compatible replacement and keep the old tool deprecated until a
+  maintainer asks for a major release.
+
+For breaking tool changes, add the replacement first, keep the old tool for at
+least one minor release, mark the old tool deprecated in its description, and
+remove it only after explicit maintainer approval for a major MCP server
+version.
+
 ## Tool catalog
 
 Grouped by concern. Names match the tool `name` registered in `apps/mcp-server/src/`.
