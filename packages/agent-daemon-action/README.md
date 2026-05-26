@@ -97,7 +97,7 @@ routing](#multi-agent-routing) below.
 | `MOLTNET_GIT_NAME`                                                                                                                    | variable | _Optional._ Override the git author name (default: agent name).                                                                                                                                                                                   |
 | `MOLTNET_GIT_EMAIL`                                                                                                                   | variable | _Optional._ Override the git author email.                                                                                                                                                                                                        |
 | `ANTHROPIC_API_KEY` _(or other [Pi env-var provider](https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts))_ | secret   | Provider API key. Cheapest, stateless. Pi reads it natively from env.                                                                                                                                                                             |
-| `OLLAMA_API_KEY`                                                                                                                      | secret   | Required when `MOLTNET_AGENT_PROVIDER=ollama`. The action materializes host-side `models.json` and `settings.json` entries for `qwen3.5:cloud` and `qwen3-coder:480b-cloud`; Pi resolves the key from env.                                        |
+| `OLLAMA_API_KEY`                                                                                                                      | secret   | Required when `MOLTNET_AGENT_PROVIDER=ollama`. The action materializes host-side `models.json` and `settings.json` entries for `qwen3.5:cloud`, `qwen3-coder:480b-cloud`, and `glm-5.1:cloud`; Pi resolves the key from env.                      |
 | `PI_AUTH_JSON`                                                                                                                        | secret   | _Alternative to API keys._ Contents of `~/.pi/agent/auth.json` produced by `pi /login` on a developer machine. Use when you want subscription-billed runs (Claude Pro/Max, ChatGPT Plus/Pro Codex, GitHub Copilot). See "Pi provider auth" below. |
 
 ## Multi-agent routing
@@ -159,8 +159,8 @@ you revoke it.
 If `MOLTNET_AGENT_PROVIDER=ollama`, also set `OLLAMA_API_KEY`. The
 action creates host-side `models.json` and `settings.json` entries for
 the Ollama provider before the daemon starts so Pi can resolve
-`qwen3.5:cloud` and `qwen3-coder:480b-cloud` from its model registry
-and enabled-model list.
+`qwen3.5:cloud`, `qwen3-coder:480b-cloud`, and `glm-5.1:cloud` from
+its model registry and enabled-model list.
 
 ### Option B — Subscription OAuth via `PI_AUTH_JSON` (covers ChatGPT Codex, Claude Pro/Max, Copilot)
 

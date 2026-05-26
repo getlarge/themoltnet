@@ -418,6 +418,9 @@ runs:
                   },
                   {
                     "id": "qwen3-coder:480b-cloud"
+                  },
+                  {
+                    "id": "glm-5.1:cloud"
                   }
                 ]
               }
@@ -431,7 +434,8 @@ runs:
           {
             "enabledModels": [
               "ollama-cloud/qwen3.5:cloud",
-              "ollama-cloud/qwen3-coder:480b-cloud"
+              "ollama-cloud/qwen3-coder:480b-cloud",
+              "ollama-cloud/glm-5.1:cloud"
             ]
           }
           JSON
