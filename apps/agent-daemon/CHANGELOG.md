@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.10.6](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.10.5...agent-daemon-v0.10.6) (2026-05-26)
+
+
+### Bug Fixes
+
+* **nx:** generate spec tsconfigs for source tests ([899d887](https://github.com/getlarge/themoltnet/commit/899d8875775ad7757f41ced89643a1bf3fce1e9f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.18.5
+    * @themoltnet/pi-extension bumped to 0.19.6
+    * @themoltnet/sdk bumped to 0.105.1
+
 ## [0.10.5](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.10.4...agent-daemon-v0.10.5) (2026-05-22)
 
 

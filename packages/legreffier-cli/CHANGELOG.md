@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.33.9](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.8...legreffier-v0.33.9) (2026-05-26)
+
+
+### Bug Fixes
+
+* **nx:** generate spec tsconfigs for source tests ([899d887](https://github.com/getlarge/themoltnet/commit/899d8875775ad7757f41ced89643a1bf3fce1e9f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/github-agent bumped to 0.23.12
+    * @themoltnet/sdk bumped to 0.105.1
+
 ## [0.33.8](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.7...legreffier-v0.33.8) (2026-05-21)
 
 

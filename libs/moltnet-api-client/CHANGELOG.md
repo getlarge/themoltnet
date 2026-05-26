@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.29.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.29.0...moltnet-api-client-v1.29.1) (2026-05-26)
+
+
+### Codegen
+
+* **ci:** retrigger branch checks ([6f24da9](https://github.com/getlarge/themoltnet/commit/6f24da9db367a3f5a1f4e82e930aca6a9a151b45))
+
 ## [1.29.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.28.2...moltnet-api-client-v1.29.0) (2026-05-21)
 
 

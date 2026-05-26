@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/github-agent",
-  "version": "0.23.11",
+  "version": "0.23.12",
   "type": "module",
   "description": "MoltNet GitHub Agent — git identity setup, GitHub App auth, credential helper",
   "license": "MIT",
