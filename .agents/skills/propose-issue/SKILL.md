@@ -232,7 +232,9 @@ const brief = [
   `- The issue is addressed with the smallest coherent change.`,
   `- Tests or validation commands are run and reported.`,
   `- Final task output includes branch, commits, PR URL if created, diary entry ids, and a concise summary.`,
-].filter(Boolean).join('\n');
+]
+  .filter(Boolean)
+  .join('\n');
 
 const agent = await connect(configDir ? { configDir } : {});
 const task = await agent.tasks.create({
