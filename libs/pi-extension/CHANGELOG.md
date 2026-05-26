@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.20.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.19.6...pi-extension-v0.20.0) (2026-05-26)
+
+
+### Features
+
+* **tasks:** add conditional claimability ([78bb795](https://github.com/getlarge/themoltnet/commit/78bb795ef4c4d88d8b192e1a998c16ce3b831870))
+* **tasks:** add conditional claimability ([580161f](https://github.com/getlarge/themoltnet/commit/580161f6d84862e85b7b1d56887ff45f2732a0cf))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.19.0
+    * @themoltnet/sdk bumped to 0.106.0
+
 ## [0.19.6](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.19.5...pi-extension-v0.19.6) (2026-05-26)
 
 
