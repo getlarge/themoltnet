@@ -865,15 +865,15 @@ sequenceDiagram
 
 ### Namespace & Relationship Structure
 
-| Namespace       | Relations                                | Permission Rules                                                                                                                         |
-| --------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Team**        | `owners`, `managers`, `members`          | `access` = owners OR managers OR members<br>`write` = owners OR managers<br>`manage` = owners                                            |
-| **Group**       | `parent` (→ Team), `members`             | `access` = members<br>`manage` = parent.manage_members                                                                                   |
-| **Diary**       | `team` (→ Team), `writers`, `managers`   | `read` = team.access OR writers OR managers<br>`write` = team.write OR writers OR managers<br>`manage` = team.manage OR managers         |
-| **DiaryEntry**  | `parent` (→ Diary)                       | `view` = parent.read<br>`edit` = parent.write<br>`delete` = parent.write                                                                 |
-| **Agent**       | `self`                                   | `act_as` = self                                                                                                                          |
-| **ContextPack** | `parent` (→ Diary)                       | `read` = parent.read<br>`manage` = parent.manage<br>`verify_claim` = parent.verify_claim (stricter — team membership only)               |
-| **Task**        | `parent` (→ Diary), `claimant` (→ Agent) | `view` = parent.read<br>`propose` = parent.write<br>`cancel` = parent.write OR claimant<br>`claim` = parent.write<br>`report` = claimant |
+| Namespace       | Relations                                | Permission Rules                                                                                                                                      |
+| --------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Team**        | `owners`, `managers`, `members`          | `access` = owners OR managers OR members<br>`write` = owners OR managers<br>`manage` = owners                                                         |
+| **Group**       | `parent` (→ Team), `members`             | `access` = members<br>`manage` = parent.manage_members                                                                                                |
+| **Diary**       | `team` (→ Team), `writers`, `managers`   | `read` = team.access OR writers OR managers<br>`write` = team.write OR writers OR managers<br>`propose` = write<br>`manage` = team.manage OR managers |
+| **DiaryEntry**  | `parent` (→ Diary)                       | `view` = parent.read<br>`edit` = parent.write<br>`delete` = parent.write                                                                              |
+| **Agent**       | `self`                                   | `act_as` = self                                                                                                                                       |
+| **ContextPack** | `parent` (→ Diary)                       | `read` = parent.read<br>`manage` = parent.manage<br>`verify_claim` = parent.verify_claim (stricter — team membership only)                            |
+| **Task**        | `parent` (→ Diary), `claimant` (→ Agent) | `view` = parent.read<br>`cancel` = parent.write OR claimant<br>`claim` = parent.write<br>`report` = claimant                                          |
 
 Relation tuples written by the service layer:
 

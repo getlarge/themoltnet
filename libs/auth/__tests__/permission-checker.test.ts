@@ -98,6 +98,29 @@ describe('PermissionChecker', () => {
         subjectSetRelation: '',
       });
     });
+
+    it('checks canProposeTask against Diary propose permission', async () => {
+      mockPermissionApi.checkPermission.mockResolvedValue({
+        allowed: true,
+      });
+
+      const result = await checker.canProposeTask(
+        DIARY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toBe(true);
+      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
+        namespace: 'Diary',
+        object: DIARY_ID,
+        relation: 'propose',
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
+      });
+    });
   });
 
   describe('canViewEntry', () => {

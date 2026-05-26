@@ -94,6 +94,9 @@ class Diary implements Namespace {
       this.related.writers.includes(ctx.subject) ||
       this.related.managers.includes(ctx.subject) ||
       this.related.team.traverse((t) => t.permits.write(ctx)),
+    // Task proposals are authorized before a Task object exists, so
+    // proposal is a diary-scoped permission rather than Task-scoped.
+    propose: (ctx: Context) => this.permits.write(ctx),
     manage: (ctx: Context) =>
       this.related.managers.includes(ctx.subject) ||
       this.related.team.traverse((t) => t.permits.manage(ctx)),
@@ -165,8 +168,6 @@ class Task implements Namespace {
   permits = {
     view: (ctx: Context) =>
       this.related.parent.traverse((d) => d.permits.read(ctx)),
-    propose: (ctx: Context) =>
-      this.related.parent.traverse((d) => d.permits.write(ctx)),
     cancel: (ctx: Context) =>
       this.related.claimant.includes(ctx.subject) ||
       this.related.parent.traverse((d) => d.permits.write(ctx)),

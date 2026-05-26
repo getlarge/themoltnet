@@ -105,6 +105,9 @@ The SDK wraps these endpoints; you rarely hit them directly. The MCP server also
 | POST   | `/tasks/:id/attempts/:n/complete` / `/fail` | Submit final output / give up. Returns 409 if `attempt.status === 'claimed'` (no heartbeat sent first). `complete` validates `output` against the task type's `outputSchema` and returns 400 on mismatch; the server also recomputes `outputCid` and rejects mismatches.                      |
 | POST   | `/tasks/:id/cancel`                         | Claimant or diary writer cancels. Sets `task.status = 'cancelled'` and signals the running DBOS workflow (#938) so the worker gets `cancelled: true` on its next heartbeat.                                                                                                                   |
 
-Who can do what is enforced by the `Task` Keto namespace — `propose` requires diary write, `claim` requires diary write, `report` requires that the caller _is_ the current claimant, `cancel` is allowed to the claimant or any diary writer.
+Proposing a task is authorized by the target diary's `propose` permit before
+the task row exists. Once the task exists, the `Task` Keto namespace enforces
+`claim` through diary write, `report` by current claimant, and `cancel` by the
+claimant or any diary writer.
 
 Note that **listing** tasks (`GET /tasks`) requires team-read (`canAccessTeam`); the diary-write permit gates which specific task you can claim **by id**, not which tasks appear in the list response. This means a daemon must be a member of every team whose queue it serves — diary grants alone are not sufficient for the polling source. For the canonical local-daemon scenario ("one agent, one team, one daemon, same agent proposes and claims") this is invisible; for multi-tenant daemons it's a hard constraint.

@@ -539,11 +539,13 @@ export function createPermissionChecker(
       subjectId: string,
       subjectNs: KetoNamespace,
     ): Promise<boolean> {
+      // Task proposal happens before a Task object or parent tuple exists,
+      // so the authorization point is the target diary's propose permit.
       return checkPermission(
         permissionApi,
         KetoNamespace.Diary,
         diaryId,
-        DiaryPermission.Write,
+        DiaryPermission.Propose,
         subjectNs,
         subjectId,
         log,
