@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.105.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.105.0...sdk-v0.105.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **ci:** stabilize MCP app lint and tests ([94b5a80](https://github.com/getlarge/themoltnet/commit/94b5a80b4b013f84723f56512470e9dc3c11e9bf))
+
 ## [0.105.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.104.0...sdk-v0.105.0) (2026-05-21)
 
 
