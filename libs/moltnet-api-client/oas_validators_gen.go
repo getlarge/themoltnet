@@ -491,8 +491,8 @@ func (s *ClaimConditionAll) Validate() error {
 		if err := (validate.Array{
 			MinLength:    1,
 			MinLengthSet: true,
-			MaxLength:    0,
-			MaxLengthSet: false,
+			MaxLength:    8,
+			MaxLengthSet: true,
 		}).ValidateLength(len(s.Conditions)); err != nil {
 			return errors.Wrap(err, "array")
 		}
@@ -559,8 +559,8 @@ func (s *ClaimConditionAny) Validate() error {
 		if err := (validate.Array{
 			MinLength:    1,
 			MinLengthSet: true,
-			MaxLength:    0,
-			MaxLengthSet: false,
+			MaxLength:    8,
+			MaxLengthSet: true,
 		}).ValidateLength(len(s.Conditions)); err != nil {
 			return errors.Wrap(err, "array")
 		}
@@ -670,8 +670,8 @@ func (s *ClaimConditionTaskStatus) Validate() error {
 		if err := (validate.Array{
 			MinLength:    1,
 			MinLengthSet: true,
-			MaxLength:    0,
-			MaxLengthSet: false,
+			MaxLength:    8,
+			MaxLengthSet: true,
 		}).ValidateLength(len(s.Statuses)); err != nil {
 			return errors.Wrap(err, "array")
 		}

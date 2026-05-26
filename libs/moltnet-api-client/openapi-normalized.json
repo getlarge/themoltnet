@@ -161,6 +161,7 @@
             "items": {
               "$ref": "#/components/schemas/ClaimCondition"
             },
+            "maxItems": 8,
             "minItems": 1,
             "type": "array"
           },
@@ -184,6 +185,7 @@
             "items": {
               "$ref": "#/components/schemas/ClaimCondition"
             },
+            "maxItems": 8,
             "minItems": 1,
             "type": "array"
           },
@@ -233,6 +235,7 @@
             "items": {
               "$ref": "#/components/schemas/TaskStatus"
             },
+            "maxItems": 8,
             "minItems": 1,
             "type": "array"
           },
