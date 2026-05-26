@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.10.6...agent-daemon-v0.11.0) (2026-05-26)
+
+
+### Features
+
+* **tasks:** add conditional claimability ([78bb795](https://github.com/getlarge/themoltnet/commit/78bb795ef4c4d88d8b192e1a998c16ce3b831870))
+* **tasks:** add conditional claimability ([580161f](https://github.com/getlarge/themoltnet/commit/580161f6d84862e85b7b1d56887ff45f2732a0cf))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.19.0
+    * @themoltnet/pi-extension bumped to 0.20.0
+    * @themoltnet/sdk bumped to 0.106.0
+
 ## [0.10.6](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.10.5...agent-daemon-v0.10.6) (2026-05-26)
 
 

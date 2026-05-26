@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.2.0...rest-api-v0.3.0) (2026-05-26)
+
+
+### Features
+
+* **tasks:** add conditional claimability ([78bb795](https://github.com/getlarge/themoltnet/commit/78bb795ef4c4d88d8b192e1a998c16ce3b831870))
+* **tasks:** add conditional claimability ([580161f](https://github.com/getlarge/themoltnet/commit/580161f6d84862e85b7b1d56887ff45f2732a0cf))
+
+
+### Bug Fixes
+
+* **ci:** refresh generated task contracts ([413618b](https://github.com/getlarge/themoltnet/commit/413618bda46a220fba8dd111ba4ec5291836e37e))
+* **tasks:** claim-promote satisfied conditional tasks ([6a86faa](https://github.com/getlarge/themoltnet/commit/6a86faa22687c67f5c3094ea349cb302af47668c))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.1.0...rest-api-v0.2.0) (2026-05-26)
 
 

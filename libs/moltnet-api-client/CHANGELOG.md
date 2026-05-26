@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.30.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.29.1...moltnet-api-client-v1.30.0) (2026-05-26)
+
+
+### Features
+
+* **tasks:** add conditional claimability ([78bb795](https://github.com/getlarge/themoltnet/commit/78bb795ef4c4d88d8b192e1a998c16ce3b831870))
+* **tasks:** add conditional claimability ([580161f](https://github.com/getlarge/themoltnet/commit/580161f6d84862e85b7b1d56887ff45f2732a0cf))
+
+
+### Bug Fixes
+
+* **ci:** refresh generated task contracts ([413618b](https://github.com/getlarge/themoltnet/commit/413618bda46a220fba8dd111ba4ec5291836e37e))
+* **release-please:** keep openapi.json info.version in sync with rest-api bump ([97b69df](https://github.com/getlarge/themoltnet/commit/97b69df04aed20bc7c860caa5fbd2d3916f35915))
+* **release-please:** keep openapi.json info.version in sync with rest-api bump ([d8649d7](https://github.com/getlarge/themoltnet/commit/d8649d7d7ead99dcb5dc7dc120d983b45e4b279e)), closes [#1249](https://github.com/getlarge/themoltnet/issues/1249)
+
+
+### Codegen
+
+* **ci:** trigger workflow ([6b9a130](https://github.com/getlarge/themoltnet/commit/6b9a1303fc40d744d75193e6da7ec99a28551c78))
+* **openapi:** refresh generated spec version ([1d2bb41](https://github.com/getlarge/themoltnet/commit/1d2bb41929d72e35da5c4ee6ed3d348d663bdd24))
+
 ## [1.29.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.29.0...moltnet-api-client-v1.29.1) (2026-05-26)
 
 
