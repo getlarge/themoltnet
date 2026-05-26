@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.44.0](https://github.com/getlarge/themoltnet/compare/cli-v1.43.1...cli-v1.44.0) (2026-05-26)
+
+
+### Features
+
+* **tasks:** add conditional claimability ([78bb795](https://github.com/getlarge/themoltnet/commit/78bb795ef4c4d88d8b192e1a998c16ce3b831870))
+* **tasks:** add conditional claimability ([580161f](https://github.com/getlarge/themoltnet/commit/580161f6d84862e85b7b1d56887ff45f2732a0cf))
+
+
+### Bug Fixes
+
+* **release:** recover cli v1.44.0 release cycle ([#1253](https://github.com/getlarge/themoltnet/issues/1253)) ([d567538](https://github.com/getlarge/themoltnet/commit/d56753842e03694985a597fd0f95a9cce8bba497))
+
 ## [1.43.1](https://github.com/getlarge/themoltnet/compare/cli-v1.43.0...cli-v1.43.1) (2026-05-22)
 
 
