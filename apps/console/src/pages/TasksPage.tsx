@@ -43,7 +43,7 @@ export function TasksPage() {
     refetchInterval: (query) => {
       const hasActive = query.state.data?.pages.some((page) =>
         page.items.some((task) =>
-          ['queued', 'dispatched', 'running'].includes(task.status),
+          ['waiting', 'queued', 'dispatched', 'running'].includes(task.status),
         ),
       );
       return hasActive ? 5_000 : false;
@@ -70,8 +70,8 @@ export function TasksPage() {
         <Stack gap={1}>
           <Text variant="h2">Tasks</Text>
           <Text color="muted">
-            Track queued, running, failed, and completed work in the active
-            team.
+            Track waiting, queued, running, failed, and completed work in the
+            active team.
           </Text>
         </Stack>
         <Button

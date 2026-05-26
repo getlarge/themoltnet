@@ -20,7 +20,7 @@ export const FulfillBriefInput = Type.Object(
     title: Type.Optional(Type.String()),
 
     /**
-     * Imposer-stated, machine-verifiable success criteria. Pinned via
+     * Proposer-stated, machine-verifiable success criteria. Pinned via
      * the task's `inputCid` (no separate hash needed — `successCriteria`
      * is part of the input body). Optional: when omitted, completion is
      * accepted on schema-valid output alone.

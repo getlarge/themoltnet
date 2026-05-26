@@ -1,5 +1,5 @@
 /**
- * SuccessCriteria — imposer-stated acceptance criteria, evaluated in two
+ * SuccessCriteria — proposer-stated acceptance criteria, evaluated in two
  * complementary places.
  *
  * Before this envelope existed, criteria were scattered: a vestigial
@@ -8,7 +8,7 @@
  * judgment-task inputs. None of those were machine-verifiable
  * end-to-end.
  *
- * This module defines a single, content-addressable envelope an imposer
+ * This module defines a single, content-addressable envelope a proposer
  * attaches to any task type. It has four orthogonal sections — pick
  * whichever apply per task type:
  *
@@ -42,7 +42,7 @@
  * spec for the judge.
  *
  * The clean chain: producer task with `successCriteria` → producer
- * self-assesses honestly → imposer (or automation) creates a downstream
+ * self-assesses honestly → proposer (or automation) creates a downstream
  * judgment task that references the same `successCriteria` (or a
  * stricter rubric) → judgment task delivers the binding verdict.
  *
@@ -373,7 +373,7 @@ function checkOne(value: unknown, op: AssertionOp, arg: unknown): boolean {
  * never call this; both are pass-through on the verification axis.
  *
  * Multi-value semantics: when the path uses `*`, every resolved value
- * must satisfy the assertion (all-must-pass). An imposer who writes
+ * must satisfy the assertion (all-must-pass). A proposer who writes
  * `commits.*.sha` op `min-length` 7 means *every* commit sha is at
  * least 7 chars, not "at least one is."
  */

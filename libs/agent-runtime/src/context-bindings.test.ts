@@ -116,7 +116,7 @@ describe('resolveTaskContext', () => {
       deliver: deliverer,
     });
     expect(deliverer.skill).toHaveBeenCalledTimes(1);
-    // Both entries appear in the audit log so the imposer's intent
+    // Both entries appear in the audit log so the proposer's intent
     // (the duplicate declaration) is recoverable.
     expect(out.injected).toHaveLength(2);
   });

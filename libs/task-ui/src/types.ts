@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 export type TaskStatus =
+  | 'waiting'
   | 'queued'
   | 'dispatched'
   | 'running'
@@ -64,6 +65,25 @@ export interface TaskError {
   retryable?: boolean;
 }
 
+export type ClaimCondition =
+  | {
+      op: 'all';
+      conditions: ClaimCondition[];
+    }
+  | {
+      op: 'any';
+      conditions: ClaimCondition[];
+    }
+  | {
+      op: 'task_status';
+      taskId: string;
+      statuses: TaskStatus[];
+    }
+  | {
+      op: 'task_accepted';
+      taskId: string;
+    };
+
 export interface TaskSummary {
   id: string;
   taskType: string;
@@ -75,9 +95,10 @@ export interface TaskSummary {
   inputCid: string;
   references: TaskRef[];
   correlationId: string | null;
-  imposedByAgentId: string | null;
-  imposedByHumanId: string | null;
+  proposedByAgentId: string | null;
+  proposedByHumanId: string | null;
   acceptedAttemptN: number | null;
+  claimCondition: ClaimCondition | null;
   requiredExecutorTrustLevel: ExecutorTrustLevel;
   allowedExecutors: { provider: string; model: string }[];
   status: TaskStatus;

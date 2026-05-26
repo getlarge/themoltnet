@@ -131,13 +131,13 @@ The counter resolves off the global `MeterProvider`, so the existing OTLP→Axio
 
 ### Self-verification: producer LLM evaluates its own output
 
-When an imposer attaches a `successCriteria` envelope to a task input — declarative `assertions` over the output JSON, `gates`, a `rubric`, or required `sideEffects` — the **producer LLM** is responsible for evaluating those criteria against its own output and emitting a `verification` block inside the structured output it submits. The daemon does not run an evaluator. The REST API does not re-evaluate. Both are pass-through on this axis.
+When a proposer attaches a `successCriteria` envelope to a task input — declarative `assertions` over the output JSON, `gates`, a `rubric`, or required `sideEffects` — the **producer LLM** is responsible for evaluating those criteria against its own output and emitting a `verification` block inside the structured output it submits. The daemon does not run an evaluator. The REST API does not re-evaluate. Both are pass-through on this axis.
 
 This is **self-assessment**, not enforcement: `verification.passed=false` does not block `/complete` and does not affect `acceptedAttemptN`. The producer's job is to be honest about its work; binding evaluation is a separate concern (see "Producer/judge separation" below).
 
 **Mechanics:**
 
-1. **Imposer** creates a fulfillment task (`fulfill_brief`, `curate_pack`, `render_pack`) with `input.successCriteria` populated.
+1. **Proposer** creates a fulfillment task (`fulfill_brief`, `curate_pack`, `render_pack`) with `input.successCriteria` populated.
 2. **Producer LLM** is told via the prompt — see `buildSelfVerificationBlock` in `libs/agent-runtime/src/prompts/self-verification.ts` — to call `moltnet_get_task` against its own task id, read `input.successCriteria`, evaluate each criterion against its produced work, and include a `VerificationRecord` inside the output it submits via `submit_<task_type>_output`.
 3. **Daemon** forwards the output verbatim to `/complete`.
 4. **Server** runs the per-type `validateOutput` cross-field rule (`requireVerificationWhenCriteriaPresent` in `libs/tasks/src/task-types/index.ts`) that enforces "verification required iff `input.successCriteria` is set" and persists the output (with the nested `verification`) to `task_attempts.output`.
@@ -177,7 +177,7 @@ producer task                          judgment task (optional)
 ─────────────                          ────────────────────────
 input.successCriteria  ────  same  ──► input.successCriteria.rubric
                               ▼
-                       (later, by imposer)
+                       (later, by proposer)
                               ▼
 output.verification  ◄───  producer's
                             self-assessment
@@ -243,9 +243,9 @@ The injection happens in the agent's `moltnet_create_entry` tool implementation 
 
 ### Cancellation in the executor
 
-When the imposer cancels a running task, the realistic flow is:
+When the proposer cancels a running task, the realistic flow is:
 
-1. Imposer calls `POST /tasks/:id/cancel`. Server marks the row `cancelled`, signals the workflow.
+1. Proposer calls `POST /tasks/:id/cancel`. Server marks the row `cancelled`, signals the workflow.
 2. The reporter's next periodic heartbeat returns `200 { cancelled: true, cancelReason }`. `ApiTaskReporter` aborts `cancelSignal` and stores `cancelReason`.
 3. Your executor — having wired `reporter.cancelSignal` into its long-running work — returns promptly with `status: 'cancelled'`.
 4. The runtime's post-execute check (`runtime.ts:130`) is a safety net: if `cancelSignal.aborted` and the executor returned anything other than `cancelled`, the runtime overrides to `cancelled`. Designed for executors that ignore the signal or finish mid-flight before noticing.

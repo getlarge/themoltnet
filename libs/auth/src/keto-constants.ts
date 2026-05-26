@@ -99,6 +99,7 @@ export enum DiaryEntryPermission {
 export enum DiaryPermission {
   Read = 'read',
   Write = 'write',
+  Propose = 'propose',
   Manage = 'manage',
 }
 
@@ -132,7 +133,6 @@ export enum TaskRelation {
  */
 export enum TaskPermission {
   View = 'view',
-  Impose = 'impose',
   Cancel = 'cancel',
   Claim = 'claim',
   Report = 'report',

@@ -9,8 +9,6 @@
   "dispatchTimeoutSec": null,
   "expiresAt": null,
   "id": "aa100002-0000-4000-8000-000000000002",
-  "imposedByAgentId": null,
-  "imposedByHumanId": null,
   "input": {
     "packId": "26004a77-bc10-43ef-a79f-c8e62faf59b1",
     "persist": true,
@@ -20,6 +18,8 @@
   "inputSchemaCid": "cid-placeholder",
   "maxAttempts": 1,
   "outputKind": "artifact",
+  "proposedByAgentId": null,
+  "proposedByHumanId": null,
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [],
   "requiredExecutorTrustLevel": "selfDeclared",

@@ -117,6 +117,7 @@ export const foundingAcceptanceStatusEnum = pgEnum(
 );
 
 export const taskStatusEnum = pgEnum('task_status', [
+  'waiting',
   'queued',
   'dispatched',
   'running',
@@ -1012,14 +1013,18 @@ export const tasks = pgTable(
       .notNull()
       .default(sql`'[]'::jsonb`),
     correlationId: uuid('correlation_id'),
-    imposedByAgentId: uuid('imposed_by_agent_id').references(
+    proposedByAgentId: uuid('proposed_by_agent_id').references(
       () => agents.identityId,
       { onDelete: 'restrict' },
     ),
-    imposedByHumanId: uuid('imposed_by_human_id').references(() => humans.id, {
-      onDelete: 'restrict',
-    }),
+    proposedByHumanId: uuid('proposed_by_human_id').references(
+      () => humans.id,
+      {
+        onDelete: 'restrict',
+      },
+    ),
     acceptedAttemptN: integer('accepted_attempt_n'),
+    claimCondition: jsonb('claim_condition'),
     claimAgentId: uuid('claim_agent_id').references(() => agents.identityId, {
       onDelete: 'restrict',
     }),
@@ -1030,7 +1035,7 @@ export const tasks = pgTable(
     )
       .notNull()
       .default('self_declared'),
-    // Imposer-set executor pinning. Empty array = no restriction.
+    // Proposer-set executor pinning. Empty array = no restriction.
     // Element shape: { provider: string, model: string }, both
     // lowercased on the create-task path. Compared as a JSONB containment
     // query against a daemon's advertised pair on list-tasks.
@@ -1053,11 +1058,11 @@ export const tasks = pgTable(
     ),
     cancelReason: text('cancel_reason'),
     maxAttempts: integer('max_attempts').notNull().default(1),
-    // Imposer-set timeout overrides. Null means "use server defaults"
+    // Proposer-set timeout overrides. Null means "use server defaults"
     // (DEFAULT_DISPATCH_TIMEOUT_SECONDS=300,
     // DEFAULT_RUNNING_TIMEOUT_SECONDS=7200 in task-workflows.ts). Pinned
     // on the row so retries / re-dispatches honor the same budget the
-    // imposer chose.
+    // proposer chose.
     dispatchTimeoutSec: integer('dispatch_timeout_sec'),
     runningTimeoutSec: integer('running_timeout_sec'),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -1086,8 +1091,8 @@ export const tasks = pgTable(
       sql`${table.allowedExecutors} jsonb_path_ops`,
     ),
     check(
-      'tasks_imposer_xor',
-      sql`(imposed_by_agent_id IS NOT NULL) <> (imposed_by_human_id IS NOT NULL)`,
+      'tasks_proposer_xor',
+      sql`(proposed_by_agent_id IS NOT NULL) <> (proposed_by_human_id IS NOT NULL)`,
     ),
     check(
       'tasks_canceller_xor',
@@ -1122,7 +1127,7 @@ export type NewTask = typeof tasks.$inferInsert;
 //
 // `sealed_by_agent_id` / `sealed_by_human_id` is an XOR pair: a seal
 // is always triggered by exactly one of the two principal kinds, the
-// same way the canceller and imposer columns on `tasks` are XOR
+// same way the canceller and proposer columns on `tasks` are XOR
 // pairs. The check constraint matches the convention used elsewhere
 // in this schema.
 //

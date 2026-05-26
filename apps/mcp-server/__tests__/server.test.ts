@@ -581,7 +581,7 @@ describe('buildApp', () => {
           "name": "rendered_packs_update",
         },
         {
-          "inputSchema": "e303f025440d8946",
+          "inputSchema": "2a5a9330f4f278d3",
           "name": "tasks_app_open",
         },
         {
@@ -593,7 +593,7 @@ describe('buildApp', () => {
           "name": "tasks_console_link",
         },
         {
-          "inputSchema": "e0c176f199411b7d",
+          "inputSchema": "9c0b8526f48db6e1",
           "name": "tasks_create",
         },
         {
@@ -601,7 +601,7 @@ describe('buildApp', () => {
           "name": "tasks_get",
         },
         {
-          "inputSchema": "c4687bb6a6cc2314",
+          "inputSchema": "c49685b21e0efabe",
           "name": "tasks_list",
         },
         {

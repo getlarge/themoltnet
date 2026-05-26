@@ -42,7 +42,7 @@ export const RenderPackInput = Type.Object(
     pinned: Type.Optional(Type.Boolean()),
 
     /**
-     * Imposer-stated, machine-verifiable success criteria. See
+     * Proposer-stated, machine-verifiable success criteria. See
      * `SuccessCriteria`. Pinned via `inputCid`. Optional.
      */
     successCriteria: Type.Optional(SuccessCriteria),

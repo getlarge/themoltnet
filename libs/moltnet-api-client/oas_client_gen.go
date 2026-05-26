@@ -11709,15 +11709,15 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 		}
 	}
 	{
-		// Encode "imposedByAgentId" parameter.
+		// Encode "proposedByAgentId" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "imposedByAgentId",
+			Name:    "proposedByAgentId",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.ImposedByAgentId.Get(); ok {
+			if val, ok := params.ProposedByAgentId.Get(); ok {
 				return e.EncodeValue(conv.UUIDToString(val))
 			}
 			return nil
@@ -11726,15 +11726,15 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 		}
 	}
 	{
-		// Encode "imposedByHumanId" parameter.
+		// Encode "proposedByHumanId" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "imposedByHumanId",
+			Name:    "proposedByHumanId",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.ImposedByHumanId.Get(); ok {
+			if val, ok := params.ProposedByHumanId.Get(); ok {
 				return e.EncodeValue(conv.UUIDToString(val))
 			}
 			return nil

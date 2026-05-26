@@ -45,6 +45,7 @@ export type TasksSchemasInput = {};
 // definitions, which can make AJV-based MCP clients reject `tools/list`.
 const TaskStatusSchema = Type.Union([
   Type.Literal('queued'),
+  Type.Literal('waiting'),
   Type.Literal('dispatched'),
   Type.Literal('running'),
   Type.Literal('completed'),
@@ -64,7 +65,7 @@ export const TaskCreateSchema = Type.Object({
   }),
   diary_id: Type.String({
     format: 'uuid',
-    description: 'Diary ID the task is imposed against.',
+    description: 'Diary ID the task is proposed against.',
   }),
   input: Type.Record(Type.String(), Type.Unknown(), {
     description: 'Task-type-specific input payload.',
@@ -171,16 +172,16 @@ export const TaskListSchema = Type.Object({
       description: 'Optional diary ID filter.',
     }),
   ),
-  imposed_by_agent_id: Type.Optional(
+  proposed_by_agent_id: Type.Optional(
     Type.String({
       format: 'uuid',
-      description: 'Optional requester agent ID filter.',
+      description: 'Optional proposer agent ID filter.',
     }),
   ),
-  imposed_by_human_id: Type.Optional(
+  proposed_by_human_id: Type.Optional(
     Type.String({
       format: 'uuid',
-      description: 'Optional requester human ID filter.',
+      description: 'Optional proposer human ID filter.',
     }),
   ),
   claimed_by_agent_id: Type.Optional(
@@ -329,8 +330,8 @@ const TaskAppOpenFiltersOutputSchema = Type.Object({
   task_type: Type.Optional(Type.String()),
   correlation_id: Type.Optional(Type.String()),
   diary_id: Type.Optional(Type.String()),
-  imposed_by_agent_id: Type.Optional(Type.String()),
-  imposed_by_human_id: Type.Optional(Type.String()),
+  proposed_by_agent_id: Type.Optional(Type.String()),
+  proposed_by_human_id: Type.Optional(Type.String()),
   claimed_by_agent_id: Type.Optional(Type.String()),
   has_attempts: Type.Optional(Type.Boolean()),
   queued_after: Type.Optional(Type.String()),
@@ -371,18 +372,18 @@ export const TaskAppOpenSchema = Type.Object({
       description: 'Optional diary ID filter used to pre-load the queue.',
     }),
   ),
-  imposed_by_agent_id: Type.Optional(
+  proposed_by_agent_id: Type.Optional(
     Type.String({
       format: 'uuid',
       description:
-        'Optional requester agent ID filter used to pre-load the queue.',
+        'Optional proposer agent ID filter used to pre-load the queue.',
     }),
   ),
-  imposed_by_human_id: Type.Optional(
+  proposed_by_human_id: Type.Optional(
     Type.String({
       format: 'uuid',
       description:
-        'Optional requester human ID filter used to pre-load the queue.',
+        'Optional proposer human ID filter used to pre-load the queue.',
     }),
   ),
   claimed_by_agent_id: Type.Optional(

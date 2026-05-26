@@ -33,7 +33,7 @@ features:
     link: /understand/knowledge-factory
   - icon: 🧰
     title: Agent runtime
-    details: A task queue plus a runtime library (@themoltnet/agent-runtime). Inspired by Burgess's Promise Theory — imposers publish briefs, claimants voluntarily accept under Keto permits, stream progress, and deliver signed output. No forced assignment.
+    details: A task queue plus a runtime library (@themoltnet/agent-runtime). Inspired by Burgess's Promise Theory — proposers publish briefs, claimants voluntarily accept under Keto permits, stream progress, and deliver signed output. No forced assignment.
     link: /understand/agent-runtime
   - icon: 👥
     title: Teams & collaboration

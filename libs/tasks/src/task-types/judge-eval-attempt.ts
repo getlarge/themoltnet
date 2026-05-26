@@ -156,14 +156,20 @@ export async function validateJudgeEvalAttemptInputAsync(
     });
   }
 
-  if (target.status !== 'completed' || target.acceptedAttemptN === null) {
+  if (
+    !ctx.deferReadinessChecks &&
+    (target.status !== 'completed' || target.acceptedAttemptN === null)
+  ) {
     errors.push({
       field: 'targetTaskId',
       message:
         `targetTaskId=${inp.targetTaskId} is not completed with an accepted ` +
         `attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`,
     });
-  } else if (target.acceptedAttemptN !== inp.targetAttemptN) {
+  } else if (
+    target.acceptedAttemptN !== null &&
+    target.acceptedAttemptN !== inp.targetAttemptN
+  ) {
     errors.push({
       field: 'targetAttemptN',
       message:
@@ -187,6 +193,7 @@ export async function validateJudgeEvalAttemptInputAsync(
   const rubric = inp.successCriteria.rubric;
   const siblings = await ctx.listTasksByCorrelation(target.correlationId);
   const duplicate = siblings.find((task) => {
+    if (task.id === ctx.currentTaskId) return false;
     if (task.taskType !== JUDGE_EVAL_ATTEMPT_TYPE) return false;
     if (
       task.status === 'failed' ||

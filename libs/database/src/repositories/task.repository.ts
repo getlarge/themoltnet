@@ -65,6 +65,11 @@ export function createTaskRepository(db: Database) {
       return row ?? null;
     },
 
+    async findByIds(ids: string[]): Promise<Task[]> {
+      if (ids.length === 0) return [];
+      return getExecutor(db).select().from(tasks).where(inArray(tasks.id, ids));
+    },
+
     /**
      * Find all tasks sharing a `correlation_id`. Used by async
      * validators (#1096) to inspect related runs or judges in the
@@ -140,8 +145,8 @@ export function createTaskRepository(db: Database) {
       executorModel?: string;
       correlationId?: string;
       diaryId?: string;
-      imposedByAgentId?: string;
-      imposedByHumanId?: string;
+      proposedByAgentId?: string;
+      proposedByHumanId?: string;
       claimedByAgentId?: string;
       hasAttempts?: boolean;
       queuedAfter?: Date;
@@ -178,11 +183,11 @@ export function createTaskRepository(db: Database) {
       if (opts.correlationId)
         filters.push(eq(tasks.correlationId, opts.correlationId));
       if (opts.diaryId) filters.push(eq(tasks.diaryId, opts.diaryId));
-      if (opts.imposedByAgentId) {
-        filters.push(eq(tasks.imposedByAgentId, opts.imposedByAgentId));
+      if (opts.proposedByAgentId) {
+        filters.push(eq(tasks.proposedByAgentId, opts.proposedByAgentId));
       }
-      if (opts.imposedByHumanId) {
-        filters.push(eq(tasks.imposedByHumanId, opts.imposedByHumanId));
+      if (opts.proposedByHumanId) {
+        filters.push(eq(tasks.proposedByHumanId, opts.proposedByHumanId));
       }
       if (opts.claimedByAgentId) {
         filters.push(sql`
@@ -244,6 +249,34 @@ export function createTaskRepository(db: Database) {
         .where(and(eq(tasks.id, id), eq(tasks.status, 'queued')))
         .returning();
       return row ?? null;
+    },
+
+    async listWaitingTasks(): Promise<Task[]> {
+      return getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(eq(tasks.status, 'waiting'));
+    },
+
+    async listWaitingTasksReferencingTask(taskId: string): Promise<Task[]> {
+      return getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.status, 'waiting'),
+            sql`jsonb_path_exists(${tasks.claimCondition}, '$.** ? (@.taskId == $taskId)', jsonb_build_object('taskId', ${taskId}))`,
+          ),
+        );
+    },
+
+    async promoteWaitingTasks(ids: string[]): Promise<Task[]> {
+      if (ids.length === 0) return [];
+      return getExecutor(db)
+        .update(tasks)
+        .set({ status: 'queued', queuedAt: sql`now()`, updatedAt: sql`now()` })
+        .where(and(inArray(tasks.id, ids), eq(tasks.status, 'waiting')))
+        .returning();
     },
 
     async updateStatus(

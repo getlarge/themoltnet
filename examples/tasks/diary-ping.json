@@ -9,8 +9,6 @@
   "dispatchTimeoutSec": null,
   "expiresAt": null,
   "id": "aa000003-0000-4000-8000-000000000003",
-  "imposedByAgentId": null,
-  "imposedByHumanId": null,
   "input": {
     "brief": "Write a single diary entry using the moltnet_create_entry custom tool. Entry: entryType=semantic, title='Agent runtime demo ping', content='PR 0 agent-runtime reached the diary from inside Gondolin.', tags=['demo','pr0','agent-runtime']. After creation, report the entry id and exit.",
     "scopeHint": "demo",
@@ -20,6 +18,8 @@
   "inputSchemaCid": "cid-placeholder",
   "maxAttempts": 1,
   "outputKind": "artifact",
+  "proposedByAgentId": null,
+  "proposedByHumanId": null,
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [],
   "requiredExecutorTrustLevel": "selfDeclared",

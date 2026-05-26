@@ -97,7 +97,7 @@ describe('TaskRepository.listOrphanedTasks (integration)', () => {
       input: {},
       inputSchemaCid: 'cid-placeholder-input-schema',
       inputCid: 'cid-placeholder-input',
-      imposedByAgentId: AGENT_ID,
+      proposedByAgentId: AGENT_ID,
       status: opts.status,
       claimAgentId:
         opts.status === 'dispatched' || opts.status === 'running'

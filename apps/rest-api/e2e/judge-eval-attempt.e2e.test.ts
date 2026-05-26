@@ -29,7 +29,7 @@ import { createTestHarness, type TestHarness } from './setup.js';
 describe('judge_eval_attempt duplicate protection', () => {
   let harness: TestHarness;
   let client: Client;
-  let imposer: TestAgent;
+  let proposer: TestAgent;
   let claimer: TestAgent;
 
   const judgeSuccessCriteria = {
@@ -48,7 +48,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    [imposer, claimer] = await Promise.all([
+    [proposer, claimer] = await Promise.all([
       createAgent({
         baseUrl: harness.baseUrl,
         db: harness.db,
@@ -63,8 +63,8 @@ describe('judge_eval_attempt duplicate protection', () => {
 
     await createDiaryGrant({
       client,
-      auth: () => imposer.accessToken,
-      path: { id: imposer.privateDiaryId },
+      auth: () => proposer.accessToken,
+      path: { id: proposer.privateDiaryId },
       body: {
         subjectId: claimer.identityId,
         subjectNs: 'Agent',
@@ -77,14 +77,14 @@ describe('judge_eval_attempt duplicate protection', () => {
     await harness?.teardown();
   });
 
-  async function imposeRunEval(correlationId: string): Promise<string> {
+  async function proposeRunEval(correlationId: string): Promise<string> {
     const { data, error } = await createTask({
       client,
-      auth: () => imposer.accessToken,
+      auth: () => proposer.accessToken,
       body: {
         taskType: 'run_eval',
-        teamId: imposer.personalTeamId,
-        diaryId: imposer.privateDiaryId,
+        teamId: proposer.personalTeamId,
+        diaryId: proposer.privateDiaryId,
         correlationId,
         input: {
           scenario: { prompt: 'e2e eval scenario' },
@@ -145,13 +145,14 @@ describe('judge_eval_attempt duplicate protection', () => {
       async () => {
         const { data } = await getTask({
           client,
-          auth: () => imposer.accessToken,
+          auth: () => proposer.accessToken,
           path: { id: taskId },
         });
         return data!;
       },
-      (task) => task.status === 'completed' || task.status === 'failed',
-      { label: `run_eval.complete[${taskId.slice(0, 8)}]`, maxAttempts: 30 },
+      (task) =>
+        task.status === 'completed' && task.acceptedAttemptN === attemptN,
+      { label: `run_eval.accepted[${taskId.slice(0, 8)}]`, maxAttempts: 30 },
     );
   }
 
@@ -160,7 +161,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     runTaskId: string;
   }> {
     const correlationId = crypto.randomUUID();
-    const runTaskId = await imposeRunEval(correlationId);
+    const runTaskId = await proposeRunEval(correlationId);
     await completeRunEval(runTaskId);
     return { correlationId, runTaskId };
   }
@@ -168,8 +169,8 @@ describe('judge_eval_attempt duplicate protection', () => {
   function judgeBody(correlationId: string, runTaskId: string) {
     return {
       taskType: 'judge_eval_attempt',
-      teamId: imposer.personalTeamId,
-      diaryId: imposer.privateDiaryId,
+      teamId: proposer.personalTeamId,
+      diaryId: proposer.privateDiaryId,
       correlationId,
       input: {
         targetTaskId: runTaskId,
@@ -179,6 +180,73 @@ describe('judge_eval_attempt duplicate protection', () => {
     };
   }
 
+  it('keeps a conditional judge task waiting until all promised run evals are accepted', async () => {
+    const firstCorrelationId = crypto.randomUUID();
+    const secondCorrelationId = crypto.randomUUID();
+    const [firstRunTaskId, secondRunTaskId] = await Promise.all([
+      proposeRunEval(firstCorrelationId),
+      proposeRunEval(secondCorrelationId),
+    ]);
+
+    const { data: judge, error: judgeError } = await createTask({
+      client,
+      auth: () => proposer.accessToken,
+      body: {
+        ...judgeBody(firstCorrelationId, firstRunTaskId),
+        claimCondition: {
+          op: 'all',
+          conditions: [
+            { op: 'task_accepted', taskId: firstRunTaskId },
+            { op: 'task_accepted', taskId: secondRunTaskId },
+          ],
+        },
+      },
+    });
+    expect(judgeError).toBeUndefined();
+    expect(judge!.status).toBe('waiting');
+
+    const prematureClaim = await claimTask({
+      client,
+      auth: () => claimer.accessToken,
+      path: { id: judge!.id },
+      body: { leaseTtlSec: 60 },
+    });
+    expect(prematureClaim.response.status).toBe(409);
+
+    await completeRunEval(firstRunTaskId);
+    const halfReadyClaim = await claimTask({
+      client,
+      auth: () => claimer.accessToken,
+      path: { id: judge!.id },
+      body: { leaseTtlSec: 60 },
+    });
+    expect(halfReadyClaim.response.status).toBe(409);
+
+    const stillWaiting = await pollUntil(
+      async () => {
+        const { data } = await getTask({
+          client,
+          auth: () => proposer.accessToken,
+          path: { id: judge!.id },
+        });
+        return data!;
+      },
+      (task) => task.status === 'waiting',
+      { label: 'conditional judge remains waiting', maxAttempts: 5 },
+    );
+    expect(stillWaiting.status).toBe('waiting');
+
+    await completeRunEval(secondRunTaskId);
+    const claimed = await claimTask({
+      client,
+      auth: () => claimer.accessToken,
+      path: { id: judge!.id },
+      body: { leaseTtlSec: 60 },
+    });
+    expect(claimed.error).toBeUndefined();
+    expect(claimed.data!.task.status).toBe('dispatched');
+  });
+
   it('two concurrent judge_eval_attempt creates: exactly one wins, one is rejected', async () => {
     const { correlationId, runTaskId } = await setupCompletedProducer();
     const body = judgeBody(correlationId, runTaskId);
@@ -186,12 +254,12 @@ describe('judge_eval_attempt duplicate protection', () => {
     const [first, second] = await Promise.all([
       createTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         body,
       }),
       createTask({
         client,
-        auth: () => imposer.accessToken,
+        auth: () => proposer.accessToken,
         body,
       }),
     ]);
@@ -207,14 +275,14 @@ describe('judge_eval_attempt duplicate protection', () => {
 
     const winner = await createTask({
       client,
-      auth: () => imposer.accessToken,
+      auth: () => proposer.accessToken,
       body,
     });
     expect(winner.response.status).toBe(201);
 
     const loser = await createTask({
       client,
-      auth: () => imposer.accessToken,
+      auth: () => proposer.accessToken,
       body,
     });
     expect(loser.response.status).toBe(400);

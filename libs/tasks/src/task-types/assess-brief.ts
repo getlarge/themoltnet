@@ -91,8 +91,9 @@ export type AssessBriefOutput = Static<typeof AssessBriefOutput>;
  *   - `targetTaskId` resolves to a real task the caller can see.
  *   - The target is a `fulfill_brief` (you cannot grade an arbitrary
  *     task type as if it were a brief fulfillment).
- *   - The target is `completed` with an accepted attempt — grading
- *     an in-flight or failed task would either race or grade nothing.
+ *   - Unless readiness checks are explicitly deferred, the target is
+ *     `completed` with an accepted attempt — grading an in-flight or
+ *     failed task would either race or grade nothing.
  *
  * Agent-distinctness ("assessor ≠ producer") is a runtime / auth-
  * layer concern and intentionally NOT checked here. It belongs in
@@ -118,7 +119,10 @@ export async function validateAssessBriefInputAsync(
       message: `targetTaskId ${targetTaskId} is a ${target.taskType}, not a fulfill_brief`,
     });
   }
-  if (target.status !== 'completed' || target.acceptedAttemptN === null) {
+  if (
+    !ctx.deferReadinessChecks &&
+    (target.status !== 'completed' || target.acceptedAttemptN === null)
+  ) {
     errors.push({
       field: 'targetTaskId',
       message: `targetTaskId ${targetTaskId} is not completed with an accepted attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`,

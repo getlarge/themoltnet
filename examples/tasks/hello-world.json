@@ -9,8 +9,6 @@
   "dispatchTimeoutSec": null,
   "expiresAt": null,
   "id": "aa000001-0000-4000-8000-000000000001",
-  "imposedByAgentId": null,
-  "imposedByHumanId": null,
   "input": {
     "brief": "Create a file /workspace/demo/out/hello.txt containing the single line 'hello from moltnet agent runtime'. Use the write tool. After writing, read it back to confirm. Keep the response under 3 sentences.",
     "scopeHint": "demo",
@@ -20,6 +18,8 @@
   "inputSchemaCid": "cid-placeholder",
   "maxAttempts": 1,
   "outputKind": "artifact",
+  "proposedByAgentId": null,
+  "proposedByHumanId": null,
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [],
   "requiredExecutorTrustLevel": "selfDeclared",

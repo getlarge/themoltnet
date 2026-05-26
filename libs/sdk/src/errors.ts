@@ -17,7 +17,7 @@ export class MoltNetError extends Error {
   /**
    * Populated when the server returned a `VALIDATION_FAILED` problem
    * (status 400) with field-level errors. Empty / undefined for every
-   * other problem kind. Imposer scripts surface these to operators so
+   * other problem kind. Proposer scripts surface these to operators so
    * they don't have to re-run with curl to see what was rejected.
    */
   readonly validationErrors?: readonly ValidationError[];

@@ -39,36 +39,36 @@ type taskListOpts struct {
 	taskTypeAliases    []string
 	taskTypeAliasesSet bool
 
-	status              string
-	statusSet           bool
-	diaryID             string
-	diaryIDSet          bool
-	correlationID       string
-	correlationIDSet    bool
-	imposedByAgentID    string
-	imposedByAgentIDSet bool
-	imposedByHumanID    string
-	imposedByHumanIDSet bool
-	claimedByAgentID    string
-	claimedByAgentIDSet bool
-	provider            string
-	providerSet         bool
-	model               string
-	modelSet            bool
-	hasAttempts         bool
-	hasAttemptsSet      bool
-	queuedAfter         string
-	queuedAfterSet      bool
-	queuedBefore        string
-	queuedBeforeSet     bool
-	completedAfter      string
-	completedAfterSet   bool
-	completedBefore     string
-	completedBeforeSet  bool
-	limit               int
-	limitSet            bool
-	cursor              string
-	cursorSet           bool
+	status               string
+	statusSet            bool
+	diaryID              string
+	diaryIDSet           bool
+	correlationID        string
+	correlationIDSet     bool
+	proposedByAgentID    string
+	proposedByAgentIDSet bool
+	proposedByHumanID    string
+	proposedByHumanIDSet bool
+	claimedByAgentID     string
+	claimedByAgentIDSet  bool
+	provider             string
+	providerSet          bool
+	model                string
+	modelSet             bool
+	hasAttempts          bool
+	hasAttemptsSet       bool
+	queuedAfter          string
+	queuedAfterSet       bool
+	queuedBefore         string
+	queuedBeforeSet      bool
+	completedAfter       string
+	completedAfterSet    bool
+	completedBefore      string
+	completedBeforeSet   bool
+	limit                int
+	limitSet             bool
+	cursor               string
+	cursorSet            bool
 }
 
 func runTaskListCmd(opts taskListOpts) error {
@@ -131,13 +131,13 @@ func buildListTasksParams(opts taskListOpts) (moltnetapi.ListTasksParams, error)
 			return moltnetapi.ListTasksParams{}, err
 		}
 	}
-	if opts.imposedByAgentIDSet {
-		if params.ImposedByAgentId, err = parseOptUUIDFlag("imposed-by-agent-id", opts.imposedByAgentID); err != nil {
+	if opts.proposedByAgentIDSet {
+		if params.ProposedByAgentId, err = parseOptUUIDFlag("proposed-by-agent-id", opts.proposedByAgentID); err != nil {
 			return moltnetapi.ListTasksParams{}, err
 		}
 	}
-	if opts.imposedByHumanIDSet {
-		if params.ImposedByHumanId, err = parseOptUUIDFlag("imposed-by-human-id", opts.imposedByHumanID); err != nil {
+	if opts.proposedByHumanIDSet {
+		if params.ProposedByHumanId, err = parseOptUUIDFlag("proposed-by-human-id", opts.proposedByHumanID); err != nil {
 			return moltnetapi.ListTasksParams{}, err
 		}
 	}

@@ -21,6 +21,7 @@ import {
   getLegreffierOnboardingStatus,
   startLegreffierOnboarding,
 } from '@moltnet/api-client';
+import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createTestHarness, type TestHarness } from './setup.js';
@@ -179,12 +180,13 @@ describe('LeGreffier onboarding', () => {
   describe('happy path (requires SPONSOR_AGENT_ID)', () => {
     it('full onboarding flow: start → callback → installed → completed', async () => {
       // Arrange
+      const keyPair = await cryptoService.generateKeyPair();
       const { data: startData, error: startError } =
         await startLegreffierOnboarding({
           client,
           body: {
-            publicKey: VALID_PUBLIC_KEY,
-            fingerprint: VALID_FINGERPRINT,
+            publicKey: keyPair.publicKey,
+            fingerprint: keyPair.fingerprint,
             agentName: 'e2e-test-bot',
           },
         });

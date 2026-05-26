@@ -15,13 +15,13 @@
  *                      `vivo -> dedicated_worktree`).
  *
  * Helpers here are intentionally minimal — composition belongs to the
- * imposer scripts (`run-eval.ts`, `judge-eval-attempt.ts`) which import
+ * proposer scripts (`run-eval.ts`, `judge-eval-attempt.ts`) which import
  * `buildRubricFromCriteria` + `resolveSkillBinding` and assemble the
  * full task input themselves.
  *
  * Will be deleted once #1135 (server-side task templates) lands and the
  * scenario dir becomes a template upload rather than a one-off file-read
- * on the imposer side.
+ * on the proposer side.
  */
 import { readFileSync } from 'node:fs';
 import { basename, isAbsolute, join } from 'node:path';
@@ -62,7 +62,7 @@ export interface Scenario {
 /**
  * Read a scenario dir. Throws clearly if any of the three required
  * files is missing or malformed — fail-loud is the right default for
- * an imposer that's about to spend tokens.
+ * a proposer that's about to spend tokens.
  *
  * Relative scenario paths are resolved against `repoRoot` (the caller
  * usually passes `git rev-parse --show-toplevel`). pnpm scripts run

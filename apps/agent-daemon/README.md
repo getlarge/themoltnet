@@ -250,7 +250,7 @@ Leave it running. It idles until a task lands in its queue.
 
 In another terminal, with `.moltnet/local-dev/env` sourced. Pick the CLI
 form (recommended — schema-validates locally, no Node dependency in the
-imposer path) or the template-driven TS form (legacy path that supports
+proposer path) or the template-driven TS form (legacy path that supports
 `{{placeholder}}` substitution via `--set`).
 
 ::: code-group
@@ -325,7 +325,7 @@ pnpm exec tsx tools/src/tasks/create-pr-review.ts \
   --repo <owner/repo>
 ```
 
-This helper stays imposer-only. It reads PR metadata, ensures the PR
+This helper stays proposer-only. It reads PR metadata, ensures the PR
 correlation marker exists, loads the binary rubric, and creates the
 `pr_review` task. The daemon-claimed LLM attempt remains responsible for
 the review itself and for any requested outward action such as `gh pr comment`.

@@ -33,7 +33,7 @@ export interface PollingApiTaskSourceOptions {
    * no diary filter on `GET /tasks`, so this is post-filtered.
    */
   diaryIds?: string[];
-  /** Lease TTL passed to `claim` so the imposer/runtime contract holds. */
+  /** Lease TTL passed to `claim` so the proposer/runtime contract holds. */
   leaseTtlSec: number;
   /** Page size per list call. Defaults to 10 — we only need one claimable. */
   listLimit?: number;

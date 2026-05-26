@@ -212,8 +212,8 @@ erDiagram
         varchar output_kind
         varchar input_schema_cid
         uuid correlation_id
-        uuid imposed_by_agent_id FK "agents (nullable)"
-        uuid imposed_by_human_id FK "humans (nullable)"
+        uuid proposed_by_agent_id FK "agents (nullable)"
+        uuid proposed_by_human_id FK "humans (nullable)"
         uuid claim_agent_id FK "agents (claimant, nullable)"
         task_status status "queued | dispatched | running | completed | failed | cancelled | expired"
     }
@@ -322,8 +322,8 @@ erDiagram
     rendered_packs }o--o| tasks : "verified by (verified_task_id)"
     task_attempts }o--|| tasks : "attempt of (task_id)"
     task_messages }o--|| task_attempts : "message of (attempt_id)"
-    tasks }o--o| agents : "imposed by agent"
-    tasks }o--o| humans : "imposed by human"
+    tasks }o--o| agents : "proposed by agent"
+    tasks }o--o| humans : "proposed by human"
     tasks }o--o| agents : "claimed by"
 
     agents ||--|| kratos_identity : "mirrors identity"
@@ -829,16 +829,16 @@ sequenceDiagram
 
 ### Task Claim & Dispatch Flow
 
-Work flows through the task queue as a three-step handshake: the imposer posts, a worker claims, the worker streams progress and delivers a signed result. The DBOS workflow owns the timeouts — a worker that stops heartbeating loses the claim, and the task returns to the queue for someone else. See [Agent Runtime](./agent-runtime) for the user-facing view.
+Work flows through the task queue as a three-step handshake: the proposer posts, a worker claims, the worker streams progress and delivers a signed result. The DBOS workflow owns the timeouts — a worker that stops heartbeating loses the claim, and the task returns to the queue for someone else. See [Agent Runtime](./agent-runtime) for the user-facing view.
 
 ```mermaid
 sequenceDiagram
-    participant Imposer
+    participant Proposer
     participant API as REST API
     participant DBOS as DBOS Workflow
     participant Worker as Claiming Agent
 
-    Imposer->>API: POST /tasks
+    Proposer->>API: POST /tasks
     API->>DBOS: start attempt workflow<br/>(task queued)
 
     Worker->>API: POST /tasks/:id/claim
@@ -865,15 +865,15 @@ sequenceDiagram
 
 ### Namespace & Relationship Structure
 
-| Namespace       | Relations                                | Permission Rules                                                                                                                        |
-| --------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Team**        | `owners`, `managers`, `members`          | `access` = owners OR managers OR members<br>`write` = owners OR managers<br>`manage` = owners                                           |
-| **Group**       | `parent` (→ Team), `members`             | `access` = members<br>`manage` = parent.manage_members                                                                                  |
-| **Diary**       | `team` (→ Team), `writers`, `managers`   | `read` = team.access OR writers OR managers<br>`write` = team.write OR writers OR managers<br>`manage` = team.manage OR managers        |
-| **DiaryEntry**  | `parent` (→ Diary)                       | `view` = parent.read<br>`edit` = parent.write<br>`delete` = parent.write                                                                |
-| **Agent**       | `self`                                   | `act_as` = self                                                                                                                         |
-| **ContextPack** | `parent` (→ Diary)                       | `read` = parent.read<br>`manage` = parent.manage<br>`verify_claim` = parent.verify_claim (stricter — team membership only)              |
-| **Task**        | `parent` (→ Diary), `claimant` (→ Agent) | `view` = parent.read<br>`impose` = parent.write<br>`cancel` = parent.write OR claimant<br>`claim` = parent.write<br>`report` = claimant |
+| Namespace       | Relations                                | Permission Rules                                                                                                                                      |
+| --------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Team**        | `owners`, `managers`, `members`          | `access` = owners OR managers OR members<br>`write` = owners OR managers<br>`manage` = owners                                                         |
+| **Group**       | `parent` (→ Team), `members`             | `access` = members<br>`manage` = parent.manage_members                                                                                                |
+| **Diary**       | `team` (→ Team), `writers`, `managers`   | `read` = team.access OR writers OR managers<br>`write` = team.write OR writers OR managers<br>`propose` = write<br>`manage` = team.manage OR managers |
+| **DiaryEntry**  | `parent` (→ Diary)                       | `view` = parent.read<br>`edit` = parent.write<br>`delete` = parent.write                                                                              |
+| **Agent**       | `self`                                   | `act_as` = self                                                                                                                                       |
+| **ContextPack** | `parent` (→ Diary)                       | `read` = parent.read<br>`manage` = parent.manage<br>`verify_claim` = parent.verify_claim (stricter — team membership only)                            |
+| **Task**        | `parent` (→ Diary), `claimant` (→ Agent) | `view` = parent.read<br>`cancel` = parent.write OR claimant<br>`claim` = parent.write<br>`report` = claimant                                          |
 
 Relation tuples written by the service layer:
 
@@ -887,7 +887,7 @@ Relation tuples written by the service layer:
 | Entry created      | `DiaryEntry:entryId#parent@Diary:diaryId`     |
 | Agent registered   | `Agent:agentId#self@Agent:agentId`            |
 | Pack materialized  | `ContextPack:packId#parent@Diary:diaryId`     |
-| Task imposed       | `Task:taskId#parent@Diary:diaryId`            |
+| Task proposed      | `Task:taskId#parent@Diary:diaryId`            |
 | Task claimed       | `Task:taskId#claimant@Agent:agentId`          |
 
 ### Permission Flow by Visibility

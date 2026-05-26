@@ -71,7 +71,10 @@ import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import { createAssertDiaryReadable } from './services/diary-readable.js';
-import { createTaskService } from './services/task.service.js';
+import {
+  createTaskService,
+  type TaskService,
+} from './services/task.service.js';
 import {
   initContextDistillWorkflows,
   initDiaryTransferWorkflow,
@@ -251,6 +254,28 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     'Embedding pipeline warmed',
   );
 
+  await initTaskTypeRegistry();
+  const transactionRunner = createDrizzleTransactionRunner(dbConnection.db);
+  const taskService: TaskService = createTaskService({
+    taskRepository,
+    diaryRepository,
+    agentRepository,
+    contextPackRepository,
+    renderedPackRepository,
+    correlationSealRepository,
+    permissionChecker,
+    relationshipWriter,
+    transactionRunner,
+    logger: app.log,
+  });
+  const notifyTaskStatusChanged = async (taskId: string): Promise<void> => {
+    try {
+      await taskService.promoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
+    } catch (err) {
+      app.log.error({ taskId, err }, 'task.statusChanged.promotionFailed');
+    }
+  };
+
   // ── DBOS Plugin (handles full lifecycle) ───────────────────────
   await app.register(dbosPlugin, {
     databaseUrl: config.database.DATABASE_URL,
@@ -345,6 +370,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           transactionRunner: createDrizzleTransactionRunner(dbConnection.db),
           relationshipWriter,
           logger: app.log,
+          notifyTaskStatusChanged,
         });
       },
       (dataSource) => {
@@ -362,6 +388,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           countAttempts: (taskId) => taskRepository.countAttempts(taskId),
           getMaxAttempts: (taskId) => taskRepository.getMaxAttempts(taskId),
           findTaskById: (taskId) => taskRepository.findById(taskId),
+          notifyTaskStatusChanged,
         });
       },
       () => {
@@ -383,21 +410,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   });
 
   const dataSource = getDataSource();
-  const transactionRunner = createDBOSTransactionRunner(dataSource);
-
-  await initTaskTypeRegistry();
-  const taskService = createTaskService({
-    taskRepository,
-    diaryRepository,
-    agentRepository,
-    contextPackRepository,
-    renderedPackRepository,
-    correlationSealRepository,
-    permissionChecker,
-    relationshipWriter,
-    transactionRunner,
-    logger: app.log,
-  });
+  const dbosTransactionRunner = createDBOSTransactionRunner(dataSource);
 
   const diaryService = createDiaryService({
     logger: app.log,
@@ -408,7 +421,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     relationshipReader,
     relationshipWriter,
     embeddingService,
-    transactionRunner,
+    transactionRunner: dbosTransactionRunner,
   });
 
   const contextPackService = new ContextPackService({
@@ -466,7 +479,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     signingRequestRepository,
     nonceRepository,
     dataSource,
-    transactionRunner,
+    transactionRunner: dbosTransactionRunner,
     permissionChecker,
     relationshipReader,
     relationshipWriter,

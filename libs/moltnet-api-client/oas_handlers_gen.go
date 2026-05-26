@@ -15606,13 +15606,13 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 					In:   "query",
 				}: params.DiaryId,
 				{
-					Name: "imposedByAgentId",
+					Name: "proposedByAgentId",
 					In:   "query",
-				}: params.ImposedByAgentId,
+				}: params.ProposedByAgentId,
 				{
-					Name: "imposedByHumanId",
+					Name: "proposedByHumanId",
 					In:   "query",
-				}: params.ImposedByHumanId,
+				}: params.ProposedByHumanId,
 				{
 					Name: "claimedByAgentId",
 					In:   "query",

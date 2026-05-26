@@ -303,7 +303,7 @@ to defend it in the summary.
 
 ## Constraints
 
-- Entry types pinned by imposer (do not widen): \`semantic\`
+- Entry types pinned by proposer (do not widen): \`semantic\`
 - Recipe tag: \`topic-focused-v1\` (recorded on pack params)
 - No token budget — size the pack to match the prompt, not an arbitrary target.
 - Hard include (ALL must be present on an entry): \`scope:auth\`

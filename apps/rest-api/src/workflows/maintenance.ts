@@ -35,6 +35,7 @@ export interface MaintenanceDeps {
   transactionRunner: TransactionRunner;
   relationshipWriter: RelationshipWriter;
   logger: FastifyBaseLogger;
+  notifyTaskStatusChanged?: (taskId: string) => Promise<void>;
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -424,6 +425,7 @@ export function initMaintenanceWorkflows(
             attemptN: attempt.attemptN,
             claimedByAgentId: attempt.claimedByAgentId,
           });
+          await getDeps().notifyTaskStatusChanged?.(task.id);
           forceReleased += 1;
         } catch (err) {
           logger.error(

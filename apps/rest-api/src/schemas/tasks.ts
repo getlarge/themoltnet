@@ -1,4 +1,5 @@
 import {
+  ClaimCondition,
   ExecutorRef,
   ExecutorTrustLevel,
   Task,
@@ -37,17 +38,18 @@ export const CreateTaskBodySchema = Type.Object(
     input: Type.Record(Type.String(), Type.Unknown()),
     references: Type.Optional(Type.Array(Type.Ref(TaskRef))),
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),
+    claimCondition: Type.Optional(Type.Ref(ClaimCondition)),
     maxAttempts: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
     expiresInSec: Type.Optional(Type.Integer({ minimum: 1 })),
     requiredExecutorTrustLevel: Type.Optional(Type.Ref(ExecutorTrustLevel)),
-    // Imposer-set executor allowlist. Empty/unset = no restriction.
+    // Proposer-set executor allowlist. Empty/unset = no restriction.
     // Lowercased server-side before persistence. maxItems matches the
     // bound on Task.allowedExecutors so create-time and read-time
     // contracts agree.
     allowedExecutors: Type.Optional(
       Type.Array(Type.Ref(ExecutorRef), { maxItems: 16 }),
     ),
-    // Imposer-set timeout overrides (in seconds). Null/unset → server
+    // Proposer-set timeout overrides (in seconds). Null/unset → server
     // defaults (300s / 7200s). Bounds chosen to span e2e tests (≥1s) up
     // to long-running brief fulfillment (≤86400s = 24h).
     dispatchTimeoutSec: Type.Optional(
@@ -80,8 +82,8 @@ export const ListTasksQuerySchema = Type.Object(
     model: Type.Optional(Type.String({ minLength: 1 })),
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),
     diaryId: Type.Optional(Type.String({ format: 'uuid' })),
-    imposedByAgentId: Type.Optional(Type.String({ format: 'uuid' })),
-    imposedByHumanId: Type.Optional(Type.String({ format: 'uuid' })),
+    proposedByAgentId: Type.Optional(Type.String({ format: 'uuid' })),
+    proposedByHumanId: Type.Optional(Type.String({ format: 'uuid' })),
     claimedByAgentId: Type.Optional(Type.String({ format: 'uuid' })),
     hasAttempts: Type.Optional(Type.Boolean()),
     queuedAfter: Type.Optional(Type.String({ format: 'date-time' })),
@@ -194,7 +196,7 @@ export const ClaimTaskResponseSchema = Type.Object(
 export const HeartbeatResponseSchema = Type.Object(
   {
     claimExpiresAt: Type.String({ format: 'date-time' }),
-    // When true the imposer (or a diary writer) cancelled the task while
+    // When true the proposer (or a diary writer) cancelled the task while
     // this attempt was running. The runtime should abort the executor
     // instead of continuing — finishing the work and calling /complete
     // will fail with 409 anyway, and any side effects after this point
@@ -236,6 +238,7 @@ export const ListTaskSchemasResponseSchema = Type.Object(
 export const taskSchemas = [
   // Primitive enums first (no dependencies)
   TaskStatus,
+  ClaimCondition,
   ExecutorTrustLevel,
   ExecutorRef,
   TaskMessageKind,

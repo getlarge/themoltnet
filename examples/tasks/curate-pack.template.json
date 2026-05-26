@@ -9,8 +9,6 @@
   "dispatchTimeoutSec": null,
   "expiresAt": null,
   "id": "aa100001-0000-4000-8000-000000000001",
-  "imposedByAgentId": null,
-  "imposedByHumanId": null,
   "input": {
     "diaryId": "{{diaryId}}",
     "recipe": "topic-focused-v1",
@@ -23,6 +21,8 @@
   "inputSchemaCid": "cid-placeholder",
   "maxAttempts": 1,
   "outputKind": "artifact",
+  "proposedByAgentId": null,
+  "proposedByHumanId": null,
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [],
   "requiredExecutorTrustLevel": "selfDeclared",

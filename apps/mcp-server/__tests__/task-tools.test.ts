@@ -62,8 +62,8 @@ const mockTask = {
   inputCid: 'bafy-input',
   references: [],
   correlationId: null,
-  imposedByAgentId: '330e8400-e29b-41d4-a716-446655440091',
-  imposedByHumanId: null,
+  proposedByAgentId: '330e8400-e29b-41d4-a716-446655440091',
+  proposedByHumanId: null,
   acceptedAttemptN: null,
   requiredExecutorTrustLevel: 'selfDeclared',
   allowedExecutors: [],
@@ -190,7 +190,7 @@ describe('Task tools', () => {
           error: 'Forbidden',
           message: 'Forbidden',
           statusCode: 403,
-          detail: 'Not authorized to impose tasks on this diary',
+          detail: 'Not authorized to propose tasks on this diary',
         }) as never,
       );
 
@@ -207,7 +207,7 @@ describe('Task tools', () => {
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain(
-        'Not authorized to impose tasks on this diary',
+        'Not authorized to propose tasks on this diary',
       );
     });
 
@@ -314,8 +314,8 @@ describe('Task tools', () => {
           status: 'queued',
           task_type: 'curate_pack',
           diary_id: DIARY_ID,
-          imposed_by_agent_id: '330e8400-e29b-41d4-a716-446655440091',
-          imposed_by_human_id: '330e8400-e29b-41d4-a716-446655440093',
+          proposed_by_agent_id: '330e8400-e29b-41d4-a716-446655440091',
+          proposed_by_human_id: '330e8400-e29b-41d4-a716-446655440093',
           claimed_by_agent_id: '330e8400-e29b-41d4-a716-446655440092',
           has_attempts: true,
           queued_after: '2026-04-28T10:00:00.000Z',
@@ -335,8 +335,8 @@ describe('Task tools', () => {
             status: 'queued',
             taskTypes: ['curate_pack'],
             diaryId: DIARY_ID,
-            imposedByAgentId: '330e8400-e29b-41d4-a716-446655440091',
-            imposedByHumanId: '330e8400-e29b-41d4-a716-446655440093',
+            proposedByAgentId: '330e8400-e29b-41d4-a716-446655440091',
+            proposedByHumanId: '330e8400-e29b-41d4-a716-446655440093',
             claimedByAgentId: '330e8400-e29b-41d4-a716-446655440092',
             hasAttempts: true,
             queuedAfter: '2026-04-28T10:00:00.000Z',

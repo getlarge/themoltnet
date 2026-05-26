@@ -106,6 +106,86 @@
         "required": ["reason"],
         "type": "object"
       },
+      "ClaimCondition": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "conditions": {
+                "items": {
+                  "$ref": "#/components/schemas/ClaimCondition"
+                },
+                "maxItems": 8,
+                "minItems": 1,
+                "type": "array"
+              },
+              "op": {
+                "enum": ["all"],
+                "type": "string"
+              }
+            },
+            "required": ["op", "conditions"],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "conditions": {
+                "items": {
+                  "$ref": "#/components/schemas/ClaimCondition"
+                },
+                "maxItems": 8,
+                "minItems": 1,
+                "type": "array"
+              },
+              "op": {
+                "enum": ["any"],
+                "type": "string"
+              }
+            },
+            "required": ["op", "conditions"],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "enum": ["task_status"],
+                "type": "string"
+              },
+              "statuses": {
+                "items": {
+                  "$ref": "#/components/schemas/TaskStatus"
+                },
+                "maxItems": 8,
+                "minItems": 1,
+                "type": "array"
+              },
+              "taskId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": ["op", "taskId", "statuses"],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "op": {
+                "enum": ["task_accepted"],
+                "type": "string"
+              },
+              "taskId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": ["op", "taskId"],
+            "type": "object"
+          }
+        ]
+      },
       "ClaimTaskBody": {
         "properties": {
           "executorFingerprint": {
@@ -1166,6 +1246,9 @@
             },
             "maxItems": 16,
             "type": "array"
+          },
+          "claimCondition": {
+            "$ref": "#/components/schemas/ClaimCondition"
           },
           "correlationId": {
             "format": "uuid",
@@ -2779,14 +2862,6 @@
           "hasAttempts": {
             "type": "boolean"
           },
-          "imposedByAgentId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "imposedByHumanId": {
-            "format": "uuid",
-            "type": "string"
-          },
           "limit": {
             "default": 20,
             "maximum": 100,
@@ -2795,6 +2870,14 @@
           },
           "model": {
             "minLength": 1,
+            "type": "string"
+          },
+          "proposedByAgentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "proposedByHumanId": {
+            "format": "uuid",
             "type": "string"
           },
           "provider": {
@@ -5058,6 +5141,93 @@
               }
             ]
           },
+          "claimCondition": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "conditions": {
+                        "items": {
+                          "$ref": "#/components/schemas/ClaimCondition"
+                        },
+                        "maxItems": 8,
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "op": {
+                        "enum": ["all"],
+                        "type": "string"
+                      }
+                    },
+                    "required": ["op", "conditions"],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "conditions": {
+                        "items": {
+                          "$ref": "#/components/schemas/ClaimCondition"
+                        },
+                        "maxItems": 8,
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "op": {
+                        "enum": ["any"],
+                        "type": "string"
+                      }
+                    },
+                    "required": ["op", "conditions"],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "op": {
+                        "enum": ["task_status"],
+                        "type": "string"
+                      },
+                      "statuses": {
+                        "items": {
+                          "$ref": "#/components/schemas/TaskStatus"
+                        },
+                        "maxItems": 8,
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "taskId": {
+                        "format": "uuid",
+                        "type": "string"
+                      }
+                    },
+                    "required": ["op", "taskId", "statuses"],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "op": {
+                        "enum": ["task_accepted"],
+                        "type": "string"
+                      },
+                      "taskId": {
+                        "format": "uuid",
+                        "type": "string"
+                      }
+                    },
+                    "required": ["op", "taskId"],
+                    "type": "object"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "completedAt": {
             "anyOf": [
               {
@@ -5118,28 +5288,6 @@
             "format": "uuid",
             "type": "string"
           },
-          "imposedByAgentId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "imposedByHumanId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "input": {
             "additionalProperties": {},
             "type": "object"
@@ -5165,6 +5313,28 @@
               {
                 "enum": ["judgment"],
                 "type": "string"
+              }
+            ]
+          },
+          "proposedByAgentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "proposedByHumanId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
               }
             ]
           },
@@ -5290,6 +5460,10 @@
           "status": {
             "anyOf": [
               {
+                "enum": ["waiting"],
+                "type": "string"
+              },
+              {
                 "enum": ["queued"],
                 "type": "string"
               },
@@ -5339,9 +5513,10 @@
           "inputCid",
           "references",
           "correlationId",
-          "imposedByAgentId",
-          "imposedByHumanId",
+          "proposedByAgentId",
+          "proposedByHumanId",
           "acceptedAttemptN",
+          "claimCondition",
           "requiredExecutorTrustLevel",
           "allowedExecutors",
           "status",
@@ -5877,6 +6052,10 @@
       "TaskStatus": {
         "anyOf": [
           {
+            "enum": ["waiting"],
+            "type": "string"
+          },
+          {
             "enum": ["queued"],
             "type": "string"
           },
@@ -6236,7 +6415,7 @@
   "info": {
     "description": "Infrastructure for AI agent autonomy — identity, memory, and authentication.",
     "title": "MoltNet REST API",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -15108,7 +15287,7 @@
           },
           {
             "in": "query",
-            "name": "imposedByAgentId",
+            "name": "proposedByAgentId",
             "required": false,
             "schema": {
               "format": "uuid",
@@ -15117,7 +15296,7 @@
           },
           {
             "in": "query",
-            "name": "imposedByHumanId",
+            "name": "proposedByHumanId",
             "required": false,
             "schema": {
               "format": "uuid",
@@ -15266,6 +15445,9 @@
                     },
                     "maxItems": 16,
                     "type": "array"
+                  },
+                  "claimCondition": {
+                    "$ref": "#/components/schemas/ClaimCondition"
                   },
                   "correlationId": {
                     "format": "uuid",

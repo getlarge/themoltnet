@@ -4,7 +4,7 @@
  *
  * What this is
  * ------------
- * One imposer call per variant. Two invocations against the same
+ * One proposer call per variant. Two invocations against the same
  * scenario with the same `--correlation-id` create a runnable pair:
  *
  *   pnpm --filter @moltnet/tools task:run-eval \

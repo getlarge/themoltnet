@@ -9,8 +9,6 @@
   "dispatchTimeoutSec": null,
   "expiresAt": null,
   "id": "aa000002-0000-4000-8000-000000000002",
-  "imposedByAgentId": null,
-  "imposedByHumanId": null,
   "input": {
     "brief": "Count the number of TypeScript source files under /workspace/libs/agent-runtime/src (extensions .ts, excluding .test.ts). Use bash with 'find' or 'ls'. Report the exact count and list the file names. Keep the response concise.",
     "scopeHint": "demo",
@@ -20,6 +18,8 @@
   "inputSchemaCid": "cid-placeholder",
   "maxAttempts": 1,
   "outputKind": "artifact",
+  "proposedByAgentId": null,
+  "proposedByHumanId": null,
   "queuedAt": "2026-04-21T16:00:00Z",
   "references": [],
   "requiredExecutorTrustLevel": "selfDeclared",

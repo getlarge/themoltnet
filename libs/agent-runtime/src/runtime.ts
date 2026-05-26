@@ -176,7 +176,7 @@ export class AgentRuntime {
               code: 'task_cancelled',
               message:
                 reporter.cancelReason ??
-                'Task cancelled by imposer while executor was running.',
+                'Task cancelled by proposer while executor was running.',
               retryable: false,
             },
           };

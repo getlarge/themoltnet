@@ -338,7 +338,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         }
         // Pre-execute cancel check. The reporter's first heartbeat
         // (fired by `open()`) may already have observed `cancelled:true`
-        // from the server — e.g. the imposer cancelled between claim and
+        // from the server — e.g. the proposer cancelled between claim and
         // executor entry. Don't burn a VM on work that's already
         // terminal. The runtime would override our output anyway via the
         // post-execute cancelSignal check, but bailing here saves the

@@ -17,7 +17,7 @@
  * The rubric is **inherited from the fulfill task's
  * `input.successCriteria`** — no human-supplied rubric, no rubric
  * registry lookup. The chain becomes self-describing: whatever
- * acceptance the imposer pinned on the fulfill task is exactly what
+ * acceptance the proposer pinned on the fulfill task is exactly what
  * the assess task judges against (#1028's producer/judge model).
  */
 
@@ -50,7 +50,7 @@ export interface FulfillTaskInput {
    */
   successCriteria?: SuccessCriteria;
   /**
-   * Override the imposer-side running-total cap (server default 7200s).
+   * Override the proposer-side running-total cap (server default 7200s).
    * Set this to match (or undercut) the workflow's `timeout-minutes`
    * so an aborted runner doesn't leave the queue's view of the task
    * "running" until the default 2h cap fires.
@@ -98,7 +98,7 @@ export interface AssessTaskInput {
    */
   successCriteria: SuccessCriteria;
   /**
-   * Override the imposer-side running-total cap (server default 7200s).
+   * Override the proposer-side running-total cap (server default 7200s).
    * Same rationale as FulfillTaskInput.runningTimeoutSec.
    */
   runningTimeoutSec?: number;

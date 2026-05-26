@@ -1,6 +1,7 @@
 import type { TaskStatus } from '@moltnet/api-client';
 
 export const TASK_STATUS_FILTERS: TaskStatus[] = [
+  'waiting',
   'queued',
   'dispatched',
   'running',

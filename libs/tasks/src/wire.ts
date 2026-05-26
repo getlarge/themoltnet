@@ -13,7 +13,7 @@
  *
  * Identity rule:
  *   - claim/execute/sign → agent-only (`task_attempts.claimed_by_agent_id`)
- *   - impose/cancel → agent XOR human (dual nullable FK + XOR check)
+ *   - propose/cancel → agent XOR human (dual nullable FK + XOR check)
  *
  * See GH issue #852 for the full design snapshot.
  */
@@ -25,6 +25,7 @@ import { type Static, Type } from '@sinclair/typebox';
 
 export const TaskStatus = Type.Union(
   [
+    Type.Literal('waiting'),
     Type.Literal('queued'),
     Type.Literal('dispatched'),
     Type.Literal('running'),
@@ -97,6 +98,72 @@ export type TaskMessageKind = Static<typeof TaskMessageKind>;
 const Uuid = Type.String({ format: 'uuid' });
 const Cid = Type.String({ minLength: 1 });
 const IsoTimestamp = Type.String({ format: 'date-time' });
+const MAX_CLAIM_CONDITION_BRANCHES = 8;
+const MAX_CLAIM_CONDITION_STATUSES = 8;
+
+export type ClaimCondition =
+  | {
+      op: 'all';
+      conditions: ClaimCondition[];
+    }
+  | {
+      op: 'any';
+      conditions: ClaimCondition[];
+    }
+  | {
+      op: 'task_status';
+      taskId: string;
+      statuses: TaskStatus[];
+    }
+  | {
+      op: 'task_accepted';
+      taskId: string;
+    };
+
+export const ClaimCondition = Type.Recursive(
+  (Self) =>
+    Type.Union([
+      Type.Object(
+        {
+          op: Type.Literal('all'),
+          conditions: Type.Array(Self, {
+            minItems: 1,
+            maxItems: MAX_CLAIM_CONDITION_BRANCHES,
+          }),
+        },
+        { additionalProperties: false },
+      ),
+      Type.Object(
+        {
+          op: Type.Literal('any'),
+          conditions: Type.Array(Self, {
+            minItems: 1,
+            maxItems: MAX_CLAIM_CONDITION_BRANCHES,
+          }),
+        },
+        { additionalProperties: false },
+      ),
+      Type.Object(
+        {
+          op: Type.Literal('task_status'),
+          taskId: Uuid,
+          statuses: Type.Array(Type.Ref(TaskStatus), {
+            minItems: 1,
+            maxItems: MAX_CLAIM_CONDITION_STATUSES,
+          }),
+        },
+        { additionalProperties: false },
+      ),
+      Type.Object(
+        {
+          op: Type.Literal('task_accepted'),
+          taskId: Uuid,
+        },
+        { additionalProperties: false },
+      ),
+    ]),
+  { $id: 'ClaimCondition' },
+);
 
 /**
  * Reference to another task's output or an external artifact.
@@ -171,7 +238,7 @@ export type TaskError = Static<typeof TaskError>;
 /**
  * Authored-by pair — exactly one side is non-null.
  * Enforced at the DB layer via a XOR CHECK constraint on
- * (imposed_by_agent_id, imposed_by_human_id) and
+ * (proposed_by_agent_id, proposed_by_human_id) and
  * (cancelled_by_agent_id, cancelled_by_human_id).
  *
  * We keep both columns flat on the wire to match the DB shape 1:1 (PR 1
@@ -213,13 +280,14 @@ export const Task = Type.Object(
     // Grouping (type-neutral)
     correlationId: Type.Union([Uuid, Type.Null()]),
 
-    // Attribution — imposer is agent XOR human
-    imposedByAgentId: Type.Union([Uuid, Type.Null()]),
-    imposedByHumanId: Type.Union([Uuid, Type.Null()]),
+    // Attribution — proposer is agent XOR human
+    proposedByAgentId: Type.Union([Uuid, Type.Null()]),
+    proposedByHumanId: Type.Union([Uuid, Type.Null()]),
     acceptedAttemptN: Type.Union([Type.Number(), Type.Null()]),
+    claimCondition: Type.Union([ClaimCondition, Type.Null()]),
     requiredExecutorTrustLevel: ExecutorTrustLevel,
 
-    // Imposer-set executor allowlist. Empty = no restriction. Advisory
+    // Proposer-set executor allowlist. Empty = no restriction. Advisory
     // routing (mirrors `--task-types`); the daemon filters at list time.
     allowedExecutors: Type.Array(ExecutorRef, { maxItems: 16 }),
 
@@ -237,7 +305,7 @@ export const Task = Type.Object(
     // Retry policy
     maxAttempts: Type.Number({ minimum: 1 }),
 
-    // Imposer-set timeout overrides. Null means the workflow uses server
+    // Proposer-set timeout overrides. Null means the workflow uses server
     // defaults (300s dispatch, 7200s running). Pinned on the row so
     // retries see the same budget. Integer seconds — keep aligned with
     // CreateTaskBodySchema's bounds so OpenAPI / generated clients use

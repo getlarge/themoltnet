@@ -451,6 +451,269 @@ func (s *CancelTaskUnauthorized) Validate() error {
 	return nil
 }
 
+func (s ClaimCondition) Validate() error {
+	switch s.Type {
+	case ClaimConditionAllClaimCondition:
+		if err := s.ClaimConditionAll.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case ClaimConditionAnyClaimCondition:
+		if err := s.ClaimConditionAny.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case ClaimConditionTaskStatusClaimCondition:
+		if err := s.ClaimConditionTaskStatus.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case ClaimConditionTaskAcceptedClaimCondition:
+		if err := s.ClaimConditionTaskAccepted.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
+}
+
+func (s *ClaimConditionAll) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Conditions == nil {
+			return errors.New("nil is invalid value")
+		}
+		if err := (validate.Array{
+			MinLength:    1,
+			MinLengthSet: true,
+			MaxLength:    8,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.Conditions)); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Conditions {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "conditions",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Op.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "op",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ClaimConditionAllOp) Validate() error {
+	switch s {
+	case "all":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ClaimConditionAny) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Conditions == nil {
+			return errors.New("nil is invalid value")
+		}
+		if err := (validate.Array{
+			MinLength:    1,
+			MinLengthSet: true,
+			MaxLength:    8,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.Conditions)); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Conditions {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "conditions",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Op.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "op",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ClaimConditionAnyOp) Validate() error {
+	switch s {
+	case "any":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ClaimConditionTaskAccepted) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Op.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "op",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ClaimConditionTaskAcceptedOp) Validate() error {
+	switch s {
+	case "task_accepted":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ClaimConditionTaskStatus) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Op.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "op",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if s.Statuses == nil {
+			return errors.New("nil is invalid value")
+		}
+		if err := (validate.Array{
+			MinLength:    1,
+			MinLengthSet: true,
+			MaxLength:    8,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.Statuses)); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Statuses {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "statuses",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ClaimConditionTaskStatusOp) Validate() error {
+	switch s {
+	case "task_status":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ClaimTaskBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -3327,6 +3590,24 @@ func (s *CreateTaskReq) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "allowedExecutors",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ClaimCondition.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "claimCondition",
 			Error: err,
 		})
 	}
@@ -11681,6 +11962,24 @@ func (s *Task) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.ClaimCondition.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "claimCondition",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.DispatchTimeoutSec.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -12258,6 +12557,33 @@ func (s *TaskAttemptUsage) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s TaskClaimCondition) Validate() error {
+	switch s.Type {
+	case ClaimConditionAllTaskClaimCondition:
+		if err := s.ClaimConditionAll.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case ClaimConditionAnyTaskClaimCondition:
+		if err := s.ClaimConditionAny.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case ClaimConditionTaskStatusTaskClaimCondition:
+		if err := s.ClaimConditionTaskStatus.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case ClaimConditionTaskAcceptedTaskClaimCondition:
+		if err := s.ClaimConditionTaskAccepted.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
 }
 
 func (s *TaskHeartbeatForbidden) Validate() error {
@@ -12859,6 +13185,8 @@ func (s TaskRequiredExecutorTrustLevel) Validate() error {
 
 func (s TaskStatus) Validate() error {
 	switch s {
+	case "waiting":
+		return nil
 	case "queued":
 		return nil
 	case "dispatched":

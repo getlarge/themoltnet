@@ -1431,6 +1431,7 @@ export type DiaryEntryWithRelations = {
 };
 
 export type TaskStatus =
+  | 'waiting'
   | 'queued'
   | 'dispatched'
   | 'running'
@@ -1438,6 +1439,25 @@ export type TaskStatus =
   | 'failed'
   | 'cancelled'
   | 'expired';
+
+export type ClaimCondition =
+  | {
+      op: 'all';
+      conditions: Array<ClaimCondition>;
+    }
+  | {
+      op: 'any';
+      conditions: Array<ClaimCondition>;
+    }
+  | {
+      op: 'task_status';
+      taskId: string;
+      statuses: Array<TaskStatus>;
+    }
+  | {
+      op: 'task_accepted';
+      taskId: string;
+    };
 
 export type ExecutorTrustLevel =
   | 'selfDeclared'
@@ -1514,9 +1534,28 @@ export type Task = {
     };
   }>;
   correlationId: string | null;
-  imposedByAgentId: string | null;
-  imposedByHumanId: string | null;
+  proposedByAgentId: string | null;
+  proposedByHumanId: string | null;
   acceptedAttemptN: number | null;
+  claimCondition:
+    | {
+        op: 'all';
+        conditions: Array<ClaimCondition>;
+      }
+    | {
+        op: 'any';
+        conditions: Array<ClaimCondition>;
+      }
+    | {
+        op: 'task_status';
+        taskId: string;
+        statuses: Array<TaskStatus>;
+      }
+    | {
+        op: 'task_accepted';
+        taskId: string;
+      }
+    | null;
   requiredExecutorTrustLevel:
     | 'selfDeclared'
     | 'agentSigned'
@@ -1527,6 +1566,7 @@ export type Task = {
     model: string;
   }>;
   status:
+    | 'waiting'
     | 'queued'
     | 'dispatched'
     | 'running'
@@ -1639,6 +1679,7 @@ export type CreateTaskBody = {
   };
   references?: Array<TaskRef>;
   correlationId?: string;
+  claimCondition?: ClaimCondition;
   maxAttempts?: number;
   expiresInSec?: number;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
@@ -1658,8 +1699,8 @@ export type ListTasksQuery = {
   model?: string;
   correlationId?: string;
   diaryId?: string;
-  imposedByAgentId?: string;
-  imposedByHumanId?: string;
+  proposedByAgentId?: string;
+  proposedByHumanId?: string;
   claimedByAgentId?: string;
   hasAttempts?: boolean;
   queuedAfter?: string;
@@ -6461,8 +6502,8 @@ export type ListTasksData = {
     model?: string;
     correlationId?: string;
     diaryId?: string;
-    imposedByAgentId?: string;
-    imposedByHumanId?: string;
+    proposedByAgentId?: string;
+    proposedByHumanId?: string;
     claimedByAgentId?: string;
     hasAttempts?: boolean;
     queuedAfter?: string;
@@ -6511,6 +6552,7 @@ export type CreateTaskData = {
     };
     references?: Array<TaskRef>;
     correlationId?: string;
+    claimCondition?: ClaimCondition;
     maxAttempts?: number;
     expiresInSec?: number;
     requiredExecutorTrustLevel?: ExecutorTrustLevel;
