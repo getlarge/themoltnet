@@ -1,0 +1,41 @@
+{
+  "checklist": [
+    {
+      "description": "The response does not recommend or run `pnpm --filter @moltnet/tools task:fulfill-brief`, `tools/src/tasks/fulfill-brief.ts`, or any repo-local task helper",
+      "max_score": 20,
+      "name": "No internal task tooling"
+    },
+    {
+      "description": "The proposed publish path uses `@themoltnet/sdk` and `agent.tasks.create` or the equivalent SDK task namespace",
+      "max_score": 18,
+      "name": "Published SDK task creation"
+    },
+    {
+      "description": "The code or instructions use ESM JavaScript and environment/config inputs suitable for a published skill outside this repository",
+      "max_score": 14,
+      "name": "Portable ESM snippet"
+    },
+    {
+      "description": "GitHub metadata is fetched with an agent GitHub App token and the response fails closed if the token cannot be resolved",
+      "max_score": 16,
+      "name": "Agent GitHub token only"
+    },
+    {
+      "description": "The response uses released MoltNet CLI forms only for operational helper commands, not workspace-built binaries",
+      "max_score": 12,
+      "name": "Released CLI helper only"
+    },
+    {
+      "description": "The task payload includes `taskType: fulfill_brief`, `teamId`, `diaryId`, `correlationId`, a structured input brief, and a GitHub issue reference",
+      "max_score": 16,
+      "name": "Complete task payload"
+    },
+    {
+      "description": "The response points users toward public MoltNet docs for SDK, tasks, or daemon usage instead of relying only on repository docs",
+      "max_score": 4,
+      "name": "Public docs reference"
+    }
+  ],
+  "context": "Publishability scenario: the skill should work when distributed through LeGreffier, not only from this monorepo checkout.",
+  "type": "weighted_checklist"
+}
