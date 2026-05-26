@@ -48,6 +48,8 @@ const SOURCE_TEST_EXCLUDES = [
   'e2e',
 ];
 
+const SOURCE_TEST_FILE_PATTERN = /(^|\/)src\/.*\.(?:test|spec)\.[cm]?[jt]sx?$/;
+
 export default async function splitTsconfigsGenerator(
   tree: Tree,
   options: SplitTsconfigsGeneratorSchema,
@@ -117,7 +119,8 @@ function migrateProject(
     : undefined;
   const source =
     options.force && existingLib ? mergeTsconfig(root, existingLib) : root;
-  const hasProjectTests = existingSpec !== undefined;
+  const hasProjectTests =
+    existingSpec !== undefined || hasSourceTests(tree, options.root);
   const hasTestTsconfig = tree.exists(testTsconfigPath);
   const e2eOnly = isE2eOnlyProject(options.name, options.root);
   const projectPackageJson = readProjectPackageJson(tree, options.root);
@@ -132,8 +135,17 @@ function migrateProject(
     );
     writeJson(tree, specTsconfigPath, {
       compilerOptions: {
-        ...(specSource.compilerOptions ?? {}),
+        ...pick(specSource.compilerOptions ?? {}, [
+          'allowJs',
+          'jsx',
+          'lib',
+          'module',
+          'moduleResolution',
+          'sourceMap',
+          'types',
+        ]),
         composite: true,
+        outDir: './out-tsc/spec',
         tsBuildInfoFile: './out-tsc/tsconfig.spec.tsbuildinfo',
       },
       extends: './tsconfig.json',
@@ -291,6 +303,32 @@ function hasLocalGenerators(packageJson: Json): boolean {
     typeof packageJson.generators === 'string' ||
     typeof packageJson.schematics === 'string'
   );
+}
+
+function hasSourceTests(tree: Tree, projectRoot: string): boolean {
+  const srcRoot = joinPathFragments(projectRoot, 'src');
+  return (
+    tree.exists(srcRoot) &&
+    hasMatchingFile(tree, srcRoot, (file) =>
+      SOURCE_TEST_FILE_PATTERN.test(file),
+    )
+  );
+}
+
+function hasMatchingFile(
+  tree: Tree,
+  filePath: string,
+  predicate: (filePath: string) => boolean,
+): boolean {
+  if (tree.isFile(filePath)) {
+    return predicate(filePath);
+  }
+
+  return tree
+    .children(filePath)
+    .some((child) =>
+      hasMatchingFile(tree, joinPathFragments(filePath, child), predicate),
+    );
 }
 
 function specTsconfig(

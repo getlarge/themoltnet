@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc/spec",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
+    "types": ["node", "vitest/globals", "vitest"]
+  },
+  "extends": "./tsconfig.json",
+  "include": [".vitepress/**/*", "scripts/**/*"],
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
+}
