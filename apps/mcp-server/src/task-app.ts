@@ -18,6 +18,7 @@ import {
   createMcpAppResourceMeta,
   createMcpAppToolMeta,
   MCP_APP_RESOURCE_MIME_TYPE,
+  type McpAppResourceMetaOptions,
   resolveInstalledMcpAppHtmlPath,
 } from './mcp-app-ui.js';
 import type {
@@ -117,6 +118,13 @@ export function registerTaskApp(
   fastify: FastifyInstance,
   deps: Pick<McpDeps, 'consoleBaseUrl'>,
 ): void {
+  // Get MCP app config from fastify instance (injected by app.ts)
+  const mcpAppConfig = (
+    fastify as FastifyInstance & { mcpAppConfig?: McpAppResourceMetaOptions }
+  ).mcpAppConfig;
+
+  const taskAppResourceMeta = createMcpAppResourceMeta(mcpAppConfig ?? {});
+
   fastify.mcpAddTool(
     {
       name: 'tasks_app_open',
@@ -137,7 +145,7 @@ export function registerTaskApp(
       uriPattern: TASK_APP_RESOURCE_URI,
       description: 'Interactive MCP App for task queue and attempt inspection.',
       mimeType: TASK_APP_MIME_TYPE,
-      _meta: TASK_APP_RESOURCE_META,
+      _meta: taskAppResourceMeta,
     },
     async () => handleTasksAppResource(),
   );

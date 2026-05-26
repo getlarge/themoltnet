@@ -34,6 +34,7 @@ export function resolveInstalledMcpAppHtmlPath(
 }
 
 export interface McpAppResourceMetaOptions {
+  domain?: string;
   connectDomains?: string[];
   resourceDomains?: string[];
   frameDomains?: string[];
@@ -44,6 +45,7 @@ export function createMcpAppResourceMeta(
   options: McpAppResourceMetaOptions = {},
 ): {
   ui: {
+    domain?: string;
     csp: {
       connectDomains: string[];
       resourceDomains: string[];
@@ -52,7 +54,17 @@ export function createMcpAppResourceMeta(
     prefersBorder: boolean;
   };
 } {
-  return {
+  const meta: {
+    ui: {
+      domain?: string;
+      csp: {
+        connectDomains: string[];
+        resourceDomains: string[];
+        frameDomains: string[];
+      };
+      prefersBorder: boolean;
+    };
+  } = {
     ui: {
       csp: {
         connectDomains: options.connectDomains ?? [],
@@ -62,6 +74,12 @@ export function createMcpAppResourceMeta(
       prefersBorder: options.prefersBorder ?? false,
     },
   };
+
+  if (options.domain) {
+    meta.ui.domain = options.domain;
+  }
+
+  return meta;
 }
 
 export function createMcpAppToolMeta(resourceUri: string): {

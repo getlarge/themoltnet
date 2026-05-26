@@ -209,6 +209,8 @@ services:
       CLIENT_CREDENTIALS_PROXY: 'true'
       MCP_REDIS_HOST: redis
       MCP_REDIS_PORT: '6379'
+      MCP_APP_DOMAIN: http://localhost:8001
+      MCP_APP_CONNECT_DOMAINS: http://localhost:8001,http://rest-api:8080
     depends_on:
       rest-api:
         condition: service_healthy

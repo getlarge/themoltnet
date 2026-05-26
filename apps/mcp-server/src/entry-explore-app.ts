@@ -26,6 +26,7 @@ import {
   createMcpAppResourceMeta,
   createMcpAppToolMeta,
   MCP_APP_RESOURCE_MIME_TYPE,
+  type McpAppResourceMetaOptions,
   resolveInstalledMcpAppHtmlPath,
 } from './mcp-app-ui.js';
 import type {
@@ -112,6 +113,13 @@ export async function handleEntriesMapResource(): Promise<ReadResourceResult> {
 }
 
 export function registerEntryExploreApp(fastify: FastifyInstance): void {
+  // Get MCP app config from fastify instance (injected by app.ts)
+  const mcpAppConfig = (
+    fastify as FastifyInstance & { mcpAppConfig?: McpAppResourceMetaOptions }
+  ).mcpAppConfig;
+
+  const entryMapAppResourceMeta = createMcpAppResourceMeta(mcpAppConfig ?? {});
+
   fastify.mcpAddTool(
     {
       name: 'entries_map_open',
@@ -142,7 +150,7 @@ export function registerEntryExploreApp(fastify: FastifyInstance): void {
       description:
         'Interactive MCP App for human-first diary sense-making and zone discovery.',
       mimeType: ENTRY_MAP_APP_MIME_TYPE,
-      _meta: ENTRY_MAP_APP_RESOURCE_META,
+      _meta: entryMapAppResourceMeta,
     },
     async () => handleEntriesMapResource(),
   );
