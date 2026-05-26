@@ -7,5 +7,5 @@
 
 export type { AppOptions } from './app.js';
 export { buildApp } from './app.js';
-export { getRequiredSecrets } from './config.js';
+export { getRequiredSecrets, parseDomainList } from './config.js';
 export type { McpDeps } from './types.js';

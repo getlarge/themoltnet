@@ -17,6 +17,8 @@ primary_region = "fra"  # Frankfurt — EU data residency
   AUTH_ENABLED = "true"
   CLIENT_CREDENTIALS_PROXY = "true"
   MCP_RESOURCE_URI = "https://mcp.themolt.net"
+  MCP_APP_DOMAIN = "https://mcp.themolt.net"
+  MCP_APP_CONNECT_DOMAINS = "https://api.themolt.net,https://mcp.themolt.net"
   # Redis-backed MCP session persistence. Keep MCP_REDIS_PASSWORD in Fly
   # secrets when needed; host/port/TLS are typically non-secret.
   # MCP_REDIS_HOST = "your-fly-redis.internal"

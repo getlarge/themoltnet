@@ -58,6 +58,31 @@ export const McpServerConfigSchema = Type.Object({
       description: "This server's public URL (for OAuth2 resource metadata)",
     }),
   ),
+  MCP_APP_DOMAIN: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Domain for MCP apps (required for ChatGPT app submission)',
+    }),
+  ),
+  MCP_APP_CONNECT_DOMAINS: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Comma-separated list of domains the MCP app can connect to',
+    }),
+  ),
+  MCP_APP_RESOURCE_DOMAINS: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Comma-separated list of domains for static resources',
+    }),
+  ),
+  MCP_APP_FRAME_DOMAINS: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description:
+        'Comma-separated list of domains that can be embedded in frames',
+    }),
+  ),
   CLIENT_CREDENTIALS_PROXY: Type.Optional(
     Type.Boolean({
       default: false,
@@ -176,6 +201,40 @@ export interface ResolvedRedisConfig {
   tls?: Record<string, unknown>;
 }
 
+export interface McpAppConfig {
+  domain?: string;
+  connectDomains: string[];
+  resourceDomains: string[];
+  frameDomains: string[];
+}
+
+export function parseDomainList(domains?: string): string[] {
+  if (!domains) return [];
+  return domains
+    .split(',')
+    .map((d) => d.trim())
+    .filter((d) => d.length > 0);
+}
+
+export function resolveMcpAppConfig(
+  config: McpServerConfig,
+): McpAppConfig | null {
+  if (!config.MCP_APP_DOMAIN) {
+    return null;
+  }
+
+  const connectDomains = config.MCP_APP_CONNECT_DOMAINS
+    ? parseDomainList(config.MCP_APP_CONNECT_DOMAINS)
+    : [config.MCP_APP_DOMAIN];
+
+  return {
+    domain: config.MCP_APP_DOMAIN,
+    connectDomains,
+    resourceDomains: parseDomainList(config.MCP_APP_RESOURCE_DOMAINS),
+    frameDomains: parseDomainList(config.MCP_APP_FRAME_DOMAINS),
+  };
+}
+
 export function resolveHydraUrls(
   config: McpServerConfig,
 ): ResolvedHydraUrls | null {
@@ -239,7 +298,7 @@ export function resolveRedisConfig(
   }
 
   return {
-    host: config.MCP_REDIS_HOST!,
+    host: config.MCP_REDIS_HOST as string,
     port: config.MCP_REDIS_PORT ?? 6379,
     password: config.MCP_REDIS_PASSWORD,
     db: config.MCP_REDIS_DB,

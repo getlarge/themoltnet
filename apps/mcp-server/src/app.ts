@@ -12,8 +12,10 @@ import { trace } from '@opentelemetry/api';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import {
+  type McpAppConfig,
   type McpServerConfig,
   resolveHydraUrls,
+  resolveMcpAppConfig,
   resolveRedisConfig,
 } from './config.js';
 import { registerCryptoTools } from './crypto-tools.js';
@@ -305,6 +307,24 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     authorization,
     ...(tracer ? { telemetry: { tracer } } : {}),
   });
+
+  // Inject MCP app configuration for resource metadata
+  const mcpAppConfig = resolveMcpAppConfig(config);
+  if (mcpAppConfig) {
+    (app as FastifyInstance & { mcpAppConfig?: McpAppConfig }).mcpAppConfig =
+      mcpAppConfig;
+    app.log.info(
+      {
+        domain: mcpAppConfig.domain,
+        connectDomains: mcpAppConfig.connectDomains,
+        resourceDomains: mcpAppConfig.resourceDomains,
+        frameDomains: mcpAppConfig.frameDomains,
+      },
+      'MCP app configuration applied',
+    );
+  } else {
+    app.log.info('No MCP app configuration found');
+  }
 
   // Register request context plugin (AFTER mcp plugin so authContext is available)
   await app.register(requestContextPlugin);
