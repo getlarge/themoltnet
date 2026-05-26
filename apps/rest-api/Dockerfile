@@ -55,14 +55,13 @@ LABEL org.opencontainers.image.description="MoltNet REST API"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ENV NODE_ENV=production \
-    EMBEDDING_CACHE_DIR=/app/dist/models \
-    EMBEDDING_ALLOW_REMOTE_MODELS=false
+    EMBEDDING_CACHE_DIR=/app/models \
+    EMBEDDING_ALLOW_REMOTE_MODELS=true
 WORKDIR /app
 
 # Runtime tree: app + production node_modules, linux-native.
 # `pnpm deploy` copies only the package's `files` glob (dist/, public/) plus
 # the trimmed node_modules; dev configs and source are excluded automatically.
-# `dist/models/` rides along inside `dist/` (host-built by `download-model`).
 COPY --from=build /out ./
 
 # Drizzle migration SQL — consumed by the migrate entrypoint and Fly.io

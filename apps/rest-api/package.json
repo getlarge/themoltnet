@@ -111,36 +111,9 @@
           "{projectRoot}/dist/migrate.js"
         ]
       },
-      "download-model": {
-        "cache": true,
-        "dependsOn": [
-          "build"
-        ],
-        "executor": "nx:run-commands",
-        "inputs": [
-          {
-            "runtime": "node --version"
-          },
-          "{workspaceRoot}/tools/download-embedding-model.mjs",
-          {
-            "externalDependencies": [
-              "@huggingface/transformers",
-              "onnxruntime-node"
-            ]
-          }
-        ],
-        "options": {
-          "command": "node tools/download-embedding-model.mjs --cache-dir apps/rest-api/dist/models",
-          "cwd": "{workspaceRoot}"
-        },
-        "outputs": [
-          "{projectRoot}/dist/models"
-        ]
-      },
       "docker:build": {
         "dependsOn": [
-          "build:migrate",
-          "download-model"
+          "build:migrate"
         ]
       },
       "e2e": {
