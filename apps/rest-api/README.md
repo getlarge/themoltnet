@@ -17,8 +17,9 @@ docker compose --env-file .env.local up -d
 
 ### Embedding model (one-time setup)
 
-The API eagerly warms the ONNX embedding pipeline on startup. The model must be
-pre-downloaded locally before running in offline mode.
+The API eagerly warms the ONNX embedding pipeline on startup. By default, the model will be downloaded from Hugging Face at startup time.
+
+For offline development or to avoid repeated downloads, you can pre-download the model:
 
 **Why `apps/rest-api/models/` and not the repo root?**
 pnpm sets the process cwd to `apps/rest-api/` when running the dev script, so
