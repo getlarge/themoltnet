@@ -102,7 +102,11 @@ export function buildFulfillBriefUserPrompt(
     '5. For every commit, create a signed diary entry first via',
     '   `moltnet_create_entry` and embed its id in the commit trailer',
     '   `MoltNet-Diary: <id>` (per the runtime instructor).',
-    '6. Push the branch and open a PR.',
+    '6. Push the branch and open a PR — run `git push` and `gh pr create`',
+    '   IN the VM with your normal `bash` tool (use the',
+    '   `GH_TOKEN=$(moltnet github token …) gh …` form from the runtime',
+    '   instructor). Do NOT use `moltnet_host_exec` for this; it needs human',
+    '   approval that is unavailable in a headless run.',
   ].join('\n');
 
   const sections: PromptSection[] = [

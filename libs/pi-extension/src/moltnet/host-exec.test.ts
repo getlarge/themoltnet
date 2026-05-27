@@ -344,3 +344,24 @@ describe('moltnet_host_exec UI approval', () => {
     expect(parsed.host_exec).toBe(true);
   });
 });
+
+describe('moltnet_host_exec description (issue #1248 regression pin)', () => {
+  // The escape-hatch description used to recommend `git push` / `gh pr create`
+  // as its canonical examples. In a headless task run the agent cannot obtain
+  // the human approval this tool requires, so an agent that follows that
+  // recommendation fails to open a PR (#1248). Routine git/gh runs IN the VM
+  // via the normal bash tool. Keep the description from advertising those
+  // commands again.
+  it('does not recommend running git push / gh pr create via host_exec', () => {
+    const tool = getHostExecTool(makeConfig());
+    const description = tool.description ?? '';
+    expect(description).not.toMatch(/gh pr create/);
+    expect(description).not.toMatch(/Use ONLY when a sandboxed operation/);
+  });
+
+  it('points the agent to the in-VM path instead', () => {
+    const tool = getHostExecTool(makeConfig());
+    const description = tool.description ?? '';
+    expect(description).toMatch(/INSIDE the VM|in the VM|in the guest/i);
+  });
+});

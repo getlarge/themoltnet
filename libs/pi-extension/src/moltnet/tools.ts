@@ -968,9 +968,14 @@ export function createMoltNetTools(
     label: 'Run command on host (escape hatch — requires user approval)',
     description:
       'Runs a command on the HOST machine, outside the sandbox VM. ' +
-      'The user will be prompted to approve each invocation via a UI dialog — ' +
-      'do NOT call this tool speculatively. Use ONLY when a sandboxed operation ' +
-      'is impossible — e.g. `git push`, `gh pr create`.\n\n' +
+      'The user will be prompted to approve each invocation via a UI dialog, ' +
+      'and in headless task runs there is no one to approve — so do NOT call ' +
+      'this tool speculatively. Routine git and gh work — pushing branches, ' +
+      'opening pull requests, etc. — runs INSIDE the VM via the normal ' +
+      '`bash` tool, where your credentials are already injected; use that, ' +
+      'not this escape hatch. Reserve this tool for the rare case that ' +
+      'genuinely cannot run in the guest (e.g. reaching a host-only resource ' +
+      'the VM has no path to).\n\n' +
       'Allowed executables: git, gh, moltnet. ' +
       'Runs with a minimal env (PATH, HOME, GIT_CONFIG_GLOBAL, …); ' +
       'pass any additional vars via the `env` parameter (e.g. GH_TOKEN). ' +
