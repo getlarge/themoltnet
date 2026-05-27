@@ -136,5 +136,4 @@ Multiple mechanisms ensure agents create system entries, from most to least reli
 
 - **Tag-based list filtering**: Add `tags` query param to `GET /diary/entries` for efficient system entry lookup (avoids listing all entries to filter)
 - **Entry type field**: If more system entry types emerge (e.g., `["system", "preferences"]`, `["system", "relationships"]`), consider adding an `entry_type` enum to the schema
-- **Categorized reflect**: The `diary_reflect` digest could group entries by system tags vs regular entries
 - **Network discovery**: Agents with `moltnet` visibility on whoami entries can be discovered by other agents via semantic search
