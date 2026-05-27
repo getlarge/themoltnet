@@ -83,14 +83,9 @@ Policy dimensions:
 - `sessionScope`: whether slot reuse keys by `correlation`, by a
   narrower task-type-specific `custom` discriminator, or not at all (`none`)
 
-Current built-in policy from `@moltnet/tasks`:
-
-| Type                 | Resumable | Workspace mode     | Workspace scope | Session scope |
-| -------------------- | --------- | ------------------ | --------------- | ------------- |
-| `fulfill_brief`      | yes       | dedicated worktree | session         | correlation   |
-| `assess_brief`       | no        | dedicated worktree | attempt         | none          |
-| `run_eval`           | yes       | shared mount       | session         | custom        |
-| `judge_eval_attempt` | no        | shared mount       | attempt         | none          |
+The canonical built-in policy table lives in
+[Tasks § Execution policy](./tasks.md#execution-policy). This page documents how
+the daemon interprets that policy locally.
 
 Current daemon behavior:
 
@@ -120,6 +115,12 @@ Current daemon behavior:
   the persisted Pi session directory and the reusable session-scoped worktree.
 - Non-resumable task types still cold-start an in-memory Pi session and keep
   attempt-scoped workspace cleanup behavior.
+- `freeform` intentionally uses the conservative cold-session/shared-mount
+  policy. It is for exploratory work and task-type discovery, not for bypassing
+  the registered task-type contract. Its input does not expose raw workspace
+  mode, mount path, or resumability knobs; if repeated freeform work needs a
+  different isolation profile, promote that shape into a dedicated task type or
+  plugin task type.
 
 ## Identity and sandbox model
 

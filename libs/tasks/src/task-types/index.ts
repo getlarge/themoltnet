@@ -19,6 +19,7 @@ import {
   CuratePackInput,
   CuratePackOutput,
 } from './curate-pack.js';
+import { FREEFORM_TYPE, FreeformInput, FreeformOutput } from './freeform.js';
 import {
   FULFILL_BRIEF_TYPE,
   FulfillBriefInput,
@@ -62,6 +63,7 @@ import {
 
 export * from './assess-brief.js';
 export * from './curate-pack.js';
+export * from './freeform.js';
 export * from './fulfill-brief.js';
 export * from './judge-eval-attempt.js';
 export * from './judge-eval-variant.js';
@@ -231,6 +233,16 @@ function requireVerificationWhenCriteriaPresent(
  * / claiming a task.
  */
 export const BUILT_IN_TASK_TYPES = {
+  [FREEFORM_TYPE]: {
+    name: FREEFORM_TYPE,
+    inputSchema: FreeformInput,
+    outputSchema: FreeformOutput,
+    outputKind: 'artifact',
+    workspaceScope: 'attempt',
+    sessionScope: 'none',
+    requiresReferences: false,
+    validateOutput: requireVerificationWhenCriteriaPresent,
+  },
   [FULFILL_BRIEF_TYPE]: {
     name: FULFILL_BRIEF_TYPE,
     inputSchema: FulfillBriefInput,

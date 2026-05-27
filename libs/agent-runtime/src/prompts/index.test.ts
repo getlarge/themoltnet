@@ -1,5 +1,6 @@
 import {
   ASSESS_BRIEF_TYPE,
+  FREEFORM_TYPE,
   JUDGE_EVAL_ATTEMPT_TYPE,
   PR_REVIEW_TYPE,
 } from '@moltnet/tasks';
@@ -22,6 +23,27 @@ describe('buildTaskUserPrompt', () => {
     const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('Implement feature X');
     expect(prompt).toContain('t1');
+  });
+
+  it('builds freeform prompt with discovery instructions', () => {
+    const task = makeFulfillBriefTask({
+      taskType: FREEFORM_TYPE,
+      input: {
+        title: 'Task taxonomy',
+        brief: 'Figure out if this recurring request deserves a typed task.',
+        expectedOutput: 'Recommendation with proposed type if useful.',
+        suggestedTaskType: 'taxonomy_probe',
+        constraints: ['Keep unknown task types invalid for now.'],
+      },
+    });
+
+    const prompt = buildTaskUserPrompt(task, ctx).text;
+
+    expect(prompt).toContain('Freeform Task Agent');
+    expect(prompt).toContain('Figure out if this recurring request');
+    expect(prompt).toContain('taxonomy_probe');
+    expect(prompt).toContain('proposedTaskType');
+    expect(prompt).toContain('submit_freeform_output');
   });
 
   it('rejects fulfill_brief with empty brief', () => {

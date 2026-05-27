@@ -25,6 +25,7 @@ describe('getSubmitOutputContract', () => {
 
   it('produces a complete contract for every built-in task type', () => {
     const types = [
+      'freeform',
       'fulfill_brief',
       'assess_brief',
       'curate_pack',
