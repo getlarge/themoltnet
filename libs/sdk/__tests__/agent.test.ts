@@ -1,8 +1,6 @@
 import type { Client } from '@moltnet/api-client';
 import {
   acceptTransfer,
-  compileDiary,
-  consolidateDiary,
   createDiary,
   createDiaryEntry,
   createDiaryGrant,
@@ -82,8 +80,6 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     getDiaryEntryById: vi.fn(),
     updateDiaryEntryById: vi.fn(),
     deleteDiaryEntryById: vi.fn(),
-    consolidateDiary: vi.fn(),
-    compileDiary: vi.fn(),
     searchDiary: vi.fn(),
     getWhoami: vi.fn(),
     getAgentProfile: vi.fn(),
@@ -923,56 +919,6 @@ describe('Agent facade', () => {
 
       expect(deleteDiary).toHaveBeenCalledWith(
         expect.objectContaining({ path: { id: 'diary-1' } }),
-      );
-    });
-
-    it('diaries.consolidate passes id and body', async () => {
-      vi.mocked(consolidateDiary).mockResolvedValueOnce({
-        data: {
-          clusters: [],
-          stats: { inputCount: 0, clusterCount: 0, elapsedMs: 0 },
-          trace: { thresholdUsed: 0.2, strategyUsed: 'centroid' },
-          workflowId: 'wf-1',
-        },
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diaries.consolidate('diary-1', {
-        threshold: 0.2,
-        strategy: 'centroid',
-      });
-
-      expect(consolidateDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { id: 'diary-1' },
-          body: { threshold: 0.2, strategy: 'centroid' },
-        }),
-      );
-    });
-
-    it('diaries.compile passes id and body', async () => {
-      vi.mocked(compileDiary).mockResolvedValueOnce({
-        data: {
-          entries: [],
-          stats: { tokenBudget: 1000, usedTokens: 0, elapsedMs: 0 },
-          trace: { lambdaUsed: 0.5, selectedCount: 0 },
-          workflowId: 'wf-2',
-        },
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diaries.compile('diary-1', {
-        taskPrompt: 'auth flow',
-        tokenBudget: 1000,
-      });
-
-      expect(compileDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { id: 'diary-1' },
-          body: { taskPrompt: 'auth flow', tokenBudget: 1000 },
-        }),
       );
     });
 

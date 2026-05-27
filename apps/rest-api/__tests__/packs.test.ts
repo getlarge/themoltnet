@@ -29,7 +29,7 @@ const MOCK_PACK = {
   diaryId: DIARY_ID,
   packCid: PACK_CID,
   packCodec: 'dag-cbor',
-  packType: 'compile' as const,
+  packType: 'custom' as const,
   params: { tokenBudget: 4000 },
   payload: { entries: [] },
   creator: MOCK_CREATOR,

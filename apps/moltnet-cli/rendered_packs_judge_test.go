@@ -222,7 +222,7 @@ func (h *stubJudgeLocalHandler) GetContextPackById(
 		Creator:   creator,
 		PackCid:   "bafy-source",
 		PackCodec: "dag-cbor",
-		PackType:  moltnetapi.ContextPackResponsePackTypeCompile,
+		PackType:  moltnetapi.ContextPackResponsePackTypeOptimized,
 		Entries:   h.sourceEntries,
 		Params:    jx.Raw(`{}`),
 		Payload:   jx.Raw(`{}`),

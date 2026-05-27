@@ -19,7 +19,7 @@ const MOCK_PACK = {
   diaryId: DIARY_ID,
   packCid: 'bafyreihash',
   packCodec: 'dag-cbor',
-  packType: 'compile' as const,
+  packType: 'custom' as const,
   params: {},
   payload: {},
   creator: {

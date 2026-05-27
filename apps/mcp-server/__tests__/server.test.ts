@@ -64,8 +64,6 @@ vi.mock('@moltnet/api-client', () => ({
   updateDiaryEntryById: vi.fn(),
   deleteDiaryEntryById: vi.fn(),
   verifyDiaryEntryById: vi.fn(),
-  consolidateDiary: vi.fn(),
-  compileDiary: vi.fn(),
   listDiaries: vi.fn(),
   createDiary: vi.fn(),
   getDiary: vi.fn(),
@@ -394,7 +392,6 @@ describe('buildApp', () => {
     expect(toolNames).not.toContain('diary_search');
     expect(toolNames).not.toContain('diary_update');
     expect(toolNames).not.toContain('diary_delete');
-    expect(toolNames).not.toContain('diary_reflect');
 
     await app.close();
   });

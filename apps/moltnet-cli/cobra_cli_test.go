@@ -492,7 +492,7 @@ func TestDiaryNoSubcommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, sub := range []string{"list", "create", "get", "tags", "compile"} {
+	for _, sub := range []string{"list", "create", "get", "tags"} {
 		if !strings.Contains(stdout, sub) {
 			t.Errorf("expected diary help to list '%s' subcommand, got: %s", sub, stdout)
 		}
@@ -544,35 +544,6 @@ func TestDiaryTagsRequiresArg(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "accepts 1 arg") {
 		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
-	}
-}
-
-func TestDiaryCompileRequiresBudget(t *testing.T) {
-	t.Parallel()
-	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "diary", "compile", "00000000-0000-0000-0000-000000000001")
-	if err == nil {
-		t.Fatal("expected error when --token-budget is missing, got nil")
-	}
-	if !strings.Contains(err.Error(), "token-budget") {
-		t.Errorf("expected error to mention 'token-budget', got: %v", err)
-	}
-}
-
-func TestDiaryCompileHelp(t *testing.T) {
-	t.Parallel()
-	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "diary", "compile", "--help")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	for _, flag := range []string{"--token-budget", "--task-prompt", "--include-tags", "--exclude-tags"} {
-		if !strings.Contains(stdout, flag) {
-			t.Errorf("expected compile help to contain %q, got: %s", flag, stdout)
-		}
-	}
-	if !strings.Contains(stdout, "Example") {
-		t.Errorf("expected compile help to contain 'Example', got: %s", stdout)
 	}
 }
 
