@@ -14,83 +14,97 @@ truthfully emitted `verification.passed=false` with the failed gate. The task
 still completed (`acceptedAttemptN: 1`). Manual recovery PR: #1247. Diary
 incident: `be224974-…`.
 
-## Root cause (two layers, one load-bearing)
+## Root cause (prompt-surface misdirection, NOT a wiring gap)
 
 The issue's title frames a _symptom_ ("hard-gate completion"). The actual
-defect is that **the headless daemon agent has no non-interactive path to open
-a PR**:
+defect is that **the agent was steered to the wrong execution context for PR
+creation**, even though a working in-VM path exists.
 
-1. **Missing `gh` auto-approve rule (load-bearing).** `sandbox.json`
-   `hostExec.autoApprove` declares two rules, **both `executable: "git"`**
-   (`git push`, `git push origin`, excluding main/master). There is **no
-   `executable: "gh"` rule**. `gh` _is_ in `HOST_EXEC_ALLOWED`
-   (`libs/pi-extension/src/moltnet/tools.ts:953`) so it may run via
-   `moltnet_host_exec`, but with no matching auto-approve rule
-   `shouldAutoApproveHostExec` returns `false`
-   (`tools.ts:145-157`), so `gh pr create` requires an approval the headless
-   run cannot grant → the reported error.
+The VM is provisioned for in-VM `gh pr create`:
 
-2. **Prompt/instructor never route PR creation through the host escape-hatch.**
-   The fulfill prompt says "Push the branch and open a PR"
-   (`libs/agent-runtime/src/prompts/fulfill-brief.ts:105`). The runtime
-   instructor explains `GH_TOKEN` usage and says `git push` "uses the
-   gitconfig-configured credential helper"
-   (`libs/pi-extension/src/runtime/runtime-instructor.ts:43-54`) — but never
-   states that `git push` / `gh pr create` must run **on the host** via the
-   `moltnet_host_exec` tool. The default `bash` tool runs _inside_ the VM
-   (`vm.exec`), where host credentials and the SSH agent socket are not
-   reachable, so an in-VM `gh`/`git push` cannot authenticate.
+- The base snapshot layer **always installs `git`, `gh`, and the `moltnet`
+  CLI** (`libs/pi-extension/src/snapshot.ts:4-6`); a repo's `sandbox.json`
+  `setupCommands` run _on top of_ that base, they don't replace it.
+- Agent credentials are injected **inside the guest** at
+  `/home/agent/.moltnet/<name>/`, so "git, gh, and the `moltnet` CLI all work
+  inside the guest" (`libs/pi-extension/README.md:74-78, 101-103`).
+- VM network egress to `api.github.com` is allowed (`sandbox.json:65`).
+- The runtime instructor already documents the correct in-VM `gh` invocation:
+  `GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>`
+  (`libs/pi-extension/src/runtime/runtime-instructor.ts:43-54`).
+
+So `gh pr create` should "just work" in the VM's normal `bash` tool. The agent
+nonetheless reached for the **host escape-hatch** `moltnet_host_exec`, which in
+a headless run cannot obtain the human UI approval it requires — producing
+`"Unable to create PR due to user approval requirements for gh command"`. Three
+prompt-surface signals caused that misroute:
+
+1. **The escape-hatch tool's own description names `git push` and
+   `gh pr create` as its canonical examples (load-bearing).**
+   `moltnet_host_exec`'s description reads: _"Use ONLY when a sandboxed
+   operation is impossible — e.g. `git push`, `gh pr create`"_
+   (`libs/pi-extension/src/moltnet/tools.ts:973`). This directly contradicts
+   the README ("gh works inside the guest") and is the lure: an agent that
+   needs to open a PR matches the tool whose description advertises exactly
+   that.
+
+2. **The fulfill prompt says only "Push the branch and open a PR"**
+   (`libs/agent-runtime/src/prompts/fulfill-brief.ts:105`) — no "in the VM",
+   no `gh pr create`, no `GH_TOKEN`. With no in-prompt route, the agent
+   selects a tool by description match (see #1).
 
 3. **Advisory verification let the honest failure through (by design).**
    Producer self-assessment is advisory: `verification.passed=false` does not
    gate `/complete` (`libs/tasks/src/success-criteria.ts:22-47`). The binding
    gate is meant to be a downstream judgment task by a different agent.
 
+**Explicitly rejected fix:** adding a `gh` auto-approve rule to `sandbox.json`.
+That would legitimize the host route — running `gh` against GitHub from the
+host machine — which is undesirable: PR creation should stay inside the
+sandboxed VM, where credentials are already injected and the blast radius is
+contained. The host escape-hatch must remain a rare, human-approved last
+resort.
+
 ## Strategy
 
-Fix the wiring (primary) and add a cheap honest hard-gate as defense-in-depth.
+Fix the prompt-surface misdirection (primary) so the agent opens PRs **in the
+VM**, and add a cheap honest hard-gate as defense-in-depth.
 
-The wiring fix makes PRs openable headlessly. The hard-gate ensures that _if_ a
-required gate ever fails again (regression, transient infra), the attempt fails
-loudly instead of completing — reusing machinery that **already exists**: the
-daemon already converts a server-rejected `/complete` into a `tasks.fail` with
-an inspectable reason (`apps/agent-daemon/src/lib/finalize.ts:55-71`).
+The prompt fix makes PRs openable headlessly via the existing in-VM path. The
+hard-gate ensures that _if_ a required gate ever fails again (regression,
+transient infra), the attempt fails loudly instead of completing — reusing
+machinery that **already exists**: the daemon already converts a
+server-rejected `/complete` into a `tasks.fail` with an inspectable reason
+(`apps/agent-daemon/src/lib/finalize.ts:55-71`).
 
 ## Design
 
-### Part A — Wiring fix (primary)
+### Part A — Prompt-surface fix (primary). No `sandbox.json` change.
 
-**A1. Add a `gh` auto-approve rule to `sandbox.json`.**
+**A1. Fix the `moltnet_host_exec` description (stop the lure at the source).**
 
-```jsonc
-{
-  "executable": "gh",
-  "argsPrefix": ["pr"],
-}
-```
+In `libs/pi-extension/src/moltnet/tools.ts:969-977`, remove `git push` and
+`gh pr create` as the example use-cases. Replace with wording that (a) gives a
+genuinely host-only example and (b) states that routine git/gh — including
+push and PR creation — run **inside the VM** via the normal `bash` tool, not
+this escape-hatch. This fixes every task type's prompt surface at once, not
+just `fulfill_brief`, and removes the contradiction with the README.
 
-Scope to the `gh pr …` subcommand family (covers `pr create`, `pr view`,
-`pr edit`, `pr comment`). This matches the GitHub App's `pull_requests: write`
-permission surface and the daemon's actual need. It does **not** auto-approve
-arbitrary `gh` (e.g. `gh api`, `gh release`, `gh auth`) — those still require
-explicit approval, preserving the escape-hatch's security posture.
+**A2. Make the in-VM PR route explicit in the fulfill prompt.**
 
-Rationale for `argsPrefix: ["pr"]` over `["pr", "create"]`: a fulfill agent
-legitimately runs `gh pr view` / `gh pr edit` to update an existing PR within
-the same attempt; gating only `create` would re-block those. The
-`pull_requests: write` token already bounds the blast radius.
+In `libs/agent-runtime/src/prompts/fulfill-brief.ts`, change workflow step 6
+from "Push the branch and open a PR" to spell out: run `git push` and
+`gh pr create` **in the VM** using your normal `bash` tool, with the
+`GH_TOKEN=$(moltnet github token …) gh …` form the runtime instructor
+documents. Do not use `moltnet_host_exec` for this.
 
-**A2. Route PR creation through `moltnet_host_exec` in the prompt + instructor.**
+**A3. Reinforce in the runtime instructor.**
 
-- `runtime-instructor.ts`: add an explicit "Host operations" subsection stating
-  that `git push` and `gh pr …` MUST be invoked via the `moltnet_host_exec`
-  custom tool (host side), not the in-VM `bash` tool, because host credentials
-  and the SSH agent are not available inside the VM. Keep the existing
-  `GH_TOKEN` guidance and fold it into the host-exec example (pass `GH_TOKEN`
-  via the tool's `env` parameter).
-- `fulfill-brief.ts`: change workflow step 6 from "Push the branch and open a
-  PR" to name the `moltnet_host_exec` route explicitly and reference the
-  instructor's Host operations section.
+In `libs/pi-extension/src/runtime/runtime-instructor.ts`, add one explicit line
+to the existing Identity & credentials block: `git push` and `gh` run in the
+VM's normal shell; `moltnet_host_exec` is a last-resort host escape-hatch that
+requires human approval and is unavailable in headless task runs — never use it
+for routine push/PR. (Keeps the already-correct `GH_TOKEN` one-liner.)
 
 ### Part B — Honest hard-gate (defense-in-depth, server-side)
 
@@ -148,14 +162,17 @@ inspectable error."
 
 ## Affected files
 
-| File                                                  | Change                                                 |
-| ----------------------------------------------------- | ------------------------------------------------------ |
-| `sandbox.json`                                        | Add `gh pr` auto-approve rule (A1)                     |
-| `libs/pi-extension/src/runtime/runtime-instructor.ts` | Host-operations subsection (A2)                        |
-| `libs/agent-runtime/src/prompts/fulfill-brief.ts`     | Workflow step 6 routes via host_exec (A2)              |
-| `libs/tasks/src/task-types/index.ts`                  | `rejectFailedRequiredGates` + `composeValidators` (B1) |
-| `libs/tasks/src/success-criteria.ts`                  | Header doc update (C)                                  |
-| `docs/understand/agent-runtime.md`                    | Producer/judge note (C)                                |
+| File                                                  | Change                                                              |
+| ----------------------------------------------------- | ------------------------------------------------------------------- |
+| `libs/pi-extension/src/moltnet/tools.ts`              | Rewrite `moltnet_host_exec` description; drop push/PR examples (A1) |
+| `libs/agent-runtime/src/prompts/fulfill-brief.ts`     | Workflow step 6: explicit in-VM `gh pr create` (A2)                 |
+| `libs/pi-extension/src/runtime/runtime-instructor.ts` | One line: git/gh run in-VM; host_exec is last-resort (A3)           |
+| `libs/tasks/src/task-types/index.ts`                  | `rejectFailedRequiredGates` + `composeValidators` (B1)              |
+| `libs/tasks/src/success-criteria.ts`                  | Header doc update (C)                                               |
+| `docs/understand/agent-runtime.md`                    | Producer/judge note (C)                                             |
+
+**Not changed:** `sandbox.json` — deliberately, to keep PR creation in-VM and
+out of the host escape-hatch (see "Explicitly rejected fix" above).
 
 ## Testing
 
@@ -188,12 +205,16 @@ inspectable error."
   - Use `@moltnet/api-client` typed fns (per the e2e rendered-pack rule), raw
     fetch only for `/health`, `/oauth2/token`, `/auth/register`.
 
-**Wiring (A) verification:** the `gh pr` auto-approve rule is data in
-`sandbox.json`; assert via a `shouldAutoApproveHostExec` unit test in
-`libs/pi-extension` that `{executable:'gh', args:['pr','create',…]}` is
-auto-approved against the committed rule set, and that `{executable:'gh',
-args:['api',…]}` is **not**. This pins the security scope so a future edit
-can't silently widen it.
+**Prompt-surface (A) verification:** these are prose changes, hardest to
+unit-test meaningfully. Pin the regression intent with a cheap string
+assertion: a test in `libs/pi-extension` (e.g. alongside `host-exec.test.ts`)
+that the `moltnet_host_exec` tool description does **not** contain
+`"gh pr create"` / `"git push"` as recommended uses — guarding against the lure
+silently returning. No `sandbox.json`/`shouldAutoApproveHostExec` change to
+test, since Part A intentionally leaves the auto-approve rules untouched.
+Manual/e2e confirmation that a daemon fulfill run opens a PR in-VM is the real
+acceptance signal; see the agent-daemon smoke-test walkthrough in
+`apps/agent-daemon/README.md`.
 
 ## Out of scope
 
@@ -211,6 +232,7 @@ can't silently widen it.
 2. _"If PR creation fails, the attempt fails with a clear, inspectable error"_
    → existing daemon fallback surfaces `output_rejected_by_server` with the
    gate id/detail (Part B2). And primarily: PR creation no longer fails,
-   because the host route is now wired (Part A).
+   because the agent is now steered to the working in-VM `gh pr create` path
+   instead of the un-approvable host escape-hatch (Part A).
 3. _"Docs distinguish advisory self-verification from hard completion gates"_ →
    Part C.
