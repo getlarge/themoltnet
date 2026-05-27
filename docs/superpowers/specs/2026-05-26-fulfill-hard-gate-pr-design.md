@@ -104,7 +104,15 @@ In `libs/pi-extension/src/runtime/runtime-instructor.ts`, add one explicit line
 to the existing Identity & credentials block: `git push` and `gh` run in the
 VM's normal shell; `moltnet_host_exec` is a last-resort host escape-hatch that
 requires human approval and is unavailable in headless task runs — never use it
-for routine push/PR. (Keeps the already-correct `GH_TOKEN` one-liner.)
+for routine git/gh. (Keeps the already-correct `GH_TOKEN` one-liner.)
+
+> **Scope note — the instructor is generic.** `buildRuntimeInstructor` is
+> injected into _every_ task type's system prompt (and propagated to subagents
+> via `parentRuntimeInstructor`), and does not branch on `taskType`. So the A3
+> wording MUST stay task-type-neutral: phrase it about git/gh execution context
+> generally, **not** about "opening your PR". PR-specific instructions belong in
+> A2 (`fulfill_brief` prompt) only — a `judge_pack` / `run_eval` task that never
+> pushes must not be told about PR mechanics in its invariant block.
 
 ### Part B — Honest hard-gate (defense-in-depth, server-side)
 
