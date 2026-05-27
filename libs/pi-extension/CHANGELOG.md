@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.20.0...pi-extension-v0.20.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* **tasks:** steer fulfill PR creation to the in-VM gh path ([#1248](https://github.com/getlarge/themoltnet/issues/1248)) ([#1256](https://github.com/getlarge/themoltnet/issues/1256)) ([53c11de](https://github.com/getlarge/themoltnet/commit/53c11dea74afa76a0ef8cfd65775923522b6f128))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.19.1
+
 ## [0.20.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.19.6...pi-extension-v0.20.0) (2026-05-26)
 
 

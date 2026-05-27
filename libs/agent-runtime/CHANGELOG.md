@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.19.0...agent-runtime-v0.19.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* **tasks:** steer fulfill PR creation to the in-VM gh path ([#1248](https://github.com/getlarge/themoltnet/issues/1248)) ([#1256](https://github.com/getlarge/themoltnet/issues/1256)) ([53c11de](https://github.com/getlarge/themoltnet/commit/53c11dea74afa76a0ef8cfd65775923522b6f128))
+
 ## [0.19.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.18.5...agent-runtime-v0.19.0) (2026-05-26)
 
 
