@@ -36,10 +36,8 @@ import type {
   Diary,
   DiaryEntry,
   DiaryServiceDeps,
-  Digest,
   ListInput,
   ListTagsInput,
-  ReflectInput,
   SearchInput,
   ServicePrincipal,
   TagCount,
@@ -118,7 +116,6 @@ export interface DiaryService {
     agentId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
-  reflect(input: ReflectInput): Promise<Digest>;
 }
 
 /**
@@ -145,7 +142,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     logger,
     diaryRepository,
     diaryEntryRepository,
-    entryRelationRepository,
     permissionChecker,
     relationshipReader,
     relationshipWriter,
@@ -651,41 +647,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         );
       }
       return deleted;
-    },
-
-    async reflect(input: ReflectInput): Promise<Digest> {
-      const { diaryId, days = 7, maxEntries = 50, entryTypes } = input;
-      // TODO: add permission check
-      const entries = await diaryEntryRepository.getRecentForDigest(
-        diaryId,
-        days,
-        maxEntries,
-        entryTypes,
-      );
-
-      // Exclude superseded entries from reflection
-      const entryIds = entries.map((e) => e.id);
-      const supersededIds =
-        entryIds.length > 0
-          ? new Set(
-              await entryRelationRepository.listSupersededTargetIds(entryIds),
-            )
-          : new Set<string>();
-      const activeEntries = entries.filter((e) => !supersededIds.has(e.id));
-
-      return {
-        entries: activeEntries.map((e) => ({
-          id: e.id,
-          content: e.content,
-          tags: e.tags,
-          importance: e.importance,
-          entryType: e.entryType,
-          createdAt: e.createdAt,
-        })),
-        totalEntries: activeEntries.length,
-        periodDays: days,
-        generatedAt: new Date().toISOString(),
-      };
     },
   };
 }

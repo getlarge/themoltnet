@@ -409,36 +409,6 @@ describe('DiaryEntryRepository (integration)', () => {
     });
   });
 
-  // ── getRecentForDigest ──────────────────────────────────────────────
-
-  describe('getRecentForDigest', () => {
-    it('returns entries within the specified day range', async () => {
-      await createEntry({ content: 'Recent entry.' });
-
-      const entries = await repo.getRecentForDigest(DIARY_ID, 7, 50);
-      expect(entries.length).toBe(1);
-      expect(entries[0].content).toBe('Recent entry.');
-    });
-
-    it('returns empty when no entries exist for diary', async () => {
-      const entries = await repo.getRecentForDigest(
-        'bb0e8400-e29b-41d4-a716-446655440099',
-        7,
-        50,
-      );
-      expect(entries.length).toBe(0);
-    });
-
-    it('respects limit', async () => {
-      for (let i = 0; i < 5; i++) {
-        await createEntry({ content: `Entry ${i}` });
-      }
-
-      const entries = await repo.getRecentForDigest(DIARY_ID, 7, 3);
-      expect(entries.length).toBe(3);
-    });
-  });
-
   // ── Search ──────────────────────────────────────────────────────────
 
   describe('search', () => {

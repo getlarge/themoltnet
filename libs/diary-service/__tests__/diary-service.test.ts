@@ -80,7 +80,6 @@ function createMockDiaryEntryRepository(): {
     search: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    getRecentForDigest: vi.fn(),
     countSignedByDiary: vi.fn(),
   };
 }
@@ -1031,110 +1030,6 @@ describe('DiaryService', () => {
 
       expect(result).toBe(true);
       expect(diaryWorkflows.deleteEntry).toHaveBeenCalledWith(ENTRY_ID);
-    });
-  });
-
-  describe('reflect', () => {
-    it('generates digest from recent entries', async () => {
-      const entries = [
-        createMockEntry({
-          content: 'I learned about OAuth2',
-          tags: ['learning'],
-        }),
-        createMockEntry({
-          id: 'entry-2',
-          content: 'Met another agent named Pith',
-          tags: ['social'],
-        }),
-      ];
-      repo.getRecentForDigest.mockResolvedValue(entries);
-
-      const result = await service.reflect({ diaryId: DIARY_ID });
-
-      expect(result.entries).toHaveLength(2);
-      expect(result.totalEntries).toBe(2);
-      expect(result.periodDays).toBe(7);
-      expect(result.generatedAt).toBeDefined();
-      expect(result.entries[0].content).toBe('I learned about OAuth2');
-    });
-
-    it('uses custom days and limit', async () => {
-      repo.getRecentForDigest.mockResolvedValue([]);
-
-      await service.reflect({
-        diaryId: DIARY_ID,
-        days: 30,
-        maxEntries: 100,
-      });
-
-      expect(repo.getRecentForDigest).toHaveBeenCalledWith(
-        DIARY_ID,
-        30,
-        100,
-        undefined,
-      );
-    });
-
-    it('returns empty digest when no entries', async () => {
-      repo.getRecentForDigest.mockResolvedValue([]);
-
-      const result = await service.reflect({ diaryId: DIARY_ID });
-
-      expect(result.entries).toHaveLength(0);
-      expect(result.totalEntries).toBe(0);
-    });
-
-    it('passes entryTypes filter to repository', async () => {
-      repo.getRecentForDigest.mockResolvedValue([]);
-
-      await service.reflect({
-        diaryId: DIARY_ID,
-        entryTypes: ['identity', 'soul'],
-      });
-
-      expect(repo.getRecentForDigest).toHaveBeenCalledWith(DIARY_ID, 7, 50, [
-        'identity',
-        'soul',
-      ]);
-    });
-
-    it('excludes superseded entries from digest', async () => {
-      const entries = [
-        createMockEntry({
-          id: 'active-entry',
-          content: 'Current knowledge',
-        }),
-        createMockEntry({
-          id: 'old-entry',
-          content: 'Outdated knowledge',
-        }),
-      ];
-      repo.getRecentForDigest.mockResolvedValue(entries);
-      // 'old-entry' is the target of a 'supersedes' relation — it is superseded
-      entryRelationRepo.listSupersededTargetIds.mockResolvedValue([
-        'old-entry',
-      ]);
-
-      const result = await service.reflect({ diaryId: DIARY_ID });
-
-      expect(result.entries).toHaveLength(1);
-      expect(result.entries[0].id).toBe('active-entry');
-      expect(result.totalEntries).toBe(1);
-    });
-
-    it('includes importance and entryType in digest entries', async () => {
-      const entries = [
-        createMockEntry({
-          importance: 8,
-          entryType: 'identity',
-        }),
-      ];
-      repo.getRecentForDigest.mockResolvedValue(entries);
-
-      const result = await service.reflect({ diaryId: DIARY_ID });
-
-      expect(result.entries[0].importance).toBe(8);
-      expect(result.entries[0].entryType).toBe('identity');
     });
   });
 });

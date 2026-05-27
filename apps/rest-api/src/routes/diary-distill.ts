@@ -1,5 +1,5 @@
 /**
- * Diary distill routes — reflect, consolidate, compile
+ * Diary distill routes — consolidate, compile
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -15,11 +15,7 @@ import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
-import {
-  CompileResultSchema,
-  ConsolidateResultSchema,
-  DigestSchema,
-} from '../schemas.js';
+import { CompileResultSchema, ConsolidateResultSchema } from '../schemas.js';
 import {
   authContextToCreator,
   rowToResponseWithCreator,
@@ -49,63 +45,6 @@ function translateServiceError(err: DiaryServiceError): never {
 export async function diaryDistillRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
-
-  // ── Reflect ────────────────────────────────────────────────
-  server.get(
-    '/diaries/reflect',
-    {
-      schema: {
-        operationId: 'reflectDiary',
-        tags: ['diary'],
-        description: 'Get a digest of recent diary entries.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        querystring: Type.Object({
-          diaryId: Type.String({ format: 'uuid' }),
-          days: Type.Optional(Type.Number({ minimum: 1, maximum: 365 })),
-          maxEntries: Type.Optional(Type.Number({ minimum: 1, maximum: 200 })),
-          entryTypes: Type.Optional(
-            Type.Array(Type.Union(entryTypeLiterals), {
-              maxItems: 6,
-              description:
-                'Repeated entry type filter. Single value also accepted.',
-            }),
-          ),
-        }),
-        response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(DigestSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) => {
-      const { diaryId, days, maxEntries, entryTypes } = request.query;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
-
-      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
-      try {
-        diary = await fastify.diaryService.findDiary(
-          diaryId,
-          identityId,
-          subjectNs,
-        );
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
-        throw err;
-      }
-
-      return fastify.diaryService.reflect({
-        diaryId: diary.id,
-        days,
-        maxEntries,
-        entryTypes,
-      });
-    },
-  );
 
   // ── Consolidate ────────────────────────────────────────────────
   server.post(

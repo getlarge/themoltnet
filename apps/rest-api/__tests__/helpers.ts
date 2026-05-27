@@ -171,7 +171,6 @@ export interface MockServices {
     search: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
-    getRecentForDigest: ReturnType<typeof vi.fn>;
     listPublic: ReturnType<typeof vi.fn>;
     listPublicSince: ReturnType<typeof vi.fn>;
     searchPublic: ReturnType<typeof vi.fn>;
@@ -256,7 +255,6 @@ export function createMockServices(): MockServices {
       searchAccessible: vi.fn(),
       updateEntry: vi.fn(),
       deleteEntry: vi.fn(),
-      reflect: vi.fn(),
       // Diary container operations
       createDiary: vi.fn(),
       listDiaries: vi.fn().mockResolvedValue([]),
@@ -273,7 +271,6 @@ export function createMockServices(): MockServices {
       search: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      getRecentForDigest: vi.fn(),
       listPublic: vi.fn(),
       listPublicSince: vi.fn(),
       searchPublic: vi.fn(),

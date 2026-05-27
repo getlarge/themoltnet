@@ -13,7 +13,6 @@ import {
   createClient,
   createDiaryEntry as apiCreateDiaryEntry,
   createEntryRelation,
-  reflectDiary,
   searchDiary,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -299,17 +298,6 @@ describe('Diary hybrid search', () => {
         client,
         auth: () => agentB.accessToken,
         body: { query: 'npm audit', diaryId: agent.privateDiaryId },
-      });
-
-      expect(error).toBeDefined();
-      expect(response.status).toBe(404);
-    });
-
-    it('agentB cannot reflect on agentA diary', async () => {
-      const { error, response } = await reflectDiary({
-        client,
-        auth: () => agentB.accessToken,
-        query: { diaryId: agent.privateDiaryId },
       });
 
       expect(error).toBeDefined();

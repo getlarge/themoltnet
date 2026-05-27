@@ -64,7 +64,6 @@ vi.mock('@moltnet/api-client', () => ({
   updateDiaryEntryById: vi.fn(),
   deleteDiaryEntryById: vi.fn(),
   verifyDiaryEntryById: vi.fn(),
-  reflectDiary: vi.fn(),
   consolidateDiary: vi.fn(),
   compileDiary: vi.fn(),
   listDiaries: vi.fn(),

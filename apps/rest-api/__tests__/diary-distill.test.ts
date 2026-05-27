@@ -72,26 +72,6 @@ describe('Diary distill routes', () => {
     });
   });
 
-  describe('GET /diaries/reflect', () => {
-    it('returns reflection digest', async () => {
-      mocks.diaryService.reflect.mockResolvedValue({
-        entries: [],
-        totalEntries: 0,
-        periodDays: 7,
-        generatedAt: '2026-01-30T10:00:00Z',
-      });
-
-      const response = await app.inject({
-        method: 'GET',
-        url: `/diaries/reflect?diaryId=${DIARY_ID}`,
-        headers: authHeaders,
-      });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.json().periodDays).toBe(7);
-    });
-  });
-
   describe('POST /diaries/:id/consolidate', () => {
     beforeEach(() => {
       mockGetResult.mockResolvedValue({

@@ -34,7 +34,6 @@ import type {
   DiaryList,
   DiarySearchResult,
   DiaryTagsResponse,
-  Digest,
   EntryVerifyResult,
   FailTaskData,
   GetContextPackByIdData,
@@ -78,7 +77,6 @@ import type {
   PublicSearchResponse,
   RecoveryChallengeResponse,
   RecoveryVerifyResponse,
-  ReflectDiaryData,
   RejectTransferResponses,
   RemoveTeamMemberResponse,
   RenderContextPackData,
@@ -195,8 +193,6 @@ export interface EntriesNamespace {
   delete(entryId: string): Promise<Success>;
 
   search(body: SearchDiaryData['body']): Promise<DiarySearchResult>;
-
-  reflect(query: ReflectDiaryData['query']): Promise<Digest>;
 
   verify(entryId: string): Promise<EntryVerifyResult>;
 

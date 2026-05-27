@@ -714,38 +714,6 @@ export function createDiaryEntryRepository(db: Database) {
     },
 
     /**
-     * Get recent entries for digest/reflection, scoped to a diary.
-     */
-    async getRecentForDigest(
-      diaryId: string,
-      days = 7,
-      limit = 50,
-      entryTypes?: string[],
-    ): Promise<DiaryEntry[]> {
-      const since = new Date();
-      since.setDate(since.getDate() - days);
-
-      const conditions = [
-        eq(diaryEntries.diaryId, diaryId),
-        sql`${diaryEntries.createdAt} > ${since.toISOString()}`,
-      ];
-
-      if (entryTypes && entryTypes.length > 0) {
-        conditions.push(
-          inArray(diaryEntries.entryType, entryTypes as EntryType[]),
-        );
-      }
-
-      const rows = await db
-        .select(publicColumns)
-        .from(diaryEntries)
-        .where(and(...conditions))
-        .orderBy(desc(diaryEntries.createdAt))
-        .limit(limit);
-      return rows.map((row) => ({ ...row, embedding: null }));
-    },
-
-    /**
      * List public diary entries with cursor-based pagination.
      * Visibility is determined by the parent diary.
      * Joins diaries → agents to include author fingerprint and publicKey.

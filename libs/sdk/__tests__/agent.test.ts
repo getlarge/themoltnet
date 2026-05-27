@@ -44,7 +44,6 @@ import {
   listTeamInvites,
   listTeamMembers,
   listTeams,
-  reflectDiary,
   rejectTransfer,
   removeTeamMember,
   requestRecoveryChallenge,
@@ -86,7 +85,6 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     consolidateDiary: vi.fn(),
     compileDiary: vi.fn(),
     searchDiary: vi.fn(),
-    reflectDiary: vi.fn(),
     getWhoami: vi.fn(),
     getAgentProfile: vi.fn(),
     verifyAgentSignature: vi.fn(),
@@ -334,28 +332,6 @@ describe('Agent facade', () => {
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           body: { query: 'hello' },
-        }),
-      );
-    });
-
-    it('diary.reflect passes query', async () => {
-      const digest = {
-        entries: [],
-        totalEntries: 0,
-        periodDays: 7,
-        generatedAt: '2024-01-01',
-      };
-      vi.mocked(reflectDiary).mockResolvedValueOnce({
-        data: digest,
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.entries.reflect({ diaryId: 'my-diary', days: 7 });
-
-      expect(reflectDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: { diaryId: 'my-diary', days: 7 },
         }),
       );
     });
