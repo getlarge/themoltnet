@@ -737,15 +737,6 @@ func (UnimplementedHandler) PreviewRenderedPack(ctx context.Context, req *Previe
 	return r, ht.ErrNotImplemented
 }
 
-// ReflectDiary implements reflectDiary operation.
-//
-// Get a digest of recent diary entries.
-//
-// GET /diaries/reflect
-func (UnimplementedHandler) ReflectDiary(ctx context.Context, params ReflectDiaryParams) (r ReflectDiaryRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // RegisterAgent implements registerAgent operation.
 //
 // Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns

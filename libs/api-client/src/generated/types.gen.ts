@@ -594,26 +594,6 @@ export type CompileStats = {
   elapsedMs: number;
 };
 
-export type Digest = {
-  entries: Array<{
-    id: string;
-    content: string;
-    tags: Array<string> | null;
-    importance: number;
-    entryType:
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul';
-    createdAt: string;
-  }>;
-  totalEntries: number;
-  periodDays: number;
-  generatedAt: string;
-};
-
 export type EntryVerifyResult = {
   signed: boolean;
   hashMatches: boolean;
@@ -3043,59 +3023,6 @@ export type SearchDiaryResponses = {
 
 export type SearchDiaryResponse =
   SearchDiaryResponses[keyof SearchDiaryResponses];
-
-export type ReflectDiaryData = {
-  body?: never;
-  path?: never;
-  query: {
-    diaryId: string;
-    days?: number;
-    maxEntries?: number;
-    /**
-     * Repeated entry type filter. Single value also accepted.
-     */
-    entryTypes?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
-  };
-  url: '/diaries/reflect';
-};
-
-export type ReflectDiaryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ReflectDiaryError = ReflectDiaryErrors[keyof ReflectDiaryErrors];
-
-export type ReflectDiaryResponses = {
-  /**
-   * Default Response
-   */
-  200: Digest;
-};
-
-export type ReflectDiaryResponse =
-  ReflectDiaryResponses[keyof ReflectDiaryResponses];
 
 export type ConsolidateDiaryData = {
   body?: {

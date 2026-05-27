@@ -293,10 +293,6 @@ type PreviewRenderedPackRes interface {
 	previewRenderedPackRes()
 }
 
-type ReflectDiaryRes interface {
-	reflectDiaryRes()
-}
-
 type RegisterAgentRes interface {
 	registerAgentRes()
 }

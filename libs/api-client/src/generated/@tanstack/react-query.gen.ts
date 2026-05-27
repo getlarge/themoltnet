@@ -89,7 +89,6 @@ import {
   type Options,
   previewDiaryCustomPack,
   previewRenderedPack,
-  reflectDiary,
   registerAgent,
   rejectTransfer,
   removeGroupMember,
@@ -343,9 +342,6 @@ import type {
   PreviewRenderedPackData,
   PreviewRenderedPackError,
   PreviewRenderedPackResponse,
-  ReflectDiaryData,
-  ReflectDiaryError,
-  ReflectDiaryResponse,
   RegisterAgentData,
   RegisterAgentError,
   RegisterAgentResponse,
@@ -1154,31 +1150,6 @@ export const searchDiaryMutation = (
   };
   return mutationOptions;
 };
-
-export const reflectDiaryQueryKey = (options: Options<ReflectDiaryData>) =>
-  createQueryKey('reflectDiary', options);
-
-/**
- * Get a digest of recent diary entries.
- */
-export const reflectDiaryOptions = (options: Options<ReflectDiaryData>) =>
-  queryOptions<
-    ReflectDiaryResponse,
-    ReflectDiaryError,
-    ReflectDiaryResponse,
-    ReturnType<typeof reflectDiaryQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await reflectDiary({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: reflectDiaryQueryKey(options),
-  });
 
 /**
  * [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. Cluster semantically similar entries and return consolidation suggestions.

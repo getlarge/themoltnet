@@ -497,12 +497,6 @@ type Handler interface {
 	//
 	// POST /packs/{id}/render/preview
 	PreviewRenderedPack(ctx context.Context, req *PreviewRenderedPackReq, params PreviewRenderedPackParams) (PreviewRenderedPackRes, error)
-	// ReflectDiary implements reflectDiary operation.
-	//
-	// Get a digest of recent diary entries.
-	//
-	// GET /diaries/reflect
-	ReflectDiary(ctx context.Context, params ReflectDiaryParams) (ReflectDiaryRes, error)
 	// RegisterAgent implements registerAgent operation.
 	//
 	// Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns

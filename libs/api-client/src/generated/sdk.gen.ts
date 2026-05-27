@@ -232,9 +232,6 @@ import type {
   PreviewRenderedPackData,
   PreviewRenderedPackErrors,
   PreviewRenderedPackResponses,
-  ReflectDiaryData,
-  ReflectDiaryErrors,
-  ReflectDiaryResponses,
   RegisterAgentData,
   RegisterAgentErrors,
   RegisterAgentResponses,
@@ -868,30 +865,6 @@ export const searchDiary = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options?.headers,
     },
-  });
-
-/**
- * Get a digest of recent diary entries.
- */
-export const reflectDiary = <ThrowOnError extends boolean = false>(
-  options: Options<ReflectDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ReflectDiaryResponses,
-    ReflectDiaryErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/diaries/reflect',
-    ...options,
   });
 
 /**

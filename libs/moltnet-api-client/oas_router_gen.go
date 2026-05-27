@@ -14,13 +14,13 @@ var (
 	rn84AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
-	rn120AllowedHeaders = map[string]string{
+	rn119AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
-	rn104AllowedHeaders = map[string]string{
+	rn103AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
-	rn113AllowedHeaders = map[string]string{
+	rn112AllowedHeaders = map[string]string{
 		"POST": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn62AllowedHeaders = map[string]string{
@@ -33,20 +33,17 @@ var (
 	rn82AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
-	rn118AllowedHeaders = map[string]string{
+	rn117AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
-	rn121AllowedHeaders = map[string]string{
+	rn120AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
 	rn28AllowedHeaders = map[string]string{
 		"GET":  "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
-	rn102AllowedHeaders = map[string]string{
-		"GET": "Authorization,X-Moltnet-Session-Token",
-	}
-	rn114AllowedHeaders = map[string]string{
+	rn113AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn22AllowedHeaders = map[string]string{
@@ -94,7 +91,7 @@ var (
 		"GET":  "Authorization,X-Moltnet-Session-Token",
 		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
-	rn123AllowedHeaders = map[string]string{
+	rn122AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn10AllowedHeaders = map[string]string{
@@ -105,7 +102,7 @@ var (
 		"GET":  "Authorization,X-Moltnet-Session-Token",
 		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
-	rn108AllowedHeaders = map[string]string{
+	rn107AllowedHeaders = map[string]string{
 		"DELETE": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn90AllowedHeaders = map[string]string{
@@ -136,13 +133,13 @@ var (
 	rn64AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
-	rn117AllowedHeaders = map[string]string{
+	rn116AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
-	rn111AllowedHeaders = map[string]string{
+	rn110AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
-	rn125AllowedHeaders = map[string]string{
+	rn124AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
 	rn43AllowedHeaders = map[string]string{
@@ -172,7 +169,7 @@ var (
 	rn54AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
-	rn119AllowedHeaders = map[string]string{
+	rn118AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn16AllowedHeaders = map[string]string{
@@ -213,7 +210,7 @@ var (
 	rn98AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
-	rn110AllowedHeaders = map[string]string{
+	rn109AllowedHeaders = map[string]string{
 		"DELETE": "Authorization,X-Moltnet-Session-Token",
 		"PATCH":  "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
@@ -223,7 +220,7 @@ var (
 	rn7AllowedHeaders = map[string]string{
 		"POST": "Authorization,X-Moltnet-Session-Token",
 	}
-	rn106AllowedHeaders = map[string]string{
+	rn105AllowedHeaders = map[string]string{
 		"POST": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn86AllowedHeaders = map[string]string{
@@ -406,7 +403,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn120AllowedHeaders,
+									allowedHeaders: rn119AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -445,7 +442,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn104AllowedHeaders,
+									allowedHeaders: rn103AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -470,7 +467,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn113AllowedHeaders,
+									allowedHeaders: rn112AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -599,7 +596,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn118AllowedHeaders,
+										allowedHeaders: rn117AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -628,7 +625,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "POST",
-								allowedHeaders: rn121AllowedHeaders,
+								allowedHeaders: rn120AllowedHeaders,
 								acceptPost:     "application/json",
 								acceptPatch:    "",
 							})
@@ -677,32 +674,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						break
 					}
 					switch elem[0] {
-					case 'r': // Prefix: "reflect"
-						origElem := elem
-						if l := len("reflect"); len(elem) >= l && elem[0:l] == "reflect" {
-							elem = elem[l:]
-						} else {
-							break
-						}
-
-						if len(elem) == 0 {
-							// Leaf node.
-							switch r.Method {
-							case "GET":
-								s.handleReflectDiaryRequest([0]string{}, elemIsEscaped, w, r)
-							default:
-								s.notAllowed(w, r, notAllowedParams{
-									allowedMethods: "GET",
-									allowedHeaders: rn102AllowedHeaders,
-									acceptPost:     "",
-									acceptPatch:    "",
-								})
-							}
-
-							return
-						}
-
-						elem = origElem
 					case 's': // Prefix: "search"
 						origElem := elem
 						if l := len("search"); len(elem) >= l && elem[0:l] == "search" {
@@ -719,7 +690,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn114AllowedHeaders,
+									allowedHeaders: rn113AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -1175,7 +1146,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET",
-									allowedHeaders: rn123AllowedHeaders,
+									allowedHeaders: rn122AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -1285,7 +1256,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "DELETE",
-									allowedHeaders: rn108AllowedHeaders,
+									allowedHeaders: rn107AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -1934,7 +1905,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "POST",
-										allowedHeaders: rn117AllowedHeaders,
+										allowedHeaders: rn116AllowedHeaders,
 										acceptPost:     "application/json",
 										acceptPatch:    "",
 									})
@@ -2025,7 +1996,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn111AllowedHeaders,
+									allowedHeaders: rn110AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -2050,7 +2021,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "POST",
-									allowedHeaders: rn125AllowedHeaders,
+									allowedHeaders: rn124AllowedHeaders,
 									acceptPost:     "application/json",
 									acceptPatch:    "",
 								})
@@ -2393,7 +2364,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 												default:
 													s.notAllowed(w, r, notAllowedParams{
 														allowedMethods: "POST",
-														allowedHeaders: rn119AllowedHeaders,
+														allowedHeaders: rn118AllowedHeaders,
 														acceptPost:     "application/json",
 														acceptPatch:    "",
 													})
@@ -2809,7 +2780,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 										default:
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "DELETE,PATCH",
-												allowedHeaders: rn110AllowedHeaders,
+												allowedHeaders: rn109AllowedHeaders,
 												acceptPost:     "",
 												acceptPatch:    "application/json",
 											})
@@ -2928,7 +2899,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "POST",
-											allowedHeaders: rn106AllowedHeaders,
+											allowedHeaders: rn105AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -3533,32 +3504,6 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						break
 					}
 					switch elem[0] {
-					case 'r': // Prefix: "reflect"
-						origElem := elem
-						if l := len("reflect"); len(elem) >= l && elem[0:l] == "reflect" {
-							elem = elem[l:]
-						} else {
-							break
-						}
-
-						if len(elem) == 0 {
-							// Leaf node.
-							switch method {
-							case "GET":
-								r.name = ReflectDiaryOperation
-								r.summary = ""
-								r.operationID = "reflectDiary"
-								r.operationGroup = ""
-								r.pathPattern = "/diaries/reflect"
-								r.args = args
-								r.count = 0
-								return r, true
-							default:
-								return
-							}
-						}
-
-						elem = origElem
 					case 's': // Prefix: "search"
 						origElem := elem
 						if l := len("search"); len(elem) >= l && elem[0:l] == "search" {
