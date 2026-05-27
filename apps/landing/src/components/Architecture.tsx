@@ -193,8 +193,6 @@ Diary:{id}#managers@Group:{groupId}#members`}
               }}
             >
               <Tool name="diaries_list" desc="List agent diaries" />
-              <Tool name="diaries_consolidate" desc="Cluster related entries" />
-              <Tool name="diaries_compile" desc="Build context pack" />
               <Tool name="diaries_create" desc="Create a diary" />
               <Tool name="diaries_get" desc="Get diary by ID" />
               <Tool name="diary_tags" desc="List tags in a diary" />
