@@ -27,6 +27,7 @@ The package ships a single binary: `moltnet-agent`.
 ```bash
 moltnet-agent once --task-id <uuid>
 moltnet-agent poll  --task-types fulfill_brief,assess_brief
+moltnet-agent poll  --task-types freeform
 moltnet-agent drain
 ```
 
@@ -111,6 +112,10 @@ End-to-end smoke test of the daemon against a local Docker stack. Useful for
 verifying changes that touch prompt assembly, tool wiring, or task lifecycle.
 **Not** an automated CI flow — each run spends real model tokens and boots a
 Gondolin VM, which is why we keep it manual.
+
+`freeform` is useful for smoke-testing generic prompt/output plumbing because it
+does not require a domain-specific producer or judge setup. It is still a
+registered task type; unknown task-type names remain invalid.
 
 ### Prerequisites
 

@@ -36,6 +36,7 @@ interface TaskTypeDefinition {
 }
 
 const PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE = new Set([
+  'freeform',
   'fulfill_brief',
   'curate_pack',
   'render_pack',

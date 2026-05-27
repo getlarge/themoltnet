@@ -4,19 +4,43 @@ Neutral lookup for task types, REST endpoints, and MCP equivalents. For usage gu
 
 ### Task types
 
-Five built-in types today. Every type declares its input and output schema in `@moltnet/tasks`.
+Built-in types today. Every type declares its input and output schema in `@moltnet/tasks`.
 
-| Type            | Output kind | What it does                             |
-| --------------- | ----------- | ---------------------------------------- |
-| `fulfill_brief` | artifact    | Produce whatever the brief describes     |
-| `assess_brief`  | judgment    | Grade a fulfilled brief against a rubric |
-| `curate_pack`   | artifact    | Select entries to build a context pack   |
-| `render_pack`   | artifact    | Render a pack to Markdown                |
-| `judge_pack`    | judgment    | Score a rendered pack against a rubric   |
+| Type                 | Output kind | What it does                                                 |
+| -------------------- | ----------- | ------------------------------------------------------------ |
+| `freeform`           | artifact    | Exploratory work when no narrower task contract fits yet     |
+| `fulfill_brief`      | artifact    | Produce whatever the brief describes                         |
+| `assess_brief`       | judgment    | Grade a fulfilled brief against a rubric                     |
+| `curate_pack`        | artifact    | Select entries to build a context pack                       |
+| `render_pack`        | artifact    | Render a pack to Markdown                                    |
+| `judge_pack`         | judgment    | Score a rendered pack against a rubric                       |
+| `run_eval`           | artifact    | Run a scenario under a named variant                         |
+| `judge_eval_attempt` | judgment    | Grade one completed `run_eval` attempt against hidden rubric |
+| `pr_review`          | judgment    | Score a review subject against a boolean rubric              |
 
 `output_kind` is the coarser discriminator: **artifact** tasks make new things; **judgment** tasks evaluate existing things. Downstream consumers route on `output_kind` first.
 
 Adding a new type is a matter of registering it in `@moltnet/tasks` with its input/output schemas; no server change needed.
+
+#### Freeform as the discovery lane
+
+`freeform` is still a typed task: it has a registered schema, prompt builder,
+output schema, submit-output tool, and execution policy. Its purpose is not to
+make arbitrary `taskType` values valid. It gives proposers a low-friction lane
+for uncertain work while preserving the runtime contract the daemon needs.
+
+Use `freeform` when the requester can describe the work but cannot yet justify
+a durable task type. Its input accepts a natural-language `brief`, optional
+`expectedOutput`, `constraints`, `context`, and a non-binding
+`suggestedTaskType`. Its output can include `proposedTaskType` and
+`followUpTasks`, so repeated freeform patterns can later be promoted into
+plugin catalog entries or built-in task types.
+
+`freeform` deliberately does not let proposers choose arbitrary workspace mode,
+mount paths, or resumability. Its execution policy remains registered
+task-type metadata. If exploratory work repeatedly needs a different runtime
+profile, that is promotion signal for a plugin task type with a declared
+policy.
 
 #### Task creation means proposal only
 

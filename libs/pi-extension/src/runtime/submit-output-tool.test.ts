@@ -231,6 +231,7 @@ describe('createSubmitOutputTool', () => {
     // tool factory accepts the type and the produced tool has the right
     // name. Validation is exercised in dedicated cases above.
     const types = [
+      'freeform',
       'fulfill_brief',
       'assess_brief',
       'curate_pack',

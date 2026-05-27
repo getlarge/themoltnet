@@ -3,6 +3,8 @@ import {
   AssessBriefInput,
   CURATE_PACK_TYPE,
   CuratePackInput,
+  FREEFORM_TYPE,
+  FreeformInput,
   FULFILL_BRIEF_TYPE,
   FulfillBriefInput,
   JUDGE_EVAL_ATTEMPT_TYPE,
@@ -22,6 +24,7 @@ import { Value } from '@sinclair/typebox/value';
 import type { AssembledPrompt } from './assemble.js';
 import { buildAssessBriefUserPrompt } from './assess-brief.js';
 import { buildCuratePackUserPrompt } from './curate-pack.js';
+import { buildFreeformUserPrompt } from './freeform.js';
 import { buildFulfillBriefUserPrompt } from './fulfill-brief.js';
 import { buildJudgeEvalAttemptUserPrompt } from './judge-eval-attempt.js';
 import { buildJudgePackUserPrompt } from './judge-pack.js';
@@ -32,6 +35,7 @@ import { buildRunEvalUserPrompt } from './run-eval.js';
 export * from './assemble.js';
 export * from './assess-brief.js';
 export * from './curate-pack.js';
+export * from './freeform.js';
 export * from './fulfill-brief.js';
 export * from './judge-eval-attempt.js';
 export * from './judge-pack.js';
@@ -76,6 +80,18 @@ export function buildTaskUserPrompt(
   ctx: TaskUserPromptContext,
 ): AssembledPrompt {
   switch (task.taskType) {
+    case FREEFORM_TYPE: {
+      if (!Value.Check(FreeformInput, task.input)) {
+        const errors = [...Value.Errors(FreeformInput, task.input)];
+        throw new Error(
+          `freeform input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
+        );
+      }
+      return buildFreeformUserPrompt(task.input, {
+        taskId: ctx.taskId,
+      });
+    }
+
     case FULFILL_BRIEF_TYPE: {
       if (!Value.Check(FulfillBriefInput, task.input)) {
         const errors = [...Value.Errors(FulfillBriefInput, task.input)];

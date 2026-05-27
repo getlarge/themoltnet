@@ -146,6 +146,21 @@ describe('validateTaskCreateRequest', () => {
       true,
     );
   });
+
+  it('accepts freeform exploratory input with an unregistered suggested type', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'freeform',
+      input: {
+        title: 'Investigate task taxonomy',
+        brief: 'Decide whether this should become a new task type.',
+        expectedOutput: 'A recommendation and a proposed task type if useful.',
+        suggestedTaskType: 'taxonomy_probe',
+        constraints: ['Do not create an arbitrary task type yet.'],
+      },
+    });
+
+    expect(errors).toEqual([]);
+  });
 });
 
 describe('normalizeTaskInputForCreate', () => {
@@ -163,6 +178,18 @@ describe('normalizeTaskInputForCreate', () => {
         kind: 'submit-tool-call',
         required: true,
       }),
+    ]);
+  });
+
+  it('injects the submit-output gate for freeform tasks', () => {
+    const normalized = normalizeTaskInputForCreate('freeform', {
+      brief: 'Explore whether this should become a task type.',
+    }) as {
+      successCriteria: { version: 1; gates: Array<{ id: string }> };
+    };
+
+    expect(normalized.successCriteria.gates).toEqual([
+      expect.objectContaining({ id: SUBMIT_OUTPUT_GATE_ID }),
     ]);
   });
 
@@ -242,6 +269,38 @@ describe('validateTaskOutput', () => {
         },
       ]),
     );
+  });
+
+  it('accepts freeform output with a proposed task type', () => {
+    const errors = validateTaskOutput(
+      'freeform',
+      {
+        summary: 'This pattern is recurring enough to consider typing.',
+        proposedTaskType: {
+          name: 'taxonomy_probe',
+          rationale: 'The same brief shape has appeared repeatedly.',
+          inputShape: { brief: 'string' },
+          outputShape: { recommendation: 'string' },
+        },
+        verification: {
+          inputCid: 'bafy-input',
+          results: [
+            {
+              id: 'submit-output',
+              kind: 'gate',
+              status: 'pass',
+            },
+          ],
+          passed: true,
+        },
+      },
+      {
+        brief: 'Explore a task shape.',
+        successCriteria: { version: 1 },
+      },
+    );
+
+    expect(errors).toEqual([]);
   });
 
   describe('verification cross-field rule (fulfillment task types)', () => {
@@ -552,6 +611,7 @@ describe('taskTypeUsesSubagents', () => {
   it('returns false for built-in types that did not opt in', () => {
     // None of the current built-ins use subagents.
     expect(taskTypeUsesSubagents('fulfill_brief')).toBe(false);
+    expect(taskTypeUsesSubagents('freeform')).toBe(false);
     expect(taskTypeUsesSubagents('assess_brief')).toBe(false);
     expect(taskTypeUsesSubagents('curate_pack')).toBe(false);
     expect(taskTypeUsesSubagents('render_pack')).toBe(false);
@@ -575,6 +635,7 @@ describe('taskTypeWorkspaceMode', () => {
 
   it('keeps non-mutating built-ins on shared_mount', () => {
     expect(taskTypeWorkspaceMode('curate_pack')).toBe('shared_mount');
+    expect(taskTypeWorkspaceMode('freeform')).toBe('shared_mount');
     expect(taskTypeWorkspaceMode('render_pack')).toBe('shared_mount');
     expect(taskTypeWorkspaceMode('judge_pack')).toBe('shared_mount');
     expect(taskTypeWorkspaceMode('run_eval')).toBe('shared_mount');
@@ -593,6 +654,7 @@ describe('taskTypeResumable', () => {
 
   it('keeps assessment/judge built-ins non-resumable but lets run_eval persist producer context', () => {
     expect(taskTypeResumable('assess_brief')).toBe(false);
+    expect(taskTypeResumable('freeform')).toBe(false);
     expect(taskTypeResumable('run_eval')).toBe(true);
     expect(taskTypeResumable('judge_eval_attempt')).toBe(false);
   });
@@ -609,6 +671,7 @@ describe('taskTypeWorkspaceScope', () => {
 
   it('keeps review/judge built-ins attempt-scoped while run_eval stays session-scoped', () => {
     expect(taskTypeWorkspaceScope('assess_brief')).toBe('attempt');
+    expect(taskTypeWorkspaceScope('freeform')).toBe('attempt');
     expect(taskTypeWorkspaceScope('pr_review')).toBe('attempt');
     expect(taskTypeWorkspaceScope('run_eval')).toBe('session');
     expect(taskTypeWorkspaceScope('judge_eval_attempt')).toBe('attempt');
@@ -626,6 +689,7 @@ describe('taskTypeSessionScope', () => {
 
   it('keeps review tasks non-reusable by default', () => {
     expect(taskTypeSessionScope('assess_brief')).toBe('none');
+    expect(taskTypeSessionScope('freeform')).toBe('none');
     expect(taskTypeSessionScope('pr_review')).toBe('none');
     expect(taskTypeSessionScope('judge_pack')).toBe('none');
   });
