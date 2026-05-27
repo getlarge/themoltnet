@@ -41,11 +41,7 @@ export const ContextPackSchema = Type.Object(
     diaryId: Type.String({ format: 'uuid' }),
     packCid: Type.String(),
     packCodec: Type.String(),
-    packType: Type.Union([
-      Type.Literal('compile'),
-      Type.Literal('optimized'),
-      Type.Literal('custom'),
-    ]),
+    packType: Type.Union([Type.Literal('optimized'), Type.Literal('custom')]),
     params: Type.Unknown(),
     payload: Type.Unknown(),
     creator: PrincipalIdentitySchema,
@@ -130,44 +126,6 @@ export const CompileStatsSchema = Type.Object(
   { $id: 'CompileStats' },
 );
 
-export const CompileResultSchema = Type.Object(
-  {
-    id: Type.String({ format: 'uuid' }),
-    diaryId: Type.String({ format: 'uuid' }),
-    packCid: Type.String(),
-    packCodec: Type.String(),
-    packType: Type.Union([
-      Type.Literal('compile'),
-      Type.Literal('optimized'),
-      Type.Literal('custom'),
-    ]),
-    params: Type.Unknown(),
-    payload: Type.Unknown(),
-    creator: PrincipalIdentitySchema,
-    supersedesPackId: Type.Union([
-      Type.String({ format: 'uuid' }),
-      Type.Null(),
-    ]),
-    pinned: Type.Boolean(),
-    expiresAt: Type.Union([
-      Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
-      Type.Null(),
-    ]),
-    createdAt: Type.Unsafe<Date | string>({
-      type: 'string',
-      format: 'date-time',
-    }),
-    entries: Type.Array(ContextPackEntrySchema),
-    compileStats: Type.Ref(CompileStatsSchema),
-    compileTrace: Type.Object({
-      lambdaUsed: Type.Number(),
-      embeddingDim: Type.Number(),
-      taskPromptHash: Type.Optional(Type.String()),
-    }),
-  },
-  { $id: 'CompileResult' },
-);
-
 export const CustomPackEntryResultSchema = Type.Object(
   {
     entryId: Type.String({ format: 'uuid' }),
@@ -246,7 +204,6 @@ const CompressionLevelSchema = Type.Union([
 ]);
 
 const PackTypeSchema = Type.Union([
-  Type.Literal('compile'),
   Type.Literal('optimized'),
   Type.Literal('custom'),
 ]);

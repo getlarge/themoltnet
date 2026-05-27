@@ -183,7 +183,7 @@ export interface GetPackForProvenanceInput {
   packCid?: string;
 }
 
-export type PackType = 'compile' | 'optimized' | 'custom';
+export type PackType = 'optimized' | 'custom';
 
 export interface PackDiffEntryBase {
   entryId: string;

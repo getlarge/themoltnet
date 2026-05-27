@@ -385,7 +385,6 @@ export type PackRenderPreviewInput = {
 // --- Output schemas ---
 
 const PackTypeSchema = Type.Union([
-  Type.Literal('compile'),
   Type.Literal('optimized'),
   Type.Literal('custom'),
 ]);

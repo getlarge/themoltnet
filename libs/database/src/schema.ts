@@ -82,14 +82,9 @@ export const compressionLevelEnum = pgEnum('compression_level', [
 ]);
 
 // Pack type discriminator — determines the shape of the params JSONB column.
-// compile: server-generated via /compile endpoint
-// optimized: GEPA-refined version of a compile pack
+// optimized: GEPA-refined version of a pack
 // custom: agent-submitted with opaque params
-export const packTypeEnum = pgEnum('pack_type', [
-  'compile',
-  'optimized',
-  'custom',
-]);
+export const packTypeEnum = pgEnum('pack_type', ['optimized', 'custom']);
 
 // Team status enum — founding requires acceptance, active is operational
 export const teamStatusEnum = pgEnum('team_status', [
@@ -557,7 +552,7 @@ export const contextPacks = pgTable(
     packCodec: varchar('pack_codec', { length: 50 })
       .default('dag-cbor')
       .notNull(),
-    packType: packTypeEnum('pack_type').default('compile').notNull(),
+    packType: packTypeEnum('pack_type').default('custom').notNull(),
     // Type-specific parameters. Shape determined by packType.
     // Validated at the service layer, not the DB layer.
     params: jsonb('params')

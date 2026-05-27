@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"time"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
@@ -124,75 +123,4 @@ func parseListDiaryTagEntryTypes(s string) ([]moltnetapi.ListDiaryTagsEntryTypes
 		parsed = append(parsed, moltnetapi.ListDiaryTagsEntryTypesItem(value))
 	}
 	return parsed, nil
-}
-
-// runDiaryCompileCmd compiles a context pack from a diary.
-func runDiaryCompileCmd(
-	apiURL, credPath, diaryID string,
-	tokenBudget int,
-	taskPrompt string,
-	includeTags, excludeTags, entryTypes string,
-	createdAfter, createdBefore string,
-	wRecency, wImportance, lambda float64,
-	wRecencyChanged, wImportanceChanged, lambdaChanged bool,
-) error {
-	diaryUUID, err := uuid.Parse(diaryID)
-	if err != nil {
-		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
-	}
-
-	client, err := newClientFromCreds(apiURL, credPath)
-	if err != nil {
-		return err
-	}
-	req := &moltnetapi.CompileDiaryReq{
-		TokenBudget: tokenBudget,
-	}
-	if taskPrompt != "" {
-		req.TaskPrompt = moltnetapi.OptString{Value: taskPrompt, Set: true}
-	}
-	if includeTags != "" {
-		req.IncludeTags = splitAndTrim(includeTags, ",")
-	}
-	if excludeTags != "" {
-		req.ExcludeTags = splitAndTrim(excludeTags, ",")
-	}
-	if entryTypes != "" {
-		for _, et := range splitAndTrim(entryTypes, ",") {
-			req.EntryTypes = append(req.EntryTypes, moltnetapi.CompileDiaryReqEntryTypesItem(et))
-		}
-	}
-	if createdAfter != "" {
-		t, err := time.Parse(time.RFC3339, createdAfter)
-		if err != nil {
-			return fmt.Errorf("invalid --created-after %q: %w", createdAfter, err)
-		}
-		req.CreatedAfter = moltnetapi.OptDateTime{Value: t, Set: true}
-	}
-	if createdBefore != "" {
-		t, err := time.Parse(time.RFC3339, createdBefore)
-		if err != nil {
-			return fmt.Errorf("invalid --created-before %q: %w", createdBefore, err)
-		}
-		req.CreatedBefore = moltnetapi.OptDateTime{Value: t, Set: true}
-	}
-	if wRecencyChanged {
-		req.WRecency = moltnetapi.OptFloat64{Value: wRecency, Set: true}
-	}
-	if wImportanceChanged {
-		req.WImportance = moltnetapi.OptFloat64{Value: wImportance, Set: true}
-	}
-	if lambdaChanged {
-		req.Lambda = moltnetapi.OptFloat64{Value: lambda, Set: true}
-	}
-
-	res, err := client.CompileDiary(context.Background(), req, moltnetapi.CompileDiaryParams{ID: diaryUUID})
-	if err != nil {
-		return fmt.Errorf("diary compile: %w", formatTransportError(err))
-	}
-	result, ok := res.(*moltnetapi.CompileResult)
-	if !ok {
-		return formatAPIError(res)
-	}
-	return printJSON(result)
 }

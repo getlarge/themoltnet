@@ -56,7 +56,6 @@ import {
 } from './diary.js';
 import { HealthSchema, NetworkInfoSchema, ReadinessSchema } from './network.js';
 import {
-  CompileResultSchema,
   CompileStatsSchema,
   ContextPackExpandedSchema,
   ContextPackListSchema,
@@ -79,7 +78,6 @@ import {
   PrincipalIdentitySchema,
 } from './principal.js';
 import {
-  ConsolidateResultSchema,
   EntryRelationListSchema,
   EntryRelationSchema,
   EntryRelationWithDepthSchema,
@@ -141,8 +139,6 @@ export const sharedSchemas = [
   RegisterResponseSchema,
   RotateSecretResponseSchema,
   NetworkInfoSchema,
-  ConsolidateResultSchema,
-  CompileResultSchema,
   CustomPackEntryResultSchema,
   CustomPackResultSchema,
   RenderedPackSchema,
