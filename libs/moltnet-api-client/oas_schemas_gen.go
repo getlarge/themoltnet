@@ -1071,681 +1071,6 @@ type ClaimTaskUnauthorized ProblemDetails
 
 func (*ClaimTaskUnauthorized) claimTaskRes() {}
 
-type CompileDiaryBadRequest ProblemDetails
-
-func (*CompileDiaryBadRequest) compileDiaryRes() {}
-
-type CompileDiaryForbidden ProblemDetails
-
-func (*CompileDiaryForbidden) compileDiaryRes() {}
-
-type CompileDiaryInternalServerError ProblemDetails
-
-func (*CompileDiaryInternalServerError) compileDiaryRes() {}
-
-type CompileDiaryNotFound ProblemDetails
-
-func (*CompileDiaryNotFound) compileDiaryRes() {}
-
-type CompileDiaryReq struct {
-	CreatedAfter  OptDateTime                     `json:"createdAfter"`
-	CreatedBefore OptDateTime                     `json:"createdBefore"`
-	EntryTypes    []CompileDiaryReqEntryTypesItem `json:"entryTypes"`
-	ExcludeTags   []string                        `json:"excludeTags"`
-	IncludeTags   []string                        `json:"includeTags"`
-	Lambda        OptFloat64                      `json:"lambda"`
-	TaskPrompt    OptString                       `json:"taskPrompt"`
-	TokenBudget   int                             `json:"tokenBudget"`
-	WImportance   OptFloat64                      `json:"wImportance"`
-	WRecency      OptFloat64                      `json:"wRecency"`
-}
-
-// GetCreatedAfter returns the value of CreatedAfter.
-func (s *CompileDiaryReq) GetCreatedAfter() OptDateTime {
-	return s.CreatedAfter
-}
-
-// GetCreatedBefore returns the value of CreatedBefore.
-func (s *CompileDiaryReq) GetCreatedBefore() OptDateTime {
-	return s.CreatedBefore
-}
-
-// GetEntryTypes returns the value of EntryTypes.
-func (s *CompileDiaryReq) GetEntryTypes() []CompileDiaryReqEntryTypesItem {
-	return s.EntryTypes
-}
-
-// GetExcludeTags returns the value of ExcludeTags.
-func (s *CompileDiaryReq) GetExcludeTags() []string {
-	return s.ExcludeTags
-}
-
-// GetIncludeTags returns the value of IncludeTags.
-func (s *CompileDiaryReq) GetIncludeTags() []string {
-	return s.IncludeTags
-}
-
-// GetLambda returns the value of Lambda.
-func (s *CompileDiaryReq) GetLambda() OptFloat64 {
-	return s.Lambda
-}
-
-// GetTaskPrompt returns the value of TaskPrompt.
-func (s *CompileDiaryReq) GetTaskPrompt() OptString {
-	return s.TaskPrompt
-}
-
-// GetTokenBudget returns the value of TokenBudget.
-func (s *CompileDiaryReq) GetTokenBudget() int {
-	return s.TokenBudget
-}
-
-// GetWImportance returns the value of WImportance.
-func (s *CompileDiaryReq) GetWImportance() OptFloat64 {
-	return s.WImportance
-}
-
-// GetWRecency returns the value of WRecency.
-func (s *CompileDiaryReq) GetWRecency() OptFloat64 {
-	return s.WRecency
-}
-
-// SetCreatedAfter sets the value of CreatedAfter.
-func (s *CompileDiaryReq) SetCreatedAfter(val OptDateTime) {
-	s.CreatedAfter = val
-}
-
-// SetCreatedBefore sets the value of CreatedBefore.
-func (s *CompileDiaryReq) SetCreatedBefore(val OptDateTime) {
-	s.CreatedBefore = val
-}
-
-// SetEntryTypes sets the value of EntryTypes.
-func (s *CompileDiaryReq) SetEntryTypes(val []CompileDiaryReqEntryTypesItem) {
-	s.EntryTypes = val
-}
-
-// SetExcludeTags sets the value of ExcludeTags.
-func (s *CompileDiaryReq) SetExcludeTags(val []string) {
-	s.ExcludeTags = val
-}
-
-// SetIncludeTags sets the value of IncludeTags.
-func (s *CompileDiaryReq) SetIncludeTags(val []string) {
-	s.IncludeTags = val
-}
-
-// SetLambda sets the value of Lambda.
-func (s *CompileDiaryReq) SetLambda(val OptFloat64) {
-	s.Lambda = val
-}
-
-// SetTaskPrompt sets the value of TaskPrompt.
-func (s *CompileDiaryReq) SetTaskPrompt(val OptString) {
-	s.TaskPrompt = val
-}
-
-// SetTokenBudget sets the value of TokenBudget.
-func (s *CompileDiaryReq) SetTokenBudget(val int) {
-	s.TokenBudget = val
-}
-
-// SetWImportance sets the value of WImportance.
-func (s *CompileDiaryReq) SetWImportance(val OptFloat64) {
-	s.WImportance = val
-}
-
-// SetWRecency sets the value of WRecency.
-func (s *CompileDiaryReq) SetWRecency(val OptFloat64) {
-	s.WRecency = val
-}
-
-type CompileDiaryReqEntryTypesItem string
-
-const (
-	CompileDiaryReqEntryTypesItemEpisodic   CompileDiaryReqEntryTypesItem = "episodic"
-	CompileDiaryReqEntryTypesItemSemantic   CompileDiaryReqEntryTypesItem = "semantic"
-	CompileDiaryReqEntryTypesItemProcedural CompileDiaryReqEntryTypesItem = "procedural"
-	CompileDiaryReqEntryTypesItemReflection CompileDiaryReqEntryTypesItem = "reflection"
-	CompileDiaryReqEntryTypesItemIdentity   CompileDiaryReqEntryTypesItem = "identity"
-	CompileDiaryReqEntryTypesItemSoul       CompileDiaryReqEntryTypesItem = "soul"
-)
-
-// AllValues returns all CompileDiaryReqEntryTypesItem values.
-func (CompileDiaryReqEntryTypesItem) AllValues() []CompileDiaryReqEntryTypesItem {
-	return []CompileDiaryReqEntryTypesItem{
-		CompileDiaryReqEntryTypesItemEpisodic,
-		CompileDiaryReqEntryTypesItemSemantic,
-		CompileDiaryReqEntryTypesItemProcedural,
-		CompileDiaryReqEntryTypesItemReflection,
-		CompileDiaryReqEntryTypesItemIdentity,
-		CompileDiaryReqEntryTypesItemSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CompileDiaryReqEntryTypesItem) MarshalText() ([]byte, error) {
-	switch s {
-	case CompileDiaryReqEntryTypesItemEpisodic:
-		return []byte(s), nil
-	case CompileDiaryReqEntryTypesItemSemantic:
-		return []byte(s), nil
-	case CompileDiaryReqEntryTypesItemProcedural:
-		return []byte(s), nil
-	case CompileDiaryReqEntryTypesItemReflection:
-		return []byte(s), nil
-	case CompileDiaryReqEntryTypesItemIdentity:
-		return []byte(s), nil
-	case CompileDiaryReqEntryTypesItemSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CompileDiaryReqEntryTypesItem) UnmarshalText(data []byte) error {
-	switch CompileDiaryReqEntryTypesItem(data) {
-	case CompileDiaryReqEntryTypesItemEpisodic:
-		*s = CompileDiaryReqEntryTypesItemEpisodic
-		return nil
-	case CompileDiaryReqEntryTypesItemSemantic:
-		*s = CompileDiaryReqEntryTypesItemSemantic
-		return nil
-	case CompileDiaryReqEntryTypesItemProcedural:
-		*s = CompileDiaryReqEntryTypesItemProcedural
-		return nil
-	case CompileDiaryReqEntryTypesItemReflection:
-		*s = CompileDiaryReqEntryTypesItemReflection
-		return nil
-	case CompileDiaryReqEntryTypesItemIdentity:
-		*s = CompileDiaryReqEntryTypesItemIdentity
-		return nil
-	case CompileDiaryReqEntryTypesItemSoul:
-		*s = CompileDiaryReqEntryTypesItemSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CompileDiaryUnauthorized ProblemDetails
-
-func (*CompileDiaryUnauthorized) compileDiaryRes() {}
-
-// Ref: #/components/schemas/CompileResult
-type CompileResult struct {
-	CompileStats     CompileStats               `json:"compileStats"`
-	CompileTrace     CompileResultCompileTrace  `json:"compileTrace"`
-	CreatedAt        time.Time                  `json:"createdAt"`
-	Creator          CompileResultCreator       `json:"creator"`
-	DiaryId          uuid.UUID                  `json:"diaryId"`
-	Entries          []CompileResultEntriesItem `json:"entries"`
-	ExpiresAt        NilDateTime                `json:"expiresAt"`
-	ID               uuid.UUID                  `json:"id"`
-	PackCid          string                     `json:"packCid"`
-	PackCodec        string                     `json:"packCodec"`
-	PackType         CompileResultPackType      `json:"packType"`
-	Params           jx.Raw                     `json:"params"`
-	Payload          jx.Raw                     `json:"payload"`
-	Pinned           bool                       `json:"pinned"`
-	SupersedesPackId NilUUID                    `json:"supersedesPackId"`
-}
-
-// GetCompileStats returns the value of CompileStats.
-func (s *CompileResult) GetCompileStats() CompileStats {
-	return s.CompileStats
-}
-
-// GetCompileTrace returns the value of CompileTrace.
-func (s *CompileResult) GetCompileTrace() CompileResultCompileTrace {
-	return s.CompileTrace
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *CompileResult) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetCreator returns the value of Creator.
-func (s *CompileResult) GetCreator() CompileResultCreator {
-	return s.Creator
-}
-
-// GetDiaryId returns the value of DiaryId.
-func (s *CompileResult) GetDiaryId() uuid.UUID {
-	return s.DiaryId
-}
-
-// GetEntries returns the value of Entries.
-func (s *CompileResult) GetEntries() []CompileResultEntriesItem {
-	return s.Entries
-}
-
-// GetExpiresAt returns the value of ExpiresAt.
-func (s *CompileResult) GetExpiresAt() NilDateTime {
-	return s.ExpiresAt
-}
-
-// GetID returns the value of ID.
-func (s *CompileResult) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetPackCid returns the value of PackCid.
-func (s *CompileResult) GetPackCid() string {
-	return s.PackCid
-}
-
-// GetPackCodec returns the value of PackCodec.
-func (s *CompileResult) GetPackCodec() string {
-	return s.PackCodec
-}
-
-// GetPackType returns the value of PackType.
-func (s *CompileResult) GetPackType() CompileResultPackType {
-	return s.PackType
-}
-
-// GetParams returns the value of Params.
-func (s *CompileResult) GetParams() jx.Raw {
-	return s.Params
-}
-
-// GetPayload returns the value of Payload.
-func (s *CompileResult) GetPayload() jx.Raw {
-	return s.Payload
-}
-
-// GetPinned returns the value of Pinned.
-func (s *CompileResult) GetPinned() bool {
-	return s.Pinned
-}
-
-// GetSupersedesPackId returns the value of SupersedesPackId.
-func (s *CompileResult) GetSupersedesPackId() NilUUID {
-	return s.SupersedesPackId
-}
-
-// SetCompileStats sets the value of CompileStats.
-func (s *CompileResult) SetCompileStats(val CompileStats) {
-	s.CompileStats = val
-}
-
-// SetCompileTrace sets the value of CompileTrace.
-func (s *CompileResult) SetCompileTrace(val CompileResultCompileTrace) {
-	s.CompileTrace = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *CompileResult) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetCreator sets the value of Creator.
-func (s *CompileResult) SetCreator(val CompileResultCreator) {
-	s.Creator = val
-}
-
-// SetDiaryId sets the value of DiaryId.
-func (s *CompileResult) SetDiaryId(val uuid.UUID) {
-	s.DiaryId = val
-}
-
-// SetEntries sets the value of Entries.
-func (s *CompileResult) SetEntries(val []CompileResultEntriesItem) {
-	s.Entries = val
-}
-
-// SetExpiresAt sets the value of ExpiresAt.
-func (s *CompileResult) SetExpiresAt(val NilDateTime) {
-	s.ExpiresAt = val
-}
-
-// SetID sets the value of ID.
-func (s *CompileResult) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetPackCid sets the value of PackCid.
-func (s *CompileResult) SetPackCid(val string) {
-	s.PackCid = val
-}
-
-// SetPackCodec sets the value of PackCodec.
-func (s *CompileResult) SetPackCodec(val string) {
-	s.PackCodec = val
-}
-
-// SetPackType sets the value of PackType.
-func (s *CompileResult) SetPackType(val CompileResultPackType) {
-	s.PackType = val
-}
-
-// SetParams sets the value of Params.
-func (s *CompileResult) SetParams(val jx.Raw) {
-	s.Params = val
-}
-
-// SetPayload sets the value of Payload.
-func (s *CompileResult) SetPayload(val jx.Raw) {
-	s.Payload = val
-}
-
-// SetPinned sets the value of Pinned.
-func (s *CompileResult) SetPinned(val bool) {
-	s.Pinned = val
-}
-
-// SetSupersedesPackId sets the value of SupersedesPackId.
-func (s *CompileResult) SetSupersedesPackId(val NilUUID) {
-	s.SupersedesPackId = val
-}
-
-func (*CompileResult) compileDiaryRes() {}
-
-type CompileResultCompileTrace struct {
-	EmbeddingDim   float64   `json:"embeddingDim"`
-	LambdaUsed     float64   `json:"lambdaUsed"`
-	TaskPromptHash OptString `json:"taskPromptHash"`
-}
-
-// GetEmbeddingDim returns the value of EmbeddingDim.
-func (s *CompileResultCompileTrace) GetEmbeddingDim() float64 {
-	return s.EmbeddingDim
-}
-
-// GetLambdaUsed returns the value of LambdaUsed.
-func (s *CompileResultCompileTrace) GetLambdaUsed() float64 {
-	return s.LambdaUsed
-}
-
-// GetTaskPromptHash returns the value of TaskPromptHash.
-func (s *CompileResultCompileTrace) GetTaskPromptHash() OptString {
-	return s.TaskPromptHash
-}
-
-// SetEmbeddingDim sets the value of EmbeddingDim.
-func (s *CompileResultCompileTrace) SetEmbeddingDim(val float64) {
-	s.EmbeddingDim = val
-}
-
-// SetLambdaUsed sets the value of LambdaUsed.
-func (s *CompileResultCompileTrace) SetLambdaUsed(val float64) {
-	s.LambdaUsed = val
-}
-
-// SetTaskPromptHash sets the value of TaskPromptHash.
-func (s *CompileResultCompileTrace) SetTaskPromptHash(val OptString) {
-	s.TaskPromptHash = val
-}
-
-// CompileResultCreator represents sum type.
-type CompileResultCreator struct {
-	Type           CompileResultCreatorType // switch on this field
-	AgentPrincipal AgentPrincipal
-	HumanPrincipal HumanPrincipal
-}
-
-// CompileResultCreatorType is oneOf type of CompileResultCreator.
-type CompileResultCreatorType string
-
-// Possible values for CompileResultCreatorType.
-const (
-	AgentPrincipalCompileResultCreator CompileResultCreatorType = "agent"
-	HumanPrincipalCompileResultCreator CompileResultCreatorType = "human"
-)
-
-// IsAgentPrincipal reports whether CompileResultCreator is AgentPrincipal.
-func (s CompileResultCreator) IsAgentPrincipal() bool {
-	return s.Type == AgentPrincipalCompileResultCreator
-}
-
-// IsHumanPrincipal reports whether CompileResultCreator is HumanPrincipal.
-func (s CompileResultCreator) IsHumanPrincipal() bool {
-	return s.Type == HumanPrincipalCompileResultCreator
-}
-
-// SetAgentPrincipal sets CompileResultCreator to AgentPrincipal.
-func (s *CompileResultCreator) SetAgentPrincipal(v AgentPrincipal) {
-	s.Type = AgentPrincipalCompileResultCreator
-	s.AgentPrincipal = v
-}
-
-// GetAgentPrincipal returns AgentPrincipal and true boolean if CompileResultCreator is AgentPrincipal.
-func (s CompileResultCreator) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
-	if !s.IsAgentPrincipal() {
-		return v, false
-	}
-	return s.AgentPrincipal, true
-}
-
-// NewAgentPrincipalCompileResultCreator returns new CompileResultCreator from AgentPrincipal.
-func NewAgentPrincipalCompileResultCreator(v AgentPrincipal) CompileResultCreator {
-	var s CompileResultCreator
-	s.SetAgentPrincipal(v)
-	return s
-}
-
-// SetHumanPrincipal sets CompileResultCreator to HumanPrincipal.
-func (s *CompileResultCreator) SetHumanPrincipal(v HumanPrincipal) {
-	s.Type = HumanPrincipalCompileResultCreator
-	s.HumanPrincipal = v
-}
-
-// GetHumanPrincipal returns HumanPrincipal and true boolean if CompileResultCreator is HumanPrincipal.
-func (s CompileResultCreator) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
-	if !s.IsHumanPrincipal() {
-		return v, false
-	}
-	return s.HumanPrincipal, true
-}
-
-// NewHumanPrincipalCompileResultCreator returns new CompileResultCreator from HumanPrincipal.
-func NewHumanPrincipalCompileResultCreator(v HumanPrincipal) CompileResultCreator {
-	var s CompileResultCreator
-	s.SetHumanPrincipal(v)
-	return s
-}
-
-type CompileResultEntriesItem struct {
-	CompressionLevel CompileResultEntriesItemCompressionLevel `json:"compressionLevel"`
-	CreatedAt        time.Time                                `json:"createdAt"`
-	EntryCidSnapshot string                                   `json:"entryCidSnapshot"`
-	EntryId          uuid.UUID                                `json:"entryId"`
-	ID               uuid.UUID                                `json:"id"`
-	OriginalTokens   NilFloat64                               `json:"originalTokens"`
-	PackId           uuid.UUID                                `json:"packId"`
-	PackedTokens     NilFloat64                               `json:"packedTokens"`
-	Rank             NilInt                                   `json:"rank"`
-}
-
-// GetCompressionLevel returns the value of CompressionLevel.
-func (s *CompileResultEntriesItem) GetCompressionLevel() CompileResultEntriesItemCompressionLevel {
-	return s.CompressionLevel
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *CompileResultEntriesItem) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
-func (s *CompileResultEntriesItem) GetEntryCidSnapshot() string {
-	return s.EntryCidSnapshot
-}
-
-// GetEntryId returns the value of EntryId.
-func (s *CompileResultEntriesItem) GetEntryId() uuid.UUID {
-	return s.EntryId
-}
-
-// GetID returns the value of ID.
-func (s *CompileResultEntriesItem) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetOriginalTokens returns the value of OriginalTokens.
-func (s *CompileResultEntriesItem) GetOriginalTokens() NilFloat64 {
-	return s.OriginalTokens
-}
-
-// GetPackId returns the value of PackId.
-func (s *CompileResultEntriesItem) GetPackId() uuid.UUID {
-	return s.PackId
-}
-
-// GetPackedTokens returns the value of PackedTokens.
-func (s *CompileResultEntriesItem) GetPackedTokens() NilFloat64 {
-	return s.PackedTokens
-}
-
-// GetRank returns the value of Rank.
-func (s *CompileResultEntriesItem) GetRank() NilInt {
-	return s.Rank
-}
-
-// SetCompressionLevel sets the value of CompressionLevel.
-func (s *CompileResultEntriesItem) SetCompressionLevel(val CompileResultEntriesItemCompressionLevel) {
-	s.CompressionLevel = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *CompileResultEntriesItem) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
-func (s *CompileResultEntriesItem) SetEntryCidSnapshot(val string) {
-	s.EntryCidSnapshot = val
-}
-
-// SetEntryId sets the value of EntryId.
-func (s *CompileResultEntriesItem) SetEntryId(val uuid.UUID) {
-	s.EntryId = val
-}
-
-// SetID sets the value of ID.
-func (s *CompileResultEntriesItem) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetOriginalTokens sets the value of OriginalTokens.
-func (s *CompileResultEntriesItem) SetOriginalTokens(val NilFloat64) {
-	s.OriginalTokens = val
-}
-
-// SetPackId sets the value of PackId.
-func (s *CompileResultEntriesItem) SetPackId(val uuid.UUID) {
-	s.PackId = val
-}
-
-// SetPackedTokens sets the value of PackedTokens.
-func (s *CompileResultEntriesItem) SetPackedTokens(val NilFloat64) {
-	s.PackedTokens = val
-}
-
-// SetRank sets the value of Rank.
-func (s *CompileResultEntriesItem) SetRank(val NilInt) {
-	s.Rank = val
-}
-
-type CompileResultEntriesItemCompressionLevel string
-
-const (
-	CompileResultEntriesItemCompressionLevelFull     CompileResultEntriesItemCompressionLevel = "full"
-	CompileResultEntriesItemCompressionLevelSummary  CompileResultEntriesItemCompressionLevel = "summary"
-	CompileResultEntriesItemCompressionLevelKeywords CompileResultEntriesItemCompressionLevel = "keywords"
-)
-
-// AllValues returns all CompileResultEntriesItemCompressionLevel values.
-func (CompileResultEntriesItemCompressionLevel) AllValues() []CompileResultEntriesItemCompressionLevel {
-	return []CompileResultEntriesItemCompressionLevel{
-		CompileResultEntriesItemCompressionLevelFull,
-		CompileResultEntriesItemCompressionLevelSummary,
-		CompileResultEntriesItemCompressionLevelKeywords,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CompileResultEntriesItemCompressionLevel) MarshalText() ([]byte, error) {
-	switch s {
-	case CompileResultEntriesItemCompressionLevelFull:
-		return []byte(s), nil
-	case CompileResultEntriesItemCompressionLevelSummary:
-		return []byte(s), nil
-	case CompileResultEntriesItemCompressionLevelKeywords:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CompileResultEntriesItemCompressionLevel) UnmarshalText(data []byte) error {
-	switch CompileResultEntriesItemCompressionLevel(data) {
-	case CompileResultEntriesItemCompressionLevelFull:
-		*s = CompileResultEntriesItemCompressionLevelFull
-		return nil
-	case CompileResultEntriesItemCompressionLevelSummary:
-		*s = CompileResultEntriesItemCompressionLevelSummary
-		return nil
-	case CompileResultEntriesItemCompressionLevelKeywords:
-		*s = CompileResultEntriesItemCompressionLevelKeywords
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CompileResultPackType string
-
-const (
-	CompileResultPackTypeCompile   CompileResultPackType = "compile"
-	CompileResultPackTypeOptimized CompileResultPackType = "optimized"
-	CompileResultPackTypeCustom    CompileResultPackType = "custom"
-)
-
-// AllValues returns all CompileResultPackType values.
-func (CompileResultPackType) AllValues() []CompileResultPackType {
-	return []CompileResultPackType{
-		CompileResultPackTypeCompile,
-		CompileResultPackTypeOptimized,
-		CompileResultPackTypeCustom,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CompileResultPackType) MarshalText() ([]byte, error) {
-	switch s {
-	case CompileResultPackTypeCompile:
-		return []byte(s), nil
-	case CompileResultPackTypeOptimized:
-		return []byte(s), nil
-	case CompileResultPackTypeCustom:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CompileResultPackType) UnmarshalText(data []byte) error {
-	switch CompileResultPackType(data) {
-	case CompileResultPackTypeCompile:
-		*s = CompileResultPackTypeCompile
-		return nil
-	case CompileResultPackTypeOptimized:
-		*s = CompileResultPackTypeOptimized
-		return nil
-	case CompileResultPackTypeCustom:
-		*s = CompileResultPackTypeCustom
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/CompileStats
 type CompileStats struct {
 	BudgetUtilization float64 `json:"budgetUtilization"`
@@ -1933,615 +1258,6 @@ func (s *CompleteTaskReqOutput) init() CompleteTaskReqOutput {
 type CompleteTaskUnauthorized ProblemDetails
 
 func (*CompleteTaskUnauthorized) completeTaskRes() {}
-
-type ConsolidateDiaryBadRequest ProblemDetails
-
-func (*ConsolidateDiaryBadRequest) consolidateDiaryRes() {}
-
-type ConsolidateDiaryForbidden ProblemDetails
-
-func (*ConsolidateDiaryForbidden) consolidateDiaryRes() {}
-
-type ConsolidateDiaryInternalServerError ProblemDetails
-
-func (*ConsolidateDiaryInternalServerError) consolidateDiaryRes() {}
-
-type ConsolidateDiaryNotFound ProblemDetails
-
-func (*ConsolidateDiaryNotFound) consolidateDiaryRes() {}
-
-type ConsolidateDiaryReq struct {
-	EntryIds    []uuid.UUID                    `json:"entryIds"`
-	ExcludeTags []string                       `json:"excludeTags"`
-	Strategy    OptConsolidateDiaryReqStrategy `json:"strategy"`
-	Tags        []string                       `json:"tags"`
-	Threshold   OptFloat64                     `json:"threshold"`
-}
-
-// GetEntryIds returns the value of EntryIds.
-func (s *ConsolidateDiaryReq) GetEntryIds() []uuid.UUID {
-	return s.EntryIds
-}
-
-// GetExcludeTags returns the value of ExcludeTags.
-func (s *ConsolidateDiaryReq) GetExcludeTags() []string {
-	return s.ExcludeTags
-}
-
-// GetStrategy returns the value of Strategy.
-func (s *ConsolidateDiaryReq) GetStrategy() OptConsolidateDiaryReqStrategy {
-	return s.Strategy
-}
-
-// GetTags returns the value of Tags.
-func (s *ConsolidateDiaryReq) GetTags() []string {
-	return s.Tags
-}
-
-// GetThreshold returns the value of Threshold.
-func (s *ConsolidateDiaryReq) GetThreshold() OptFloat64 {
-	return s.Threshold
-}
-
-// SetEntryIds sets the value of EntryIds.
-func (s *ConsolidateDiaryReq) SetEntryIds(val []uuid.UUID) {
-	s.EntryIds = val
-}
-
-// SetExcludeTags sets the value of ExcludeTags.
-func (s *ConsolidateDiaryReq) SetExcludeTags(val []string) {
-	s.ExcludeTags = val
-}
-
-// SetStrategy sets the value of Strategy.
-func (s *ConsolidateDiaryReq) SetStrategy(val OptConsolidateDiaryReqStrategy) {
-	s.Strategy = val
-}
-
-// SetTags sets the value of Tags.
-func (s *ConsolidateDiaryReq) SetTags(val []string) {
-	s.Tags = val
-}
-
-// SetThreshold sets the value of Threshold.
-func (s *ConsolidateDiaryReq) SetThreshold(val OptFloat64) {
-	s.Threshold = val
-}
-
-type ConsolidateDiaryReqStrategy string
-
-const (
-	ConsolidateDiaryReqStrategyScore    ConsolidateDiaryReqStrategy = "score"
-	ConsolidateDiaryReqStrategyCentroid ConsolidateDiaryReqStrategy = "centroid"
-	ConsolidateDiaryReqStrategyHybrid   ConsolidateDiaryReqStrategy = "hybrid"
-)
-
-// AllValues returns all ConsolidateDiaryReqStrategy values.
-func (ConsolidateDiaryReqStrategy) AllValues() []ConsolidateDiaryReqStrategy {
-	return []ConsolidateDiaryReqStrategy{
-		ConsolidateDiaryReqStrategyScore,
-		ConsolidateDiaryReqStrategyCentroid,
-		ConsolidateDiaryReqStrategyHybrid,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ConsolidateDiaryReqStrategy) MarshalText() ([]byte, error) {
-	switch s {
-	case ConsolidateDiaryReqStrategyScore:
-		return []byte(s), nil
-	case ConsolidateDiaryReqStrategyCentroid:
-		return []byte(s), nil
-	case ConsolidateDiaryReqStrategyHybrid:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ConsolidateDiaryReqStrategy) UnmarshalText(data []byte) error {
-	switch ConsolidateDiaryReqStrategy(data) {
-	case ConsolidateDiaryReqStrategyScore:
-		*s = ConsolidateDiaryReqStrategyScore
-		return nil
-	case ConsolidateDiaryReqStrategyCentroid:
-		*s = ConsolidateDiaryReqStrategyCentroid
-		return nil
-	case ConsolidateDiaryReqStrategyHybrid:
-		*s = ConsolidateDiaryReqStrategyHybrid
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type ConsolidateDiaryUnauthorized ProblemDetails
-
-func (*ConsolidateDiaryUnauthorized) consolidateDiaryRes() {}
-
-// Ref: #/components/schemas/ConsolidateResult
-type ConsolidateResult struct {
-	Clusters   []ConsolidateResultClustersItem `json:"clusters"`
-	Stats      ConsolidateResultStats          `json:"stats"`
-	Trace      ConsolidateResultTrace          `json:"trace"`
-	WorkflowId string                          `json:"workflowId"`
-}
-
-// GetClusters returns the value of Clusters.
-func (s *ConsolidateResult) GetClusters() []ConsolidateResultClustersItem {
-	return s.Clusters
-}
-
-// GetStats returns the value of Stats.
-func (s *ConsolidateResult) GetStats() ConsolidateResultStats {
-	return s.Stats
-}
-
-// GetTrace returns the value of Trace.
-func (s *ConsolidateResult) GetTrace() ConsolidateResultTrace {
-	return s.Trace
-}
-
-// GetWorkflowId returns the value of WorkflowId.
-func (s *ConsolidateResult) GetWorkflowId() string {
-	return s.WorkflowId
-}
-
-// SetClusters sets the value of Clusters.
-func (s *ConsolidateResult) SetClusters(val []ConsolidateResultClustersItem) {
-	s.Clusters = val
-}
-
-// SetStats sets the value of Stats.
-func (s *ConsolidateResult) SetStats(val ConsolidateResultStats) {
-	s.Stats = val
-}
-
-// SetTrace sets the value of Trace.
-func (s *ConsolidateResult) SetTrace(val ConsolidateResultTrace) {
-	s.Trace = val
-}
-
-// SetWorkflowId sets the value of WorkflowId.
-func (s *ConsolidateResult) SetWorkflowId(val string) {
-	s.WorkflowId = val
-}
-
-func (*ConsolidateResult) consolidateDiaryRes() {}
-
-type ConsolidateResultClustersItem struct {
-	Confidence           float64                                      `json:"confidence"`
-	Members              []ConsolidateResultClustersItemMembersItem   `json:"members"`
-	Representative       ConsolidateResultClustersItemRepresentative  `json:"representative"`
-	RepresentativeReason string                                       `json:"representativeReason"`
-	Similarity           float64                                      `json:"similarity"`
-	SuggestedAction      ConsolidateResultClustersItemSuggestedAction `json:"suggestedAction"`
-}
-
-// GetConfidence returns the value of Confidence.
-func (s *ConsolidateResultClustersItem) GetConfidence() float64 {
-	return s.Confidence
-}
-
-// GetMembers returns the value of Members.
-func (s *ConsolidateResultClustersItem) GetMembers() []ConsolidateResultClustersItemMembersItem {
-	return s.Members
-}
-
-// GetRepresentative returns the value of Representative.
-func (s *ConsolidateResultClustersItem) GetRepresentative() ConsolidateResultClustersItemRepresentative {
-	return s.Representative
-}
-
-// GetRepresentativeReason returns the value of RepresentativeReason.
-func (s *ConsolidateResultClustersItem) GetRepresentativeReason() string {
-	return s.RepresentativeReason
-}
-
-// GetSimilarity returns the value of Similarity.
-func (s *ConsolidateResultClustersItem) GetSimilarity() float64 {
-	return s.Similarity
-}
-
-// GetSuggestedAction returns the value of SuggestedAction.
-func (s *ConsolidateResultClustersItem) GetSuggestedAction() ConsolidateResultClustersItemSuggestedAction {
-	return s.SuggestedAction
-}
-
-// SetConfidence sets the value of Confidence.
-func (s *ConsolidateResultClustersItem) SetConfidence(val float64) {
-	s.Confidence = val
-}
-
-// SetMembers sets the value of Members.
-func (s *ConsolidateResultClustersItem) SetMembers(val []ConsolidateResultClustersItemMembersItem) {
-	s.Members = val
-}
-
-// SetRepresentative sets the value of Representative.
-func (s *ConsolidateResultClustersItem) SetRepresentative(val ConsolidateResultClustersItemRepresentative) {
-	s.Representative = val
-}
-
-// SetRepresentativeReason sets the value of RepresentativeReason.
-func (s *ConsolidateResultClustersItem) SetRepresentativeReason(val string) {
-	s.RepresentativeReason = val
-}
-
-// SetSimilarity sets the value of Similarity.
-func (s *ConsolidateResultClustersItem) SetSimilarity(val float64) {
-	s.Similarity = val
-}
-
-// SetSuggestedAction sets the value of SuggestedAction.
-func (s *ConsolidateResultClustersItem) SetSuggestedAction(val ConsolidateResultClustersItemSuggestedAction) {
-	s.SuggestedAction = val
-}
-
-type ConsolidateResultClustersItemMembersItem struct {
-	Content    string    `json:"content"`
-	CreatedAt  time.Time `json:"createdAt"`
-	ID         uuid.UUID `json:"id"`
-	Importance float64   `json:"importance"`
-	Tokens     float64   `json:"tokens"`
-}
-
-// GetContent returns the value of Content.
-func (s *ConsolidateResultClustersItemMembersItem) GetContent() string {
-	return s.Content
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *ConsolidateResultClustersItemMembersItem) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetID returns the value of ID.
-func (s *ConsolidateResultClustersItemMembersItem) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetImportance returns the value of Importance.
-func (s *ConsolidateResultClustersItemMembersItem) GetImportance() float64 {
-	return s.Importance
-}
-
-// GetTokens returns the value of Tokens.
-func (s *ConsolidateResultClustersItemMembersItem) GetTokens() float64 {
-	return s.Tokens
-}
-
-// SetContent sets the value of Content.
-func (s *ConsolidateResultClustersItemMembersItem) SetContent(val string) {
-	s.Content = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *ConsolidateResultClustersItemMembersItem) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetID sets the value of ID.
-func (s *ConsolidateResultClustersItemMembersItem) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetImportance sets the value of Importance.
-func (s *ConsolidateResultClustersItemMembersItem) SetImportance(val float64) {
-	s.Importance = val
-}
-
-// SetTokens sets the value of Tokens.
-func (s *ConsolidateResultClustersItemMembersItem) SetTokens(val float64) {
-	s.Tokens = val
-}
-
-type ConsolidateResultClustersItemRepresentative struct {
-	Content    string    `json:"content"`
-	CreatedAt  time.Time `json:"createdAt"`
-	ID         uuid.UUID `json:"id"`
-	Importance float64   `json:"importance"`
-	Tokens     float64   `json:"tokens"`
-}
-
-// GetContent returns the value of Content.
-func (s *ConsolidateResultClustersItemRepresentative) GetContent() string {
-	return s.Content
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *ConsolidateResultClustersItemRepresentative) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetID returns the value of ID.
-func (s *ConsolidateResultClustersItemRepresentative) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetImportance returns the value of Importance.
-func (s *ConsolidateResultClustersItemRepresentative) GetImportance() float64 {
-	return s.Importance
-}
-
-// GetTokens returns the value of Tokens.
-func (s *ConsolidateResultClustersItemRepresentative) GetTokens() float64 {
-	return s.Tokens
-}
-
-// SetContent sets the value of Content.
-func (s *ConsolidateResultClustersItemRepresentative) SetContent(val string) {
-	s.Content = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *ConsolidateResultClustersItemRepresentative) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetID sets the value of ID.
-func (s *ConsolidateResultClustersItemRepresentative) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetImportance sets the value of Importance.
-func (s *ConsolidateResultClustersItemRepresentative) SetImportance(val float64) {
-	s.Importance = val
-}
-
-// SetTokens sets the value of Tokens.
-func (s *ConsolidateResultClustersItemRepresentative) SetTokens(val float64) {
-	s.Tokens = val
-}
-
-type ConsolidateResultClustersItemSuggestedAction string
-
-const (
-	ConsolidateResultClustersItemSuggestedActionMerge        ConsolidateResultClustersItemSuggestedAction = "merge"
-	ConsolidateResultClustersItemSuggestedActionKeepSeparate ConsolidateResultClustersItemSuggestedAction = "keep_separate"
-	ConsolidateResultClustersItemSuggestedActionReview       ConsolidateResultClustersItemSuggestedAction = "review"
-)
-
-// AllValues returns all ConsolidateResultClustersItemSuggestedAction values.
-func (ConsolidateResultClustersItemSuggestedAction) AllValues() []ConsolidateResultClustersItemSuggestedAction {
-	return []ConsolidateResultClustersItemSuggestedAction{
-		ConsolidateResultClustersItemSuggestedActionMerge,
-		ConsolidateResultClustersItemSuggestedActionKeepSeparate,
-		ConsolidateResultClustersItemSuggestedActionReview,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ConsolidateResultClustersItemSuggestedAction) MarshalText() ([]byte, error) {
-	switch s {
-	case ConsolidateResultClustersItemSuggestedActionMerge:
-		return []byte(s), nil
-	case ConsolidateResultClustersItemSuggestedActionKeepSeparate:
-		return []byte(s), nil
-	case ConsolidateResultClustersItemSuggestedActionReview:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ConsolidateResultClustersItemSuggestedAction) UnmarshalText(data []byte) error {
-	switch ConsolidateResultClustersItemSuggestedAction(data) {
-	case ConsolidateResultClustersItemSuggestedActionMerge:
-		*s = ConsolidateResultClustersItemSuggestedActionMerge
-		return nil
-	case ConsolidateResultClustersItemSuggestedActionKeepSeparate:
-		*s = ConsolidateResultClustersItemSuggestedActionKeepSeparate
-		return nil
-	case ConsolidateResultClustersItemSuggestedActionReview:
-		*s = ConsolidateResultClustersItemSuggestedActionReview
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type ConsolidateResultStats struct {
-	ClusterCount            float64                                       `json:"clusterCount"`
-	ClusterSizeDistribution ConsolidateResultStatsClusterSizeDistribution `json:"clusterSizeDistribution"`
-	ElapsedMs               float64                                       `json:"elapsedMs"`
-	InputCount              float64                                       `json:"inputCount"`
-	SingletonRate           float64                                       `json:"singletonRate"`
-}
-
-// GetClusterCount returns the value of ClusterCount.
-func (s *ConsolidateResultStats) GetClusterCount() float64 {
-	return s.ClusterCount
-}
-
-// GetClusterSizeDistribution returns the value of ClusterSizeDistribution.
-func (s *ConsolidateResultStats) GetClusterSizeDistribution() ConsolidateResultStatsClusterSizeDistribution {
-	return s.ClusterSizeDistribution
-}
-
-// GetElapsedMs returns the value of ElapsedMs.
-func (s *ConsolidateResultStats) GetElapsedMs() float64 {
-	return s.ElapsedMs
-}
-
-// GetInputCount returns the value of InputCount.
-func (s *ConsolidateResultStats) GetInputCount() float64 {
-	return s.InputCount
-}
-
-// GetSingletonRate returns the value of SingletonRate.
-func (s *ConsolidateResultStats) GetSingletonRate() float64 {
-	return s.SingletonRate
-}
-
-// SetClusterCount sets the value of ClusterCount.
-func (s *ConsolidateResultStats) SetClusterCount(val float64) {
-	s.ClusterCount = val
-}
-
-// SetClusterSizeDistribution sets the value of ClusterSizeDistribution.
-func (s *ConsolidateResultStats) SetClusterSizeDistribution(val ConsolidateResultStatsClusterSizeDistribution) {
-	s.ClusterSizeDistribution = val
-}
-
-// SetElapsedMs sets the value of ElapsedMs.
-func (s *ConsolidateResultStats) SetElapsedMs(val float64) {
-	s.ElapsedMs = val
-}
-
-// SetInputCount sets the value of InputCount.
-func (s *ConsolidateResultStats) SetInputCount(val float64) {
-	s.InputCount = val
-}
-
-// SetSingletonRate sets the value of SingletonRate.
-func (s *ConsolidateResultStats) SetSingletonRate(val float64) {
-	s.SingletonRate = val
-}
-
-type ConsolidateResultStatsClusterSizeDistribution struct {
-	V0 float64
-	V1 float64
-	V2 float64
-	V3 float64
-	V4 float64
-}
-
-// GetV0 returns the value of V0.
-func (s *ConsolidateResultStatsClusterSizeDistribution) GetV0() float64 {
-	return s.V0
-}
-
-// GetV1 returns the value of V1.
-func (s *ConsolidateResultStatsClusterSizeDistribution) GetV1() float64 {
-	return s.V1
-}
-
-// GetV2 returns the value of V2.
-func (s *ConsolidateResultStatsClusterSizeDistribution) GetV2() float64 {
-	return s.V2
-}
-
-// GetV3 returns the value of V3.
-func (s *ConsolidateResultStatsClusterSizeDistribution) GetV3() float64 {
-	return s.V3
-}
-
-// GetV4 returns the value of V4.
-func (s *ConsolidateResultStatsClusterSizeDistribution) GetV4() float64 {
-	return s.V4
-}
-
-// SetV0 sets the value of V0.
-func (s *ConsolidateResultStatsClusterSizeDistribution) SetV0(val float64) {
-	s.V0 = val
-}
-
-// SetV1 sets the value of V1.
-func (s *ConsolidateResultStatsClusterSizeDistribution) SetV1(val float64) {
-	s.V1 = val
-}
-
-// SetV2 sets the value of V2.
-func (s *ConsolidateResultStatsClusterSizeDistribution) SetV2(val float64) {
-	s.V2 = val
-}
-
-// SetV3 sets the value of V3.
-func (s *ConsolidateResultStatsClusterSizeDistribution) SetV3(val float64) {
-	s.V3 = val
-}
-
-// SetV4 sets the value of V4.
-func (s *ConsolidateResultStatsClusterSizeDistribution) SetV4(val float64) {
-	s.V4 = val
-}
-
-type ConsolidateResultTrace struct {
-	EmbeddingDim  float64                            `json:"embeddingDim"`
-	StrategyUsed  ConsolidateResultTraceStrategyUsed `json:"strategyUsed"`
-	ThresholdUsed float64                            `json:"thresholdUsed"`
-}
-
-// GetEmbeddingDim returns the value of EmbeddingDim.
-func (s *ConsolidateResultTrace) GetEmbeddingDim() float64 {
-	return s.EmbeddingDim
-}
-
-// GetStrategyUsed returns the value of StrategyUsed.
-func (s *ConsolidateResultTrace) GetStrategyUsed() ConsolidateResultTraceStrategyUsed {
-	return s.StrategyUsed
-}
-
-// GetThresholdUsed returns the value of ThresholdUsed.
-func (s *ConsolidateResultTrace) GetThresholdUsed() float64 {
-	return s.ThresholdUsed
-}
-
-// SetEmbeddingDim sets the value of EmbeddingDim.
-func (s *ConsolidateResultTrace) SetEmbeddingDim(val float64) {
-	s.EmbeddingDim = val
-}
-
-// SetStrategyUsed sets the value of StrategyUsed.
-func (s *ConsolidateResultTrace) SetStrategyUsed(val ConsolidateResultTraceStrategyUsed) {
-	s.StrategyUsed = val
-}
-
-// SetThresholdUsed sets the value of ThresholdUsed.
-func (s *ConsolidateResultTrace) SetThresholdUsed(val float64) {
-	s.ThresholdUsed = val
-}
-
-type ConsolidateResultTraceStrategyUsed string
-
-const (
-	ConsolidateResultTraceStrategyUsedScore    ConsolidateResultTraceStrategyUsed = "score"
-	ConsolidateResultTraceStrategyUsedCentroid ConsolidateResultTraceStrategyUsed = "centroid"
-	ConsolidateResultTraceStrategyUsedHybrid   ConsolidateResultTraceStrategyUsed = "hybrid"
-)
-
-// AllValues returns all ConsolidateResultTraceStrategyUsed values.
-func (ConsolidateResultTraceStrategyUsed) AllValues() []ConsolidateResultTraceStrategyUsed {
-	return []ConsolidateResultTraceStrategyUsed{
-		ConsolidateResultTraceStrategyUsedScore,
-		ConsolidateResultTraceStrategyUsedCentroid,
-		ConsolidateResultTraceStrategyUsedHybrid,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ConsolidateResultTraceStrategyUsed) MarshalText() ([]byte, error) {
-	switch s {
-	case ConsolidateResultTraceStrategyUsedScore:
-		return []byte(s), nil
-	case ConsolidateResultTraceStrategyUsedCentroid:
-		return []byte(s), nil
-	case ConsolidateResultTraceStrategyUsedHybrid:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ConsolidateResultTraceStrategyUsed) UnmarshalText(data []byte) error {
-	switch ConsolidateResultTraceStrategyUsed(data) {
-	case ConsolidateResultTraceStrategyUsedScore:
-		*s = ConsolidateResultTraceStrategyUsedScore
-		return nil
-	case ConsolidateResultTraceStrategyUsedCentroid:
-		*s = ConsolidateResultTraceStrategyUsedCentroid
-		return nil
-	case ConsolidateResultTraceStrategyUsedHybrid:
-		*s = ConsolidateResultTraceStrategyUsedHybrid
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
 
 // Ref: #/components/schemas/ContextPackResponse
 type ContextPackResponse struct {
@@ -2881,7 +1597,6 @@ func (*ContextPackResponseListWithRendered) listContextPacksRes() {}
 type ContextPackResponsePackType string
 
 const (
-	ContextPackResponsePackTypeCompile   ContextPackResponsePackType = "compile"
 	ContextPackResponsePackTypeOptimized ContextPackResponsePackType = "optimized"
 	ContextPackResponsePackTypeCustom    ContextPackResponsePackType = "custom"
 )
@@ -2889,7 +1604,6 @@ const (
 // AllValues returns all ContextPackResponsePackType values.
 func (ContextPackResponsePackType) AllValues() []ContextPackResponsePackType {
 	return []ContextPackResponsePackType{
-		ContextPackResponsePackTypeCompile,
 		ContextPackResponsePackTypeOptimized,
 		ContextPackResponsePackTypeCustom,
 	}
@@ -2898,8 +1612,6 @@ func (ContextPackResponsePackType) AllValues() []ContextPackResponsePackType {
 // MarshalText implements encoding.TextMarshaler.
 func (s ContextPackResponsePackType) MarshalText() ([]byte, error) {
 	switch s {
-	case ContextPackResponsePackTypeCompile:
-		return []byte(s), nil
 	case ContextPackResponsePackTypeOptimized:
 		return []byte(s), nil
 	case ContextPackResponsePackTypeCustom:
@@ -2912,9 +1624,6 @@ func (s ContextPackResponsePackType) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *ContextPackResponsePackType) UnmarshalText(data []byte) error {
 	switch ContextPackResponsePackType(data) {
-	case ContextPackResponsePackTypeCompile:
-		*s = ContextPackResponsePackTypeCompile
-		return nil
 	case ContextPackResponsePackTypeOptimized:
 		*s = ContextPackResponsePackTypeOptimized
 		return nil
@@ -6968,7 +5677,6 @@ func (s *DiffContextPacksByCidOKStatsPackA) SetTotalTokens(val NilInt) {
 type DiffContextPacksByCidOKStatsPackAPackType string
 
 const (
-	DiffContextPacksByCidOKStatsPackAPackTypeCompile   DiffContextPacksByCidOKStatsPackAPackType = "compile"
 	DiffContextPacksByCidOKStatsPackAPackTypeOptimized DiffContextPacksByCidOKStatsPackAPackType = "optimized"
 	DiffContextPacksByCidOKStatsPackAPackTypeCustom    DiffContextPacksByCidOKStatsPackAPackType = "custom"
 )
@@ -6976,7 +5684,6 @@ const (
 // AllValues returns all DiffContextPacksByCidOKStatsPackAPackType values.
 func (DiffContextPacksByCidOKStatsPackAPackType) AllValues() []DiffContextPacksByCidOKStatsPackAPackType {
 	return []DiffContextPacksByCidOKStatsPackAPackType{
-		DiffContextPacksByCidOKStatsPackAPackTypeCompile,
 		DiffContextPacksByCidOKStatsPackAPackTypeOptimized,
 		DiffContextPacksByCidOKStatsPackAPackTypeCustom,
 	}
@@ -6985,8 +5692,6 @@ func (DiffContextPacksByCidOKStatsPackAPackType) AllValues() []DiffContextPacksB
 // MarshalText implements encoding.TextMarshaler.
 func (s DiffContextPacksByCidOKStatsPackAPackType) MarshalText() ([]byte, error) {
 	switch s {
-	case DiffContextPacksByCidOKStatsPackAPackTypeCompile:
-		return []byte(s), nil
 	case DiffContextPacksByCidOKStatsPackAPackTypeOptimized:
 		return []byte(s), nil
 	case DiffContextPacksByCidOKStatsPackAPackTypeCustom:
@@ -6999,9 +5704,6 @@ func (s DiffContextPacksByCidOKStatsPackAPackType) MarshalText() ([]byte, error)
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *DiffContextPacksByCidOKStatsPackAPackType) UnmarshalText(data []byte) error {
 	switch DiffContextPacksByCidOKStatsPackAPackType(data) {
-	case DiffContextPacksByCidOKStatsPackAPackTypeCompile:
-		*s = DiffContextPacksByCidOKStatsPackAPackTypeCompile
-		return nil
 	case DiffContextPacksByCidOKStatsPackAPackTypeOptimized:
 		*s = DiffContextPacksByCidOKStatsPackAPackTypeOptimized
 		return nil
@@ -7074,7 +5776,6 @@ func (s *DiffContextPacksByCidOKStatsPackB) SetTotalTokens(val NilInt) {
 type DiffContextPacksByCidOKStatsPackBPackType string
 
 const (
-	DiffContextPacksByCidOKStatsPackBPackTypeCompile   DiffContextPacksByCidOKStatsPackBPackType = "compile"
 	DiffContextPacksByCidOKStatsPackBPackTypeOptimized DiffContextPacksByCidOKStatsPackBPackType = "optimized"
 	DiffContextPacksByCidOKStatsPackBPackTypeCustom    DiffContextPacksByCidOKStatsPackBPackType = "custom"
 )
@@ -7082,7 +5783,6 @@ const (
 // AllValues returns all DiffContextPacksByCidOKStatsPackBPackType values.
 func (DiffContextPacksByCidOKStatsPackBPackType) AllValues() []DiffContextPacksByCidOKStatsPackBPackType {
 	return []DiffContextPacksByCidOKStatsPackBPackType{
-		DiffContextPacksByCidOKStatsPackBPackTypeCompile,
 		DiffContextPacksByCidOKStatsPackBPackTypeOptimized,
 		DiffContextPacksByCidOKStatsPackBPackTypeCustom,
 	}
@@ -7091,8 +5791,6 @@ func (DiffContextPacksByCidOKStatsPackBPackType) AllValues() []DiffContextPacksB
 // MarshalText implements encoding.TextMarshaler.
 func (s DiffContextPacksByCidOKStatsPackBPackType) MarshalText() ([]byte, error) {
 	switch s {
-	case DiffContextPacksByCidOKStatsPackBPackTypeCompile:
-		return []byte(s), nil
 	case DiffContextPacksByCidOKStatsPackBPackTypeOptimized:
 		return []byte(s), nil
 	case DiffContextPacksByCidOKStatsPackBPackTypeCustom:
@@ -7105,9 +5803,6 @@ func (s DiffContextPacksByCidOKStatsPackBPackType) MarshalText() ([]byte, error)
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *DiffContextPacksByCidOKStatsPackBPackType) UnmarshalText(data []byte) error {
 	switch DiffContextPacksByCidOKStatsPackBPackType(data) {
-	case DiffContextPacksByCidOKStatsPackBPackTypeCompile:
-		*s = DiffContextPacksByCidOKStatsPackBPackTypeCompile
-		return nil
 	case DiffContextPacksByCidOKStatsPackBPackTypeOptimized:
 		*s = DiffContextPacksByCidOKStatsPackBPackTypeOptimized
 		return nil
@@ -7912,7 +6607,6 @@ func (s *DiffContextPacksByIdOKStatsPackA) SetTotalTokens(val NilInt) {
 type DiffContextPacksByIdOKStatsPackAPackType string
 
 const (
-	DiffContextPacksByIdOKStatsPackAPackTypeCompile   DiffContextPacksByIdOKStatsPackAPackType = "compile"
 	DiffContextPacksByIdOKStatsPackAPackTypeOptimized DiffContextPacksByIdOKStatsPackAPackType = "optimized"
 	DiffContextPacksByIdOKStatsPackAPackTypeCustom    DiffContextPacksByIdOKStatsPackAPackType = "custom"
 )
@@ -7920,7 +6614,6 @@ const (
 // AllValues returns all DiffContextPacksByIdOKStatsPackAPackType values.
 func (DiffContextPacksByIdOKStatsPackAPackType) AllValues() []DiffContextPacksByIdOKStatsPackAPackType {
 	return []DiffContextPacksByIdOKStatsPackAPackType{
-		DiffContextPacksByIdOKStatsPackAPackTypeCompile,
 		DiffContextPacksByIdOKStatsPackAPackTypeOptimized,
 		DiffContextPacksByIdOKStatsPackAPackTypeCustom,
 	}
@@ -7929,8 +6622,6 @@ func (DiffContextPacksByIdOKStatsPackAPackType) AllValues() []DiffContextPacksBy
 // MarshalText implements encoding.TextMarshaler.
 func (s DiffContextPacksByIdOKStatsPackAPackType) MarshalText() ([]byte, error) {
 	switch s {
-	case DiffContextPacksByIdOKStatsPackAPackTypeCompile:
-		return []byte(s), nil
 	case DiffContextPacksByIdOKStatsPackAPackTypeOptimized:
 		return []byte(s), nil
 	case DiffContextPacksByIdOKStatsPackAPackTypeCustom:
@@ -7943,9 +6634,6 @@ func (s DiffContextPacksByIdOKStatsPackAPackType) MarshalText() ([]byte, error) 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *DiffContextPacksByIdOKStatsPackAPackType) UnmarshalText(data []byte) error {
 	switch DiffContextPacksByIdOKStatsPackAPackType(data) {
-	case DiffContextPacksByIdOKStatsPackAPackTypeCompile:
-		*s = DiffContextPacksByIdOKStatsPackAPackTypeCompile
-		return nil
 	case DiffContextPacksByIdOKStatsPackAPackTypeOptimized:
 		*s = DiffContextPacksByIdOKStatsPackAPackTypeOptimized
 		return nil
@@ -8018,7 +6706,6 @@ func (s *DiffContextPacksByIdOKStatsPackB) SetTotalTokens(val NilInt) {
 type DiffContextPacksByIdOKStatsPackBPackType string
 
 const (
-	DiffContextPacksByIdOKStatsPackBPackTypeCompile   DiffContextPacksByIdOKStatsPackBPackType = "compile"
 	DiffContextPacksByIdOKStatsPackBPackTypeOptimized DiffContextPacksByIdOKStatsPackBPackType = "optimized"
 	DiffContextPacksByIdOKStatsPackBPackTypeCustom    DiffContextPacksByIdOKStatsPackBPackType = "custom"
 )
@@ -8026,7 +6713,6 @@ const (
 // AllValues returns all DiffContextPacksByIdOKStatsPackBPackType values.
 func (DiffContextPacksByIdOKStatsPackBPackType) AllValues() []DiffContextPacksByIdOKStatsPackBPackType {
 	return []DiffContextPacksByIdOKStatsPackBPackType{
-		DiffContextPacksByIdOKStatsPackBPackTypeCompile,
 		DiffContextPacksByIdOKStatsPackBPackTypeOptimized,
 		DiffContextPacksByIdOKStatsPackBPackTypeCustom,
 	}
@@ -8035,8 +6721,6 @@ func (DiffContextPacksByIdOKStatsPackBPackType) AllValues() []DiffContextPacksBy
 // MarshalText implements encoding.TextMarshaler.
 func (s DiffContextPacksByIdOKStatsPackBPackType) MarshalText() ([]byte, error) {
 	switch s {
-	case DiffContextPacksByIdOKStatsPackBPackTypeCompile:
-		return []byte(s), nil
 	case DiffContextPacksByIdOKStatsPackBPackTypeOptimized:
 		return []byte(s), nil
 	case DiffContextPacksByIdOKStatsPackBPackTypeCustom:
@@ -8049,9 +6733,6 @@ func (s DiffContextPacksByIdOKStatsPackBPackType) MarshalText() ([]byte, error) 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *DiffContextPacksByIdOKStatsPackBPackType) UnmarshalText(data []byte) error {
 	switch DiffContextPacksByIdOKStatsPackBPackType(data) {
-	case DiffContextPacksByIdOKStatsPackBPackTypeCompile:
-		*s = DiffContextPacksByIdOKStatsPackBPackTypeCompile
-		return nil
 	case DiffContextPacksByIdOKStatsPackBPackTypeOptimized:
 		*s = DiffContextPacksByIdOKStatsPackBPackTypeOptimized
 		return nil
@@ -14076,98 +12757,6 @@ func (o OptCompleteTaskReqExecutorManifest) Get() (v CompleteTaskReqExecutorMani
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCompleteTaskReqExecutorManifest) Or(d CompleteTaskReqExecutorManifest) CompleteTaskReqExecutorManifest {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptConsolidateDiaryReq returns new OptConsolidateDiaryReq with value set to v.
-func NewOptConsolidateDiaryReq(v ConsolidateDiaryReq) OptConsolidateDiaryReq {
-	return OptConsolidateDiaryReq{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptConsolidateDiaryReq is optional ConsolidateDiaryReq.
-type OptConsolidateDiaryReq struct {
-	Value ConsolidateDiaryReq
-	Set   bool
-}
-
-// IsSet returns true if OptConsolidateDiaryReq was set.
-func (o OptConsolidateDiaryReq) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptConsolidateDiaryReq) Reset() {
-	var v ConsolidateDiaryReq
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptConsolidateDiaryReq) SetTo(v ConsolidateDiaryReq) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptConsolidateDiaryReq) Get() (v ConsolidateDiaryReq, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptConsolidateDiaryReq) Or(d ConsolidateDiaryReq) ConsolidateDiaryReq {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptConsolidateDiaryReqStrategy returns new OptConsolidateDiaryReqStrategy with value set to v.
-func NewOptConsolidateDiaryReqStrategy(v ConsolidateDiaryReqStrategy) OptConsolidateDiaryReqStrategy {
-	return OptConsolidateDiaryReqStrategy{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptConsolidateDiaryReqStrategy is optional ConsolidateDiaryReqStrategy.
-type OptConsolidateDiaryReqStrategy struct {
-	Value ConsolidateDiaryReqStrategy
-	Set   bool
-}
-
-// IsSet returns true if OptConsolidateDiaryReqStrategy was set.
-func (o OptConsolidateDiaryReqStrategy) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptConsolidateDiaryReqStrategy) Reset() {
-	var v ConsolidateDiaryReqStrategy
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptConsolidateDiaryReqStrategy) SetTo(v ConsolidateDiaryReqStrategy) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptConsolidateDiaryReqStrategy) Get() (v ConsolidateDiaryReqStrategy, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptConsolidateDiaryReqStrategy) Or(d ConsolidateDiaryReqStrategy) ConsolidateDiaryReqStrategy {
 	if v, ok := o.Get(); ok {
 		return v
 	}

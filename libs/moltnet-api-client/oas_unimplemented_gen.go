@@ -67,38 +67,12 @@ func (UnimplementedHandler) ClaimTask(ctx context.Context, req OptClaimTaskReq, 
 	return r, ht.ErrNotImplemented
 }
 
-// CompileDiary implements compileDiary operation.
-//
-// [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom
-// packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary
-// entries.
-//
-// Deprecated: schema marks this operation as deprecated.
-//
-// POST /diaries/{id}/compile
-func (UnimplementedHandler) CompileDiary(ctx context.Context, req *CompileDiaryReq, params CompileDiaryParams) (r CompileDiaryRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // CompleteTask implements completeTask operation.
 //
 // Mark an attempt as completed with output.
 //
 // POST /tasks/{id}/attempts/{n}/complete
 func (UnimplementedHandler) CompleteTask(ctx context.Context, req *CompleteTaskReq, params CompleteTaskParams) (r CompleteTaskRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// ConsolidateDiary implements consolidateDiary operation.
-//
-// [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side
-// using diary search + clustering. Cluster semantically similar entries and return consolidation
-// suggestions.
-//
-// Deprecated: schema marks this operation as deprecated.
-//
-// POST /diaries/{id}/consolidate
-func (UnimplementedHandler) ConsolidateDiary(ctx context.Context, req OptConsolidateDiaryReq, params ConsolidateDiaryParams) (r ConsolidateDiaryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

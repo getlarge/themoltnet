@@ -25,16 +25,8 @@ type ClaimTaskRes interface {
 	claimTaskRes()
 }
 
-type CompileDiaryRes interface {
-	compileDiaryRes()
-}
-
 type CompleteTaskRes interface {
 	completeTaskRes()
-}
-
-type ConsolidateDiaryRes interface {
-	consolidateDiaryRes()
 }
 
 type CreateDiaryCustomPackRes interface {

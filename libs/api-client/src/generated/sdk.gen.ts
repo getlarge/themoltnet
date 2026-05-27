@@ -21,15 +21,9 @@ import type {
   ClaimTaskData,
   ClaimTaskErrors,
   ClaimTaskResponses,
-  CompileDiaryData,
-  CompileDiaryErrors,
-  CompileDiaryResponses,
   CompleteTaskData,
   CompleteTaskErrors,
   CompleteTaskResponses,
-  ConsolidateDiaryData,
-  ConsolidateDiaryErrors,
-  ConsolidateDiaryResponses,
   CreateDiaryCustomPackData,
   CreateDiaryCustomPackErrors,
   CreateDiaryCustomPackResponses,
@@ -864,66 +858,6 @@ export const searchDiary = <ThrowOnError extends boolean = false>(
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
-    },
-  });
-
-/**
- * [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. Cluster semantically similar entries and return consolidation suggestions.
- *
- * @deprecated
- */
-export const consolidateDiary = <ThrowOnError extends boolean = false>(
-  options: Options<ConsolidateDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    ConsolidateDiaryResponses,
-    ConsolidateDiaryErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/diaries/{id}/consolidate',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary entries.
- *
- * @deprecated
- */
-export const compileDiary = <ThrowOnError extends boolean = false>(
-  options: Options<CompileDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CompileDiaryResponses,
-    CompileDiaryErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/diaries/{id}/compile',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
     },
   });
 
