@@ -589,6 +589,37 @@ describe('createTaskService.create — producer input normalization', () => {
     });
     expect(newTask.inputCid).toBe(await computeJsonCid(newTask.input));
   });
+
+  it('writes proposerId (humans.id) to proposedByHumanId for human callers', async () => {
+    const HUMAN_IDENTITY = 'b0000000-0000-0000-0000-000000000010';
+    const HUMAN_ROW_ID = 'c0000000-0000-0000-0000-000000000020';
+
+    await service.create({
+      ...fulfillCreateInput(),
+      callerId: HUMAN_IDENTITY,
+      callerNs: 'human' as const,
+      callerIsAgent: false,
+      proposerId: HUMAN_ROW_ID,
+    } as never);
+
+    const newTask = mocks.taskRepository.create.mock.calls[0][0] as {
+      proposedByAgentId: string | null;
+      proposedByHumanId: string | null;
+    };
+    expect(newTask.proposedByHumanId).toBe(HUMAN_ROW_ID);
+    expect(newTask.proposedByAgentId).toBeNull();
+  });
+
+  it('falls back to callerId when proposerId is omitted (agent path)', async () => {
+    await service.create(fulfillCreateInput() as never);
+
+    const newTask = mocks.taskRepository.create.mock.calls[0][0] as {
+      proposedByAgentId: string | null;
+      proposedByHumanId: string | null;
+    };
+    expect(newTask.proposedByAgentId).toBe(AGENT_ID);
+    expect(newTask.proposedByHumanId).toBeNull();
+  });
 });
 
 describe('createTaskService.create — conditional claimability', () => {

@@ -157,6 +157,14 @@ export interface CreateTaskInput {
   callerId: string;
   callerNs: KetoNamespace;
   callerIsAgent: boolean;
+  /**
+   * Id written to `proposedByAgentId`/`proposedByHumanId`. For agents this is
+   * the Kratos identity id (= `agents.identity_id`); for humans it must be
+   * `humans.id` (NOT the Kratos identity id — see
+   * apps/rest-api/src/utils/auth-principal.ts header). Defaults to `callerId`
+   * to preserve the agent path, where the two ids coincide.
+   */
+  proposerId?: string;
 }
 
 interface ExecutorAttestationInput {
@@ -654,8 +662,12 @@ export function createTaskService(deps: TaskServiceDeps) {
         inputCid,
         taskRefs: (input.references ?? []) as NewTask['taskRefs'],
         correlationId: input.correlationId ?? null,
-        proposedByAgentId: input.callerIsAgent ? input.callerId : null,
-        proposedByHumanId: input.callerIsAgent ? null : input.callerId,
+        proposedByAgentId: input.callerIsAgent
+          ? (input.proposerId ?? input.callerId)
+          : null,
+        proposedByHumanId: input.callerIsAgent
+          ? null
+          : (input.proposerId ?? input.callerId),
         claimCondition: input.claimCondition ?? null,
         status: conditionSatisfied ? 'queued' : 'waiting',
         requiredExecutorTrustLevel:
@@ -719,11 +731,11 @@ export function createTaskService(deps: TaskServiceDeps) {
                     sealedByTaskId: inserted.id,
                     sealedByTaskType: input.taskType,
                     sealedByAgentId: input.callerIsAgent
-                      ? input.callerId
+                      ? (input.proposerId ?? input.callerId)
                       : null,
                     sealedByHumanId: input.callerIsAgent
                       ? null
-                      : input.callerId,
+                      : (input.proposerId ?? input.callerId),
                   });
                 } catch (sealErr) {
                   // Defensive: PK violation despite the lock + re-check
@@ -803,8 +815,12 @@ export function createTaskService(deps: TaskServiceDeps) {
         try {
           await taskRepository.updateStatus(row.id, 'cancelled', {
             cancelReason: 'Keto grant failed during creation',
-            cancelledByAgentId: input.callerIsAgent ? input.callerId : null,
-            cancelledByHumanId: input.callerIsAgent ? null : input.callerId,
+            cancelledByAgentId: input.callerIsAgent
+              ? (input.proposerId ?? input.callerId)
+              : null,
+            cancelledByHumanId: input.callerIsAgent
+              ? null
+              : (input.proposerId ?? input.callerId),
           });
         } catch (cancelErr) {
           logger.error(
@@ -1420,6 +1436,10 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string,
       callerNs: KetoNamespace,
       reason: string,
+      // Id written to cancelledBy*Id. For humans this must be humans.id, not
+      // the Kratos identityId used for Keto checks (see auth-principal.ts).
+      // Defaults to callerId to preserve the agent path.
+      cancellerId: string = callerId,
     ): Promise<Task> {
       const row = await taskRepository.findById(taskId);
       if (!row) throw new TaskServiceError('not_found', 'Task not found');
@@ -1456,8 +1476,8 @@ export function createTaskService(deps: TaskServiceDeps) {
       // the row.
       const updated = await taskRepository.updateStatus(taskId, 'cancelled', {
         cancelReason: reason,
-        cancelledByAgentId: isAgent ? callerId : null,
-        cancelledByHumanId: isAgent ? null : callerId,
+        cancelledByAgentId: isAgent ? cancellerId : null,
+        cancelledByHumanId: isAgent ? null : cancellerId,
         claimAgentId: null,
         claimExpiresAt: null,
       });
