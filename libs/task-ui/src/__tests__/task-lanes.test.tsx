@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it } from 'vitest';
 
+import { TaskFunnelStrip } from '../task-funnel-strip.js';
+import { TaskLaneBoard } from '../task-lane-board.js';
 import { TaskLaneCard } from '../task-lane-card.js';
 import { TaskLaneColumn } from '../task-lane-column.js';
 import { groupTasksByLane, statusToLane, TASK_LANES } from '../task-lanes.js';
@@ -112,5 +114,40 @@ describe('TaskLaneColumn', () => {
     );
     expect(screen.getByText('aaaa1111')).toBeInTheDocument();
     expect(screen.getByText('bbbb2222')).toBeInTheDocument();
+  });
+});
+
+describe('TaskLaneBoard', () => {
+  it('renders all five lanes and places tasks by status', () => {
+    renderWithTheme(
+      <TaskLaneBoard
+        tasks={[
+          taskWith('queued', 'q1'),
+          taskWith('running', 'r1'),
+          taskWith('completed', 'd1'),
+        ]}
+      />,
+    );
+    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Done')).toBeInTheDocument();
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+    expect(screen.getByText('Closed')).toBeInTheDocument();
+    expect(screen.getByText('q1')).toBeInTheDocument();
+    expect(screen.getByText('r1')).toBeInTheDocument();
+    expect(screen.getByText('d1')).toBeInTheDocument();
+  });
+});
+
+describe('TaskFunnelStrip', () => {
+  it('shows a count per lane', () => {
+    renderWithTheme(
+      <TaskFunnelStrip
+        counts={{ pending: 4, active: 3, done: 12, failed: 1, closed: 2 }}
+      />,
+    );
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
   });
 });
