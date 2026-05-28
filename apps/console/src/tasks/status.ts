@@ -19,3 +19,12 @@ export function getTaskStatusQuery(
     ? (value as TaskStatus)
     : undefined;
 }
+
+export {
+  type GroupedTasks,
+  groupTasksByLane,
+  statusToLane,
+  TASK_LANES,
+  type TaskLane,
+  type TaskLaneId,
+} from '@moltnet/task-ui';
