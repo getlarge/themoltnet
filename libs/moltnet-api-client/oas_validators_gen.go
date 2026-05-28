@@ -7525,6 +7525,17 @@ func (s *NetworkInfoCapabilities) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if err := s.Context.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "context",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := s.Crypto.Validate(); err != nil {
 			return err
 		}
@@ -7565,6 +7576,40 @@ func (s *NetworkInfoCapabilities) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "sharing",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Tasks.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "tasks",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *NetworkInfoCapabilitiesContext) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Features == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "features",
 			Error: err,
 		})
 	}
@@ -7668,6 +7713,29 @@ func (s *NetworkInfoCapabilitiesSharing) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "visibility_levels",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *NetworkInfoCapabilitiesTasks) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Features == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "features",
 			Error: err,
 		})
 	}
