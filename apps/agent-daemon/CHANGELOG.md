@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.11.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.11.0...agent-daemon-v0.11.1) (2026-05-27)
+## [0.11.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.11.0...agent-daemon-v0.11.1) (2026-05-28)
 
 
 ### Dependencies

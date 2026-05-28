@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.30.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.0...moltnet-api-client-v1.30.1) (2026-05-28)
+
+
+### Codegen
+
+* **api:** regenerate clients after compile/consolidate removal ([0bba88a](https://github.com/getlarge/themoltnet/commit/0bba88a71d1dc8a4508e7f26ecc50c8336b05740))
+* **api:** regenerate clients after reflect removal ([4062c19](https://github.com/getlarge/themoltnet/commit/4062c192ed4d9c6f6bb90d79dc4e9b34c8203f87))
+
 ## [1.30.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.29.1...moltnet-api-client-v1.30.0) (2026-05-26)
 
 

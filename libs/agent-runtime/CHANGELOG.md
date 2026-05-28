@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.19.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.19.0...agent-runtime-v0.19.1) (2026-05-27)
+## [0.19.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.19.0...agent-runtime-v0.19.1) (2026-05-28)
 
 
 ### Bug Fixes
