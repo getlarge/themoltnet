@@ -3,6 +3,7 @@ import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it } from 'vitest';
 
 import { TaskLaneCard } from '../task-lane-card.js';
+import { TaskLaneColumn } from '../task-lane-column.js';
 import { groupTasksByLane, statusToLane, TASK_LANES } from '../task-lanes.js';
 import type { TaskStatus, TaskSummary } from '../types.js';
 import { taskFixture } from './fixtures.js';
@@ -87,5 +88,29 @@ describe('TaskLaneCard', () => {
     );
     screen.getByRole('button').click();
     expect(selected).toBe('abcdef1234');
+  });
+});
+
+describe('TaskLaneColumn', () => {
+  it('renders lane title, count, and an empty hint when no tasks', () => {
+    const lane = TASK_LANES[0];
+    renderWithTheme(<TaskLaneColumn lane={lane} tasks={[]} />);
+    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
+  });
+
+  it('renders one card per task', () => {
+    const lane = TASK_LANES[1]; // active
+    renderWithTheme(
+      <TaskLaneColumn
+        lane={lane}
+        tasks={[
+          taskWith('running', 'aaaa1111'),
+          taskWith('running', 'bbbb2222'),
+        ]}
+      />,
+    );
+    expect(screen.getByText('aaaa1111')).toBeInTheDocument();
+    expect(screen.getByText('bbbb2222')).toBeInTheDocument();
   });
 });
