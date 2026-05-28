@@ -1,6 +1,11 @@
 import type { TaskStatus } from '@moltnet/api-client';
 import { listTasksInfiniteOptions } from '@moltnet/api-client/query';
-import { TaskQueueTable } from '@moltnet/task-ui';
+import {
+  TASK_LANES,
+  TaskFunnelStrip,
+  TaskLaneBoard,
+  TaskQueueTable,
+} from '@moltnet/task-ui';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { type ChangeEvent, useMemo, useState } from 'react';
@@ -23,6 +28,7 @@ export function TasksPage() {
     params.get('correlation_id') ?? '',
   );
   const status = getTaskStatusQuery(params.get('status'));
+  const [view, setView] = useState<'board' | 'table'>('board');
   const teamId = selectedTeam?.id;
 
   const enabled = Boolean(teamId);
@@ -49,7 +55,21 @@ export function TasksPage() {
       return hasActive ? 5_000 : false;
     },
   });
-  const tasks = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const tasks = useMemo(
+    () => query.data?.pages.flatMap((page) => page.items) ?? [],
+    [query.data],
+  );
+
+  const laneCounts = useMemo(() => {
+    const counts = { pending: 0, active: 0, done: 0, failed: 0, closed: 0 };
+    for (const task of tasks) {
+      const lane = TASK_LANES.find((candidate) =>
+        candidate.statuses.includes(task.status),
+      );
+      if (lane) counts[lane.id] += 1;
+    }
+    return counts;
+  }, [tasks]);
 
   function setStatus(next: TaskStatus | undefined) {
     const nextParams = new URLSearchParams(params);
@@ -74,14 +94,30 @@ export function TasksPage() {
             active team.
           </Text>
         </Stack>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => void query.refetch()}
-          disabled={!enabled || query.isFetching}
-        >
-          Refresh
-        </Button>
+        <Stack direction="row" gap={2}>
+          <Button
+            variant={view === 'board' ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={() => setView('board')}
+          >
+            Board
+          </Button>
+          <Button
+            variant={view === 'table' ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={() => setView('table')}
+          >
+            Table
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void query.refetch()}
+            disabled={!enabled || query.isFetching}
+          >
+            Refresh
+          </Button>
+        </Stack>
       </Stack>
 
       <Card variant="surface" padding="md">
@@ -165,11 +201,21 @@ export function TasksPage() {
           </Stack>
         </Card>
       ) : (
-        <Stack gap={3}>
-          <TaskQueueTable
-            tasks={tasks}
-            onOpenTask={(task) => navigate(`/tasks/${task.id}`)}
-          />
+        <Stack gap={4}>
+          {view === 'board' ? (
+            <>
+              <TaskFunnelStrip counts={laneCounts} />
+              <TaskLaneBoard
+                tasks={tasks}
+                onSelectTask={(task) => navigate(`/tasks/${task.id}`)}
+              />
+            </>
+          ) : (
+            <TaskQueueTable
+              tasks={tasks}
+              onOpenTask={(task) => navigate(`/tasks/${task.id}`)}
+            />
+          )}
           {query.hasNextPage ? (
             <Button
               variant="secondary"
