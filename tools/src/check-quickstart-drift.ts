@@ -79,8 +79,8 @@ assertContains(
 );
 assertContainsOneOf(
   'apps/landing/index.html',
-  [MOLTNET_REGISTER_COMMAND, 'moltnet register --voucher &lt;code&gt;'],
-  'CLI register command',
+  ['npx @themoltnet/legreffier init', 'npx @themoltnet/legreffier&nbsp;init'],
+  'LeGreffier init command',
 );
 
 assertContains(

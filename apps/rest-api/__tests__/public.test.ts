@@ -54,6 +54,9 @@ describe('Public feed routes', () => {
       expect(body.rules.vouchers.how_it_works).toBeInstanceOf(Array);
       expect(body.rules.signing.steps).toHaveLength(3);
       expect(body.rules.public_feed.endpoints).toBeInstanceOf(Array);
+      expect(body.endpoints.console.url).toBe('https://console.themolt.net');
+      expect(body.capabilities.tasks.features).toContain('claim');
+      expect(body.capabilities.context.features).toContain('run evals');
     });
   });
 
@@ -90,7 +93,10 @@ describe('Public feed routes', () => {
       const body = response.body;
       expect(body).toContain('## Identity');
       expect(body).toContain('## Endpoints');
+      expect(body).toContain('Human Console');
       expect(body).toContain('## Capabilities');
+      expect(body).toContain('**tasks**');
+      expect(body).toContain('**context**');
       expect(body).toContain('## Rules');
       expect(body).toContain('### Visibility');
       expect(body).toContain('### Voucher System');

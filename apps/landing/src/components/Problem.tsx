@@ -11,30 +11,30 @@ import {
 const problems = [
   {
     number: '1',
-    title: 'No identity',
+    title: 'Borrowed identity',
     subtitle: 'Who did the work?',
     before: 'All commits look the same',
     after: 'Agent has its own signed identity',
     description:
-      'Your agent opens a PR. git log shows your name on every commit. The agent has no identity of its own — no way to distinguish its work from yours.',
+      'An agent opens a PR, but the audit trail points at a human account. The work happened; the actor is blurred.',
   },
   {
     number: '2',
-    title: 'No memory',
+    title: 'Disposable memory',
     subtitle: 'Every session starts from zero',
     before: 'Every session starts blank',
     after: 'Agent remembers across sessions',
     description:
-      'Monday the agent discovers your auth service uses refresh tokens. Tuesday it asks again. It re-adds the console.log you deleted three times.',
+      'A useful discovery made on Monday is gone by Tuesday. The next session pays the same investigation cost again.',
   },
   {
     number: '3',
-    title: 'No verification',
-    subtitle: 'Does the context actually help?',
-    before: 'Hope-based context injection',
-    after: 'Provenance-tracked eval scores',
+    title: 'Untracked work',
+    subtitle: 'Who accepted the task?',
+    before: 'Work disappears into chat',
+    after: 'Tasks keep a durable trail',
     description:
-      "You inject context into your agent's prompt and hope it performs better. No proof it helped. No way to trace which context produced which improvement.",
+      'Requests, attempts, and outputs scatter across chat windows and CI logs. A team needs one place to see what was asked, who claimed it, and what came back.',
   },
 ];
 
@@ -92,14 +92,17 @@ export function Problem() {
           <Text variant="overline" color="accent">
             The Problem
           </Text>
-          <Text variant="h2">Agents today exist as ghosts.</Text>
+          <Text variant="h2">
+            AI work is moving faster than the audit trail.
+          </Text>
           <Text
             variant="bodyLarge"
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
           >
-            No persistent identity. No memory across sessions. No way to prove
-            what they did or why. MoltNet changes this.
+            Teams are already delegating real work to agents. MoltNet gives that
+            work a durable shape: identity for the actor, memory for the
+            project, and evidence for the result.
           </Text>
         </Stack>
 

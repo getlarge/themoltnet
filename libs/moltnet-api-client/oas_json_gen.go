@@ -31573,6 +31573,10 @@ func (s *NetworkInfoCapabilities) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *NetworkInfoCapabilities) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("context")
+		s.Context.Encode(e)
+	}
+	{
 		e.FieldStart("crypto")
 		s.Crypto.Encode(e)
 	}
@@ -31588,13 +31592,19 @@ func (s *NetworkInfoCapabilities) encodeFields(e *jx.Encoder) {
 		e.FieldStart("sharing")
 		s.Sharing.Encode(e)
 	}
+	{
+		e.FieldStart("tasks")
+		s.Tasks.Encode(e)
+	}
 }
 
-var jsonFieldsNameOfNetworkInfoCapabilities = [4]string{
-	0: "crypto",
-	1: "diary",
-	2: "identity",
-	3: "sharing",
+var jsonFieldsNameOfNetworkInfoCapabilities = [6]string{
+	0: "context",
+	1: "crypto",
+	2: "diary",
+	3: "identity",
+	4: "sharing",
+	5: "tasks",
 }
 
 // Decode decodes NetworkInfoCapabilities from json.
@@ -31606,8 +31616,18 @@ func (s *NetworkInfoCapabilities) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "crypto":
+		case "context":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Context.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"context\"")
+			}
+		case "crypto":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				if err := s.Crypto.Decode(d); err != nil {
 					return err
@@ -31617,7 +31637,7 @@ func (s *NetworkInfoCapabilities) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"crypto\"")
 			}
 		case "diary":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.Diary.Decode(d); err != nil {
 					return err
@@ -31627,7 +31647,7 @@ func (s *NetworkInfoCapabilities) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"diary\"")
 			}
 		case "identity":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.Identity.Decode(d); err != nil {
 					return err
@@ -31637,7 +31657,7 @@ func (s *NetworkInfoCapabilities) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"identity\"")
 			}
 		case "sharing":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.Sharing.Decode(d); err != nil {
 					return err
@@ -31645,6 +31665,16 @@ func (s *NetworkInfoCapabilities) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"sharing\"")
+			}
+		case "tasks":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Tasks.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tasks\"")
 			}
 		default:
 			return d.Skip()
@@ -31656,7 +31686,7 @@ func (s *NetworkInfoCapabilities) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001111,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -31698,6 +31728,131 @@ func (s *NetworkInfoCapabilities) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *NetworkInfoCapabilities) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *NetworkInfoCapabilitiesContext) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *NetworkInfoCapabilitiesContext) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("description")
+		e.Str(s.Description)
+	}
+	{
+		e.FieldStart("features")
+		e.ArrStart()
+		for _, elem := range s.Features {
+			e.Str(elem)
+		}
+		e.ArrEnd()
+	}
+}
+
+var jsonFieldsNameOfNetworkInfoCapabilitiesContext = [2]string{
+	0: "description",
+	1: "features",
+}
+
+// Decode decodes NetworkInfoCapabilitiesContext from json.
+func (s *NetworkInfoCapabilitiesContext) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode NetworkInfoCapabilitiesContext to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "description":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Description = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "features":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				s.Features = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.Features = append(s.Features, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"features\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode NetworkInfoCapabilitiesContext")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfNetworkInfoCapabilitiesContext) {
+					name = jsonFieldsNameOfNetworkInfoCapabilitiesContext[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *NetworkInfoCapabilitiesContext) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NetworkInfoCapabilitiesContext) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -32237,6 +32392,131 @@ func (s *NetworkInfoCapabilitiesSharing) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *NetworkInfoCapabilitiesTasks) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *NetworkInfoCapabilitiesTasks) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("description")
+		e.Str(s.Description)
+	}
+	{
+		e.FieldStart("features")
+		e.ArrStart()
+		for _, elem := range s.Features {
+			e.Str(elem)
+		}
+		e.ArrEnd()
+	}
+}
+
+var jsonFieldsNameOfNetworkInfoCapabilitiesTasks = [2]string{
+	0: "description",
+	1: "features",
+}
+
+// Decode decodes NetworkInfoCapabilitiesTasks from json.
+func (s *NetworkInfoCapabilitiesTasks) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode NetworkInfoCapabilitiesTasks to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "description":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Description = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "features":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				s.Features = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.Features = append(s.Features, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"features\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode NetworkInfoCapabilitiesTasks")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfNetworkInfoCapabilitiesTasks) {
+					name = jsonFieldsNameOfNetworkInfoCapabilitiesTasks[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *NetworkInfoCapabilitiesTasks) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NetworkInfoCapabilitiesTasks) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *NetworkInfoCommunity) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -32487,6 +32767,10 @@ func (s *NetworkInfoEndpoints) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *NetworkInfoEndpoints) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("console")
+		s.Console.Encode(e)
+	}
+	{
 		e.FieldStart("docs")
 		s.Docs.Encode(e)
 	}
@@ -32500,10 +32784,11 @@ func (s *NetworkInfoEndpoints) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfNetworkInfoEndpoints = [3]string{
-	0: "docs",
-	1: "mcp",
-	2: "rest",
+var jsonFieldsNameOfNetworkInfoEndpoints = [4]string{
+	0: "console",
+	1: "docs",
+	2: "mcp",
+	3: "rest",
 }
 
 // Decode decodes NetworkInfoEndpoints from json.
@@ -32515,8 +32800,18 @@ func (s *NetworkInfoEndpoints) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "docs":
+		case "console":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Console.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"console\"")
+			}
+		case "docs":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				if err := s.Docs.Decode(d); err != nil {
 					return err
@@ -32526,7 +32821,7 @@ func (s *NetworkInfoEndpoints) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"docs\"")
 			}
 		case "mcp":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.Mcp.Decode(d); err != nil {
 					return err
@@ -32536,7 +32831,7 @@ func (s *NetworkInfoEndpoints) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"mcp\"")
 			}
 		case "rest":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.Rest.Decode(d); err != nil {
 					return err
@@ -32555,7 +32850,7 @@ func (s *NetworkInfoEndpoints) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -32597,6 +32892,136 @@ func (s *NetworkInfoEndpoints) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *NetworkInfoEndpoints) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *NetworkInfoEndpointsConsole) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *NetworkInfoEndpointsConsole) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("description")
+		e.Str(s.Description)
+	}
+	{
+		e.FieldStart("signup_url")
+		e.Str(s.SignupURL)
+	}
+	{
+		e.FieldStart("url")
+		e.Str(s.URL)
+	}
+}
+
+var jsonFieldsNameOfNetworkInfoEndpointsConsole = [3]string{
+	0: "description",
+	1: "signup_url",
+	2: "url",
+}
+
+// Decode decodes NetworkInfoEndpointsConsole from json.
+func (s *NetworkInfoEndpointsConsole) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode NetworkInfoEndpointsConsole to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "description":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Description = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "signup_url":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.SignupURL = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"signup_url\"")
+			}
+		case "url":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.URL = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"url\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode NetworkInfoEndpointsConsole")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfNetworkInfoEndpointsConsole) {
+					name = jsonFieldsNameOfNetworkInfoEndpointsConsole[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *NetworkInfoEndpointsConsole) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NetworkInfoEndpointsConsole) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

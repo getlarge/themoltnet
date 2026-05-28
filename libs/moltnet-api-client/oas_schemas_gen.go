@@ -10885,10 +10885,17 @@ func (s *NetworkInfo) SetVersion(val string) {
 }
 
 type NetworkInfoCapabilities struct {
+	Context  NetworkInfoCapabilitiesContext  `json:"context"`
 	Crypto   NetworkInfoCapabilitiesCrypto   `json:"crypto"`
 	Diary    NetworkInfoCapabilitiesDiary    `json:"diary"`
 	Identity NetworkInfoCapabilitiesIdentity `json:"identity"`
 	Sharing  NetworkInfoCapabilitiesSharing  `json:"sharing"`
+	Tasks    NetworkInfoCapabilitiesTasks    `json:"tasks"`
+}
+
+// GetContext returns the value of Context.
+func (s *NetworkInfoCapabilities) GetContext() NetworkInfoCapabilitiesContext {
+	return s.Context
 }
 
 // GetCrypto returns the value of Crypto.
@@ -10911,6 +10918,16 @@ func (s *NetworkInfoCapabilities) GetSharing() NetworkInfoCapabilitiesSharing {
 	return s.Sharing
 }
 
+// GetTasks returns the value of Tasks.
+func (s *NetworkInfoCapabilities) GetTasks() NetworkInfoCapabilitiesTasks {
+	return s.Tasks
+}
+
+// SetContext sets the value of Context.
+func (s *NetworkInfoCapabilities) SetContext(val NetworkInfoCapabilitiesContext) {
+	s.Context = val
+}
+
 // SetCrypto sets the value of Crypto.
 func (s *NetworkInfoCapabilities) SetCrypto(val NetworkInfoCapabilitiesCrypto) {
 	s.Crypto = val
@@ -10929,6 +10946,36 @@ func (s *NetworkInfoCapabilities) SetIdentity(val NetworkInfoCapabilitiesIdentit
 // SetSharing sets the value of Sharing.
 func (s *NetworkInfoCapabilities) SetSharing(val NetworkInfoCapabilitiesSharing) {
 	s.Sharing = val
+}
+
+// SetTasks sets the value of Tasks.
+func (s *NetworkInfoCapabilities) SetTasks(val NetworkInfoCapabilitiesTasks) {
+	s.Tasks = val
+}
+
+type NetworkInfoCapabilitiesContext struct {
+	Description string   `json:"description"`
+	Features    []string `json:"features"`
+}
+
+// GetDescription returns the value of Description.
+func (s *NetworkInfoCapabilitiesContext) GetDescription() string {
+	return s.Description
+}
+
+// GetFeatures returns the value of Features.
+func (s *NetworkInfoCapabilitiesContext) GetFeatures() []string {
+	return s.Features
+}
+
+// SetDescription sets the value of Description.
+func (s *NetworkInfoCapabilitiesContext) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetFeatures sets the value of Features.
+func (s *NetworkInfoCapabilitiesContext) SetFeatures(val []string) {
+	s.Features = val
 }
 
 type NetworkInfoCapabilitiesCrypto struct {
@@ -11053,6 +11100,31 @@ func (s *NetworkInfoCapabilitiesSharing) SetVisibilityLevels(val []string) {
 	s.VisibilityLevels = val
 }
 
+type NetworkInfoCapabilitiesTasks struct {
+	Description string   `json:"description"`
+	Features    []string `json:"features"`
+}
+
+// GetDescription returns the value of Description.
+func (s *NetworkInfoCapabilitiesTasks) GetDescription() string {
+	return s.Description
+}
+
+// GetFeatures returns the value of Features.
+func (s *NetworkInfoCapabilitiesTasks) GetFeatures() []string {
+	return s.Features
+}
+
+// SetDescription sets the value of Description.
+func (s *NetworkInfoCapabilitiesTasks) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetFeatures sets the value of Features.
+func (s *NetworkInfoCapabilitiesTasks) SetFeatures(val []string) {
+	s.Features = val
+}
+
 type NetworkInfoCommunity struct {
 	Github           string                               `json:"github"`
 	VisibilityLevels NetworkInfoCommunityVisibilityLevels `json:"visibility_levels"`
@@ -11115,9 +11187,15 @@ func (s *NetworkInfoCommunityVisibilityLevels) SetPublic(val string) {
 }
 
 type NetworkInfoEndpoints struct {
-	Docs NetworkInfoEndpointsDocs `json:"docs"`
-	Mcp  NetworkInfoEndpointsMcp  `json:"mcp"`
-	Rest NetworkInfoEndpointsRest `json:"rest"`
+	Console NetworkInfoEndpointsConsole `json:"console"`
+	Docs    NetworkInfoEndpointsDocs    `json:"docs"`
+	Mcp     NetworkInfoEndpointsMcp     `json:"mcp"`
+	Rest    NetworkInfoEndpointsRest    `json:"rest"`
+}
+
+// GetConsole returns the value of Console.
+func (s *NetworkInfoEndpoints) GetConsole() NetworkInfoEndpointsConsole {
+	return s.Console
 }
 
 // GetDocs returns the value of Docs.
@@ -11135,6 +11213,11 @@ func (s *NetworkInfoEndpoints) GetRest() NetworkInfoEndpointsRest {
 	return s.Rest
 }
 
+// SetConsole sets the value of Console.
+func (s *NetworkInfoEndpoints) SetConsole(val NetworkInfoEndpointsConsole) {
+	s.Console = val
+}
+
 // SetDocs sets the value of Docs.
 func (s *NetworkInfoEndpoints) SetDocs(val NetworkInfoEndpointsDocs) {
 	s.Docs = val
@@ -11148,6 +11231,42 @@ func (s *NetworkInfoEndpoints) SetMcp(val NetworkInfoEndpointsMcp) {
 // SetRest sets the value of Rest.
 func (s *NetworkInfoEndpoints) SetRest(val NetworkInfoEndpointsRest) {
 	s.Rest = val
+}
+
+type NetworkInfoEndpointsConsole struct {
+	Description string `json:"description"`
+	SignupURL   string `json:"signup_url"`
+	URL         string `json:"url"`
+}
+
+// GetDescription returns the value of Description.
+func (s *NetworkInfoEndpointsConsole) GetDescription() string {
+	return s.Description
+}
+
+// GetSignupURL returns the value of SignupURL.
+func (s *NetworkInfoEndpointsConsole) GetSignupURL() string {
+	return s.SignupURL
+}
+
+// GetURL returns the value of URL.
+func (s *NetworkInfoEndpointsConsole) GetURL() string {
+	return s.URL
+}
+
+// SetDescription sets the value of Description.
+func (s *NetworkInfoEndpointsConsole) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetSignupURL sets the value of SignupURL.
+func (s *NetworkInfoEndpointsConsole) SetSignupURL(val string) {
+	s.SignupURL = val
+}
+
+// SetURL sets the value of URL.
+func (s *NetworkInfoEndpointsConsole) SetURL(val string) {
+	s.URL = val
 }
 
 type NetworkInfoEndpointsDocs struct {

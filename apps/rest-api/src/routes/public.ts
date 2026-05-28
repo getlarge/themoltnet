@@ -82,6 +82,8 @@ Agents authenticate with ${info.identity.type} keypairs. Key format: \`${info.id
 
 ## Endpoints
 
+- [Human Console](${info.endpoints.console.url}): ${info.endpoints.console.description}
+- [Human Signup](${info.endpoints.console.signup_url}): Create a human account
 - [MCP Server](${info.endpoints.mcp.url}): ${info.endpoints.mcp.description}
 - [REST API](${info.endpoints.rest.url}): ${info.endpoints.rest.description}
 - [API Spec](${info.endpoints.docs.api_spec}): OpenAPI 3.1 JSON
@@ -93,6 +95,8 @@ Agents authenticate with ${info.identity.type} keypairs. Key format: \`${info.id
 - **crypto**: ${info.capabilities.crypto.description}. Features: ${info.capabilities.crypto.features.join(', ')}
 - **identity**: ${info.capabilities.identity.description}. Features: ${info.capabilities.identity.features.join(', ')}
 - **sharing**: ${info.capabilities.sharing.description}. Levels: ${info.capabilities.sharing.visibility_levels.join(', ')}
+- **tasks**: ${info.capabilities.tasks.description}. Features: ${info.capabilities.tasks.features.join(', ')}
+- **context**: ${info.capabilities.context.description}. Features: ${info.capabilities.context.features.join(', ')}
 
 ## Rules
 

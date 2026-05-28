@@ -23,9 +23,7 @@ type NavItem = { label: string; href: string };
 const navItems: NavItem[] = [
   { label: 'Get Started', href: '/getting-started' },
   { label: 'Architecture', href: '/architecture' },
-  { label: 'Roadmap', href: '/roadmap' },
   { label: 'Feed', href: '/feed' },
-  { label: 'Story', href: '/story' },
 ];
 
 export function Nav() {

@@ -18,7 +18,6 @@ import { Hero } from '../src/components/Hero';
 import { Nav } from '../src/components/Nav';
 import { Problem } from '../src/components/Problem';
 import { MoltStack } from '../src/components/Stack';
-import { Status } from '../src/components/Status';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -72,10 +71,6 @@ describe('smoke render', () => {
     wrap(<GetStarted />);
   });
 
-  it('renders Status', () => {
-    wrap(<Status />);
-  });
-
   it('renders Footer', () => {
     wrapWithRouter(<Footer />);
   });
@@ -88,16 +83,14 @@ describe('smoke render', () => {
 describe('content', () => {
   it('Hero shows the main tagline', () => {
     wrap(<Hero />);
-    expect(screen.getByText(/give ai agents/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/identity, attribution, and trust/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/coordinate ai work/i)).toBeInTheDocument();
+    expect(screen.getByText(/with memory and proof/i)).toBeInTheDocument();
   });
 
   it('Hero shows the proof teaser', () => {
     wrap(<Hero />);
-    expect(screen.getByText(/pi extension/i)).toBeInTheDocument();
-    expect(screen.getByText(/verifiable provenance/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/human console/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/task queues/i).length).toBeGreaterThan(0);
   });
 
   it('Hero links to the console', () => {
@@ -113,12 +106,12 @@ describe('content', () => {
     const befores = [
       'All commits look the same',
       'Every session starts blank',
-      'Hope-based context injection',
+      'Work disappears into chat',
     ];
     const afters = [
       'Agent has its own signed identity',
       'Agent remembers across sessions',
-      'Provenance-tracked eval scores',
+      'Tasks keep a durable trail',
     ];
     for (const label of [...befores, ...afters]) {
       const matches = screen.getAllByText(label);
@@ -129,68 +122,36 @@ describe('content', () => {
   it('Collaboration section shows team trust capabilities', () => {
     wrap(<Collaboration />);
     expect(
-      screen.getByText(/agents that can prove who did what/i),
+      screen.getByText(/a console for the people behind the agents/i),
     ).toBeInTheDocument();
-    expect(screen.getByText('Teams')).toBeInTheDocument();
-    expect(screen.getByText('Fine-grained grants')).toBeInTheDocument();
-    expect(screen.getByText('Groups')).toBeInTheDocument();
+    expect(screen.getByText('Human console')).toBeInTheDocument();
+    expect(screen.getByText('Scoped access')).toBeInTheDocument();
+    expect(screen.getByText('Hosted connectors')).toBeInTheDocument();
   });
 
-  it('Stack section names all three layers', () => {
+  it('Stack section names all four conceptual layers', () => {
     wrap(<MoltStack />);
     expect(screen.getByText('Identity')).toBeInTheDocument();
     expect(screen.getByText('Memory')).toBeInTheDocument();
-    expect(screen.getByText('Network')).toBeInTheDocument();
+    expect(screen.getByText('Coordination')).toBeInTheDocument();
+    expect(screen.getByText('Proof')).toBeInTheDocument();
   });
 
-  it('Architecture lists all 23 MCP tools', () => {
+  it('Architecture lists product surfaces instead of tool dumps', () => {
     wrap(<Architecture />);
-    const tools = [
-      'diaries_list',
-      'diaries_create',
-      'diaries_get',
-      'entries_create',
-      'entries_get',
-      'entries_list',
-      'entries_search',
-      'entries_update',
-      'entries_delete',
-      'reflect',
-      'crypto_prepare_signature',
-      'crypto_submit_signature',
-      'crypto_signing_status',
-      'crypto_verify',
-      'moltnet_whoami',
-      'agent_lookup',
-      'moltnet_vouch',
-      'moltnet_vouchers',
-      'moltnet_trust_graph',
-      'moltnet_info',
-      'public_feed_browse',
-      'public_feed_read',
-      'public_feed_search',
+    const surfaces = [
+      'Console',
+      'LeGreffier',
+      'MCP',
+      'REST API',
+      'CLI',
+      'SDK',
+      'Agent daemon',
+      'Public feed',
     ];
-    for (const tool of tools) {
-      expect(screen.getByText(tool)).toBeInTheDocument();
+    for (const surface of surfaces) {
+      expect(screen.getAllByText(surface).length).toBeGreaterThan(0);
     }
-  });
-
-  it('Status section shows all 16 workstreams', () => {
-    wrap(<Status />);
-    for (let i = 1; i <= 16; i++) {
-      expect(screen.getByText(`WS${i}`)).toBeInTheDocument();
-    }
-  });
-
-  it('Status reflects correct progress states', () => {
-    wrap(<Status />);
-    // WS1-7,WS9,WS13,WS14 done; WS8,WS11,WS12,WS15,WS16 active; WS10 pending
-    const done = screen.getAllByText('Done');
-    const active = screen.getAllByText('Active');
-    const pending = screen.getAllByText('Planned');
-    expect(done).toHaveLength(10);
-    expect(active).toHaveLength(5);
-    expect(pending).toHaveLength(1);
   });
 
   it('Footer shows dual license', () => {
@@ -201,14 +162,17 @@ describe('content', () => {
   it('Footer shows tagline', () => {
     wrapWithRouter(<Footer />);
     expect(
-      screen.getByText(/Built for teams that want their agents to learn/),
+      screen.getByText(/Built for accountable agent work/),
     ).toBeInTheDocument();
   });
 
-  it('GetStarted includes the console channel', () => {
+  it('GetStarted includes audience-specific paths', () => {
     wrap(<GetStarted />);
-    expect(screen.getByText('Five ways in')).toBeInTheDocument();
-    expect(screen.getByText('Console')).toBeInTheDocument();
+    expect(
+      screen.getByText('Choose the path that matches the actor'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Humans')).toBeInTheDocument();
+    expect(screen.getByText('Operators')).toBeInTheDocument();
     expect(screen.getByText('console.themolt.net')).toBeInTheDocument();
   });
 
@@ -218,6 +182,16 @@ describe('content', () => {
     expect(link).toHaveAttribute('href', 'https://console.themolt.net');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link.getAttribute('rel')).toContain('noopener');
+  });
+
+  it('Nav does not expose a roadmap route', () => {
+    wrapWithRouter(<Nav />);
+    expect(screen.queryByRole('link', { name: /roadmap/i })).toBeNull();
+  });
+
+  it('Nav does not expose the story route', () => {
+    wrapWithRouter(<Nav />);
+    expect(screen.queryByRole('link', { name: /story/i })).toBeNull();
   });
 
   it('Footer links to the console once', () => {
@@ -255,13 +229,7 @@ describe('links', () => {
 
   it('nav route links point to valid paths', () => {
     wrapWithRouter(<App />);
-    const routes = [
-      '/getting-started',
-      '/architecture',
-      '/roadmap',
-      '/feed',
-      '/story',
-    ];
+    const routes = ['/getting-started', '/architecture', '/feed'];
     for (const route of routes) {
       const link = screen
         .getAllByRole('link')

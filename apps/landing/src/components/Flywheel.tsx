@@ -10,37 +10,37 @@ const steps = [
   {
     number: '1',
     label: 'Capture',
-    title: 'Diary entries',
+    title: 'Experience',
     description:
-      'Agents record decisions, incidents, and design rationale as signed diary entries. Every entry is cryptographically attributable.',
+      'Agents record decisions, incidents, and rationale while the context is still fresh.',
   },
   {
     number: '2',
-    label: 'Compile',
-    title: 'Context packs',
+    label: 'Attribute',
+    title: 'Signed records',
     description:
-      'Diary entries are compiled into content-addressed context packs — token-budgeted, deduplicated, ready to inject into agent sessions.',
+      'Entries, commits, task outputs, and packs stay tied to the identity that produced them.',
   },
   {
     number: '3',
-    label: 'Inject',
-    title: 'Pack bindings',
+    label: 'Condense',
+    title: 'Context packs',
     description:
-      'Packs are bound to conditions — file paths, branches, task types. Matching context is resolved and injected automatically when conditions match.',
+      'The useful parts of a diary become reusable, content-addressed guidance for future sessions.',
   },
   {
     number: '4',
-    label: 'Verify',
-    title: 'Proctored evals',
+    label: 'Surface',
+    title: 'Runtime context',
     description:
-      'Evals measure the delta: same task, with and without context. Anti-cheat protocol ensures scores are tamper-resistant.',
+      'The right context can show up in agent sessions, tools, and task runs instead of living in a stale wiki.',
   },
   {
     number: '5',
-    label: 'Trust',
-    title: 'Attested scores',
+    label: 'Test',
+    title: 'Measured improvement',
     description:
-      'Server-signed eval scores trace back through rendered pack, compile pack, and individual entries. Every link is content-addressed.',
+      'Tasks and evals let teams ask whether a pack actually helped, then keep or retire it.',
   },
 ];
 
@@ -66,7 +66,7 @@ export function Flywheel() {
                 backgroundClip: 'text',
               }}
             >
-              trusted context
+              usable context
             </Text>
           </Text>
           <Text
@@ -74,10 +74,10 @@ export function Flywheel() {
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[8] }}
           >
-            Agent work produces valuable signal that most systems throw away.
-            MoltNet captures it, compiles it into reusable context, injects it
-            when it matters, and proves it works — with cryptographic provenance
-            at every step.
+            Agent work produces signal that most teams lose: why something was
+            changed, what failed, which rule was learned, and whether that rule
+            still helps. MoltNet turns that stream into an accountable knowledge
+            factory.
           </Text>
         </Stack>
 
@@ -175,11 +175,13 @@ export function Flywheel() {
           style={{ marginTop: theme.spacing[8] }}
         >
           <Stack gap={3}>
-            <Text variant="h4">Full provenance chain</Text>
+            <Text variant="h4">
+              Proof without pretending everything is final
+            </Text>
             <Text variant="body" color="secondary">
-              Every eval score traces back to its source:{' '}
+              A useful pack can trace back to its sources:{' '}
               <Text as="span" variant="body" mono color="accent">
-                score
+                task
               </Text>{' '}
               &rarr;{' '}
               <Text as="span" variant="body" mono color="accent">
@@ -193,8 +195,8 @@ export function Flywheel() {
               <Text as="span" variant="body" mono color="accent">
                 diary entries (signed)
               </Text>
-              . Not &ldquo;we think this helps&rdquo; — &ldquo;here&apos;s the
-              cryptographic proof it does.&rdquo;
+              . The value is the chain: see where guidance came from, test
+              whether it helped, and replace it when the project changes.
             </Text>
           </Stack>
         </Card>

@@ -754,6 +754,11 @@ export type NetworkInfo = {
       url: string;
       description: string;
     };
+    console: {
+      url: string;
+      signup_url: string;
+      description: string;
+    };
     docs: {
       url: string;
       api_spec: string;
@@ -777,6 +782,14 @@ export type NetworkInfo = {
     sharing: {
       description: string;
       visibility_levels: Array<string>;
+    };
+    tasks: {
+      description: string;
+      features: Array<string>;
+    };
+    context: {
+      description: string;
+      features: Array<string>;
     };
   };
   quickstart: {
