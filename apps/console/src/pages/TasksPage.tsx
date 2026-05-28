@@ -1,12 +1,18 @@
 import type { TaskStatus } from '@moltnet/api-client';
-import { listTasksInfiniteOptions } from '@moltnet/api-client/query';
+import {
+  getTaskOptions,
+  listTaskAttemptsOptions,
+  listTaskMessagesOptions,
+  listTasksInfiniteOptions,
+} from '@moltnet/api-client/query';
 import {
   TASK_LANES,
   TaskFunnelStrip,
   TaskLaneBoard,
+  TaskLivePane,
   TaskQueueTable,
 } from '@moltnet/task-ui';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { type ChangeEvent, useMemo, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
@@ -70,6 +76,45 @@ export function TasksPage() {
     }
     return counts;
   }, [tasks]);
+
+  const selectedTaskId = params.get('selected') ?? undefined;
+
+  function selectTask(id: string | undefined) {
+    const next = new URLSearchParams(params);
+    if (id) next.set('selected', id);
+    else next.delete('selected');
+    navigate(`/tasks?${next.toString()}`);
+  }
+
+  const selectedTaskQuery = useQuery({
+    ...getTaskOptions({
+      client: getApiClient(),
+      path: { id: selectedTaskId ?? '' },
+    }),
+    enabled: Boolean(selectedTaskId),
+  });
+  const selectedAttemptsQuery = useQuery({
+    ...listTaskAttemptsOptions({
+      client: getApiClient(),
+      path: { id: selectedTaskId ?? '' },
+    }),
+    enabled: Boolean(selectedTaskId),
+  });
+  const latestAttempt = selectedAttemptsQuery.data?.at(-1) ?? null;
+  const selectedMessagesQuery = useQuery({
+    ...listTaskMessagesOptions({
+      client: getApiClient(),
+      path: { id: selectedTaskId ?? '', n: latestAttempt?.attemptN ?? 0 },
+      query: { limit: 200 },
+    }),
+    enabled: Boolean(selectedTaskId && latestAttempt),
+    refetchInterval: (q) =>
+      latestAttempt && ['claimed', 'running'].includes(latestAttempt.status)
+        ? q.state.data
+          ? 3_000
+          : 1_000
+        : false,
+  });
 
   function setStatus(next: TaskStatus | undefined) {
     const nextParams = new URLSearchParams(params);
@@ -205,10 +250,29 @@ export function TasksPage() {
           {view === 'board' ? (
             <>
               <TaskFunnelStrip counts={laneCounts} />
-              <TaskLaneBoard
-                tasks={tasks}
-                onSelectTask={(task) => navigate(`/tasks/${task.id}`)}
-              />
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: selectedTaskId
+                    ? 'minmax(0, 1fr) minmax(320px, 420px)'
+                    : '1fr',
+                  gap: theme.spacing[4],
+                  alignItems: 'start',
+                }}
+              >
+                <TaskLaneBoard
+                  tasks={tasks}
+                  selectedTaskId={selectedTaskId}
+                  onSelectTask={(task) => selectTask(task.id)}
+                />
+                {selectedTaskId && selectedTaskQuery.data ? (
+                  <TaskLivePane
+                    task={selectedTaskQuery.data}
+                    attempt={latestAttempt}
+                    messages={selectedMessagesQuery.data ?? []}
+                  />
+                ) : null}
+              </div>
             </>
           ) : (
             <TaskQueueTable
