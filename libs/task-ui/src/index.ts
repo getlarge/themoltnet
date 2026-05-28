@@ -46,6 +46,7 @@ export {
   type TaskLane,
   type TaskLaneId,
 } from './task-lanes.js';
+export { TaskLivePane, type TaskLivePaneProps } from './task-live-pane.js';
 export {
   TaskMessagesTimeline,
   type TaskMessagesTimelineProps,
@@ -63,6 +64,10 @@ export {
   TaskSummaryStrip,
   type TaskSummaryStripProps,
 } from './task-summary-strip.js';
+export {
+  TaskTurnStream,
+  type TaskTurnStreamProps,
+} from './task-turn-stream.js';
 export type {
   ExecutorTrustLevel,
   OutputKind,
