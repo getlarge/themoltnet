@@ -7,8 +7,9 @@ import { TaskLaneBoard } from '../task-lane-board.js';
 import { TaskLaneCard } from '../task-lane-card.js';
 import { TaskLaneColumn } from '../task-lane-column.js';
 import { groupTasksByLane, statusToLane, TASK_LANES } from '../task-lanes.js';
+import { TaskTurnStream } from '../task-turn-stream.js';
 import type { TaskStatus, TaskSummary } from '../types.js';
-import { taskFixture } from './fixtures.js';
+import { messagesFixture, taskFixture } from './fixtures.js';
 
 function taskWith(status: TaskStatus, id: string): TaskSummary {
   return { ...taskFixture, id, status };
@@ -149,5 +150,18 @@ describe('TaskFunnelStrip', () => {
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
+  });
+});
+
+describe('TaskTurnStream', () => {
+  it('renders joined text and tool-call lines', () => {
+    renderWithTheme(<TaskTurnStream messages={messagesFixture} />);
+    expect(screen.getByText('Reading task context.')).toBeInTheDocument();
+    expect(screen.getByText(/tool/i)).toBeInTheDocument();
+  });
+
+  it('shows a waiting hint when there are no messages', () => {
+    renderWithTheme(<TaskTurnStream messages={[]} />);
+    expect(screen.getByText(/waiting for the agent/i)).toBeInTheDocument();
   });
 });
