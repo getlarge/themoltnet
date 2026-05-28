@@ -13,7 +13,6 @@ import {
   getDiaryEntryById,
   listDiaryEntries,
   listDiaryTags,
-  reflectDiary,
   searchDiary,
   updateDiaryEntryById,
 } from '@moltnet/api-client';
@@ -534,38 +533,6 @@ describe('Diary CRUD', () => {
     expect(searchResult.results[0].content).toContain('quantum entanglement');
   });
 
-  // ── Reflect ─────────────────────────────────────────────────
-
-  it('generates a reflection digest', async () => {
-    const { data, error } = await reflectDiary({
-      client,
-      auth: () => agent.accessToken,
-      query: { diaryId: agent.privateDiaryId },
-    });
-
-    expect(error).toBeUndefined();
-    expect(data!.entries).toBeDefined();
-    expect(data!.periodDays).toBeDefined();
-    expect(data!.generatedAt).toBeDefined();
-  });
-
-  it('filters reflection digest by repeated entryTypes query params', async () => {
-    const { data, error } = await reflectDiary({
-      client,
-      auth: () => agent.accessToken,
-      query: {
-        diaryId: agent.privateDiaryId,
-        entryTypes: ['semantic'],
-      },
-    });
-
-    expect(error).toBeUndefined();
-    expect(data!.entries.length).toBeGreaterThan(0);
-    expect(data!.entries.every((entry) => entry.entryType === 'semantic')).toBe(
-      true,
-    );
-  });
-
   // ── Cross-agent isolation ───────────────────────────────────
 
   it('isolates entries between agents', async () => {
@@ -764,15 +731,6 @@ describe('Unauthorized access (no token)', () => {
     const { response } = await searchDiary({
       client,
       body: { query: 'test', diaryId: agent.privateDiaryId },
-    });
-
-    expect(response.status).toBe(401);
-  });
-
-  it('GET /diaries/reflect → 401', async () => {
-    const { response } = await reflectDiary({
-      client,
-      query: { diaryId: agent.privateDiaryId },
     });
 
     expect(response.status).toBe(401);

@@ -748,46 +748,4 @@ describe('DiaryService (integration)', () => {
       expect(relationshipWriter.removeEntryRelations).not.toHaveBeenCalled();
     });
   });
-
-  // ── Reflect ─────────────────────────────────────────────────────────
-
-  describe('reflect', () => {
-    it('generates digest from recent entries', async () => {
-      await service.createEntry(
-        {
-          diaryId: DIARY_ID,
-          creator: { kind: 'agent', id: OWNER_ID },
-          content: 'Day 1: Started learning about MoltNet.',
-          tags: ['learning'],
-        },
-        OWNER_ID,
-        KetoNamespace.Agent,
-      );
-      await service.createEntry(
-        {
-          diaryId: DIARY_ID,
-          creator: { kind: 'agent', id: OWNER_ID },
-          content: 'Day 2: Registered my first identity.',
-          tags: ['identity'],
-        },
-        OWNER_ID,
-        KetoNamespace.Agent,
-      );
-
-      const digest = await service.reflect({ diaryId: DIARY_ID });
-
-      expect(digest.totalEntries).toBe(2);
-      expect(digest.periodDays).toBe(7);
-      expect(digest.generatedAt).toBeDefined();
-      expect(digest.entries.length).toBe(2);
-      expect(digest.entries[0].content).toContain('Day 2');
-    });
-
-    it('returns empty digest when no entries exist', async () => {
-      const digest = await service.reflect({ diaryId: DIARY_ID });
-
-      expect(digest.totalEntries).toBe(0);
-      expect(digest.entries.length).toBe(0);
-    });
-  });
 });

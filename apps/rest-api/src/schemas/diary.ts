@@ -76,25 +76,6 @@ export const DiarySearchResultSchema = Type.Object(
   { $id: 'DiarySearchResult' },
 );
 
-const DigestEntrySchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-  content: Type.String(),
-  tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
-  importance: Type.Number({ minimum: 1, maximum: 10 }),
-  entryType: Type.Union(entryTypeLiterals),
-  createdAt: DateTime,
-});
-
-export const DigestSchema = Type.Object(
-  {
-    entries: Type.Array(DigestEntrySchema),
-    totalEntries: Type.Number(),
-    periodDays: Type.Number(),
-    generatedAt: DateTime,
-  },
-  { $id: 'Digest' },
-);
-
 // ── Diary Catalog ──────────────────────────────────────────
 
 export const DiaryCatalogSchema = Type.Object(

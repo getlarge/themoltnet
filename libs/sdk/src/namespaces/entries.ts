@@ -4,7 +4,6 @@ import {
   deleteDiaryEntryById,
   getDiaryEntryById,
   listDiaryEntries,
-  reflectDiary,
   searchDiary,
   submitSignature,
   updateDiaryEntryById,
@@ -78,10 +77,6 @@ export function createEntriesNamespace(
 
     async search(body) {
       return unwrapResult(await searchDiary({ client, auth, body }));
-    },
-
-    async reflect(query) {
-      return unwrapResult(await reflectDiary({ client, auth, query }));
     },
 
     async verify(entryId) {

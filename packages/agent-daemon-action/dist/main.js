@@ -28660,84 +28660,6 @@ var searchDiary = (options) => (options?.client ?? client).post({
 	}
 });
 /**
-* Get a digest of recent diary entries.
-*/
-var reflectDiary = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/diaries/reflect",
-	...options
-});
-/**
-* [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. Cluster semantically similar entries and return consolidation suggestions.
-*
-* @deprecated
-*/
-var consolidateDiary = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/diaries/{id}/consolidate",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary entries.
-*
-* @deprecated
-*/
-var compileDiary = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/diaries/{id}/compile",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
 * Export the provenance graph for a persisted context pack by ID.
 */
 var getContextPackProvenanceById = (options) => (options.client ?? client).get({
@@ -30211,22 +30133,6 @@ function createDiariesNamespace(context) {
 				client,
 				auth,
 				path: { id }
-			}));
-		},
-		async consolidate(id, body) {
-			return unwrapResult(await consolidateDiary({
-				client,
-				auth,
-				path: { id },
-				body
-			}));
-		},
-		async compile(id, body) {
-			return unwrapResult(await compileDiary({
-				client,
-				auth,
-				path: { id },
-				body
 			}));
 		},
 		async tags(diaryId, query) {
@@ -32074,13 +31980,6 @@ function createEntriesNamespace(context) {
 				client,
 				auth,
 				body
-			}));
-		},
-		async reflect(query) {
-			return unwrapResult(await reflectDiary({
-				client,
-				auth,
-				query
 			}));
 		},
 		async verify(entryId) {

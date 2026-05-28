@@ -2,7 +2,7 @@
  * @moltnet/diary-service
  *
  * Diary service layer for MoltNet.
- * Orchestrates CRUD, search, and reflection
+ * Orchestrates CRUD and search
  * with embedding generation and permission management.
  */
 
@@ -20,11 +20,8 @@ export type {
   DiaryEntry,
   DiaryServiceDeps,
   DiaryVisibility,
-  Digest,
-  DigestEntry,
   ListInput,
   ListTagsInput,
-  ReflectInput,
   SearchInput,
   TagCount,
   TransactionRunner,

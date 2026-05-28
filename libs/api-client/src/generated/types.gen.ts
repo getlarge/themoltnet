@@ -425,7 +425,7 @@ export type ContextPack = {
   diaryId: string;
   packCid: string;
   packCodec: string;
-  packType: 'compile' | 'optimized' | 'custom';
+  packType: 'optimized' | 'custom';
   params: unknown;
   payload: unknown;
   creator:
@@ -463,7 +463,7 @@ export type ContextPackExpanded = {
   diaryId: string;
   packCid: string;
   packCodec: string;
-  packType: 'compile' | 'optimized' | 'custom';
+  packType: 'optimized' | 'custom';
   params: unknown;
   payload: unknown;
   creator:
@@ -502,7 +502,7 @@ export type ContextPackResponse = {
   diaryId: string;
   packCid: string;
   packCodec: string;
-  packType: 'compile' | 'optimized' | 'custom';
+  packType: 'optimized' | 'custom';
   params: unknown;
   payload: unknown;
   creator:
@@ -592,26 +592,6 @@ export type CompileStats = {
   compressionRatio: number;
   budgetUtilization: number;
   elapsedMs: number;
-};
-
-export type Digest = {
-  entries: Array<{
-    id: string;
-    content: string;
-    tags: Array<string> | null;
-    importance: number;
-    entryType:
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul';
-    createdAt: string;
-  }>;
-  totalEntries: number;
-  periodDays: number;
-  generatedAt: string;
 };
 
 export type EntryVerifyResult = {
@@ -872,97 +852,6 @@ export type NetworkInfo = {
     identity_provider: string;
     embedding: string;
     mcp_library: string;
-  };
-};
-
-export type ConsolidateResult = {
-  workflowId: string;
-  clusters: Array<{
-    representative: {
-      id: string;
-      content: string;
-      tokens: number;
-      importance: number;
-      createdAt: string;
-    };
-    representativeReason: string;
-    members: Array<{
-      id: string;
-      content: string;
-      tokens: number;
-      importance: number;
-      createdAt: string;
-    }>;
-    similarity: number;
-    confidence: number;
-    suggestedAction: 'merge' | 'keep_separate' | 'review';
-  }>;
-  stats: {
-    inputCount: number;
-    clusterCount: number;
-    singletonRate: number;
-    clusterSizeDistribution: [unknown, unknown, unknown, unknown, unknown];
-    elapsedMs: number;
-  };
-  trace: {
-    thresholdUsed: number;
-    strategyUsed: 'score' | 'centroid' | 'hybrid';
-    embeddingDim: number;
-  };
-};
-
-export type CompileResult = {
-  id: string;
-  diaryId: string;
-  packCid: string;
-  packCodec: string;
-  packType: 'compile' | 'optimized' | 'custom';
-  params: unknown;
-  payload: unknown;
-  creator:
-    | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
-        /**
-         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-         */
-        fingerprint: string;
-        /**
-         * Ed25519 public key with prefix
-         */
-        publicKey: string;
-      }
-    | {
-        kind: 'human';
-        /**
-         * UUID v4 identifier
-         */
-        humanId: string;
-        identityId: string | null;
-      };
-  supersedesPackId: string | null;
-  pinned: boolean;
-  expiresAt: string | null;
-  createdAt: string;
-  entries: Array<{
-    id: string;
-    packId: string;
-    entryId: string;
-    entryCidSnapshot: string;
-    compressionLevel: 'full' | 'summary' | 'keywords';
-    originalTokens: number | null;
-    packedTokens: number | null;
-    rank: number | null;
-    createdAt: string;
-  }>;
-  compileStats: CompileStats;
-  compileTrace: {
-    lambdaUsed: number;
-    embeddingDim: number;
-    taskPromptHash?: string;
   };
 };
 
@@ -3044,178 +2933,6 @@ export type SearchDiaryResponses = {
 export type SearchDiaryResponse =
   SearchDiaryResponses[keyof SearchDiaryResponses];
 
-export type ReflectDiaryData = {
-  body?: never;
-  path?: never;
-  query: {
-    diaryId: string;
-    days?: number;
-    maxEntries?: number;
-    /**
-     * Repeated entry type filter. Single value also accepted.
-     */
-    entryTypes?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
-  };
-  url: '/diaries/reflect';
-};
-
-export type ReflectDiaryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ReflectDiaryError = ReflectDiaryErrors[keyof ReflectDiaryErrors];
-
-export type ReflectDiaryResponses = {
-  /**
-   * Default Response
-   */
-  200: Digest;
-};
-
-export type ReflectDiaryResponse =
-  ReflectDiaryResponses[keyof ReflectDiaryResponses];
-
-export type ConsolidateDiaryData = {
-  body?: {
-    entryIds?: Array<string>;
-    tags?: Array<string>;
-    excludeTags?: Array<string>;
-    threshold?: number;
-    strategy?: 'score' | 'centroid' | 'hybrid';
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}/consolidate';
-};
-
-export type ConsolidateDiaryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ConsolidateDiaryError =
-  ConsolidateDiaryErrors[keyof ConsolidateDiaryErrors];
-
-export type ConsolidateDiaryResponses = {
-  /**
-   * Default Response
-   */
-  200: ConsolidateResult;
-};
-
-export type ConsolidateDiaryResponse =
-  ConsolidateDiaryResponses[keyof ConsolidateDiaryResponses];
-
-export type CompileDiaryData = {
-  body: {
-    tokenBudget: number;
-    taskPrompt?: string;
-    lambda?: number;
-    includeTags?: Array<string>;
-    excludeTags?: Array<string>;
-    wRecency?: number;
-    wImportance?: number;
-    createdBefore?: string;
-    createdAfter?: string;
-    entryTypes?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}/compile';
-};
-
-export type CompileDiaryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type CompileDiaryError = CompileDiaryErrors[keyof CompileDiaryErrors];
-
-export type CompileDiaryResponses = {
-  /**
-   * Default Response
-   */
-  200: CompileResult;
-};
-
-export type CompileDiaryResponse =
-  CompileDiaryResponses[keyof CompileDiaryResponses];
-
 export type GetContextPackProvenanceByIdData = {
   body?: never;
   path: {
@@ -3598,14 +3315,14 @@ export type DiffContextPacksByIdResponses = {
         id: string;
         packCid: string;
         totalTokens: number | null;
-        packType: 'compile' | 'optimized' | 'custom';
+        packType: 'optimized' | 'custom';
         createdAt: string;
       };
       packB: {
         id: string;
         packCid: string;
         totalTokens: number | null;
-        packType: 'compile' | 'optimized' | 'custom';
+        packType: 'optimized' | 'custom';
         createdAt: string;
       };
     };
@@ -3712,14 +3429,14 @@ export type DiffContextPacksByCidResponses = {
         id: string;
         packCid: string;
         totalTokens: number | null;
-        packType: 'compile' | 'optimized' | 'custom';
+        packType: 'optimized' | 'custom';
         createdAt: string;
       };
       packB: {
         id: string;
         packCid: string;
         totalTokens: number | null;
-        packType: 'compile' | 'optimized' | 'custom';
+        packType: 'optimized' | 'custom';
         createdAt: string;
       };
     };

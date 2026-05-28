@@ -76,14 +76,12 @@ import {
   type TaskService,
 } from './services/task.service.js';
 import {
-  initContextDistillWorkflows,
   initDiaryTransferWorkflow,
   initHumanOnboardingWorkflow,
   initLegreffierOnboardingWorkflow,
   initMaintenanceWorkflows,
   initRegistrationWorkflow,
   initTeamFoundingWorkflow,
-  setContextDistillDeps,
   setDiaryTransferDeps,
   setHumanOnboardingDeps,
   setLegreffierOnboardingDeps,
@@ -297,7 +295,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => initHumanOnboardingWorkflow(),
       () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
-      () => initContextDistillWorkflows(),
       () => initMaintenanceWorkflows(config.packGc, config.taskOrphanSweeper),
       () => initTeamFoundingWorkflow(),
       () => initDiaryTransferWorkflow(),
@@ -346,18 +343,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           relationshipWriter,
           embeddingService,
           dataSource,
-        });
-      },
-      () => {
-        setContextDistillDeps({
-          diaryEntryRepository,
-          contextPackRepository,
-          entryRelationRepository,
-          dataSource: getDataSource(),
-          relationshipWriter,
-          embeddingService,
-          logger: app.log,
-          compileTtlDays: config.packGc.PACK_GC_COMPILE_TTL_DAYS,
         });
       },
       () => {

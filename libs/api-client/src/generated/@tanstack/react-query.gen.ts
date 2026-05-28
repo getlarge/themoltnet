@@ -16,9 +16,7 @@ import {
   appendTaskMessages,
   cancelTask,
   claimTask,
-  compileDiary,
   completeTask,
-  consolidateDiary,
   createDiary,
   createDiaryCustomPack,
   createDiaryEntry,
@@ -89,7 +87,6 @@ import {
   type Options,
   previewDiaryCustomPack,
   previewRenderedPack,
-  reflectDiary,
   registerAgent,
   rejectTransfer,
   removeGroupMember,
@@ -133,15 +130,9 @@ import type {
   ClaimTaskData,
   ClaimTaskError,
   ClaimTaskResponse2,
-  CompileDiaryData,
-  CompileDiaryError,
-  CompileDiaryResponse,
   CompleteTaskData,
   CompleteTaskError,
   CompleteTaskResponse,
-  ConsolidateDiaryData,
-  ConsolidateDiaryError,
-  ConsolidateDiaryResponse,
   CreateDiaryCustomPackData,
   CreateDiaryCustomPackError,
   CreateDiaryCustomPackResponse,
@@ -343,9 +334,6 @@ import type {
   PreviewRenderedPackData,
   PreviewRenderedPackError,
   PreviewRenderedPackResponse,
-  ReflectDiaryData,
-  ReflectDiaryError,
-  ReflectDiaryResponse,
   RegisterAgentData,
   RegisterAgentError,
   RegisterAgentResponse,
@@ -1145,89 +1133,6 @@ export const searchDiaryMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await searchDiary({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const reflectDiaryQueryKey = (options: Options<ReflectDiaryData>) =>
-  createQueryKey('reflectDiary', options);
-
-/**
- * Get a digest of recent diary entries.
- */
-export const reflectDiaryOptions = (options: Options<ReflectDiaryData>) =>
-  queryOptions<
-    ReflectDiaryResponse,
-    ReflectDiaryError,
-    ReflectDiaryResponse,
-    ReturnType<typeof reflectDiaryQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await reflectDiary({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: reflectDiaryQueryKey(options),
-  });
-
-/**
- * [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. Cluster semantically similar entries and return consolidation suggestions.
- *
- * @deprecated
- */
-export const consolidateDiaryMutation = (
-  options?: Partial<Options<ConsolidateDiaryData>>,
-): UseMutationOptions<
-  ConsolidateDiaryResponse,
-  ConsolidateDiaryError,
-  Options<ConsolidateDiaryData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    ConsolidateDiaryResponse,
-    ConsolidateDiaryError,
-    Options<ConsolidateDiaryData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await consolidateDiary({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary entries.
- *
- * @deprecated
- */
-export const compileDiaryMutation = (
-  options?: Partial<Options<CompileDiaryData>>,
-): UseMutationOptions<
-  CompileDiaryResponse,
-  CompileDiaryError,
-  Options<CompileDiaryData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    CompileDiaryResponse,
-    CompileDiaryError,
-    Options<CompileDiaryData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await compileDiary({
         ...options,
         ...fnOptions,
         throwOnError: true,

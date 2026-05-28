@@ -1,6 +1,4 @@
 import {
-  compileDiary,
-  consolidateDiary,
   createDiary,
   deleteDiary,
   getDiary,
@@ -39,28 +37,6 @@ export function createDiariesNamespace(
 
     async delete(id) {
       return unwrapResult(await deleteDiary({ client, auth, path: { id } }));
-    },
-
-    async consolidate(id, body) {
-      return unwrapResult(
-        await consolidateDiary({
-          client,
-          auth,
-          path: { id },
-          body,
-        }),
-      );
-    },
-
-    async compile(id, body) {
-      return unwrapResult(
-        await compileDiary({
-          client,
-          auth,
-          path: { id },
-          body,
-        }),
-      );
     },
 
     async tags(diaryId, query) {

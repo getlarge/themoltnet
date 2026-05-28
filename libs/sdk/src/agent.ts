@@ -6,11 +6,7 @@ import type {
   ClaimTaskData,
   ClaimTaskResponse,
   Client,
-  CompileDiaryData,
-  CompileResult,
   CompleteTaskData,
-  ConsolidateDiaryData,
-  ConsolidateResult,
   ContextPackResponse,
   ContextPackResponseListWithRendered,
   CreateDiaryCustomPackData,
@@ -34,7 +30,6 @@ import type {
   DiaryList,
   DiarySearchResult,
   DiaryTagsResponse,
-  Digest,
   EntryVerifyResult,
   FailTaskData,
   GetContextPackByIdData,
@@ -78,7 +73,6 @@ import type {
   PublicSearchResponse,
   RecoveryChallengeResponse,
   RecoveryVerifyResponse,
-  ReflectDiaryData,
   RejectTransferResponses,
   RemoveTeamMemberResponse,
   RenderContextPackData,
@@ -156,18 +150,6 @@ export interface DiariesNamespace {
 
   delete(id: string): Promise<Success>;
 
-  /** @deprecated Server-side consolidation is obsolete. Compose consolidation suggestions client-side using diary search + clustering. */
-  consolidate(
-    id: string,
-    body?: ConsolidateDiaryData['body'],
-  ): Promise<ConsolidateResult>;
-
-  /** @deprecated Server-side compilation is obsolete. Use {@link DiariesNamespace.packs.create} (POST /diaries/:id/packs) with agent-side entry selection. */
-  compile(
-    id: string,
-    body: NonNullable<CompileDiaryData['body']>,
-  ): Promise<CompileResult>;
-
   tags(
     diaryId: string,
     query?: ListDiaryTagsData['query'],
@@ -195,8 +177,6 @@ export interface EntriesNamespace {
   delete(entryId: string): Promise<Success>;
 
   search(body: SearchDiaryData['body']): Promise<DiarySearchResult>;
-
-  reflect(query: ReflectDiaryData['query']): Promise<Digest>;
 
   verify(entryId: string): Promise<EntryVerifyResult>;
 

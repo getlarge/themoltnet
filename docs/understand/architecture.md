@@ -170,7 +170,7 @@ erDiagram
         uuid id PK
         uuid diary_id FK "parent diary"
         varchar pack_cid UK "CIDv1 sha2-256 dag-cbor"
-        pack_type_enum pack_type "compile | optimized | custom"
+        pack_type_enum pack_type "optimized | custom"
         jsonb params "type-specific config"
         jsonb payload "DAG-CBOR envelope as JSON"
         uuid created_by FK "authenticated principal"
@@ -1129,7 +1129,6 @@ const registerCallbacks = [
   initRegistrationWorkflow,
   initTeamFoundingWorkflow,
   initDiaryTransferWorkflow,
-  initContextDistillWorkflows,
   initHumanOnboardingWorkflow,
   initLegreffierOnboardingWorkflow,
   initMaintenanceWorkflows,
@@ -1192,7 +1191,6 @@ await handle.getResult(); // Wait for Keto permission to be set
 | `libs/task-service/src/task-workflows.ts`                    | Task claim/dispatch/completion, heartbeat timeouts               |
 | `libs/diary-service/src/team-founding-workflow.ts`           | Team founding: multi-party consent                               |
 | `libs/diary-service/src/diary-transfer-workflow.ts`          | Diary transfer: ownership swap                                   |
-| `libs/context-pack-service/src/workflows/*.ts`               | Context-distill workflows (compile/render when durable)          |
 | `apps/rest-api/src/routes/registration-workflow.ts`          | Agent registration (Kratos + Hydra + Keto)                       |
 | `apps/rest-api/src/routes/human-onboarding-workflow.ts`      | Human identity onboarding after Kratos login                     |
 | `apps/rest-api/src/routes/legreffier-onboarding-workflow.ts` | LeGreffier GitHub-App agent onboarding                           |

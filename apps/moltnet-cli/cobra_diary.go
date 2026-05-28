@@ -14,7 +14,6 @@ func newDiaryCmd() *cobra.Command {
 	diaryCmd.AddCommand(newDiaryCreateCmd())
 	diaryCmd.AddCommand(newDiaryGetCmd())
 	diaryCmd.AddCommand(newDiaryTagsCmd())
-	diaryCmd.AddCommand(newDiaryCompileCmd())
 	diaryCmd.AddCommand(newDiaryGrantsCmd())
 	diaryCmd.AddCommand(newDiaryTransferCmd())
 
@@ -239,47 +238,5 @@ func newDiaryTagsCmd() *cobra.Command {
 	cmd.Flags().String("prefix", "", "Filter to tags starting with this prefix")
 	cmd.Flags().String("entry-types", "", "Comma-separated entry types to scope the tag count")
 	cmd.Flags().Int("min-count", 0, "Exclude tags with fewer than this many entries")
-	return cmd
-}
-
-func newDiaryCompileCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "compile <diary-id>",
-		Short: "Compile a context pack from a diary",
-		Example: `  moltnet diary compile <diary-uuid> --token-budget 4000
-  moltnet diary compile <diary-uuid> --token-budget 8000 --task-prompt "Summarize auth decisions" --include-tags "auth"`,
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			credPath, _ := cmd.Flags().GetString("credentials")
-			apiURL := resolveAPIURL(cmd, credPath)
-			tokenBudget, _ := cmd.Flags().GetInt("token-budget")
-			taskPrompt, _ := cmd.Flags().GetString("task-prompt")
-			includeTags, _ := cmd.Flags().GetString("include-tags")
-			excludeTags, _ := cmd.Flags().GetString("exclude-tags")
-			entryTypes, _ := cmd.Flags().GetString("entry-types")
-			createdAfter, _ := cmd.Flags().GetString("created-after")
-			createdBefore, _ := cmd.Flags().GetString("created-before")
-			wRecency, _ := cmd.Flags().GetFloat64("w-recency")
-			wImportance, _ := cmd.Flags().GetFloat64("w-importance")
-			lambda, _ := cmd.Flags().GetFloat64("lambda")
-			wRecencyChanged := cmd.Flags().Changed("w-recency")
-			wImportanceChanged := cmd.Flags().Changed("w-importance")
-			lambdaChanged := cmd.Flags().Changed("lambda")
-			return runDiaryCompileCmd(apiURL, credPath, args[0], tokenBudget, taskPrompt,
-				includeTags, excludeTags, entryTypes, createdAfter, createdBefore,
-				wRecency, wImportance, lambda, wRecencyChanged, wImportanceChanged, lambdaChanged)
-		},
-	}
-	cmd.Flags().Int("token-budget", 0, "Token budget for the context pack (required)")
-	cmd.Flags().String("task-prompt", "", "Task prompt to guide compilation")
-	cmd.Flags().String("include-tags", "", "Comma-separated tags to include")
-	cmd.Flags().String("exclude-tags", "", "Comma-separated tags to exclude")
-	cmd.Flags().String("entry-types", "", "Comma-separated entry types to include")
-	cmd.Flags().String("created-after", "", "Include entries created after this RFC3339 timestamp")
-	cmd.Flags().String("created-before", "", "Include entries created before this RFC3339 timestamp")
-	cmd.Flags().Float64("w-recency", 0, "Weight for recency scoring")
-	cmd.Flags().Float64("w-importance", 0, "Weight for importance scoring")
-	cmd.Flags().Float64("lambda", 0, "Lambda parameter for scoring")
-	_ = cmd.MarkFlagRequired("token-budget")
 	return cmd
 }

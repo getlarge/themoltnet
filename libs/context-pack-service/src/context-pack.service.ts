@@ -755,7 +755,7 @@ export class ContextPackService {
 type PackLike = {
   id: string;
   packCid: string;
-  packType: 'compile' | 'optimized' | 'custom';
+  packType: 'optimized' | 'custom';
   payload: unknown;
   createdAt: Date | string;
 };

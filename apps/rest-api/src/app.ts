@@ -29,7 +29,6 @@ import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
-import { diaryDistillRoutes } from './routes/diary-distill.js';
 import { diaryEntryRoutes } from './routes/diary-entries.js';
 import { entryRelationRoutes } from './routes/entry-relations.js';
 import { groupRoutes } from './routes/groups.js';
@@ -314,7 +313,6 @@ export async function registerApiRoutes(
   });
   await app.register(diaryRoutes);
   await app.register(diaryEntryRoutes);
-  await app.register(diaryDistillRoutes);
   await app.register(packRoutes);
   await app.register(renderedPackRoutes);
   await app.register(entryRelationRoutes);

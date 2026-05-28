@@ -44,32 +44,12 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/claim
 	ClaimTask(ctx context.Context, req OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
-	// CompileDiary implements compileDiary operation.
-	//
-	// [DEPRECATED] Server-side compilation is obsolete. Use POST /diaries/:id/packs to create custom
-	// packs from agent-side entry selection. Compile a token-budget-fitted context pack from diary
-	// entries.
-	//
-	// Deprecated: schema marks this operation as deprecated.
-	//
-	// POST /diaries/{id}/compile
-	CompileDiary(ctx context.Context, req *CompileDiaryReq, params CompileDiaryParams) (CompileDiaryRes, error)
 	// CompleteTask implements completeTask operation.
 	//
 	// Mark an attempt as completed with output.
 	//
 	// POST /tasks/{id}/attempts/{n}/complete
 	CompleteTask(ctx context.Context, req *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error)
-	// ConsolidateDiary implements consolidateDiary operation.
-	//
-	// [DEPRECATED] Server-side consolidation is obsolete. Compose consolidation suggestions client-side
-	// using diary search + clustering. Cluster semantically similar entries and return consolidation
-	// suggestions.
-	//
-	// Deprecated: schema marks this operation as deprecated.
-	//
-	// POST /diaries/{id}/consolidate
-	ConsolidateDiary(ctx context.Context, req OptConsolidateDiaryReq, params ConsolidateDiaryParams) (ConsolidateDiaryRes, error)
 	// CreateDiary implements createDiary operation.
 	//
 	// Create a new diary.
@@ -497,12 +477,6 @@ type Handler interface {
 	//
 	// POST /packs/{id}/render/preview
 	PreviewRenderedPack(ctx context.Context, req *PreviewRenderedPackReq, params PreviewRenderedPackParams) (PreviewRenderedPackRes, error)
-	// ReflectDiary implements reflectDiary operation.
-	//
-	// Get a digest of recent diary entries.
-	//
-	// GET /diaries/reflect
-	ReflectDiary(ctx context.Context, params ReflectDiaryParams) (ReflectDiaryRes, error)
 	// RegisterAgent implements registerAgent operation.
 	//
 	// Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns

@@ -176,29 +176,6 @@ export interface TagCount {
   count: number;
 }
 
-export interface ReflectInput {
-  diaryId: string;
-  days?: number;
-  maxEntries?: number;
-  entryTypes?: EntryType[];
-}
-
-export interface DigestEntry {
-  id: string;
-  content: string;
-  tags: string[] | null;
-  importance: number;
-  entryType: EntryType;
-  createdAt: Date;
-}
-
-export interface Digest {
-  entries: DigestEntry[];
-  totalEntries: number;
-  periodDays: number;
-  generatedAt: string;
-}
-
 // ============================================================================
 // Error
 // ============================================================================

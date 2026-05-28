@@ -64,7 +64,6 @@ function createMockDiaryEntryRepository(): {
     search: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    getRecentForDigest: vi.fn(),
   };
 }
 
