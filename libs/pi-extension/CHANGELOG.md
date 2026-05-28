@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.20.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.20.0...pi-extension-v0.20.1) (2026-05-27)
+## [0.20.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.20.0...pi-extension-v0.20.1) (2026-05-28)
 
 
 ### Bug Fixes
