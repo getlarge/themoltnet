@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it } from 'vitest';
 
@@ -7,9 +7,10 @@ import { TaskLaneBoard } from '../task-lane-board.js';
 import { TaskLaneCard } from '../task-lane-card.js';
 import { TaskLaneColumn } from '../task-lane-column.js';
 import { groupTasksByLane, statusToLane, TASK_LANES } from '../task-lanes.js';
+import { TaskLivePane } from '../task-live-pane.js';
 import { TaskTurnStream } from '../task-turn-stream.js';
 import type { TaskStatus, TaskSummary } from '../types.js';
-import { messagesFixture, taskFixture } from './fixtures.js';
+import { attemptFixture, messagesFixture, taskFixture } from './fixtures.js';
 
 function taskWith(status: TaskStatus, id: string): TaskSummary {
   return { ...taskFixture, id, status };
@@ -163,5 +164,35 @@ describe('TaskTurnStream', () => {
   it('shows a waiting hint when there are no messages', () => {
     renderWithTheme(<TaskTurnStream messages={[]} />);
     expect(screen.getByText(/waiting for the agent/i)).toBeInTheDocument();
+  });
+});
+
+describe('TaskLivePane', () => {
+  it('renders header, turns by default, and footer usage', () => {
+    renderWithTheme(
+      <TaskLivePane
+        task={taskWith('running', 'abcdef1234')}
+        attempt={attemptFixture}
+        messages={messagesFixture}
+      />,
+    );
+    expect(screen.getByText('Curate Pack')).toBeInTheDocument();
+    expect(screen.getByText('Reading task context.')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /turns/i })).toBeInTheDocument();
+  });
+
+  it('switches to the Input tab and renders the input viewer', () => {
+    renderWithTheme(
+      <TaskLivePane
+        task={taskWith('running', 'abcdef1234')}
+        attempt={attemptFixture}
+        messages={messagesFixture}
+      />,
+    );
+    const inputTab = screen.getByRole('tab', { name: /input/i });
+    fireEvent.click(inputTab);
+    expect(inputTab).toHaveAttribute('aria-selected', 'true');
+    // JsonViewer renders defaultExpanded, so its collapse toggle is visible.
+    expect(screen.getByText('Collapse JSON')).toBeInTheDocument();
   });
 });

@@ -37,7 +37,9 @@ export function TaskTurnStream({ messages, live }: TaskTurnStreamProps) {
   const rendered = joinTextDeltas(messages);
 
   useEffect(() => {
-    if (live) endRef.current?.scrollIntoView({ block: 'end' });
+    if (live && typeof endRef.current?.scrollIntoView === 'function') {
+      endRef.current.scrollIntoView({ block: 'end' });
+    }
   }, [live, rendered.length]);
 
   if (rendered.length === 0) {
