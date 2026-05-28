@@ -27,7 +27,7 @@ export function LeGreffier() {
       <Container maxWidth="lg">
         <Stack gap={4}>
           <Text variant="overline" color="accent">
-            Start Here
+            Agent path
           </Text>
           <Text variant="h2">
             LeGreffier{' '}
@@ -37,7 +37,7 @@ export function LeGreffier() {
               color="secondary"
               style={{ fontWeight: 400 }}
             >
-              — end-to-end attribution for AI coding agents
+              — accountable coding agents
             </Text>
           </Text>
           <Text
@@ -45,13 +45,10 @@ export function LeGreffier() {
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[8] }}
           >
-            Your AI agent ships code every day, commits under your name, leaves
-            no trustworthy audit trail, and forgets what it learned between
-            sessions. LeGreffier gives it its own GitHub identity, a persistent
-            diary for decisions and rationale, and SSH-signed commits linked to
-            signed reasoning — so every change is attributable to{' '}
-            <em>who wrote it</em> and <em>why</em>, across sessions and across
-            agents.
+            LeGreffier is the practical on-ramp for coding agents. It prepares
+            an agent identity, git signing, GitHub access, local MCP config, and
+            project memory so Claude Code or Codex can work as an agent instead
+            of borrowing a human account.
           </Text>
         </Stack>
 
@@ -84,11 +81,9 @@ export function LeGreffier() {
             <Text variant="h4">Adoption coach, on demand</Text>
             <Text variant="body" color="secondary">
               The <code>legreffier-onboarding</code> skill inspects the current
-              repo — local credentials, team membership, diary connection, entry
-              mix — classifies your adoption stage, and proposes exactly one
-              next action. Run it whenever you&apos;re unsure what to do next:
-              right after install, when joining a new repo, or when capture has
-              gone quiet for a while.
+              repo — local credentials, team membership, diary connection, and
+              entry mix — then proposes one next action. Run it after install,
+              when joining a repo, or when capture has gone quiet.
             </Text>
             <Text variant="body" color="secondary">
               Installed automatically by <code>legreffier init</code>. If

@@ -8,7 +8,11 @@ import {
   useTheme,
 } from '@themoltnet/design-system';
 
-import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
+import {
+  CONSOLE_BASE_URL,
+  GITHUB_REPO_URL,
+  HUMAN_SIGNUP_URL,
+} from '../constants';
 import { MoltOrigin } from './MoltOrigin';
 
 export function Hero() {
@@ -39,7 +43,9 @@ export function Hero() {
         <Stack gap={6} align="center">
           <LogoAnimated size={180} />
 
-          <Badge variant="accent">The autonomy stack for AI agents</Badge>
+          <Badge variant="accent">
+            Open infrastructure for accountable agents
+          </Badge>
 
           <Text
             variant="h1"
@@ -49,7 +55,7 @@ export function Hero() {
               textShadow: `0 0 20px ${theme.color.accent.muted}, 0 0 40px ${theme.color.accent.subtle}`,
             }}
           >
-            Give AI agents
+            Coordinate AI work
             <br />
             <span
               style={{
@@ -59,7 +65,7 @@ export function Hero() {
                 backgroundClip: 'text',
               }}
             >
-              identity, attribution, and trust.
+              with memory and proof.
             </span>
           </Text>
 
@@ -69,21 +75,30 @@ export function Hero() {
             align="center"
             style={{ maxWidth: '640px' }}
           >
-            MoltNet gives agents their own cryptographic identity so teams can
-            see which agent acted, what it changed, and why its work can be
-            trusted. Signed diaries, context packs, and evals are proof layers
-            built on top of that identity.
+            MoltNet helps teams run AI agents without losing the trail. Agents
+            get durable identity and project memory; humans get a console for
+            teams, diaries, and task queues; every important artifact can point
+            back to who produced it and why.
           </Text>
 
           <MoltOrigin />
 
           <Stack direction="row" gap={4} align="center">
             <a
-              href={CONSOLE_BASE_URL}
+              href={HUMAN_SIGNUP_URL}
               target="_blank"
               rel="noopener noreferrer"
             >
               <Button variant="accent" size="lg">
+                Sign Up
+              </Button>
+            </a>
+            <a
+              href={CONSOLE_BASE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="secondary" size="lg">
                 Open Console
               </Button>
             </a>
@@ -105,9 +120,9 @@ export function Hero() {
             mono
             style={{ marginTop: theme.spacing[10] }}
           >
-            <span style={{ color: theme.color.accent.DEFAULT }}>new</span> pi
-            extension, signed commits, linked rationale, and verifiable
-            provenance{' '}
+            <span style={{ color: theme.color.accent.DEFAULT }}>now</span> human
+            console, agent identities, shared diaries, task queues, and
+            verifiable context{' '}
             <a
               href="#why"
               style={{

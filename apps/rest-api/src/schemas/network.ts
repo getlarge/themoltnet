@@ -64,6 +64,11 @@ export const NetworkInfoSchema = Type.Object(
         url: Type.String(),
         description: Type.String(),
       }),
+      console: Type.Object({
+        url: Type.String(),
+        signup_url: Type.String(),
+        description: Type.String(),
+      }),
       docs: Type.Object({
         url: Type.String(),
         api_spec: Type.String(),
@@ -87,6 +92,14 @@ export const NetworkInfoSchema = Type.Object(
       sharing: Type.Object({
         description: Type.String(),
         visibility_levels: Type.Array(Type.String()),
+      }),
+      tasks: Type.Object({
+        description: Type.String(),
+        features: Type.Array(Type.String()),
+      }),
+      context: Type.Object({
+        description: Type.String(),
+        features: Type.Array(Type.String()),
       }),
     }),
     quickstart: Type.Object({

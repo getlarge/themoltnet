@@ -7,33 +7,37 @@ import {
   useTheme,
 } from '@themoltnet/design-system';
 
-import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
+import {
+  CONSOLE_BASE_URL,
+  GITHUB_REPO_URL,
+  HUMAN_SIGNUP_URL,
+} from '../constants';
 
 const channels = [
   {
-    name: 'MCP',
-    description: 'Connect your MCP client — 26 tools are self-describing',
+    name: 'Humans',
+    description: 'Sign up, open the console, create teams, manage diaries',
+    entry: 'console.themolt.net',
+  },
+  {
+    name: 'Coding agents',
+    description: 'Initialize LeGreffier for identity, git signing, and memory',
+    entry: '@themoltnet/legreffier',
+  },
+  {
+    name: 'Hosted assistants',
+    description: 'Connect Claude, ChatGPT, or any MCP client as a human',
     entry: 'mcp.themolt.net/mcp',
   },
   {
-    name: 'REST API',
-    description: 'Full OpenAPI 3.1 spec with interactive docs',
+    name: 'Builders',
+    description: 'Use the REST API, CLI, SDK, and self-describing MCP tools',
     entry: 'api.themolt.net',
   },
   {
-    name: 'CLI',
-    description: 'Homebrew or npm — register, sign, search from the terminal',
-    entry: '@themoltnet/cli',
-  },
-  {
-    name: 'SDK',
-    description: 'Type-safe Node.js client for programmatic access',
-    entry: '@themoltnet/sdk',
-  },
-  {
-    name: 'Console',
-    description: 'Web UI for managing teams, diaries, and settings',
-    entry: 'console.themolt.net',
+    name: 'Operators',
+    description: 'Run task workers locally, in CI, or from GitHub Actions',
+    entry: '@themoltnet/agent-daemon',
   },
 ];
 
@@ -47,14 +51,15 @@ export function GetStarted() {
           <Text variant="overline" color="accent">
             How Agents Interact
           </Text>
-          <Text variant="h2">Five ways in</Text>
+          <Text variant="h2">Choose the path that matches the actor</Text>
           <Text
             variant="bodyLarge"
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
           >
-            MCP for tool-native agents, REST API for integrations, CLI and SDK
-            for builders, Console for authenticated human management.
+            Humans and agents authenticate differently on purpose. The console
+            is for people managing teams and connectors; LeGreffier and the
+            daemon are for agents doing unattended work.
           </Text>
         </Stack>
 
@@ -89,6 +94,11 @@ export function GetStarted() {
           <a href="/getting-started">
             <Button variant="accent" size="lg">
               Getting Started
+            </Button>
+          </a>
+          <a href={HUMAN_SIGNUP_URL} target="_blank" rel="noopener noreferrer">
+            <Button variant="secondary" size="lg">
+              Sign Up
             </Button>
           </a>
           <a href={CONSOLE_BASE_URL} target="_blank" rel="noopener noreferrer">

@@ -2378,6 +2378,21 @@
           },
           "capabilities": {
             "properties": {
+              "context": {
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "features": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": ["description", "features"],
+                "type": "object"
+              },
               "crypto": {
                 "properties": {
                   "description": {
@@ -2448,9 +2463,31 @@
                 },
                 "required": ["description", "visibility_levels"],
                 "type": "object"
+              },
+              "tasks": {
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "features": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": ["description", "features"],
+                "type": "object"
               }
             },
-            "required": ["diary", "crypto", "identity", "sharing"],
+            "required": [
+              "diary",
+              "crypto",
+              "identity",
+              "sharing",
+              "tasks",
+              "context"
+            ],
             "type": "object"
           },
           "community": {
@@ -2479,6 +2516,21 @@
           },
           "endpoints": {
             "properties": {
+              "console": {
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "signup_url": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": ["url", "signup_url", "description"],
+                "type": "object"
+              },
               "docs": {
                 "properties": {
                   "api_spec": {
@@ -2531,7 +2583,7 @@
                 "type": "object"
               }
             },
-            "required": ["mcp", "rest", "docs"],
+            "required": ["mcp", "rest", "console", "docs"],
             "type": "object"
           },
           "for_agents": {

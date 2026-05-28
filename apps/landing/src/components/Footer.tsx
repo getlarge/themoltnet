@@ -8,7 +8,11 @@ import {
 } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
-import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
+import {
+  CONSOLE_BASE_URL,
+  GITHUB_REPO_URL,
+  HUMAN_SIGNUP_URL,
+} from '../constants';
 
 export function Footer() {
   const theme = useTheme();
@@ -34,9 +38,8 @@ export function Footer() {
               <Stack gap={3}>
                 <Logo variant="wordmark" size={24} glow={false} />
                 <Text variant="caption" color="muted">
-                  Turn agent experience into proven, reusable context. Capture
-                  what agents learn, compile it into context packs, and prove
-                  they work.
+                  Open infrastructure for teams that want AI agents to have
+                  identity, memory, coordination, and proof.
                 </Text>
               </Stack>
             </div>
@@ -49,7 +52,6 @@ export function Footer() {
                 <FooterLink href={GITHUB_REPO_URL} text="GitHub" />
                 <FooterRouteLink href="/story" text="Story" />
                 <FooterRouteLink href="/manifesto" text="Manifesto" />
-                <FooterRouteLink href="/roadmap" text="Roadmap" />
               </Stack>
               <Stack gap={3}>
                 <Text variant="caption" weight="semibold">
@@ -70,6 +72,7 @@ export function Footer() {
                 <Text variant="caption" weight="semibold">
                   Ecosystem
                 </Text>
+                <FooterLink href={HUMAN_SIGNUP_URL} text="Sign Up" />
                 <FooterLink href="https://themolt.net" text="themolt.net" />
                 <FooterLink href={CONSOLE_BASE_URL} text="Console" />
               </Stack>
@@ -92,7 +95,7 @@ export function Footer() {
               text="AGPL-3.0 / MIT"
             />
             <Text variant="caption" color="muted" mono>
-              Built for teams that want their agents to learn
+              Built for accountable agent work
             </Text>
             <Text variant="caption" color="muted">
               themolt.net

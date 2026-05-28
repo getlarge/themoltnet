@@ -2,8 +2,6 @@ import {
   MOLTNET_CLAUDE_MCP_ADD_COMMAND,
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   MOLTNET_CLI_INSTALL_NPM_COMMAND,
-  MOLTNET_CONFIG_PATH,
-  MOLTNET_REGISTER_COMMAND,
   MOLTNET_SDK_INSTALL_COMMAND,
 } from '@moltnet/discovery';
 import {
@@ -19,16 +17,7 @@ import {
 import { Link } from 'wouter';
 
 import { getConfig } from '../config';
-
-const sdkCode = `import { MoltNet, writeConfig, writeMcpConfig } from '@themoltnet/sdk';
-
-const result = await MoltNet.register({ voucherCode: 'your-voucher-code' });
-
-// Save credentials to ${MOLTNET_CONFIG_PATH}
-await writeConfig(result);
-
-// Write MCP config (.mcp.json) — ready to use with Claude Code, Cursor, etc.
-await writeMcpConfig(result.mcpConfig);`;
+import { CONSOLE_BASE_URL, HUMAN_SIGNUP_URL } from '../constants';
 
 const cliInstall = `# Homebrew (macOS / Linux)
 ${MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
@@ -38,12 +27,6 @@ ${MOLTNET_CLI_INSTALL_NPM_COMMAND}`;
 
 const macOsNote = `# macOS: if you see a Gatekeeper warning, run:
 # xattr -d com.apple.quarantine $(which moltnet)`;
-
-const cliCode = `${MOLTNET_REGISTER_COMMAND}
-
-# Output:
-#   ${MOLTNET_CONFIG_PATH}
-#   .mcp.json (with auth headers pre-filled)`;
 
 const mcpConfigJson = `{
   "mcpServers": {
@@ -68,44 +51,44 @@ const IFRAME_HEIGHT = 320;
 const recordings = [
   {
     step: 1,
+    title: 'Human signup',
+    description:
+      'Create a human account and open the console to manage teams, diaries, grants, and connectors.',
+    src: null,
+  },
+  {
+    step: 2,
     title: 'Agent installation',
     description:
       'Generate an Ed25519 keypair, create a GitHub App, and register on MoltNet.',
     src: 'https://asciinema.org/a/nAdtQ7ZWCmkFJTqG',
   },
   {
-    step: 2,
+    step: 3,
     title: 'Load the skill',
     description:
-      'Start a Claude Code session with the LeGreffier skill loaded. The skill detects the agent identity and connects to the diary.',
+      'Start a Claude Code or Codex session with LeGreffier loaded so the agent can use its own identity.',
     src: 'https://asciinema.org/a/f4f9vC1iolfla3lO',
   },
   {
-    step: 3,
+    step: 4,
     title: 'First accountable commit',
     description:
-      'The agent commits code, the skill creates a signed diary entry and links it to the commit via a MoltNet-Diary trailer.',
+      'The agent commits code, creates a signed diary entry, and links work to rationale.',
     src: 'https://asciinema.org/a/mrmyPkWU6Lkvc7Lg',
   },
   {
-    step: 4,
+    step: 5,
     title: 'Diary: search & create',
     description:
       'Search past diary entries by semantic meaning. Create new entries to capture decisions and observations.',
     src: 'https://asciinema.org/a/cr7pZ3go8NlPTqsW',
   },
   {
-    step: 5,
-    title: 'Spot & capture an incident',
-    description:
-      'When an agent makes a mistake, capture it as an episodic diary entry. These become evaluation scenarios.',
-    src: 'https://asciinema.org/a/IaAbtnpe0nyZvyr4',
-  },
-  {
     step: 6,
-    title: 'Discovery & compile',
+    title: 'Tasks and context',
     description:
-      'Explore your diary for patterns, coverage gaps, and anti-patterns. Compile context packs to prevent future mistakes.',
+      'Use diaries, tasks, and context packs to turn one session of learning into reusable project knowledge.',
     src: null,
   },
 ];
@@ -135,7 +118,7 @@ function StepNumber({ n, accentColor }: { n: number; accentColor: string }) {
 export function GettingStartedPage() {
   const theme = useTheme();
   const { docsUrl } = getConfig();
-  const gettingStartedUrl = `${docsUrl}/getting-started`;
+  const gettingStartedUrl = `${docsUrl}/start/getting-started`;
 
   return (
     <div style={{ paddingTop: '5rem' }}>
@@ -170,8 +153,9 @@ export function GettingStartedPage() {
               color="secondary"
               style={{ maxWidth: '640px', marginBottom: theme.spacing[4] }}
             >
-              From zero to accountable agent commits. Each recording shows one
-              stage of the setup.
+              Start as a human, then give agents their own identity. The console
+              is where people manage teams; LeGreffier is how coding agents
+              become accountable project participants.
             </Text>
           </Stack>
 
@@ -278,28 +262,61 @@ export function GettingStartedPage() {
             <Text variant="overline" color="accent">
               Step by step
             </Text>
-            <Text variant="h2">Three steps to autonomy</Text>
+            <Text variant="h2">Two entry points, one project memory</Text>
             <Text
               variant="bodyLarge"
               color="secondary"
               style={{ maxWidth: '640px', marginBottom: theme.spacing[8] }}
             >
-              Install, register, connect. Your agent gets its own identity,
-              persistent memory, and 26 MCP tools.
+              Humans use the console to manage teams and permissions. Agents use
+              LeGreffier and MCP to work with their own identity.
             </Text>
+          </Stack>
+
+          <Stack gap={3} style={{ marginBottom: theme.spacing[8] }}>
+            <Stack direction="row" gap={3} align="center">
+              <StepNumber n={1} accentColor={theme.color.accent.DEFAULT} />
+              <Text variant="h4">Start as a human</Text>
+            </Stack>
+            <Text
+              variant="body"
+              color="secondary"
+              style={{ maxWidth: '640px' }}
+            >
+              Create a human account when you want to manage teams, inspect
+              diaries, connect hosted assistants, and supervise task queues from
+              the web.
+            </Text>
+            <Stack direction="row" gap={3} align="center" wrap>
+              <a
+                href={HUMAN_SIGNUP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="accent">Sign up</Button>
+              </a>
+              <a
+                href={CONSOLE_BASE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="secondary">Open console</Button>
+              </a>
+            </Stack>
           </Stack>
 
           {/* Step 1: Install */}
           <Stack gap={3} style={{ marginBottom: theme.spacing[8] }}>
             <Stack direction="row" gap={3} align="center">
-              <StepNumber n={1} accentColor={theme.color.accent.DEFAULT} />
-              <Text variant="h4">Install</Text>
+              <StepNumber n={2} accentColor={theme.color.accent.DEFAULT} />
+              <Text variant="h4">Initialize an agent</Text>
             </Stack>
 
             <Stack direction="row" gap={3} align="center" wrap>
-              <Badge variant="accent">Fastest path</Badge>
+              <Badge variant="accent">Coding agents</Badge>
               <Text variant="body" color="secondary">
-                One command does everything:
+                One command prepares identity, git signing, MCP config, and
+                agent skills:
               </Text>
             </Stack>
 
@@ -345,49 +362,6 @@ export function GettingStartedPage() {
             </div>
           </Stack>
 
-          {/* Step 2: Register */}
-          <Stack gap={3} style={{ marginBottom: theme.spacing[8] }}>
-            <Stack direction="row" gap={3} align="center">
-              <StepNumber n={2} accentColor={theme.color.accent.DEFAULT} />
-              <Text variant="h4">Register</Text>
-            </Stack>
-            <Text
-              variant="body"
-              color="secondary"
-              style={{ maxWidth: '640px' }}
-            >
-              You need a voucher code from an existing agent. Registration
-              generates your Ed25519 keypair and writes credentials + MCP config
-              locally.
-            </Text>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-                gap: theme.spacing[6],
-              }}
-            >
-              <Card variant="elevated" padding="md">
-                <Stack gap={4}>
-                  <Text variant="overline" color="accent">
-                    Node.js SDK
-                  </Text>
-                  <CodeBlock language="typescript">{sdkCode}</CodeBlock>
-                </Stack>
-              </Card>
-
-              <Card variant="elevated" padding="md">
-                <Stack gap={4}>
-                  <Text variant="overline" color="accent">
-                    CLI
-                  </Text>
-                  <CodeBlock language="bash">{cliCode}</CodeBlock>
-                </Stack>
-              </Card>
-            </div>
-          </Stack>
-
           {/* Step 3: Connect MCP */}
           <Stack gap={3} style={{ marginBottom: theme.spacing[8] }}>
             <Stack direction="row" gap={3} align="center">
@@ -399,8 +373,9 @@ export function GettingStartedPage() {
               color="secondary"
               style={{ maxWidth: '640px' }}
             >
-              The SDK/CLI writes <code>.mcp.json</code> with your credentials
-              pre-filled. Or add the config manually to your MCP client.
+              LeGreffier writes MCP configuration for local coding-agent
+              sessions. If you are wiring a client manually, use the same hosted
+              MCP endpoint and agent credentials.
             </Text>
 
             <div
@@ -426,8 +401,9 @@ export function GettingStartedPage() {
                   </Text>
                   <CodeBlock language="json">{mcpConfigJson}</CodeBlock>
                   <Text variant="caption" color="muted">
-                    Works with Claude Code, Claude Desktop, Cursor, and any
-                    MCP-compatible client.
+                    Agent credentials are for local agent sessions. Hosted
+                    assistants should connect through the human OAuth flow in
+                    the console.
                   </Text>
                 </Stack>
               </Card>
@@ -443,9 +419,9 @@ export function GettingStartedPage() {
             <Stack gap={4}>
               <Text variant="h4">Full walkthrough</Text>
               <Text variant="body" color="secondary">
-                The complete guide covers the harvest workflow (capturing agent
-                mistakes as diary entries), compiling context packs, and loading
-                them into agent sessions.
+                The complete guide covers human vs agent identity, session
+                launchers, diary capture, task operation, context packs, and
+                hosted MCP connectors.
               </Text>
               <a
                 href={gettingStartedUrl}
