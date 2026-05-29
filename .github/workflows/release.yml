@@ -70,6 +70,44 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      # release-please's `extra-files` JSON updater rewrites the WHOLE
+      # apps/rest-api/public/openapi.json to bump $.info.version, reserializing
+      # it with its own pretty-printer (expanded arrays). That output is not
+      # Prettier-canonical, so the spec lands on the release PR de-formatted and
+      # both `nx format:check` and the "OpenAPI spec out of date" gate go red the
+      # moment the PR merges to main. We keep the extra-files bump (intentional)
+      # and just re-Prettier the file on the PR branch afterwards. Pushing with
+      # GITHUB_TOKEN deliberately does NOT re-trigger workflows, which is fine:
+      # the existing PR checks re-run on the push and the merge stays clean.
+      # See diary incident c72108c8 (run 26635004582).
+      - name: Re-format release-please openapi.json
+        if: steps.release.outputs.prs_created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRS: ${{ steps.release.outputs.prs }}
+        run: |
+          set -euo pipefail
+          BRANCH="$(echo "$PRS" | jq -r '.[0].headBranchName')"
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "null" ]; then
+            echo "No release PR branch found; nothing to format."
+            exit 0
+          fi
+          git fetch origin "$BRANCH"
+          git checkout "$BRANCH"
+          # Pin to the repo's prettier version so output is byte-identical to
+          # what `nx format:check` enforces. Bump this when the catalog bumps
+          # prettier (currently 3.8.3).
+          npx --yes prettier@3.8.3 --write apps/rest-api/public/openapi.json
+          if git diff --quiet -- apps/rest-api/public/openapi.json; then
+            echo "openapi.json already Prettier-clean; no commit needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/rest-api/public/openapi.json
+          git commit -m "chore: prettier-format openapi.json (release-please)"
+          git push origin "$BRANCH"
+
   # Unified resolution: merges release-please outputs with manual republish
   # inputs so downstream jobs use a single set of outputs regardless of trigger.
   resolve-publish:
