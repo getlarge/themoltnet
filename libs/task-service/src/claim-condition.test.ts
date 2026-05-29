@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   collectConditionTaskIds,
   evaluateClaimConditionFromTasks,
+  validateClaimConditionShape,
 } from './claim-condition.js';
 
 function task(
@@ -95,5 +96,50 @@ describe('claim-condition evaluator', () => {
     };
 
     expect([...collectConditionTaskIds(condition)]).toEqual([first, second]);
+  });
+});
+
+describe('validateClaimConditionShape', () => {
+  const taskId = '11111111-1111-4111-8111-111111111111';
+
+  // Regression: ClaimCondition's task_status leaf refs the TaskStatus schema by
+  // $id. Value.Errors must receive that referenced schema or it throws a
+  // TypeDereferenceError and the create request 500s.
+  it('accepts a task_status condition without throwing on the TaskStatus ref', () => {
+    expect(() =>
+      validateClaimConditionShape({
+        op: 'task_status',
+        taskId,
+        statuses: ['completed'],
+      }),
+    ).not.toThrow();
+    expect(
+      validateClaimConditionShape({
+        op: 'task_status',
+        taskId,
+        statuses: ['completed'],
+      }),
+    ).toEqual([]);
+  });
+
+  it('accepts a nested all/any condition with task_status leaves', () => {
+    expect(
+      validateClaimConditionShape({
+        op: 'all',
+        conditions: [
+          { op: 'task_accepted', taskId },
+          { op: 'task_status', taskId, statuses: ['completed', 'failed'] },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it('reports shape errors for an invalid status value', () => {
+    const errors = validateClaimConditionShape({
+      op: 'task_status',
+      taskId,
+      statuses: ['not-a-status'],
+    });
+    expect(errors.length).toBeGreaterThan(0);
   });
 });
