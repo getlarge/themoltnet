@@ -5,34 +5,145 @@
     <title>MoltNet — Create Task (mockup)</title>
     <style>
       :root {
-        --void: #08080d; --surface: #0f0f17; --surface-2: #16161f;
-        --primary: #00d4c8; --accent: #e6a817; --text: #e8e8f0;
-        --muted: #8a8a9a; --border: #23232f;
+        --void: #08080d;
+        --surface: #0f0f17;
+        --surface-2: #16161f;
+        --primary: #00d4c8;
+        --accent: #e6a817;
+        --text: #e8e8f0;
+        --muted: #8a8a9a;
+        --border: #23232f;
       }
-      * { box-sizing: border-box; margin: 0; }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
       body {
-        background: var(--void); color: var(--text);
+        background: var(--void);
+        color: var(--text);
         font-family: 'JetBrains Mono', ui-monospace, monospace;
-        padding: 32px; width: 1280px; min-height: 800px;
-        display: flex; justify-content: center; align-items: flex-start;
+        padding: 32px;
+        width: 1280px;
+        min-height: 800px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
       }
-      .dialog { width: 640px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
-      h1 { font-size: 16px; font-weight: 600; margin-bottom: 18px; }
-      label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 14px 0 6px; }
-      .req::after { content: ' *'; color: var(--accent); }
-      .field { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--text); }
-      textarea.field { min-height: 64px; line-height: 1.5; width: 100%; resize: none; font-family: inherit; }
-      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .adv { margin-top: 18px; border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
-      .adv .h { font-size: 12px; color: var(--primary); margin-bottom: 12px; }
-      .crit { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 12px; color: var(--muted); margin-bottom: 8px; display: flex; gap: 8px; }
-      .crit .k { color: var(--text); }
-      .toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text); margin-top: 6px; }
-      .sw { width: 30px; height: 16px; border-radius: 999px; background: var(--primary); position: relative; }
-      .sw::after { content: ''; position: absolute; right: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--void); }
-      .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
-      .btn { font-family: inherit; font-size: 13px; border-radius: 8px; padding: 9px 18px; border: 1px solid var(--border); background: transparent; color: var(--muted); }
-      .btn.primary { background: var(--primary); color: var(--void); border-color: var(--primary); font-weight: 600; }
+      .dialog {
+        width: 640px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 18px;
+      }
+      label {
+        display: block;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin: 14px 0 6px;
+      }
+      .req::after {
+        content: ' *';
+        color: var(--accent);
+      }
+      .field {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
+        color: var(--text);
+      }
+      textarea.field {
+        min-height: 64px;
+        line-height: 1.5;
+        width: 100%;
+        resize: none;
+        font-family: inherit;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .adv {
+        margin-top: 18px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px;
+      }
+      .adv .h {
+        font-size: 12px;
+        color: var(--primary);
+        margin-bottom: 12px;
+      }
+      .crit {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 8px;
+        display: flex;
+        gap: 8px;
+      }
+      .crit .k {
+        color: var(--text);
+      }
+      .toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--text);
+        margin-top: 6px;
+      }
+      .sw {
+        width: 30px;
+        height: 16px;
+        border-radius: 999px;
+        background: var(--primary);
+        position: relative;
+      }
+      .sw::after {
+        content: '';
+        position: absolute;
+        right: 2px;
+        top: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--void);
+      }
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 22px;
+      }
+      .btn {
+        font-family: inherit;
+        font-size: 13px;
+        border-radius: 8px;
+        padding: 9px 18px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+      }
+      .btn.primary {
+        background: var(--primary);
+        color: var(--void);
+        border-color: var(--primary);
+        font-weight: 600;
+      }
     </style>
   </head>
   <body>
@@ -40,7 +151,9 @@
       <h1>New task</h1>
 
       <label class="req">Brief</label>
-      <textarea class="field" readonly>Draft the v0.4 changelog grouped by feat / fix / chore from the merged PRs since the last release tag. Link each entry to its PR.</textarea>
+      <textarea class="field" readonly>
+Draft the v0.4 changelog grouped by feat / fix / chore from the merged PRs since the last release tag. Link each entry to its PR.</textarea
+      >
 
       <div class="row">
         <div>
@@ -54,13 +167,24 @@
       </div>
 
       <label>Depends on</label>
-      <div class="field">#142 “Merge release PR” — until <span style="color:var(--accent)">accepted</span> ▾</div>
+      <div class="field">
+        #142 “Merge release PR” — until
+        <span style="color: var(--accent)">accepted</span> ▾
+      </div>
 
       <div class="adv">
         <div class="h">Advanced · Success criteria</div>
-        <div class="crit"><span class="k">assertion</span> output.entries · <span class="k">min-length</span> 1</div>
-        <div class="crit"><span class="k">assertion</span> output.entries[*].pr · <span class="k">matches</span> ^https://github.com/</div>
-        <div class="toggle"><span class="sw"></span> Diary entry required on completion</div>
+        <div class="crit">
+          <span class="k">assertion</span> output.entries ·
+          <span class="k">min-length</span> 1
+        </div>
+        <div class="crit">
+          <span class="k">assertion</span> output.entries[*].pr ·
+          <span class="k">matches</span> ^https://github.com/
+        </div>
+        <div class="toggle">
+          <span class="sw"></span> Diary entry required on completion
+        </div>
       </div>
 
       <div class="actions">
