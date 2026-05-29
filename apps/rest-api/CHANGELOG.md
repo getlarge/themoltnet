@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.3.0...rest-api-v0.4.0) (2026-05-29)
+
+
+### Features
+
+* **console:** create freeform tasks from the board ([3a3c1e2](https://github.com/getlarge/themoltnet/commit/3a3c1e2cdd757c2cf7ef6f692f153552b6330151))
+* **console:** per-lane queries + accurate funnel counts on the board ([1f59b7b](https://github.com/getlarge/themoltnet/commit/1f59b7b0b2b12d69b558c8315f259c141cf88a07))
+* **console:** task lane board with live agent pane ([e09c94e](https://github.com/getlarge/themoltnet/commit/e09c94e4337adb6b87be04b64d39d1fa26c33d15))
+* **landing:** refresh positioning and onboarding ([68801aa](https://github.com/getlarge/themoltnet/commit/68801aaf724924b56ebd3a78368d472d3f011ebe))
+* **tasks:** add statuses[] filter + real total count to listTasks ([e66d5a6](https://github.com/getlarge/themoltnet/commit/e66d5a6c9588d2203efa1b4015d11662d12b8aa3))
+
+
+### Bug Fixes
+
+* **console:** scale the task board with per-lane queries + real counts ([a6e6202](https://github.com/getlarge/themoltnet/commit/a6e62024e240d09dbf309878cf1ca783e6bebda4))
+* **task-service:** dereference TaskStatus when validating claimCondition ([02350ef](https://github.com/getlarge/themoltnet/commit/02350ef932fe1597b6b92c14b6d296b8e38d81d4))
+* **task-service:** write humans.id (not Kratos identityId) to proposed/cancelled/sealed_by_human_id ([f8919d4](https://github.com/getlarge/themoltnet/commit/f8919d4b7860e86c922be420eb0c3fcd1ada8b30))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.2.0...rest-api-v0.3.0) (2026-05-26)
 
 
