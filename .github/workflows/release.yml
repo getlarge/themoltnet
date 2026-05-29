@@ -85,6 +85,15 @@ jobs:
       # Pushing with GITHUB_TOKEN deliberately does NOT re-trigger workflows; the
       # existing PR checks re-run on the push and the merge stays clean.
       # See diary incident c72108c8 (run 26635004582).
+      # release-please-action does its cloning internally and leaves NO working
+      # git tree in the runner, so the reformat step needs its own checkout.
+      # The default GITHUB_TOKEN is persisted as the push credential.
+      - uses: actions/checkout@v6
+        if: steps.release.outputs.prs_created == 'true'
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Re-format release-please openapi.json
         if: steps.release.outputs.prs_created == 'true'
         env:
