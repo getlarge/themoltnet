@@ -138,14 +138,14 @@ describe('TaskLaneColumn', () => {
 });
 
 describe('TaskLaneBoard', () => {
-  it('renders all five lanes and places tasks by status', () => {
+  it('renders all five lanes with their per-lane data', () => {
     renderWithTheme(
       <TaskLaneBoard
-        tasks={[
-          taskWith('queued', 'q1'),
-          taskWith('running', 'r1'),
-          taskWith('completed', 'd1'),
-        ]}
+        lanes={{
+          pending: { tasks: [taskWith('queued', 'q1')], total: 1 },
+          active: { tasks: [taskWith('running', 'r1')], total: 1 },
+          done: { tasks: [taskWith('completed', 'd1')], total: 1 },
+        }}
       />,
     );
     expect(screen.getByText('Pending')).toBeInTheDocument();
@@ -156,6 +156,26 @@ describe('TaskLaneBoard', () => {
     expect(screen.getByText('q1')).toBeInTheDocument();
     expect(screen.getByText('r1')).toBeInTheDocument();
     expect(screen.getByText('d1')).toBeInTheDocument();
+  });
+
+  it('shows the real total in a lane header even when more remain', () => {
+    renderWithTheme(
+      <TaskLaneBoard
+        lanes={{
+          done: {
+            tasks: [taskWith('completed', 'd1')],
+            total: 137,
+            hasMore: true,
+            onLoadMore: () => {},
+          },
+        }}
+      />,
+    );
+    // Header shows the real total (137), not the loaded count (1).
+    expect(screen.getByText('137')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /load more/i }),
+    ).toBeInTheDocument();
   });
 });
 
