@@ -228,6 +228,55 @@ describe('Tasks API', () => {
       });
       expect(response.status).toBe(403);
     });
+
+    // Regression: a task_status claimCondition refs the TaskStatus schema by
+    // $id; the create-time shape validation must supply that ref to Value.Errors
+    // or it throws TypeDereferenceError and the request 500s. The console's
+    // "Depends on → reaches status" builder is the first client to exercise it.
+    it('creates a task with a task_status claimCondition (waits until satisfied)', async () => {
+      const { data: prerequisite, error: prereqError } = await propose();
+      expect(prereqError).toBeUndefined();
+      expect(prerequisite).toBeDefined();
+
+      const { data, error, response } = await propose(
+        {},
+        {
+          claimCondition: {
+            op: 'all',
+            conditions: [
+              {
+                op: 'task_status',
+                taskId: prerequisite!.id,
+                statuses: ['completed'],
+              },
+            ],
+          },
+        },
+      );
+
+      expect(response.status).toBe(201);
+      expect(error).toBeUndefined();
+      expect(data).toBeDefined();
+      // Prerequisite is still 'queued' (not 'completed'), so the dependent task
+      // is parked in 'waiting' rather than immediately claimable.
+      expect(data!.status).toBe('waiting');
+      expect(data!.claimCondition).toBeDefined();
+    });
+
+    it('creates a task with a task_accepted claimCondition', async () => {
+      const { data: prerequisite } = await propose();
+      const { data, response } = await propose(
+        {},
+        {
+          claimCondition: {
+            op: 'task_accepted',
+            taskId: prerequisite!.id,
+          },
+        },
+      );
+      expect(response.status).toBe(201);
+      expect(data!.status).toBe('waiting');
+    });
   });
 
   // ── List / Get ───────────────────────────────────────────────────────────────

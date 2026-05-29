@@ -2,6 +2,7 @@ import type { Task as DbTask } from '@moltnet/database';
 import {
   type ClaimCondition,
   ClaimCondition as ClaimConditionSchema,
+  TaskStatus as TaskStatusSchema,
   type TaskValidationError,
 } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
@@ -15,12 +16,16 @@ const MAX_CLAIM_CONDITION_DEPTH = 4;
 export function validateClaimConditionShape(
   condition: unknown,
 ): TaskValidationError[] {
-  const schemaErrors = [...Value.Errors(ClaimConditionSchema, condition)].map(
-    (error) => ({
-      field: formatField('claimCondition', error.path),
-      message: error.message,
-    }),
-  );
+  // ClaimCondition's `task_status` leaf references the TaskStatus schema by
+  // $id (Type.Ref(TaskStatus)). Value.Errors must be given that referenced
+  // schema, otherwise it throws TypeDereferenceError ("Unable to dereference
+  // schema with $id 'TaskStatus'") and the whole create request 500s.
+  const schemaErrors = [
+    ...Value.Errors(ClaimConditionSchema, [TaskStatusSchema], condition),
+  ].map((error) => ({
+    field: formatField('claimCondition', error.path),
+    message: error.message,
+  }));
   return [
     ...schemaErrors,
     ...validateClaimConditionDepth(condition, 'claimCondition', 1),

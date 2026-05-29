@@ -19,7 +19,9 @@ import { type ChangeEvent, useMemo, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
 
 import { getApiClient } from '../api.js';
+import { CreateTaskDialog } from '../components/tasks/CreateTaskDialog.js';
 import { getConfig } from '../config.js';
+import { useDiarySummaries } from '../diaries/hooks.js';
 import { getTaskStatusQuery, TASK_STATUS_FILTERS } from '../tasks/status.js';
 import { useTeam } from '../team/useTeam.js';
 
@@ -40,7 +42,14 @@ export function TasksPage() {
   );
   const status = getTaskStatusQuery(params.get('status'));
   const [view, setView] = useState<'board' | 'table'>('board');
+  const [showCreate, setShowCreate] = useState(false);
   const teamId = selectedTeam?.id;
+
+  const diariesQuery = useDiarySummaries(teamId ?? null);
+  const diaryOptions = useMemo(
+    () => (diariesQuery.data ?? []).map((d) => ({ id: d.id, name: d.name })),
+    [diariesQuery.data],
+  );
 
   const enabled = Boolean(teamId);
   const query = useInfiniteQuery({
@@ -159,6 +168,18 @@ export function TasksPage() {
           </Text>
         </Stack>
         <Stack direction="row" gap={2}>
+          <Button
+            size="sm"
+            onClick={() => setShowCreate(true)}
+            disabled={!enabled || diaryOptions.length === 0}
+            title={
+              diaryOptions.length === 0
+                ? 'Create a diary in this team first'
+                : undefined
+            }
+          >
+            New task
+          </Button>
           <Button
             variant={view === 'board' ? 'primary' : 'secondary'}
             size="sm"
@@ -312,6 +333,20 @@ export function TasksPage() {
           ) : null}
         </Stack>
       )}
+
+      {teamId ? (
+        <CreateTaskDialog
+          open={showCreate}
+          teamId={teamId}
+          diaries={diaryOptions}
+          candidateTasks={tasks}
+          onClose={() => setShowCreate(false)}
+          onCreated={() => {
+            setShowCreate(false);
+            void query.refetch();
+          }}
+        />
+      ) : null}
     </Stack>
   );
 }
