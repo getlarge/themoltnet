@@ -73,4 +73,39 @@ describe('CreateTaskDialog', () => {
 
     expect(await screen.findByText('Boom')).toBeInTheDocument();
   });
+
+  it('includes authored success criteria in the request', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('t1');
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Gated task' },
+    });
+    // Success criteria is collapsed by default; reveal it.
+    fireEvent.click(screen.getByRole('button', { name: /success criteria/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add assertion/i }));
+    fireEvent.change(screen.getByLabelText('Assertion path'), {
+      target: { value: 'commits.*.sha' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.input.successCriteria).toEqual({
+      version: 1,
+      assertions: [{ id: 'a1', path: 'commits.*.sha', op: 'exists' }],
+    });
+  });
+
+  it('omits successCriteria when none authored', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('t1');
+    renderDialog({ onSubmit });
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Plain task' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.input.successCriteria).toBeUndefined();
+  });
 });
