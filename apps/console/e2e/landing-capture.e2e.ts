@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,10 +12,10 @@ import {
   loginViaBrowser,
 } from './helpers/index.js';
 
-// Step 3: log the human back in and capture the REAL console board, live pane,
-// and create dialog — in both dark and light themes. Reads the state written by
-// landing-setup.e2e.ts. By now the daemon (run separately in cli mode) has
-// moved tasks through Pending -> Active -> Done.
+// Local-only landing-screenshot capture (run after landing-setup.e2e.ts seeds
+// the shared team + a daemon populates it). NOT a CI test: it depends on a
+// state file written by the setup spec and a live agent run, neither of which
+// exists in CI. Skipped automatically when the state file is absent.
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, '..', '..', 'landing', 'public', 'screenshots');
@@ -29,7 +29,10 @@ interface State {
   diaryId: string;
 }
 
-const state: State = JSON.parse(readFileSync(STATE_FILE, 'utf8'));
+const hasState = existsSync(STATE_FILE);
+const state: State = hasState
+  ? JSON.parse(readFileSync(STATE_FILE, 'utf8'))
+  : ({ teamId: '' } as State);
 
 async function applyClientState(page: Page, theme: 'dark' | 'light') {
   // Seed localStorage before any app script runs so the theme + active team are
@@ -56,6 +59,9 @@ async function shoot(page: Page, path: string) {
 }
 
 test.describe.serial('Landing capture', () => {
+  // Local capture tooling only — skip in CI (no seeded state file / agent run).
+  test.skip(!hasState, 'no landing-shots state file — run landing-setup first');
+
   test.beforeAll(() => {
     mkdirSync(OUT_DIR, { recursive: true });
   });

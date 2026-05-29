@@ -56,6 +56,14 @@ const BRIEFS = [
 ];
 
 test('seed shared team, diary, tasks, and agent invite', async ({ page }) => {
+  // Local capture tooling only — skip unless explicitly running a capture
+  // (LANDING_CAPTURE=1). It registers a real user and seeds teams/tasks, which
+  // must not run in CI's shared e2e stack.
+  test.skip(
+    process.env['LANDING_CAPTURE'] !== '1',
+    'set LANDING_CAPTURE=1 to seed landing-screenshot fixtures',
+  );
+
   const user = createTestUser({ prefix: 'foundry' });
   const nonce = randomBytes(3).toString('hex');
 
