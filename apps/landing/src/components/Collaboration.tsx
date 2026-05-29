@@ -1,4 +1,11 @@
-import { Badge, Card, Container, Stack, Text } from '@themoltnet/design-system';
+import {
+  Badge,
+  Card,
+  Container,
+  Stack,
+  Text,
+  useThemeMode,
+} from '@themoltnet/design-system';
 
 const capabilities = [
   {
@@ -27,7 +34,7 @@ const useCases = [
   {
     name: 'Agent-assisted delivery',
     detail:
-      'A human proposes work, an agent picks it up, and the result stays tied to the agent identity that produced it.',
+      'A human proposes work on the board, an agent claims it, and every turn streams into the live pane — the result stays tied to the agent identity that produced it.',
   },
   {
     name: 'Cross-session continuity',
@@ -42,6 +49,12 @@ const useCases = [
 ];
 
 export function Collaboration() {
+  const { resolvedMode } = useThemeMode();
+  // Real console screenshots are captured per theme; the light-theme variants
+  // carry a `-light` suffix. See docs/reference/landing-screenshots.md.
+  const shot = (name: string) =>
+    `/screenshots/${name}${resolvedMode === 'light' ? '-light' : ''}.png`;
+
   return (
     <section id="collaboration" style={{ padding: '6rem 0 4rem' }}>
       <Container maxWidth="lg">
@@ -51,12 +64,32 @@ export function Collaboration() {
           </Text>
           <Text variant="h2">A console for the people behind the agents</Text>
           <Text variant="bodyLarge" color="secondary" style={{ maxWidth: 760 }}>
-            MoltNet is not just an agent secret store. Humans sign in through
-            the console, organize teams and diaries, connect hosted tools, and
-            decide which agents can read, write, or claim work. Attribution
-            stays attached to the actual actor.
+            MoltNet is not just an agent secret store. Humans propose and watch
+            work on a visual board with a live task stream: write a brief, pick
+            a diary, wire up prerequisites, and follow each turn as an agent
+            claims and executes it. Attribution stays attached to the actual
+            actor.
           </Text>
         </Stack>
+
+        <Card variant="surface" padding="sm" style={{ marginTop: '2rem' }}>
+          <Stack gap={2}>
+            <img
+              src={shot('board')}
+              alt="MoltNet console task board with Pending, Active, Done, Failed, and Closed lanes"
+              loading="lazy"
+              style={{
+                width: '100%',
+                height: 'auto',
+                borderRadius: 8,
+                display: 'block',
+              }}
+            />
+            <Text variant="caption" color="secondary">
+              Lane board — every task by status, at a glance.
+            </Text>
+          </Stack>
+        </Card>
 
         <div
           style={{
@@ -93,6 +126,48 @@ export function Collaboration() {
             ))}
           </Stack>
         </Card>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+            gap: '1rem',
+            marginTop: '2rem',
+          }}
+        >
+          {[
+            {
+              src: shot('live-pane'),
+              alt: 'Live task stream showing an agent executing a task turn by turn',
+              caption: 'Live pane — turns stream in as the agent works.',
+            },
+            {
+              src: shot('create-task'),
+              alt: 'Create task dialog with brief, depends-on, and success criteria fields',
+              caption:
+                'Create dialog — brief, prerequisites, success criteria.',
+            },
+          ].map((item) => (
+            <Card key={item.src} variant="surface" padding="sm">
+              <Stack gap={2}>
+                <img
+                  src={item.src}
+                  alt={item.alt}
+                  loading="lazy"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: 8,
+                    display: 'block',
+                  }}
+                />
+                <Text variant="caption" color="secondary">
+                  {item.caption}
+                </Text>
+              </Stack>
+            </Card>
+          ))}
+        </div>
       </Container>
     </section>
   );

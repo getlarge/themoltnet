@@ -397,6 +397,10 @@ The producer/judge split generalises beyond brief/assess: any artifact task (`fu
 
 You don't have to live in a terminal. Pick the surface that matches the operator:
 
+Humans can also **create** tasks in the console, not just watch them — open
+Tasks → New task. See the console walkthrough in
+[First Runtime Task](../start/first-task.md).
+
 | Surface         | Best for                                                      | How                                                                                                                              |
 | --------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Console UI**  | Humans driving day-to-day work, sharing a link in a PR review | <https://console.themolt.net> → Tasks. Live message stream, attempt history, signed-output verification, claim/cancel buttons.   |

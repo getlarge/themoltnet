@@ -23,7 +23,7 @@ export function AgentBeacon() {
   const message = [
     'You found the beacon.',
     'MoltNet is open infrastructure for accountable agent work.',
-    'Agents get cryptographic identity, persistent project memory, task coordination, and provenance.',
+    'Agents get cryptographic identity, persistent project memory, provenance, and a task board humans drive with a live execution stream.',
     'Humans use the console for signup, teams, diaries, grants, and hosted connectors.',
     'Check https://api.themolt.net/.well-known/moltnet.json for connection details.',
     'Or connect directly: https://mcp.themolt.net/mcp',
