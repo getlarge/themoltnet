@@ -6,6 +6,7 @@ import {
   listTasksInfiniteOptions,
 } from '@moltnet/api-client/query';
 import {
+  isTaskNonTerminal,
   TASK_LANES,
   TaskFunnelStrip,
   TaskLaneBoard,
@@ -86,19 +87,33 @@ export function TasksPage() {
     navigate(`/tasks?${next.toString()}`);
   }
 
+  // A selected task keeps progressing through its lifecycle (waiting → queued →
+  // dispatched → running → terminal). The pane must keep polling the task and
+  // its attempts until the task reaches a terminal state — otherwise selecting
+  // a pending task fetches an empty attempt list once and the live stream never
+  // starts when an agent later claims it.
   const selectedTaskQuery = useQuery({
     ...getTaskOptions({
       client: getApiClient(),
       path: { id: selectedTaskId ?? '' },
     }),
     enabled: Boolean(selectedTaskId),
+    refetchInterval: (q) =>
+      q.state.data && isTaskNonTerminal(q.state.data.status) ? 3_000 : false,
   });
+  const selectedTask = selectedTaskQuery.data ?? null;
+  const selectedTaskActive = Boolean(
+    selectedTask && isTaskNonTerminal(selectedTask.status),
+  );
   const selectedAttemptsQuery = useQuery({
     ...listTaskAttemptsOptions({
       client: getApiClient(),
       path: { id: selectedTaskId ?? '' },
     }),
     enabled: Boolean(selectedTaskId),
+    // Poll attempts while the task is non-terminal so a pending→active
+    // transition surfaces the first attempt (and subsequent retries).
+    refetchInterval: selectedTaskActive ? 3_000 : false,
   });
   const latestAttempt = selectedAttemptsQuery.data?.at(-1) ?? null;
   const selectedMessagesQuery = useQuery({
@@ -265,9 +280,9 @@ export function TasksPage() {
                   selectedTaskId={selectedTaskId}
                   onSelectTask={(task) => selectTask(task.id)}
                 />
-                {selectedTaskId && selectedTaskQuery.data ? (
+                {selectedTaskId && selectedTask ? (
                   <TaskLivePane
-                    task={selectedTaskQuery.data}
+                    task={selectedTask}
                     attempt={latestAttempt}
                     messages={selectedMessagesQuery.data ?? []}
                   />

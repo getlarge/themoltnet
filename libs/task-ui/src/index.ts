@@ -41,8 +41,10 @@ export {
 export {
   type GroupedTasks,
   groupTasksByLane,
+  isTaskNonTerminal,
   statusToLane,
   TASK_LANES,
+  TASK_NON_TERMINAL_STATUSES,
   type TaskLane,
   type TaskLaneId,
 } from './task-lanes.js';

@@ -6,7 +6,13 @@ import { TaskFunnelStrip } from '../task-funnel-strip.js';
 import { TaskLaneBoard } from '../task-lane-board.js';
 import { TaskLaneCard } from '../task-lane-card.js';
 import { TaskLaneColumn } from '../task-lane-column.js';
-import { groupTasksByLane, statusToLane, TASK_LANES } from '../task-lanes.js';
+import {
+  groupTasksByLane,
+  isTaskNonTerminal,
+  statusToLane,
+  TASK_LANES,
+  TASK_NON_TERMINAL_STATUSES,
+} from '../task-lanes.js';
 import { TaskLivePane } from '../task-live-pane.js';
 import { TaskTurnStream } from '../task-turn-stream.js';
 import type { TaskStatus, TaskSummary } from '../types.js';
@@ -73,6 +79,18 @@ describe('task-lanes', () => {
   it('returns empty buckets for empty input', () => {
     const grouped = groupTasksByLane([]);
     expect(Object.values(grouped).every((b) => b.length === 0)).toBe(true);
+  });
+
+  it('treats pending and active statuses as non-terminal', () => {
+    expect(TASK_NON_TERMINAL_STATUSES.sort()).toEqual(
+      ['waiting', 'queued', 'dispatched', 'running'].sort(),
+    );
+    for (const s of ['waiting', 'queued', 'dispatched', 'running'] as const) {
+      expect(isTaskNonTerminal(s)).toBe(true);
+    }
+    for (const s of ['completed', 'failed', 'cancelled', 'expired'] as const) {
+      expect(isTaskNonTerminal(s)).toBe(false);
+    }
   });
 });
 
