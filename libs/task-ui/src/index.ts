@@ -25,9 +25,30 @@ export {
   type TaskDetailHeaderProps,
 } from './task-detail-header.js';
 export {
+  TaskFunnelStrip,
+  type TaskFunnelStripProps,
+} from './task-funnel-strip.js';
+export {
   TaskInputViewer,
   type TaskInputViewerProps,
 } from './task-input-viewer.js';
+export { TaskLaneBoard, type TaskLaneBoardProps } from './task-lane-board.js';
+export { TaskLaneCard, type TaskLaneCardProps } from './task-lane-card.js';
+export {
+  TaskLaneColumn,
+  type TaskLaneColumnProps,
+} from './task-lane-column.js';
+export {
+  type GroupedTasks,
+  groupTasksByLane,
+  isTaskNonTerminal,
+  statusToLane,
+  TASK_LANES,
+  TASK_NON_TERMINAL_STATUSES,
+  type TaskLane,
+  type TaskLaneId,
+} from './task-lanes.js';
+export { TaskLivePane, type TaskLivePaneProps } from './task-live-pane.js';
 export {
   TaskMessagesTimeline,
   type TaskMessagesTimelineProps,
@@ -45,6 +66,10 @@ export {
   TaskSummaryStrip,
   type TaskSummaryStripProps,
 } from './task-summary-strip.js';
+export {
+  TaskTurnStream,
+  type TaskTurnStreamProps,
+} from './task-turn-stream.js';
 export type {
   ExecutorTrustLevel,
   OutputKind,

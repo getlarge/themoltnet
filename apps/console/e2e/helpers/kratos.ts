@@ -46,6 +46,13 @@ export async function registerViaBrowser(
     await followupPasswordField.fill(user.password);
     await submitKratosForm(page);
   }
+
+  // Registration does NOT auto-login: the `session` hook was removed from
+  // kratos.yaml/project.json so that the `after-login` webhook (which completes
+  // human onboarding — links identity_id, creates the personal team) runs. The
+  // real user flow is therefore register -> log in. Mirror it here so callers
+  // end up authenticated (and onboarded), same as before the hook change.
+  await loginViaBrowser(page, user, { returnTo });
 }
 
 export interface LoginOptions {

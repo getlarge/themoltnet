@@ -93,7 +93,10 @@ selfservice:
                   ignore: false
                   parse: true
                 can_interrupt: true
-            - hook: session
+            # No `session` hook: do NOT auto-login after registration. The user
+            # must log in explicitly so the login `after-login` webhook fires and
+            # completes human onboarding (link identity_id, create personal team).
+            # See diary: "post-registration auto-login skips human onboarding".
         password:
           hooks:
             - hook: web_hook
@@ -111,7 +114,8 @@ selfservice:
                   ignore: false
                   parse: true
                 can_interrupt: true
-            - hook: session
+            # No `session` hook — see the comment under registration.after.oidc.
+            # Registration redirects to login; onboarding runs on after-login.
 
     login:
       ui_url: http://localhost:4455/login

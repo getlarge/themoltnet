@@ -95,6 +95,66 @@ describe('POST /tasks', () => {
     expect(mocks.taskService.create).toHaveBeenCalledOnce();
   });
 
+  it('passes the agent identityId as proposerId for agent callers', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { authorization: 'Bearer test-token' },
+      payload: {
+        taskType: 'fulfill_brief',
+        teamId: TEAM_ID,
+        diaryId: DIARY_ID,
+        input: { brief: 'Ship a task worker.' },
+      },
+    });
+
+    expect(mocks.taskService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callerId: OWNER_ID,
+        callerIsAgent: true,
+        // Agent: write-side id == identityId.
+        proposerId: OWNER_ID,
+      }),
+    );
+  });
+
+  it('passes humans.id (not identityId) as proposerId for human callers', async () => {
+    const HUMAN_IDENTITY = '550e8400-e29b-41d4-a716-4466554400ff';
+    const HUMAN_ROW_ID = '550e8400-e29b-41d4-a716-4466554400ee';
+    const humanMocks = createMockServices();
+    humanMocks.taskService.create.mockResolvedValue(MOCK_TASK);
+    const humanApp = await createTestApp(humanMocks, {
+      subjectType: 'human',
+      identityId: HUMAN_IDENTITY,
+      humanId: HUMAN_ROW_ID,
+      clientId: null,
+      scopes: ['diary:read', 'diary:write'],
+      currentTeamId: null,
+    });
+
+    await humanApp.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { authorization: 'Bearer test-token' },
+      payload: {
+        taskType: 'fulfill_brief',
+        teamId: TEAM_ID,
+        diaryId: DIARY_ID,
+        input: { brief: 'Ship a task worker.' },
+      },
+    });
+
+    expect(humanMocks.taskService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // Keto/permission checks key on the Kratos identityId…
+        callerId: HUMAN_IDENTITY,
+        callerIsAgent: false,
+        // …but the proposed_by_human_id write must use humans.id.
+        proposerId: HUMAN_ROW_ID,
+      }),
+    );
+  });
+
   it('returns 401 without auth', async () => {
     const appNoAuth = await createTestApp(mocks, null);
     const response = await appNoAuth.inject({
@@ -553,6 +613,8 @@ describe('POST /tasks/:id/cancel', () => {
       OWNER_ID,
       expect.any(String),
       'No longer needed',
+      // cancellerId: agents resolve to identityId (== OWNER_ID here).
+      OWNER_ID,
     );
   });
 

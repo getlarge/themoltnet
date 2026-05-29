@@ -34,6 +34,7 @@ import {
   TaskParamsSchema,
 } from '../schemas.js';
 import { TaskServiceError } from '../services/task.service.js';
+import { authContextToCreator } from '../utils/auth-principal.js';
 
 function toTaskProblem(error: TaskServiceError) {
   switch (error.code) {
@@ -147,6 +148,10 @@ export function taskRoutes(fastify: FastifyInstance) {
           callerId: identityId,
           callerNs,
           callerIsAgent: subjectType === 'agent',
+          // Keto permission checks key on identityId, but the
+          // proposedBy*Id columns FK to humans.id / agents.identity_id.
+          // authContextToCreator resolves the correct write-side id.
+          proposerId: authContextToCreator(request).id,
         });
         return await reply.status(201).send(task);
       } catch (error) {
@@ -482,6 +487,9 @@ export function taskRoutes(fastify: FastifyInstance) {
           identityId,
           callerNs,
           request.body.reason,
+          // cancelledBy*Id FKs to humans.id/agents.identity_id, not the
+          // Kratos identityId used for the Keto check above.
+          authContextToCreator(request).id,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);

@@ -20,6 +20,20 @@ describe('getConfig', () => {
     expect(config.kratosUrl).toBe('https://kratos.example.com');
     expect(config.apiBaseUrl).toBe('https://api.example.com');
     expect(config.consoleUrl).toBe('https://console.example.com');
+    // docsUrl is optional in injected config — defaults when absent so existing
+    // /config.js (which predates docsUrl) stays valid.
+    expect(config.docsUrl).toBe('https://docs.themolt.net');
+  });
+
+  it('uses injected docsUrl when provided', () => {
+    (window as Window).__MOLTNET_CONFIG__ = {
+      kratosUrl: 'https://kratos.example.com',
+      apiBaseUrl: 'https://api.example.com',
+      consoleUrl: 'https://console.example.com',
+      docsUrl: 'https://docs.example.com',
+    };
+
+    expect(getConfig().docsUrl).toBe('https://docs.example.com');
   });
 
   it('falls back to import.meta.env when no injected config', () => {
@@ -48,5 +62,6 @@ describe('getConfig', () => {
     expect(config.kratosUrl).toBe('http://localhost:4433');
     expect(config.apiBaseUrl).toBe('http://localhost:8000');
     expect(config.consoleUrl).toBe('http://localhost:5174');
+    expect(config.docsUrl).toBe('https://docs.themolt.net');
   });
 });

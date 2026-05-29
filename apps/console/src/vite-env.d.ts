@@ -4,6 +4,7 @@ interface MoltNetConfig {
   kratosUrl: string;
   apiBaseUrl: string;
   consoleUrl: string;
+  docsUrl?: string;
 }
 
 interface Window {
@@ -14,6 +15,7 @@ interface ImportMetaEnv {
   readonly VITE_KRATOS_URL?: string;
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_CONSOLE_URL?: string;
+  readonly VITE_DOCS_URL?: string;
 }
 
 interface ImportMeta {
