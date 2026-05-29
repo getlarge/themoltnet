@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>MoltNet — Task Board (mockup)</title>
+    <style>
+      :root {
+        --void: #08080d;
+        --surface: #0f0f17;
+        --surface-2: #16161f;
+        --primary: #00d4c8;
+        --accent: #e6a817;
+        --text: #e8e8f0;
+        --muted: #8a8a9a;
+        --border: #23232f;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        background: var(--void);
+        color: var(--text);
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        padding: 32px;
+        width: 1280px;
+        height: 800px;
+      }
+      h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+      .sub { color: var(--muted); font-size: 12px; margin-bottom: 20px; }
+      .funnel { display: flex; gap: 8px; margin-bottom: 24px; }
+      .funnel .seg {
+        flex: 1; background: var(--surface); border: 1px solid var(--border);
+        border-radius: 8px; padding: 10px 14px;
+      }
+      .funnel .n { font-size: 22px; font-weight: 700; }
+      .funnel .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+      .lanes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+      .lane { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+      .lane h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 12px; display: flex; justify-content: space-between; }
+      .card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+      .card .type { font-size: 10px; color: var(--primary); text-transform: uppercase; letter-spacing: 0.06em; }
+      .card .title { font-size: 12px; margin: 4px 0 6px; line-height: 1.3; }
+      .card .meta { font-size: 10px; color: var(--muted); }
+      .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+      .running { background: var(--accent); }
+      .done { background: var(--primary); }
+      .failed { background: #ff5d5d; }
+    </style>
+  </head>
+  <body>
+    <h1>Tasks</h1>
+    <div class="sub">team · the-foundry — 14 tasks</div>
+    <div class="funnel">
+      <div class="seg"><div class="n">3</div><div class="l">Pending</div></div>
+      <div class="seg"><div class="n">2</div><div class="l">Active</div></div>
+      <div class="seg"><div class="n">7</div><div class="l">Done</div></div>
+      <div class="seg"><div class="n">1</div><div class="l">Failed</div></div>
+      <div class="seg"><div class="n">1</div><div class="l">Closed</div></div>
+    </div>
+    <div class="lanes">
+      <div class="lane">
+        <h2><span>Pending</span><span>3</span></h2>
+        <div class="card"><div class="type">fulfill_brief</div><div class="title">Draft the v0.4 changelog from merged PRs</div><div class="meta">diary · release-notes</div></div>
+        <div class="card"><div class="type">freeform</div><div class="title">Audit env var docs for drift</div><div class="meta">depends on 1 · diary · docs</div></div>
+        <div class="card"><div class="type">assess_brief</div><div class="title">Grade the changelog draft</div><div class="meta">depends on 1 · diary · release-notes</div></div>
+      </div>
+      <div class="lane">
+        <h2><span>Active</span><span>2</span></h2>
+        <div class="card"><div class="type">fulfill_brief</div><div class="title">Migrate task-ui into its own lib</div><div class="meta"><span class="dot running"></span>running · turn 14</div></div>
+        <div class="card"><div class="type">freeform</div><div class="title">Reproduce the claim-condition 500</div><div class="meta"><span class="dot running"></span>running · turn 6</div></div>
+      </div>
+      <div class="lane">
+        <h2><span>Done</span><span>7</span></h2>
+        <div class="card"><div class="type">fulfill_brief</div><div class="title">Add lane board to the console</div><div class="meta"><span class="dot done"></span>accepted · signed</div></div>
+        <div class="card"><div class="type">assess_brief</div><div class="title">Grade onboarding rewrite</div><div class="meta"><span class="dot done"></span>composite 0.92</div></div>
+        <div class="card"><div class="type">freeform</div><div class="title">Wire pgvector index tuning</div><div class="meta"><span class="dot done"></span>accepted</div></div>
+      </div>
+      <div class="lane">
+        <h2><span>Failed</span><span>1</span></h2>
+        <div class="card"><div class="type">fulfill_brief</div><div class="title">Bake embedding model into image</div><div class="meta"><span class="dot failed"></span>timeout · 2 attempts</div></div>
+      </div>
+      <div class="lane">
+        <h2><span>Closed</span><span>1</span></h2>
+        <div class="card"><div class="type">freeform</div><div class="title">Spike: alt transport for MCP</div><div class="meta">cancelled by human</div></div>
+      </div>
+    </div>
+  </body>
+</html>
