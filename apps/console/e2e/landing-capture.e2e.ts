@@ -87,9 +87,17 @@ test.describe.serial('Landing capture', () => {
       if (await refresh.isVisible().catch(() => false)) {
         await refresh.click();
       }
-      // Wait for at least one task card to render in the board.
       await expect(page.getByText('Freeform').first()).toBeVisible();
-      await page.waitForTimeout(2000);
+      // Poll (re-clicking Refresh) until the DONE lane actually shows a card —
+      // a "Completed" status badge inside a card, not the toolbar filter chip.
+      // This proves the fresh per-lane data loaded rather than the stale cache.
+      await expect(async () => {
+        await refresh.click();
+        await expect(
+          page.getByText('Completed', { exact: true }).first(),
+        ).toBeVisible({ timeout: 3000 });
+      }).toPass({ timeout: 30000 });
+      await page.waitForTimeout(1500);
       await shoot(page, join(OUT_DIR, `board${suffix}.png`));
 
       // ── Live pane: pick a task that has attempts (running/completed) ───────
@@ -110,6 +118,12 @@ test.describe.serial('Landing capture', () => {
       if (target) {
         await page.getByText(target.id.slice(0, 8)).first().click();
         await expect(page.getByRole('tab', { name: /turns/i })).toBeVisible();
+        // Best-effort: wait for the turn stream to load (the messages query is
+        // async). Don't fail the capture if it stays on the waiting hint.
+        await page
+          .getByText(/no turns yet/i)
+          .waitFor({ state: 'detached', timeout: 12000 })
+          .catch(() => undefined);
         await page.waitForTimeout(800);
         await shoot(page, join(OUT_DIR, `live-pane${suffix}.png`));
       }
