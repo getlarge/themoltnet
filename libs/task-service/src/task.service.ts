@@ -841,6 +841,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     async list(opts: {
       teamId: string;
       status?: string;
+      statuses?: string[];
       taskTypes?: string[];
       // Daemon advertises its `(provider, model)` to filter the queue
       // down to tasks it can run. Both lowercased upstream. Both must
@@ -874,9 +875,12 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Not authorized to list tasks for this team',
         );
 
-      const { items, nextCursor } = await taskRepository.list({
+      // Shared filters for the page query and the total count, so `total`
+      // reflects the full matching set — not just the current page.
+      const filterOpts = {
         teamId: opts.teamId,
         status: opts.status as DbTask['status'] | undefined,
+        statuses: opts.statuses as DbTask['status'][] | undefined,
         taskTypes: opts.taskTypes,
         executorProvider: opts.executorProvider,
         executorModel: opts.executorModel,
@@ -896,12 +900,18 @@ export function createTaskService(deps: TaskServiceDeps) {
         completedBefore: opts.completedBefore
           ? new Date(opts.completedBefore)
           : undefined,
-        limit: opts.limit,
-        cursor: opts.cursor,
-      });
+      };
+      const [{ items, nextCursor }, total] = await Promise.all([
+        taskRepository.list({
+          ...filterOpts,
+          limit: opts.limit,
+          cursor: opts.cursor,
+        }),
+        taskRepository.count(filterOpts),
+      ]);
       return {
         items: items.map(dbTaskToWire),
-        total: items.length,
+        total,
         nextCursor,
       };
     },

@@ -40,12 +40,108 @@ export interface TaskAttemptWithManifests extends TaskAttempt {
   completedExecutorManifest: unknown;
 }
 
+/** Filters shared by `list` and `count` (everything except limit/cursor). */
+export interface TaskListFilterOpts {
+  teamId: string;
+  status?: Task['status'];
+  statuses?: Task['status'][];
+  taskTypes?: string[];
+  executorProvider?: string;
+  executorModel?: string;
+  correlationId?: string;
+  diaryId?: string;
+  proposedByAgentId?: string;
+  proposedByHumanId?: string;
+  claimedByAgentId?: string;
+  hasAttempts?: boolean;
+  queuedAfter?: Date;
+  queuedBefore?: Date;
+  completedAfter?: Date;
+  completedBefore?: Date;
+}
+
 export function createTaskRepository(db: Database) {
   const claimedManifest = alias(executorManifests, 'claimed_executor_manifest');
   const completedManifest = alias(
     executorManifests,
     'completed_executor_manifest',
   );
+
+  function buildListFilters(opts: TaskListFilterOpts): SQL[] {
+    const filters: SQL[] = [eq(tasks.teamId, opts.teamId)];
+    if (opts.status) filters.push(eq(tasks.status, opts.status));
+    const statuses = opts.statuses?.filter((s) => s.length > 0) ?? [];
+    if (statuses.length === 1) {
+      filters.push(eq(tasks.status, statuses[0]));
+    } else if (statuses.length > 1) {
+      filters.push(inArray(tasks.status, statuses));
+    }
+    const taskTypes =
+      opts.taskTypes?.filter((taskType) => taskType.length > 0) ?? [];
+    if (taskTypes.length === 1) {
+      filters.push(eq(tasks.taskType, taskTypes[0]));
+    } else if (taskTypes.length > 1) {
+      filters.push(inArray(tasks.taskType, taskTypes));
+    }
+    if (opts.executorProvider && opts.executorModel) {
+      // Either no restriction set, or our pair is one of the allowed
+      // executors. JSONB containment (`@>`) is index-friendly with a GIN index
+      // on `allowed_executors`. The pair is bound as a text parameter and cast
+      // to jsonb to keep the path injection-safe.
+      const pairJson = JSON.stringify([
+        { provider: opts.executorProvider, model: opts.executorModel },
+      ]);
+      filters.push(sql`(
+        ${tasks.allowedExecutors} = '[]'::jsonb
+        OR ${tasks.allowedExecutors} @> ${pairJson}::jsonb
+      )`);
+    }
+    if (opts.correlationId)
+      filters.push(eq(tasks.correlationId, opts.correlationId));
+    if (opts.diaryId) filters.push(eq(tasks.diaryId, opts.diaryId));
+    if (opts.proposedByAgentId) {
+      filters.push(eq(tasks.proposedByAgentId, opts.proposedByAgentId));
+    }
+    if (opts.proposedByHumanId) {
+      filters.push(eq(tasks.proposedByHumanId, opts.proposedByHumanId));
+    }
+    if (opts.claimedByAgentId) {
+      filters.push(sql`
+        exists (
+          select 1
+          from ${taskAttempts}
+          where ${taskAttempts.taskId} = ${tasks.id}
+            and ${taskAttempts.claimedByAgentId} = ${opts.claimedByAgentId}
+        )
+      `);
+    }
+    if (opts.hasAttempts === true) {
+      filters.push(sql`
+        exists (
+          select 1
+          from ${taskAttempts}
+          where ${taskAttempts.taskId} = ${tasks.id}
+        )
+      `);
+    } else if (opts.hasAttempts === false) {
+      filters.push(sql`
+        not exists (
+          select 1
+          from ${taskAttempts}
+          where ${taskAttempts.taskId} = ${tasks.id}
+        )
+      `);
+    }
+    if (opts.queuedAfter) filters.push(gte(tasks.queuedAt, opts.queuedAfter));
+    if (opts.queuedBefore) filters.push(lt(tasks.queuedAt, opts.queuedBefore));
+    if (opts.completedAfter) {
+      filters.push(gte(tasks.completedAt, opts.completedAfter));
+    }
+    if (opts.completedBefore) {
+      filters.push(lt(tasks.completedAt, opts.completedBefore));
+    }
+    return filters;
+  }
 
   return {
     async create(input: NewTask): Promise<Task> {
@@ -136,6 +232,7 @@ export function createTaskRepository(db: Database) {
     async list(opts: {
       teamId: string;
       status?: Task['status'];
+      statuses?: Task['status'][];
       taskTypes?: string[];
       // When both are provided, filter the result to tasks that either
       // have an empty `allowed_executors` array (no restriction) or
@@ -157,74 +254,8 @@ export function createTaskRepository(db: Database) {
       cursor?: string;
     }): Promise<{ items: Task[]; nextCursor?: string }> {
       const limit = Math.min(opts.limit ?? PAGE_SIZE, PAGE_SIZE);
-      const filters: SQL[] = [eq(tasks.teamId, opts.teamId)];
-      if (opts.status) filters.push(eq(tasks.status, opts.status));
-      const taskTypes =
-        opts.taskTypes?.filter((taskType) => taskType.length > 0) ?? [];
-      if (taskTypes.length === 1) {
-        filters.push(eq(tasks.taskType, taskTypes[0]));
-      } else if (taskTypes.length > 1) {
-        filters.push(inArray(tasks.taskType, taskTypes));
-      }
-      if (opts.executorProvider && opts.executorModel) {
-        // Either no restriction set, or our pair is one of the allowed
-        // executors. JSONB containment (`@>`) is index-friendly with a
-        // GIN index on `allowed_executors`. The pair is bound as a
-        // text parameter and cast to jsonb to keep the path
-        // injection-safe (provider/model are caller-supplied strings).
-        const pairJson = JSON.stringify([
-          { provider: opts.executorProvider, model: opts.executorModel },
-        ]);
-        filters.push(sql`(
-          ${tasks.allowedExecutors} = '[]'::jsonb
-          OR ${tasks.allowedExecutors} @> ${pairJson}::jsonb
-        )`);
-      }
-      if (opts.correlationId)
-        filters.push(eq(tasks.correlationId, opts.correlationId));
-      if (opts.diaryId) filters.push(eq(tasks.diaryId, opts.diaryId));
-      if (opts.proposedByAgentId) {
-        filters.push(eq(tasks.proposedByAgentId, opts.proposedByAgentId));
-      }
-      if (opts.proposedByHumanId) {
-        filters.push(eq(tasks.proposedByHumanId, opts.proposedByHumanId));
-      }
-      if (opts.claimedByAgentId) {
-        filters.push(sql`
-          exists (
-            select 1
-            from ${taskAttempts}
-            where ${taskAttempts.taskId} = ${tasks.id}
-              and ${taskAttempts.claimedByAgentId} = ${opts.claimedByAgentId}
-          )
-        `);
-      }
-      if (opts.hasAttempts === true) {
-        filters.push(sql`
-          exists (
-            select 1
-            from ${taskAttempts}
-            where ${taskAttempts.taskId} = ${tasks.id}
-          )
-        `);
-      } else if (opts.hasAttempts === false) {
-        filters.push(sql`
-          not exists (
-            select 1
-            from ${taskAttempts}
-            where ${taskAttempts.taskId} = ${tasks.id}
-          )
-        `);
-      }
-      if (opts.queuedAfter) filters.push(gte(tasks.queuedAt, opts.queuedAfter));
-      if (opts.queuedBefore)
-        filters.push(lt(tasks.queuedAt, opts.queuedBefore));
-      if (opts.completedAfter) {
-        filters.push(gte(tasks.completedAt, opts.completedAfter));
-      }
-      if (opts.completedBefore) {
-        filters.push(lt(tasks.completedAt, opts.completedBefore));
-      }
+      const filters = buildListFilters(opts);
+      // Cursor is pagination-only — it must NOT be applied to count queries.
       if (opts.cursor) filters.push(lt(tasks.createdAt, new Date(opts.cursor)));
 
       const rows = await getExecutor(db)
@@ -240,6 +271,15 @@ export function createTaskRepository(db: Database) {
         ? items[items.length - 1].createdAt.toISOString()
         : undefined;
       return { items, nextCursor };
+    },
+
+    /** Total rows matching the same filters as `list` (ignores cursor/limit). */
+    async count(opts: TaskListFilterOpts): Promise<number> {
+      const [row] = await getExecutor(db)
+        .select({ count: sql<number>`count(*)::int` })
+        .from(tasks)
+        .where(and(...buildListFilters(opts)));
+      return row?.count ?? 0;
     },
 
     async claimIfQueued(id: string): Promise<Task | null> {

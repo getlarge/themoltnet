@@ -202,6 +202,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         return await fastify.taskService.list({
           teamId: request.query.teamId,
           status: request.query.status,
+          statuses: request.query.statuses,
           taskTypes: request.query.taskTypes,
           executorProvider: provider?.toLowerCase(),
           executorModel: model?.toLowerCase(),

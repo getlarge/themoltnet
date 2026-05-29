@@ -66,6 +66,10 @@ export const ListTasksQuerySchema = Type.Object(
   {
     teamId: Type.String({ format: 'uuid' }),
     status: Type.Optional(Type.Ref(TaskStatus)),
+    // OR filter over multiple statuses (e.g. a board lane covering
+    // waiting+queued). Combined with `status` it's the union of both. Lets a
+    // multi-status board lane fetch one accurately-counted page.
+    statuses: Type.Optional(Type.Array(Type.Ref(TaskStatus), { maxItems: 8 })),
     taskTypes: Type.Optional(
       Type.Array(Type.String({ minLength: 1 }), {
         maxItems: 20,

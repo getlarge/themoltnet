@@ -1593,6 +1593,7 @@ export type CreateTaskBody = {
 export type ListTasksQuery = {
   teamId: string;
   status?: TaskStatus;
+  statuses?: Array<TaskStatus>;
   /**
    * Repeated task type filter. Single value also accepted.
    */
@@ -6224,6 +6225,7 @@ export type ListTasksData = {
   query: {
     teamId: string;
     status?: TaskStatus;
+    statuses?: Array<TaskStatus>;
     /**
      * Repeated task type filter. Single value also accepted.
      */

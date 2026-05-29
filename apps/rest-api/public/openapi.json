@@ -2354,6 +2354,13 @@
           "status": {
             "$ref": "#/components/schemas/TaskStatus"
           },
+          "statuses": {
+            "items": {
+              "$ref": "#/components/schemas/TaskStatus"
+            },
+            "maxItems": 8,
+            "type": "array"
+          },
           "taskTypes": {
             "description": "Repeated task type filter. Single value also accepted.",
             "items": {
@@ -14253,6 +14260,18 @@
             "name": "status",
             "schema": {
               "$ref": "#/components/schemas/TaskStatus"
+            }
+          },
+          {
+            "in": "query",
+            "name": "statuses",
+            "required": false,
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/TaskStatus"
+              },
+              "maxItems": 8,
+              "type": "array"
             }
           },
           {

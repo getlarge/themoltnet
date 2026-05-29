@@ -1,6 +1,12 @@
 import { randomBytes } from 'node:crypto';
 
-import { createDiary, createTask, listTeams } from '@moltnet/api-client';
+import {
+  createDiary,
+  createTask,
+  listTasks,
+  listTeams,
+  type TaskStatus,
+} from '@moltnet/api-client';
 import { expect, test } from '@playwright/test';
 
 import {
@@ -8,6 +14,7 @@ import {
   createNativeSessionToken,
   createTestUser,
   createTokenSessionApiClient,
+  loginViaBrowser,
   registerViaBrowser,
   submitKratosForm,
   waitForVerificationData,
@@ -22,6 +29,41 @@ test.describe.serial('Task lanes board', () => {
   const user = createTestUser({ prefix: 'task-lanes-e2e' });
   const nonce = randomBytes(3).toString('hex');
   let firstTaskId: string;
+  let teamId: string;
+  let diaryId: string;
+  let sessionToken: string;
+
+  // Human onboarding (which commits the `humans` row that tasks FK to) runs as
+  // an async DBOS workflow on login, so a createTask right after registration
+  // can briefly race the commit. Bounded retry tolerates that startup window;
+  // a persistent 409 would be a real bug (see diary: "human write-side id is
+  // humans.id, NOT identityId").
+  async function seedTask(label: string) {
+    const client = createTokenSessionApiClient(sessionToken);
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const result = await createTask({
+        client,
+        body: {
+          teamId,
+          diaryId,
+          taskType: 'curate_pack',
+          input: { diaryId, taskPrompt: `${label} ${nonce}` },
+        },
+      });
+      if (result.data) return result.data;
+      if (result.response.status !== 409) {
+        throw new Error(
+          `createTask ${label} failed: ${result.response.status}`,
+        );
+      }
+      await new Promise((resolve) => {
+        setTimeout(resolve, 500);
+      });
+    }
+    throw new Error(
+      `createTask ${label} kept returning 409 — humans row never committed`,
+    );
+  }
 
   test('register, seed lane tasks, and open the live pane', async ({
     page,
@@ -44,14 +86,14 @@ test.describe.serial('Task lanes board', () => {
     await page.goto(CONSOLE_URL);
     await expect(page.getByText('Welcome')).toBeVisible();
 
-    const sessionToken = await createNativeSessionToken(user);
+    sessionToken = await createNativeSessionToken(user);
     const client = createTokenSessionApiClient(sessionToken);
 
     const team = (await listTeams({ client })).data?.items.find(
       (candidate) => candidate.personal,
     );
     if (!team) throw new Error('expected a personal team');
-    const teamId = team.id;
+    teamId = team.id;
 
     // Tasks require a diary scope; create one in the personal team.
     const diary = await createDiary({
@@ -62,38 +104,7 @@ test.describe.serial('Task lanes board', () => {
     if (!diary.data) {
       throw new Error(`createDiary failed: ${diary.response.status}`);
     }
-    const diaryId = diary.data.id;
-
-    // Human onboarding (which commits the `humans` row that tasks FK to) runs
-    // as an async DBOS workflow on login, so the first createTask immediately
-    // after registration can briefly race the commit. Bounded retry tolerates
-    // that startup window; a persistent 409 would be a real bug (see diary:
-    // "human write-side id is humans.id, NOT identityId").
-    async function seedTask(label: string) {
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        const result = await createTask({
-          client,
-          body: {
-            teamId,
-            diaryId,
-            taskType: 'curate_pack',
-            input: { diaryId, taskPrompt: `${label} ${nonce}` },
-          },
-        });
-        if (result.data) return result.data;
-        if (result.response.status !== 409) {
-          throw new Error(
-            `createTask ${label} failed: ${result.response.status}`,
-          );
-        }
-        await new Promise((resolve) => {
-          setTimeout(resolve, 500);
-        });
-      }
-      throw new Error(
-        `createTask ${label} kept returning 409 — humans row never committed`,
-      );
-    }
+    diaryId = diary.data.id;
 
     // ── Seed: two queued tasks (Pending lane) ────────────────────────────────
     const first = await seedTask('first');
@@ -131,4 +142,46 @@ test.describe.serial('Task lanes board', () => {
       page.getByRole('link', { name: /set up an agent daemon/i }),
     ).toBeVisible();
   });
+
+  test('funnel shows the real pending total, not the loaded page size', async ({
+    page,
+  }) => {
+    // Seed more pending tasks so the lane has a definite, known count. Test 1
+    // already created 2 queued tasks; add 3 more → 5 pending total.
+    await seedTask('count-a');
+    await seedTask('count-b');
+    await seedTask('count-c');
+
+    // Ask the server for the authoritative pending total (waiting+queued).
+    const client = createTokenSessionApiClient(sessionToken);
+    const expectedPending = await getLaneTotal(client, teamId, [
+      'waiting',
+      'queued',
+    ]);
+    expect(expectedPending).toBeGreaterThanOrEqual(5);
+
+    await loginViaBrowser(page, user);
+    await page.goto(`${CONSOLE_URL}/tasks`);
+
+    // The board must surface the real server total — the bug this fixes
+    // reported the loaded page size instead. With > limit pending tasks the
+    // count would otherwise be capped at the page size.
+    await expect(
+      page.getByText('Pending', { exact: false }).first(),
+    ).toBeVisible();
+    await expect(page.getByText(String(expectedPending)).first()).toBeVisible();
+  });
 });
+
+/** Authoritative count for a set of statuses, via the server's real total. */
+async function getLaneTotal(
+  client: ReturnType<typeof createTokenSessionApiClient>,
+  teamId: string,
+  statuses: TaskStatus[],
+): Promise<number> {
+  const result = await listTasks({
+    client,
+    query: { teamId, statuses, limit: 1 },
+  });
+  return result.data?.total ?? 0;
+}

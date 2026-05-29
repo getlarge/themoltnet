@@ -47,7 +47,11 @@ export {
   TaskInputViewer,
   type TaskInputViewerProps,
 } from './task-input-viewer.js';
-export { TaskLaneBoard, type TaskLaneBoardProps } from './task-lane-board.js';
+export {
+  TaskLaneBoard,
+  type TaskLaneBoardProps,
+  type TaskLaneData,
+} from './task-lane-board.js';
 export { TaskLaneCard, type TaskLaneCardProps } from './task-lane-card.js';
 export {
   TaskLaneColumn,

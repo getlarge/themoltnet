@@ -1,4 +1,4 @@
-import { Stack, Text, useTheme } from '@themoltnet/design-system';
+import { Button, Stack, Text, useTheme } from '@themoltnet/design-system';
 
 import { TaskLaneCard } from './task-lane-card.js';
 import type { TaskLane } from './task-lanes.js';
@@ -25,6 +25,11 @@ function toneColor(theme: Theme, tone: TaskLane['tone']): string {
 export interface TaskLaneColumnProps {
   lane: TaskLane;
   tasks: TaskSummary[];
+  /** Real total matching this lane (may exceed loaded tasks). Defaults to tasks.length. */
+  total?: number;
+  hasMore?: boolean;
+  isLoading?: boolean;
+  onLoadMore?: () => void;
   now?: Date;
   selectedTaskId?: string;
   onSelectTask?: (task: TaskSummary) => void;
@@ -33,12 +38,17 @@ export interface TaskLaneColumnProps {
 export function TaskLaneColumn({
   lane,
   tasks,
+  total,
+  hasMore,
+  isLoading,
+  onLoadMore,
   now,
   selectedTaskId,
   onSelectTask,
 }: TaskLaneColumnProps) {
   const theme = useTheme();
   const dot = toneColor(theme, lane.tone);
+  const count = total ?? tasks.length;
 
   return (
     <div
@@ -87,7 +97,7 @@ export function TaskLaneColumn({
           color="muted"
           style={{ fontFamily: theme.font.family.mono }}
         >
-          {tasks.length}
+          {count}
         </Text>
       </Stack>
       <Stack gap={2} style={{ padding: theme.spacing[3] }}>
@@ -106,6 +116,16 @@ export function TaskLaneColumn({
             />
           ))
         )}
+        {hasMore && onLoadMore ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onLoadMore}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Loading…' : 'Load more'}
+          </Button>
+        ) : null}
       </Stack>
     </div>
   );
