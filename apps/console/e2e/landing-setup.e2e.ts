@@ -22,33 +22,36 @@ import {
 } from './helpers/index.js';
 
 // Step 1 of the real-screenshot flow: a human creates a SHARED team + diary,
-// seeds several fulfill_brief tasks, and mints a member invite for the agent.
+// seeds several freeform tasks, and mints a MANAGER invite for the agent.
 // Outputs the team id, invite code, and the human session token to
-// /tmp/landing-shots.json so the shell can join the agent + run the daemon,
+// $TMPDIR/landing-shots.json so the shell can join the agent + run the daemon,
 // and the capture spec can log the human back in.
 
 const STATE_FILE = join(tmpdir(), 'landing-shots.json');
 
+// freeform tasks only need a brief and carry a generic submit-output gate, so
+// they complete cleanly without the strict FulfillBriefOutput validation that
+// makes fulfill_brief brittle for demo seeding.
 const BRIEFS = [
   {
-    title: 'Add a hello demo file on a feature branch',
+    title: 'Summarize the v0.4 changelog themes',
     brief:
-      "Create a feature branch named feat/smoke-hello, write /workspace/demo/out/hello.txt with the single line 'hi from the foundry', commit the file with a signed diary entry per the runtime instructor, and report the branch name and commit sha in the final FulfillBriefOutput JSON. There is no remote to push to — leave pullRequestUrl null.",
+      'Summarize the main themes across the merged PRs since the last release tag, grouped by feat / fix / chore. Return a short written summary.',
   },
   {
-    title: 'Add a README badge for the build status',
+    title: 'Audit env var docs for drift',
     brief:
-      'Create a feature branch named feat/readme-badge, add a build-status badge line to the top of /workspace/demo/README.md, commit with a signed diary entry, and report branch + commit sha in the final FulfillBriefOutput JSON. No remote — leave pullRequestUrl null.',
+      'Compare the documented environment variables against env.public and list any that are missing, renamed, or undocumented. Return the findings as a short report.',
   },
   {
-    title: 'Write a CONTRIBUTING note',
+    title: 'Outline a pgvector index tuning plan',
     brief:
-      "Create a feature branch named feat/contributing, write /workspace/demo/CONTRIBUTING.md with a short 'how to run tests' section, commit with a signed diary entry, and report branch + commit sha in the final FulfillBriefOutput JSON. No remote — leave pullRequestUrl null.",
+      'Outline the trade-offs for tuning the pgvector index used by entry search (lists vs. probes, recall vs. latency). Return a short recommendation.',
   },
   {
-    title: 'Add a .editorconfig',
+    title: 'Draft release notes intro',
     brief:
-      'Create a feature branch named feat/editorconfig, write /workspace/demo/.editorconfig with 2-space indent defaults, commit with a signed diary entry, and report branch + commit sha in the final FulfillBriefOutput JSON. No remote — leave pullRequestUrl null.',
+      'Draft a two-sentence introduction for the v0.4 release notes that highlights the console task board and live pane. Return the text.',
   },
 ];
 
@@ -93,9 +96,9 @@ test('seed shared team, diary, tasks, and agent invite', async ({ page }) => {
       body: {
         teamId,
         diaryId,
-        taskType: 'fulfill_brief',
+        taskType: 'freeform',
         maxAttempts: 1,
-        input: { brief, title, scopeHint: 'demo' },
+        input: { brief, title },
       },
     });
     if (!result.data) {
@@ -105,10 +108,13 @@ test('seed shared team, diary, tasks, and agent invite', async ({ page }) => {
     }
   }
 
+  // Manager role: claiming a task needs diary write, which a plain team member
+  // does not have (Keto: team.write = managers only). Without this the daemon
+  // gets 403 on claim.
   const invite = await createTeamInvite({
     client,
     path: { id: teamId },
-    body: { role: 'member' },
+    body: { role: 'manager' },
   });
   if (!invite.data) {
     throw new Error(`createTeamInvite failed: ${invite.response.status}`);

@@ -33,14 +33,26 @@ const state: State = JSON.parse(readFileSync(STATE_FILE, 'utf8'));
 
 async function applyClientState(page: Page, theme: 'dark' | 'light') {
   // Seed localStorage before any app script runs so the theme + active team are
-  // correct on first paint.
+  // correct on first paint. Also paint html/body the theme background so any
+  // viewport area outside the app root has no light gutter in the screenshot.
   await page.addInitScript(
     ([t, team]) => {
       localStorage.setItem('moltnet-theme', t);
       localStorage.setItem('moltnet-selected-team', team);
+      const bg = t === 'light' ? '#f7f7fb' : '#08080d';
+      const style = document.createElement('style');
+      style.textContent = `html,body,#root{background:${bg} !important;margin:0;}`;
+      document.documentElement.appendChild(style);
     },
     [theme, state.teamId],
   );
+}
+
+// Screenshot the app root so the capture is exactly the painted UI — no
+// viewport gutter / white border around it.
+async function shoot(page: Page, path: string) {
+  const root = page.locator('#root');
+  await root.screenshot({ path });
 }
 
 test.describe.serial('Landing capture', () => {
@@ -75,10 +87,10 @@ test.describe.serial('Landing capture', () => {
       if (await refresh.isVisible().catch(() => false)) {
         await refresh.click();
       }
-      // Wait for at least one Fulfill Brief card to render in the board.
-      await expect(page.getByText('Fulfill Brief').first()).toBeVisible();
+      // Wait for at least one task card to render in the board.
+      await expect(page.getByText('Freeform').first()).toBeVisible();
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: join(OUT_DIR, `board${suffix}.png`) });
+      await shoot(page, join(OUT_DIR, `board${suffix}.png`));
 
       // ── Live pane: pick a task that has attempts (running/completed) ───────
       const client = createTokenSessionApiClient(state.sessionToken);
@@ -99,9 +111,7 @@ test.describe.serial('Landing capture', () => {
         await page.getByText(target.id.slice(0, 8)).first().click();
         await expect(page.getByRole('tab', { name: /turns/i })).toBeVisible();
         await page.waitForTimeout(800);
-        await page.screenshot({
-          path: join(OUT_DIR, `live-pane${suffix}.png`),
-        });
+        await shoot(page, join(OUT_DIR, `live-pane${suffix}.png`));
       }
 
       // ── Create dialog ──────────────────────────────────────────────────────
@@ -120,9 +130,7 @@ test.describe.serial('Landing capture', () => {
         await title.fill('v0.4 changelog');
       }
       await page.waitForTimeout(400);
-      await page.screenshot({
-        path: join(OUT_DIR, `create-task${suffix}.png`),
-      });
+      await shoot(page, join(OUT_DIR, `create-task${suffix}.png`));
     });
   }
 });
