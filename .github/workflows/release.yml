@@ -70,15 +70,20 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-      # release-please's `extra-files` JSON updater rewrites the WHOLE
-      # apps/rest-api/public/openapi.json to bump $.info.version, reserializing
-      # it with its own pretty-printer (expanded arrays). That output is not
-      # Prettier-canonical, so the spec lands on the release PR de-formatted and
-      # both `nx format:check` and the "OpenAPI spec out of date" gate go red the
-      # moment the PR merges to main. We keep the extra-files bump (intentional)
-      # and just re-Prettier the file on the PR branch afterwards. Pushing with
-      # GITHUB_TOKEN deliberately does NOT re-trigger workflows, which is fine:
-      # the existing PR checks re-run on the push and the merge stays clean.
+      # release-please's `extra-files` JSON updater bumps $.info.version (kept
+      # intentionally — the release commit must carry the latest spec version),
+      # but to do it it reparses and re-serializes the WHOLE openapi.json with
+      # plain JSON.stringify(indent). JSON.stringify preserves key order (the
+      # spec is already key-sorted by app.swagger() at generate-time, so the
+      # sort-json Prettier plugin is a no-op here) but it ALWAYS expands arrays
+      # to multi-line, whereas Prettier collapses short arrays at width 80. That
+      # lone difference de-formats the spec on the release PR and turns both
+      # `nx format:check` and the "OpenAPI spec out of date" gate red on merge.
+      # Re-running plain Prettier on the file is provably sufficient: it produces
+      # output byte-identical to `pnpm run generate` (verified against the bad
+      # run). No pnpm install / plugin needed — only array re-collapse matters.
+      # Pushing with GITHUB_TOKEN deliberately does NOT re-trigger workflows; the
+      # existing PR checks re-run on the push and the merge stays clean.
       # See diary incident c72108c8 (run 26635004582).
       - name: Re-format release-please openapi.json
         if: steps.release.outputs.prs_created == 'true'
@@ -94,9 +99,8 @@ jobs:
           fi
           git fetch origin "$BRANCH"
           git checkout "$BRANCH"
-          # Pin to the repo's prettier version so output is byte-identical to
-          # what `nx format:check` enforces. Bump this when the catalog bumps
-          # prettier (currently 3.8.3).
+          # Pin to a prettier 3.x line so a future major (4.x) can't silently
+          # change formatting. Bump alongside the pnpm-workspace.yaml catalog.
           npx --yes prettier@3.8.3 --write apps/rest-api/public/openapi.json
           if git diff --quiet -- apps/rest-api/public/openapi.json; then
             echo "openapi.json already Prettier-clean; no commit needed."
