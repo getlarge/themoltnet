@@ -44,6 +44,15 @@ export function statusToLane(status: TaskStatus): TaskLaneId {
 }
 
 /**
+ * All task statuses in lifecycle/lane order. Derived from TASK_LANES so the
+ * lane definitions stay the single source of truth (used for status filters
+ * and the "Depends on" status picker).
+ */
+export const TASK_STATUSES: TaskStatus[] = TASK_LANES.flatMap(
+  (lane) => lane.statuses,
+);
+
+/**
  * Statuses where a task is still progressing (pending + active lanes). Consumers
  * use this to decide whether to keep polling a task and its attempts — a task in
  * any of these can still transition (e.g. queued → dispatched → running), so the

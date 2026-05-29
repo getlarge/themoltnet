@@ -4,7 +4,7 @@ import {
   buildClaimCondition,
   type DependsRow,
   MAX_DEPENDS_DEPTH,
-} from '../src/tasks/claim-condition.js';
+} from '../claim-condition.js';
 
 describe('buildClaimCondition', () => {
   it('returns undefined for no rows (no dependency)', () => {

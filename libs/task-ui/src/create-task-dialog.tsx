@@ -1,5 +1,3 @@
-import { createTask } from '@moltnet/api-client';
-import type { TaskSummary } from '@moltnet/task-ui';
 import {
   Button,
   Dialog,
@@ -10,16 +8,30 @@ import {
 } from '@themoltnet/design-system';
 import { useEffect, useState } from 'react';
 
-import { getApiClient } from '../../api.js';
-import {
-  buildClaimCondition,
-  type DependsRow,
-} from '../../tasks/claim-condition.js';
-import { DependsOnBuilder } from './DependsOnBuilder.js';
+import { buildClaimCondition, type DependsRow } from './claim-condition.js';
+import { DependsOnBuilder } from './depends-on-builder.js';
+import type { ClaimCondition, TaskSummary } from './types.js';
 
 export interface DiaryOption {
   id: string;
   name: string;
+}
+
+/**
+ * The create-task request assembled by the dialog. Presentation-only: the
+ * consumer (app) turns this into the actual API call. Kept independent of
+ * `@moltnet/api-client` so `task-ui` stays free of API/runtime dependencies.
+ */
+export interface CreateTaskRequest {
+  teamId: string;
+  diaryId: string;
+  taskType: 'freeform';
+  input: {
+    brief: string;
+    title?: string;
+    expectedOutput?: string;
+  };
+  claimCondition?: ClaimCondition;
 }
 
 export interface CreateTaskDialogProps {
@@ -28,6 +40,13 @@ export interface CreateTaskDialogProps {
   diaries: DiaryOption[];
   candidateTasks: TaskSummary[];
   onClose: () => void;
+  /**
+   * Perform the create. Resolves with the new task id on success; rejects (or
+   * throws) with an Error whose message is shown inline on failure. The app
+   * owns the actual API call — this component never fetches.
+   */
+  onSubmit: (request: CreateTaskRequest) => Promise<string>;
+  /** Called with the new task id after a successful create. */
   onCreated: (taskId: string) => void;
 }
 
@@ -37,6 +56,7 @@ export function CreateTaskDialog({
   diaries,
   candidateTasks,
   onClose,
+  onSubmit,
   onCreated,
 }: CreateTaskDialogProps) {
   const theme = useTheme();
@@ -65,37 +85,24 @@ export function CreateTaskDialog({
     setIsSubmitting(true);
     setError(null);
     try {
-      const { data, error: apiError } = await createTask({
-        client: getApiClient(),
-        body: {
-          teamId,
-          diaryId,
-          taskType: 'freeform',
-          input: {
-            brief: brief.trim(),
-            ...(title.trim() ? { title: title.trim() } : {}),
-            ...(expectedOutput.trim()
-              ? { expectedOutput: expectedOutput.trim() }
-              : {}),
-          },
-          claimCondition: buildClaimCondition(dependsRows),
+      const taskId = await onSubmit({
+        teamId,
+        diaryId,
+        taskType: 'freeform',
+        input: {
+          brief: brief.trim(),
+          ...(title.trim() ? { title: title.trim() } : {}),
+          ...(expectedOutput.trim()
+            ? { expectedOutput: expectedOutput.trim() }
+            : {}),
         },
+        claimCondition: buildClaimCondition(dependsRows),
       });
-      if (apiError) {
-        setError(
-          typeof apiError === 'object' && apiError && 'detail' in apiError
-            ? String((apiError as { detail?: unknown }).detail)
-            : 'Failed to create task',
-        );
-        return;
-      }
-      if (data && 'id' in data) {
-        setBrief('');
-        setTitle('');
-        setExpectedOutput('');
-        setDependsRows([]);
-        onCreated(data.id);
-      }
+      setBrief('');
+      setTitle('');
+      setExpectedOutput('');
+      setDependsRows([]);
+      onCreated(taskId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task');
     } finally {
