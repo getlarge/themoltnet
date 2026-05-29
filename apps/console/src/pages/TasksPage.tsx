@@ -9,7 +9,6 @@ import {
   CreateTaskDialog,
   type CreateTaskRequest,
   isTaskNonTerminal,
-  TASK_LANES,
   TaskFunnelStrip,
   TaskLaneBoard,
   TaskLivePane,
@@ -24,6 +23,7 @@ import { getApiClient } from '../api.js';
 import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
 import { getTaskStatusQuery, TASK_STATUS_FILTERS } from '../tasks/status.js';
+import { useLaneQueries } from '../tasks/useLaneQueries.js';
 import { useTeam } from '../team/useTeam.js';
 
 const PAGE_SIZE = 30;
@@ -81,16 +81,20 @@ export function TasksPage() {
     [query.data],
   );
 
-  const laneCounts = useMemo(() => {
-    const counts = { pending: 0, active: 0, done: 0, failed: 0, closed: 0 };
-    for (const task of tasks) {
-      const lane = TASK_LANES.find((candidate) =>
-        candidate.statuses.includes(task.status),
-      );
-      if (lane) counts[lane.id] += 1;
-    }
-    return counts;
-  }, [tasks]);
+  // Board view: one server-filtered query per lane with real per-lane totals,
+  // so the board scales and the funnel counts are accurate (the single `query`
+  // above still feeds the table view, Refresh, and the create dialog's
+  // candidate list).
+  const {
+    lanes,
+    counts: laneCounts,
+    refetchAll: refetchLanes,
+  } = useLaneQueries({
+    teamId,
+    taskType,
+    correlationId,
+    enabled: enabled && view === 'board',
+  });
 
   const selectedTaskId = params.get('selected') ?? undefined;
 
@@ -198,8 +202,11 @@ export function TasksPage() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => void query.refetch()}
-            disabled={!enabled || query.isFetching}
+            onClick={() => {
+              if (view === 'board') refetchLanes();
+              else void query.refetch();
+            }}
+            disabled={!enabled}
           >
             Refresh
           </Button>
@@ -271,9 +278,11 @@ export function TasksPage() {
         </Card>
       ) : !enabled ? (
         <Text color="muted">Select a team to view tasks.</Text>
-      ) : query.isLoading ? (
+      ) : // The board renders its own per-lane loading/empty states; only the
+      // table view blocks on the shared query.
+      view === 'table' && query.isLoading ? (
         <Text color="muted">Loading tasks…</Text>
-      ) : query.error ? (
+      ) : view === 'table' && query.error ? (
         <Card style={{ padding: '1.5rem' }}>
           <Stack gap={3}>
             <Text color="muted">Failed to load tasks.</Text>
@@ -302,7 +311,7 @@ export function TasksPage() {
                 }}
               >
                 <TaskLaneBoard
-                  tasks={tasks}
+                  lanes={lanes}
                   selectedTaskId={selectedTaskId}
                   onSelectTask={(task) => selectTask(task.id)}
                 />
@@ -322,7 +331,8 @@ export function TasksPage() {
               onOpenTask={(task) => navigate(`/tasks/${task.id}`)}
             />
           )}
-          {query.hasNextPage ? (
+          {/* Board paginates per-lane; the shared Load more is for the table. */}
+          {view === 'table' && query.hasNextPage ? (
             <Button
               variant="secondary"
               size="sm"
