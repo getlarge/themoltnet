@@ -19,9 +19,16 @@ export interface TaskLivePaneProps {
   task: TaskSummary;
   attempt?: TaskAttemptSummary | null;
   messages: TaskMessage[];
+  /** Docs URL surfaced in the empty turn-stream state (run an agent daemon). */
+  learnMoreHref?: string;
 }
 
-export function TaskLivePane({ task, attempt, messages }: TaskLivePaneProps) {
+export function TaskLivePane({
+  task,
+  attempt,
+  messages,
+  learnMoreHref,
+}: TaskLivePaneProps) {
   const theme = useTheme();
   const [tab, setTab] = useState<PaneTab>('turns');
   const live = task.status === 'running' || task.status === 'dispatched';
@@ -105,7 +112,11 @@ export function TaskLivePane({ task, attempt, messages }: TaskLivePaneProps) {
 
       <div style={{ flex: 1, overflow: 'auto' }}>
         {tab === 'turns' ? (
-          <TaskTurnStream messages={messages} live={live} />
+          <TaskTurnStream
+            messages={messages}
+            live={live}
+            learnMoreHref={learnMoreHref}
+          />
         ) : null}
         {tab === 'usage' ? (
           <div style={{ padding: theme.spacing[4] }}>

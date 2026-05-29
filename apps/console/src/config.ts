@@ -9,7 +9,11 @@ export interface AppConfig {
   kratosUrl: string;
   apiBaseUrl: string;
   consoleUrl: string;
+  /** Public documentation site. Optional; defaults to https://docs.themolt.net. */
+  docsUrl: string;
 }
+
+const DEFAULT_DOCS_URL = 'https://docs.themolt.net';
 
 function normalizeUrl(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -21,12 +25,16 @@ export function getConfig(): AppConfig {
   const injectedKratosUrl = normalizeUrl(injected?.kratosUrl);
   const injectedApiBaseUrl = normalizeUrl(injected?.apiBaseUrl);
   const injectedConsoleUrl = normalizeUrl(injected?.consoleUrl);
+  // docsUrl is non-critical: fall back to the public default rather than
+  // requiring it in injected runtime config (keeps existing /config.js valid).
+  const docsUrl = normalizeUrl(injected?.docsUrl) || DEFAULT_DOCS_URL;
 
   if (injectedKratosUrl && injectedApiBaseUrl && injectedConsoleUrl) {
     return {
       kratosUrl: injectedKratosUrl,
       apiBaseUrl: injectedApiBaseUrl,
       consoleUrl: injectedConsoleUrl,
+      docsUrl,
     };
   }
 
@@ -46,5 +54,6 @@ export function getConfig(): AppConfig {
       'http://localhost:8000',
     consoleUrl:
       normalizeUrl(import.meta.env.VITE_CONSOLE_URL) || 'http://localhost:5174',
+    docsUrl: normalizeUrl(import.meta.env.VITE_DOCS_URL) || DEFAULT_DOCS_URL,
   };
 }

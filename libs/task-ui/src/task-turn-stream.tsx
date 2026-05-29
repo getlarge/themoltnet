@@ -15,6 +15,12 @@ export interface TaskTurnStreamProps {
   messages: TaskMessage[];
   /** When true, auto-scroll to the latest line (live attempts). */
   live?: boolean;
+  /**
+   * Optional URL to documentation on running an agent daemon. When provided and
+   * there are no turns yet, the waiting hint links here — the teachable moment
+   * where a user wonders why a queued task isn't being executed.
+   */
+  learnMoreHref?: string;
 }
 
 function lineColor(theme: Theme, kind: TaskMessage['kind']): string {
@@ -31,7 +37,11 @@ function lineColor(theme: Theme, kind: TaskMessage['kind']): string {
   }
 }
 
-export function TaskTurnStream({ messages, live }: TaskTurnStreamProps) {
+export function TaskTurnStream({
+  messages,
+  live,
+  learnMoreHref,
+}: TaskTurnStreamProps) {
   const theme = useTheme();
   const endRef = useRef<HTMLDivElement>(null);
   const rendered = joinTextDeltas(messages);
@@ -50,9 +60,23 @@ export function TaskTurnStream({ messages, live }: TaskTurnStreamProps) {
           color: theme.color.text.muted,
           fontFamily: theme.font.family.mono,
           fontSize: theme.font.size.xs,
+          lineHeight: theme.font.lineHeight.relaxed,
         }}
       >
-        No turns yet — waiting for the agent to start.
+        No turns yet — waiting for an agent to claim this task.
+        {learnMoreHref ? (
+          <>
+            {' '}
+            <a
+              href={learnMoreHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: theme.color.primary.DEFAULT }}
+            >
+              Set up an agent daemon →
+            </a>
+          </>
+        ) : null}
       </div>
     );
   }

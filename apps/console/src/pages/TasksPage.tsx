@@ -19,10 +19,14 @@ import { type ChangeEvent, useMemo, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
 
 import { getApiClient } from '../api.js';
+import { getConfig } from '../config.js';
 import { getTaskStatusQuery, TASK_STATUS_FILTERS } from '../tasks/status.js';
 import { useTeam } from '../team/useTeam.js';
 
 const PAGE_SIZE = 30;
+
+/** Docs page explaining how to install and run an agent daemon. */
+const AGENT_DAEMON_DOCS_HREF = `${getConfig().docsUrl}/use/agent-daemon`;
 
 export function TasksPage() {
   const theme = useTheme();
@@ -285,6 +289,7 @@ export function TasksPage() {
                     task={selectedTask}
                     attempt={latestAttempt}
                     messages={selectedMessagesQuery.data ?? []}
+                    learnMoreHref={AGENT_DAEMON_DOCS_HREF}
                   />
                 ) : null}
               </div>

@@ -181,7 +181,28 @@ describe('TaskTurnStream', () => {
 
   it('shows a waiting hint when there are no messages', () => {
     renderWithTheme(<TaskTurnStream messages={[]} />);
-    expect(screen.getByText(/waiting for the agent/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/waiting for an agent to claim/i),
+    ).toBeInTheDocument();
+  });
+
+  it('links to the agent-daemon docs when learnMoreHref is provided', () => {
+    renderWithTheme(
+      <TaskTurnStream
+        messages={[]}
+        learnMoreHref="https://docs.example/use/agent-daemon"
+      />,
+    );
+    const link = screen.getByRole('link', { name: /set up an agent daemon/i });
+    expect(link).toHaveAttribute(
+      'href',
+      'https://docs.example/use/agent-daemon',
+    );
+  });
+
+  it('omits the docs link when learnMoreHref is absent', () => {
+    renderWithTheme(<TaskTurnStream messages={[]} />);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });
 

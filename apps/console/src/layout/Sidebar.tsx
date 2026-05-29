@@ -113,6 +113,19 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
         <Button
           variant="ghost"
           onClick={() =>
+            window.open(getConfig().docsUrl, '_blank', 'noopener,noreferrer')
+          }
+          title="Documentation"
+          style={{
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            width: '100%',
+          }}
+        >
+          {collapsed ? 'D' : 'Docs'}
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() =>
             window.location.assign(`${getConfig().kratosUrl}/ui/settings`)
           }
           style={{
