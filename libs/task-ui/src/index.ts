@@ -105,6 +105,7 @@ export {
   TaskTurnStream,
   type TaskTurnStreamProps,
 } from './task-turn-stream.js';
+export { TaskTypeFacet, type TaskTypeFacetProps } from './task-type-facet.js';
 export type {
   ExecutorTrustLevel,
   OutputKind,
