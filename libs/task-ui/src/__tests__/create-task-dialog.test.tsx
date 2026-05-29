@@ -19,6 +19,7 @@ function renderDialog(
         teamId="team-1"
         diaries={[{ id: 'diary-1', name: 'My Diary' }]}
         candidateTasks={[]}
+        availableTypes={['fulfill_brief', 'freeform']}
         onClose={() => {}}
         onSubmit={onSubmit}
         onCreated={onCreated}

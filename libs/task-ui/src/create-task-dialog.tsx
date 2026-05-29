@@ -48,6 +48,8 @@ export interface CreateTaskDialogProps {
   teamId: string;
   diaries: DiaryOption[];
   candidateTasks: TaskSummary[];
+  /** Registered task-type names, forwarded to the depends-on type filter. */
+  availableTypes: string[];
   onClose: () => void;
   /**
    * Perform the create. Resolves with the new task id on success; rejects (or
@@ -64,6 +66,7 @@ export function CreateTaskDialog({
   teamId,
   diaries,
   candidateTasks,
+  availableTypes,
   onClose,
   onSubmit,
   onCreated,
@@ -211,6 +214,7 @@ export function CreateTaskDialog({
 
         <DependsOnBuilder
           candidates={candidateTasks}
+          availableTypes={availableTypes}
           rows={dependsRows}
           onChange={setDependsRows}
         />
