@@ -16,6 +16,15 @@ describe('BUILT_IN_TASK_TYPES — freeform', () => {
     expect(entry.requiresReferences).toBe(false);
     expect(entry.validateOutput).toBeDefined();
   });
+
+  it('opts into worktree override, session scope, and resumability', () => {
+    const entry = BUILT_IN_TASK_TYPES[FREEFORM_TYPE];
+    expect(entry.resumable).toBe(true);
+    expect(entry.workspaceMode).toBe('shared_mount');
+    expect(entry.workspaceScope).toBe('session');
+    expect(entry.sessionScope).toBe('correlation');
+    expect(entry.acceptsInputWorkspaceOverride).toBe(true);
+  });
 });
 
 describe('BUILT_IN_TASK_TYPES — run_eval', () => {
@@ -28,6 +37,11 @@ describe('BUILT_IN_TASK_TYPES — run_eval', () => {
     expect(entry.validateOutput).toBeDefined();
     // No validateInput on run_eval (input has no cross-field invariants).
     expect('validateInput' in entry).toBe(false);
+  });
+
+  it('opts into the shared workspace-override flag', () => {
+    const entry = BUILT_IN_TASK_TYPES[RUN_EVAL_TYPE];
+    expect(entry.acceptsInputWorkspaceOverride).toBe(true);
   });
 });
 
