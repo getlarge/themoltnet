@@ -106,10 +106,18 @@ jobs:
             echo "openapi.json already Prettier-clean; no commit needed."
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/rest-api/public/openapi.json
-          git commit -m "chore: prettier-format openapi.json (release-please)"
+          # Match release-please's own commit identity exactly so this commit is
+          # indistinguishable from the rest of the release PR. release-please
+          # commits via the GitHub API, which sets author=github-actions[bot]
+          # (the bot's fixed user id 41898282) and committer=GitHub <noreply>.
+          # git reads committer identity from GIT_COMMITTER_* env vars (NOT a
+          # `committer.*` config key), and author from --author.
+          GIT_COMMITTER_NAME="GitHub" \
+          GIT_COMMITTER_EMAIL="noreply@github.com" \
+          git commit \
+            --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" \
+            -m "chore: prettier-format openapi.json (release-please)" \
+            -- apps/rest-api/public/openapi.json
           git push origin "$BRANCH"
 
   # Unified resolution: merges release-please outputs with manual republish
