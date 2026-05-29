@@ -3,7 +3,9 @@ import {
   getTaskOptions,
   listTaskAttemptsOptions,
   listTaskMessagesOptions,
+  listTaskSchemasOptions,
   listTasksInfiniteOptions,
+  listTasksOptions,
 } from '@moltnet/api-client/query';
 import {
   CreateTaskDialog,
@@ -13,6 +15,7 @@ import {
   TaskLaneBoard,
   TaskLivePane,
   TaskQueueTable,
+  TaskTypeFacet,
 } from '@moltnet/task-ui';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
@@ -37,7 +40,10 @@ export function TasksPage() {
   const search = useSearch();
   const params = useMemo(() => new URLSearchParams(search), [search]);
   const { error: teamError, refreshTeams, selectedTeam } = useTeam();
-  const [taskType, setTaskType] = useState(params.get('task_type') ?? '');
+  const [taskTypes, setTaskTypes] = useState<string[]>(() => {
+    const raw = params.get('task_type');
+    return raw ? raw.split(',') : [];
+  });
   const [correlationId, setCorrelationId] = useState(
     params.get('correlation_id') ?? '',
   );
@@ -59,7 +65,7 @@ export function TasksPage() {
       query: {
         teamId: teamId ?? '',
         status,
-        taskTypes: taskType.trim() ? [taskType.trim()] : undefined,
+        taskTypes: taskTypes.length ? taskTypes : undefined,
         correlationId: correlationId.trim() || undefined,
         limit: PAGE_SIZE,
       },
@@ -91,10 +97,46 @@ export function TasksPage() {
     refetchAll: refetchLanes,
   } = useLaneQueries({
     teamId,
-    taskType,
+    taskTypes,
     correlationId,
     enabled: enabled && view === 'board',
   });
+
+  // Registered task types (for the type facet + the depends-on picker filter).
+  // Sourced from the API, not @moltnet/tasks, to keep server schemas out of the
+  // browser bundle.
+  const schemasQuery = useQuery({
+    ...listTaskSchemasOptions({ client: getApiClient() }),
+    enabled,
+  });
+  const registeredTaskTypes = useMemo(
+    () => (schemasQuery.data?.items ?? []).map((d) => d.taskType),
+    [schemasQuery.data],
+  );
+
+  // Dedicated candidate set for the depends-on picker — scoped to selectable
+  // prerequisite statuses (non-terminal + completed), independent of the
+  // board's display filter.
+  const candidateQuery = useQuery({
+    ...listTasksOptions({
+      client: getApiClient(),
+      query: {
+        teamId: teamId ?? '',
+        statuses: ['waiting', 'queued', 'dispatched', 'running', 'completed'],
+        limit: 50,
+      },
+    }),
+    enabled,
+  });
+  const pickerCandidates = candidateQuery.data?.items ?? [];
+
+  function updateTaskTypes(next: string[]) {
+    setTaskTypes(next);
+    const nextParams = new URLSearchParams(params);
+    if (next.length) nextParams.set('task_type', next.join(','));
+    else nextParams.delete('task_type');
+    navigate(`/tasks?${nextParams.toString()}`);
+  }
 
   const selectedTaskId = params.get('selected') ?? undefined;
 
@@ -237,14 +279,10 @@ export function TasksPage() {
               gap: theme.spacing[3],
             }}
           >
-            <input
-              aria-label="Task type"
-              placeholder="task_type"
-              value={taskType}
-              onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                setTaskType(event.target.value)
-              }
-              style={inputStyle(theme)}
+            <TaskTypeFacet
+              availableTypes={registeredTaskTypes}
+              selected={taskTypes}
+              onChange={updateTaskTypes}
             />
             <input
               aria-label="Correlation ID"
@@ -350,7 +388,8 @@ export function TasksPage() {
           open={showCreate}
           teamId={teamId}
           diaries={diaryOptions}
-          candidateTasks={tasks}
+          candidateTasks={pickerCandidates}
+          availableTypes={registeredTaskTypes}
           onClose={() => setShowCreate(false)}
           onSubmit={async (request: CreateTaskRequest) => {
             const { data, error: apiError } = await createTask({
