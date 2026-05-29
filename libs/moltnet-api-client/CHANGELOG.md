@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.30.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.1...moltnet-api-client-v1.30.2) (2026-05-29)
+
+
+### Bug Fixes
+
+* **ci:** update generated clients for discovery schema ([ea3575f](https://github.com/getlarge/themoltnet/commit/ea3575f4158dfe21066616709d4e00764b420c8a))
+* **console:** scale the task board with per-lane queries + real counts ([a6e6202](https://github.com/getlarge/themoltnet/commit/a6e62024e240d09dbf309878cf1ca783e6bebda4))
+
+
+### Codegen
+
+* **go-client:** regenerate for listTasks statuses[] param ([e7121fb](https://github.com/getlarge/themoltnet/commit/e7121fb5e27679096e3de2f7628b8ec1a4ec91c2))
+
 ## [1.30.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.0...moltnet-api-client-v1.30.1) (2026-05-28)
 
 
