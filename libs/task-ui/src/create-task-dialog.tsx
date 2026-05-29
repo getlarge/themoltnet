@@ -26,6 +26,20 @@ export interface DiaryOption {
 }
 
 /**
+ * Workspace mode the proposer wants the daemon to mount for this freeform
+ * task. Mirrors the `input.execution.workspace` surface declared on
+ * `FreeformInput` in `@moltnet/tasks` — recognized values are `'none'`
+ * (scratch mount, no repo), `'shared_mount'` (host workspace, read-only
+ * exploration), and `'dedicated_worktree'` (isolated worktree branched off
+ * main, safe for file mutation). Absent means "use the registry default",
+ * which is `shared_mount` for freeform.
+ */
+export type FreeformWorkspaceMode =
+  | 'none'
+  | 'shared_mount'
+  | 'dedicated_worktree';
+
+/**
  * The create-task request assembled by the dialog. Presentation-only: the
  * consumer (app) turns this into the actual API call. Kept independent of
  * `@moltnet/api-client` so `task-ui` stays free of API/runtime dependencies.
@@ -39,6 +53,7 @@ export interface CreateTaskRequest {
     title?: string;
     expectedOutput?: string;
     successCriteria?: BuiltSuccessCriteria;
+    execution?: { workspace: FreeformWorkspaceMode };
   };
   claimCondition?: ClaimCondition;
 }
@@ -73,6 +88,12 @@ export function CreateTaskDialog({
   const [title, setTitle] = useState('');
   const [expectedOutput, setExpectedOutput] = useState('');
   const [diaryId, setDiaryId] = useState(diaries[0]?.id ?? '');
+  // Empty string = "use registry default". Any other value gets sent through
+  // input.execution.workspace; the daemon resolves it via the same data-driven
+  // path as run_eval.
+  const [workspaceMode, setWorkspaceMode] = useState<
+    '' | FreeformWorkspaceMode
+  >('');
   const [dependsRows, setDependsRows] = useState<DependsRow[]>([]);
   const [assertions, setAssertions] = useState<AssertionRow[]>([]);
   const [sideEffects, setSideEffects] =
@@ -110,12 +131,14 @@ export function CreateTaskDialog({
             ? { expectedOutput: expectedOutput.trim() }
             : {}),
           ...(successCriteria ? { successCriteria } : {}),
+          ...(workspaceMode ? { execution: { workspace: workspaceMode } } : {}),
         },
         claimCondition: buildClaimCondition(dependsRows),
       });
       setBrief('');
       setTitle('');
       setExpectedOutput('');
+      setWorkspaceMode('');
       setDependsRows([]);
       setAssertions([]);
       setSideEffects(EMPTY_SIDE_EFFECTS);
@@ -187,6 +210,27 @@ export function CreateTaskDialog({
             placeholder="What should the result look like?"
             style={textareaStyle}
           />
+        </Stack>
+
+        <Stack gap={1}>
+          {labelCaption('Workspace mode (optional)')}
+          <select
+            aria-label="Workspace mode"
+            value={workspaceMode}
+            onChange={(event) =>
+              setWorkspaceMode(event.target.value as '' | FreeformWorkspaceMode)
+            }
+            style={selectStyle}
+          >
+            <option value="">Default (shared mount)</option>
+            <option value="shared_mount">
+              shared_mount — read-only exploration
+            </option>
+            <option value="dedicated_worktree">
+              dedicated_worktree — isolated branch, safe to mutate
+            </option>
+            <option value="none">none — scratch mount, no repo access</option>
+          </select>
         </Stack>
 
         <Stack gap={1}>

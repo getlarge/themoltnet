@@ -1,6 +1,7 @@
 import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 
 import { formatDateTime } from './format.js';
+import { FreeformArtifactsCard } from './freeform-artifacts-card.js';
 import { JsonViewer } from './json-viewer.js';
 import { TaskStatusBadge } from './task-status-badge.js';
 import type { TaskAttemptSummary } from './types.js';
@@ -112,12 +113,21 @@ export function TaskAttemptDetail({ attempt }: TaskAttemptDetailProps) {
       ) : null}
 
       {attempt.output ? (
-        <JsonViewer
-          label="Output"
-          value={attempt.output}
-          cid={attempt.outputCid}
-          defaultExpanded
-        />
+        <>
+          <FreeformArtifactsCard
+            output={
+              attempt.output as Parameters<
+                typeof FreeformArtifactsCard
+              >[0]['output']
+            }
+          />
+          <JsonViewer
+            label="Output"
+            value={attempt.output}
+            cid={attempt.outputCid}
+            defaultExpanded
+          />
+        </>
       ) : null}
     </Stack>
   );

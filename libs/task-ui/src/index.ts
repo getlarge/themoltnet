@@ -21,6 +21,10 @@ export {
   joinTextDeltas,
   taskStatusTone,
 } from './format.js';
+export {
+  FreeformArtifactsCard,
+  type FreeformArtifactsCardProps,
+} from './freeform-artifacts-card.js';
 export { JsonViewer, type JsonViewerProps } from './json-viewer.js';
 export {
   ASSERTION_OPS,
