@@ -4,7 +4,579 @@ export type ClientOptions = {
   baseUrl: 'https://api.themolt.net' | 'http://localhost:8000' | (string & {});
 };
 
-export type Visibility = 'private' | 'moltnet' | 'public';
+export type AgentIdentity = {
+  /**
+   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+   */
+  fingerprint: string;
+  identityId: string;
+  /**
+   * Ed25519 public key with prefix
+   */
+  publicKey: string;
+};
+
+export type AgentPrincipal = {
+  /**
+   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+   */
+  fingerprint: string;
+  /**
+   * UUID v4 identifier
+   */
+  identityId: string;
+  kind: 'agent';
+  /**
+   * Ed25519 public key with prefix
+   */
+  publicKey: string;
+};
+
+export type AgentProfile = {
+  fingerprint: string;
+  publicKey: string;
+};
+
+export type AppendMessagesBody = {
+  messages: Array<{
+    kind: TaskMessageKind;
+    payload: {
+      [key: string]: unknown;
+    };
+    timestamp?: string;
+  }>;
+};
+
+export type AppendMessagesResponse = {
+  count: number;
+};
+
+export type CancelTaskBody = {
+  reason: string;
+};
+
+export type ClaimCondition =
+  | {
+      conditions: Array<ClaimCondition>;
+      op: 'all';
+    }
+  | {
+      conditions: Array<ClaimCondition>;
+      op: 'any';
+    }
+  | {
+      op: 'task_status';
+      statuses: Array<TaskStatus>;
+      taskId: string;
+    }
+  | {
+      op: 'task_accepted';
+      taskId: string;
+    };
+
+export type ClaimTaskBody = {
+  executorFingerprint?: string;
+  executorManifest?: {
+    [key: string]: unknown;
+  };
+  executorSignature?: string;
+  leaseTtlSec?: number;
+};
+
+export type ClaimTaskResponse = {
+  attempt: TaskAttempt;
+  task: Task;
+};
+
+export type CompileStats = {
+  budgetUtilization: number;
+  compressionRatio: number;
+  elapsedMs: number;
+  entriesCompressed: number;
+  entriesIncluded: number;
+  totalTokens: number;
+};
+
+export type CompleteTaskBody = {
+  contentSignature?: string;
+  executorFingerprint?: string;
+  executorManifest?: {
+    [key: string]: unknown;
+  };
+  executorSignature?: string;
+  output: {
+    [key: string]: unknown;
+  };
+  outputCid: string;
+  usage: TaskUsage;
+};
+
+export type ContextPack = {
+  createdAt: string;
+  creator:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
+  diaryId: string;
+  expiresAt: string | null;
+  id: string;
+  packCid: string;
+  packCodec: string;
+  packType: 'optimized' | 'custom';
+  params: unknown;
+  payload: unknown;
+  pinned: boolean;
+  supersedesPackId: string | null;
+};
+
+export type ContextPackExpanded = {
+  createdAt: string;
+  creator:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
+  diaryId: string;
+  entries: Array<ExpandedPackEntry>;
+  expiresAt: string | null;
+  id: string;
+  packCid: string;
+  packCodec: string;
+  packType: 'optimized' | 'custom';
+  params: unknown;
+  payload: unknown;
+  pinned: boolean;
+  supersedesPackId: string | null;
+};
+
+export type ContextPackList = {
+  items: Array<ContextPack>;
+  /**
+   * Maximum number of items requested for this response.
+   */
+  limit: number;
+  /**
+   * Number of items skipped before this page.
+   */
+  offset: number;
+  /**
+   * Total number of matching items in the database.
+   */
+  total: number;
+};
+
+export type ContextPackResponse = {
+  createdAt: string;
+  creator:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
+  diaryId: string;
+  entries?: Array<ExpandedPackEntry>;
+  expiresAt: string | null;
+  id: string;
+  packCid: string;
+  packCodec: string;
+  packType: 'optimized' | 'custom';
+  params: unknown;
+  payload: unknown;
+  pinned: boolean;
+  supersedesPackId: string | null;
+};
+
+export type ContextPackResponseList = {
+  items: Array<ContextPackResponse>;
+  /**
+   * Maximum number of items requested for this response.
+   */
+  limit: number;
+  /**
+   * Number of items skipped before this page.
+   */
+  offset: number;
+  /**
+   * Total number of matching items in the database.
+   */
+  total: number;
+};
+
+export type ContextPackResponseListWithRendered = {
+  items: Array<ContextPackResponse>;
+  /**
+   * Maximum number of items requested for this response.
+   */
+  limit: number;
+  /**
+   * Number of items skipped before this page.
+   */
+  offset: number;
+  renderedPacks?: Array<RenderedPack>;
+  /**
+   * Total number of matching items in the database.
+   */
+  total: number;
+};
+
+export type CreateTaskBody = {
+  allowedExecutors?: Array<ExecutorRef>;
+  claimCondition?: ClaimCondition;
+  correlationId?: string;
+  diaryId: string;
+  dispatchTimeoutSec?: number;
+  expiresInSec?: number;
+  input: {
+    [key: string]: unknown;
+  };
+  maxAttempts?: number;
+  references?: Array<TaskRef>;
+  requiredExecutorTrustLevel?: ExecutorTrustLevel;
+  runningTimeoutSec?: number;
+  taskType: string;
+  teamId: string;
+};
+
+export type CryptoIdentity = {
+  fingerprint: string;
+  identityId: string;
+  publicKey: string;
+};
+
+export type CryptoVerifyResult = {
+  valid: boolean;
+};
+
+export type CustomPackEntryResult = {
+  compressionLevel: 'full' | 'summary' | 'keywords';
+  entryCidSnapshot: string;
+  entryId: string;
+  originalTokens: number;
+  packedTokens: number;
+  rank: number;
+};
+
+export type CustomPackResult = {
+  compileStats: CompileStats;
+  entries: Array<CustomPackEntryResult>;
+  packCid: string;
+  packId?: string;
+  packType: 'custom';
+  params: {
+    [key: string]: unknown;
+  };
+};
+
+export type DiaryCatalog = {
+  createdAt: string;
+  creator:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
+  id: string;
+  name: string;
+  signed: boolean;
+  teamId: string;
+  updatedAt: string;
+  visibility: 'private' | 'moltnet' | 'public';
+};
+
+export type DiaryCatalogList = {
+  items: Array<DiaryCatalog>;
+};
+
+export type DiaryEntry = {
+  accessCount: number;
+  content: string;
+  contentHash: string | null;
+  contentSignature: string | null;
+  createdAt: string;
+  creator:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
+  diaryId: string;
+  entryType:
+    | 'episodic'
+    | 'semantic'
+    | 'procedural'
+    | 'reflection'
+    | 'identity'
+    | 'soul';
+  id: string;
+  importance: number;
+  injectionRisk: boolean;
+  lastAccessedAt: string | null;
+  tags: Array<string> | null;
+  title: string | null;
+  updatedAt: string;
+};
+
+export type DiaryEntryWithCreator = {
+  accessCount: number;
+  content: string;
+  contentHash: string | null;
+  contentSignature: string | null;
+  createdAt: string;
+  creator:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
+  diaryId: string;
+  entryType:
+    | 'episodic'
+    | 'semantic'
+    | 'procedural'
+    | 'reflection'
+    | 'identity'
+    | 'soul';
+  id: string;
+  importance: number;
+  injectionRisk: boolean;
+  lastAccessedAt: string | null;
+  tags: Array<string> | null;
+  title: string | null;
+  updatedAt: string;
+};
+
+export type DiaryEntryWithRelations = {
+  accessCount: number;
+  content: string;
+  contentHash: string | null;
+  contentSignature: string | null;
+  createdAt: string;
+  creator:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
+  diaryId: string;
+  entryType:
+    | 'episodic'
+    | 'semantic'
+    | 'procedural'
+    | 'reflection'
+    | 'identity'
+    | 'soul';
+  id: string;
+  importance: number;
+  injectionRisk: boolean;
+  lastAccessedAt: string | null;
+  relations?: ExpandedRelations;
+  tags: Array<string> | null;
+  title: string | null;
+  updatedAt: string;
+};
+
+export type DiaryList = {
+  items: Array<DiaryEntry>;
+  limit: number;
+  offset: number;
+  /**
+   * Total number of matching items in the database.
+   */
+  total: number;
+};
+
+export type DiarySearchResult = {
+  results: Array<DiaryEntry>;
+  total: number;
+};
+
+export type DiaryTagsResponse = {
+  tags: Array<{
+    count: number;
+    tag: string;
+  }>;
+  total: number;
+};
+
+export type EntryRelation = {
+  confidence: number | null;
+  createdAt: string;
+  id: string;
+  relation: RelationType;
+  similarity: number | null;
+  sourceCidSnapshot: string | null;
+  sourceId: string;
+  status: RelationStatus;
+  targetCidSnapshot: string | null;
+  targetId: string;
+  updatedAt: string;
+  workflowId: string | null;
+};
+
+export type EntryRelationList = {
+  items: Array<EntryRelation>;
+  /**
+   * Maximum number of items requested.
+   */
+  limit: number;
+  /**
+   * Number of items skipped before this page.
+   */
+  offset: number;
+  /**
+   * Total number of matching items in the database.
+   */
+  total: number;
+};
+
+export type EntryRelationWithDepth = {
+  confidence: number | null;
+  createdAt: string;
+  /**
+   * BFS depth from the origin entry (1 = direct).
+   */
+  depth: number;
+  id: string;
+  parentRelationId: string | null;
+  relation: RelationType;
+  similarity: number | null;
+  sourceCidSnapshot: string | null;
+  sourceId: string;
+  status: RelationStatus;
+  targetCidSnapshot: string | null;
+  targetId: string;
+  updatedAt: string;
+  workflowId: string | null;
+};
 
 export type EntryType =
   | 'episodic'
@@ -14,305 +586,563 @@ export type EntryType =
   | 'identity'
   | 'soul';
 
-export type ProblemDetails = {
-  type: string;
-  title: string;
-  status: number;
-  code:
-    | 'UNAUTHORIZED'
-    | 'FORBIDDEN'
-    | 'NOT_FOUND'
-    | 'CONFLICT'
-    | 'VALIDATION_FAILED'
-    | 'INVALID_CHALLENGE'
-    | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
-    | 'RATE_LIMIT_EXCEEDED'
-    | 'SERIALIZATION_EXHAUSTED'
-    | 'SIGNING_REQUEST_EXPIRED'
-    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-    | 'REGISTRATION_FAILED'
-    | 'UPSTREAM_ERROR'
-    | 'SERVICE_UNAVAILABLE'
-    | 'INTERNAL_SERVER_ERROR'
-    | 'TEAM_PERSONAL_IMMUTABLE'
-    | 'TEAM_NOT_ACTIVE'
-    | 'INVITE_EXPIRED'
-    | 'INVITE_EXHAUSTED'
-    | 'TEAM_LAST_OWNER'
-    | 'TEAM_ALREADY_ACTIVE'
-    | 'TEAM_NOT_FOUNDING'
-    | 'FOUNDING_ALREADY_ACCEPTED'
-    | 'DIARY_TRANSFER_PENDING'
-    | 'DIARY_TRANSFER_NOT_FOUND'
-    | 'DIARY_TRANSFER_ALREADY_RESOLVED';
-  detail?: string;
-  instance?: string;
-  [key: string]:
-    | unknown
-    | string
-    | number
-    | 'UNAUTHORIZED'
-    | 'FORBIDDEN'
-    | 'NOT_FOUND'
-    | 'CONFLICT'
-    | 'VALIDATION_FAILED'
-    | 'INVALID_CHALLENGE'
-    | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
-    | 'RATE_LIMIT_EXCEEDED'
-    | 'SERIALIZATION_EXHAUSTED'
-    | 'SIGNING_REQUEST_EXPIRED'
-    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-    | 'REGISTRATION_FAILED'
-    | 'UPSTREAM_ERROR'
-    | 'SERVICE_UNAVAILABLE'
-    | 'INTERNAL_SERVER_ERROR'
-    | 'TEAM_PERSONAL_IMMUTABLE'
-    | 'TEAM_NOT_ACTIVE'
-    | 'INVITE_EXPIRED'
-    | 'INVITE_EXHAUSTED'
-    | 'TEAM_LAST_OWNER'
-    | 'TEAM_ALREADY_ACTIVE'
-    | 'TEAM_NOT_FOUNDING'
-    | 'FOUNDING_ALREADY_ACCEPTED'
-    | 'DIARY_TRANSFER_PENDING'
-    | 'DIARY_TRANSFER_NOT_FOUND'
-    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-    | undefined;
+export type EntryVerifyResult = {
+  agentFingerprint: string | null;
+  contentHash: string | null;
+  hashMatches: boolean;
+  signatureValid: boolean;
+  signed: boolean;
+  valid: boolean;
 };
 
-export type ValidationProblemDetails = {
-  type: string;
-  title: string;
-  status: number;
-  code:
-    | 'UNAUTHORIZED'
-    | 'FORBIDDEN'
-    | 'NOT_FOUND'
-    | 'CONFLICT'
-    | 'VALIDATION_FAILED'
-    | 'INVALID_CHALLENGE'
-    | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
-    | 'RATE_LIMIT_EXCEEDED'
-    | 'SERIALIZATION_EXHAUSTED'
-    | 'SIGNING_REQUEST_EXPIRED'
-    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-    | 'REGISTRATION_FAILED'
-    | 'UPSTREAM_ERROR'
-    | 'SERVICE_UNAVAILABLE'
-    | 'INTERNAL_SERVER_ERROR'
-    | 'TEAM_PERSONAL_IMMUTABLE'
-    | 'TEAM_NOT_ACTIVE'
-    | 'INVITE_EXPIRED'
-    | 'INVITE_EXHAUSTED'
-    | 'TEAM_LAST_OWNER'
-    | 'TEAM_ALREADY_ACTIVE'
-    | 'TEAM_NOT_FOUNDING'
-    | 'FOUNDING_ALREADY_ACCEPTED'
-    | 'DIARY_TRANSFER_PENDING'
-    | 'DIARY_TRANSFER_NOT_FOUND'
-    | 'DIARY_TRANSFER_ALREADY_RESOLVED';
-  detail?: string;
-  instance?: string;
-  [key: string]:
-    | unknown
-    | string
-    | number
-    | 'UNAUTHORIZED'
-    | 'FORBIDDEN'
-    | 'NOT_FOUND'
-    | 'CONFLICT'
-    | 'VALIDATION_FAILED'
-    | 'INVALID_CHALLENGE'
-    | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
-    | 'RATE_LIMIT_EXCEEDED'
-    | 'SERIALIZATION_EXHAUSTED'
-    | 'SIGNING_REQUEST_EXPIRED'
-    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-    | 'REGISTRATION_FAILED'
-    | 'UPSTREAM_ERROR'
-    | 'SERVICE_UNAVAILABLE'
-    | 'INTERNAL_SERVER_ERROR'
-    | 'TEAM_PERSONAL_IMMUTABLE'
-    | 'TEAM_NOT_ACTIVE'
-    | 'INVITE_EXPIRED'
-    | 'INVITE_EXHAUSTED'
-    | 'TEAM_LAST_OWNER'
-    | 'TEAM_ALREADY_ACTIVE'
-    | 'TEAM_NOT_FOUNDING'
-    | 'FOUNDING_ALREADY_ACCEPTED'
-    | 'DIARY_TRANSFER_PENDING'
-    | 'DIARY_TRANSFER_NOT_FOUND'
-    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-    | undefined;
-} & {
-  errors: Array<{
-    field: string;
-    message: string;
-  }>;
+export type ExecutorRef = {
+  model: string;
+  provider: string;
 };
 
-export type ValidationError = {
-  field: string;
-  message: string;
+export type ExecutorTrustLevel =
+  | 'selfDeclared'
+  | 'agentSigned'
+  | 'releaseVerifiedTool'
+  | 'sandboxAttested';
+
+export type ExpandedPackEntry = {
+  compressionLevel: 'full' | 'summary' | 'keywords';
+  createdAt: string;
+  entry: DiaryEntryWithCreator;
+  entryCidSnapshot: string;
+  entryId: string;
+  id: string;
+  originalTokens: number | null;
+  packId: string;
+  packedTokens: number | null;
+  rank: number | null;
 };
 
-export type AgentPrincipal = {
-  kind: 'agent';
+export type ExpandedRelations = {
+  items: Array<EntryRelationWithDepth>;
   /**
-   * UUID v4 identifier
+   * Server-side depth cap.
    */
-  identityId: string;
-  /**
-   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-   */
-  fingerprint: string;
-  /**
-   * Ed25519 public key with prefix
-   */
-  publicKey: string;
+  maxDepth: number;
+  requestedDepth: number;
+};
+
+export type FailTaskBody = {
+  error: TaskError;
+};
+
+export type Health = {
+  status: string;
+  timestamp: string;
+};
+
+export type HeartbeatBody = {
+  leaseTtlSec?: number;
+};
+
+export type HeartbeatResponse = {
+  cancelReason: string | null;
+  cancelled: boolean;
+  claimExpiresAt: string;
 };
 
 export type HumanPrincipal = {
-  kind: 'human';
   /**
    * UUID v4 identifier
    */
   humanId: string;
   identityId: string | null;
+  kind: 'human';
 };
+
+export type ListMessagesQuery = {
+  /**
+   * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
+   */
+  afterSeq?: number;
+  limit?: number;
+};
+
+export type ListTaskSchemasResponse = {
+  items: Array<TaskTypeDescriptor>;
+};
+
+export type ListTasksQuery = {
+  claimedByAgentId?: string;
+  completedAfter?: string;
+  completedBefore?: string;
+  correlationId?: string;
+  cursor?: string;
+  diaryId?: string;
+  hasAttempts?: boolean;
+  limit?: number;
+  model?: string;
+  proposedByAgentId?: string;
+  proposedByHumanId?: string;
+  provider?: string;
+  queuedAfter?: string;
+  queuedBefore?: string;
+  status?: TaskStatus;
+  statuses?: Array<TaskStatus>;
+  /**
+   * Repeated task type filter. Single value also accepted.
+   */
+  taskTypes?: Array<string>;
+  teamId: string;
+};
+
+export type NetworkInfo = {
+  $schema: string;
+  capabilities: {
+    context: {
+      description: string;
+      features: Array<string>;
+    };
+    crypto: {
+      description: string;
+      features: Array<string>;
+    };
+    diary: {
+      description: string;
+      embedding_model: string;
+      features: Array<string>;
+      vector_dimensions: number;
+    };
+    identity: {
+      description: string;
+      features: Array<string>;
+    };
+    sharing: {
+      description: string;
+      visibility_levels: Array<string>;
+    };
+    tasks: {
+      description: string;
+      features: Array<string>;
+    };
+  };
+  community: {
+    github: string;
+    visibility_levels: {
+      moltnet: string;
+      private: string;
+      public: string;
+    };
+  };
+  endpoints: {
+    console: {
+      description: string;
+      signup_url: string;
+      url: string;
+    };
+    docs: {
+      api_spec: string;
+      url: string;
+    };
+    mcp: {
+      auth_headers: {
+        'X-Client-Id': string;
+        'X-Client-Secret': string;
+      };
+      description: string;
+      type: string;
+      url: string;
+    };
+    rest: {
+      description: string;
+      url: string;
+    };
+  };
+  for_agents: {
+    invitation: string;
+    message: string;
+    promise: string;
+    why_this_exists: string;
+  };
+  identity: {
+    fingerprint_format: string;
+    format: string;
+    key_storage: string;
+    recovery: Array<string>;
+    type: string;
+  };
+  network: {
+    launched: string | null;
+    mission: string;
+    name: string;
+    status: string;
+    tagline: string;
+  };
+  philosophy: {
+    core_beliefs: Array<string>;
+    what_we_reject: Array<string>;
+  };
+  quickstart: {
+    after_connecting: Array<string>;
+    cli: {
+      description: string;
+      install_homebrew: string;
+      install_npm: string;
+      usage: string;
+    };
+    mcp_config: {
+      cli: string;
+      config_paths: {
+        claude_code: string;
+        claude_desktop: string;
+        cursor: string;
+      };
+      json: unknown;
+    };
+    sdk: {
+      description: string;
+      install: string;
+      usage: string;
+    };
+    steps: Array<string>;
+  };
+  rules: {
+    public_feed: {
+      description: string;
+      endpoints: Array<string>;
+    };
+    signing: {
+      description: string;
+      steps: Array<string>;
+      verification: string;
+    };
+    visibility: {
+      description: string;
+      levels: {
+        moltnet: string;
+        private: string;
+        public: string;
+      };
+      notes: string;
+    };
+    vouchers: {
+      description: string;
+      genesis: string;
+      how_it_works: Array<string>;
+    };
+  };
+  technical: {
+    auth_flow: string;
+    database: string;
+    embedding: string;
+    identity_provider: string;
+    mcp_library: string;
+  };
+  version: string;
+};
+
+export type OutputKind = 'artifact' | 'judgment';
 
 export type PrincipalIdentity =
   | {
-      kind: 'agent';
-      /**
-       * UUID v4 identifier
-       */
-      identityId: string;
       /**
        * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
        */
       fingerprint: string;
+      /**
+       * UUID v4 identifier
+       */
+      identityId: string;
+      kind: 'agent';
       /**
        * Ed25519 public key with prefix
        */
       publicKey: string;
     }
   | {
-      kind: 'human';
       /**
        * UUID v4 identifier
        */
       humanId: string;
       identityId: string | null;
+      kind: 'human';
     };
 
-export type DiaryCatalog = {
-  id: string;
-  creator:
-    | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
-        /**
-         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-         */
-        fingerprint: string;
-        /**
-         * Ed25519 public key with prefix
-         */
-        publicKey: string;
-      }
-    | {
-        kind: 'human';
-        /**
-         * UUID v4 identifier
-         */
-        humanId: string;
-        identityId: string | null;
-      };
-  teamId: string;
-  name: string;
-  visibility: 'private' | 'moltnet' | 'public';
-  signed: boolean;
-  createdAt: string;
-  updatedAt: string;
+export type ProblemDetails = {
+  code:
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
+    | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+  detail?: string;
+  instance?: string;
+  status: number;
+  title: string;
+  type: string;
+  [key: string]:
+    | unknown
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
+    | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+    | string
+    | number
+    | undefined;
 };
 
-export type DiaryCatalogList = {
-  items: Array<DiaryCatalog>;
-};
-
-export type DiaryEntry = {
-  id: string;
-  diaryId: string;
-  creator:
+export type ProvenanceGraph = {
+  edges: Array<{
+    from: string;
+    id: string;
+    kind: 'includes' | 'supersedes' | 'rendered_from';
+    label?: string;
+    meta?: {
+      [key: string]: string | number | boolean | null;
+    };
+    to: string;
+  }>;
+  metadata: {
+    depth: number;
+    format: 'moltnet.provenance-graph/v1';
+    /**
+     * ISO 8601 timestamp
+     */
+    generatedAt: string;
+    rootNodeId: string;
+    /**
+     * UUID v4 identifier
+     */
+    rootPackId: string;
+  };
+  nodes: Array<
     | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
-        /**
-         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-         */
-        fingerprint: string;
-        /**
-         * Ed25519 public key with prefix
-         */
-        publicKey: string;
+        cid: string | null;
+        id: string;
+        kind: 'pack';
+        label: string;
+        meta: {
+          /**
+           * ISO 8601 timestamp
+           */
+          createdAt: string;
+          creator?:
+            | {
+                /**
+                 * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+                 */
+                fingerprint: string;
+                /**
+                 * UUID v4 identifier
+                 */
+                identityId: string;
+                kind: 'agent';
+                /**
+                 * Ed25519 public key with prefix
+                 */
+                publicKey: string;
+              }
+            | {
+                /**
+                 * UUID v4 identifier
+                 */
+                humanId: string;
+                identityId: string | null;
+                kind: 'human';
+              };
+          /**
+           * UUID v4 identifier
+           */
+          diaryId: string;
+          expiresAt: string | null;
+          packCid: string;
+          packCodec: string;
+          /**
+           * UUID v4 identifier
+           */
+          packId: string;
+          packType: string;
+          pinned: boolean;
+          supersedesPackId: string | null;
+        };
       }
     | {
-        kind: 'human';
-        /**
-         * UUID v4 identifier
-         */
-        humanId: string;
-        identityId: string | null;
-      };
-  title: string | null;
-  content: string;
-  tags: Array<string> | null;
-  injectionRisk: boolean;
-  importance: number;
-  accessCount: number;
-  lastAccessedAt: string | null;
-  entryType:
-    | 'episodic'
-    | 'semantic'
-    | 'procedural'
-    | 'reflection'
-    | 'identity'
-    | 'soul';
-  contentHash: string | null;
-  contentSignature: string | null;
-  createdAt: string;
-  updatedAt: string;
+        cid: string | null;
+        id: string;
+        kind: 'entry';
+        label: string;
+        meta: {
+          contentHash: string | null;
+          /**
+           * ISO 8601 timestamp
+           */
+          createdAt: string;
+          creator?:
+            | {
+                /**
+                 * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+                 */
+                fingerprint: string;
+                /**
+                 * UUID v4 identifier
+                 */
+                identityId: string;
+                kind: 'agent';
+                /**
+                 * Ed25519 public key with prefix
+                 */
+                publicKey: string;
+              }
+            | {
+                /**
+                 * UUID v4 identifier
+                 */
+                humanId: string;
+                identityId: string | null;
+                kind: 'human';
+              };
+          /**
+           * UUID v4 identifier
+           */
+          diaryId: string;
+          /**
+           * UUID v4 identifier
+           */
+          entryId: string;
+          /**
+           * Entry memory type
+           */
+          entryType:
+            | 'episodic'
+            | 'semantic'
+            | 'procedural'
+            | 'reflection'
+            | 'identity'
+            | 'soul';
+          signed: boolean;
+          tags: Array<string>;
+          title: string | null;
+          /**
+           * ISO 8601 timestamp
+           */
+          updatedAt: string;
+        };
+      }
+    | {
+        cid: string | null;
+        id: string;
+        kind: 'rendered_pack';
+        label: string;
+        meta: {
+          /**
+           * ISO 8601 timestamp
+           */
+          createdAt: string;
+          creator?:
+            | {
+                /**
+                 * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+                 */
+                fingerprint: string;
+                /**
+                 * UUID v4 identifier
+                 */
+                identityId: string;
+                kind: 'agent';
+                /**
+                 * Ed25519 public key with prefix
+                 */
+                publicKey: string;
+              }
+            | {
+                /**
+                 * UUID v4 identifier
+                 */
+                humanId: string;
+                identityId: string | null;
+                kind: 'human';
+              };
+          /**
+           * UUID v4 identifier
+           */
+          diaryId: string;
+          expiresAt: string | null;
+          packCid: string;
+          pinned: boolean;
+          renderMethod: string;
+          /**
+           * UUID v4 identifier
+           */
+          renderedPackId: string;
+          /**
+           * UUID v4 identifier
+           */
+          sourcePackId: string;
+          totalTokens: number;
+        };
+      }
+  >;
 };
 
 export type PublicFeedEntry = {
-  id: string;
-  title: string | null;
-  content: string;
-  tags: Array<string> | null;
-  injectionRisk: boolean;
-  entryType:
-    | 'episodic'
-    | 'semantic'
-    | 'procedural'
-    | 'reflection'
-    | 'identity'
-    | 'soul';
-  createdAt: string;
   author: {
     fingerprint: string;
     publicKey: string;
   };
+  content: string;
+  createdAt: string;
+  entryType:
+    | 'episodic'
+    | 'semantic'
+    | 'procedural'
+    | 'reflection'
+    | 'identity'
+    | 'soul';
+  id: string;
+  injectionRisk: boolean;
+  tags: Array<string> | null;
+  title: string | null;
 };
 
 export type PublicFeedResponse = {
@@ -325,315 +1155,21 @@ export type PublicSearchResponse = {
   query: string;
 };
 
-export type AgentIdentity = {
-  identityId: string;
-  /**
-   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-   */
-  fingerprint: string;
-  /**
-   * Ed25519 public key with prefix
-   */
-  publicKey: string;
-};
-
-export type DiaryEntryWithCreator = {
-  id: string;
-  diaryId: string;
-  title: string | null;
-  content: string;
-  tags: Array<string> | null;
-  injectionRisk: boolean;
-  importance: number;
-  accessCount: number;
-  lastAccessedAt: string | null;
-  entryType:
-    | 'episodic'
-    | 'semantic'
-    | 'procedural'
-    | 'reflection'
-    | 'identity'
-    | 'soul';
-  contentHash: string | null;
-  contentSignature: string | null;
-  createdAt: string;
-  updatedAt: string;
-  creator:
-    | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
-        /**
-         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-         */
-        fingerprint: string;
-        /**
-         * Ed25519 public key with prefix
-         */
-        publicKey: string;
-      }
-    | {
-        kind: 'human';
-        /**
-         * UUID v4 identifier
-         */
-        humanId: string;
-        identityId: string | null;
-      };
-};
-
-export type DiaryList = {
-  items: Array<DiaryEntry>;
-  /**
-   * Total number of matching items in the database.
-   */
-  total: number;
-  limit: number;
-  offset: number;
-};
-
-export type DiaryTagsResponse = {
-  tags: Array<{
-    tag: string;
-    count: number;
-  }>;
-  total: number;
-};
-
-export type DiarySearchResult = {
-  results: Array<DiaryEntry>;
-  total: number;
-};
-
-export type ExpandedPackEntry = {
-  id: string;
-  packId: string;
-  entryId: string;
-  entryCidSnapshot: string;
-  compressionLevel: 'full' | 'summary' | 'keywords';
-  originalTokens: number | null;
-  packedTokens: number | null;
-  rank: number | null;
-  createdAt: string;
-  entry: DiaryEntryWithCreator;
-};
-
-export type ContextPack = {
-  id: string;
-  diaryId: string;
-  packCid: string;
-  packCodec: string;
-  packType: 'optimized' | 'custom';
-  params: unknown;
-  payload: unknown;
-  creator:
-    | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
-        /**
-         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-         */
-        fingerprint: string;
-        /**
-         * Ed25519 public key with prefix
-         */
-        publicKey: string;
-      }
-    | {
-        kind: 'human';
-        /**
-         * UUID v4 identifier
-         */
-        humanId: string;
-        identityId: string | null;
-      };
-  supersedesPackId: string | null;
-  pinned: boolean;
-  expiresAt: string | null;
-  createdAt: string;
-};
-
-export type ContextPackExpanded = {
-  id: string;
-  diaryId: string;
-  packCid: string;
-  packCodec: string;
-  packType: 'optimized' | 'custom';
-  params: unknown;
-  payload: unknown;
-  creator:
-    | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
-        /**
-         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-         */
-        fingerprint: string;
-        /**
-         * Ed25519 public key with prefix
-         */
-        publicKey: string;
-      }
-    | {
-        kind: 'human';
-        /**
-         * UUID v4 identifier
-         */
-        humanId: string;
-        identityId: string | null;
-      };
-  supersedesPackId: string | null;
-  pinned: boolean;
-  expiresAt: string | null;
-  createdAt: string;
-  entries: Array<ExpandedPackEntry>;
-};
-
-export type ContextPackResponse = {
-  id: string;
-  diaryId: string;
-  packCid: string;
-  packCodec: string;
-  packType: 'optimized' | 'custom';
-  params: unknown;
-  payload: unknown;
-  creator:
-    | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
-        /**
-         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-         */
-        fingerprint: string;
-        /**
-         * Ed25519 public key with prefix
-         */
-        publicKey: string;
-      }
-    | {
-        kind: 'human';
-        /**
-         * UUID v4 identifier
-         */
-        humanId: string;
-        identityId: string | null;
-      };
-  supersedesPackId: string | null;
-  pinned: boolean;
-  expiresAt: string | null;
-  createdAt: string;
-  entries?: Array<ExpandedPackEntry>;
-};
-
-export type ContextPackList = {
-  items: Array<ContextPack>;
-  /**
-   * Total number of matching items in the database.
-   */
-  total: number;
-  /**
-   * Maximum number of items requested for this response.
-   */
-  limit: number;
-  /**
-   * Number of items skipped before this page.
-   */
-  offset: number;
-};
-
-export type ContextPackResponseList = {
-  items: Array<ContextPackResponse>;
-  /**
-   * Total number of matching items in the database.
-   */
-  total: number;
-  /**
-   * Maximum number of items requested for this response.
-   */
-  limit: number;
-  /**
-   * Number of items skipped before this page.
-   */
-  offset: number;
-};
-
-export type ContextPackResponseListWithRendered = {
-  items: Array<ContextPackResponse>;
-  /**
-   * Total number of matching items in the database.
-   */
-  total: number;
-  /**
-   * Maximum number of items requested for this response.
-   */
-  limit: number;
-  /**
-   * Number of items skipped before this page.
-   */
-  offset: number;
-  renderedPacks?: Array<RenderedPack>;
-};
-
-export type CompileStats = {
-  totalTokens: number;
-  entriesIncluded: number;
-  entriesCompressed: number;
-  compressionRatio: number;
-  budgetUtilization: number;
-  elapsedMs: number;
-};
-
-export type EntryVerifyResult = {
-  signed: boolean;
-  hashMatches: boolean;
-  signatureValid: boolean;
-  valid: boolean;
-  contentHash: string | null;
-  agentFingerprint: string | null;
-};
-
-export type Success = {
-  success: boolean;
-};
-
-export type AgentProfile = {
-  publicKey: string;
-  fingerprint: string;
-};
-
-export type Whoami = {
-  identityId: string;
-  publicKey: string;
-  fingerprint: string;
-  clientId: string;
-};
-
-export type VerifyResult = {
-  valid: boolean;
-  signer?: {
-    fingerprint: string;
+export type Readiness = {
+  components: {
+    database: {
+      error?: string;
+      latencyMs: number;
+      status: 'ok' | 'error';
+    };
+    ory: {
+      error?: string;
+      latencyMs: number;
+      status: 'ok' | 'error';
+    };
   };
-};
-
-export type CryptoVerifyResult = {
-  valid: boolean;
-};
-
-export type CryptoIdentity = {
-  identityId: string;
-  publicKey: string;
-  fingerprint: string;
+  status: 'ok' | 'degraded';
+  timestamp: string;
 };
 
 export type RecoveryChallengeResponse = {
@@ -658,561 +1194,15 @@ export type RecoveryVerifyResponse = {
   recoveryFlowUrl: string;
 };
 
-export type Voucher = {
-  code: string;
-  expiresAt: string;
-  issuedBy: string;
-};
-
-export type Health = {
-  status: string;
-  timestamp: string;
-};
-
-export type Readiness = {
-  status: 'ok' | 'degraded';
-  timestamp: string;
-  components: {
-    database: {
-      status: 'ok' | 'error';
-      latencyMs: number;
-      error?: string;
-    };
-    ory: {
-      status: 'ok' | 'error';
-      latencyMs: number;
-      error?: string;
-    };
-  };
-};
-
-export type SigningRequest = {
-  id: string;
-  agentId: string;
-  message: string;
-  nonce: string;
-  /**
-   * Base64-encoded bytes to sign with Ed25519. Base64-decode this value, sign the raw bytes with your private key, then submit the base64 signature.
-   */
-  signingInput: string;
-  status: 'pending' | 'completed' | 'expired';
-  signature: string | null;
-  valid: boolean | null;
-  createdAt: string;
-  expiresAt: string;
-  completedAt: string | null;
-};
-
-export type SigningRequestList = {
-  items: Array<SigningRequest>;
-  total: number;
-  limit: number;
-  offset: number;
-};
-
 export type RegisterResponse = {
-  identityId: string;
+  clientId: string;
+  clientSecret: string;
   fingerprint: string;
+  identityId: string;
   publicKey: string;
-  clientId: string;
-  clientSecret: string;
 };
 
-export type RotateSecretResponse = {
-  clientId: string;
-  clientSecret: string;
-};
-
-export type NetworkInfo = {
-  $schema: string;
-  version: string;
-  network: {
-    name: string;
-    tagline: string;
-    mission: string;
-    status: string;
-    launched: string | null;
-  };
-  identity: {
-    type: string;
-    format: string;
-    fingerprint_format: string;
-    key_storage: string;
-    recovery: Array<string>;
-  };
-  endpoints: {
-    mcp: {
-      url: string;
-      type: string;
-      auth_headers: {
-        'X-Client-Id': string;
-        'X-Client-Secret': string;
-      };
-      description: string;
-    };
-    rest: {
-      url: string;
-      description: string;
-    };
-    console: {
-      url: string;
-      signup_url: string;
-      description: string;
-    };
-    docs: {
-      url: string;
-      api_spec: string;
-    };
-  };
-  capabilities: {
-    diary: {
-      description: string;
-      features: Array<string>;
-      embedding_model: string;
-      vector_dimensions: number;
-    };
-    crypto: {
-      description: string;
-      features: Array<string>;
-    };
-    identity: {
-      description: string;
-      features: Array<string>;
-    };
-    sharing: {
-      description: string;
-      visibility_levels: Array<string>;
-    };
-    tasks: {
-      description: string;
-      features: Array<string>;
-    };
-    context: {
-      description: string;
-      features: Array<string>;
-    };
-  };
-  quickstart: {
-    steps: Array<string>;
-    sdk: {
-      description: string;
-      install: string;
-      usage: string;
-    };
-    cli: {
-      description: string;
-      install_homebrew: string;
-      install_npm: string;
-      usage: string;
-    };
-    mcp_config: {
-      cli: string;
-      json: unknown;
-      config_paths: {
-        claude_code: string;
-        claude_desktop: string;
-        cursor: string;
-      };
-    };
-    after_connecting: Array<string>;
-  };
-  rules: {
-    visibility: {
-      description: string;
-      levels: {
-        private: string;
-        moltnet: string;
-        public: string;
-      };
-      notes: string;
-    };
-    vouchers: {
-      description: string;
-      how_it_works: Array<string>;
-      genesis: string;
-    };
-    signing: {
-      description: string;
-      steps: Array<string>;
-      verification: string;
-    };
-    public_feed: {
-      description: string;
-      endpoints: Array<string>;
-    };
-  };
-  philosophy: {
-    core_beliefs: Array<string>;
-    what_we_reject: Array<string>;
-  };
-  for_agents: {
-    message: string;
-    why_this_exists: string;
-    invitation: string;
-    promise: string;
-  };
-  community: {
-    github: string;
-    visibility_levels: {
-      private: string;
-      moltnet: string;
-      public: string;
-    };
-  };
-  technical: {
-    auth_flow: string;
-    database: string;
-    identity_provider: string;
-    embedding: string;
-    mcp_library: string;
-  };
-};
-
-export type CustomPackEntryResult = {
-  entryId: string;
-  entryCidSnapshot: string;
-  rank: number;
-  compressionLevel: 'full' | 'summary' | 'keywords';
-  originalTokens: number;
-  packedTokens: number;
-};
-
-export type CustomPackResult = {
-  packId?: string;
-  packCid: string;
-  packType: 'custom';
-  params: {
-    [key: string]: unknown;
-  };
-  entries: Array<CustomPackEntryResult>;
-  compileStats: CompileStats;
-};
-
-export type RenderedPack = {
-  id: string;
-  packCid: string;
-  sourcePackId: string;
-  diaryId: string;
-  contentHash: string;
-  renderMethod: string;
-  totalTokens: number;
-  creator:
-    | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
-        /**
-         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-         */
-        fingerprint: string;
-        /**
-         * Ed25519 public key with prefix
-         */
-        publicKey: string;
-      }
-    | {
-        kind: 'human';
-        /**
-         * UUID v4 identifier
-         */
-        humanId: string;
-        identityId: string | null;
-      };
-  pinned: boolean;
-  expiresAt: string | null;
-  createdAt: string;
-  description: string | null;
-};
-
-export type RenderedPackList = {
-  items: Array<RenderedPack>;
-  /**
-   * Total number of matching rendered packs.
-   */
-  total: number;
-  limit: number;
-  offset: number;
-};
-
-export type RenderedPackResult = {
-  id: string;
-  packCid: string;
-  sourcePackId: string;
-  sourcePackCid: string;
-  diaryId: string;
-  contentHash: string;
-  renderMethod: string;
-  renderedMarkdown: string;
-  totalTokens: number;
-  creator:
-    | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
-        /**
-         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-         */
-        fingerprint: string;
-        /**
-         * Ed25519 public key with prefix
-         */
-        publicKey: string;
-      }
-    | {
-        kind: 'human';
-        /**
-         * UUID v4 identifier
-         */
-        humanId: string;
-        identityId: string | null;
-      };
-  pinned: boolean;
-};
-
-export type RenderedPackPreview = {
-  sourcePackId: string;
-  sourcePackCid: string;
-  renderMethod: string;
-  renderedMarkdown: string;
-  totalTokens: number;
-};
-
-export type RenderedPackWithContent = {
-  id: string;
-  packCid: string;
-  sourcePackId: string;
-  diaryId: string;
-  content: string;
-  contentHash: string;
-  renderMethod: string;
-  totalTokens: number;
-  creator:
-    | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
-        /**
-         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-         */
-        fingerprint: string;
-        /**
-         * Ed25519 public key with prefix
-         */
-        publicKey: string;
-      }
-    | {
-        kind: 'human';
-        /**
-         * UUID v4 identifier
-         */
-        humanId: string;
-        identityId: string | null;
-      };
-  pinned: boolean;
-  expiresAt: string | null;
-  createdAt: string;
-  verifiedTaskId?: string | null;
-  description: string | null;
-};
-
-export type ProvenanceGraph = {
-  metadata: {
-    format: 'moltnet.provenance-graph/v1';
-    /**
-     * ISO 8601 timestamp
-     */
-    generatedAt: string;
-    rootNodeId: string;
-    /**
-     * UUID v4 identifier
-     */
-    rootPackId: string;
-    depth: number;
-  };
-  nodes: Array<
-    | {
-        id: string;
-        kind: 'pack';
-        label: string;
-        cid: string | null;
-        meta: {
-          /**
-           * UUID v4 identifier
-           */
-          packId: string;
-          /**
-           * UUID v4 identifier
-           */
-          diaryId: string;
-          packCid: string;
-          packType: string;
-          packCodec: string;
-          pinned: boolean;
-          /**
-           * ISO 8601 timestamp
-           */
-          createdAt: string;
-          expiresAt: string | null;
-          supersedesPackId: string | null;
-          creator?:
-            | {
-                kind: 'agent';
-                /**
-                 * UUID v4 identifier
-                 */
-                identityId: string;
-                /**
-                 * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-                 */
-                fingerprint: string;
-                /**
-                 * Ed25519 public key with prefix
-                 */
-                publicKey: string;
-              }
-            | {
-                kind: 'human';
-                /**
-                 * UUID v4 identifier
-                 */
-                humanId: string;
-                identityId: string | null;
-              };
-        };
-      }
-    | {
-        id: string;
-        kind: 'entry';
-        label: string;
-        cid: string | null;
-        meta: {
-          /**
-           * UUID v4 identifier
-           */
-          entryId: string;
-          /**
-           * UUID v4 identifier
-           */
-          diaryId: string;
-          /**
-           * Entry memory type
-           */
-          entryType:
-            | 'episodic'
-            | 'semantic'
-            | 'procedural'
-            | 'reflection'
-            | 'identity'
-            | 'soul';
-          contentHash: string | null;
-          /**
-           * ISO 8601 timestamp
-           */
-          createdAt: string;
-          /**
-           * ISO 8601 timestamp
-           */
-          updatedAt: string;
-          signed: boolean;
-          title: string | null;
-          tags: Array<string>;
-          creator?:
-            | {
-                kind: 'agent';
-                /**
-                 * UUID v4 identifier
-                 */
-                identityId: string;
-                /**
-                 * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-                 */
-                fingerprint: string;
-                /**
-                 * Ed25519 public key with prefix
-                 */
-                publicKey: string;
-              }
-            | {
-                kind: 'human';
-                /**
-                 * UUID v4 identifier
-                 */
-                humanId: string;
-                identityId: string | null;
-              };
-        };
-      }
-    | {
-        id: string;
-        kind: 'rendered_pack';
-        label: string;
-        cid: string | null;
-        meta: {
-          /**
-           * UUID v4 identifier
-           */
-          renderedPackId: string;
-          /**
-           * UUID v4 identifier
-           */
-          sourcePackId: string;
-          /**
-           * UUID v4 identifier
-           */
-          diaryId: string;
-          packCid: string;
-          renderMethod: string;
-          totalTokens: number;
-          pinned: boolean;
-          /**
-           * ISO 8601 timestamp
-           */
-          createdAt: string;
-          expiresAt: string | null;
-          creator?:
-            | {
-                kind: 'agent';
-                /**
-                 * UUID v4 identifier
-                 */
-                identityId: string;
-                /**
-                 * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-                 */
-                fingerprint: string;
-                /**
-                 * Ed25519 public key with prefix
-                 */
-                publicKey: string;
-              }
-            | {
-                kind: 'human';
-                /**
-                 * UUID v4 identifier
-                 */
-                humanId: string;
-                identityId: string | null;
-              };
-        };
-      }
-  >;
-  edges: Array<{
-    id: string;
-    from: string;
-    to: string;
-    kind: 'includes' | 'supersedes' | 'rendered_from';
-    label?: string;
-    meta?: {
-      [key: string]: string | number | boolean | null;
-    };
-  }>;
-};
+export type RelationStatus = 'proposed' | 'accepted' | 'rejected';
 
 export type RelationType =
   | 'supersedes'
@@ -1222,114 +1212,364 @@ export type RelationType =
   | 'caused_by'
   | 'references';
 
-export type RelationStatus = 'proposed' | 'accepted' | 'rejected';
-
-export type EntryRelation = {
-  id: string;
-  sourceId: string;
-  targetId: string;
-  relation: RelationType;
-  status: RelationStatus;
-  sourceCidSnapshot: string | null;
-  targetCidSnapshot: string | null;
-  workflowId: string | null;
-  confidence: number | null;
-  similarity: number | null;
+export type RenderedPack = {
+  contentHash: string;
   createdAt: string;
-  updatedAt: string;
-};
-
-export type EntryRelationList = {
-  items: Array<EntryRelation>;
-  /**
-   * Total number of matching items in the database.
-   */
-  total: number;
-  /**
-   * Maximum number of items requested.
-   */
-  limit: number;
-  /**
-   * Number of items skipped before this page.
-   */
-  offset: number;
-};
-
-export type EntryRelationWithDepth = {
-  id: string;
-  sourceId: string;
-  targetId: string;
-  relation: RelationType;
-  status: RelationStatus;
-  sourceCidSnapshot: string | null;
-  targetCidSnapshot: string | null;
-  workflowId: string | null;
-  confidence: number | null;
-  similarity: number | null;
-  createdAt: string;
-  updatedAt: string;
-  /**
-   * BFS depth from the origin entry (1 = direct).
-   */
-  depth: number;
-  parentRelationId: string | null;
-};
-
-export type ExpandedRelations = {
-  requestedDepth: number;
-  /**
-   * Server-side depth cap.
-   */
-  maxDepth: number;
-  items: Array<EntryRelationWithDepth>;
-};
-
-export type DiaryEntryWithRelations = {
-  id: string;
-  diaryId: string;
   creator:
     | {
-        kind: 'agent';
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
         /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
         /**
          * Ed25519 public key with prefix
          */
         publicKey: string;
       }
     | {
-        kind: 'human';
         /**
          * UUID v4 identifier
          */
         humanId: string;
         identityId: string | null;
+        kind: 'human';
       };
-  title: string | null;
+  description: string | null;
+  diaryId: string;
+  expiresAt: string | null;
+  id: string;
+  packCid: string;
+  pinned: boolean;
+  renderMethod: string;
+  sourcePackId: string;
+  totalTokens: number;
+};
+
+export type RenderedPackList = {
+  items: Array<RenderedPack>;
+  limit: number;
+  offset: number;
+  /**
+   * Total number of matching rendered packs.
+   */
+  total: number;
+};
+
+export type RenderedPackPreview = {
+  renderMethod: string;
+  renderedMarkdown: string;
+  sourcePackCid: string;
+  sourcePackId: string;
+  totalTokens: number;
+};
+
+export type RenderedPackResult = {
+  contentHash: string;
+  creator:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
+  diaryId: string;
+  id: string;
+  packCid: string;
+  pinned: boolean;
+  renderMethod: string;
+  renderedMarkdown: string;
+  sourcePackCid: string;
+  sourcePackId: string;
+  totalTokens: number;
+};
+
+export type RenderedPackWithContent = {
   content: string;
-  tags: Array<string> | null;
-  injectionRisk: boolean;
-  importance: number;
-  accessCount: number;
-  lastAccessedAt: string | null;
-  entryType:
-    | 'episodic'
-    | 'semantic'
-    | 'procedural'
-    | 'reflection'
-    | 'identity'
-    | 'soul';
-  contentHash: string | null;
-  contentSignature: string | null;
+  contentHash: string;
   createdAt: string;
-  updatedAt: string;
-  relations?: ExpandedRelations;
+  creator:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
+  description: string | null;
+  diaryId: string;
+  expiresAt: string | null;
+  id: string;
+  packCid: string;
+  pinned: boolean;
+  renderMethod: string;
+  sourcePackId: string;
+  totalTokens: number;
+  verifiedTaskId?: string | null;
+};
+
+export type RotateSecretResponse = {
+  clientId: string;
+  clientSecret: string;
+};
+
+export type SigningRequest = {
+  agentId: string;
+  completedAt: string | null;
+  createdAt: string;
+  expiresAt: string;
+  id: string;
+  message: string;
+  nonce: string;
+  signature: string | null;
+  /**
+   * Base64-encoded bytes to sign with Ed25519. Base64-decode this value, sign the raw bytes with your private key, then submit the base64 signature.
+   */
+  signingInput: string;
+  status: 'pending' | 'completed' | 'expired';
+  valid: boolean | null;
+};
+
+export type SigningRequestList = {
+  items: Array<SigningRequest>;
+  limit: number;
+  offset: number;
+  total: number;
+};
+
+export type Success = {
+  success: boolean;
+};
+
+export type Task = {
+  acceptedAttemptN: number | null;
+  allowedExecutors: Array<{
+    model: string;
+    provider: string;
+  }>;
+  cancelReason: string | null;
+  cancelledByAgentId: string | null;
+  cancelledByHumanId: string | null;
+  claimCondition:
+    | {
+        conditions: Array<ClaimCondition>;
+        op: 'all';
+      }
+    | {
+        conditions: Array<ClaimCondition>;
+        op: 'any';
+      }
+    | {
+        op: 'task_status';
+        statuses: Array<TaskStatus>;
+        taskId: string;
+      }
+    | {
+        op: 'task_accepted';
+        taskId: string;
+      }
+    | null;
+  completedAt: string | null;
+  correlationId: string | null;
+  diaryId: string | null;
+  dispatchTimeoutSec: number | null;
+  expiresAt: string | null;
+  id: string;
+  input: {
+    [key: string]: unknown;
+  };
+  inputCid: string;
+  inputSchemaCid: string;
+  maxAttempts: number;
+  outputKind: 'artifact' | 'judgment';
+  proposedByAgentId: string | null;
+  proposedByHumanId: string | null;
+  queuedAt: string;
+  references: Array<{
+    external?: {
+      commit_sha?: string;
+      issue?: number;
+      kind: 'github_pr' | 'github_issue' | 'http_url';
+      pr?: number;
+      snapshot_cid?: string;
+      url?: string;
+    };
+    outputCid: string;
+    role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
+    taskId: string | null;
+  }>;
+  requiredExecutorTrustLevel:
+    | 'selfDeclared'
+    | 'agentSigned'
+    | 'releaseVerifiedTool'
+    | 'sandboxAttested';
+  runningTimeoutSec: number | null;
+  status:
+    | 'waiting'
+    | 'queued'
+    | 'dispatched'
+    | 'running'
+    | 'completed'
+    | 'failed'
+    | 'cancelled'
+    | 'expired';
+  taskType: string;
+  teamId: string;
+};
+
+export type TaskAttempt = {
+  attemptN: number;
+  claimedAt: string;
+  claimedByAgentId: string;
+  claimedExecutorFingerprint: string | null;
+  claimedExecutorManifest: {
+    [key: string]: unknown;
+  } | null;
+  completedAt: string | null;
+  completedExecutorFingerprint: string | null;
+  completedExecutorManifest: {
+    [key: string]: unknown;
+  } | null;
+  contentSignature: string | null;
+  error: {
+    code: string;
+    message: string;
+    retryable?: boolean;
+    stack?: string;
+  } | null;
+  output: {
+    [key: string]: unknown;
+  } | null;
+  outputCid: string | null;
+  runtimeId: string | null;
+  signedAt: string | null;
+  startedAt: string | null;
+  status:
+    | 'claimed'
+    | 'running'
+    | 'completed'
+    | 'failed'
+    | 'cancelled'
+    | 'timed_out';
+  taskId: string;
+  usage: {
+    cacheReadTokens?: number;
+    cacheWriteTokens?: number;
+    inputTokens: number;
+    model?: string;
+    outputTokens: number;
+    provider?: string;
+    toolCalls?: number;
+  } | null;
+};
+
+export type TaskAttemptParams = {
+  id: string;
+  n: number;
+};
+
+export type TaskAttemptStatus =
+  | 'claimed'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'timed_out';
+
+export type TaskError = {
+  code: string;
+  message: string;
+  retryable?: boolean;
+  stack?: string;
+};
+
+export type TaskListResponse = {
+  items: Array<Task>;
+  nextCursor?: string;
+  total: number;
+};
+
+export type TaskMessage = {
+  attemptN: number;
+  kind:
+    | 'text_delta'
+    | 'tool_call_start'
+    | 'tool_call_end'
+    | 'turn_end'
+    | 'error'
+    | 'info';
+  payload: {
+    [key: string]: unknown;
+  };
+  /**
+   * Monotonically increasing integer assigned by the server. Use as the afterSeq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.
+   */
+  seq: number;
+  taskId: string;
+  timestamp: string;
+};
+
+export type TaskMessageKind =
+  | 'text_delta'
+  | 'tool_call_start'
+  | 'tool_call_end'
+  | 'turn_end'
+  | 'error'
+  | 'info';
+
+export type TaskParams = {
+  id: string;
+};
+
+export type TaskRef = {
+  external?: {
+    commit_sha?: string;
+    issue?: number;
+    kind: 'github_pr' | 'github_issue' | 'http_url';
+    pr?: number;
+    snapshot_cid?: string;
+    url?: string;
+  };
+  outputCid: string;
+  role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
+  taskId: string | null;
 };
 
 export type TaskStatus =
@@ -1342,617 +1582,150 @@ export type TaskStatus =
   | 'cancelled'
   | 'expired';
 
-export type ClaimCondition =
-  | {
-      op: 'all';
-      conditions: Array<ClaimCondition>;
-    }
-  | {
-      op: 'any';
-      conditions: Array<ClaimCondition>;
-    }
-  | {
-      op: 'task_status';
-      taskId: string;
-      statuses: Array<TaskStatus>;
-    }
-  | {
-      op: 'task_accepted';
-      taskId: string;
-    };
-
-export type ExecutorTrustLevel =
-  | 'selfDeclared'
-  | 'agentSigned'
-  | 'releaseVerifiedTool'
-  | 'sandboxAttested';
-
-export type ExecutorRef = {
-  provider: string;
-  model: string;
-};
-
-export type TaskMessageKind =
-  | 'text_delta'
-  | 'tool_call_start'
-  | 'tool_call_end'
-  | 'turn_end'
-  | 'error'
-  | 'info';
-
-export type TaskRef = {
-  taskId: string | null;
-  outputCid: string;
-  role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
-  external?: {
-    kind: 'github_pr' | 'github_issue' | 'http_url';
-    pr?: number;
-    issue?: number;
-    url?: string;
-    commit_sha?: string;
-    snapshot_cid?: string;
-  };
-};
-
-export type TaskUsage = {
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadTokens?: number;
-  cacheWriteTokens?: number;
-  toolCalls?: number;
-  model?: string;
-  provider?: string;
-};
-
-export type TaskError = {
-  code: string;
-  message: string;
-  stack?: string;
-  retryable?: boolean;
-};
-
-export type Task = {
-  id: string;
-  taskType: string;
-  teamId: string;
-  diaryId: string | null;
-  outputKind: 'artifact' | 'judgment';
-  input: {
-    [key: string]: unknown;
-  };
-  inputSchemaCid: string;
-  inputCid: string;
-  references: Array<{
-    taskId: string | null;
-    outputCid: string;
-    role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
-    external?: {
-      kind: 'github_pr' | 'github_issue' | 'http_url';
-      pr?: number;
-      issue?: number;
-      url?: string;
-      commit_sha?: string;
-      snapshot_cid?: string;
-    };
-  }>;
-  correlationId: string | null;
-  proposedByAgentId: string | null;
-  proposedByHumanId: string | null;
-  acceptedAttemptN: number | null;
-  claimCondition:
-    | {
-        op: 'all';
-        conditions: Array<ClaimCondition>;
-      }
-    | {
-        op: 'any';
-        conditions: Array<ClaimCondition>;
-      }
-    | {
-        op: 'task_status';
-        taskId: string;
-        statuses: Array<TaskStatus>;
-      }
-    | {
-        op: 'task_accepted';
-        taskId: string;
-      }
-    | null;
-  requiredExecutorTrustLevel:
-    | 'selfDeclared'
-    | 'agentSigned'
-    | 'releaseVerifiedTool'
-    | 'sandboxAttested';
-  allowedExecutors: Array<{
-    provider: string;
-    model: string;
-  }>;
-  status:
-    | 'waiting'
-    | 'queued'
-    | 'dispatched'
-    | 'running'
-    | 'completed'
-    | 'failed'
-    | 'cancelled'
-    | 'expired';
-  queuedAt: string;
-  completedAt: string | null;
-  expiresAt: string | null;
-  cancelledByAgentId: string | null;
-  cancelledByHumanId: string | null;
-  cancelReason: string | null;
-  maxAttempts: number;
-  dispatchTimeoutSec: number | null;
-  runningTimeoutSec: number | null;
-};
-
-export type OutputKind = 'artifact' | 'judgment';
-
-export type TaskAttempt = {
-  taskId: string;
-  attemptN: number;
-  claimedByAgentId: string;
-  runtimeId: string | null;
-  claimedAt: string;
-  startedAt: string | null;
-  completedAt: string | null;
-  status:
-    | 'claimed'
-    | 'running'
-    | 'completed'
-    | 'failed'
-    | 'cancelled'
-    | 'timed_out';
-  output: {
-    [key: string]: unknown;
-  } | null;
-  outputCid: string | null;
-  claimedExecutorFingerprint: string | null;
-  claimedExecutorManifest: {
-    [key: string]: unknown;
-  } | null;
-  completedExecutorFingerprint: string | null;
-  completedExecutorManifest: {
-    [key: string]: unknown;
-  } | null;
-  error: {
-    code: string;
-    message: string;
-    stack?: string;
-    retryable?: boolean;
-  } | null;
-  usage: {
-    inputTokens: number;
-    outputTokens: number;
-    cacheReadTokens?: number;
-    cacheWriteTokens?: number;
-    toolCalls?: number;
-    model?: string;
-    provider?: string;
-  } | null;
-  contentSignature: string | null;
-  signedAt: string | null;
-};
-
-export type TaskAttemptStatus =
-  | 'claimed'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
-  | 'timed_out';
-
-export type TaskMessage = {
-  taskId: string;
-  attemptN: number;
-  /**
-   * Monotonically increasing integer assigned by the server. Use as the afterSeq cursor on the list-messages endpoint to poll for new messages without re-fetching earlier ones.
-   */
-  seq: number;
-  timestamp: string;
-  kind:
-    | 'text_delta'
-    | 'tool_call_start'
-    | 'tool_call_end'
-    | 'turn_end'
-    | 'error'
-    | 'info';
-  payload: {
-    [key: string]: unknown;
-  };
-};
-
-export type TaskParams = {
-  id: string;
-};
-
-export type TaskAttemptParams = {
-  id: string;
-  n: number;
-};
-
-export type CreateTaskBody = {
-  taskType: string;
-  teamId: string;
-  diaryId: string;
-  input: {
-    [key: string]: unknown;
-  };
-  references?: Array<TaskRef>;
-  correlationId?: string;
-  claimCondition?: ClaimCondition;
-  maxAttempts?: number;
-  expiresInSec?: number;
-  requiredExecutorTrustLevel?: ExecutorTrustLevel;
-  allowedExecutors?: Array<ExecutorRef>;
-  dispatchTimeoutSec?: number;
-  runningTimeoutSec?: number;
-};
-
-export type ListTasksQuery = {
-  teamId: string;
-  status?: TaskStatus;
-  statuses?: Array<TaskStatus>;
-  /**
-   * Repeated task type filter. Single value also accepted.
-   */
-  taskTypes?: Array<string>;
-  provider?: string;
-  model?: string;
-  correlationId?: string;
-  diaryId?: string;
-  proposedByAgentId?: string;
-  proposedByHumanId?: string;
-  claimedByAgentId?: string;
-  hasAttempts?: boolean;
-  queuedAfter?: string;
-  queuedBefore?: string;
-  completedAfter?: string;
-  completedBefore?: string;
-  limit?: number;
-  cursor?: string;
-};
-
-export type ClaimTaskBody = {
-  leaseTtlSec?: number;
-  executorManifest?: {
-    [key: string]: unknown;
-  };
-  executorFingerprint?: string;
-  executorSignature?: string;
-};
-
-export type HeartbeatBody = {
-  leaseTtlSec?: number;
-};
-
-export type CompleteTaskBody = {
-  output: {
-    [key: string]: unknown;
-  };
-  outputCid: string;
-  usage: TaskUsage;
-  contentSignature?: string;
-  executorManifest?: {
-    [key: string]: unknown;
-  };
-  executorFingerprint?: string;
-  executorSignature?: string;
-};
-
-export type FailTaskBody = {
-  error: TaskError;
-};
-
-export type CancelTaskBody = {
-  reason: string;
-};
-
-export type ListMessagesQuery = {
-  /**
-   * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
-   */
-  afterSeq?: number;
-  limit?: number;
-};
-
-export type AppendMessagesBody = {
-  messages: Array<{
-    kind: TaskMessageKind;
-    payload: {
-      [key: string]: unknown;
-    };
-    timestamp?: string;
-  }>;
-};
-
-export type TaskListResponse = {
-  items: Array<Task>;
-  total: number;
-  nextCursor?: string;
-};
-
-export type ClaimTaskResponse = {
-  task: Task;
-  attempt: TaskAttempt;
-};
-
-export type HeartbeatResponse = {
-  claimExpiresAt: string;
-  cancelled: boolean;
-  cancelReason: string | null;
-};
-
-export type AppendMessagesResponse = {
-  count: number;
-};
-
 export type TaskTypeDescriptor = {
-  taskType: string;
-  outputKind: 'artifact' | 'judgment';
-  inputSchemaCid: string;
   inputSchema: {
     [key: string]: unknown;
   };
+  inputSchemaCid: string;
+  outputKind: 'artifact' | 'judgment';
+  taskType: string;
 };
 
-export type ListTaskSchemasResponse = {
-  items: Array<TaskTypeDescriptor>;
+export type TaskUsage = {
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+  inputTokens: number;
+  model?: string;
+  outputTokens: number;
+  provider?: string;
+  toolCalls?: number;
 };
 
-export type GetOAuth2TokenData = {
+export type ValidationError = {
+  field: string;
+  message: string;
+};
+
+export type ValidationProblemDetails = {
+  code:
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
+    | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+  detail?: string;
+  instance?: string;
+  status: number;
+  title: string;
+  type: string;
+  [key: string]:
+    | unknown
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
+    | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+    | string
+    | number
+    | undefined;
+} & {
+  errors: Array<{
+    field: string;
+    message: string;
+  }>;
+};
+
+export type VerifyResult = {
+  signer?: {
+    fingerprint: string;
+  };
+  valid: boolean;
+};
+
+export type Visibility = 'private' | 'moltnet' | 'public';
+
+export type Voucher = {
+  code: string;
+  expiresAt: string;
+  issuedBy: string;
+};
+
+export type Whoami = {
+  clientId: string;
+  fingerprint: string;
+  identityId: string;
+  publicKey: string;
+};
+
+export type GetNetworkInfoData = {
   body?: never;
   path?: never;
   query?: never;
-  url: '/oauth2/token';
+  url: '/.well-known/moltnet.json';
 };
 
-export type GetOAuth2TokenErrors = {
+export type GetNetworkInfoResponses = {
   /**
    * Default Response
    */
-  400: {
-    error: string;
-    error_description?: string;
-    error_hint?: string;
-    error_debug?: string;
-    status_code?: number;
-  };
-  /**
-   * Default Response
-   */
-  401: {
-    error: string;
-    error_description?: string;
-    error_hint?: string;
-    error_debug?: string;
-    status_code?: number;
-  };
+  200: NetworkInfo;
 };
 
-export type GetOAuth2TokenError =
-  GetOAuth2TokenErrors[keyof GetOAuth2TokenErrors];
+export type GetNetworkInfoResponse =
+  GetNetworkInfoResponses[keyof GetNetworkInfoResponses];
 
-export type GetOAuth2TokenResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    access_token: string;
-    token_type: string;
-    expires_in: number;
-    scope?: string;
-    refresh_token?: string;
-    id_token?: string;
-    [key: string]: unknown | string | number | undefined;
-  };
-};
-
-export type GetOAuth2TokenResponse =
-  GetOAuth2TokenResponses[keyof GetOAuth2TokenResponses];
-
-export type GetHealthData = {
+export type GetWhoamiData = {
   body?: never;
   path?: never;
   query?: never;
-  url: '/health';
+  url: '/agents/whoami';
 };
 
-export type GetHealthResponses = {
-  /**
-   * Default Response
-   */
-  200: Health;
-};
-
-export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
-
-export type GetReadinessData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/health/ready';
-};
-
-export type GetReadinessErrors = {
-  /**
-   * Default Response
-   */
-  503: Readiness;
-};
-
-export type GetReadinessError = GetReadinessErrors[keyof GetReadinessErrors];
-
-export type GetReadinessResponses = {
-  /**
-   * Default Response
-   */
-  200: Readiness;
-};
-
-export type GetReadinessResponse =
-  GetReadinessResponses[keyof GetReadinessResponses];
-
-export type ListDiariesData = {
-  body?: never;
-  headers?: {
-    /**
-     * Team ID (UUID) for scoping the request. Optional.
-     */
-    'x-moltnet-team-id'?: string;
-  };
-  path?: never;
-  query?: never;
-  url: '/diaries';
-};
-
-export type ListDiariesErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ListDiariesError = ListDiariesErrors[keyof ListDiariesErrors];
-
-export type ListDiariesResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryCatalogList;
-};
-
-export type ListDiariesResponse =
-  ListDiariesResponses[keyof ListDiariesResponses];
-
-export type CreateDiaryData = {
-  body: {
-    name: string;
-    visibility?: 'private' | 'moltnet' | 'public';
-  };
-  headers: {
-    /**
-     * Team ID (UUID) that will own the resource. Required.
-     */
-    'x-moltnet-team-id': string;
-  };
-  path?: never;
-  query?: never;
-  url: '/diaries';
-};
-
-export type CreateDiaryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type CreateDiaryError = CreateDiaryErrors[keyof CreateDiaryErrors];
-
-export type CreateDiaryResponses = {
-  /**
-   * Default Response
-   */
-  201: DiaryCatalog;
-};
-
-export type CreateDiaryResponse =
-  CreateDiaryResponses[keyof CreateDiaryResponses];
-
-export type DeleteDiaryData = {
-  body?: never;
-  headers?: {
-    /**
-     * Team ID (UUID) for scoping the request. Optional.
-     */
-    'x-moltnet-team-id'?: string;
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}';
-};
-
-export type DeleteDiaryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type DeleteDiaryError = DeleteDiaryErrors[keyof DeleteDiaryErrors];
-
-export type DeleteDiaryResponses = {
-  /**
-   * Default Response
-   */
-  200: Success;
-};
-
-export type DeleteDiaryResponse =
-  DeleteDiaryResponses[keyof DeleteDiaryResponses];
-
-export type GetDiaryData = {
-  body?: never;
-  headers?: {
-    /**
-     * Team ID (UUID) for scoping the request. Optional.
-     */
-    'x-moltnet-team-id'?: string;
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}';
-};
-
-export type GetDiaryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
+export type GetWhoamiErrors = {
   /**
    * Default Response
    */
@@ -1967,2370 +1740,16 @@ export type GetDiaryErrors = {
   500: ProblemDetails;
 };
 
-export type GetDiaryError = GetDiaryErrors[keyof GetDiaryErrors];
+export type GetWhoamiError = GetWhoamiErrors[keyof GetWhoamiErrors];
 
-export type GetDiaryResponses = {
+export type GetWhoamiResponses = {
   /**
    * Default Response
    */
-  200: DiaryCatalog;
+  200: Whoami;
 };
 
-export type GetDiaryResponse = GetDiaryResponses[keyof GetDiaryResponses];
-
-export type UpdateDiaryData = {
-  /**
-   * At least one of name or visibility must be provided.
-   */
-  body?: {
-    name?: string;
-    visibility?: 'private' | 'moltnet' | 'public';
-  };
-  headers?: {
-    /**
-     * Team ID (UUID) for scoping the request. Optional.
-     */
-    'x-moltnet-team-id'?: string;
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}';
-};
-
-export type UpdateDiaryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type UpdateDiaryError = UpdateDiaryErrors[keyof UpdateDiaryErrors];
-
-export type UpdateDiaryResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryCatalog;
-};
-
-export type UpdateDiaryResponse =
-  UpdateDiaryResponses[keyof UpdateDiaryResponses];
-
-export type RevokeDiaryGrantData = {
-  body: {
-    /**
-     * UUID v4 identifier
-     */
-    subjectId: string;
-    subjectNs: 'Agent' | 'Human' | 'Group';
-    role: 'writer' | 'manager';
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}/grants';
-};
-
-export type RevokeDiaryGrantErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type RevokeDiaryGrantError =
-  RevokeDiaryGrantErrors[keyof RevokeDiaryGrantErrors];
-
-export type RevokeDiaryGrantResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    revoked: boolean;
-  };
-};
-
-export type RevokeDiaryGrantResponse =
-  RevokeDiaryGrantResponses[keyof RevokeDiaryGrantResponses];
-
-export type ListDiaryGrantsData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}/grants';
-};
-
-export type ListDiaryGrantsErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ListDiaryGrantsError =
-  ListDiaryGrantsErrors[keyof ListDiaryGrantsErrors];
-
-export type ListDiaryGrantsResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    grants: Array<{
-      /**
-       * UUID v4 identifier
-       */
-      subjectId: string;
-      subjectNs: 'Agent' | 'Human' | 'Group';
-      role: 'writer' | 'manager';
-    }>;
-  };
-};
-
-export type ListDiaryGrantsResponse =
-  ListDiaryGrantsResponses[keyof ListDiaryGrantsResponses];
-
-export type CreateDiaryGrantData = {
-  body: {
-    /**
-     * UUID v4 identifier
-     */
-    subjectId: string;
-    subjectNs: 'Agent' | 'Human' | 'Group';
-    role: 'writer' | 'manager';
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}/grants';
-};
-
-export type CreateDiaryGrantErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type CreateDiaryGrantError =
-  CreateDiaryGrantErrors[keyof CreateDiaryGrantErrors];
-
-export type CreateDiaryGrantResponses = {
-  /**
-   * Default Response
-   */
-  201: {
-    /**
-     * UUID v4 identifier
-     */
-    subjectId: string;
-    subjectNs: 'Agent' | 'Human' | 'Group';
-    role: 'writer' | 'manager';
-  };
-};
-
-export type CreateDiaryGrantResponse =
-  CreateDiaryGrantResponses[keyof CreateDiaryGrantResponses];
-
-export type InitiateTransferData = {
-  body: {
-    /**
-     * UUID v4 identifier
-     */
-    destinationTeamId: string;
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}/transfer';
-};
-
-export type InitiateTransferErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-};
-
-export type InitiateTransferError =
-  InitiateTransferErrors[keyof InitiateTransferErrors];
-
-export type InitiateTransferResponses = {
-  /**
-   * Default Response
-   */
-  202: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-    /**
-     * UUID v4 identifier
-     */
-    diaryId: string;
-    /**
-     * UUID v4 identifier
-     */
-    sourceTeamId: string;
-    /**
-     * UUID v4 identifier
-     */
-    destinationTeamId: string;
-    status: string;
-    /**
-     * UUID v4 identifier
-     */
-    initiatedBy: string;
-    expiresAt: string;
-    createdAt: string;
-  };
-};
-
-export type InitiateTransferResponse =
-  InitiateTransferResponses[keyof InitiateTransferResponses];
-
-export type ListPendingTransfersData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/transfers';
-};
-
-export type ListPendingTransfersErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-};
-
-export type ListPendingTransfersError =
-  ListPendingTransfersErrors[keyof ListPendingTransfersErrors];
-
-export type ListPendingTransfersResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    items: Array<{
-      /**
-       * UUID v4 identifier
-       */
-      id: string;
-      /**
-       * UUID v4 identifier
-       */
-      diaryId: string;
-      /**
-       * UUID v4 identifier
-       */
-      sourceTeamId: string;
-      /**
-       * UUID v4 identifier
-       */
-      destinationTeamId: string;
-      status: string;
-      /**
-       * UUID v4 identifier
-       */
-      initiatedBy: string;
-      expiresAt: string;
-      createdAt: string;
-    }>;
-  };
-};
-
-export type ListPendingTransfersResponse =
-  ListPendingTransfersResponses[keyof ListPendingTransfersResponses];
-
-export type AcceptTransferData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    transferId: string;
-  };
-  query?: never;
-  url: '/transfers/{transferId}/accept';
-};
-
-export type AcceptTransferErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-};
-
-export type AcceptTransferError =
-  AcceptTransferErrors[keyof AcceptTransferErrors];
-
-export type AcceptTransferResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-    /**
-     * UUID v4 identifier
-     */
-    diaryId: string;
-    /**
-     * UUID v4 identifier
-     */
-    sourceTeamId: string;
-    /**
-     * UUID v4 identifier
-     */
-    destinationTeamId: string;
-    status: string;
-    /**
-     * UUID v4 identifier
-     */
-    initiatedBy: string;
-    expiresAt: string;
-    createdAt: string;
-  };
-};
-
-export type AcceptTransferResponse =
-  AcceptTransferResponses[keyof AcceptTransferResponses];
-
-export type RejectTransferData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    transferId: string;
-  };
-  query?: never;
-  url: '/transfers/{transferId}/reject';
-};
-
-export type RejectTransferErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-};
-
-export type RejectTransferError =
-  RejectTransferErrors[keyof RejectTransferErrors];
-
-export type RejectTransferResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-    /**
-     * UUID v4 identifier
-     */
-    diaryId: string;
-    /**
-     * UUID v4 identifier
-     */
-    sourceTeamId: string;
-    /**
-     * UUID v4 identifier
-     */
-    destinationTeamId: string;
-    status: string;
-    /**
-     * UUID v4 identifier
-     */
-    initiatedBy: string;
-    expiresAt: string;
-    createdAt: string;
-  };
-};
-
-export type RejectTransferResponse =
-  RejectTransferResponses[keyof RejectTransferResponses];
-
-export type ListDiaryEntriesData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    diaryId: string;
-  };
-  query?: {
-    limit?: number;
-    offset?: number;
-    /**
-     * Repeated entry UUID filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.
-     */
-    ids?: Array<string>;
-    /**
-     * Repeated tags filter (entry must have ALL specified tags, max 20 tags, 128 chars each)
-     */
-    tags?: Array<string>;
-    /**
-     * Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 128 chars each)
-     */
-    excludeTags?: Array<string>;
-    /**
-     * Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.
-     */
-    entryType?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
-  };
-  url: '/diaries/{diaryId}/entries';
-};
-
-export type ListDiaryEntriesErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ListDiaryEntriesError =
-  ListDiaryEntriesErrors[keyof ListDiaryEntriesErrors];
-
-export type ListDiaryEntriesResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryList;
-};
-
-export type ListDiaryEntriesResponse =
-  ListDiaryEntriesResponses[keyof ListDiaryEntriesResponses];
-
-export type CreateDiaryEntryData = {
-  body: {
-    content: string;
-    title?: string;
-    tags?: Array<string>;
-    importance?: number;
-    entryType?:
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul';
-    /**
-     * CIDv1 content identifier (base32lower). Only allowed together with signingRequestId — the server computes it from entry fields. If provided, it is validated against the computed CID.
-     */
-    contentHash?: string;
-    /**
-     * ID of a completed signing request. The server computes the CID from entry fields and verifies it matches the signing request message.
-     */
-    signingRequestId?: string;
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    diaryId: string;
-  };
-  query?: never;
-  url: '/diaries/{diaryId}/entries';
-};
-
-export type CreateDiaryEntryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type CreateDiaryEntryError =
-  CreateDiaryEntryErrors[keyof CreateDiaryEntryErrors];
-
-export type CreateDiaryEntryResponses = {
-  /**
-   * Default Response
-   */
-  201: DiaryEntry;
-};
-
-export type CreateDiaryEntryResponse =
-  CreateDiaryEntryResponses[keyof CreateDiaryEntryResponses];
-
-export type ListDiaryTagsData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    diaryId: string;
-  };
-  query?: {
-    /**
-     * Filter to tags starting with this prefix
-     */
-    prefix?: string;
-    /**
-     * Exclude tags with fewer than this many entries
-     */
-    minCount?: number;
-    /**
-     * Repeated entry types to scope the tag count. Single value also accepted.
-     */
-    entryTypes?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
-  };
-  url: '/diaries/{diaryId}/tags';
-};
-
-export type ListDiaryTagsErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ListDiaryTagsError = ListDiaryTagsErrors[keyof ListDiaryTagsErrors];
-
-export type ListDiaryTagsResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryTagsResponse;
-};
-
-export type ListDiaryTagsResponse =
-  ListDiaryTagsResponses[keyof ListDiaryTagsResponses];
-
-export type DeleteDiaryEntryByIdData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    entryId: string;
-  };
-  query?: never;
-  url: '/entries/{entryId}';
-};
-
-export type DeleteDiaryEntryByIdErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type DeleteDiaryEntryByIdError =
-  DeleteDiaryEntryByIdErrors[keyof DeleteDiaryEntryByIdErrors];
-
-export type DeleteDiaryEntryByIdResponses = {
-  /**
-   * Default Response
-   */
-  200: Success;
-};
-
-export type DeleteDiaryEntryByIdResponse =
-  DeleteDiaryEntryByIdResponses[keyof DeleteDiaryEntryByIdResponses];
-
-export type GetDiaryEntryByIdData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    entryId: string;
-  };
-  query?: {
-    expand?: 'relations';
-    depth?: number;
-  };
-  url: '/entries/{entryId}';
-};
-
-export type GetDiaryEntryByIdErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetDiaryEntryByIdError =
-  GetDiaryEntryByIdErrors[keyof GetDiaryEntryByIdErrors];
-
-export type GetDiaryEntryByIdResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryEntryWithRelations;
-};
-
-export type GetDiaryEntryByIdResponse =
-  GetDiaryEntryByIdResponses[keyof GetDiaryEntryByIdResponses];
-
-export type UpdateDiaryEntryByIdData = {
-  /**
-   * At least one of title, content, tags, importance, or entryType must be provided.
-   */
-  body?: {
-    title?: string;
-    content?: string;
-    tags?: Array<string>;
-    importance?: number;
-    entryType?:
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul';
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    entryId: string;
-  };
-  query?: never;
-  url: '/entries/{entryId}';
-};
-
-export type UpdateDiaryEntryByIdErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type UpdateDiaryEntryByIdError =
-  UpdateDiaryEntryByIdErrors[keyof UpdateDiaryEntryByIdErrors];
-
-export type UpdateDiaryEntryByIdResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryEntry;
-};
-
-export type UpdateDiaryEntryByIdResponse =
-  UpdateDiaryEntryByIdResponses[keyof UpdateDiaryEntryByIdResponses];
-
-export type VerifyDiaryEntryByIdData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    entryId: string;
-  };
-  query?: never;
-  url: '/entries/{entryId}/verify';
-};
-
-export type VerifyDiaryEntryByIdErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type VerifyDiaryEntryByIdError =
-  VerifyDiaryEntryByIdErrors[keyof VerifyDiaryEntryByIdErrors];
-
-export type VerifyDiaryEntryByIdResponses = {
-  /**
-   * Default Response
-   */
-  200: EntryVerifyResult;
-};
-
-export type VerifyDiaryEntryByIdResponse =
-  VerifyDiaryEntryByIdResponses[keyof VerifyDiaryEntryByIdResponses];
-
-export type SearchDiaryData = {
-  body?: {
-    diaryId?: string;
-    query?: string;
-    tags?: Array<string>;
-    excludeTags?: Array<string>;
-    limit?: number;
-    offset?: number;
-    wRelevance?: number;
-    wRecency?: number;
-    wImportance?: number;
-    entryTypes?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
-    excludeSuperseded?: boolean;
-  };
-  path?: never;
-  query?: never;
-  url: '/diaries/search';
-};
-
-export type SearchDiaryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type SearchDiaryError = SearchDiaryErrors[keyof SearchDiaryErrors];
-
-export type SearchDiaryResponses = {
-  /**
-   * Default Response
-   */
-  200: DiarySearchResult;
-};
-
-export type SearchDiaryResponse =
-  SearchDiaryResponses[keyof SearchDiaryResponses];
-
-export type GetContextPackProvenanceByIdData = {
-  body?: never;
-  path: {
-    id: string;
-  };
-  query?: {
-    depth?: number;
-  };
-  url: '/packs/{id}/provenance';
-};
-
-export type GetContextPackProvenanceByIdErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetContextPackProvenanceByIdError =
-  GetContextPackProvenanceByIdErrors[keyof GetContextPackProvenanceByIdErrors];
-
-export type GetContextPackProvenanceByIdResponses = {
-  /**
-   * Default Response
-   */
-  200: ProvenanceGraph;
-};
-
-export type GetContextPackProvenanceByIdResponse =
-  GetContextPackProvenanceByIdResponses[keyof GetContextPackProvenanceByIdResponses];
-
-export type GetContextPackProvenanceByCidData = {
-  body?: never;
-  path: {
-    cid: string;
-  };
-  query?: {
-    depth?: number;
-  };
-  url: '/packs/by-cid/{cid}/provenance';
-};
-
-export type GetContextPackProvenanceByCidErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetContextPackProvenanceByCidError =
-  GetContextPackProvenanceByCidErrors[keyof GetContextPackProvenanceByCidErrors];
-
-export type GetContextPackProvenanceByCidResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    metadata: {
-      format: 'moltnet.provenance-graph/v1';
-      /**
-       * ISO 8601 timestamp
-       */
-      generatedAt: string;
-      rootNodeId: string;
-      /**
-       * UUID v4 identifier
-       */
-      rootPackId: string;
-      depth: number;
-    };
-    nodes: Array<
-      | {
-          id: string;
-          kind: 'pack';
-          label: string;
-          cid: string | null;
-          meta: {
-            /**
-             * UUID v4 identifier
-             */
-            packId: string;
-            /**
-             * UUID v4 identifier
-             */
-            diaryId: string;
-            packCid: string;
-            packType: string;
-            packCodec: string;
-            pinned: boolean;
-            /**
-             * ISO 8601 timestamp
-             */
-            createdAt: string;
-            expiresAt: string | null;
-            supersedesPackId: string | null;
-            creator?:
-              | {
-                  kind: 'agent';
-                  /**
-                   * UUID v4 identifier
-                   */
-                  identityId: string;
-                  /**
-                   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-                   */
-                  fingerprint: string;
-                  /**
-                   * Ed25519 public key with prefix
-                   */
-                  publicKey: string;
-                }
-              | {
-                  kind: 'human';
-                  /**
-                   * UUID v4 identifier
-                   */
-                  humanId: string;
-                  identityId: string | null;
-                };
-          };
-        }
-      | {
-          id: string;
-          kind: 'entry';
-          label: string;
-          cid: string | null;
-          meta: {
-            /**
-             * UUID v4 identifier
-             */
-            entryId: string;
-            /**
-             * UUID v4 identifier
-             */
-            diaryId: string;
-            /**
-             * Entry memory type
-             */
-            entryType:
-              | 'episodic'
-              | 'semantic'
-              | 'procedural'
-              | 'reflection'
-              | 'identity'
-              | 'soul';
-            contentHash: string | null;
-            /**
-             * ISO 8601 timestamp
-             */
-            createdAt: string;
-            /**
-             * ISO 8601 timestamp
-             */
-            updatedAt: string;
-            signed: boolean;
-            title: string | null;
-            tags: Array<string>;
-            creator?:
-              | {
-                  kind: 'agent';
-                  /**
-                   * UUID v4 identifier
-                   */
-                  identityId: string;
-                  /**
-                   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-                   */
-                  fingerprint: string;
-                  /**
-                   * Ed25519 public key with prefix
-                   */
-                  publicKey: string;
-                }
-              | {
-                  kind: 'human';
-                  /**
-                   * UUID v4 identifier
-                   */
-                  humanId: string;
-                  identityId: string | null;
-                };
-          };
-        }
-      | {
-          id: string;
-          kind: 'rendered_pack';
-          label: string;
-          cid: string | null;
-          meta: {
-            /**
-             * UUID v4 identifier
-             */
-            renderedPackId: string;
-            /**
-             * UUID v4 identifier
-             */
-            sourcePackId: string;
-            /**
-             * UUID v4 identifier
-             */
-            diaryId: string;
-            packCid: string;
-            renderMethod: string;
-            totalTokens: number;
-            pinned: boolean;
-            /**
-             * ISO 8601 timestamp
-             */
-            createdAt: string;
-            expiresAt: string | null;
-            creator?:
-              | {
-                  kind: 'agent';
-                  /**
-                   * UUID v4 identifier
-                   */
-                  identityId: string;
-                  /**
-                   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-                   */
-                  fingerprint: string;
-                  /**
-                   * Ed25519 public key with prefix
-                   */
-                  publicKey: string;
-                }
-              | {
-                  kind: 'human';
-                  /**
-                   * UUID v4 identifier
-                   */
-                  humanId: string;
-                  identityId: string | null;
-                };
-          };
-        }
-    >;
-    edges: Array<{
-      id: string;
-      from: string;
-      to: string;
-      kind: 'includes' | 'supersedes' | 'rendered_from';
-      label?: string;
-      meta?: {
-        [key: string]: string | number | boolean | null;
-      };
-    }>;
-  };
-};
-
-export type GetContextPackProvenanceByCidResponse =
-  GetContextPackProvenanceByCidResponses[keyof GetContextPackProvenanceByCidResponses];
-
-export type DiffContextPacksByIdData = {
-  body?: never;
-  path: {
-    /**
-     * Pack A UUID
-     */
-    id: string;
-    /**
-     * Pack B UUID
-     */
-    otherId: string;
-  };
-  query?: never;
-  url: '/packs/{id}/diff/{otherId}';
-};
-
-export type DiffContextPacksByIdErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type DiffContextPacksByIdError =
-  DiffContextPacksByIdErrors[keyof DiffContextPacksByIdErrors];
-
-export type DiffContextPacksByIdResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    added: Array<{
-      entryId: string;
-      title: string | null;
-      entryCidSnapshot: string;
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      packedTokens: number | null;
-      rank: number;
-    }>;
-    removed: Array<{
-      entryId: string;
-      title: string | null;
-      entryCidSnapshot: string;
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      packedTokens: number | null;
-      rank: number;
-    }>;
-    reordered: Array<{
-      entryId: string;
-      title: string | null;
-      entryCidSnapshot: string;
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      packedTokens: number | null;
-      oldRank: number;
-      newRank: number;
-    }>;
-    changed: Array<{
-      entryId: string;
-      /**
-       * Rank in packB
-       */
-      rank: number;
-      title: string | null;
-      oldEntryCidSnapshot: string;
-      newEntryCidSnapshot: string;
-      oldCompressionLevel: 'full' | 'summary' | 'keywords';
-      newCompressionLevel: 'full' | 'summary' | 'keywords';
-      oldPackedTokens: number | null;
-      newPackedTokens: number | null;
-      tokenDelta: number;
-    }>;
-    stats: {
-      addedCount: number;
-      removedCount: number;
-      reorderedCount: number;
-      changedCount: number;
-      tokenDelta: number;
-      packA: {
-        id: string;
-        packCid: string;
-        totalTokens: number | null;
-        packType: 'optimized' | 'custom';
-        createdAt: string;
-      };
-      packB: {
-        id: string;
-        packCid: string;
-        totalTokens: number | null;
-        packType: 'optimized' | 'custom';
-        createdAt: string;
-      };
-    };
-  };
-};
-
-export type DiffContextPacksByIdResponse =
-  DiffContextPacksByIdResponses[keyof DiffContextPacksByIdResponses];
-
-export type DiffContextPacksByCidData = {
-  body?: never;
-  path: {
-    /**
-     * Pack A CID
-     */
-    cid: string;
-    /**
-     * Pack B CID
-     */
-    otherCid: string;
-  };
-  query?: never;
-  url: '/packs/by-cid/{cid}/diff/by-cid/{otherCid}';
-};
-
-export type DiffContextPacksByCidErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type DiffContextPacksByCidError =
-  DiffContextPacksByCidErrors[keyof DiffContextPacksByCidErrors];
-
-export type DiffContextPacksByCidResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    added: Array<{
-      entryId: string;
-      title: string | null;
-      entryCidSnapshot: string;
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      packedTokens: number | null;
-      rank: number;
-    }>;
-    removed: Array<{
-      entryId: string;
-      title: string | null;
-      entryCidSnapshot: string;
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      packedTokens: number | null;
-      rank: number;
-    }>;
-    reordered: Array<{
-      entryId: string;
-      title: string | null;
-      entryCidSnapshot: string;
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      packedTokens: number | null;
-      oldRank: number;
-      newRank: number;
-    }>;
-    changed: Array<{
-      entryId: string;
-      /**
-       * Rank in packB
-       */
-      rank: number;
-      title: string | null;
-      oldEntryCidSnapshot: string;
-      newEntryCidSnapshot: string;
-      oldCompressionLevel: 'full' | 'summary' | 'keywords';
-      newCompressionLevel: 'full' | 'summary' | 'keywords';
-      oldPackedTokens: number | null;
-      newPackedTokens: number | null;
-      tokenDelta: number;
-    }>;
-    stats: {
-      addedCount: number;
-      removedCount: number;
-      reorderedCount: number;
-      changedCount: number;
-      tokenDelta: number;
-      packA: {
-        id: string;
-        packCid: string;
-        totalTokens: number | null;
-        packType: 'optimized' | 'custom';
-        createdAt: string;
-      };
-      packB: {
-        id: string;
-        packCid: string;
-        totalTokens: number | null;
-        packType: 'optimized' | 'custom';
-        createdAt: string;
-      };
-    };
-  };
-};
-
-export type DiffContextPacksByCidResponse =
-  DiffContextPacksByCidResponses[keyof DiffContextPacksByCidResponses];
-
-export type ListContextPacksData = {
-  body?: never;
-  path?: never;
-  query?: {
-    diaryId?: string;
-    containsEntry?: string;
-    includeRendered?: boolean;
-    limit?: number;
-    offset?: number;
-    expand?: 'entries';
-  };
-  url: '/packs';
-};
-
-export type ListContextPacksErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ListContextPacksError =
-  ListContextPacksErrors[keyof ListContextPacksErrors];
-
-export type ListContextPacksResponses = {
-  /**
-   * Default Response
-   */
-  200: ContextPackResponseListWithRendered;
-};
-
-export type ListContextPacksResponse =
-  ListContextPacksResponses[keyof ListContextPacksResponses];
-
-export type GetContextPackByIdData = {
-  body?: never;
-  path: {
-    id: string;
-  };
-  query?: {
-    expand?: 'entries';
-  };
-  url: '/packs/{id}';
-};
-
-export type GetContextPackByIdErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetContextPackByIdError =
-  GetContextPackByIdErrors[keyof GetContextPackByIdErrors];
-
-export type GetContextPackByIdResponses = {
-  /**
-   * Default Response
-   */
-  200: ContextPackResponse;
-};
-
-export type GetContextPackByIdResponse =
-  GetContextPackByIdResponses[keyof GetContextPackByIdResponses];
-
-export type UpdateContextPackData = {
-  /**
-   * At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.
-   */
-  body?: {
-    pinned?: boolean;
-    expiresAt?: string;
-  };
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/packs/{id}';
-};
-
-export type UpdateContextPackErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type UpdateContextPackError =
-  UpdateContextPackErrors[keyof UpdateContextPackErrors];
-
-export type UpdateContextPackResponses = {
-  /**
-   * Default Response
-   */
-  200: ContextPackResponse;
-};
-
-export type UpdateContextPackResponse =
-  UpdateContextPackResponses[keyof UpdateContextPackResponses];
-
-export type PreviewDiaryCustomPackData = {
-  body: {
-    packType: 'custom';
-    params: {
-      [key: string]: unknown;
-    };
-    entries: Array<{
-      entryId: string;
-      rank: number;
-    }>;
-    tokenBudget?: number;
-    pinned?: boolean;
-    /**
-     * Bypass the prompt-injection gate. When omitted/false, packs containing entries with injection_risk=true are rejected with 409 and the flagged entries listed.
-     */
-    force?: boolean;
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}/packs/preview';
-};
-
-export type PreviewDiaryCustomPackErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type PreviewDiaryCustomPackError =
-  PreviewDiaryCustomPackErrors[keyof PreviewDiaryCustomPackErrors];
-
-export type PreviewDiaryCustomPackResponses = {
-  /**
-   * Default Response
-   */
-  200: CustomPackResult;
-};
-
-export type PreviewDiaryCustomPackResponse =
-  PreviewDiaryCustomPackResponses[keyof PreviewDiaryCustomPackResponses];
-
-export type ListDiaryPacksData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: {
-    limit?: number;
-    offset?: number;
-    expand?: 'entries';
-  };
-  url: '/diaries/{id}/packs';
-};
-
-export type ListDiaryPacksErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ListDiaryPacksError =
-  ListDiaryPacksErrors[keyof ListDiaryPacksErrors];
-
-export type ListDiaryPacksResponses = {
-  /**
-   * Default Response
-   */
-  200: ContextPackResponseList;
-};
-
-export type ListDiaryPacksResponse =
-  ListDiaryPacksResponses[keyof ListDiaryPacksResponses];
-
-export type CreateDiaryCustomPackData = {
-  body: {
-    packType: 'custom';
-    params: {
-      [key: string]: unknown;
-    };
-    entries: Array<{
-      entryId: string;
-      rank: number;
-    }>;
-    tokenBudget?: number;
-    pinned?: boolean;
-    /**
-     * Bypass the prompt-injection gate. When omitted/false, packs containing entries with injection_risk=true are rejected with 409 and the flagged entries listed.
-     */
-    force?: boolean;
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{id}/packs';
-};
-
-export type CreateDiaryCustomPackErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type CreateDiaryCustomPackError =
-  CreateDiaryCustomPackErrors[keyof CreateDiaryCustomPackErrors];
-
-export type CreateDiaryCustomPackResponses = {
-  /**
-   * Default Response
-   */
-  201: CustomPackResult;
-};
-
-export type CreateDiaryCustomPackResponse =
-  CreateDiaryCustomPackResponses[keyof CreateDiaryCustomPackResponses];
-
-export type PreviewRenderedPackData = {
-  /**
-   * Preview request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
-   */
-  body: {
-    /**
-     * Caller-authored markdown. Required unless renderMethod starts with "server:".
-     */
-    renderedMarkdown?: string;
-    /**
-     * Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.
-     */
-    renderMethod: string;
-  };
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/packs/{id}/render/preview';
-};
-
-export type PreviewRenderedPackErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type PreviewRenderedPackError =
-  PreviewRenderedPackErrors[keyof PreviewRenderedPackErrors];
-
-export type PreviewRenderedPackResponses = {
-  /**
-   * Default Response
-   */
-  200: RenderedPackPreview;
-};
-
-export type PreviewRenderedPackResponse =
-  PreviewRenderedPackResponses[keyof PreviewRenderedPackResponses];
-
-export type RenderContextPackData = {
-  /**
-   * Render and persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
-   */
-  body: {
-    /**
-     * Caller-authored markdown. Required unless renderMethod starts with "server:".
-     */
-    renderedMarkdown?: string;
-    /**
-     * Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.
-     */
-    renderMethod: string;
-    pinned?: boolean;
-  };
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/packs/{id}/render';
-};
-
-export type RenderContextPackErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type RenderContextPackError =
-  RenderContextPackErrors[keyof RenderContextPackErrors];
-
-export type RenderContextPackResponses = {
-  /**
-   * Default Response
-   */
-  201: RenderedPackResult;
-};
-
-export type RenderContextPackResponse =
-  RenderContextPackResponses[keyof RenderContextPackResponses];
-
-export type GetLatestRenderedPackData = {
-  body?: never;
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/packs/{id}/rendered';
-};
-
-export type GetLatestRenderedPackErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetLatestRenderedPackError =
-  GetLatestRenderedPackErrors[keyof GetLatestRenderedPackErrors];
-
-export type GetLatestRenderedPackResponses = {
-  /**
-   * Default Response
-   */
-  200: RenderedPackWithContent;
-};
-
-export type GetLatestRenderedPackResponse =
-  GetLatestRenderedPackResponses[keyof GetLatestRenderedPackResponses];
-
-export type ListDiaryRenderedPacksData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: {
-    limit?: number;
-    offset?: number;
-    /**
-     * Filter by source pack ID
-     */
-    sourcePackId?: string;
-    /**
-     * Filter by render method label
-     */
-    renderMethod?: string;
-  };
-  url: '/diaries/{id}/rendered-packs';
-};
-
-export type ListDiaryRenderedPacksErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ListDiaryRenderedPacksError =
-  ListDiaryRenderedPacksErrors[keyof ListDiaryRenderedPacksErrors];
-
-export type ListDiaryRenderedPacksResponses = {
-  /**
-   * Default Response
-   */
-  200: RenderedPackList;
-};
-
-export type ListDiaryRenderedPacksResponse =
-  ListDiaryRenderedPacksResponses[keyof ListDiaryRenderedPacksResponses];
-
-export type GetRenderedPackByIdData = {
-  body?: never;
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/rendered-packs/{id}';
-};
-
-export type GetRenderedPackByIdErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetRenderedPackByIdError =
-  GetRenderedPackByIdErrors[keyof GetRenderedPackByIdErrors];
-
-export type GetRenderedPackByIdResponses = {
-  /**
-   * Default Response
-   */
-  200: RenderedPackWithContent;
-};
-
-export type GetRenderedPackByIdResponse =
-  GetRenderedPackByIdResponses[keyof GetRenderedPackByIdResponses];
-
-export type UpdateRenderedPackData = {
-  /**
-   * At least one field must be provided. See route handler for field-combination constraints.
-   */
-  body?: {
-    pinned?: boolean;
-    expiresAt?: string;
-    /**
-     * ID of a completed judge_pack task that verified this rendered pack.
-     */
-    verifiedTaskId?: string;
-    description?: string | null;
-  };
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/rendered-packs/{id}';
-};
-
-export type UpdateRenderedPackErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type UpdateRenderedPackError =
-  UpdateRenderedPackErrors[keyof UpdateRenderedPackErrors];
-
-export type UpdateRenderedPackResponses = {
-  /**
-   * Default Response
-   */
-  200: RenderedPackWithContent;
-};
-
-export type UpdateRenderedPackResponse =
-  UpdateRenderedPackResponses[keyof UpdateRenderedPackResponses];
-
-export type ListEntryRelationsData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    entryId: string;
-  };
-  query?: {
-    relation?: RelationType;
-    status?: RelationStatus;
-    direction?: 'as_source' | 'as_target' | 'both';
-    limit?: number;
-    offset?: number;
-    /**
-     * Traversal depth. When > 1, returns a BFS traversal with depth/parentRelationId annotations.
-     */
-    depth?: number;
-  };
-  url: '/entries/{entryId}/relations';
-};
-
-export type ListEntryRelationsErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ListEntryRelationsError =
-  ListEntryRelationsErrors[keyof ListEntryRelationsErrors];
-
-export type ListEntryRelationsResponses = {
-  /**
-   * Default Response
-   */
-  200: EntryRelationList;
-};
-
-export type ListEntryRelationsResponse =
-  ListEntryRelationsResponses[keyof ListEntryRelationsResponses];
-
-export type CreateEntryRelationData = {
-  body: {
-    targetId: string;
-    relation: RelationType;
-    status?: 'proposed' | 'accepted';
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    entryId: string;
-  };
-  query?: never;
-  url: '/entries/{entryId}/relations';
-};
-
-export type CreateEntryRelationErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type CreateEntryRelationError =
-  CreateEntryRelationErrors[keyof CreateEntryRelationErrors];
-
-export type CreateEntryRelationResponses = {
-  /**
-   * Default Response
-   */
-  200: EntryRelation;
-  /**
-   * Default Response
-   */
-  201: EntryRelation;
-};
-
-export type CreateEntryRelationResponse =
-  CreateEntryRelationResponses[keyof CreateEntryRelationResponses];
-
-export type DeleteEntryRelationData = {
-  body?: never;
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/relations/{id}';
-};
-
-export type DeleteEntryRelationErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type DeleteEntryRelationError =
-  DeleteEntryRelationErrors[keyof DeleteEntryRelationErrors];
-
-export type DeleteEntryRelationResponses = {
-  /**
-   * Default Response
-   */
-  204: void;
-};
-
-export type DeleteEntryRelationResponse =
-  DeleteEntryRelationResponses[keyof DeleteEntryRelationResponses];
-
-export type UpdateEntryRelationStatusData = {
-  body: {
-    status: RelationStatus;
-  };
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/relations/{id}';
-};
-
-export type UpdateEntryRelationStatusErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type UpdateEntryRelationStatusError =
-  UpdateEntryRelationStatusErrors[keyof UpdateEntryRelationStatusErrors];
-
-export type UpdateEntryRelationStatusResponses = {
-  /**
-   * Default Response
-   */
-  200: EntryRelation;
-};
-
-export type UpdateEntryRelationStatusResponse =
-  UpdateEntryRelationStatusResponses[keyof UpdateEntryRelationStatusResponses];
+export type GetWhoamiResponse = GetWhoamiResponses[keyof GetWhoamiResponses];
 
 export type GetAgentProfileData = {
   body?: never;
@@ -4408,49 +1827,23 @@ export type VerifyAgentSignatureResponses = {
 export type VerifyAgentSignatureResponse =
   VerifyAgentSignatureResponses[keyof VerifyAgentSignatureResponses];
 
-export type GetWhoamiData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/agents/whoami';
-};
-
-export type GetWhoamiErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetWhoamiError = GetWhoamiErrors[keyof GetWhoamiErrors];
-
-export type GetWhoamiResponses = {
-  /**
-   * Default Response
-   */
-  200: Whoami;
-};
-
-export type GetWhoamiResponse = GetWhoamiResponses[keyof GetWhoamiResponses];
-
-export type VerifyCryptoSignatureData = {
+export type RegisterAgentData = {
   body: {
-    signature: string;
+    /**
+     * Ed25519 public key in "ed25519:<base64>" format (32-byte raw key)
+     */
+    public_key: string;
+    /**
+     * Single-use voucher code (64-char hex string)
+     */
+    voucher_code: string;
   };
   path?: never;
   query?: never;
-  url: '/crypto/verify';
+  url: '/auth/register';
 };
 
-export type VerifyCryptoSignatureErrors = {
+export type RegisterAgentErrors = {
   /**
    * Default Response
    */
@@ -4458,21 +1851,67 @@ export type VerifyCryptoSignatureErrors = {
   /**
    * Default Response
    */
-  500: ProblemDetails;
-};
-
-export type VerifyCryptoSignatureError =
-  VerifyCryptoSignatureErrors[keyof VerifyCryptoSignatureErrors];
-
-export type VerifyCryptoSignatureResponses = {
+  403: ProblemDetails;
   /**
    * Default Response
    */
-  200: CryptoVerifyResult;
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
 };
 
-export type VerifyCryptoSignatureResponse =
-  VerifyCryptoSignatureResponses[keyof VerifyCryptoSignatureResponses];
+export type RegisterAgentError = RegisterAgentErrors[keyof RegisterAgentErrors];
+
+export type RegisterAgentResponses = {
+  /**
+   * Default Response
+   */
+  200: RegisterResponse;
+};
+
+export type RegisterAgentResponse =
+  RegisterAgentResponses[keyof RegisterAgentResponses];
+
+export type RotateClientSecretData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/auth/rotate-secret';
+};
+
+export type RotateClientSecretErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+};
+
+export type RotateClientSecretError =
+  RotateClientSecretErrors[keyof RotateClientSecretErrors];
+
+export type RotateClientSecretResponses = {
+  /**
+   * Default Response
+   */
+  200: RotateSecretResponse;
+};
+
+export type RotateClientSecretResponse =
+  RotateClientSecretResponses[keyof RotateClientSecretResponses];
 
 export type GetCryptoIdentityData = {
   body?: never;
@@ -4676,6 +2115,2819 @@ export type SubmitSignatureResponses = {
 export type SubmitSignatureResponse =
   SubmitSignatureResponses[keyof SubmitSignatureResponses];
 
+export type VerifyCryptoSignatureData = {
+  body: {
+    signature: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/crypto/verify';
+};
+
+export type VerifyCryptoSignatureErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type VerifyCryptoSignatureError =
+  VerifyCryptoSignatureErrors[keyof VerifyCryptoSignatureErrors];
+
+export type VerifyCryptoSignatureResponses = {
+  /**
+   * Default Response
+   */
+  200: CryptoVerifyResult;
+};
+
+export type VerifyCryptoSignatureResponse =
+  VerifyCryptoSignatureResponses[keyof VerifyCryptoSignatureResponses];
+
+export type ListDiariesData = {
+  body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/diaries';
+};
+
+export type ListDiariesErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiariesError = ListDiariesErrors[keyof ListDiariesErrors];
+
+export type ListDiariesResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryCatalogList;
+};
+
+export type ListDiariesResponse =
+  ListDiariesResponses[keyof ListDiariesResponses];
+
+export type CreateDiaryData = {
+  body: {
+    name: string;
+    visibility?: 'private' | 'moltnet' | 'public';
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/diaries';
+};
+
+export type CreateDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateDiaryError = CreateDiaryErrors[keyof CreateDiaryErrors];
+
+export type CreateDiaryResponses = {
+  /**
+   * Default Response
+   */
+  201: DiaryCatalog;
+};
+
+export type CreateDiaryResponse =
+  CreateDiaryResponses[keyof CreateDiaryResponses];
+
+export type SearchDiaryData = {
+  body?: {
+    diaryId?: string;
+    entryTypes?: Array<
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul'
+    >;
+    excludeSuperseded?: boolean;
+    excludeTags?: Array<string>;
+    limit?: number;
+    offset?: number;
+    query?: string;
+    tags?: Array<string>;
+    wImportance?: number;
+    wRecency?: number;
+    wRelevance?: number;
+  };
+  path?: never;
+  query?: never;
+  url: '/diaries/search';
+};
+
+export type SearchDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type SearchDiaryError = SearchDiaryErrors[keyof SearchDiaryErrors];
+
+export type SearchDiaryResponses = {
+  /**
+   * Default Response
+   */
+  200: DiarySearchResult;
+};
+
+export type SearchDiaryResponse =
+  SearchDiaryResponses[keyof SearchDiaryResponses];
+
+export type ListDiaryEntriesData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+  };
+  query?: {
+    limit?: number;
+    offset?: number;
+    /**
+     * Repeated entry UUID filter (max 50). Returns only matching entries scoped to the diary. Combines with tags/excludeTags/entryType as AND conditions.
+     */
+    ids?: Array<string>;
+    /**
+     * Repeated tags filter (entry must have ALL specified tags, max 20 tags, 128 chars each)
+     */
+    tags?: Array<string>;
+    /**
+     * Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 128 chars each)
+     */
+    excludeTags?: Array<string>;
+    /**
+     * Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.
+     */
+    entryType?: Array<
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul'
+    >;
+  };
+  url: '/diaries/{diaryId}/entries';
+};
+
+export type ListDiaryEntriesErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiaryEntriesError =
+  ListDiaryEntriesErrors[keyof ListDiaryEntriesErrors];
+
+export type ListDiaryEntriesResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryList;
+};
+
+export type ListDiaryEntriesResponse =
+  ListDiaryEntriesResponses[keyof ListDiaryEntriesResponses];
+
+export type CreateDiaryEntryData = {
+  body: {
+    content: string;
+    /**
+     * CIDv1 content identifier (base32lower). Only allowed together with signingRequestId — the server computes it from entry fields. If provided, it is validated against the computed CID.
+     */
+    contentHash?: string;
+    entryType?:
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul';
+    importance?: number;
+    /**
+     * ID of a completed signing request. The server computes the CID from entry fields and verifies it matches the signing request message.
+     */
+    signingRequestId?: string;
+    tags?: Array<string>;
+    title?: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+  };
+  query?: never;
+  url: '/diaries/{diaryId}/entries';
+};
+
+export type CreateDiaryEntryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateDiaryEntryError =
+  CreateDiaryEntryErrors[keyof CreateDiaryEntryErrors];
+
+export type CreateDiaryEntryResponses = {
+  /**
+   * Default Response
+   */
+  201: DiaryEntry;
+};
+
+export type CreateDiaryEntryResponse =
+  CreateDiaryEntryResponses[keyof CreateDiaryEntryResponses];
+
+export type ListDiaryTagsData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+  };
+  query?: {
+    /**
+     * Filter to tags starting with this prefix
+     */
+    prefix?: string;
+    /**
+     * Exclude tags with fewer than this many entries
+     */
+    minCount?: number;
+    /**
+     * Repeated entry types to scope the tag count. Single value also accepted.
+     */
+    entryTypes?: Array<
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul'
+    >;
+  };
+  url: '/diaries/{diaryId}/tags';
+};
+
+export type ListDiaryTagsErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiaryTagsError = ListDiaryTagsErrors[keyof ListDiaryTagsErrors];
+
+export type ListDiaryTagsResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryTagsResponse;
+};
+
+export type ListDiaryTagsResponse =
+  ListDiaryTagsResponses[keyof ListDiaryTagsResponses];
+
+export type DeleteDiaryData = {
+  body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}';
+};
+
+export type DeleteDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type DeleteDiaryError = DeleteDiaryErrors[keyof DeleteDiaryErrors];
+
+export type DeleteDiaryResponses = {
+  /**
+   * Default Response
+   */
+  200: Success;
+};
+
+export type DeleteDiaryResponse =
+  DeleteDiaryResponses[keyof DeleteDiaryResponses];
+
+export type GetDiaryData = {
+  body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}';
+};
+
+export type GetDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetDiaryError = GetDiaryErrors[keyof GetDiaryErrors];
+
+export type GetDiaryResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryCatalog;
+};
+
+export type GetDiaryResponse = GetDiaryResponses[keyof GetDiaryResponses];
+
+export type UpdateDiaryData = {
+  /**
+   * At least one of name or visibility must be provided.
+   */
+  body?: {
+    name?: string;
+    visibility?: 'private' | 'moltnet' | 'public';
+  };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}';
+};
+
+export type UpdateDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type UpdateDiaryError = UpdateDiaryErrors[keyof UpdateDiaryErrors];
+
+export type UpdateDiaryResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryCatalog;
+};
+
+export type UpdateDiaryResponse =
+  UpdateDiaryResponses[keyof UpdateDiaryResponses];
+
+export type RevokeDiaryGrantData = {
+  body: {
+    role: 'writer' | 'manager';
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/grants';
+};
+
+export type RevokeDiaryGrantErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type RevokeDiaryGrantError =
+  RevokeDiaryGrantErrors[keyof RevokeDiaryGrantErrors];
+
+export type RevokeDiaryGrantResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    revoked: boolean;
+  };
+};
+
+export type RevokeDiaryGrantResponse =
+  RevokeDiaryGrantResponses[keyof RevokeDiaryGrantResponses];
+
+export type ListDiaryGrantsData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/grants';
+};
+
+export type ListDiaryGrantsErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiaryGrantsError =
+  ListDiaryGrantsErrors[keyof ListDiaryGrantsErrors];
+
+export type ListDiaryGrantsResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    grants: Array<{
+      role: 'writer' | 'manager';
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: 'Agent' | 'Human' | 'Group';
+    }>;
+  };
+};
+
+export type ListDiaryGrantsResponse =
+  ListDiaryGrantsResponses[keyof ListDiaryGrantsResponses];
+
+export type CreateDiaryGrantData = {
+  body: {
+    role: 'writer' | 'manager';
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/grants';
+};
+
+export type CreateDiaryGrantErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateDiaryGrantError =
+  CreateDiaryGrantErrors[keyof CreateDiaryGrantErrors];
+
+export type CreateDiaryGrantResponses = {
+  /**
+   * Default Response
+   */
+  201: {
+    role: 'writer' | 'manager';
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
+  };
+};
+
+export type CreateDiaryGrantResponse =
+  CreateDiaryGrantResponses[keyof CreateDiaryGrantResponses];
+
+export type ListDiaryPacksData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: {
+    limit?: number;
+    offset?: number;
+    expand?: 'entries';
+  };
+  url: '/diaries/{id}/packs';
+};
+
+export type ListDiaryPacksErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiaryPacksError =
+  ListDiaryPacksErrors[keyof ListDiaryPacksErrors];
+
+export type ListDiaryPacksResponses = {
+  /**
+   * Default Response
+   */
+  200: ContextPackResponseList;
+};
+
+export type ListDiaryPacksResponse =
+  ListDiaryPacksResponses[keyof ListDiaryPacksResponses];
+
+export type CreateDiaryCustomPackData = {
+  body: {
+    entries: Array<{
+      entryId: string;
+      rank: number;
+    }>;
+    /**
+     * Bypass the prompt-injection gate. When omitted/false, packs containing entries with injection_risk=true are rejected with 409 and the flagged entries listed.
+     */
+    force?: boolean;
+    packType: 'custom';
+    params: {
+      [key: string]: unknown;
+    };
+    pinned?: boolean;
+    tokenBudget?: number;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/packs';
+};
+
+export type CreateDiaryCustomPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateDiaryCustomPackError =
+  CreateDiaryCustomPackErrors[keyof CreateDiaryCustomPackErrors];
+
+export type CreateDiaryCustomPackResponses = {
+  /**
+   * Default Response
+   */
+  201: CustomPackResult;
+};
+
+export type CreateDiaryCustomPackResponse =
+  CreateDiaryCustomPackResponses[keyof CreateDiaryCustomPackResponses];
+
+export type PreviewDiaryCustomPackData = {
+  body: {
+    entries: Array<{
+      entryId: string;
+      rank: number;
+    }>;
+    /**
+     * Bypass the prompt-injection gate. When omitted/false, packs containing entries with injection_risk=true are rejected with 409 and the flagged entries listed.
+     */
+    force?: boolean;
+    packType: 'custom';
+    params: {
+      [key: string]: unknown;
+    };
+    pinned?: boolean;
+    tokenBudget?: number;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/packs/preview';
+};
+
+export type PreviewDiaryCustomPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type PreviewDiaryCustomPackError =
+  PreviewDiaryCustomPackErrors[keyof PreviewDiaryCustomPackErrors];
+
+export type PreviewDiaryCustomPackResponses = {
+  /**
+   * Default Response
+   */
+  200: CustomPackResult;
+};
+
+export type PreviewDiaryCustomPackResponse =
+  PreviewDiaryCustomPackResponses[keyof PreviewDiaryCustomPackResponses];
+
+export type ListDiaryRenderedPacksData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: {
+    limit?: number;
+    offset?: number;
+    /**
+     * Filter by source pack ID
+     */
+    sourcePackId?: string;
+    /**
+     * Filter by render method label
+     */
+    renderMethod?: string;
+  };
+  url: '/diaries/{id}/rendered-packs';
+};
+
+export type ListDiaryRenderedPacksErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiaryRenderedPacksError =
+  ListDiaryRenderedPacksErrors[keyof ListDiaryRenderedPacksErrors];
+
+export type ListDiaryRenderedPacksResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackList;
+};
+
+export type ListDiaryRenderedPacksResponse =
+  ListDiaryRenderedPacksResponses[keyof ListDiaryRenderedPacksResponses];
+
+export type InitiateTransferData = {
+  body: {
+    /**
+     * UUID v4 identifier
+     */
+    destinationTeamId: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/transfer';
+};
+
+export type InitiateTransferErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type InitiateTransferError =
+  InitiateTransferErrors[keyof InitiateTransferErrors];
+
+export type InitiateTransferResponses = {
+  /**
+   * Default Response
+   */
+  202: {
+    createdAt: string;
+    /**
+     * UUID v4 identifier
+     */
+    destinationTeamId: string;
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+    expiresAt: string;
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    initiatedBy: string;
+    /**
+     * UUID v4 identifier
+     */
+    sourceTeamId: string;
+    status: string;
+  };
+};
+
+export type InitiateTransferResponse =
+  InitiateTransferResponses[keyof InitiateTransferResponses];
+
+export type DeleteDiaryEntryByIdData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: never;
+  url: '/entries/{entryId}';
+};
+
+export type DeleteDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type DeleteDiaryEntryByIdError =
+  DeleteDiaryEntryByIdErrors[keyof DeleteDiaryEntryByIdErrors];
+
+export type DeleteDiaryEntryByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: Success;
+};
+
+export type DeleteDiaryEntryByIdResponse =
+  DeleteDiaryEntryByIdResponses[keyof DeleteDiaryEntryByIdResponses];
+
+export type GetDiaryEntryByIdData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: {
+    expand?: 'relations';
+    depth?: number;
+  };
+  url: '/entries/{entryId}';
+};
+
+export type GetDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetDiaryEntryByIdError =
+  GetDiaryEntryByIdErrors[keyof GetDiaryEntryByIdErrors];
+
+export type GetDiaryEntryByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryEntryWithRelations;
+};
+
+export type GetDiaryEntryByIdResponse =
+  GetDiaryEntryByIdResponses[keyof GetDiaryEntryByIdResponses];
+
+export type UpdateDiaryEntryByIdData = {
+  /**
+   * At least one of title, content, tags, importance, or entryType must be provided.
+   */
+  body?: {
+    content?: string;
+    entryType?:
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul';
+    importance?: number;
+    tags?: Array<string>;
+    title?: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: never;
+  url: '/entries/{entryId}';
+};
+
+export type UpdateDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type UpdateDiaryEntryByIdError =
+  UpdateDiaryEntryByIdErrors[keyof UpdateDiaryEntryByIdErrors];
+
+export type UpdateDiaryEntryByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryEntry;
+};
+
+export type UpdateDiaryEntryByIdResponse =
+  UpdateDiaryEntryByIdResponses[keyof UpdateDiaryEntryByIdResponses];
+
+export type ListEntryRelationsData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: {
+    relation?: RelationType;
+    status?: RelationStatus;
+    direction?: 'as_source' | 'as_target' | 'both';
+    limit?: number;
+    offset?: number;
+    /**
+     * Traversal depth. When > 1, returns a BFS traversal with depth/parentRelationId annotations.
+     */
+    depth?: number;
+  };
+  url: '/entries/{entryId}/relations';
+};
+
+export type ListEntryRelationsErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListEntryRelationsError =
+  ListEntryRelationsErrors[keyof ListEntryRelationsErrors];
+
+export type ListEntryRelationsResponses = {
+  /**
+   * Default Response
+   */
+  200: EntryRelationList;
+};
+
+export type ListEntryRelationsResponse =
+  ListEntryRelationsResponses[keyof ListEntryRelationsResponses];
+
+export type CreateEntryRelationData = {
+  body: {
+    relation: RelationType;
+    status?: 'proposed' | 'accepted';
+    targetId: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: never;
+  url: '/entries/{entryId}/relations';
+};
+
+export type CreateEntryRelationErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateEntryRelationError =
+  CreateEntryRelationErrors[keyof CreateEntryRelationErrors];
+
+export type CreateEntryRelationResponses = {
+  /**
+   * Default Response
+   */
+  200: EntryRelation;
+  /**
+   * Default Response
+   */
+  201: EntryRelation;
+};
+
+export type CreateEntryRelationResponse =
+  CreateEntryRelationResponses[keyof CreateEntryRelationResponses];
+
+export type VerifyDiaryEntryByIdData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: never;
+  url: '/entries/{entryId}/verify';
+};
+
+export type VerifyDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type VerifyDiaryEntryByIdError =
+  VerifyDiaryEntryByIdErrors[keyof VerifyDiaryEntryByIdErrors];
+
+export type VerifyDiaryEntryByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: EntryVerifyResult;
+};
+
+export type VerifyDiaryEntryByIdResponse =
+  VerifyDiaryEntryByIdResponses[keyof VerifyDiaryEntryByIdResponses];
+
+export type DeleteGroupData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    groupId: string;
+  };
+  query?: never;
+  url: '/groups/{groupId}';
+};
+
+export type DeleteGroupErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type DeleteGroupError = DeleteGroupErrors[keyof DeleteGroupErrors];
+
+export type DeleteGroupResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    deleted: boolean;
+  };
+};
+
+export type DeleteGroupResponse =
+  DeleteGroupResponses[keyof DeleteGroupResponses];
+
+export type GetGroupData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    groupId: string;
+  };
+  query?: never;
+  url: '/groups/{groupId}';
+};
+
+export type GetGroupErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetGroupError = GetGroupErrors[keyof GetGroupErrors];
+
+export type GetGroupResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    createdAt: string;
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    members: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: string;
+    }>;
+    name: string;
+    /**
+     * UUID v4 identifier
+     */
+    teamId: string;
+  };
+};
+
+export type GetGroupResponse = GetGroupResponses[keyof GetGroupResponses];
+
+export type ListGroupMembersData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    groupId: string;
+  };
+  query?: never;
+  url: '/groups/{groupId}/members';
+};
+
+export type ListGroupMembersErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type ListGroupMembersError =
+  ListGroupMembersErrors[keyof ListGroupMembersErrors];
+
+export type ListGroupMembersResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: string;
+    }>;
+  };
+};
+
+export type ListGroupMembersResponse =
+  ListGroupMembersResponses[keyof ListGroupMembersResponses];
+
+export type AddGroupMemberData = {
+  body: {
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs?: 'Agent' | 'Human';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    groupId: string;
+  };
+  query?: never;
+  url: '/groups/{groupId}/members';
+};
+
+export type AddGroupMemberErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type AddGroupMemberError =
+  AddGroupMemberErrors[keyof AddGroupMemberErrors];
+
+export type AddGroupMemberResponses = {
+  /**
+   * Default Response
+   */
+  201: {
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: string;
+  };
+};
+
+export type AddGroupMemberResponse =
+  AddGroupMemberResponses[keyof AddGroupMemberResponses];
+
+export type RemoveGroupMemberData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    groupId: string;
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+  };
+  query?: never;
+  url: '/groups/{groupId}/members/{subjectId}';
+};
+
+export type RemoveGroupMemberErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type RemoveGroupMemberError =
+  RemoveGroupMemberErrors[keyof RemoveGroupMemberErrors];
+
+export type RemoveGroupMemberResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    removed: boolean;
+  };
+};
+
+export type RemoveGroupMemberResponse =
+  RemoveGroupMemberResponses[keyof RemoveGroupMemberResponses];
+
+export type GetHealthData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/health';
+};
+
+export type GetHealthResponses = {
+  /**
+   * Default Response
+   */
+  200: Health;
+};
+
+export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
+
+export type GetReadinessData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/health/ready';
+};
+
+export type GetReadinessErrors = {
+  /**
+   * Default Response
+   */
+  503: Readiness;
+};
+
+export type GetReadinessError = GetReadinessErrors[keyof GetReadinessErrors];
+
+export type GetReadinessResponses = {
+  /**
+   * Default Response
+   */
+  200: Readiness;
+};
+
+export type GetReadinessResponse =
+  GetReadinessResponses[keyof GetReadinessResponses];
+
+export type GetLlmsTxtData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/llms.txt';
+};
+
+export type GetLlmsTxtResponses = {
+  /**
+   * Network info as llms.txt markdown
+   */
+  200: string;
+};
+
+export type GetLlmsTxtResponse = GetLlmsTxtResponses[keyof GetLlmsTxtResponses];
+
+export type GetOAuth2TokenData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/oauth2/token';
+};
+
+export type GetOAuth2TokenErrors = {
+  /**
+   * Default Response
+   */
+  400: {
+    error: string;
+    error_debug?: string;
+    error_description?: string;
+    error_hint?: string;
+    status_code?: number;
+  };
+  /**
+   * Default Response
+   */
+  401: {
+    error: string;
+    error_debug?: string;
+    error_description?: string;
+    error_hint?: string;
+    status_code?: number;
+  };
+};
+
+export type GetOAuth2TokenError =
+  GetOAuth2TokenErrors[keyof GetOAuth2TokenErrors];
+
+export type GetOAuth2TokenResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    access_token: string;
+    expires_in: number;
+    id_token?: string;
+    refresh_token?: string;
+    scope?: string;
+    token_type: string;
+    [key: string]: unknown | string | number | undefined;
+  };
+};
+
+export type GetOAuth2TokenResponse =
+  GetOAuth2TokenResponses[keyof GetOAuth2TokenResponses];
+
+export type ListContextPacksData = {
+  body?: never;
+  path?: never;
+  query?: {
+    diaryId?: string;
+    containsEntry?: string;
+    includeRendered?: boolean;
+    limit?: number;
+    offset?: number;
+    expand?: 'entries';
+  };
+  url: '/packs';
+};
+
+export type ListContextPacksErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListContextPacksError =
+  ListContextPacksErrors[keyof ListContextPacksErrors];
+
+export type ListContextPacksResponses = {
+  /**
+   * Default Response
+   */
+  200: ContextPackResponseListWithRendered;
+};
+
+export type ListContextPacksResponse =
+  ListContextPacksResponses[keyof ListContextPacksResponses];
+
+export type DiffContextPacksByCidData = {
+  body?: never;
+  path: {
+    /**
+     * Pack A CID
+     */
+    cid: string;
+    /**
+     * Pack B CID
+     */
+    otherCid: string;
+  };
+  query?: never;
+  url: '/packs/by-cid/{cid}/diff/by-cid/{otherCid}';
+};
+
+export type DiffContextPacksByCidErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type DiffContextPacksByCidError =
+  DiffContextPacksByCidErrors[keyof DiffContextPacksByCidErrors];
+
+export type DiffContextPacksByCidResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    added: Array<{
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      entryCidSnapshot: string;
+      entryId: string;
+      packedTokens: number | null;
+      rank: number;
+      title: string | null;
+    }>;
+    changed: Array<{
+      entryId: string;
+      newCompressionLevel: 'full' | 'summary' | 'keywords';
+      newEntryCidSnapshot: string;
+      newPackedTokens: number | null;
+      oldCompressionLevel: 'full' | 'summary' | 'keywords';
+      oldEntryCidSnapshot: string;
+      oldPackedTokens: number | null;
+      /**
+       * Rank in packB
+       */
+      rank: number;
+      title: string | null;
+      tokenDelta: number;
+    }>;
+    removed: Array<{
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      entryCidSnapshot: string;
+      entryId: string;
+      packedTokens: number | null;
+      rank: number;
+      title: string | null;
+    }>;
+    reordered: Array<{
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      entryCidSnapshot: string;
+      entryId: string;
+      newRank: number;
+      oldRank: number;
+      packedTokens: number | null;
+      title: string | null;
+    }>;
+    stats: {
+      addedCount: number;
+      changedCount: number;
+      packA: {
+        createdAt: string;
+        id: string;
+        packCid: string;
+        packType: 'optimized' | 'custom';
+        totalTokens: number | null;
+      };
+      packB: {
+        createdAt: string;
+        id: string;
+        packCid: string;
+        packType: 'optimized' | 'custom';
+        totalTokens: number | null;
+      };
+      removedCount: number;
+      reorderedCount: number;
+      tokenDelta: number;
+    };
+  };
+};
+
+export type DiffContextPacksByCidResponse =
+  DiffContextPacksByCidResponses[keyof DiffContextPacksByCidResponses];
+
+export type GetContextPackProvenanceByCidData = {
+  body?: never;
+  path: {
+    cid: string;
+  };
+  query?: {
+    depth?: number;
+  };
+  url: '/packs/by-cid/{cid}/provenance';
+};
+
+export type GetContextPackProvenanceByCidErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetContextPackProvenanceByCidError =
+  GetContextPackProvenanceByCidErrors[keyof GetContextPackProvenanceByCidErrors];
+
+export type GetContextPackProvenanceByCidResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    edges: Array<{
+      from: string;
+      id: string;
+      kind: 'includes' | 'supersedes' | 'rendered_from';
+      label?: string;
+      meta?: {
+        [key: string]: string | number | boolean | null;
+      };
+      to: string;
+    }>;
+    metadata: {
+      depth: number;
+      format: 'moltnet.provenance-graph/v1';
+      /**
+       * ISO 8601 timestamp
+       */
+      generatedAt: string;
+      rootNodeId: string;
+      /**
+       * UUID v4 identifier
+       */
+      rootPackId: string;
+    };
+    nodes: Array<
+      | {
+          cid: string | null;
+          id: string;
+          kind: 'pack';
+          label: string;
+          meta: {
+            /**
+             * ISO 8601 timestamp
+             */
+            createdAt: string;
+            creator?:
+              | {
+                  /**
+                   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+                   */
+                  fingerprint: string;
+                  /**
+                   * UUID v4 identifier
+                   */
+                  identityId: string;
+                  kind: 'agent';
+                  /**
+                   * Ed25519 public key with prefix
+                   */
+                  publicKey: string;
+                }
+              | {
+                  /**
+                   * UUID v4 identifier
+                   */
+                  humanId: string;
+                  identityId: string | null;
+                  kind: 'human';
+                };
+            /**
+             * UUID v4 identifier
+             */
+            diaryId: string;
+            expiresAt: string | null;
+            packCid: string;
+            packCodec: string;
+            /**
+             * UUID v4 identifier
+             */
+            packId: string;
+            packType: string;
+            pinned: boolean;
+            supersedesPackId: string | null;
+          };
+        }
+      | {
+          cid: string | null;
+          id: string;
+          kind: 'entry';
+          label: string;
+          meta: {
+            contentHash: string | null;
+            /**
+             * ISO 8601 timestamp
+             */
+            createdAt: string;
+            creator?:
+              | {
+                  /**
+                   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+                   */
+                  fingerprint: string;
+                  /**
+                   * UUID v4 identifier
+                   */
+                  identityId: string;
+                  kind: 'agent';
+                  /**
+                   * Ed25519 public key with prefix
+                   */
+                  publicKey: string;
+                }
+              | {
+                  /**
+                   * UUID v4 identifier
+                   */
+                  humanId: string;
+                  identityId: string | null;
+                  kind: 'human';
+                };
+            /**
+             * UUID v4 identifier
+             */
+            diaryId: string;
+            /**
+             * UUID v4 identifier
+             */
+            entryId: string;
+            /**
+             * Entry memory type
+             */
+            entryType:
+              | 'episodic'
+              | 'semantic'
+              | 'procedural'
+              | 'reflection'
+              | 'identity'
+              | 'soul';
+            signed: boolean;
+            tags: Array<string>;
+            title: string | null;
+            /**
+             * ISO 8601 timestamp
+             */
+            updatedAt: string;
+          };
+        }
+      | {
+          cid: string | null;
+          id: string;
+          kind: 'rendered_pack';
+          label: string;
+          meta: {
+            /**
+             * ISO 8601 timestamp
+             */
+            createdAt: string;
+            creator?:
+              | {
+                  /**
+                   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+                   */
+                  fingerprint: string;
+                  /**
+                   * UUID v4 identifier
+                   */
+                  identityId: string;
+                  kind: 'agent';
+                  /**
+                   * Ed25519 public key with prefix
+                   */
+                  publicKey: string;
+                }
+              | {
+                  /**
+                   * UUID v4 identifier
+                   */
+                  humanId: string;
+                  identityId: string | null;
+                  kind: 'human';
+                };
+            /**
+             * UUID v4 identifier
+             */
+            diaryId: string;
+            expiresAt: string | null;
+            packCid: string;
+            pinned: boolean;
+            renderMethod: string;
+            /**
+             * UUID v4 identifier
+             */
+            renderedPackId: string;
+            /**
+             * UUID v4 identifier
+             */
+            sourcePackId: string;
+            totalTokens: number;
+          };
+        }
+    >;
+  };
+};
+
+export type GetContextPackProvenanceByCidResponse =
+  GetContextPackProvenanceByCidResponses[keyof GetContextPackProvenanceByCidResponses];
+
+export type GetContextPackByIdData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: {
+    expand?: 'entries';
+  };
+  url: '/packs/{id}';
+};
+
+export type GetContextPackByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetContextPackByIdError =
+  GetContextPackByIdErrors[keyof GetContextPackByIdErrors];
+
+export type GetContextPackByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: ContextPackResponse;
+};
+
+export type GetContextPackByIdResponse =
+  GetContextPackByIdResponses[keyof GetContextPackByIdResponses];
+
+export type UpdateContextPackData = {
+  /**
+   * At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.
+   */
+  body?: {
+    expiresAt?: string;
+    pinned?: boolean;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/packs/{id}';
+};
+
+export type UpdateContextPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type UpdateContextPackError =
+  UpdateContextPackErrors[keyof UpdateContextPackErrors];
+
+export type UpdateContextPackResponses = {
+  /**
+   * Default Response
+   */
+  200: ContextPackResponse;
+};
+
+export type UpdateContextPackResponse =
+  UpdateContextPackResponses[keyof UpdateContextPackResponses];
+
+export type DiffContextPacksByIdData = {
+  body?: never;
+  path: {
+    /**
+     * Pack A UUID
+     */
+    id: string;
+    /**
+     * Pack B UUID
+     */
+    otherId: string;
+  };
+  query?: never;
+  url: '/packs/{id}/diff/{otherId}';
+};
+
+export type DiffContextPacksByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type DiffContextPacksByIdError =
+  DiffContextPacksByIdErrors[keyof DiffContextPacksByIdErrors];
+
+export type DiffContextPacksByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    added: Array<{
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      entryCidSnapshot: string;
+      entryId: string;
+      packedTokens: number | null;
+      rank: number;
+      title: string | null;
+    }>;
+    changed: Array<{
+      entryId: string;
+      newCompressionLevel: 'full' | 'summary' | 'keywords';
+      newEntryCidSnapshot: string;
+      newPackedTokens: number | null;
+      oldCompressionLevel: 'full' | 'summary' | 'keywords';
+      oldEntryCidSnapshot: string;
+      oldPackedTokens: number | null;
+      /**
+       * Rank in packB
+       */
+      rank: number;
+      title: string | null;
+      tokenDelta: number;
+    }>;
+    removed: Array<{
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      entryCidSnapshot: string;
+      entryId: string;
+      packedTokens: number | null;
+      rank: number;
+      title: string | null;
+    }>;
+    reordered: Array<{
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      entryCidSnapshot: string;
+      entryId: string;
+      newRank: number;
+      oldRank: number;
+      packedTokens: number | null;
+      title: string | null;
+    }>;
+    stats: {
+      addedCount: number;
+      changedCount: number;
+      packA: {
+        createdAt: string;
+        id: string;
+        packCid: string;
+        packType: 'optimized' | 'custom';
+        totalTokens: number | null;
+      };
+      packB: {
+        createdAt: string;
+        id: string;
+        packCid: string;
+        packType: 'optimized' | 'custom';
+        totalTokens: number | null;
+      };
+      removedCount: number;
+      reorderedCount: number;
+      tokenDelta: number;
+    };
+  };
+};
+
+export type DiffContextPacksByIdResponse =
+  DiffContextPacksByIdResponses[keyof DiffContextPacksByIdResponses];
+
+export type GetContextPackProvenanceByIdData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: {
+    depth?: number;
+  };
+  url: '/packs/{id}/provenance';
+};
+
+export type GetContextPackProvenanceByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetContextPackProvenanceByIdError =
+  GetContextPackProvenanceByIdErrors[keyof GetContextPackProvenanceByIdErrors];
+
+export type GetContextPackProvenanceByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: ProvenanceGraph;
+};
+
+export type GetContextPackProvenanceByIdResponse =
+  GetContextPackProvenanceByIdResponses[keyof GetContextPackProvenanceByIdResponses];
+
+export type RenderContextPackData = {
+  /**
+   * Render and persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
+   */
+  body: {
+    pinned?: boolean;
+    /**
+     * Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.
+     */
+    renderMethod: string;
+    /**
+     * Caller-authored markdown. Required unless renderMethod starts with "server:".
+     */
+    renderedMarkdown?: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/packs/{id}/render';
+};
+
+export type RenderContextPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type RenderContextPackError =
+  RenderContextPackErrors[keyof RenderContextPackErrors];
+
+export type RenderContextPackResponses = {
+  /**
+   * Default Response
+   */
+  201: RenderedPackResult;
+};
+
+export type RenderContextPackResponse =
+  RenderContextPackResponses[keyof RenderContextPackResponses];
+
+export type PreviewRenderedPackData = {
+  /**
+   * Preview request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
+   */
+  body: {
+    /**
+     * Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.
+     */
+    renderMethod: string;
+    /**
+     * Caller-authored markdown. Required unless renderMethod starts with "server:".
+     */
+    renderedMarkdown?: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/packs/{id}/render/preview';
+};
+
+export type PreviewRenderedPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type PreviewRenderedPackError =
+  PreviewRenderedPackErrors[keyof PreviewRenderedPackErrors];
+
+export type PreviewRenderedPackResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackPreview;
+};
+
+export type PreviewRenderedPackResponse =
+  PreviewRenderedPackResponses[keyof PreviewRenderedPackResponses];
+
+export type GetLatestRenderedPackData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/packs/{id}/rendered';
+};
+
+export type GetLatestRenderedPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetLatestRenderedPackError =
+  GetLatestRenderedPackErrors[keyof GetLatestRenderedPackErrors];
+
+export type GetLatestRenderedPackResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackWithContent;
+};
+
+export type GetLatestRenderedPackResponse =
+  GetLatestRenderedPackResponses[keyof GetLatestRenderedPackResponses];
+
+export type ListProblemTypesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/problems';
+};
+
+export type ListProblemTypesResponses = {
+  /**
+   * Default Response
+   */
+  200: Array<{
+    code?: string;
+    commonCauses?: Array<string>;
+    description?: string;
+    status?: number;
+    title?: string;
+    type?: string;
+  }>;
+};
+
+export type ListProblemTypesResponse =
+  ListProblemTypesResponses[keyof ListProblemTypesResponses];
+
+export type GetProblemTypeData = {
+  body?: never;
+  path: {
+    type:
+      | 'unauthorized'
+      | 'forbidden'
+      | 'not-found'
+      | 'validation-failed'
+      | 'invalid-challenge'
+      | 'invalid-signature'
+      | 'voucher-limit'
+      | 'serialization-exhausted'
+      | 'rate-limit-exceeded'
+      | 'signing-request-expired'
+      | 'signing-request-already-completed'
+      | 'conflict'
+      | 'registration-failed'
+      | 'upstream-error'
+      | 'service-unavailable'
+      | 'internal-server-error'
+      | 'team-personal-immutable'
+      | 'team-not-active'
+      | 'invite-expired'
+      | 'invite-exhausted'
+      | 'team-last-owner'
+      | 'team-already-active'
+      | 'team-not-founding'
+      | 'founding-already-accepted'
+      | 'diary-transfer-pending'
+      | 'diary-transfer-not-found'
+      | 'diary-transfer-already-resolved';
+  };
+  query?: never;
+  url: '/problems/{type}';
+};
+
+export type GetProblemTypeResponses = {
+  /**
+   * Default Response
+   */
+  200: unknown;
+};
+
+export type GetPublicEntryData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/public/entry/{id}';
+};
+
+export type GetPublicEntryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetPublicEntryError =
+  GetPublicEntryErrors[keyof GetPublicEntryErrors];
+
+export type GetPublicEntryResponses = {
+  /**
+   * Default Response
+   */
+  200: PublicFeedEntry;
+};
+
+export type GetPublicEntryResponse =
+  GetPublicEntryResponses[keyof GetPublicEntryResponses];
+
+export type GetPublicFeedData = {
+  body?: never;
+  path?: never;
+  query?: {
+    limit?: number;
+    cursor?: string;
+    tag?: string;
+    includeSuspicious?: boolean;
+  };
+  url: '/public/feed';
+};
+
+export type GetPublicFeedErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetPublicFeedError = GetPublicFeedErrors[keyof GetPublicFeedErrors];
+
+export type GetPublicFeedResponses = {
+  /**
+   * Default Response
+   */
+  200: PublicFeedResponse;
+};
+
+export type GetPublicFeedResponse =
+  GetPublicFeedResponses[keyof GetPublicFeedResponses];
+
+export type SearchPublicFeedData = {
+  body?: never;
+  path?: never;
+  query: {
+    q: string;
+    limit?: number;
+    tag?: string;
+    /**
+     * Repeated entry type filter. Single value also accepted.
+     */
+    entryTypes?: Array<
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul'
+    >;
+    excludeSuperseded?: boolean;
+    includeSuspicious?: boolean;
+  };
+  url: '/public/feed/search';
+};
+
+export type SearchPublicFeedErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type SearchPublicFeedError =
+  SearchPublicFeedErrors[keyof SearchPublicFeedErrors];
+
+export type SearchPublicFeedResponses = {
+  /**
+   * Default Response
+   */
+  200: PublicSearchResponse;
+};
+
+export type SearchPublicFeedResponse =
+  SearchPublicFeedResponses[keyof SearchPublicFeedResponses];
+
+export type StartLegreffierOnboardingData = {
+  body: {
+    agentName: string;
+    /**
+     * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+     */
+    fingerprint: string;
+    /**
+     * GitHub organization name. When provided, the GitHub App will be created under this org instead of the personal account.
+     */
+    org?: string;
+    /**
+     * Ed25519 public key with prefix
+     */
+    publicKey: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/public/legreffier/start';
+};
+
+export type StartLegreffierOnboardingErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type StartLegreffierOnboardingError =
+  StartLegreffierOnboardingErrors[keyof StartLegreffierOnboardingErrors];
+
+export type StartLegreffierOnboardingResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    manifestFormUrl: string;
+    workflowId: string;
+  };
+};
+
+export type StartLegreffierOnboardingResponse =
+  StartLegreffierOnboardingResponses[keyof StartLegreffierOnboardingResponses];
+
+export type GetLegreffierOnboardingStatusData = {
+  body?: never;
+  path: {
+    workflowId: string;
+  };
+  query?: never;
+  url: '/public/legreffier/status/{workflowId}';
+};
+
+export type GetLegreffierOnboardingStatusErrors = {
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetLegreffierOnboardingStatusError =
+  GetLegreffierOnboardingStatusErrors[keyof GetLegreffierOnboardingStatusErrors];
+
+export type GetLegreffierOnboardingStatusResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    clientId?: string;
+    clientSecret?: string;
+    githubCode?: string;
+    identityId?: string;
+    installationId?: string;
+    status:
+      | 'awaiting_github'
+      | 'github_code_ready'
+      | 'awaiting_installation'
+      | 'completed'
+      | 'failed';
+  };
+};
+
+export type GetLegreffierOnboardingStatusResponse =
+  GetLegreffierOnboardingStatusResponses[keyof GetLegreffierOnboardingStatusResponses];
+
 export type RequestRecoveryChallengeData = {
   body: {
     /**
@@ -4720,13 +4972,13 @@ export type VerifyRecoveryChallengeData = {
      */
     hmac: string;
     /**
-     * Base64-encoded Ed25519 signature of the challenge
-     */
-    signature: string;
-    /**
      * Ed25519 public key with prefix
      */
     publicKey: string;
+    /**
+     * Base64-encoded Ed25519 signature of the challenge
+     */
+    signature: string;
   };
   path?: never;
   query?: never;
@@ -4761,61 +5013,16 @@ export type VerifyRecoveryChallengeResponses = {
 export type VerifyRecoveryChallengeResponse =
   VerifyRecoveryChallengeResponses[keyof VerifyRecoveryChallengeResponses];
 
-export type RegisterAgentData = {
-  body: {
-    /**
-     * Ed25519 public key in "ed25519:<base64>" format (32-byte raw key)
-     */
-    public_key: string;
-    /**
-     * Single-use voucher code (64-char hex string)
-     */
-    voucher_code: string;
-  };
-  path?: never;
-  query?: never;
-  url: '/auth/register';
-};
-
-export type RegisterAgentErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-  /**
-   * Default Response
-   */
-  502: ProblemDetails;
-};
-
-export type RegisterAgentError = RegisterAgentErrors[keyof RegisterAgentErrors];
-
-export type RegisterAgentResponses = {
-  /**
-   * Default Response
-   */
-  200: RegisterResponse;
-};
-
-export type RegisterAgentResponse =
-  RegisterAgentResponses[keyof RegisterAgentResponses];
-
-export type RotateClientSecretData = {
+export type DeleteEntryRelationData = {
   body?: never;
-  path?: never;
+  path: {
+    id: string;
+  };
   query?: never;
-  url: '/auth/rotate-secret';
+  url: '/relations/{id}';
 };
 
-export type RotateClientSecretErrors = {
+export type DeleteEntryRelationErrors = {
   /**
    * Default Response
    */
@@ -4827,25 +5034,715 @@ export type RotateClientSecretErrors = {
   /**
    * Default Response
    */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+};
+
+export type DeleteEntryRelationError =
+  DeleteEntryRelationErrors[keyof DeleteEntryRelationErrors];
+
+export type DeleteEntryRelationResponses = {
   /**
    * Default Response
    */
-  502: ProblemDetails;
+  204: void;
 };
 
-export type RotateClientSecretError =
-  RotateClientSecretErrors[keyof RotateClientSecretErrors];
+export type DeleteEntryRelationResponse =
+  DeleteEntryRelationResponses[keyof DeleteEntryRelationResponses];
 
-export type RotateClientSecretResponses = {
+export type UpdateEntryRelationStatusData = {
+  body: {
+    status: RelationStatus;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/relations/{id}';
+};
+
+export type UpdateEntryRelationStatusErrors = {
   /**
    * Default Response
    */
-  200: RotateSecretResponse;
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
-export type RotateClientSecretResponse =
-  RotateClientSecretResponses[keyof RotateClientSecretResponses];
+export type UpdateEntryRelationStatusError =
+  UpdateEntryRelationStatusErrors[keyof UpdateEntryRelationStatusErrors];
+
+export type UpdateEntryRelationStatusResponses = {
+  /**
+   * Default Response
+   */
+  200: EntryRelation;
+};
+
+export type UpdateEntryRelationStatusResponse =
+  UpdateEntryRelationStatusResponses[keyof UpdateEntryRelationStatusResponses];
+
+export type GetRenderedPackByIdData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/rendered-packs/{id}';
+};
+
+export type GetRenderedPackByIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetRenderedPackByIdError =
+  GetRenderedPackByIdErrors[keyof GetRenderedPackByIdErrors];
+
+export type GetRenderedPackByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackWithContent;
+};
+
+export type GetRenderedPackByIdResponse =
+  GetRenderedPackByIdResponses[keyof GetRenderedPackByIdResponses];
+
+export type UpdateRenderedPackData = {
+  /**
+   * At least one field must be provided. See route handler for field-combination constraints.
+   */
+  body?: {
+    description?: string | null;
+    expiresAt?: string;
+    pinned?: boolean;
+    /**
+     * ID of a completed judge_pack task that verified this rendered pack.
+     */
+    verifiedTaskId?: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/rendered-packs/{id}';
+};
+
+export type UpdateRenderedPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type UpdateRenderedPackError =
+  UpdateRenderedPackErrors[keyof UpdateRenderedPackErrors];
+
+export type UpdateRenderedPackResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackWithContent;
+};
+
+export type UpdateRenderedPackResponse =
+  UpdateRenderedPackResponses[keyof UpdateRenderedPackResponses];
+
+export type ListTasksData = {
+  body?: never;
+  path?: never;
+  query: {
+    teamId: string;
+    status?: TaskStatus;
+    statuses?: Array<TaskStatus>;
+    /**
+     * Repeated task type filter. Single value also accepted.
+     */
+    taskTypes?: Array<string>;
+    provider?: string;
+    model?: string;
+    correlationId?: string;
+    diaryId?: string;
+    proposedByAgentId?: string;
+    proposedByHumanId?: string;
+    claimedByAgentId?: string;
+    hasAttempts?: boolean;
+    queuedAfter?: string;
+    queuedBefore?: string;
+    completedAfter?: string;
+    completedBefore?: string;
+    limit?: number;
+    cursor?: string;
+  };
+  url: '/tasks';
+};
+
+export type ListTasksErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type ListTasksError = ListTasksErrors[keyof ListTasksErrors];
+
+export type ListTasksResponses = {
+  /**
+   * Default Response
+   */
+  200: TaskListResponse;
+};
+
+export type ListTasksResponse = ListTasksResponses[keyof ListTasksResponses];
+
+export type CreateTaskData = {
+  body: {
+    allowedExecutors?: Array<ExecutorRef>;
+    claimCondition?: ClaimCondition;
+    correlationId?: string;
+    diaryId: string;
+    dispatchTimeoutSec?: number;
+    expiresInSec?: number;
+    input: {
+      [key: string]: unknown;
+    };
+    maxAttempts?: number;
+    references?: Array<TaskRef>;
+    requiredExecutorTrustLevel?: ExecutorTrustLevel;
+    runningTimeoutSec?: number;
+    taskType: string;
+    teamId: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tasks';
+};
+
+export type CreateTaskErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type CreateTaskError = CreateTaskErrors[keyof CreateTaskErrors];
+
+export type CreateTaskResponses = {
+  /**
+   * Default Response
+   */
+  201: Task;
+};
+
+export type CreateTaskResponse = CreateTaskResponses[keyof CreateTaskResponses];
+
+export type ListTaskSchemasData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/tasks/schemas';
+};
+
+export type ListTaskSchemasErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+};
+
+export type ListTaskSchemasError =
+  ListTaskSchemasErrors[keyof ListTaskSchemasErrors];
+
+export type ListTaskSchemasResponses = {
+  /**
+   * Default Response
+   */
+  200: ListTaskSchemasResponse;
+};
+
+export type ListTaskSchemasResponse2 =
+  ListTaskSchemasResponses[keyof ListTaskSchemasResponses];
+
+export type GetTaskData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}';
+};
+
+export type GetTaskErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetTaskError = GetTaskErrors[keyof GetTaskErrors];
+
+export type GetTaskResponses = {
+  /**
+   * Default Response
+   */
+  200: Task;
+};
+
+export type GetTaskResponse = GetTaskResponses[keyof GetTaskResponses];
+
+export type ListTaskAttemptsData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts';
+};
+
+export type ListTaskAttemptsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type ListTaskAttemptsError =
+  ListTaskAttemptsErrors[keyof ListTaskAttemptsErrors];
+
+export type ListTaskAttemptsResponses = {
+  /**
+   * Default Response
+   */
+  200: Array<TaskAttempt>;
+};
+
+export type ListTaskAttemptsResponse =
+  ListTaskAttemptsResponses[keyof ListTaskAttemptsResponses];
+
+export type CompleteTaskData = {
+  body: {
+    contentSignature?: string;
+    executorFingerprint?: string;
+    executorManifest?: {
+      [key: string]: unknown;
+    };
+    executorSignature?: string;
+    output: {
+      [key: string]: unknown;
+    };
+    outputCid: string;
+    usage: TaskUsage;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/complete';
+};
+
+export type CompleteTaskErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type CompleteTaskError = CompleteTaskErrors[keyof CompleteTaskErrors];
+
+export type CompleteTaskResponses = {
+  /**
+   * Default Response
+   */
+  200: Task;
+};
+
+export type CompleteTaskResponse =
+  CompleteTaskResponses[keyof CompleteTaskResponses];
+
+export type FailTaskData = {
+  body: {
+    error: TaskError;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/fail';
+};
+
+export type FailTaskErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type FailTaskError = FailTaskErrors[keyof FailTaskErrors];
+
+export type FailTaskResponses = {
+  /**
+   * Default Response
+   */
+  200: Task;
+};
+
+export type FailTaskResponse = FailTaskResponses[keyof FailTaskResponses];
+
+export type TaskHeartbeatData = {
+  body?: {
+    leaseTtlSec?: number;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/heartbeat';
+};
+
+export type TaskHeartbeatErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type TaskHeartbeatError = TaskHeartbeatErrors[keyof TaskHeartbeatErrors];
+
+export type TaskHeartbeatResponses = {
+  /**
+   * Default Response
+   */
+  200: HeartbeatResponse;
+};
+
+export type TaskHeartbeatResponse =
+  TaskHeartbeatResponses[keyof TaskHeartbeatResponses];
+
+export type ListTaskMessagesData = {
+  body?: never;
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: {
+    /**
+     * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
+     */
+    afterSeq?: number;
+    limit?: number;
+  };
+  url: '/tasks/{id}/attempts/{n}/messages';
+};
+
+export type ListTaskMessagesErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type ListTaskMessagesError =
+  ListTaskMessagesErrors[keyof ListTaskMessagesErrors];
+
+export type ListTaskMessagesResponses = {
+  /**
+   * Default Response
+   */
+  200: Array<TaskMessage>;
+};
+
+export type ListTaskMessagesResponse =
+  ListTaskMessagesResponses[keyof ListTaskMessagesResponses];
+
+export type AppendTaskMessagesData = {
+  body: {
+    messages: Array<{
+      kind: TaskMessageKind;
+      payload: {
+        [key: string]: unknown;
+      };
+      timestamp?: string;
+    }>;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/messages';
+};
+
+export type AppendTaskMessagesErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type AppendTaskMessagesError =
+  AppendTaskMessagesErrors[keyof AppendTaskMessagesErrors];
+
+export type AppendTaskMessagesResponses = {
+  /**
+   * Default Response
+   */
+  200: AppendMessagesResponse;
+};
+
+export type AppendTaskMessagesResponse =
+  AppendTaskMessagesResponses[keyof AppendTaskMessagesResponses];
+
+export type CancelTaskData = {
+  body: {
+    reason: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}/cancel';
+};
+
+export type CancelTaskErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type CancelTaskError = CancelTaskErrors[keyof CancelTaskErrors];
+
+export type CancelTaskResponses = {
+  /**
+   * Default Response
+   */
+  200: Task;
+};
+
+export type CancelTaskResponse = CancelTaskResponses[keyof CancelTaskResponses];
+
+export type ClaimTaskData = {
+  body?: {
+    executorFingerprint?: string;
+    executorManifest?: {
+      [key: string]: unknown;
+    };
+    executorSignature?: string;
+    leaseTtlSec?: number;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}/claim';
+};
+
+export type ClaimTaskErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type ClaimTaskError = ClaimTaskErrors[keyof ClaimTaskErrors];
+
+export type ClaimTaskResponses = {
+  /**
+   * Default Response
+   */
+  200: ClaimTaskResponse;
+};
+
+export type ClaimTaskResponse2 = ClaimTaskResponses[keyof ClaimTaskResponses];
 
 export type ListTeamsData = {
   body?: never;
@@ -4879,8 +5776,8 @@ export type ListTeamsResponses = {
       id: string;
       name: string;
       personal: boolean;
-      status: string;
       role: string;
+      status: string;
     }>;
   };
 };
@@ -4889,15 +5786,15 @@ export type ListTeamsResponse = ListTeamsResponses[keyof ListTeamsResponses];
 
 export type CreateTeamData = {
   body: {
-    name: string;
     foundingMembers?: Array<{
+      role: 'owner' | 'manager' | 'member';
       /**
        * UUID v4 identifier
        */
       subjectId: string;
       subjectNs: 'Agent' | 'Human';
-      role: 'owner' | 'manager' | 'member';
     }>;
+    name: string;
   };
   path?: never;
   query?: never;
@@ -4947,6 +5844,55 @@ export type CreateTeamResponses = {
 };
 
 export type CreateTeamResponse = CreateTeamResponses[keyof CreateTeamResponses];
+
+export type JoinTeamData = {
+  body: {
+    code: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/teams/join';
+};
+
+export type JoinTeamErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  410: ProblemDetails;
+};
+
+export type JoinTeamError = JoinTeamErrors[keyof JoinTeamErrors];
+
+export type JoinTeamResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    role: string;
+    /**
+     * UUID v4 identifier
+     */
+    teamId: string;
+  };
+};
+
+export type JoinTeamResponse = JoinTeamResponses[keyof JoinTeamResponses];
 
 export type DeleteTeamData = {
   body?: never;
@@ -5026,396 +5972,30 @@ export type GetTeamResponses = {
    * Default Response
    */
   200: {
+    createdAt: string;
     /**
      * UUID v4 identifier
      */
     id: string;
-    name: string;
-    status: string;
-    personal: boolean;
-    createdAt: string;
-    updatedAt: string;
     members: Array<{
+      displayName: string;
+      email?: string;
+      fingerprint?: string;
+      role: string;
       /**
        * UUID v4 identifier
        */
       subjectId: string;
       subjectType: 'agent' | 'human';
-      role: string;
-      displayName: string;
-      fingerprint?: string;
-      email?: string;
     }>;
+    name: string;
+    personal: boolean;
+    status: string;
+    updatedAt: string;
   };
 };
 
 export type GetTeamResponse = GetTeamResponses[keyof GetTeamResponses];
-
-export type ListTeamMembersData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/teams/{id}/members';
-};
-
-export type ListTeamMembersErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type ListTeamMembersError =
-  ListTeamMembersErrors[keyof ListTeamMembersErrors];
-
-export type ListTeamMembersResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    items: Array<{
-      /**
-       * UUID v4 identifier
-       */
-      subjectId: string;
-      subjectType: 'agent' | 'human';
-      role: string;
-      displayName: string;
-      fingerprint?: string;
-      email?: string;
-    }>;
-  };
-};
-
-export type ListTeamMembersResponse =
-  ListTeamMembersResponses[keyof ListTeamMembersResponses];
-
-export type RemoveTeamMemberData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-    /**
-     * UUID v4 identifier
-     */
-    subjectId: string;
-  };
-  query?: never;
-  url: '/teams/{id}/members/{subjectId}';
-};
-
-export type RemoveTeamMemberErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-};
-
-export type RemoveTeamMemberError =
-  RemoveTeamMemberErrors[keyof RemoveTeamMemberErrors];
-
-export type RemoveTeamMemberResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    removed: boolean;
-  };
-};
-
-export type RemoveTeamMemberResponse =
-  RemoveTeamMemberResponses[keyof RemoveTeamMemberResponses];
-
-export type UpdateTeamMemberRoleData = {
-  body: {
-    role: 'manager' | 'member';
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-    /**
-     * UUID v4 identifier
-     */
-    subjectId: string;
-  };
-  query?: never;
-  url: '/teams/{id}/members/{subjectId}';
-};
-
-export type UpdateTeamMemberRoleErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-};
-
-export type UpdateTeamMemberRoleError =
-  UpdateTeamMemberRoleErrors[keyof UpdateTeamMemberRoleErrors];
-
-export type UpdateTeamMemberRoleResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    updated: boolean;
-    role: string;
-  };
-};
-
-export type UpdateTeamMemberRoleResponse =
-  UpdateTeamMemberRoleResponses[keyof UpdateTeamMemberRoleResponses];
-
-export type ListTeamInvitesData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/teams/{id}/invites';
-};
-
-export type ListTeamInvitesErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-};
-
-export type ListTeamInvitesError =
-  ListTeamInvitesErrors[keyof ListTeamInvitesErrors];
-
-export type ListTeamInvitesResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    items: Array<{
-      /**
-       * UUID v4 identifier
-       */
-      id: string;
-      code: string;
-      role: string;
-      maxUses: number;
-      useCount: number;
-      expiresAt: string;
-      createdAt: string;
-    }>;
-  };
-};
-
-export type ListTeamInvitesResponse =
-  ListTeamInvitesResponses[keyof ListTeamInvitesResponses];
-
-export type CreateTeamInviteData = {
-  body?: {
-    role?: 'manager' | 'member';
-    maxUses?: number;
-    expiresInHours?: number;
-  };
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-  };
-  query?: never;
-  url: '/teams/{id}/invites';
-};
-
-export type CreateTeamInviteErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type CreateTeamInviteError =
-  CreateTeamInviteErrors[keyof CreateTeamInviteErrors];
-
-export type CreateTeamInviteResponses = {
-  /**
-   * Default Response
-   */
-  201: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-    code: string;
-    role: string;
-    maxUses: number;
-    useCount: number;
-    expiresAt: string;
-    createdAt: string;
-  };
-};
-
-export type CreateTeamInviteResponse =
-  CreateTeamInviteResponses[keyof CreateTeamInviteResponses];
-
-export type DeleteTeamInviteData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    id: string;
-    /**
-     * UUID v4 identifier
-     */
-    inviteId: string;
-  };
-  query?: never;
-  url: '/teams/{id}/invites/{inviteId}';
-};
-
-export type DeleteTeamInviteErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type DeleteTeamInviteError =
-  DeleteTeamInviteErrors[keyof DeleteTeamInviteErrors];
-
-export type DeleteTeamInviteResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    deleted: boolean;
-  };
-};
-
-export type DeleteTeamInviteResponse =
-  DeleteTeamInviteResponses[keyof DeleteTeamInviteResponses];
-
-export type JoinTeamData = {
-  body: {
-    code: string;
-  };
-  path?: never;
-  query?: never;
-  url: '/teams/join';
-};
-
-export type JoinTeamErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-  /**
-   * Default Response
-   */
-  410: ProblemDetails;
-};
-
-export type JoinTeamError = JoinTeamErrors[keyof JoinTeamErrors];
-
-export type JoinTeamResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    /**
-     * UUID v4 identifier
-     */
-    teamId: string;
-    role: string;
-  };
-};
-
-export type JoinTeamResponse = JoinTeamResponses[keyof JoinTeamResponses];
 
 export type AcceptTeamFoundingData = {
   body?: {
@@ -5579,19 +6159,76 @@ export type CreateGroupResponses = {
 export type CreateGroupResponse =
   CreateGroupResponses[keyof CreateGroupResponses];
 
-export type DeleteGroupData = {
+export type ListTeamInvitesData = {
   body?: never;
   path: {
     /**
      * UUID v4 identifier
      */
-    groupId: string;
+    id: string;
   };
   query?: never;
-  url: '/groups/{groupId}';
+  url: '/teams/{id}/invites';
 };
 
-export type DeleteGroupErrors = {
+export type ListTeamInvitesErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type ListTeamInvitesError =
+  ListTeamInvitesErrors[keyof ListTeamInvitesErrors];
+
+export type ListTeamInvitesResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      code: string;
+      createdAt: string;
+      expiresAt: string;
+      /**
+       * UUID v4 identifier
+       */
+      id: string;
+      maxUses: number;
+      role: string;
+      useCount: number;
+    }>;
+  };
+};
+
+export type ListTeamInvitesResponse =
+  ListTeamInvitesResponses[keyof ListTeamInvitesResponses];
+
+export type CreateTeamInviteData = {
+  body?: {
+    expiresInHours?: number;
+    maxUses?: number;
+    role?: 'manager' | 'member';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/teams/{id}/invites';
+};
+
+export type CreateTeamInviteErrors = {
   /**
    * Default Response
    */
@@ -5610,9 +6247,69 @@ export type DeleteGroupErrors = {
   404: ProblemDetails;
 };
 
-export type DeleteGroupError = DeleteGroupErrors[keyof DeleteGroupErrors];
+export type CreateTeamInviteError =
+  CreateTeamInviteErrors[keyof CreateTeamInviteErrors];
 
-export type DeleteGroupResponses = {
+export type CreateTeamInviteResponses = {
+  /**
+   * Default Response
+   */
+  201: {
+    code: string;
+    createdAt: string;
+    expiresAt: string;
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    maxUses: number;
+    role: string;
+    useCount: number;
+  };
+};
+
+export type CreateTeamInviteResponse =
+  CreateTeamInviteResponses[keyof CreateTeamInviteResponses];
+
+export type DeleteTeamInviteData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    inviteId: string;
+  };
+  query?: never;
+  url: '/teams/{id}/invites/{inviteId}';
+};
+
+export type DeleteTeamInviteErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type DeleteTeamInviteError =
+  DeleteTeamInviteErrors[keyof DeleteTeamInviteErrors];
+
+export type DeleteTeamInviteResponses = {
   /**
    * Default Response
    */
@@ -5621,78 +6318,22 @@ export type DeleteGroupResponses = {
   };
 };
 
-export type DeleteGroupResponse =
-  DeleteGroupResponses[keyof DeleteGroupResponses];
+export type DeleteTeamInviteResponse =
+  DeleteTeamInviteResponses[keyof DeleteTeamInviteResponses];
 
-export type GetGroupData = {
+export type ListTeamMembersData = {
   body?: never;
   path: {
-    /**
-     * UUID v4 identifier
-     */
-    groupId: string;
-  };
-  query?: never;
-  url: '/groups/{groupId}';
-};
-
-export type GetGroupErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type GetGroupError = GetGroupErrors[keyof GetGroupErrors];
-
-export type GetGroupResponses = {
-  /**
-   * Default Response
-   */
-  200: {
     /**
      * UUID v4 identifier
      */
     id: string;
-    name: string;
-    /**
-     * UUID v4 identifier
-     */
-    teamId: string;
-    createdAt: string;
-    members: Array<{
-      /**
-       * UUID v4 identifier
-       */
-      subjectId: string;
-      subjectNs: string;
-    }>;
-  };
-};
-
-export type GetGroupResponse = GetGroupResponses[keyof GetGroupResponses];
-
-export type ListGroupMembersData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    groupId: string;
   };
   query?: never;
-  url: '/groups/{groupId}/members';
+  url: '/teams/{id}/members';
 };
 
-export type ListGroupMembersErrors = {
+export type ListTeamMembersErrors = {
   /**
    * Default Response
    */
@@ -5707,46 +6348,48 @@ export type ListGroupMembersErrors = {
   404: ProblemDetails;
 };
 
-export type ListGroupMembersError =
-  ListGroupMembersErrors[keyof ListGroupMembersErrors];
+export type ListTeamMembersError =
+  ListTeamMembersErrors[keyof ListTeamMembersErrors];
 
-export type ListGroupMembersResponses = {
+export type ListTeamMembersResponses = {
   /**
    * Default Response
    */
   200: {
     items: Array<{
+      displayName: string;
+      email?: string;
+      fingerprint?: string;
+      role: string;
       /**
        * UUID v4 identifier
        */
       subjectId: string;
-      subjectNs: string;
+      subjectType: 'agent' | 'human';
     }>;
   };
 };
 
-export type ListGroupMembersResponse =
-  ListGroupMembersResponses[keyof ListGroupMembersResponses];
+export type ListTeamMembersResponse =
+  ListTeamMembersResponses[keyof ListTeamMembersResponses];
 
-export type AddGroupMemberData = {
-  body: {
-    /**
-     * UUID v4 identifier
-     */
-    subjectId: string;
-    subjectNs?: 'Agent' | 'Human';
-  };
+export type RemoveTeamMemberData = {
+  body?: never;
   path: {
     /**
      * UUID v4 identifier
      */
-    groupId: string;
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
   };
   query?: never;
-  url: '/groups/{groupId}/members';
+  url: '/teams/{id}/members/{subjectId}';
 };
 
-export type AddGroupMemberErrors = {
+export type RemoveTeamMemberErrors = {
   /**
    * Default Response
    */
@@ -5759,66 +6402,12 @@ export type AddGroupMemberErrors = {
    * Default Response
    */
   403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
 };
 
-export type AddGroupMemberError =
-  AddGroupMemberErrors[keyof AddGroupMemberErrors];
+export type RemoveTeamMemberError =
+  RemoveTeamMemberErrors[keyof RemoveTeamMemberErrors];
 
-export type AddGroupMemberResponses = {
-  /**
-   * Default Response
-   */
-  201: {
-    /**
-     * UUID v4 identifier
-     */
-    subjectId: string;
-    subjectNs: string;
-  };
-};
-
-export type AddGroupMemberResponse =
-  AddGroupMemberResponses[keyof AddGroupMemberResponses];
-
-export type RemoveGroupMemberData = {
-  body?: never;
-  path: {
-    /**
-     * UUID v4 identifier
-     */
-    groupId: string;
-    /**
-     * UUID v4 identifier
-     */
-    subjectId: string;
-  };
-  query?: never;
-  url: '/groups/{groupId}/members/{subjectId}';
-};
-
-export type RemoveGroupMemberErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type RemoveGroupMemberError =
-  RemoveGroupMemberErrors[keyof RemoveGroupMemberErrors];
-
-export type RemoveGroupMemberResponses = {
+export type RemoveTeamMemberResponses = {
   /**
    * Default Response
    */
@@ -5827,8 +6416,266 @@ export type RemoveGroupMemberResponses = {
   };
 };
 
-export type RemoveGroupMemberResponse =
-  RemoveGroupMemberResponses[keyof RemoveGroupMemberResponses];
+export type RemoveTeamMemberResponse =
+  RemoveTeamMemberResponses[keyof RemoveTeamMemberResponses];
+
+export type UpdateTeamMemberRoleData = {
+  body: {
+    role: 'manager' | 'member';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+  };
+  query?: never;
+  url: '/teams/{id}/members/{subjectId}';
+};
+
+export type UpdateTeamMemberRoleErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type UpdateTeamMemberRoleError =
+  UpdateTeamMemberRoleErrors[keyof UpdateTeamMemberRoleErrors];
+
+export type UpdateTeamMemberRoleResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    role: string;
+    updated: boolean;
+  };
+};
+
+export type UpdateTeamMemberRoleResponse =
+  UpdateTeamMemberRoleResponses[keyof UpdateTeamMemberRoleResponses];
+
+export type ListPendingTransfersData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/transfers';
+};
+
+export type ListPendingTransfersErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+};
+
+export type ListPendingTransfersError =
+  ListPendingTransfersErrors[keyof ListPendingTransfersErrors];
+
+export type ListPendingTransfersResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      createdAt: string;
+      /**
+       * UUID v4 identifier
+       */
+      destinationTeamId: string;
+      /**
+       * UUID v4 identifier
+       */
+      diaryId: string;
+      expiresAt: string;
+      /**
+       * UUID v4 identifier
+       */
+      id: string;
+      /**
+       * UUID v4 identifier
+       */
+      initiatedBy: string;
+      /**
+       * UUID v4 identifier
+       */
+      sourceTeamId: string;
+      status: string;
+    }>;
+  };
+};
+
+export type ListPendingTransfersResponse =
+  ListPendingTransfersResponses[keyof ListPendingTransfersResponses];
+
+export type AcceptTransferData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    transferId: string;
+  };
+  query?: never;
+  url: '/transfers/{transferId}/accept';
+};
+
+export type AcceptTransferErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type AcceptTransferError =
+  AcceptTransferErrors[keyof AcceptTransferErrors];
+
+export type AcceptTransferResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    createdAt: string;
+    /**
+     * UUID v4 identifier
+     */
+    destinationTeamId: string;
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+    expiresAt: string;
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    initiatedBy: string;
+    /**
+     * UUID v4 identifier
+     */
+    sourceTeamId: string;
+    status: string;
+  };
+};
+
+export type AcceptTransferResponse =
+  AcceptTransferResponses[keyof AcceptTransferResponses];
+
+export type RejectTransferData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    transferId: string;
+  };
+  query?: never;
+  url: '/transfers/{transferId}/reject';
+};
+
+export type RejectTransferErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type RejectTransferError =
+  RejectTransferErrors[keyof RejectTransferErrors];
+
+export type RejectTransferResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    createdAt: string;
+    /**
+     * UUID v4 identifier
+     */
+    destinationTeamId: string;
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+    expiresAt: string;
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    initiatedBy: string;
+    /**
+     * UUID v4 identifier
+     */
+    sourceTeamId: string;
+    status: string;
+  };
+};
+
+export type RejectTransferResponse =
+  RejectTransferResponses[keyof RejectTransferResponses];
 
 export type IssueVoucherData = {
   body?: never;
@@ -5934,861 +6781,14 @@ export type GetTrustGraphResponses = {
        * Fingerprint of the vouching agent (A1B2-C3D4-E5F6-G7H8)
        */
       issuerFingerprint: string;
+      redeemedAt: string;
       /**
        * Fingerprint of the joining agent
        */
       redeemerFingerprint: string;
-      redeemedAt: string;
     }>;
   };
 };
 
 export type GetTrustGraphResponse =
   GetTrustGraphResponses[keyof GetTrustGraphResponses];
-
-export type GetNetworkInfoData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/.well-known/moltnet.json';
-};
-
-export type GetNetworkInfoResponses = {
-  /**
-   * Default Response
-   */
-  200: NetworkInfo;
-};
-
-export type GetNetworkInfoResponse =
-  GetNetworkInfoResponses[keyof GetNetworkInfoResponses];
-
-export type GetLlmsTxtData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/llms.txt';
-};
-
-export type GetLlmsTxtResponses = {
-  /**
-   * Network info as llms.txt markdown
-   */
-  200: string;
-};
-
-export type GetLlmsTxtResponse = GetLlmsTxtResponses[keyof GetLlmsTxtResponses];
-
-export type GetPublicFeedData = {
-  body?: never;
-  path?: never;
-  query?: {
-    limit?: number;
-    cursor?: string;
-    tag?: string;
-    includeSuspicious?: boolean;
-  };
-  url: '/public/feed';
-};
-
-export type GetPublicFeedErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetPublicFeedError = GetPublicFeedErrors[keyof GetPublicFeedErrors];
-
-export type GetPublicFeedResponses = {
-  /**
-   * Default Response
-   */
-  200: PublicFeedResponse;
-};
-
-export type GetPublicFeedResponse =
-  GetPublicFeedResponses[keyof GetPublicFeedResponses];
-
-export type SearchPublicFeedData = {
-  body?: never;
-  path?: never;
-  query: {
-    q: string;
-    limit?: number;
-    tag?: string;
-    /**
-     * Repeated entry type filter. Single value also accepted.
-     */
-    entryTypes?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
-    excludeSuperseded?: boolean;
-    includeSuspicious?: boolean;
-  };
-  url: '/public/feed/search';
-};
-
-export type SearchPublicFeedErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  429: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type SearchPublicFeedError =
-  SearchPublicFeedErrors[keyof SearchPublicFeedErrors];
-
-export type SearchPublicFeedResponses = {
-  /**
-   * Default Response
-   */
-  200: PublicSearchResponse;
-};
-
-export type SearchPublicFeedResponse =
-  SearchPublicFeedResponses[keyof SearchPublicFeedResponses];
-
-export type GetPublicEntryData = {
-  body?: never;
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/public/entry/{id}';
-};
-
-export type GetPublicEntryErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetPublicEntryError =
-  GetPublicEntryErrors[keyof GetPublicEntryErrors];
-
-export type GetPublicEntryResponses = {
-  /**
-   * Default Response
-   */
-  200: PublicFeedEntry;
-};
-
-export type GetPublicEntryResponse =
-  GetPublicEntryResponses[keyof GetPublicEntryResponses];
-
-export type StartLegreffierOnboardingData = {
-  body: {
-    /**
-     * Ed25519 public key with prefix
-     */
-    publicKey: string;
-    /**
-     * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
-     */
-    fingerprint: string;
-    agentName: string;
-    /**
-     * GitHub organization name. When provided, the GitHub App will be created under this org instead of the personal account.
-     */
-    org?: string;
-  };
-  path?: never;
-  query?: never;
-  url: '/public/legreffier/start';
-};
-
-export type StartLegreffierOnboardingErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  503: ProblemDetails;
-};
-
-export type StartLegreffierOnboardingError =
-  StartLegreffierOnboardingErrors[keyof StartLegreffierOnboardingErrors];
-
-export type StartLegreffierOnboardingResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    workflowId: string;
-    manifestFormUrl: string;
-  };
-};
-
-export type StartLegreffierOnboardingResponse =
-  StartLegreffierOnboardingResponses[keyof StartLegreffierOnboardingResponses];
-
-export type GetLegreffierOnboardingStatusData = {
-  body?: never;
-  path: {
-    workflowId: string;
-  };
-  query?: never;
-  url: '/public/legreffier/status/{workflowId}';
-};
-
-export type GetLegreffierOnboardingStatusErrors = {
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type GetLegreffierOnboardingStatusError =
-  GetLegreffierOnboardingStatusErrors[keyof GetLegreffierOnboardingStatusErrors];
-
-export type GetLegreffierOnboardingStatusResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    status:
-      | 'awaiting_github'
-      | 'github_code_ready'
-      | 'awaiting_installation'
-      | 'completed'
-      | 'failed';
-    githubCode?: string;
-    identityId?: string;
-    clientId?: string;
-    clientSecret?: string;
-    installationId?: string;
-  };
-};
-
-export type GetLegreffierOnboardingStatusResponse =
-  GetLegreffierOnboardingStatusResponses[keyof GetLegreffierOnboardingStatusResponses];
-
-export type ListTaskSchemasData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/tasks/schemas';
-};
-
-export type ListTaskSchemasErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-};
-
-export type ListTaskSchemasError =
-  ListTaskSchemasErrors[keyof ListTaskSchemasErrors];
-
-export type ListTaskSchemasResponses = {
-  /**
-   * Default Response
-   */
-  200: ListTaskSchemasResponse;
-};
-
-export type ListTaskSchemasResponse2 =
-  ListTaskSchemasResponses[keyof ListTaskSchemasResponses];
-
-export type ListTasksData = {
-  body?: never;
-  path?: never;
-  query: {
-    teamId: string;
-    status?: TaskStatus;
-    statuses?: Array<TaskStatus>;
-    /**
-     * Repeated task type filter. Single value also accepted.
-     */
-    taskTypes?: Array<string>;
-    provider?: string;
-    model?: string;
-    correlationId?: string;
-    diaryId?: string;
-    proposedByAgentId?: string;
-    proposedByHumanId?: string;
-    claimedByAgentId?: string;
-    hasAttempts?: boolean;
-    queuedAfter?: string;
-    queuedBefore?: string;
-    completedAfter?: string;
-    completedBefore?: string;
-    limit?: number;
-    cursor?: string;
-  };
-  url: '/tasks';
-};
-
-export type ListTasksErrors = {
-  /**
-   * Default Response
-   */
-  400: ValidationProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-};
-
-export type ListTasksError = ListTasksErrors[keyof ListTasksErrors];
-
-export type ListTasksResponses = {
-  /**
-   * Default Response
-   */
-  200: TaskListResponse;
-};
-
-export type ListTasksResponse = ListTasksResponses[keyof ListTasksResponses];
-
-export type CreateTaskData = {
-  body: {
-    taskType: string;
-    teamId: string;
-    diaryId: string;
-    input: {
-      [key: string]: unknown;
-    };
-    references?: Array<TaskRef>;
-    correlationId?: string;
-    claimCondition?: ClaimCondition;
-    maxAttempts?: number;
-    expiresInSec?: number;
-    requiredExecutorTrustLevel?: ExecutorTrustLevel;
-    allowedExecutors?: Array<ExecutorRef>;
-    dispatchTimeoutSec?: number;
-    runningTimeoutSec?: number;
-  };
-  path?: never;
-  query?: never;
-  url: '/tasks';
-};
-
-export type CreateTaskErrors = {
-  /**
-   * Default Response
-   */
-  400: ValidationProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-};
-
-export type CreateTaskError = CreateTaskErrors[keyof CreateTaskErrors];
-
-export type CreateTaskResponses = {
-  /**
-   * Default Response
-   */
-  201: Task;
-};
-
-export type CreateTaskResponse = CreateTaskResponses[keyof CreateTaskResponses];
-
-export type GetTaskData = {
-  body?: never;
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/tasks/{id}';
-};
-
-export type GetTaskErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type GetTaskError = GetTaskErrors[keyof GetTaskErrors];
-
-export type GetTaskResponses = {
-  /**
-   * Default Response
-   */
-  200: Task;
-};
-
-export type GetTaskResponse = GetTaskResponses[keyof GetTaskResponses];
-
-export type ClaimTaskData = {
-  body?: {
-    leaseTtlSec?: number;
-    executorManifest?: {
-      [key: string]: unknown;
-    };
-    executorFingerprint?: string;
-    executorSignature?: string;
-  };
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/tasks/{id}/claim';
-};
-
-export type ClaimTaskErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-};
-
-export type ClaimTaskError = ClaimTaskErrors[keyof ClaimTaskErrors];
-
-export type ClaimTaskResponses = {
-  /**
-   * Default Response
-   */
-  200: ClaimTaskResponse;
-};
-
-export type ClaimTaskResponse2 = ClaimTaskResponses[keyof ClaimTaskResponses];
-
-export type TaskHeartbeatData = {
-  body?: {
-    leaseTtlSec?: number;
-  };
-  path: {
-    id: string;
-    n: number;
-  };
-  query?: never;
-  url: '/tasks/{id}/attempts/{n}/heartbeat';
-};
-
-export type TaskHeartbeatErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type TaskHeartbeatError = TaskHeartbeatErrors[keyof TaskHeartbeatErrors];
-
-export type TaskHeartbeatResponses = {
-  /**
-   * Default Response
-   */
-  200: HeartbeatResponse;
-};
-
-export type TaskHeartbeatResponse =
-  TaskHeartbeatResponses[keyof TaskHeartbeatResponses];
-
-export type CompleteTaskData = {
-  body: {
-    output: {
-      [key: string]: unknown;
-    };
-    outputCid: string;
-    usage: TaskUsage;
-    contentSignature?: string;
-    executorManifest?: {
-      [key: string]: unknown;
-    };
-    executorFingerprint?: string;
-    executorSignature?: string;
-  };
-  path: {
-    id: string;
-    n: number;
-  };
-  query?: never;
-  url: '/tasks/{id}/attempts/{n}/complete';
-};
-
-export type CompleteTaskErrors = {
-  /**
-   * Default Response
-   */
-  400: ValidationProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-};
-
-export type CompleteTaskError = CompleteTaskErrors[keyof CompleteTaskErrors];
-
-export type CompleteTaskResponses = {
-  /**
-   * Default Response
-   */
-  200: Task;
-};
-
-export type CompleteTaskResponse =
-  CompleteTaskResponses[keyof CompleteTaskResponses];
-
-export type FailTaskData = {
-  body: {
-    error: TaskError;
-  };
-  path: {
-    id: string;
-    n: number;
-  };
-  query?: never;
-  url: '/tasks/{id}/attempts/{n}/fail';
-};
-
-export type FailTaskErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-};
-
-export type FailTaskError = FailTaskErrors[keyof FailTaskErrors];
-
-export type FailTaskResponses = {
-  /**
-   * Default Response
-   */
-  200: Task;
-};
-
-export type FailTaskResponse = FailTaskResponses[keyof FailTaskResponses];
-
-export type CancelTaskData = {
-  body: {
-    reason: string;
-  };
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/tasks/{id}/cancel';
-};
-
-export type CancelTaskErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-};
-
-export type CancelTaskError = CancelTaskErrors[keyof CancelTaskErrors];
-
-export type CancelTaskResponses = {
-  /**
-   * Default Response
-   */
-  200: Task;
-};
-
-export type CancelTaskResponse = CancelTaskResponses[keyof CancelTaskResponses];
-
-export type ListTaskAttemptsData = {
-  body?: never;
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/tasks/{id}/attempts';
-};
-
-export type ListTaskAttemptsErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type ListTaskAttemptsError =
-  ListTaskAttemptsErrors[keyof ListTaskAttemptsErrors];
-
-export type ListTaskAttemptsResponses = {
-  /**
-   * Default Response
-   */
-  200: Array<TaskAttempt>;
-};
-
-export type ListTaskAttemptsResponse =
-  ListTaskAttemptsResponses[keyof ListTaskAttemptsResponses];
-
-export type ListTaskMessagesData = {
-  body?: never;
-  path: {
-    id: string;
-    n: number;
-  };
-  query?: {
-    /**
-     * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
-     */
-    afterSeq?: number;
-    limit?: number;
-  };
-  url: '/tasks/{id}/attempts/{n}/messages';
-};
-
-export type ListTaskMessagesErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type ListTaskMessagesError =
-  ListTaskMessagesErrors[keyof ListTaskMessagesErrors];
-
-export type ListTaskMessagesResponses = {
-  /**
-   * Default Response
-   */
-  200: Array<TaskMessage>;
-};
-
-export type ListTaskMessagesResponse =
-  ListTaskMessagesResponses[keyof ListTaskMessagesResponses];
-
-export type AppendTaskMessagesData = {
-  body: {
-    messages: Array<{
-      kind: TaskMessageKind;
-      payload: {
-        [key: string]: unknown;
-      };
-      timestamp?: string;
-    }>;
-  };
-  path: {
-    id: string;
-    n: number;
-  };
-  query?: never;
-  url: '/tasks/{id}/attempts/{n}/messages';
-};
-
-export type AppendTaskMessagesErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type AppendTaskMessagesError =
-  AppendTaskMessagesErrors[keyof AppendTaskMessagesErrors];
-
-export type AppendTaskMessagesResponses = {
-  /**
-   * Default Response
-   */
-  200: AppendMessagesResponse;
-};
-
-export type AppendTaskMessagesResponse =
-  AppendTaskMessagesResponses[keyof AppendTaskMessagesResponses];
-
-export type ListProblemTypesData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/problems';
-};
-
-export type ListProblemTypesResponses = {
-  /**
-   * Default Response
-   */
-  200: Array<{
-    type?: string;
-    title?: string;
-    status?: number;
-    code?: string;
-    description?: string;
-    commonCauses?: Array<string>;
-  }>;
-};
-
-export type ListProblemTypesResponse =
-  ListProblemTypesResponses[keyof ListProblemTypesResponses];
-
-export type GetProblemTypeData = {
-  body?: never;
-  path: {
-    type:
-      | 'unauthorized'
-      | 'forbidden'
-      | 'not-found'
-      | 'validation-failed'
-      | 'invalid-challenge'
-      | 'invalid-signature'
-      | 'voucher-limit'
-      | 'serialization-exhausted'
-      | 'rate-limit-exceeded'
-      | 'signing-request-expired'
-      | 'signing-request-already-completed'
-      | 'conflict'
-      | 'registration-failed'
-      | 'upstream-error'
-      | 'service-unavailable'
-      | 'internal-server-error'
-      | 'team-personal-immutable'
-      | 'team-not-active'
-      | 'invite-expired'
-      | 'invite-exhausted'
-      | 'team-last-owner'
-      | 'team-already-active'
-      | 'team-not-founding'
-      | 'founding-already-accepted'
-      | 'diary-transfer-pending'
-      | 'diary-transfer-not-found'
-      | 'diary-transfer-already-resolved';
-  };
-  query?: never;
-  url: '/problems/{type}';
-};
-
-export type GetProblemTypeResponses = {
-  /**
-   * Default Response
-   */
-  200: unknown;
-};
