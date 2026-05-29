@@ -107,6 +107,17 @@ interface TaskTypeEntry {
    * Default: undefined (== `none`).
    */
   readonly sessionScope?: 'none' | 'correlation' | 'custom';
+  /**
+   * When true, the daemon honours a proposer-supplied workspace mode via
+   * `task.input.execution.workspace`. Recognized values: `'none'`
+   * (scratch_mount), `'shared_mount'`, `'dedicated_worktree'`. Unrecognized or
+   * absent values fall back to `workspaceMode`. The task type's `inputSchema`
+   * MUST declare `execution.workspace` for `Value.Check` to admit it.
+   *
+   * Default: undefined (== false). Task types whose execution shape is fixed
+   * (e.g. `fulfill_brief` always wants a worktree) should not opt in.
+   */
+  readonly acceptsInputWorkspaceOverride?: boolean;
   readonly requiresReferences: boolean;
   /**
    * Optional cross-field validator run AFTER `Value.Check(inputSchema)`

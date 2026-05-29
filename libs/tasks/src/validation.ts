@@ -21,6 +21,7 @@ interface TaskTypeDefinition {
   readonly workspaceMode?: 'shared_mount' | 'dedicated_worktree';
   readonly workspaceScope?: 'attempt' | 'session';
   readonly sessionScope?: 'none' | 'correlation' | 'custom';
+  readonly acceptsInputWorkspaceOverride?: boolean;
   readonly requiresReferences: boolean;
   readonly validateInput?: (input: unknown) => string | null;
   readonly validateOutput?: (output: unknown, input?: unknown) => string | null;
@@ -257,11 +258,22 @@ export function taskTypeSessionScope(
   return getTaskTypeEntry(taskType)?.sessionScope ?? 'none';
 }
 
+/**
+ * Whether a task type accepts a proposer-supplied workspace mode via
+ * `task.input.execution.workspace`. Unknown task types default to false.
+ */
+export function taskTypeAcceptsInputWorkspaceOverride(
+  taskType: string,
+): boolean {
+  return getTaskTypeEntry(taskType)?.acceptsInputWorkspaceOverride ?? false;
+}
+
 export interface TaskExecutionPolicy {
   resumable: boolean;
   workspaceMode: 'shared_mount' | 'dedicated_worktree';
   workspaceScope: 'attempt' | 'session';
   sessionScope: 'none' | 'correlation' | 'custom';
+  acceptsInputWorkspaceOverride: boolean;
   usesSubagents: boolean;
 }
 
@@ -278,6 +290,8 @@ export function getTaskExecutionPolicy(taskType: string): TaskExecutionPolicy {
     workspaceMode: taskTypeWorkspaceMode(taskType),
     workspaceScope: taskTypeWorkspaceScope(taskType),
     sessionScope: taskTypeSessionScope(taskType),
+    acceptsInputWorkspaceOverride:
+      taskTypeAcceptsInputWorkspaceOverride(taskType),
     usesSubagents: taskTypeUsesSubagents(taskType),
   };
 }
