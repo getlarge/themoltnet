@@ -1,9 +1,8 @@
-import type { TaskStatus } from '@moltnet/api-client';
-import type { TaskSummary } from '@moltnet/task-ui';
 import { Button, Stack, Text, useTheme } from '@themoltnet/design-system';
 
-import type { DependsRow } from '../../tasks/claim-condition.js';
-import { TASK_STATUS_FILTERS } from '../../tasks/status.js';
+import type { DependsRow } from './claim-condition.js';
+import { TASK_STATUSES } from './task-lanes.js';
+import type { TaskStatus, TaskSummary } from './types.js';
 
 export interface DependsOnBuilderProps {
   /** Candidate prerequisite tasks (current team). */
@@ -90,7 +89,7 @@ export function DependsOnBuilder({
               }
               style={selectStyle}
             >
-              {TASK_STATUS_FILTERS.map((status) => (
+              {TASK_STATUSES.map((status) => (
                 <option key={status} value={status}>
                   {status}
                 </option>

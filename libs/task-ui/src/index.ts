@@ -1,4 +1,19 @@
 export {
+  buildClaimCondition,
+  type DependsRow,
+  MAX_DEPENDS_DEPTH,
+} from './claim-condition.js';
+export {
+  CreateTaskDialog,
+  type CreateTaskDialogProps,
+  type CreateTaskRequest,
+  type DiaryOption,
+} from './create-task-dialog.js';
+export {
+  DependsOnBuilder,
+  type DependsOnBuilderProps,
+} from './depends-on-builder.js';
+export {
   formatDateTime,
   formatRelativeAge,
   getMessageText,
@@ -45,6 +60,7 @@ export {
   statusToLane,
   TASK_LANES,
   TASK_NON_TERMINAL_STATUSES,
+  TASK_STATUSES,
   type TaskLane,
   type TaskLaneId,
 } from './task-lanes.js';

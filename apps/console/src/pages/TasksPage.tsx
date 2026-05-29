@@ -1,4 +1,4 @@
-import type { TaskStatus } from '@moltnet/api-client';
+import { createTask, type TaskStatus } from '@moltnet/api-client';
 import {
   getTaskOptions,
   listTaskAttemptsOptions,
@@ -6,6 +6,8 @@ import {
   listTasksInfiniteOptions,
 } from '@moltnet/api-client/query';
 import {
+  CreateTaskDialog,
+  type CreateTaskRequest,
   isTaskNonTerminal,
   TASK_LANES,
   TaskFunnelStrip,
@@ -19,7 +21,6 @@ import { type ChangeEvent, useMemo, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
 
 import { getApiClient } from '../api.js';
-import { CreateTaskDialog } from '../components/tasks/CreateTaskDialog.js';
 import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
 import { getTaskStatusQuery, TASK_STATUS_FILTERS } from '../tasks/status.js';
@@ -341,6 +342,20 @@ export function TasksPage() {
           diaries={diaryOptions}
           candidateTasks={tasks}
           onClose={() => setShowCreate(false)}
+          onSubmit={async (request: CreateTaskRequest) => {
+            const { data, error: apiError } = await createTask({
+              client: getApiClient(),
+              body: request,
+            });
+            if (apiError || !data || !('id' in data)) {
+              const detail =
+                apiError && typeof apiError === 'object' && 'detail' in apiError
+                  ? String((apiError as { detail?: unknown }).detail)
+                  : 'Failed to create task';
+              throw new Error(detail);
+            }
+            return data.id;
+          }}
           onCreated={() => {
             setShowCreate(false);
             void query.refetch();
