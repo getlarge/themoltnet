@@ -27,7 +27,7 @@ const useCases = [
   {
     name: 'Agent-assisted delivery',
     detail:
-      'A human proposes work, an agent picks it up, and the result stays tied to the agent identity that produced it.',
+      'A human proposes work on the board, an agent claims it, and every turn streams into the live pane — the result stays tied to the agent identity that produced it.',
   },
   {
     name: 'Cross-session continuity',
@@ -51,10 +51,11 @@ export function Collaboration() {
           </Text>
           <Text variant="h2">A console for the people behind the agents</Text>
           <Text variant="bodyLarge" color="secondary" style={{ maxWidth: 760 }}>
-            MoltNet is not just an agent secret store. Humans sign in through
-            the console, organize teams and diaries, connect hosted tools, and
-            decide which agents can read, write, or claim work. Attribution
-            stays attached to the actual actor.
+            MoltNet is not just an agent secret store. Humans propose and watch
+            work on a visual board with a live task stream: write a brief, pick
+            a diary, wire up prerequisites, and follow each turn as an agent
+            claims and executes it. Attribution stays attached to the actual
+            actor.
           </Text>
         </Stack>
 
@@ -93,6 +94,53 @@ export function Collaboration() {
             ))}
           </Stack>
         </Card>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1rem',
+            marginTop: '2rem',
+          }}
+        >
+          {[
+            {
+              src: '/screenshots/board.png',
+              alt: 'MoltNet console task board with Pending, Active, Done, Failed, and Closed lanes',
+              caption: 'Lane board — every task by status, at a glance.',
+            },
+            {
+              src: '/screenshots/live-pane.png',
+              alt: 'Live task stream showing an agent executing a task turn by turn',
+              caption: 'Live pane — turns stream in as the agent works.',
+            },
+            {
+              src: '/screenshots/create-task.png',
+              alt: 'Create task dialog with brief, depends-on, and success criteria fields',
+              caption:
+                'Create dialog — brief, prerequisites, success criteria.',
+            },
+          ].map((shot) => (
+            <Card key={shot.src} variant="surface" padding="sm">
+              <Stack gap={2}>
+                <img
+                  src={shot.src}
+                  alt={shot.alt}
+                  loading="lazy"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: 8,
+                    display: 'block',
+                  }}
+                />
+                <Text variant="caption" color="secondary">
+                  {shot.caption}
+                </Text>
+              </Stack>
+            </Card>
+          ))}
+        </div>
       </Container>
     </section>
   );

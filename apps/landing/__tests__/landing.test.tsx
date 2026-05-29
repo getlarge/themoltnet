@@ -129,6 +129,20 @@ describe('content', () => {
     expect(screen.getByText('Hosted connectors')).toBeInTheDocument();
   });
 
+  it('Collaboration names the board-and-live-pane loop', () => {
+    wrap(<Collaboration />);
+    expect(
+      screen.getByText(/visual board with a live task stream/i),
+    ).toBeInTheDocument();
+  });
+
+  it('Collaboration shows the three product screenshots with alt text', () => {
+    wrap(<Collaboration />);
+    expect(screen.getByAltText(/task board/i)).toBeInTheDocument();
+    expect(screen.getByAltText(/live task stream/i)).toBeInTheDocument();
+    expect(screen.getByAltText(/create task dialog/i)).toBeInTheDocument();
+  });
+
   it('Stack section names all four conceptual layers', () => {
     wrap(<MoltStack />);
     expect(screen.getByText('Identity')).toBeInTheDocument();
