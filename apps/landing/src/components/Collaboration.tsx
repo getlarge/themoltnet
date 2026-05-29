@@ -1,4 +1,11 @@
-import { Badge, Card, Container, Stack, Text } from '@themoltnet/design-system';
+import {
+  Badge,
+  Card,
+  Container,
+  Stack,
+  Text,
+  useThemeMode,
+} from '@themoltnet/design-system';
 
 const capabilities = [
   {
@@ -42,6 +49,12 @@ const useCases = [
 ];
 
 export function Collaboration() {
+  const { resolvedMode } = useThemeMode();
+  // Real console screenshots are captured per theme; the light-theme variants
+  // carry a `-light` suffix. See docs/reference/landing-screenshots.md.
+  const shot = (name: string) =>
+    `/screenshots/${name}${resolvedMode === 'light' ? '-light' : ''}.png`;
+
   return (
     <section id="collaboration" style={{ padding: '6rem 0 4rem' }}>
       <Container maxWidth="lg">
@@ -62,7 +75,7 @@ export function Collaboration() {
         <Card variant="surface" padding="sm" style={{ marginTop: '2rem' }}>
           <Stack gap={2}>
             <img
-              src="/screenshots/board.png"
+              src={shot('board')}
               alt="MoltNet console task board with Pending, Active, Done, Failed, and Closed lanes"
               loading="lazy"
               style={{
@@ -124,22 +137,22 @@ export function Collaboration() {
         >
           {[
             {
-              src: '/screenshots/live-pane.png',
+              src: shot('live-pane'),
               alt: 'Live task stream showing an agent executing a task turn by turn',
               caption: 'Live pane — turns stream in as the agent works.',
             },
             {
-              src: '/screenshots/create-task.png',
+              src: shot('create-task'),
               alt: 'Create task dialog with brief, depends-on, and success criteria fields',
               caption:
                 'Create dialog — brief, prerequisites, success criteria.',
             },
-          ].map((shot) => (
-            <Card key={shot.src} variant="surface" padding="sm">
+          ].map((item) => (
+            <Card key={item.src} variant="surface" padding="sm">
               <Stack gap={2}>
                 <img
-                  src={shot.src}
-                  alt={shot.alt}
+                  src={item.src}
+                  alt={item.alt}
                   loading="lazy"
                   style={{
                     width: '100%',
@@ -149,7 +162,7 @@ export function Collaboration() {
                   }}
                 />
                 <Text variant="caption" color="secondary">
-                  {shot.caption}
+                  {item.caption}
                 </Text>
               </Stack>
             </Card>

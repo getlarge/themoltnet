@@ -16,9 +16,6 @@ export default tseslint.config(
       // Standalone node script invoked from a Dockerfile; not part of the
       // typed source graph and lacks the Node globals declared for src/.
       'tools/download-embedding-model.mjs',
-      // Build-time screenshot capture utility (Node + Playwright page context);
-      // not app source and mixes Node and browser globals.
-      'apps/landing/screenshots/capture.mjs',
     ],
   },
 
