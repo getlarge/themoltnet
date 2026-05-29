@@ -780,7 +780,7 @@ export async function executePiTask(
             result: event.isError ? truncateForWire(event.result) : undefined,
           }),
         );
-        if (event.isError) {
+        if (shouldEmitToolCallError(event)) {
           track(
             emitError(
               'tool_call_error',
@@ -1248,6 +1248,32 @@ function summarizePayloadForLog(
       // someone bypasses the type system at the call site.
       return payload;
   }
+}
+
+/**
+ * Classify a `tool_execution_end` event for telemetry purposes.
+ *
+ * Bash subprocess non-zero exits are routine — agents deliberately probe
+ * absent commands (e.g. `command -v docker` returning 127) and treat the
+ * non-zero exit as data. Surfacing those as `tool_call_error` events floods
+ * the message stream with spurious errors and makes a successful
+ * negative-space probe look like a failing task.
+ *
+ * Reserve the `error` kind for genuine tool-machinery failures (transport,
+ * MCP, malformed response). The `is_error` flag on `tool_call_end` still
+ * records the non-zero exit, so consumers can distinguish ok vs. failed
+ * bash calls without searching for a sibling error event.
+ *
+ * Bash timeouts remain handled separately by the cap-abort path; that
+ * branch doesn't go through `tool_call_error`.
+ */
+export function shouldEmitToolCallError(event: {
+  toolName: string;
+  isError: boolean;
+}): boolean {
+  if (!event.isError) return false;
+  if (event.toolName === 'bash') return false;
+  return true;
 }
 
 /**
