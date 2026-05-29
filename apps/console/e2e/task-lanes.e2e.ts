@@ -122,7 +122,13 @@ test.describe.serial('Task lanes board', () => {
 
     // ── Assert: the live pane opens with the Turns tab ───────────────────────
     await expect(page.getByRole('tab', { name: /turns/i })).toBeVisible();
-    // No attempts yet for a freshly-proposed task → the waiting hint shows.
-    await expect(page.getByText(/waiting for the agent/i)).toBeVisible();
+    // No attempts yet for a freshly-proposed task → the waiting hint shows,
+    // pointing the user at the agent-daemon docs.
+    await expect(
+      page.getByText(/waiting for an agent to claim/i),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: /set up an agent daemon/i }),
+    ).toBeVisible();
   });
 });
