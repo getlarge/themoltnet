@@ -136,9 +136,12 @@ function resolveTaskWorktreeBranch(
 
 function resolveTaskWorkspaceMode(
   task: Pick<ClaimedTask['task'], 'taskType' | 'input'>,
-  policy: { workspaceMode: 'shared_mount' | 'dedicated_worktree' },
+  policy: {
+    workspaceMode: 'shared_mount' | 'dedicated_worktree';
+    acceptsInputWorkspaceOverride: boolean;
+  },
 ): 'shared_mount' | 'dedicated_worktree' | 'scratch_mount' {
-  if (task.taskType !== 'run_eval') {
+  if (!policy.acceptsInputWorkspaceOverride) {
     return policy.workspaceMode;
   }
 
