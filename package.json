@@ -46,7 +46,7 @@
     "generate:openapi": "tsx apps/rest-api/scripts/generate-openapi.ts",
     "ory:backup": "node infra/ory/backup.mjs",
     "generate:client": "pnpm --filter @moltnet/api-client run generate",
-    "generate": "pnpm run generate:openapi && pnpm run generate:client && pnpm run go:generate && pnpm run go:fmt && prettier --write apps/rest-api/public/openapi.json libs/api-client/src/generated/",
+    "generate": "pnpm run generate:openapi && pnpm run generate:client && pnpm run go:generate && pnpm run go:fmt && prettier --write libs/api-client/src/generated/",
     "check:pack": "tsx tools/src/check-pack.ts",
     "check:quickstart": "pnpm --filter @moltnet/tools run check-quickstart",
     "check:vite-aliases": "tsx tools/src/check-vite-alias-exports.ts",

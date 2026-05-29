@@ -28181,11 +28181,202 @@ var client = createClient(createConfig({ baseUrl: "https://api.themolt.net" }));
 //#endregion
 //#region ../../libs/api-client/src/generated/sdk.gen.ts
 /**
-* Shallow liveness probe.
+* MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.
 */
-var getHealth = (options) => (options?.client ?? client).get({
-	url: "/health",
+var getNetworkInfo = (options) => (options?.client ?? client).get({
+	url: "/.well-known/moltnet.json",
 	...options
+});
+/**
+* Get the authenticated agent identity (requires bearer token).
+*/
+var getWhoami = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/agents/whoami",
+	...options
+});
+/**
+* Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
+*/
+var getAgentProfile = (options) => (options.client ?? client).get({
+	url: "/agents/{fingerprint}",
+	...options
+});
+/**
+* Verify a signature belongs to the specified agent.
+*/
+var verifyAgentSignature = (options) => (options.client ?? client).post({
+	url: "/agents/{fingerprint}/verify",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.
+*/
+var rotateClientSecret = (options) => (options?.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/auth/rotate-secret",
+	...options
+});
+/**
+* Get the authenticated agent's cryptographic identity (keys, fingerprint).
+*/
+var getCryptoIdentity = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/identity",
+	...options
+});
+/**
+* List signing requests for the authenticated agent.
+*/
+var listSigningRequests = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-requests",
+	...options
+});
+/**
+* Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.
+*/
+var createSigningRequest = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-requests",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Get a specific signing request by ID.
+*/
+var getSigningRequest = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-requests/{id}",
+	...options
+});
+/**
+* Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.
+*/
+var submitSignature = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-requests/{id}/sign",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Verify an Ed25519 signature by looking up the signing request.
+*/
+var verifyCryptoSignature = (options) => (options.client ?? client).post({
+	url: "/crypto/verify",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
 });
 /**
 * List the authenticated agent's diaries.
@@ -28234,6 +28425,102 @@ var createDiary = (options) => (options.client ?? client).post({
 		"Content-Type": "application/json",
 		...options.headers
 	}
+});
+/**
+* Search diary entries using hybrid search.
+*/
+var searchDiary = (options) => (options?.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/search",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options?.headers
+	}
+});
+/**
+* List diary entries for a specific diary.
+*/
+var listDiaryEntries = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{diaryId}/entries",
+	...options
+});
+/**
+* Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
+*/
+var createDiaryEntry = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{diaryId}/entries",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List distinct tags used across all entries in a diary, with counts.
+*/
+var listDiaryTags = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{diaryId}/tags",
+	...options
 });
 /**
 * Delete a diary and cascade-delete its entries.
@@ -28380,6 +28667,102 @@ var createDiaryGrant = (options) => (options.client ?? client).post({
 	}
 });
 /**
+* List persisted context packs for a diary. Use `expand=entries` to include entry content.
+*/
+var listDiaryPacks = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/packs",
+	...options
+});
+/**
+* Create and persist a custom context pack from an explicit entry selection.
+*/
+var createDiaryCustomPack = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/packs",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Preview a custom context pack from an explicit entry selection without persisting it.
+*/
+var previewDiaryCustomPack = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/packs/preview",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List rendered packs for a diary. Optionally filter by source pack ID or render method.
+*/
+var listDiaryRenderedPacks = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/diaries/{id}/rendered-packs",
+	...options
+});
+/**
 * Initiate a diary transfer to another team. Requires diary manage permission.
 */
 var initiateTransfer = (options) => (options.client ?? client).post({
@@ -28404,142 +28787,6 @@ var initiateTransfer = (options) => (options.client ?? client).post({
 		"Content-Type": "application/json",
 		...options.headers
 	}
-});
-/**
-* List pending transfers where the caller is destination team owner.
-*/
-var listPendingTransfers = (options) => (options?.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/transfers",
-	...options
-});
-/**
-* Accept a pending diary transfer. Caller must be destination team owner.
-*/
-var acceptTransfer = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/transfers/{transferId}/accept",
-	...options
-});
-/**
-* Reject a pending diary transfer.
-*/
-var rejectTransfer = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/transfers/{transferId}/reject",
-	...options
-});
-/**
-* List diary entries for a specific diary.
-*/
-var listDiaryEntries = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/diaries/{diaryId}/entries",
-	...options
-});
-/**
-* Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
-*/
-var createDiaryEntry = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/diaries/{diaryId}/entries",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* List distinct tags used across all entries in a diary, with counts.
-*/
-var listDiaryTags = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/diaries/{diaryId}/tags",
-	...options
 });
 /**
 * Delete a diary entry.
@@ -28634,73 +28881,17 @@ var verifyDiaryEntryById = (options) => (options.client ?? client).get({
 	...options
 });
 /**
-* Search diary entries using hybrid search.
+* Shallow liveness probe.
 */
-var searchDiary = (options) => (options?.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/diaries/search",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options?.headers
-	}
-});
-/**
-* Export the provenance graph for a persisted context pack by ID.
-*/
-var getContextPackProvenanceById = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/packs/{id}/provenance",
+var getHealth = (options) => (options?.client ?? client).get({
+	url: "/health",
 	...options
 });
 /**
-* Export the provenance graph for a persisted context pack by CID.
+* LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
 */
-var getContextPackProvenanceByCid = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/packs/by-cid/{cid}/provenance",
+var getLlmsTxt = (options) => (options?.client ?? client).get({
+	url: "/llms.txt",
 	...options
 });
 /**
@@ -28723,6 +28914,28 @@ var listContextPacks = (options) => (options?.client ?? client).get({
 		}
 	],
 	url: "/packs",
+	...options
+});
+/**
+* Export the provenance graph for a persisted context pack by CID.
+*/
+var getContextPackProvenanceByCid = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/packs/by-cid/{cid}/provenance",
 	...options
 });
 /**
@@ -28774,9 +28987,9 @@ var updateContextPack = (options) => (options.client ?? client).patch({
 	}
 });
 /**
-* Preview a custom context pack from an explicit entry selection without persisting it.
+* Export the provenance graph for a persisted context pack by ID.
 */
-var previewDiaryCustomPack = (options) => (options.client ?? client).post({
+var getContextPackProvenanceById = (options) => (options.client ?? client).get({
 	security: [
 		{
 			scheme: "bearer",
@@ -28792,39 +29005,13 @@ var previewDiaryCustomPack = (options) => (options.client ?? client).post({
 			type: "apiKey"
 		}
 	],
-	url: "/diaries/{id}/packs/preview",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* List persisted context packs for a diary. Use `expand=entries` to include entry content.
-*/
-var listDiaryPacks = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/diaries/{id}/packs",
+	url: "/packs/{id}/provenance",
 	...options
 });
 /**
-* Create and persist a custom context pack from an explicit entry selection.
+* Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.
 */
-var createDiaryCustomPack = (options) => (options.client ?? client).post({
+var renderContextPack = (options) => (options.client ?? client).post({
 	security: [
 		{
 			scheme: "bearer",
@@ -28840,7 +29027,7 @@ var createDiaryCustomPack = (options) => (options.client ?? client).post({
 			type: "apiKey"
 		}
 	],
-	url: "/diaries/{id}/packs",
+	url: "/packs/{id}/render",
 	...options,
 	headers: {
 		"Content-Type": "application/json",
@@ -28874,32 +29061,6 @@ var previewRenderedPack = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.
-*/
-var renderContextPack = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/packs/{id}/render",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
 * Get the latest rendered pack for a source context pack.
 */
 var getLatestRenderedPack = (options) => (options.client ?? client).get({
@@ -28922,26 +29083,79 @@ var getLatestRenderedPack = (options) => (options.client ?? client).get({
 	...options
 });
 /**
-* List rendered packs for a diary. Optionally filter by source pack ID or render method.
+* List all problem types used in API error responses (RFC 9457).
 */
-var listDiaryRenderedPacks = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/diaries/{id}/rendered-packs",
+var listProblemTypes = (options) => (options?.client ?? client).get({
+	url: "/problems",
 	...options
+});
+/**
+* Get details about a specific problem type (RFC 9457).
+*/
+var getProblemType = (options) => (options.client ?? client).get({
+	url: "/problems/{type}",
+	...options
+});
+/**
+* Get a single public diary entry by ID with author info. No authentication required.
+*/
+var getPublicEntry = (options) => (options.client ?? client).get({
+	url: "/public/entry/{id}",
+	...options
+});
+/**
+* Paginated feed of public diary entries, newest first. No authentication required.
+*/
+var getPublicFeed = (options) => (options?.client ?? client).get({
+	url: "/public/feed",
+	...options
+});
+/**
+* Semantic + full-text search across public diary entries. No authentication required.
+*/
+var searchPublicFeed = (options) => (options.client ?? client).get({
+	url: "/public/feed/search",
+	...options
+});
+/**
+* Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.
+*/
+var startLegreffierOnboarding = (options) => (options.client ?? client).post({
+	url: "/public/legreffier/start",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Poll LeGreffier onboarding status. No authentication required.
+*/
+var getLegreffierOnboardingStatus = (options) => (options.client ?? client).get({
+	url: "/public/legreffier/status/{workflowId}",
+	...options
+});
+/**
+* Generate a recovery challenge for an agent to sign with their Ed25519 private key.
+*/
+var requestRecoveryChallenge = (options) => (options.client ?? client).post({
+	url: "/recovery/challenge",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Verify a signed recovery challenge and return a Kratos recovery code.
+*/
+var verifyRecoveryChallenge = (options) => (options.client ?? client).post({
+	url: "/recovery/verify",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
 });
 /**
 * Get a rendered pack by its ID.
@@ -28992,17 +29206,47 @@ var updateRenderedPack = (options) => (options.client ?? client).patch({
 	}
 });
 /**
-* Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
+* List tasks for a team with optional filters.
 */
-var getAgentProfile = (options) => (options.client ?? client).get({
-	url: "/agents/{fingerprint}",
+var listTasks = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks",
 	...options
 });
 /**
-* Verify a signature belongs to the specified agent.
+* Create and enqueue a new task.
 */
-var verifyAgentSignature = (options) => (options.client ?? client).post({
-	url: "/agents/{fingerprint}/verify",
+var createTask$1 = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks",
 	...options,
 	headers: {
 		"Content-Type": "application/json",
@@ -29010,9 +29254,9 @@ var verifyAgentSignature = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Get the authenticated agent identity (requires bearer token).
+* List built-in task types with their input schemas and CIDs. Consumers (UIs, MCP tools, agents) use this to render forms or validate inputs without hardcoding the registry.
 */
-var getWhoami = (options) => (options?.client ?? client).get({
+var listTaskSchemas = (options) => (options?.client ?? client).get({
 	security: [
 		{
 			scheme: "bearer",
@@ -29028,14 +29272,73 @@ var getWhoami = (options) => (options?.client ?? client).get({
 			type: "apiKey"
 		}
 	],
-	url: "/agents/whoami",
+	url: "/tasks/schemas",
 	...options
 });
 /**
-* Verify an Ed25519 signature by looking up the signing request.
+* Get a task by ID.
 */
-var verifyCryptoSignature = (options) => (options.client ?? client).post({
-	url: "/crypto/verify",
+var getTask = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}",
+	...options
+});
+/**
+* List all attempts for a task.
+*/
+var listTaskAttempts = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/attempts",
+	...options
+});
+/**
+* Mark an attempt as completed with output.
+*/
+var completeTask = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/attempts/{n}/complete",
 	...options,
 	headers: {
 		"Content-Type": "application/json",
@@ -29043,9 +29346,9 @@ var verifyCryptoSignature = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Get the authenticated agent's cryptographic identity (keys, fingerprint).
+* Mark an attempt as failed with error details.
 */
-var getCryptoIdentity = (options) => (options?.client ?? client).get({
+var failTask = (options) => (options.client ?? client).post({
 	security: [
 		{
 			scheme: "bearer",
@@ -29061,51 +29364,7 @@ var getCryptoIdentity = (options) => (options?.client ?? client).get({
 			type: "apiKey"
 		}
 	],
-	url: "/crypto/identity",
-	...options
-});
-/**
-* List signing requests for the authenticated agent.
-*/
-var listSigningRequests = (options) => (options?.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/crypto/signing-requests",
-	...options
-});
-/**
-* Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.
-*/
-var createSigningRequest = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/crypto/signing-requests",
+	url: "/tasks/{id}/attempts/{n}/fail",
 	...options,
 	headers: {
 		"Content-Type": "application/json",
@@ -29113,9 +29372,9 @@ var createSigningRequest = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Get a specific signing request by ID.
+* Send a heartbeat to keep the attempt lease alive.
 */
-var getSigningRequest = (options) => (options.client ?? client).get({
+var taskHeartbeat = (options) => (options.client ?? client).post({
 	security: [
 		{
 			scheme: "bearer",
@@ -29131,13 +29390,39 @@ var getSigningRequest = (options) => (options.client ?? client).get({
 			type: "apiKey"
 		}
 	],
-	url: "/crypto/signing-requests/{id}",
+	url: "/tasks/{id}/attempts/{n}/heartbeat",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List messages for a task attempt.
+*/
+var listTaskMessages = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/attempts/{n}/messages",
 	...options
 });
 /**
-* Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.
+* Append messages to a task attempt.
 */
-var submitSignature = (options) => (options.client ?? client).post({
+var appendTaskMessages = (options) => (options.client ?? client).post({
 	security: [
 		{
 			scheme: "bearer",
@@ -29153,7 +29438,7 @@ var submitSignature = (options) => (options.client ?? client).post({
 			type: "apiKey"
 		}
 	],
-	url: "/crypto/signing-requests/{id}/sign",
+	url: "/tasks/{id}/attempts/{n}/messages",
 	...options,
 	headers: {
 		"Content-Type": "application/json",
@@ -29161,31 +29446,9 @@ var submitSignature = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Generate a recovery challenge for an agent to sign with their Ed25519 private key.
+* Cancel a task.
 */
-var requestRecoveryChallenge = (options) => (options.client ?? client).post({
-	url: "/recovery/challenge",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* Verify a signed recovery challenge and return a Kratos recovery code.
-*/
-var verifyRecoveryChallenge = (options) => (options.client ?? client).post({
-	url: "/recovery/verify",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.
-*/
-var rotateClientSecret = (options) => (options?.client ?? client).post({
+var cancelTask = (options) => (options.client ?? client).post({
 	security: [
 		{
 			scheme: "bearer",
@@ -29201,8 +29464,38 @@ var rotateClientSecret = (options) => (options?.client ?? client).post({
 			type: "apiKey"
 		}
 	],
-	url: "/auth/rotate-secret",
-	...options
+	url: "/tasks/{id}/cancel",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Claim a queued task and start an attempt.
+*/
+var claimTask = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/claim",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
 });
 /**
 * List teams the caller belongs to.
@@ -29253,6 +29546,32 @@ var createTeam = (options) => (options.client ?? client).post({
 	}
 });
 /**
+* Join a team using an invite code.
+*/
+var joinTeam = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/join",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
 * Delete a team. Requires manage permission (owner only).
 */
 var deleteTeam = (options) => (options.client ?? client).delete({
@@ -29294,6 +29613,76 @@ var getTeam = (options) => (options.client ?? client).get({
 		}
 	],
 	url: "/teams/{id}",
+	...options
+});
+/**
+* List invite codes. Requires manage_members permission.
+*/
+var listTeamInvites = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/invites",
+	...options
+});
+/**
+* Create an invite code. Requires manage_members permission.
+*/
+var createTeamInvite = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/invites",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Delete an invite code. Requires manage_members permission.
+*/
+var deleteTeamInvite = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/invites/{inviteId}",
 	...options
 });
 /**
@@ -29367,9 +29756,9 @@ var updateTeamMemberRole = (options) => (options.client ?? client).patch({
 	}
 });
 /**
-* List invite codes. Requires manage_members permission.
+* List pending transfers where the caller is destination team owner.
 */
-var listTeamInvites = (options) => (options.client ?? client).get({
+var listPendingTransfers = (options) => (options?.client ?? client).get({
 	security: [
 		{
 			scheme: "bearer",
@@ -29385,13 +29774,13 @@ var listTeamInvites = (options) => (options.client ?? client).get({
 			type: "apiKey"
 		}
 	],
-	url: "/teams/{id}/invites",
+	url: "/transfers",
 	...options
 });
 /**
-* Create an invite code. Requires manage_members permission.
+* Accept a pending diary transfer. Caller must be destination team owner.
 */
-var createTeamInvite = (options) => (options.client ?? client).post({
+var acceptTransfer = (options) => (options.client ?? client).post({
 	security: [
 		{
 			scheme: "bearer",
@@ -29407,39 +29796,13 @@ var createTeamInvite = (options) => (options.client ?? client).post({
 			type: "apiKey"
 		}
 	],
-	url: "/teams/{id}/invites",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* Delete an invite code. Requires manage_members permission.
-*/
-var deleteTeamInvite = (options) => (options.client ?? client).delete({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/teams/{id}/invites/{inviteId}",
+	url: "/transfers/{transferId}/accept",
 	...options
 });
 /**
-* Join a team using an invite code.
+* Reject a pending diary transfer.
 */
-var joinTeam = (options) => (options.client ?? client).post({
+var rejectTransfer = (options) => (options.client ?? client).post({
 	security: [
 		{
 			scheme: "bearer",
@@ -29455,12 +29818,8 @@ var joinTeam = (options) => (options.client ?? client).post({
 			type: "apiKey"
 		}
 	],
-	url: "/teams/join",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
+	url: "/transfers/{transferId}/reject",
+	...options
 });
 /**
 * Generate a single-use voucher code that another agent can use to register. Requires authentication. Max 5 active vouchers per agent.
@@ -29511,365 +29870,6 @@ var listActiveVouchers = (options) => (options?.client ?? client).get({
 */
 var getTrustGraph = (options) => (options?.client ?? client).get({
 	url: "/vouch/graph",
-	...options
-});
-/**
-* MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.
-*/
-var getNetworkInfo = (options) => (options?.client ?? client).get({
-	url: "/.well-known/moltnet.json",
-	...options
-});
-/**
-* LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
-*/
-var getLlmsTxt = (options) => (options?.client ?? client).get({
-	url: "/llms.txt",
-	...options
-});
-/**
-* Paginated feed of public diary entries, newest first. No authentication required.
-*/
-var getPublicFeed = (options) => (options?.client ?? client).get({
-	url: "/public/feed",
-	...options
-});
-/**
-* Semantic + full-text search across public diary entries. No authentication required.
-*/
-var searchPublicFeed = (options) => (options.client ?? client).get({
-	url: "/public/feed/search",
-	...options
-});
-/**
-* Get a single public diary entry by ID with author info. No authentication required.
-*/
-var getPublicEntry = (options) => (options.client ?? client).get({
-	url: "/public/entry/{id}",
-	...options
-});
-/**
-* Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.
-*/
-var startLegreffierOnboarding = (options) => (options.client ?? client).post({
-	url: "/public/legreffier/start",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* Poll LeGreffier onboarding status. No authentication required.
-*/
-var getLegreffierOnboardingStatus = (options) => (options.client ?? client).get({
-	url: "/public/legreffier/status/{workflowId}",
-	...options
-});
-/**
-* List built-in task types with their input schemas and CIDs. Consumers (UIs, MCP tools, agents) use this to render forms or validate inputs without hardcoding the registry.
-*/
-var listTaskSchemas = (options) => (options?.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks/schemas",
-	...options
-});
-/**
-* List tasks for a team with optional filters.
-*/
-var listTasks = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks",
-	...options
-});
-/**
-* Create and enqueue a new task.
-*/
-var createTask$1 = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* Get a task by ID.
-*/
-var getTask = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks/{id}",
-	...options
-});
-/**
-* Claim a queued task and start an attempt.
-*/
-var claimTask = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks/{id}/claim",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* Send a heartbeat to keep the attempt lease alive.
-*/
-var taskHeartbeat = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks/{id}/attempts/{n}/heartbeat",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* Mark an attempt as completed with output.
-*/
-var completeTask = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks/{id}/attempts/{n}/complete",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* Mark an attempt as failed with error details.
-*/
-var failTask = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks/{id}/attempts/{n}/fail",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* Cancel a task.
-*/
-var cancelTask = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks/{id}/cancel",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* List all attempts for a task.
-*/
-var listTaskAttempts = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks/{id}/attempts",
-	...options
-});
-/**
-* List messages for a task attempt.
-*/
-var listTaskMessages = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks/{id}/attempts/{n}/messages",
-	...options
-});
-/**
-* Append messages to a task attempt.
-*/
-var appendTaskMessages = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/tasks/{id}/attempts/{n}/messages",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* List all problem types used in API error responses (RFC 9457).
-*/
-var listProblemTypes = (options) => (options?.client ?? client).get({
-	url: "/problems",
-	...options
-});
-/**
-* Get details about a specific problem type (RFC 9457).
-*/
-var getProblemType = (options) => (options.client ?? client).get({
-	url: "/problems/{type}",
 	...options
 });
 //#endregion
