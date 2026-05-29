@@ -88,14 +88,22 @@ jobs:
       # release-please-action does its cloning internally and leaves NO working
       # git tree in the runner, so the reformat step needs its own checkout.
       # The default GITHUB_TOKEN is persisted as the push credential.
+      #
+      # Guard on `prs` (the JSON array of release PRs), NOT `prs_created`. Despite
+      # the README claiming prs_created is "true if any PR was created or updated",
+      # in practice it comes back falsy when the action UPDATES an existing
+      # candidate PR (run 26639873037: "Updating existing candidate pull request"
+      # yet prs_created empty → step skipped, spec left mangled). `prs` is
+      # populated whenever a release PR exists (created or updated), so it fires
+      # in both cases; the inner branch-name check handles the truly-empty case.
       - uses: actions/checkout@v6
-        if: steps.release.outputs.prs_created == 'true'
+        if: steps.release.outputs.prs != ''
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Re-format release-please openapi.json
-        if: steps.release.outputs.prs_created == 'true'
+        if: steps.release.outputs.prs != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PRS: ${{ steps.release.outputs.prs }}
