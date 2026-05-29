@@ -11275,6 +11275,32 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 		}
 	}
 	{
+		// Encode "statuses" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "statuses",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if params.Statuses != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.Statuses {
+						if err := func() error {
+							return e.EncodeValue(conv.StringToString(string(item)))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
+					}
+					return nil
+				})
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
 		// Encode "taskTypes" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
 			Name:    "taskTypes",

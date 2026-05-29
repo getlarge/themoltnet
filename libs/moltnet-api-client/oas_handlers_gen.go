@@ -15102,6 +15102,10 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 					In:   "query",
 				}: params.Status,
 				{
+					Name: "statuses",
+					In:   "query",
+				}: params.Statuses,
+				{
 					Name: "taskTypes",
 					In:   "query",
 				}: params.TaskTypes,
