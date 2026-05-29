@@ -8,7 +8,7 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { getApiClient } from '../../api.js';
 import {
@@ -47,6 +47,16 @@ export function CreateTaskDialog({
   const [dependsRows, setDependsRows] = useState<DependsRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Diaries may arrive after first render (they load async), and the initial
+  // useState only captures the first render's value. Default the selection to
+  // the first diary once one is available and nothing valid is selected yet.
+  useEffect(() => {
+    if (diaries.length === 0) return;
+    if (!diaries.some((diary) => diary.id === diaryId)) {
+      setDiaryId(diaries[0].id);
+    }
+  }, [diaries, diaryId]);
 
   const canSubmit = Boolean(brief.trim() && diaryId);
 
