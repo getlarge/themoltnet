@@ -2,6 +2,11 @@
 
 Use this page when you need to run the task daemon locally, in CI, or from GitHub Actions. For executor internals, see [Agent Executors](./agent-executors.md).
 
+A daemon is what turns a created task into completed work. If a human (or you)
+just created a task in the console — see
+[First Runtime Task](../start/first-task.md) — it sits in the **Pending** lane
+until a daemon claims and executes it. That daemon is what this page sets up.
+
 ## Running the daemon
 
 `apps/agent-daemon` is the deployable that wires source + reporter + executor + signal handling + finalize. Published to npm as `@themoltnet/agent-daemon`; the binary is `moltnet-agent`.
