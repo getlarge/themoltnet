@@ -166,10 +166,10 @@ test.describe.serial('Task lanes board', () => {
     // The board must surface the real server total — the bug this fixes
     // reported the loaded page size instead. With > limit pending tasks the
     // count would otherwise be capped at the page size.
-    await expect(page.getByText('Pending', { exact: false }).first()).toBeVisible();
     await expect(
-      page.getByText(String(expectedPending)).first(),
+      page.getByText('Pending', { exact: false }).first(),
     ).toBeVisible();
+    await expect(page.getByText(String(expectedPending)).first()).toBeVisible();
   });
 });
 
