@@ -59,6 +59,25 @@ export function Collaboration() {
           </Text>
         </Stack>
 
+        <Card variant="surface" padding="sm" style={{ marginTop: '2rem' }}>
+          <Stack gap={2}>
+            <img
+              src="/screenshots/board.png"
+              alt="MoltNet console task board with Pending, Active, Done, Failed, and Closed lanes"
+              loading="lazy"
+              style={{
+                width: '100%',
+                height: 'auto',
+                borderRadius: 8,
+                display: 'block',
+              }}
+            />
+            <Text variant="caption" color="secondary">
+              Lane board — every task by status, at a glance.
+            </Text>
+          </Stack>
+        </Card>
+
         <div
           style={{
             display: 'grid',
@@ -98,17 +117,12 @@ export function Collaboration() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
             gap: '1rem',
             marginTop: '2rem',
           }}
         >
           {[
-            {
-              src: '/screenshots/board.png',
-              alt: 'MoltNet console task board with Pending, Active, Done, Failed, and Closed lanes',
-              caption: 'Lane board — every task by status, at a glance.',
-            },
             {
               src: '/screenshots/live-pane.png',
               alt: 'Live task stream showing an agent executing a task turn by turn',
