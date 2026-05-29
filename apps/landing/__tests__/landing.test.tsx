@@ -143,6 +143,12 @@ describe('content', () => {
     expect(screen.getByAltText(/create task dialog/i)).toBeInTheDocument();
   });
 
+  it('AgentBeacon names the board in its message', () => {
+    const { container } = wrap(<AgentBeacon />);
+    const beacon = container.querySelector('#agent-beacon');
+    expect(beacon?.getAttribute('data-agent-message')).toMatch(/board/i);
+  });
+
   it('Stack section names all four conceptual layers', () => {
     wrap(<MoltStack />);
     expect(screen.getByText('Identity')).toBeInTheDocument();
