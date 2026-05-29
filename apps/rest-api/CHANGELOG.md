@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.4.0...rest-api-v0.5.0) (2026-05-29)
+
+
+### Features
+
+* **console:** success-criteria editor — assertions + side effects (phase 1 of [#1267](https://github.com/getlarge/themoltnet/issues/1267)) ([de44313](https://github.com/getlarge/themoltnet/commit/de44313f4c3b22c394aba380042835a73715a51e))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.3.0...rest-api-v0.4.0) (2026-05-29)
 
 
