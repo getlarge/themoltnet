@@ -23,6 +23,21 @@ export {
 } from './format.js';
 export { JsonViewer, type JsonViewerProps } from './json-viewer.js';
 export {
+  ASSERTION_OPS,
+  type AssertionOp,
+  type AssertionRow,
+  buildSuccessCriteria,
+  type BuiltSuccessCriteria,
+  EMPTY_SIDE_EFFECTS,
+  opUsesMax,
+  opUsesValue,
+  type SideEffectsForm,
+} from './success-criteria.js';
+export {
+  SuccessCriteriaEditor,
+  type SuccessCriteriaEditorProps,
+} from './success-criteria-editor.js';
+export {
   getDefaultTaskActions,
   TaskActionPanel,
   type TaskActionPanelProps,

@@ -10,6 +10,14 @@ import { useEffect, useState } from 'react';
 
 import { buildClaimCondition, type DependsRow } from './claim-condition.js';
 import { DependsOnBuilder } from './depends-on-builder.js';
+import {
+  type AssertionRow,
+  buildSuccessCriteria,
+  type BuiltSuccessCriteria,
+  EMPTY_SIDE_EFFECTS,
+  type SideEffectsForm,
+} from './success-criteria.js';
+import { SuccessCriteriaEditor } from './success-criteria-editor.js';
 import type { ClaimCondition, TaskSummary } from './types.js';
 
 export interface DiaryOption {
@@ -30,6 +38,7 @@ export interface CreateTaskRequest {
     brief: string;
     title?: string;
     expectedOutput?: string;
+    successCriteria?: BuiltSuccessCriteria;
   };
   claimCondition?: ClaimCondition;
 }
@@ -65,6 +74,10 @@ export function CreateTaskDialog({
   const [expectedOutput, setExpectedOutput] = useState('');
   const [diaryId, setDiaryId] = useState(diaries[0]?.id ?? '');
   const [dependsRows, setDependsRows] = useState<DependsRow[]>([]);
+  const [assertions, setAssertions] = useState<AssertionRow[]>([]);
+  const [sideEffects, setSideEffects] =
+    useState<SideEffectsForm>(EMPTY_SIDE_EFFECTS);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -85,6 +98,7 @@ export function CreateTaskDialog({
     setIsSubmitting(true);
     setError(null);
     try {
+      const successCriteria = buildSuccessCriteria(assertions, sideEffects);
       const taskId = await onSubmit({
         teamId,
         diaryId,
@@ -95,6 +109,7 @@ export function CreateTaskDialog({
           ...(expectedOutput.trim()
             ? { expectedOutput: expectedOutput.trim() }
             : {}),
+          ...(successCriteria ? { successCriteria } : {}),
         },
         claimCondition: buildClaimCondition(dependsRows),
       });
@@ -102,6 +117,8 @@ export function CreateTaskDialog({
       setTitle('');
       setExpectedOutput('');
       setDependsRows([]);
+      setAssertions([]);
+      setSideEffects(EMPTY_SIDE_EFFECTS);
       onCreated(taskId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task');
@@ -197,6 +214,25 @@ export function CreateTaskDialog({
           rows={dependsRows}
           onChange={setDependsRows}
         />
+
+        <Stack gap={2}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAdvanced((open) => !open)}
+            style={{ alignSelf: 'flex-start' }}
+          >
+            {showAdvanced ? '▾ Success criteria' : '▸ Success criteria'}
+          </Button>
+          {showAdvanced ? (
+            <SuccessCriteriaEditor
+              assertions={assertions}
+              onAssertionsChange={setAssertions}
+              sideEffects={sideEffects}
+              onSideEffectsChange={setSideEffects}
+            />
+          ) : null}
+        </Stack>
 
         {error ? (
           <Text variant="caption" style={{ color: theme.color.error.DEFAULT }}>
