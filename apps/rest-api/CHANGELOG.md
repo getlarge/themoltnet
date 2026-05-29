@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.5.0...rest-api-v0.5.1) (2026-05-29)
+
+
+### Bug Fixes
+
+* **rest-api:** make openapi.json generation match release-please ([7792575](https://github.com/getlarge/themoltnet/commit/77925750dd970cffb2a03b5870658f030d1d9c12))
+* **rest-api:** re-format openapi.json after 0.5.0 release ([cc0a75a](https://github.com/getlarge/themoltnet/commit/cc0a75a355eb57b9a509ae0b72612caa064353ac))
+* **rest-api:** re-format openapi.json after 0.5.0 release ([8aeac96](https://github.com/getlarge/themoltnet/commit/8aeac96bd0afe0cbdc023c9334a846c8fa7a9cc8))
+* **rest-api:** stop release-please de-formatting openapi.json (the real fix) ([7229363](https://github.com/getlarge/themoltnet/commit/722936339a9b356a35c66bbbf08102439a0251e0))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.4.0...rest-api-v0.5.0) (2026-05-29)
 
 
