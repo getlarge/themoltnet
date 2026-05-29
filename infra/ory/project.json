@@ -215,9 +215,6 @@
                         "url": "${API_BASE_URL}/hooks/kratos/after-registration"
                       },
                       "hook": "web_hook"
-                    },
-                    {
-                      "hook": "session"
                     }
                   ]
                 },
@@ -243,9 +240,6 @@
                         "url": "${API_BASE_URL}/hooks/kratos/after-registration"
                       },
                       "hook": "web_hook"
-                    },
-                    {
-                      "hook": "session"
                     }
                   ]
                 }
