@@ -19,6 +19,22 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+// jsdom does not implement HTMLDialogElement.showModal/close — polyfill them so
+// components built on the design-system <dialog>-based Dialog render their
+// content (jsdom hides a closed <dialog>, making children inaccessible).
+if (typeof HTMLDialogElement !== 'undefined') {
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.show = function show() {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.open = false;
+    this.dispatchEvent(new Event('close'));
+  };
+}
+
 afterEach(() => {
   cleanup();
 });
