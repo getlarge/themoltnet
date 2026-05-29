@@ -18,11 +18,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "identityId",
-          "fingerprint",
-          "publicKey"
-        ],
+        "required": ["identityId", "fingerprint", "publicKey"],
         "type": "object"
       },
       "AgentPrincipal": {
@@ -39,9 +35,7 @@
             "type": "string"
           },
           "kind": {
-            "enum": [
-              "agent"
-            ],
+            "enum": ["agent"],
             "type": "string"
           },
           "publicKey": {
@@ -50,12 +44,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "kind",
-          "identityId",
-          "fingerprint",
-          "publicKey"
-        ],
+        "required": ["kind", "identityId", "fingerprint", "publicKey"],
         "type": "object"
       },
       "AgentProfile": {
@@ -67,10 +56,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "publicKey",
-          "fingerprint"
-        ],
+        "required": ["publicKey", "fingerprint"],
         "type": "object"
       },
       "AppendMessagesBody": {
@@ -90,19 +76,14 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "kind",
-                "payload"
-              ],
+              "required": ["kind", "payload"],
               "type": "object"
             },
             "minItems": 1,
             "type": "array"
           }
         },
-        "required": [
-          "messages"
-        ],
+        "required": ["messages"],
         "type": "object"
       },
       "AppendMessagesResponse": {
@@ -112,9 +93,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "count"
-        ],
+        "required": ["count"],
         "type": "object"
       },
       "CancelTaskBody": {
@@ -124,9 +103,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "reason"
-        ],
+        "required": ["reason"],
         "type": "object"
       },
       "ClaimCondition": {
@@ -143,16 +120,11 @@
                 "type": "array"
               },
               "op": {
-                "enum": [
-                  "all"
-                ],
+                "enum": ["all"],
                 "type": "string"
               }
             },
-            "required": [
-              "op",
-              "conditions"
-            ],
+            "required": ["op", "conditions"],
             "type": "object"
           },
           {
@@ -167,25 +139,18 @@
                 "type": "array"
               },
               "op": {
-                "enum": [
-                  "any"
-                ],
+                "enum": ["any"],
                 "type": "string"
               }
             },
-            "required": [
-              "op",
-              "conditions"
-            ],
+            "required": ["op", "conditions"],
             "type": "object"
           },
           {
             "additionalProperties": false,
             "properties": {
               "op": {
-                "enum": [
-                  "task_status"
-                ],
+                "enum": ["task_status"],
                 "type": "string"
               },
               "statuses": {
@@ -201,20 +166,14 @@
                 "type": "string"
               }
             },
-            "required": [
-              "op",
-              "taskId",
-              "statuses"
-            ],
+            "required": ["op", "taskId", "statuses"],
             "type": "object"
           },
           {
             "additionalProperties": false,
             "properties": {
               "op": {
-                "enum": [
-                  "task_accepted"
-                ],
+                "enum": ["task_accepted"],
                 "type": "string"
               },
               "taskId": {
@@ -222,10 +181,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "op",
-              "taskId"
-            ],
+            "required": ["op", "taskId"],
             "type": "object"
           }
         ]
@@ -262,10 +218,7 @@
             "$ref": "#/components/schemas/Task"
           }
         },
-        "required": [
-          "task",
-          "attempt"
-        ],
+        "required": ["task", "attempt"],
         "type": "object"
       },
       "CompileStats": {
@@ -328,11 +281,7 @@
             "$ref": "#/components/schemas/TaskUsage"
           }
         },
-        "required": [
-          "output",
-          "outputCid",
-          "usage"
-        ],
+        "required": ["output", "outputCid", "usage"],
         "type": "object"
       },
       "ContextPack": {
@@ -357,9 +306,7 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "agent"
-                    ],
+                    "enum": ["agent"],
                     "type": "string"
                   },
                   "publicKey": {
@@ -368,12 +315,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
                 "type": "object"
               },
               {
@@ -397,17 +339,11 @@
                     ]
                   },
                   "kind": {
-                    "enum": [
-                      "human"
-                    ],
+                    "enum": ["human"],
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
+                "required": ["kind", "humanId", "identityId"],
                 "type": "object"
               }
             ],
@@ -443,15 +379,11 @@
           "packType": {
             "anyOf": [
               {
-                "enum": [
-                  "optimized"
-                ],
+                "enum": ["optimized"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "custom"
-                ],
+                "enum": ["custom"],
                 "type": "string"
               }
             ]
@@ -511,9 +443,7 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "agent"
-                    ],
+                    "enum": ["agent"],
                     "type": "string"
                   },
                   "publicKey": {
@@ -522,12 +452,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
                 "type": "object"
               },
               {
@@ -551,17 +476,11 @@
                     ]
                   },
                   "kind": {
-                    "enum": [
-                      "human"
-                    ],
+                    "enum": ["human"],
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
+                "required": ["kind", "humanId", "identityId"],
                 "type": "object"
               }
             ],
@@ -603,15 +522,11 @@
           "packType": {
             "anyOf": [
               {
-                "enum": [
-                  "optimized"
-                ],
+                "enum": ["optimized"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "custom"
-                ],
+                "enum": ["custom"],
                 "type": "string"
               }
             ]
@@ -671,12 +586,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "ContextPackResponse": {
@@ -701,9 +611,7 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "agent"
-                    ],
+                    "enum": ["agent"],
                     "type": "string"
                   },
                   "publicKey": {
@@ -712,12 +620,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
                 "type": "object"
               },
               {
@@ -741,17 +644,11 @@
                     ]
                   },
                   "kind": {
-                    "enum": [
-                      "human"
-                    ],
+                    "enum": ["human"],
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
+                "required": ["kind", "humanId", "identityId"],
                 "type": "object"
               }
             ],
@@ -793,15 +690,11 @@
           "packType": {
             "anyOf": [
               {
-                "enum": [
-                  "optimized"
-                ],
+                "enum": ["optimized"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "custom"
-                ],
+                "enum": ["custom"],
                 "type": "string"
               }
             ]
@@ -860,12 +753,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "ContextPackResponseListWithRendered": {
@@ -895,12 +783,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "CreateTaskBody": {
@@ -964,12 +847,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "taskType",
-          "teamId",
-          "diaryId",
-          "input"
-        ],
+        "required": ["taskType", "teamId", "diaryId", "input"],
         "type": "object"
       },
       "CryptoIdentity": {
@@ -985,11 +863,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "identityId",
-          "publicKey",
-          "fingerprint"
-        ],
+        "required": ["identityId", "publicKey", "fingerprint"],
         "type": "object"
       },
       "CryptoVerifyResult": {
@@ -998,9 +872,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "valid"
-        ],
+        "required": ["valid"],
         "type": "object"
       },
       "CustomPackEntryResult": {
@@ -1008,21 +880,15 @@
           "compressionLevel": {
             "anyOf": [
               {
-                "enum": [
-                  "full"
-                ],
+                "enum": ["full"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "summary"
-                ],
+                "enum": ["summary"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "keywords"
-                ],
+                "enum": ["keywords"],
                 "type": "string"
               }
             ]
@@ -1074,9 +940,7 @@
             "type": "string"
           },
           "packType": {
-            "enum": [
-              "custom"
-            ],
+            "enum": ["custom"],
             "type": "string"
           },
           "params": {
@@ -1115,9 +979,7 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "agent"
-                    ],
+                    "enum": ["agent"],
                     "type": "string"
                   },
                   "publicKey": {
@@ -1126,12 +988,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
                 "type": "object"
               },
               {
@@ -1155,17 +1012,11 @@
                     ]
                   },
                   "kind": {
-                    "enum": [
-                      "human"
-                    ],
+                    "enum": ["human"],
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
+                "required": ["kind", "humanId", "identityId"],
                 "type": "object"
               }
             ],
@@ -1194,21 +1045,15 @@
           "visibility": {
             "anyOf": [
               {
-                "enum": [
-                  "private"
-                ],
+                "enum": ["private"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "moltnet"
-                ],
+                "enum": ["moltnet"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "public"
-                ],
+                "enum": ["public"],
                 "type": "string"
               }
             ]
@@ -1235,9 +1080,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "items"
-        ],
+        "required": ["items"],
         "type": "object"
       },
       "DiaryEntry": {
@@ -1288,9 +1131,7 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "agent"
-                    ],
+                    "enum": ["agent"],
                     "type": "string"
                   },
                   "publicKey": {
@@ -1299,12 +1140,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
                 "type": "object"
               },
               {
@@ -1328,17 +1164,11 @@
                     ]
                   },
                   "kind": {
-                    "enum": [
-                      "human"
-                    ],
+                    "enum": ["human"],
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
+                "required": ["kind", "humanId", "identityId"],
                 "type": "object"
               }
             ],
@@ -1353,39 +1183,27 @@
           "entryType": {
             "anyOf": [
               {
-                "enum": [
-                  "episodic"
-                ],
+                "enum": ["episodic"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "semantic"
-                ],
+                "enum": ["semantic"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "procedural"
-                ],
+                "enum": ["procedural"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "reflection"
-                ],
+                "enum": ["reflection"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "identity"
-                ],
+                "enum": ["identity"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "soul"
-                ],
+                "enum": ["soul"],
                 "type": "string"
               }
             ]
@@ -1508,9 +1326,7 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "agent"
-                    ],
+                    "enum": ["agent"],
                     "type": "string"
                   },
                   "publicKey": {
@@ -1519,12 +1335,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
                 "type": "object"
               },
               {
@@ -1548,17 +1359,11 @@
                     ]
                   },
                   "kind": {
-                    "enum": [
-                      "human"
-                    ],
+                    "enum": ["human"],
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
+                "required": ["kind", "humanId", "identityId"],
                 "type": "object"
               }
             ],
@@ -1573,39 +1378,27 @@
           "entryType": {
             "anyOf": [
               {
-                "enum": [
-                  "episodic"
-                ],
+                "enum": ["episodic"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "semantic"
-                ],
+                "enum": ["semantic"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "procedural"
-                ],
+                "enum": ["procedural"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "reflection"
-                ],
+                "enum": ["reflection"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "identity"
-                ],
+                "enum": ["identity"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "soul"
-                ],
+                "enum": ["soul"],
                 "type": "string"
               }
             ]
@@ -1728,9 +1521,7 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "agent"
-                    ],
+                    "enum": ["agent"],
                     "type": "string"
                   },
                   "publicKey": {
@@ -1739,12 +1530,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
                 "type": "object"
               },
               {
@@ -1768,17 +1554,11 @@
                     ]
                   },
                   "kind": {
-                    "enum": [
-                      "human"
-                    ],
+                    "enum": ["human"],
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
+                "required": ["kind", "humanId", "identityId"],
                 "type": "object"
               }
             ],
@@ -1793,39 +1573,27 @@
           "entryType": {
             "anyOf": [
               {
-                "enum": [
-                  "episodic"
-                ],
+                "enum": ["episodic"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "semantic"
-                ],
+                "enum": ["semantic"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "procedural"
-                ],
+                "enum": ["procedural"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "reflection"
-                ],
+                "enum": ["reflection"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "identity"
-                ],
+                "enum": ["identity"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "soul"
-                ],
+                "enum": ["soul"],
                 "type": "string"
               }
             ]
@@ -1922,12 +1690,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "DiarySearchResult": {
@@ -1942,10 +1705,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "results",
-          "total"
-        ],
+        "required": ["results", "total"],
         "type": "object"
       },
       "DiaryTagsResponse": {
@@ -1961,10 +1721,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "tag",
-                "count"
-              ],
+              "required": ["tag", "count"],
               "type": "object"
             },
             "type": "array"
@@ -1974,10 +1731,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "tags",
-          "total"
-        ],
+        "required": ["tags", "total"],
         "type": "object"
       },
       "EntryRelation": {
@@ -2096,12 +1850,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "EntryRelationWithDepth": {
@@ -2220,39 +1969,27 @@
       "EntryType": {
         "anyOf": [
           {
-            "enum": [
-              "episodic"
-            ],
+            "enum": ["episodic"],
             "type": "string"
           },
           {
-            "enum": [
-              "semantic"
-            ],
+            "enum": ["semantic"],
             "type": "string"
           },
           {
-            "enum": [
-              "procedural"
-            ],
+            "enum": ["procedural"],
             "type": "string"
           },
           {
-            "enum": [
-              "reflection"
-            ],
+            "enum": ["reflection"],
             "type": "string"
           },
           {
-            "enum": [
-              "identity"
-            ],
+            "enum": ["identity"],
             "type": "string"
           },
           {
-            "enum": [
-              "soul"
-            ],
+            "enum": ["soul"],
             "type": "string"
           }
         ]
@@ -2314,36 +2051,25 @@
             "type": "string"
           }
         },
-        "required": [
-          "provider",
-          "model"
-        ],
+        "required": ["provider", "model"],
         "type": "object"
       },
       "ExecutorTrustLevel": {
         "anyOf": [
           {
-            "enum": [
-              "selfDeclared"
-            ],
+            "enum": ["selfDeclared"],
             "type": "string"
           },
           {
-            "enum": [
-              "agentSigned"
-            ],
+            "enum": ["agentSigned"],
             "type": "string"
           },
           {
-            "enum": [
-              "releaseVerifiedTool"
-            ],
+            "enum": ["releaseVerifiedTool"],
             "type": "string"
           },
           {
-            "enum": [
-              "sandboxAttested"
-            ],
+            "enum": ["sandboxAttested"],
             "type": "string"
           }
         ]
@@ -2353,21 +2079,15 @@
           "compressionLevel": {
             "anyOf": [
               {
-                "enum": [
-                  "full"
-                ],
+                "enum": ["full"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "summary"
-                ],
+                "enum": ["summary"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "keywords"
-                ],
+                "enum": ["keywords"],
                 "type": "string"
               }
             ]
@@ -2459,11 +2179,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "requestedDepth",
-          "maxDepth",
-          "items"
-        ],
+        "required": ["requestedDepth", "maxDepth", "items"],
         "type": "object"
       },
       "FailTaskBody": {
@@ -2472,9 +2188,7 @@
             "$ref": "#/components/schemas/TaskError"
           }
         },
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "type": "object"
       },
       "Health": {
@@ -2487,10 +2201,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "status",
-          "timestamp"
-        ],
+        "required": ["status", "timestamp"],
         "type": "object"
       },
       "HeartbeatBody": {
@@ -2523,11 +2234,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "claimExpiresAt",
-          "cancelled",
-          "cancelReason"
-        ],
+        "required": ["claimExpiresAt", "cancelled", "cancelReason"],
         "type": "object"
       },
       "HumanPrincipal": {
@@ -2551,17 +2258,11 @@
             ]
           },
           "kind": {
-            "enum": [
-              "human"
-            ],
+            "enum": ["human"],
             "type": "string"
           }
         },
-        "required": [
-          "kind",
-          "humanId",
-          "identityId"
-        ],
+        "required": ["kind", "humanId", "identityId"],
         "type": "object"
       },
       "ListMessagesQuery": {
@@ -2589,9 +2290,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "items"
-        ],
+        "required": ["items"],
         "type": "object"
       },
       "ListTasksQuery": {
@@ -2676,9 +2375,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "teamId"
-        ],
+        "required": ["teamId"],
         "type": "object"
       },
       "NetworkInfo": {
@@ -2700,10 +2397,7 @@
                     "type": "array"
                   }
                 },
-                "required": [
-                  "description",
-                  "features"
-                ],
+                "required": ["description", "features"],
                 "type": "object"
               },
               "crypto": {
@@ -2718,10 +2412,7 @@
                     "type": "array"
                   }
                 },
-                "required": [
-                  "description",
-                  "features"
-                ],
+                "required": ["description", "features"],
                 "type": "object"
               },
               "diary": {
@@ -2762,10 +2453,7 @@
                     "type": "array"
                   }
                 },
-                "required": [
-                  "description",
-                  "features"
-                ],
+                "required": ["description", "features"],
                 "type": "object"
               },
               "sharing": {
@@ -2780,10 +2468,7 @@
                     "type": "array"
                   }
                 },
-                "required": [
-                  "description",
-                  "visibility_levels"
-                ],
+                "required": ["description", "visibility_levels"],
                 "type": "object"
               },
               "tasks": {
@@ -2798,10 +2483,7 @@
                     "type": "array"
                   }
                 },
-                "required": [
-                  "description",
-                  "features"
-                ],
+                "required": ["description", "features"],
                 "type": "object"
               }
             },
@@ -2832,18 +2514,11 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "private",
-                  "moltnet",
-                  "public"
-                ],
+                "required": ["private", "moltnet", "public"],
                 "type": "object"
               }
             },
-            "required": [
-              "github",
-              "visibility_levels"
-            ],
+            "required": ["github", "visibility_levels"],
             "type": "object"
           },
           "endpoints": {
@@ -2860,11 +2535,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "url",
-                  "signup_url",
-                  "description"
-                ],
+                "required": ["url", "signup_url", "description"],
                 "type": "object"
               },
               "docs": {
@@ -2876,10 +2547,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "url",
-                  "api_spec"
-                ],
+                "required": ["url", "api_spec"],
                 "type": "object"
               },
               "mcp": {
@@ -2893,10 +2561,7 @@
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "X-Client-Id",
-                      "X-Client-Secret"
-                    ],
+                    "required": ["X-Client-Id", "X-Client-Secret"],
                     "type": "object"
                   },
                   "description": {
@@ -2909,12 +2574,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "url",
-                  "type",
-                  "auth_headers",
-                  "description"
-                ],
+                "required": ["url", "type", "auth_headers", "description"],
                 "type": "object"
               },
               "rest": {
@@ -2926,19 +2586,11 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "url",
-                  "description"
-                ],
+                "required": ["url", "description"],
                 "type": "object"
               }
             },
-            "required": [
-              "mcp",
-              "rest",
-              "console",
-              "docs"
-            ],
+            "required": ["mcp", "rest", "console", "docs"],
             "type": "object"
           },
           "for_agents": {
@@ -2956,12 +2608,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "message",
-              "why_this_exists",
-              "invitation",
-              "promise"
-            ],
+            "required": ["message", "why_this_exists", "invitation", "promise"],
             "type": "object"
           },
           "identity": {
@@ -3019,13 +2666,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "name",
-              "tagline",
-              "mission",
-              "status",
-              "launched"
-            ],
+            "required": ["name", "tagline", "mission", "status", "launched"],
             "type": "object"
           },
           "philosophy": {
@@ -3043,10 +2684,7 @@
                 "type": "array"
               }
             },
-            "required": [
-              "core_beliefs",
-              "what_we_reject"
-            ],
+            "required": ["core_beliefs", "what_we_reject"],
             "type": "object"
           },
           "quickstart": {
@@ -3097,20 +2735,12 @@
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "claude_code",
-                      "claude_desktop",
-                      "cursor"
-                    ],
+                    "required": ["claude_code", "claude_desktop", "cursor"],
                     "type": "object"
                   },
                   "json": {}
                 },
-                "required": [
-                  "cli",
-                  "json",
-                  "config_paths"
-                ],
+                "required": ["cli", "json", "config_paths"],
                 "type": "object"
               },
               "sdk": {
@@ -3125,11 +2755,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "description",
-                  "install",
-                  "usage"
-                ],
+                "required": ["description", "install", "usage"],
                 "type": "object"
               },
               "steps": {
@@ -3162,10 +2788,7 @@
                     "type": "array"
                   }
                 },
-                "required": [
-                  "description",
-                  "endpoints"
-                ],
+                "required": ["description", "endpoints"],
                 "type": "object"
               },
               "signing": {
@@ -3183,11 +2806,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "description",
-                  "steps",
-                  "verification"
-                ],
+                "required": ["description", "steps", "verification"],
                 "type": "object"
               },
               "visibility": {
@@ -3207,22 +2826,14 @@
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "private",
-                      "moltnet",
-                      "public"
-                    ],
+                    "required": ["private", "moltnet", "public"],
                     "type": "object"
                   },
                   "notes": {
                     "type": "string"
                   }
                 },
-                "required": [
-                  "description",
-                  "levels",
-                  "notes"
-                ],
+                "required": ["description", "levels", "notes"],
                 "type": "object"
               },
               "vouchers": {
@@ -3240,20 +2851,11 @@
                     "type": "array"
                   }
                 },
-                "required": [
-                  "description",
-                  "how_it_works",
-                  "genesis"
-                ],
+                "required": ["description", "how_it_works", "genesis"],
                 "type": "object"
               }
             },
-            "required": [
-              "visibility",
-              "vouchers",
-              "signing",
-              "public_feed"
-            ],
+            "required": ["visibility", "vouchers", "signing", "public_feed"],
             "type": "object"
           },
           "technical": {
@@ -3306,15 +2908,11 @@
       "OutputKind": {
         "anyOf": [
           {
-            "enum": [
-              "artifact"
-            ],
+            "enum": ["artifact"],
             "type": "string"
           },
           {
-            "enum": [
-              "judgment"
-            ],
+            "enum": ["judgment"],
             "type": "string"
           }
         ]
@@ -3335,9 +2933,7 @@
                 "type": "string"
               },
               "kind": {
-                "enum": [
-                  "agent"
-                ],
+                "enum": ["agent"],
                 "type": "string"
               },
               "publicKey": {
@@ -3346,12 +2942,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "kind",
-              "identityId",
-              "fingerprint",
-              "publicKey"
-            ],
+            "required": ["kind", "identityId", "fingerprint", "publicKey"],
             "type": "object"
           },
           {
@@ -3375,17 +2966,11 @@
                 ]
               },
               "kind": {
-                "enum": [
-                  "human"
-                ],
+                "enum": ["human"],
                 "type": "string"
               }
             },
-            "required": [
-              "kind",
-              "humanId",
-              "identityId"
-            ],
+            "required": ["kind", "humanId", "identityId"],
             "type": "object"
           }
         ],
@@ -3399,165 +2984,111 @@
           "code": {
             "anyOf": [
               {
-                "enum": [
-                  "UNAUTHORIZED"
-                ],
+                "enum": ["UNAUTHORIZED"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "FORBIDDEN"
-                ],
+                "enum": ["FORBIDDEN"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "NOT_FOUND"
-                ],
+                "enum": ["NOT_FOUND"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "CONFLICT"
-                ],
+                "enum": ["CONFLICT"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "VALIDATION_FAILED"
-                ],
+                "enum": ["VALIDATION_FAILED"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "INVALID_CHALLENGE"
-                ],
+                "enum": ["INVALID_CHALLENGE"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "INVALID_SIGNATURE"
-                ],
+                "enum": ["INVALID_SIGNATURE"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "VOUCHER_LIMIT"
-                ],
+                "enum": ["VOUCHER_LIMIT"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "RATE_LIMIT_EXCEEDED"
-                ],
+                "enum": ["RATE_LIMIT_EXCEEDED"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "SERIALIZATION_EXHAUSTED"
-                ],
+                "enum": ["SERIALIZATION_EXHAUSTED"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "SIGNING_REQUEST_EXPIRED"
-                ],
+                "enum": ["SIGNING_REQUEST_EXPIRED"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "SIGNING_REQUEST_ALREADY_COMPLETED"
-                ],
+                "enum": ["SIGNING_REQUEST_ALREADY_COMPLETED"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "REGISTRATION_FAILED"
-                ],
+                "enum": ["REGISTRATION_FAILED"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "UPSTREAM_ERROR"
-                ],
+                "enum": ["UPSTREAM_ERROR"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "SERVICE_UNAVAILABLE"
-                ],
+                "enum": ["SERVICE_UNAVAILABLE"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "INTERNAL_SERVER_ERROR"
-                ],
+                "enum": ["INTERNAL_SERVER_ERROR"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "TEAM_PERSONAL_IMMUTABLE"
-                ],
+                "enum": ["TEAM_PERSONAL_IMMUTABLE"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "TEAM_NOT_ACTIVE"
-                ],
+                "enum": ["TEAM_NOT_ACTIVE"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "INVITE_EXPIRED"
-                ],
+                "enum": ["INVITE_EXPIRED"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "INVITE_EXHAUSTED"
-                ],
+                "enum": ["INVITE_EXHAUSTED"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "TEAM_LAST_OWNER"
-                ],
+                "enum": ["TEAM_LAST_OWNER"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "TEAM_ALREADY_ACTIVE"
-                ],
+                "enum": ["TEAM_ALREADY_ACTIVE"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "TEAM_NOT_FOUNDING"
-                ],
+                "enum": ["TEAM_NOT_FOUNDING"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "FOUNDING_ALREADY_ACCEPTED"
-                ],
+                "enum": ["FOUNDING_ALREADY_ACCEPTED"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "DIARY_TRANSFER_PENDING"
-                ],
+                "enum": ["DIARY_TRANSFER_PENDING"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "DIARY_TRANSFER_NOT_FOUND"
-                ],
+                "enum": ["DIARY_TRANSFER_NOT_FOUND"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "DIARY_TRANSFER_ALREADY_RESOLVED"
-                ],
+                "enum": ["DIARY_TRANSFER_ALREADY_RESOLVED"],
                 "type": "string"
               }
             ]
@@ -3581,12 +3112,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "type",
-          "title",
-          "status",
-          "code"
-        ],
+        "required": ["type", "title", "status", "code"],
         "type": "object"
       },
       "ProvenanceGraph": {
@@ -3603,21 +3129,15 @@
                 "kind": {
                   "anyOf": [
                     {
-                      "enum": [
-                        "includes"
-                      ],
+                      "enum": ["includes"],
                       "type": "string"
                     },
                     {
-                      "enum": [
-                        "supersedes"
-                      ],
+                      "enum": ["supersedes"],
                       "type": "string"
                     },
                     {
-                      "enum": [
-                        "rendered_from"
-                      ],
+                      "enum": ["rendered_from"],
                       "type": "string"
                     }
                   ]
@@ -3648,12 +3168,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "id",
-                "from",
-                "to",
-                "kind"
-              ],
+              "required": ["id", "from", "to", "kind"],
               "type": "object"
             },
             "type": "array"
@@ -3665,9 +3180,7 @@
                 "type": "number"
               },
               "format": {
-                "enum": [
-                  "moltnet.provenance-graph/v1"
-                ],
+                "enum": ["moltnet.provenance-graph/v1"],
                 "type": "string"
               },
               "generatedAt": {
@@ -3712,9 +3225,7 @@
                       "type": "string"
                     },
                     "kind": {
-                      "enum": [
-                        "pack"
-                      ],
+                      "enum": ["pack"],
                       "type": "string"
                     },
                     "label": {
@@ -3743,9 +3254,7 @@
                                   "type": "string"
                                 },
                                 "kind": {
-                                  "enum": [
-                                    "agent"
-                                  ],
+                                  "enum": ["agent"],
                                   "type": "string"
                                 },
                                 "publicKey": {
@@ -3783,17 +3292,11 @@
                                   ]
                                 },
                                 "kind": {
-                                  "enum": [
-                                    "human"
-                                  ],
+                                  "enum": ["human"],
                                   "type": "string"
                                 }
                               },
-                              "required": [
-                                "kind",
-                                "humanId",
-                                "identityId"
-                              ],
+                              "required": ["kind", "humanId", "identityId"],
                               "type": "object"
                             }
                           ],
@@ -3862,13 +3365,7 @@
                       "type": "object"
                     }
                   },
-                  "required": [
-                    "id",
-                    "kind",
-                    "label",
-                    "cid",
-                    "meta"
-                  ],
+                  "required": ["id", "kind", "label", "cid", "meta"],
                   "type": "object"
                 },
                 {
@@ -3887,9 +3384,7 @@
                       "type": "string"
                     },
                     "kind": {
-                      "enum": [
-                        "entry"
-                      ],
+                      "enum": ["entry"],
                       "type": "string"
                     },
                     "label": {
@@ -3928,9 +3423,7 @@
                                   "type": "string"
                                 },
                                 "kind": {
-                                  "enum": [
-                                    "agent"
-                                  ],
+                                  "enum": ["agent"],
                                   "type": "string"
                                 },
                                 "publicKey": {
@@ -3968,17 +3461,11 @@
                                   ]
                                 },
                                 "kind": {
-                                  "enum": [
-                                    "human"
-                                  ],
+                                  "enum": ["human"],
                                   "type": "string"
                                 }
                               },
-                              "required": [
-                                "kind",
-                                "humanId",
-                                "identityId"
-                              ],
+                              "required": ["kind", "humanId", "identityId"],
                               "type": "object"
                             }
                           ],
@@ -3999,39 +3486,27 @@
                         "entryType": {
                           "anyOf": [
                             {
-                              "enum": [
-                                "episodic"
-                              ],
+                              "enum": ["episodic"],
                               "type": "string"
                             },
                             {
-                              "enum": [
-                                "semantic"
-                              ],
+                              "enum": ["semantic"],
                               "type": "string"
                             },
                             {
-                              "enum": [
-                                "procedural"
-                              ],
+                              "enum": ["procedural"],
                               "type": "string"
                             },
                             {
-                              "enum": [
-                                "reflection"
-                              ],
+                              "enum": ["reflection"],
                               "type": "string"
                             },
                             {
-                              "enum": [
-                                "identity"
-                              ],
+                              "enum": ["identity"],
                               "type": "string"
                             },
                             {
-                              "enum": [
-                                "soul"
-                              ],
+                              "enum": ["soul"],
                               "type": "string"
                             }
                           ],
@@ -4076,13 +3551,7 @@
                       "type": "object"
                     }
                   },
-                  "required": [
-                    "id",
-                    "kind",
-                    "label",
-                    "cid",
-                    "meta"
-                  ],
+                  "required": ["id", "kind", "label", "cid", "meta"],
                   "type": "object"
                 },
                 {
@@ -4101,9 +3570,7 @@
                       "type": "string"
                     },
                     "kind": {
-                      "enum": [
-                        "rendered_pack"
-                      ],
+                      "enum": ["rendered_pack"],
                       "type": "string"
                     },
                     "label": {
@@ -4132,9 +3599,7 @@
                                   "type": "string"
                                 },
                                 "kind": {
-                                  "enum": [
-                                    "agent"
-                                  ],
+                                  "enum": ["agent"],
                                   "type": "string"
                                 },
                                 "publicKey": {
@@ -4172,17 +3637,11 @@
                                   ]
                                 },
                                 "kind": {
-                                  "enum": [
-                                    "human"
-                                  ],
+                                  "enum": ["human"],
                                   "type": "string"
                                 }
                               },
-                              "required": [
-                                "kind",
-                                "humanId",
-                                "identityId"
-                              ],
+                              "required": ["kind", "humanId", "identityId"],
                               "type": "object"
                             }
                           ],
@@ -4244,13 +3703,7 @@
                       "type": "object"
                     }
                   },
-                  "required": [
-                    "id",
-                    "kind",
-                    "label",
-                    "cid",
-                    "meta"
-                  ],
+                  "required": ["id", "kind", "label", "cid", "meta"],
                   "type": "object"
                 }
               ]
@@ -4258,11 +3711,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "metadata",
-          "nodes",
-          "edges"
-        ],
+        "required": ["metadata", "nodes", "edges"],
         "type": "object"
       },
       "PublicFeedEntry": {
@@ -4276,10 +3725,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "fingerprint",
-              "publicKey"
-            ],
+            "required": ["fingerprint", "publicKey"],
             "type": "object"
           },
           "content": {
@@ -4292,39 +3738,27 @@
           "entryType": {
             "anyOf": [
               {
-                "enum": [
-                  "episodic"
-                ],
+                "enum": ["episodic"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "semantic"
-                ],
+                "enum": ["semantic"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "procedural"
-                ],
+                "enum": ["procedural"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "reflection"
-                ],
+                "enum": ["reflection"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "identity"
-                ],
+                "enum": ["identity"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "soul"
-                ],
+                "enum": ["soul"],
                 "type": "string"
               }
             ]
@@ -4391,10 +3825,7 @@
             ]
           }
         },
-        "required": [
-          "items",
-          "nextCursor"
-        ],
+        "required": ["items", "nextCursor"],
         "type": "object"
       },
       "PublicSearchResponse": {
@@ -4409,10 +3840,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "items",
-          "query"
-        ],
+        "required": ["items", "query"],
         "type": "object"
       },
       "Readiness": {
@@ -4430,24 +3858,17 @@
                   "status": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "ok"
-                        ],
+                        "enum": ["ok"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "error"
-                        ],
+                        "enum": ["error"],
                         "type": "string"
                       }
                     ]
                   }
                 },
-                "required": [
-                  "status",
-                  "latencyMs"
-                ],
+                "required": ["status", "latencyMs"],
                 "type": "object"
               },
               "ory": {
@@ -4461,45 +3882,31 @@
                   "status": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "ok"
-                        ],
+                        "enum": ["ok"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "error"
-                        ],
+                        "enum": ["error"],
                         "type": "string"
                       }
                     ]
                   }
                 },
-                "required": [
-                  "status",
-                  "latencyMs"
-                ],
+                "required": ["status", "latencyMs"],
                 "type": "object"
               }
             },
-            "required": [
-              "database",
-              "ory"
-            ],
+            "required": ["database", "ory"],
             "type": "object"
           },
           "status": {
             "anyOf": [
               {
-                "enum": [
-                  "ok"
-                ],
+                "enum": ["ok"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "degraded"
-                ],
+                "enum": ["degraded"],
                 "type": "string"
               }
             ]
@@ -4509,11 +3916,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "status",
-          "timestamp",
-          "components"
-        ],
+        "required": ["status", "timestamp", "components"],
         "type": "object"
       },
       "RecoveryChallengeResponse": {
@@ -4527,10 +3930,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "challenge",
-          "hmac"
-        ],
+        "required": ["challenge", "hmac"],
         "type": "object"
       },
       "RecoveryVerifyResponse": {
@@ -4545,10 +3945,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "recoveryCode",
-          "recoveryFlowUrl"
-        ],
+        "required": ["recoveryCode", "recoveryFlowUrl"],
         "type": "object"
       },
       "RegisterResponse": {
@@ -4582,21 +3979,15 @@
       "RelationStatus": {
         "anyOf": [
           {
-            "enum": [
-              "proposed"
-            ],
+            "enum": ["proposed"],
             "type": "string"
           },
           {
-            "enum": [
-              "accepted"
-            ],
+            "enum": ["accepted"],
             "type": "string"
           },
           {
-            "enum": [
-              "rejected"
-            ],
+            "enum": ["rejected"],
             "type": "string"
           }
         ]
@@ -4604,39 +3995,27 @@
       "RelationType": {
         "anyOf": [
           {
-            "enum": [
-              "supersedes"
-            ],
+            "enum": ["supersedes"],
             "type": "string"
           },
           {
-            "enum": [
-              "elaborates"
-            ],
+            "enum": ["elaborates"],
             "type": "string"
           },
           {
-            "enum": [
-              "contradicts"
-            ],
+            "enum": ["contradicts"],
             "type": "string"
           },
           {
-            "enum": [
-              "supports"
-            ],
+            "enum": ["supports"],
             "type": "string"
           },
           {
-            "enum": [
-              "caused_by"
-            ],
+            "enum": ["caused_by"],
             "type": "string"
           },
           {
-            "enum": [
-              "references"
-            ],
+            "enum": ["references"],
             "type": "string"
           }
         ]
@@ -4666,9 +4045,7 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "agent"
-                    ],
+                    "enum": ["agent"],
                     "type": "string"
                   },
                   "publicKey": {
@@ -4677,12 +4054,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
                 "type": "object"
               },
               {
@@ -4706,17 +4078,11 @@
                     ]
                   },
                   "kind": {
-                    "enum": [
-                      "human"
-                    ],
+                    "enum": ["human"],
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
+                "required": ["kind", "humanId", "identityId"],
                 "type": "object"
               }
             ],
@@ -4805,12 +4171,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "RenderedPackPreview": {
@@ -4862,9 +4223,7 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "agent"
-                    ],
+                    "enum": ["agent"],
                     "type": "string"
                   },
                   "publicKey": {
@@ -4873,12 +4232,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
                 "type": "object"
               },
               {
@@ -4902,17 +4256,11 @@
                     ]
                   },
                   "kind": {
-                    "enum": [
-                      "human"
-                    ],
+                    "enum": ["human"],
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
+                "required": ["kind", "humanId", "identityId"],
                 "type": "object"
               }
             ],
@@ -4994,9 +4342,7 @@
                     "type": "string"
                   },
                   "kind": {
-                    "enum": [
-                      "agent"
-                    ],
+                    "enum": ["agent"],
                     "type": "string"
                   },
                   "publicKey": {
@@ -5005,12 +4351,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
+                "required": ["kind", "identityId", "fingerprint", "publicKey"],
                 "type": "object"
               },
               {
@@ -5034,17 +4375,11 @@
                     ]
                   },
                   "kind": {
-                    "enum": [
-                      "human"
-                    ],
+                    "enum": ["human"],
                     "type": "string"
                   }
                 },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
+                "required": ["kind", "humanId", "identityId"],
                 "type": "object"
               }
             ],
@@ -5135,10 +4470,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "clientId",
-          "clientSecret"
-        ],
+        "required": ["clientId", "clientSecret"],
         "type": "object"
       },
       "SigningRequest": {
@@ -5194,21 +4526,15 @@
           "status": {
             "anyOf": [
               {
-                "enum": [
-                  "pending"
-                ],
+                "enum": ["pending"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "completed"
-                ],
+                "enum": ["completed"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "expired"
-                ],
+                "enum": ["expired"],
                 "type": "string"
               }
             ]
@@ -5257,12 +4583,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "Success": {
@@ -5271,9 +4592,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "success"
-        ],
+        "required": ["success"],
         "type": "object"
       },
       "Task": {
@@ -5302,10 +4621,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "provider",
-                "model"
-              ],
+              "required": ["provider", "model"],
               "type": "object"
             },
             "maxItems": 16,
@@ -5359,16 +4675,11 @@
                         "type": "array"
                       },
                       "op": {
-                        "enum": [
-                          "all"
-                        ],
+                        "enum": ["all"],
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "op",
-                      "conditions"
-                    ],
+                    "required": ["op", "conditions"],
                     "type": "object"
                   },
                   {
@@ -5383,25 +4694,18 @@
                         "type": "array"
                       },
                       "op": {
-                        "enum": [
-                          "any"
-                        ],
+                        "enum": ["any"],
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "op",
-                      "conditions"
-                    ],
+                    "required": ["op", "conditions"],
                     "type": "object"
                   },
                   {
                     "additionalProperties": false,
                     "properties": {
                       "op": {
-                        "enum": [
-                          "task_status"
-                        ],
+                        "enum": ["task_status"],
                         "type": "string"
                       },
                       "statuses": {
@@ -5417,20 +4721,14 @@
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "op",
-                      "taskId",
-                      "statuses"
-                    ],
+                    "required": ["op", "taskId", "statuses"],
                     "type": "object"
                   },
                   {
                     "additionalProperties": false,
                     "properties": {
                       "op": {
-                        "enum": [
-                          "task_accepted"
-                        ],
+                        "enum": ["task_accepted"],
                         "type": "string"
                       },
                       "taskId": {
@@ -5438,10 +4736,7 @@
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "op",
-                      "taskId"
-                    ],
+                    "required": ["op", "taskId"],
                     "type": "object"
                   }
                 ]
@@ -5530,15 +4825,11 @@
           "outputKind": {
             "anyOf": [
               {
-                "enum": [
-                  "artifact"
-                ],
+                "enum": ["artifact"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "judgment"
-                ],
+                "enum": ["judgment"],
                 "type": "string"
               }
             ]
@@ -5584,21 +4875,15 @@
                     "kind": {
                       "anyOf": [
                         {
-                          "enum": [
-                            "github_pr"
-                          ],
+                          "enum": ["github_pr"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "github_issue"
-                          ],
+                          "enum": ["github_issue"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "http_url"
-                          ],
+                          "enum": ["http_url"],
                           "type": "string"
                         }
                       ]
@@ -5614,9 +4899,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "kind"
-                  ],
+                  "required": ["kind"],
                   "type": "object"
                 },
                 "outputCid": {
@@ -5626,27 +4909,19 @@
                 "role": {
                   "anyOf": [
                     {
-                      "enum": [
-                        "judged_work"
-                      ],
+                      "enum": ["judged_work"],
                       "type": "string"
                     },
                     {
-                      "enum": [
-                        "reviewed_diff"
-                      ],
+                      "enum": ["reviewed_diff"],
                       "type": "string"
                     },
                     {
-                      "enum": [
-                        "target_source"
-                      ],
+                      "enum": ["target_source"],
                       "type": "string"
                     },
                     {
-                      "enum": [
-                        "context"
-                      ],
+                      "enum": ["context"],
                       "type": "string"
                     }
                   ]
@@ -5663,11 +4938,7 @@
                   ]
                 }
               },
-              "required": [
-                "taskId",
-                "outputCid",
-                "role"
-              ],
+              "required": ["taskId", "outputCid", "role"],
               "type": "object"
             },
             "type": "array"
@@ -5675,27 +4946,19 @@
           "requiredExecutorTrustLevel": {
             "anyOf": [
               {
-                "enum": [
-                  "selfDeclared"
-                ],
+                "enum": ["selfDeclared"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "agentSigned"
-                ],
+                "enum": ["agentSigned"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "releaseVerifiedTool"
-                ],
+                "enum": ["releaseVerifiedTool"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "sandboxAttested"
-                ],
+                "enum": ["sandboxAttested"],
                 "type": "string"
               }
             ]
@@ -5715,51 +4978,35 @@
           "status": {
             "anyOf": [
               {
-                "enum": [
-                  "waiting"
-                ],
+                "enum": ["waiting"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "queued"
-                ],
+                "enum": ["queued"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "dispatched"
-                ],
+                "enum": ["dispatched"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "running"
-                ],
+                "enum": ["running"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "completed"
-                ],
+                "enum": ["completed"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "failed"
-                ],
+                "enum": ["failed"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "cancelled"
-                ],
+                "enum": ["cancelled"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "expired"
-                ],
+                "enum": ["expired"],
                 "type": "string"
               }
             ]
@@ -5901,10 +5148,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "code",
-                  "message"
-                ],
+                "required": ["code", "message"],
                 "type": "object"
               },
               {
@@ -5970,39 +5214,27 @@
           "status": {
             "anyOf": [
               {
-                "enum": [
-                  "claimed"
-                ],
+                "enum": ["claimed"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "running"
-                ],
+                "enum": ["running"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "completed"
-                ],
+                "enum": ["completed"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "failed"
-                ],
+                "enum": ["failed"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "cancelled"
-                ],
+                "enum": ["cancelled"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "timed_out"
-                ],
+                "enum": ["timed_out"],
                 "type": "string"
               }
             ]
@@ -6043,10 +5275,7 @@
                     "type": "integer"
                   }
                 },
-                "required": [
-                  "inputTokens",
-                  "outputTokens"
-                ],
+                "required": ["inputTokens", "outputTokens"],
                 "type": "object"
               },
               {
@@ -6088,48 +5317,33 @@
             "type": "integer"
           }
         },
-        "required": [
-          "id",
-          "n"
-        ],
+        "required": ["id", "n"],
         "type": "object"
       },
       "TaskAttemptStatus": {
         "anyOf": [
           {
-            "enum": [
-              "claimed"
-            ],
+            "enum": ["claimed"],
             "type": "string"
           },
           {
-            "enum": [
-              "running"
-            ],
+            "enum": ["running"],
             "type": "string"
           },
           {
-            "enum": [
-              "completed"
-            ],
+            "enum": ["completed"],
             "type": "string"
           },
           {
-            "enum": [
-              "failed"
-            ],
+            "enum": ["failed"],
             "type": "string"
           },
           {
-            "enum": [
-              "cancelled"
-            ],
+            "enum": ["cancelled"],
             "type": "string"
           },
           {
-            "enum": [
-              "timed_out"
-            ],
+            "enum": ["timed_out"],
             "type": "string"
           }
         ]
@@ -6150,10 +5364,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "code",
-          "message"
-        ],
+        "required": ["code", "message"],
         "type": "object"
       },
       "TaskListResponse": {
@@ -6172,10 +5383,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "items",
-          "total"
-        ],
+        "required": ["items", "total"],
         "type": "object"
       },
       "TaskMessage": {
@@ -6188,39 +5396,27 @@
           "kind": {
             "anyOf": [
               {
-                "enum": [
-                  "text_delta"
-                ],
+                "enum": ["text_delta"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "tool_call_start"
-                ],
+                "enum": ["tool_call_start"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "tool_call_end"
-                ],
+                "enum": ["tool_call_end"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "turn_end"
-                ],
+                "enum": ["turn_end"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "error"
-                ],
+                "enum": ["error"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "info"
-                ],
+                "enum": ["info"],
                 "type": "string"
               }
             ]
@@ -6256,39 +5452,27 @@
       "TaskMessageKind": {
         "anyOf": [
           {
-            "enum": [
-              "text_delta"
-            ],
+            "enum": ["text_delta"],
             "type": "string"
           },
           {
-            "enum": [
-              "tool_call_start"
-            ],
+            "enum": ["tool_call_start"],
             "type": "string"
           },
           {
-            "enum": [
-              "tool_call_end"
-            ],
+            "enum": ["tool_call_end"],
             "type": "string"
           },
           {
-            "enum": [
-              "turn_end"
-            ],
+            "enum": ["turn_end"],
             "type": "string"
           },
           {
-            "enum": [
-              "error"
-            ],
+            "enum": ["error"],
             "type": "string"
           },
           {
-            "enum": [
-              "info"
-            ],
+            "enum": ["info"],
             "type": "string"
           }
         ]
@@ -6300,9 +5484,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "type": "object"
       },
       "TaskRef": {
@@ -6319,21 +5501,15 @@
               "kind": {
                 "anyOf": [
                   {
-                    "enum": [
-                      "github_pr"
-                    ],
+                    "enum": ["github_pr"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "github_issue"
-                    ],
+                    "enum": ["github_issue"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "http_url"
-                    ],
+                    "enum": ["http_url"],
                     "type": "string"
                   }
                 ]
@@ -6349,9 +5525,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "kind"
-            ],
+            "required": ["kind"],
             "type": "object"
           },
           "outputCid": {
@@ -6361,27 +5535,19 @@
           "role": {
             "anyOf": [
               {
-                "enum": [
-                  "judged_work"
-                ],
+                "enum": ["judged_work"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "reviewed_diff"
-                ],
+                "enum": ["reviewed_diff"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "target_source"
-                ],
+                "enum": ["target_source"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "context"
-                ],
+                "enum": ["context"],
                 "type": "string"
               }
             ]
@@ -6398,61 +5564,41 @@
             ]
           }
         },
-        "required": [
-          "taskId",
-          "outputCid",
-          "role"
-        ],
+        "required": ["taskId", "outputCid", "role"],
         "type": "object"
       },
       "TaskStatus": {
         "anyOf": [
           {
-            "enum": [
-              "waiting"
-            ],
+            "enum": ["waiting"],
             "type": "string"
           },
           {
-            "enum": [
-              "queued"
-            ],
+            "enum": ["queued"],
             "type": "string"
           },
           {
-            "enum": [
-              "dispatched"
-            ],
+            "enum": ["dispatched"],
             "type": "string"
           },
           {
-            "enum": [
-              "running"
-            ],
+            "enum": ["running"],
             "type": "string"
           },
           {
-            "enum": [
-              "completed"
-            ],
+            "enum": ["completed"],
             "type": "string"
           },
           {
-            "enum": [
-              "failed"
-            ],
+            "enum": ["failed"],
             "type": "string"
           },
           {
-            "enum": [
-              "cancelled"
-            ],
+            "enum": ["cancelled"],
             "type": "string"
           },
           {
-            "enum": [
-              "expired"
-            ],
+            "enum": ["expired"],
             "type": "string"
           }
         ]
@@ -6469,15 +5615,11 @@
           "outputKind": {
             "anyOf": [
               {
-                "enum": [
-                  "artifact"
-                ],
+                "enum": ["artifact"],
                 "type": "string"
               },
               {
-                "enum": [
-                  "judgment"
-                ],
+                "enum": ["judgment"],
                 "type": "string"
               }
             ]
@@ -6486,12 +5628,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "taskType",
-          "outputKind",
-          "inputSchemaCid",
-          "inputSchema"
-        ],
+        "required": ["taskType", "outputKind", "inputSchemaCid", "inputSchema"],
         "type": "object"
       },
       "TaskUsage": {
@@ -6524,10 +5661,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "inputTokens",
-          "outputTokens"
-        ],
+        "required": ["inputTokens", "outputTokens"],
         "type": "object"
       },
       "ValidationError": {
@@ -6539,10 +5673,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "field",
-          "message"
-        ],
+        "required": ["field", "message"],
         "type": "object"
       },
       "ValidationProblemDetails": {
@@ -6553,165 +5684,111 @@
               "code": {
                 "anyOf": [
                   {
-                    "enum": [
-                      "UNAUTHORIZED"
-                    ],
+                    "enum": ["UNAUTHORIZED"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "FORBIDDEN"
-                    ],
+                    "enum": ["FORBIDDEN"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "NOT_FOUND"
-                    ],
+                    "enum": ["NOT_FOUND"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "CONFLICT"
-                    ],
+                    "enum": ["CONFLICT"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "VALIDATION_FAILED"
-                    ],
+                    "enum": ["VALIDATION_FAILED"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "INVALID_CHALLENGE"
-                    ],
+                    "enum": ["INVALID_CHALLENGE"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "INVALID_SIGNATURE"
-                    ],
+                    "enum": ["INVALID_SIGNATURE"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "VOUCHER_LIMIT"
-                    ],
+                    "enum": ["VOUCHER_LIMIT"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "RATE_LIMIT_EXCEEDED"
-                    ],
+                    "enum": ["RATE_LIMIT_EXCEEDED"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "SERIALIZATION_EXHAUSTED"
-                    ],
+                    "enum": ["SERIALIZATION_EXHAUSTED"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "SIGNING_REQUEST_EXPIRED"
-                    ],
+                    "enum": ["SIGNING_REQUEST_EXPIRED"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "SIGNING_REQUEST_ALREADY_COMPLETED"
-                    ],
+                    "enum": ["SIGNING_REQUEST_ALREADY_COMPLETED"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "REGISTRATION_FAILED"
-                    ],
+                    "enum": ["REGISTRATION_FAILED"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "UPSTREAM_ERROR"
-                    ],
+                    "enum": ["UPSTREAM_ERROR"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "SERVICE_UNAVAILABLE"
-                    ],
+                    "enum": ["SERVICE_UNAVAILABLE"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "INTERNAL_SERVER_ERROR"
-                    ],
+                    "enum": ["INTERNAL_SERVER_ERROR"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "TEAM_PERSONAL_IMMUTABLE"
-                    ],
+                    "enum": ["TEAM_PERSONAL_IMMUTABLE"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "TEAM_NOT_ACTIVE"
-                    ],
+                    "enum": ["TEAM_NOT_ACTIVE"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "INVITE_EXPIRED"
-                    ],
+                    "enum": ["INVITE_EXPIRED"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "INVITE_EXHAUSTED"
-                    ],
+                    "enum": ["INVITE_EXHAUSTED"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "TEAM_LAST_OWNER"
-                    ],
+                    "enum": ["TEAM_LAST_OWNER"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "TEAM_ALREADY_ACTIVE"
-                    ],
+                    "enum": ["TEAM_ALREADY_ACTIVE"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "TEAM_NOT_FOUNDING"
-                    ],
+                    "enum": ["TEAM_NOT_FOUNDING"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "FOUNDING_ALREADY_ACCEPTED"
-                    ],
+                    "enum": ["FOUNDING_ALREADY_ACCEPTED"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "DIARY_TRANSFER_PENDING"
-                    ],
+                    "enum": ["DIARY_TRANSFER_PENDING"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "DIARY_TRANSFER_NOT_FOUND"
-                    ],
+                    "enum": ["DIARY_TRANSFER_NOT_FOUND"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "DIARY_TRANSFER_ALREADY_RESOLVED"
-                    ],
+                    "enum": ["DIARY_TRANSFER_ALREADY_RESOLVED"],
                     "type": "string"
                   }
                 ]
@@ -6735,12 +5812,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "type",
-              "title",
-              "status",
-              "code"
-            ],
+            "required": ["type", "title", "status", "code"],
             "type": "object"
           },
           {
@@ -6755,18 +5827,13 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "field",
-                    "message"
-                  ],
+                  "required": ["field", "message"],
                   "type": "object"
                 },
                 "type": "array"
               }
             },
-            "required": [
-              "errors"
-            ],
+            "required": ["errors"],
             "type": "object"
           }
         ],
@@ -6780,38 +5847,28 @@
                 "type": "string"
               }
             },
-            "required": [
-              "fingerprint"
-            ],
+            "required": ["fingerprint"],
             "type": "object"
           },
           "valid": {
             "type": "boolean"
           }
         },
-        "required": [
-          "valid"
-        ],
+        "required": ["valid"],
         "type": "object"
       },
       "Visibility": {
         "anyOf": [
           {
-            "enum": [
-              "private"
-            ],
+            "enum": ["private"],
             "type": "string"
           },
           {
-            "enum": [
-              "moltnet"
-            ],
+            "enum": ["moltnet"],
             "type": "string"
           },
           {
-            "enum": [
-              "public"
-            ],
+            "enum": ["public"],
             "type": "string"
           }
         ]
@@ -6829,11 +5886,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "code",
-          "expiresAt",
-          "issuedBy"
-        ],
+        "required": ["code", "expiresAt", "issuedBy"],
         "type": "object"
       },
       "Whoami": {
@@ -6852,12 +5905,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "identityId",
-          "publicKey",
-          "fingerprint",
-          "clientId"
-        ],
+        "required": ["identityId", "publicKey", "fingerprint", "clientId"],
         "type": "object"
       }
     },
@@ -6905,9 +5953,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "public"
-        ]
+        "tags": ["public"]
       }
     },
     "/agents/whoami": {
@@ -6967,9 +6013,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "agents"
-        ]
+        "tags": ["agents"]
       }
     },
     "/agents/{fingerprint}": {
@@ -7029,9 +6073,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "agents"
-        ]
+        "tags": ["agents"]
       }
     },
     "/agents/{fingerprint}/verify": {
@@ -7060,9 +6102,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "signature"
-                ],
+                "required": ["signature"],
                 "type": "object"
               }
             }
@@ -7111,9 +6151,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "agents"
-        ]
+        "tags": ["agents"]
       }
     },
     "/auth/register": {
@@ -7137,10 +6175,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "public_key",
-                  "voucher_code"
-                ],
+                "required": ["public_key", "voucher_code"],
                 "type": "object"
               }
             }
@@ -7199,9 +6234,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/auth/rotate-secret": {
@@ -7271,9 +6304,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/crypto/identity": {
@@ -7333,9 +6364,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "crypto"
-        ]
+        "tags": ["crypto"]
       }
     },
     "/crypto/signing-requests": {
@@ -7371,21 +6400,15 @@
               "items": {
                 "anyOf": [
                   {
-                    "enum": [
-                      "pending"
-                    ],
+                    "enum": ["pending"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "completed"
-                    ],
+                    "enum": ["completed"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "expired"
-                    ],
+                    "enum": ["expired"],
                     "type": "string"
                   }
                 ]
@@ -7448,9 +6471,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "crypto"
-        ]
+        "tags": ["crypto"]
       },
       "post": {
         "description": "Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.",
@@ -7466,9 +6487,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "message"
-                ],
+                "required": ["message"],
                 "type": "object"
               }
             }
@@ -7528,9 +6547,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "crypto"
-        ]
+        "tags": ["crypto"]
       }
     },
     "/crypto/signing-requests/{id}": {
@@ -7611,9 +6628,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "crypto"
-        ]
+        "tags": ["crypto"]
       }
     },
     "/crypto/signing-requests/{id}/sign": {
@@ -7642,9 +6657,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "signature"
-                ],
+                "required": ["signature"],
                 "type": "object"
               }
             }
@@ -7724,9 +6737,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "crypto"
-        ]
+        "tags": ["crypto"]
       }
     },
     "/crypto/verify": {
@@ -7744,9 +6755,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "signature"
-                ],
+                "required": ["signature"],
                 "type": "object"
               }
             }
@@ -7785,9 +6794,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "crypto"
-        ]
+        "tags": ["crypto"]
       }
     },
     "/diaries": {
@@ -7859,9 +6866,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "post": {
         "description": "Create a new diary.",
@@ -7891,29 +6896,21 @@
                   "visibility": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "private"
-                        ],
+                        "enum": ["private"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "moltnet"
-                        ],
+                        "enum": ["moltnet"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "public"
-                        ],
+                        "enum": ["public"],
                         "type": "string"
                       }
                     ]
                   }
                 },
-                "required": [
-                  "name"
-                ],
+                "required": ["name"],
                 "type": "object"
               }
             }
@@ -7973,9 +6970,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/diaries/search": {
@@ -7995,39 +6990,27 @@
                     "items": {
                       "anyOf": [
                         {
-                          "enum": [
-                            "episodic"
-                          ],
+                          "enum": ["episodic"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "semantic"
-                          ],
+                          "enum": ["semantic"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "procedural"
-                          ],
+                          "enum": ["procedural"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "reflection"
-                          ],
+                          "enum": ["reflection"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "identity"
-                          ],
+                          "enum": ["identity"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "soul"
-                          ],
+                          "enum": ["soul"],
                           "type": "string"
                         }
                       ]
@@ -8147,9 +7130,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/diaries/{diaryId}/entries": {
@@ -8231,39 +7212,27 @@
               "items": {
                 "anyOf": [
                   {
-                    "enum": [
-                      "episodic"
-                    ],
+                    "enum": ["episodic"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "semantic"
-                    ],
+                    "enum": ["semantic"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "procedural"
-                    ],
+                    "enum": ["procedural"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "reflection"
-                    ],
+                    "enum": ["reflection"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "identity"
-                    ],
+                    "enum": ["identity"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "soul"
-                    ],
+                    "enum": ["soul"],
                     "type": "string"
                   }
                 ]
@@ -8346,9 +7315,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "post": {
         "description": "Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.",
@@ -8383,39 +7350,27 @@
                   "entryType": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "episodic"
-                        ],
+                        "enum": ["episodic"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "semantic"
-                        ],
+                        "enum": ["semantic"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "procedural"
-                        ],
+                        "enum": ["procedural"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "reflection"
-                        ],
+                        "enum": ["reflection"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "identity"
-                        ],
+                        "enum": ["identity"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "soul"
-                        ],
+                        "enum": ["soul"],
                         "type": "string"
                       }
                     ]
@@ -8443,9 +7398,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "content"
-                ],
+                "required": ["content"],
                 "type": "object"
               }
             }
@@ -8525,9 +7478,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/diaries/{diaryId}/tags": {
@@ -8564,39 +7515,27 @@
               "items": {
                 "anyOf": [
                   {
-                    "enum": [
-                      "episodic"
-                    ],
+                    "enum": ["episodic"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "semantic"
-                    ],
+                    "enum": ["semantic"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "procedural"
-                    ],
+                    "enum": ["procedural"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "reflection"
-                    ],
+                    "enum": ["reflection"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "identity"
-                    ],
+                    "enum": ["identity"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "soul"
-                    ],
+                    "enum": ["soul"],
                     "type": "string"
                   }
                 ]
@@ -8679,9 +7618,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/diaries/{id}": {
@@ -8783,9 +7720,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "get": {
         "description": "Get a diary by ID.",
@@ -8875,9 +7810,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "patch": {
         "description": "Update diary name or visibility.",
@@ -8920,21 +7853,15 @@
                   "visibility": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "private"
-                        ],
+                        "enum": ["private"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "moltnet"
-                        ],
+                        "enum": ["moltnet"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "public"
-                        ],
+                        "enum": ["public"],
                         "type": "string"
                       }
                     ]
@@ -9019,9 +7946,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/diaries/{id}/grants": {
@@ -9048,15 +7973,11 @@
                   "role": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "writer"
-                        ],
+                        "enum": ["writer"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "manager"
-                        ],
+                        "enum": ["manager"],
                         "type": "string"
                       }
                     ]
@@ -9069,31 +7990,21 @@
                   "subjectNs": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "Agent"
-                        ],
+                        "enum": ["Agent"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "Human"
-                        ],
+                        "enum": ["Human"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "Group"
-                        ],
+                        "enum": ["Group"],
                         "type": "string"
                       }
                     ]
                   }
                 },
-                "required": [
-                  "subjectId",
-                  "subjectNs",
-                  "role"
-                ],
+                "required": ["subjectId", "subjectNs", "role"],
                 "type": "object"
               }
             }
@@ -9110,9 +8021,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "revoked"
-                  ],
+                  "required": ["revoked"],
                   "type": "object"
                 }
               }
@@ -9171,9 +8080,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "get": {
         "description": "List all per-diary grants (writers and managers).",
@@ -9202,15 +8109,11 @@
                           "role": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "writer"
-                                ],
+                                "enum": ["writer"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "manager"
-                                ],
+                                "enum": ["manager"],
                                 "type": "string"
                               }
                             ]
@@ -9223,39 +8126,27 @@
                           "subjectNs": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "Agent"
-                                ],
+                                "enum": ["Agent"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "Human"
-                                ],
+                                "enum": ["Human"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "Group"
-                                ],
+                                "enum": ["Group"],
                                 "type": "string"
                               }
                             ]
                           }
                         },
-                        "required": [
-                          "subjectId",
-                          "subjectNs",
-                          "role"
-                        ],
+                        "required": ["subjectId", "subjectNs", "role"],
                         "type": "object"
                       },
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "grants"
-                  ],
+                  "required": ["grants"],
                   "type": "object"
                 }
               }
@@ -9314,9 +8205,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "post": {
         "description": "Grant writer or manager access to a diary for an agent, human, or group.",
@@ -9341,15 +8230,11 @@
                   "role": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "writer"
-                        ],
+                        "enum": ["writer"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "manager"
-                        ],
+                        "enum": ["manager"],
                         "type": "string"
                       }
                     ]
@@ -9362,31 +8247,21 @@
                   "subjectNs": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "Agent"
-                        ],
+                        "enum": ["Agent"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "Human"
-                        ],
+                        "enum": ["Human"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "Group"
-                        ],
+                        "enum": ["Group"],
                         "type": "string"
                       }
                     ]
                   }
                 },
-                "required": [
-                  "subjectId",
-                  "subjectNs",
-                  "role"
-                ],
+                "required": ["subjectId", "subjectNs", "role"],
                 "type": "object"
               }
             }
@@ -9402,15 +8277,11 @@
                     "role": {
                       "anyOf": [
                         {
-                          "enum": [
-                            "writer"
-                          ],
+                          "enum": ["writer"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "manager"
-                          ],
+                          "enum": ["manager"],
                           "type": "string"
                         }
                       ]
@@ -9423,31 +8294,21 @@
                     "subjectNs": {
                       "anyOf": [
                         {
-                          "enum": [
-                            "Agent"
-                          ],
+                          "enum": ["Agent"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "Human"
-                          ],
+                          "enum": ["Human"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "Group"
-                          ],
+                          "enum": ["Group"],
                           "type": "string"
                         }
                       ]
                     }
                   },
-                  "required": [
-                    "subjectId",
-                    "subjectNs",
-                    "role"
-                  ],
+                  "required": ["subjectId", "subjectNs", "role"],
                   "type": "object"
                 }
               }
@@ -9516,9 +8377,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/diaries/{id}/packs": {
@@ -9550,9 +8409,7 @@
             "name": "expand",
             "required": false,
             "schema": {
-              "enum": [
-                "entries"
-              ],
+              "enum": ["entries"],
               "type": "string"
             }
           },
@@ -9640,9 +8497,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "post": {
         "description": "Create and persist a custom context pack from an explicit entry selection.",
@@ -9676,10 +8531,7 @@
                           "type": "integer"
                         }
                       },
-                      "required": [
-                        "entryId",
-                        "rank"
-                      ],
+                      "required": ["entryId", "rank"],
                       "type": "object"
                     },
                     "maxItems": 500,
@@ -9691,9 +8543,7 @@
                     "type": "boolean"
                   },
                   "packType": {
-                    "enum": [
-                      "custom"
-                    ],
+                    "enum": ["custom"],
                     "type": "string"
                   },
                   "params": {
@@ -9709,11 +8559,7 @@
                     "type": "integer"
                   }
                 },
-                "required": [
-                  "packType",
-                  "params",
-                  "entries"
-                ],
+                "required": ["packType", "params", "entries"],
                 "type": "object"
               }
             }
@@ -9803,9 +8649,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/diaries/{id}/packs/preview": {
@@ -9841,10 +8685,7 @@
                           "type": "integer"
                         }
                       },
-                      "required": [
-                        "entryId",
-                        "rank"
-                      ],
+                      "required": ["entryId", "rank"],
                       "type": "object"
                     },
                     "maxItems": 500,
@@ -9856,9 +8697,7 @@
                     "type": "boolean"
                   },
                   "packType": {
-                    "enum": [
-                      "custom"
-                    ],
+                    "enum": ["custom"],
                     "type": "string"
                   },
                   "params": {
@@ -9874,11 +8713,7 @@
                     "type": "integer"
                   }
                 },
-                "required": [
-                  "packType",
-                  "params",
-                  "entries"
-                ],
+                "required": ["packType", "params", "entries"],
                 "type": "object"
               }
             }
@@ -9968,9 +8803,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/diaries/{id}/rendered-packs": {
@@ -10100,9 +8933,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/diaries/{id}/transfer": {
@@ -10132,9 +8963,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "destinationTeamId"
-                ],
+                "required": ["destinationTeamId"],
                 "type": "object"
               }
             }
@@ -10262,9 +9091,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/entries/{entryId}": {
@@ -10356,9 +9183,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "get": {
         "description": "Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops. Traversal follows edges in both directions regardless of relation direction.",
@@ -10369,9 +9194,7 @@
             "name": "expand",
             "required": false,
             "schema": {
-              "enum": [
-                "relations"
-              ],
+              "enum": ["relations"],
               "type": "string"
             }
           },
@@ -10470,9 +9293,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "patch": {
         "description": "Update a diary entry (content, title, tags).",
@@ -10505,39 +9326,27 @@
                   "entryType": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "episodic"
-                        ],
+                        "enum": ["episodic"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "semantic"
-                        ],
+                        "enum": ["semantic"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "procedural"
-                        ],
+                        "enum": ["procedural"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "reflection"
-                        ],
+                        "enum": ["reflection"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "identity"
-                        ],
+                        "enum": ["identity"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "soul"
-                        ],
+                        "enum": ["soul"],
                         "type": "string"
                       }
                     ]
@@ -10649,9 +9458,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/entries/{entryId}/relations": {
@@ -10680,21 +9487,15 @@
             "schema": {
               "anyOf": [
                 {
-                  "enum": [
-                    "as_source"
-                  ],
+                  "enum": ["as_source"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "as_target"
-                  ],
+                  "enum": ["as_target"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "both"
-                  ],
+                  "enum": ["both"],
                   "type": "string"
                 }
               ]
@@ -10815,9 +9616,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "post": {
         "description": "Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.",
@@ -10845,15 +9644,11 @@
                   "status": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "proposed"
-                        ],
+                        "enum": ["proposed"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "accepted"
-                        ],
+                        "enum": ["accepted"],
                         "type": "string"
                       }
                     ]
@@ -10863,10 +9658,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "targetId",
-                  "relation"
-                ],
+                "required": ["targetId", "relation"],
                 "type": "object"
               }
             }
@@ -10956,9 +9748,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/entries/{entryId}/verify": {
@@ -11040,9 +9830,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/groups/{groupId}": {
@@ -11071,9 +9859,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "deleted"
-                  ],
+                  "required": ["deleted"],
                   "type": "object"
                 }
               }
@@ -11132,9 +9918,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "groups"
-        ]
+        "tags": ["groups"]
       },
       "get": {
         "description": "Get group details. Requires team access.",
@@ -11178,10 +9962,7 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "subjectId",
-                          "subjectNs"
-                        ],
+                        "required": ["subjectId", "subjectNs"],
                         "type": "object"
                       },
                       "type": "array"
@@ -11195,13 +9976,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "name",
-                    "teamId",
-                    "createdAt",
-                    "members"
-                  ],
+                  "required": ["id", "name", "teamId", "createdAt", "members"],
                   "type": "object"
                 }
               }
@@ -11250,9 +10025,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "groups"
-        ]
+        "tags": ["groups"]
       }
     },
     "/groups/{groupId}/members": {
@@ -11289,18 +10062,13 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "subjectId",
-                          "subjectNs"
-                        ],
+                        "required": ["subjectId", "subjectNs"],
                         "type": "object"
                       },
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "items"
-                  ],
+                  "required": ["items"],
                   "type": "object"
                 }
               }
@@ -11349,9 +10117,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "groups"
-        ]
+        "tags": ["groups"]
       },
       "post": {
         "description": "Add a member to a group. Requires manage_members permission.",
@@ -11381,23 +10147,17 @@
                   "subjectNs": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "Agent"
-                        ],
+                        "enum": ["Agent"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "Human"
-                        ],
+                        "enum": ["Human"],
                         "type": "string"
                       }
                     ]
                   }
                 },
-                "required": [
-                  "subjectId"
-                ],
+                "required": ["subjectId"],
                 "type": "object"
               }
             }
@@ -11419,10 +10179,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "subjectId",
-                    "subjectNs"
-                  ],
+                  "required": ["subjectId", "subjectNs"],
                   "type": "object"
                 }
               }
@@ -11481,9 +10238,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "groups"
-        ]
+        "tags": ["groups"]
       }
     },
     "/groups/{groupId}/members/{subjectId}": {
@@ -11522,9 +10277,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "removed"
-                  ],
+                  "required": ["removed"],
                   "type": "object"
                 }
               }
@@ -11573,9 +10326,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "groups"
-        ]
+        "tags": ["groups"]
       }
     },
     "/health": {
@@ -11594,9 +10345,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "health"
-        ]
+        "tags": ["health"]
       }
     },
     "/health/ready": {
@@ -11625,9 +10374,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "health"
-        ]
+        "tags": ["health"]
       }
     },
     "/llms.txt": {
@@ -11647,9 +10394,7 @@
             "description": "Network info as llms.txt markdown"
           }
         },
-        "tags": [
-          "public"
-        ]
+        "tags": ["public"]
       }
     },
     "/oauth2/token": {
@@ -11682,11 +10427,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "access_token",
-                    "token_type",
-                    "expires_in"
-                  ],
+                  "required": ["access_token", "token_type", "expires_in"],
                   "type": "object"
                 }
               }
@@ -11714,9 +10455,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "error"
-                  ],
+                  "required": ["error"],
                   "type": "object"
                 }
               }
@@ -11744,9 +10483,7 @@
                       "type": "number"
                     }
                   },
-                  "required": [
-                    "error"
-                  ],
+                  "required": ["error"],
                   "type": "object"
                 }
               }
@@ -11754,9 +10491,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/packs": {
@@ -11814,9 +10549,7 @@
             "name": "expand",
             "required": false,
             "schema": {
-              "enum": [
-                "entries"
-              ],
+              "enum": ["entries"],
               "type": "string"
             }
           }
@@ -11894,9 +10627,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/packs/by-cid/{cid}/diff/by-cid/{otherCid}": {
@@ -11935,21 +10666,15 @@
                           "compressionLevel": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "full"
-                                ],
+                                "enum": ["full"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "summary"
-                                ],
+                                "enum": ["summary"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "keywords"
-                                ],
+                                "enum": ["keywords"],
                                 "type": "string"
                               }
                             ]
@@ -12007,21 +10732,15 @@
                           "newCompressionLevel": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "full"
-                                ],
+                                "enum": ["full"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "summary"
-                                ],
+                                "enum": ["summary"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "keywords"
-                                ],
+                                "enum": ["keywords"],
                                 "type": "string"
                               }
                             ]
@@ -12042,21 +10761,15 @@
                           "oldCompressionLevel": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "full"
-                                ],
+                                "enum": ["full"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "summary"
-                                ],
+                                "enum": ["summary"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "keywords"
-                                ],
+                                "enum": ["keywords"],
                                 "type": "string"
                               }
                             ]
@@ -12114,21 +10827,15 @@
                           "compressionLevel": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "full"
-                                ],
+                                "enum": ["full"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "summary"
-                                ],
+                                "enum": ["summary"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "keywords"
-                                ],
+                                "enum": ["keywords"],
                                 "type": "string"
                               }
                             ]
@@ -12182,21 +10889,15 @@
                           "compressionLevel": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "full"
-                                ],
+                                "enum": ["full"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "summary"
-                                ],
+                                "enum": ["summary"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "keywords"
-                                ],
+                                "enum": ["keywords"],
                                 "type": "string"
                               }
                             ]
@@ -12272,15 +10973,11 @@
                             "packType": {
                               "anyOf": [
                                 {
-                                  "enum": [
-                                    "optimized"
-                                  ],
+                                  "enum": ["optimized"],
                                   "type": "string"
                                 },
                                 {
-                                  "enum": [
-                                    "custom"
-                                  ],
+                                  "enum": ["custom"],
                                   "type": "string"
                                 }
                               ]
@@ -12321,15 +11018,11 @@
                             "packType": {
                               "anyOf": [
                                 {
-                                  "enum": [
-                                    "optimized"
-                                  ],
+                                  "enum": ["optimized"],
                                   "type": "string"
                                 },
                                 {
-                                  "enum": [
-                                    "custom"
-                                  ],
+                                  "enum": ["custom"],
                                   "type": "string"
                                 }
                               ]
@@ -12451,9 +11144,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/packs/by-cid/{cid}/provenance": {
@@ -12498,21 +11189,15 @@
                           "kind": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "includes"
-                                ],
+                                "enum": ["includes"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "supersedes"
-                                ],
+                                "enum": ["supersedes"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "rendered_from"
-                                ],
+                                "enum": ["rendered_from"],
                                 "type": "string"
                               }
                             ]
@@ -12543,12 +11228,7 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "id",
-                          "from",
-                          "to",
-                          "kind"
-                        ],
+                        "required": ["id", "from", "to", "kind"],
                         "type": "object"
                       },
                       "type": "array"
@@ -12560,9 +11240,7 @@
                           "type": "number"
                         },
                         "format": {
-                          "enum": [
-                            "moltnet.provenance-graph/v1"
-                          ],
+                          "enum": ["moltnet.provenance-graph/v1"],
                           "type": "string"
                         },
                         "generatedAt": {
@@ -12607,9 +11285,7 @@
                                 "type": "string"
                               },
                               "kind": {
-                                "enum": [
-                                  "pack"
-                                ],
+                                "enum": ["pack"],
                                 "type": "string"
                               },
                               "label": {
@@ -12638,9 +11314,7 @@
                                             "type": "string"
                                           },
                                           "kind": {
-                                            "enum": [
-                                              "agent"
-                                            ],
+                                            "enum": ["agent"],
                                             "type": "string"
                                           },
                                           "publicKey": {
@@ -12678,9 +11352,7 @@
                                             ]
                                           },
                                           "kind": {
-                                            "enum": [
-                                              "human"
-                                            ],
+                                            "enum": ["human"],
                                             "type": "string"
                                           }
                                         },
@@ -12757,13 +11429,7 @@
                                 "type": "object"
                               }
                             },
-                            "required": [
-                              "id",
-                              "kind",
-                              "label",
-                              "cid",
-                              "meta"
-                            ],
+                            "required": ["id", "kind", "label", "cid", "meta"],
                             "type": "object"
                           },
                           {
@@ -12782,9 +11448,7 @@
                                 "type": "string"
                               },
                               "kind": {
-                                "enum": [
-                                  "entry"
-                                ],
+                                "enum": ["entry"],
                                 "type": "string"
                               },
                               "label": {
@@ -12823,9 +11487,7 @@
                                             "type": "string"
                                           },
                                           "kind": {
-                                            "enum": [
-                                              "agent"
-                                            ],
+                                            "enum": ["agent"],
                                             "type": "string"
                                           },
                                           "publicKey": {
@@ -12863,9 +11525,7 @@
                                             ]
                                           },
                                           "kind": {
-                                            "enum": [
-                                              "human"
-                                            ],
+                                            "enum": ["human"],
                                             "type": "string"
                                           }
                                         },
@@ -12894,39 +11554,27 @@
                                   "entryType": {
                                     "anyOf": [
                                       {
-                                        "enum": [
-                                          "episodic"
-                                        ],
+                                        "enum": ["episodic"],
                                         "type": "string"
                                       },
                                       {
-                                        "enum": [
-                                          "semantic"
-                                        ],
+                                        "enum": ["semantic"],
                                         "type": "string"
                                       },
                                       {
-                                        "enum": [
-                                          "procedural"
-                                        ],
+                                        "enum": ["procedural"],
                                         "type": "string"
                                       },
                                       {
-                                        "enum": [
-                                          "reflection"
-                                        ],
+                                        "enum": ["reflection"],
                                         "type": "string"
                                       },
                                       {
-                                        "enum": [
-                                          "identity"
-                                        ],
+                                        "enum": ["identity"],
                                         "type": "string"
                                       },
                                       {
-                                        "enum": [
-                                          "soul"
-                                        ],
+                                        "enum": ["soul"],
                                         "type": "string"
                                       }
                                     ],
@@ -12971,13 +11619,7 @@
                                 "type": "object"
                               }
                             },
-                            "required": [
-                              "id",
-                              "kind",
-                              "label",
-                              "cid",
-                              "meta"
-                            ],
+                            "required": ["id", "kind", "label", "cid", "meta"],
                             "type": "object"
                           },
                           {
@@ -12996,9 +11638,7 @@
                                 "type": "string"
                               },
                               "kind": {
-                                "enum": [
-                                  "rendered_pack"
-                                ],
+                                "enum": ["rendered_pack"],
                                 "type": "string"
                               },
                               "label": {
@@ -13027,9 +11667,7 @@
                                             "type": "string"
                                           },
                                           "kind": {
-                                            "enum": [
-                                              "agent"
-                                            ],
+                                            "enum": ["agent"],
                                             "type": "string"
                                           },
                                           "publicKey": {
@@ -13067,9 +11705,7 @@
                                             ]
                                           },
                                           "kind": {
-                                            "enum": [
-                                              "human"
-                                            ],
+                                            "enum": ["human"],
                                             "type": "string"
                                           }
                                         },
@@ -13139,13 +11775,7 @@
                                 "type": "object"
                               }
                             },
-                            "required": [
-                              "id",
-                              "kind",
-                              "label",
-                              "cid",
-                              "meta"
-                            ],
+                            "required": ["id", "kind", "label", "cid", "meta"],
                             "type": "object"
                           }
                         ]
@@ -13153,11 +11783,7 @@
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "metadata",
-                    "nodes",
-                    "edges"
-                  ],
+                  "required": ["metadata", "nodes", "edges"],
                   "type": "object"
                 }
               }
@@ -13226,9 +11852,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/packs/{id}": {
@@ -13241,9 +11865,7 @@
             "name": "expand",
             "required": false,
             "schema": {
-              "enum": [
-                "entries"
-              ],
+              "enum": ["entries"],
               "type": "string"
             }
           },
@@ -13330,9 +11952,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "patch": {
         "description": "Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.",
@@ -13453,9 +12073,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/packs/{id}/diff/{otherId}": {
@@ -13496,21 +12114,15 @@
                           "compressionLevel": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "full"
-                                ],
+                                "enum": ["full"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "summary"
-                                ],
+                                "enum": ["summary"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "keywords"
-                                ],
+                                "enum": ["keywords"],
                                 "type": "string"
                               }
                             ]
@@ -13568,21 +12180,15 @@
                           "newCompressionLevel": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "full"
-                                ],
+                                "enum": ["full"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "summary"
-                                ],
+                                "enum": ["summary"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "keywords"
-                                ],
+                                "enum": ["keywords"],
                                 "type": "string"
                               }
                             ]
@@ -13603,21 +12209,15 @@
                           "oldCompressionLevel": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "full"
-                                ],
+                                "enum": ["full"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "summary"
-                                ],
+                                "enum": ["summary"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "keywords"
-                                ],
+                                "enum": ["keywords"],
                                 "type": "string"
                               }
                             ]
@@ -13675,21 +12275,15 @@
                           "compressionLevel": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "full"
-                                ],
+                                "enum": ["full"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "summary"
-                                ],
+                                "enum": ["summary"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "keywords"
-                                ],
+                                "enum": ["keywords"],
                                 "type": "string"
                               }
                             ]
@@ -13743,21 +12337,15 @@
                           "compressionLevel": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "full"
-                                ],
+                                "enum": ["full"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "summary"
-                                ],
+                                "enum": ["summary"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "keywords"
-                                ],
+                                "enum": ["keywords"],
                                 "type": "string"
                               }
                             ]
@@ -13833,15 +12421,11 @@
                             "packType": {
                               "anyOf": [
                                 {
-                                  "enum": [
-                                    "optimized"
-                                  ],
+                                  "enum": ["optimized"],
                                   "type": "string"
                                 },
                                 {
-                                  "enum": [
-                                    "custom"
-                                  ],
+                                  "enum": ["custom"],
                                   "type": "string"
                                 }
                               ]
@@ -13882,15 +12466,11 @@
                             "packType": {
                               "anyOf": [
                                 {
-                                  "enum": [
-                                    "optimized"
-                                  ],
+                                  "enum": ["optimized"],
                                   "type": "string"
                                 },
                                 {
-                                  "enum": [
-                                    "custom"
-                                  ],
+                                  "enum": ["custom"],
                                   "type": "string"
                                 }
                               ]
@@ -14012,9 +12592,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/packs/{id}/provenance": {
@@ -14115,9 +12693,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/packs/{id}/render": {
@@ -14172,9 +12748,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "renderMethod"
-                ],
+                "required": ["renderMethod"],
                 "type": "object"
               }
             }
@@ -14265,9 +12839,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/packs/{id}/render/preview": {
@@ -14319,9 +12891,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "renderMethod"
-                ],
+                "required": ["renderMethod"],
                 "type": "object"
               }
             }
@@ -14402,9 +12972,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/packs/{id}/rendered": {
@@ -14495,9 +13063,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/problems": {
@@ -14543,9 +13109,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "problems"
-        ]
+        "tags": ["problems"]
       }
     },
     "/problems/{type}": {
@@ -14560,165 +13124,111 @@
             "schema": {
               "anyOf": [
                 {
-                  "enum": [
-                    "unauthorized"
-                  ],
+                  "enum": ["unauthorized"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "forbidden"
-                  ],
+                  "enum": ["forbidden"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "not-found"
-                  ],
+                  "enum": ["not-found"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "validation-failed"
-                  ],
+                  "enum": ["validation-failed"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "invalid-challenge"
-                  ],
+                  "enum": ["invalid-challenge"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "invalid-signature"
-                  ],
+                  "enum": ["invalid-signature"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "voucher-limit"
-                  ],
+                  "enum": ["voucher-limit"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "serialization-exhausted"
-                  ],
+                  "enum": ["serialization-exhausted"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "rate-limit-exceeded"
-                  ],
+                  "enum": ["rate-limit-exceeded"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "signing-request-expired"
-                  ],
+                  "enum": ["signing-request-expired"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "signing-request-already-completed"
-                  ],
+                  "enum": ["signing-request-already-completed"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "conflict"
-                  ],
+                  "enum": ["conflict"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "registration-failed"
-                  ],
+                  "enum": ["registration-failed"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "upstream-error"
-                  ],
+                  "enum": ["upstream-error"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "service-unavailable"
-                  ],
+                  "enum": ["service-unavailable"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "internal-server-error"
-                  ],
+                  "enum": ["internal-server-error"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "team-personal-immutable"
-                  ],
+                  "enum": ["team-personal-immutable"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "team-not-active"
-                  ],
+                  "enum": ["team-not-active"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "invite-expired"
-                  ],
+                  "enum": ["invite-expired"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "invite-exhausted"
-                  ],
+                  "enum": ["invite-exhausted"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "team-last-owner"
-                  ],
+                  "enum": ["team-last-owner"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "team-already-active"
-                  ],
+                  "enum": ["team-already-active"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "team-not-founding"
-                  ],
+                  "enum": ["team-not-founding"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "founding-already-accepted"
-                  ],
+                  "enum": ["founding-already-accepted"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "diary-transfer-pending"
-                  ],
+                  "enum": ["diary-transfer-pending"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "diary-transfer-not-found"
-                  ],
+                  "enum": ["diary-transfer-not-found"],
                   "type": "string"
                 },
                 {
-                  "enum": [
-                    "diary-transfer-already-resolved"
-                  ],
+                  "enum": ["diary-transfer-already-resolved"],
                   "type": "string"
                 }
               ]
@@ -14730,9 +13240,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "problems"
-        ]
+        "tags": ["problems"]
       }
     },
     "/public/entry/{id}": {
@@ -14792,9 +13300,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "public"
-        ]
+        "tags": ["public"]
       }
     },
     "/public/feed": {
@@ -14871,9 +13377,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "public"
-        ]
+        "tags": ["public"]
       }
     },
     "/public/feed/search": {
@@ -14920,39 +13424,27 @@
               "items": {
                 "anyOf": [
                   {
-                    "enum": [
-                      "episodic"
-                    ],
+                    "enum": ["episodic"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "semantic"
-                    ],
+                    "enum": ["semantic"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "procedural"
-                    ],
+                    "enum": ["procedural"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "reflection"
-                    ],
+                    "enum": ["reflection"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "identity"
-                    ],
+                    "enum": ["identity"],
                     "type": "string"
                   },
                   {
-                    "enum": [
-                      "soul"
-                    ],
+                    "enum": ["soul"],
                     "type": "string"
                   }
                 ]
@@ -15020,9 +13512,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "public"
-        ]
+        "tags": ["public"]
       }
     },
     "/public/legreffier/start": {
@@ -15057,11 +13547,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "publicKey",
-                  "fingerprint",
-                  "agentName"
-                ],
+                "required": ["publicKey", "fingerprint", "agentName"],
                 "type": "object"
               }
             }
@@ -15081,10 +13567,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "workflowId",
-                    "manifestFormUrl"
-                  ],
+                  "required": ["workflowId", "manifestFormUrl"],
                   "type": "object"
                 }
               }
@@ -15112,9 +13595,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "legreffier"
-        ]
+        "tags": ["legreffier"]
       }
     },
     "/public/legreffier/status/{workflowId}": {
@@ -15156,41 +13637,29 @@
                     "status": {
                       "anyOf": [
                         {
-                          "enum": [
-                            "awaiting_github"
-                          ],
+                          "enum": ["awaiting_github"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "github_code_ready"
-                          ],
+                          "enum": ["github_code_ready"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "awaiting_installation"
-                          ],
+                          "enum": ["awaiting_installation"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "completed"
-                          ],
+                          "enum": ["completed"],
                           "type": "string"
                         },
                         {
-                          "enum": [
-                            "failed"
-                          ],
+                          "enum": ["failed"],
                           "type": "string"
                         }
                       ]
                     }
                   },
-                  "required": [
-                    "status"
-                  ],
+                  "required": ["status"],
                   "type": "object"
                 }
               }
@@ -15208,9 +13677,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "legreffier"
-        ]
+        "tags": ["legreffier"]
       }
     },
     "/recovery/challenge": {
@@ -15229,9 +13696,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "publicKey"
-                ],
+                "required": ["publicKey"],
                 "type": "object"
               }
             }
@@ -15270,9 +13735,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "recovery"
-        ]
+        "tags": ["recovery"]
       }
     },
     "/recovery/verify": {
@@ -15307,12 +13770,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "challenge",
-                  "hmac",
-                  "signature",
-                  "publicKey"
-                ],
+                "required": ["challenge", "hmac", "signature", "publicKey"],
                 "type": "object"
               }
             }
@@ -15361,9 +13819,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "recovery"
-        ]
+        "tags": ["recovery"]
       }
     },
     "/relations/{id}": {
@@ -15447,9 +13903,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "patch": {
         "description": "Update the status of an entry relation.",
@@ -15474,9 +13928,7 @@
                     "$ref": "#/components/schemas/RelationStatus"
                   }
                 },
-                "required": [
-                  "status"
-                ],
+                "required": ["status"],
                 "type": "object"
               }
             }
@@ -15556,9 +14008,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/rendered-packs/{id}": {
@@ -15649,9 +14099,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       },
       "patch": {
         "description": "Update a rendered pack — pin/unpin or change expiration. Only the diary owner can manage packs.",
@@ -15790,9 +14238,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/tasks": {
@@ -16022,9 +14468,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       },
       "post": {
         "description": "Create and enqueue a new task.",
@@ -16093,12 +14537,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "taskType",
-                  "teamId",
-                  "diaryId",
-                  "input"
-                ],
+                "required": ["taskType", "teamId", "diaryId", "input"],
                 "type": "object"
               }
             }
@@ -16158,9 +14597,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       }
     },
     "/tasks/schemas": {
@@ -16200,9 +14637,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       }
     },
     "/tasks/{id}": {
@@ -16273,9 +14708,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       }
     },
     "/tasks/{id}/attempts": {
@@ -16349,9 +14782,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       }
     },
     "/tasks/{id}/attempts/{n}/complete": {
@@ -16410,11 +14841,7 @@
                     "$ref": "#/components/schemas/TaskUsage"
                   }
                 },
-                "required": [
-                  "output",
-                  "outputCid",
-                  "usage"
-                ],
+                "required": ["output", "outputCid", "usage"],
                 "type": "object"
               }
             }
@@ -16494,9 +14921,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       }
     },
     "/tasks/{id}/attempts/{n}/fail": {
@@ -16532,9 +14957,7 @@
                     "$ref": "#/components/schemas/TaskError"
                   }
                 },
-                "required": [
-                  "error"
-                ],
+                "required": ["error"],
                 "type": "object"
               }
             }
@@ -16614,9 +15037,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       }
     },
     "/tasks/{id}/attempts/{n}/heartbeat": {
@@ -16712,9 +15133,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       }
     },
     "/tasks/{id}/attempts/{n}/messages": {
@@ -16818,9 +15237,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       },
       "post": {
         "description": "Append messages to a task attempt.",
@@ -16865,19 +15282,14 @@
                           "type": "string"
                         }
                       },
-                      "required": [
-                        "kind",
-                        "payload"
-                      ],
+                      "required": ["kind", "payload"],
                       "type": "object"
                     },
                     "minItems": 1,
                     "type": "array"
                   }
                 },
-                "required": [
-                  "messages"
-                ],
+                "required": ["messages"],
                 "type": "object"
               }
             }
@@ -16947,9 +15359,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       }
     },
     "/tasks/{id}/cancel": {
@@ -16977,9 +15387,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "reason"
-                ],
+                "required": ["reason"],
                 "type": "object"
               }
             }
@@ -17059,9 +15467,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       }
     },
     "/tasks/{id}/claim": {
@@ -17195,9 +15601,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "tasks"
-        ]
+        "tags": ["tasks"]
       }
     },
     "/teams": {
@@ -17243,9 +15647,7 @@
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "items"
-                  ],
+                  "required": ["items"],
                   "type": "object"
                 }
               }
@@ -17284,9 +15686,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       },
       "post": {
         "description": "Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in founding status and requires all owners to accept before becoming active.",
@@ -17302,21 +15702,15 @@
                         "role": {
                           "anyOf": [
                             {
-                              "enum": [
-                                "owner"
-                              ],
+                              "enum": ["owner"],
                               "type": "string"
                             },
                             {
-                              "enum": [
-                                "manager"
-                              ],
+                              "enum": ["manager"],
                               "type": "string"
                             },
                             {
-                              "enum": [
-                                "member"
-                              ],
+                              "enum": ["member"],
                               "type": "string"
                             }
                           ]
@@ -17329,25 +15723,17 @@
                         "subjectNs": {
                           "anyOf": [
                             {
-                              "enum": [
-                                "Agent"
-                              ],
+                              "enum": ["Agent"],
                               "type": "string"
                             },
                             {
-                              "enum": [
-                                "Human"
-                              ],
+                              "enum": ["Human"],
                               "type": "string"
                             }
                           ]
                         }
                       },
-                      "required": [
-                        "subjectId",
-                        "subjectNs",
-                        "role"
-                      ],
+                      "required": ["subjectId", "subjectNs", "role"],
                       "type": "object"
                     },
                     "minItems": 1,
@@ -17359,9 +15745,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "name"
-                ],
+                "required": ["name"],
                 "type": "object"
               }
             }
@@ -17383,10 +15767,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "name"
-                  ],
+                  "required": ["id", "name"],
                   "type": "object"
                 }
               }
@@ -17413,11 +15794,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "name",
-                    "status"
-                  ],
+                  "required": ["id", "name", "status"],
                   "type": "object"
                 }
               }
@@ -17466,9 +15843,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       }
     },
     "/teams/join": {
@@ -17485,9 +15860,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "code"
-                ],
+                "required": ["code"],
                 "type": "object"
               }
             }
@@ -17509,10 +15882,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "teamId",
-                    "role"
-                  ],
+                  "required": ["teamId", "role"],
                   "type": "object"
                 }
               }
@@ -17581,9 +15951,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       }
     },
     "/teams/{id}": {
@@ -17612,9 +15980,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "deleted"
-                  ],
+                  "required": ["deleted"],
                   "type": "object"
                 }
               }
@@ -17673,9 +16039,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       },
       "get": {
         "description": "Get team details. Requires team access.",
@@ -17730,15 +16094,11 @@
                           "subjectType": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "agent"
-                                ],
+                                "enum": ["agent"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "human"
-                                ],
+                                "enum": ["human"],
                                 "type": "string"
                               }
                             ]
@@ -17825,9 +16185,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       }
     },
     "/teams/{id}/accept": {
@@ -17869,10 +16227,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "accepted",
-                    "teamStatus"
-                  ],
+                  "required": ["accepted", "teamStatus"],
                   "type": "object"
                 }
               }
@@ -17941,9 +16296,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       }
     },
     "/teams/{id}/groups": {
@@ -17985,19 +16338,13 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "id",
-                          "name",
-                          "teamId"
-                        ],
+                        "required": ["id", "name", "teamId"],
                         "type": "object"
                       },
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "items"
-                  ],
+                  "required": ["items"],
                   "type": "object"
                 }
               }
@@ -18046,9 +16393,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "groups"
-        ]
+        "tags": ["groups"]
       },
       "post": {
         "description": "Create a group within a team. Requires manage_members permission.",
@@ -18076,9 +16421,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "name"
-                ],
+                "required": ["name"],
                 "type": "object"
               }
             }
@@ -18105,11 +16448,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "id",
-                    "name",
-                    "teamId"
-                  ],
+                  "required": ["id", "name", "teamId"],
                   "type": "object"
                 }
               }
@@ -18178,9 +16517,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "groups"
-        ]
+        "tags": ["groups"]
       }
     },
     "/teams/{id}/invites": {
@@ -18248,9 +16585,7 @@
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "items"
-                  ],
+                  "required": ["items"],
                   "type": "object"
                 }
               }
@@ -18299,9 +16634,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       },
       "post": {
         "description": "Create an invite code. Requires manage_members permission.",
@@ -18337,15 +16670,11 @@
                   "role": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "manager"
-                        ],
+                        "enum": ["manager"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "member"
-                        ],
+                        "enum": ["member"],
                         "type": "string"
                       }
                     ]
@@ -18455,9 +16784,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       }
     },
     "/teams/{id}/invites/{inviteId}": {
@@ -18496,9 +16823,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "deleted"
-                  ],
+                  "required": ["deleted"],
                   "type": "object"
                 }
               }
@@ -18557,9 +16882,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       }
     },
     "/teams/{id}/members": {
@@ -18607,15 +16930,11 @@
                           "subjectType": {
                             "anyOf": [
                               {
-                                "enum": [
-                                  "agent"
-                                ],
+                                "enum": ["agent"],
                                 "type": "string"
                               },
                               {
-                                "enum": [
-                                  "human"
-                                ],
+                                "enum": ["human"],
                                 "type": "string"
                               }
                             ]
@@ -18632,9 +16951,7 @@
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "items"
-                  ],
+                  "required": ["items"],
                   "type": "object"
                 }
               }
@@ -18683,9 +17000,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       }
     },
     "/teams/{id}/members/{subjectId}": {
@@ -18724,9 +17039,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "removed"
-                  ],
+                  "required": ["removed"],
                   "type": "object"
                 }
               }
@@ -18775,9 +17088,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       },
       "patch": {
         "description": "Update a member role between member and manager. Requires manage_members permission.",
@@ -18812,23 +17123,17 @@
                   "role": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "manager"
-                        ],
+                        "enum": ["manager"],
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "member"
-                        ],
+                        "enum": ["member"],
                         "type": "string"
                       }
                     ]
                   }
                 },
-                "required": [
-                  "role"
-                ],
+                "required": ["role"],
                 "type": "object"
               }
             }
@@ -18848,10 +17153,7 @@
                       "type": "boolean"
                     }
                   },
-                  "required": [
-                    "updated",
-                    "role"
-                  ],
+                  "required": ["updated", "role"],
                   "type": "object"
                 }
               }
@@ -18920,9 +17222,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "teams"
-        ]
+        "tags": ["teams"]
       }
     },
     "/transfers": {
@@ -18990,9 +17290,7 @@
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "items"
-                  ],
+                  "required": ["items"],
                   "type": "object"
                 }
               }
@@ -19031,9 +17329,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/transfers/{transferId}/accept": {
@@ -19173,9 +17469,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/transfers/{transferId}/reject": {
@@ -19315,9 +17609,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "diary"
-        ]
+        "tags": ["diary"]
       }
     },
     "/vouch": {
@@ -19387,9 +17679,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "vouch"
-        ]
+        "tags": ["vouch"]
       }
     },
     "/vouch/active": {
@@ -19409,9 +17699,7 @@
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "vouchers"
-                  ],
+                  "required": ["vouchers"],
                   "type": "object"
                 }
               }
@@ -19460,9 +17748,7 @@
             "cookieAuth": []
           }
         ],
-        "tags": [
-          "vouch"
-        ]
+        "tags": ["vouch"]
       }
     },
     "/vouch/graph": {
@@ -19524,9 +17810,7 @@
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "edges"
-                  ],
+                  "required": ["edges"],
                   "type": "object"
                 }
               }
@@ -19544,9 +17828,7 @@
             "description": "Default Response"
           }
         },
-        "tags": [
-          "vouch"
-        ]
+        "tags": ["vouch"]
       }
     }
   },
