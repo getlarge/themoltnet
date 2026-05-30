@@ -87,25 +87,12 @@ export const FreeformArtifact = Type.Object(
 );
 export type FreeformArtifact = Static<typeof FreeformArtifact>;
 
-export const FreeformFollowUpTask = Type.Object(
-  {
-    title: Type.String({ minLength: 1 }),
-    brief: Type.String({ minLength: 1 }),
-    suggestedTaskType: Type.Optional(Type.String({ minLength: 1 })),
-  },
-  { $id: 'FreeformFollowUpTask', additionalProperties: false },
-);
-export type FreeformFollowUpTask = Static<typeof FreeformFollowUpTask>;
-
 export const FreeformOutput = Type.Object(
   {
     /** 2-5 sentence result summary. */
     summary: Type.String({ minLength: 1 }),
     artifacts: Type.Optional(Type.Array(FreeformArtifact, { maxItems: 20 })),
     proposedTaskType: Type.Optional(FreeformTaskTypeProposal),
-    followUpTasks: Type.Optional(
-      Type.Array(FreeformFollowUpTask, { maxItems: 20 }),
-    ),
     diaryEntryIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
     /**
      * Required when input.successCriteria is set, including the submit-output
