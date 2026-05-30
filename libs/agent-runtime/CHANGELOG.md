@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.19.1...agent-runtime-v0.20.0) (2026-05-30)
+
+
+### Features
+
+* **agent-runtime:** steer freeform agents to inline artifact body ([b1dce7b](https://github.com/getlarge/themoltnet/commit/b1dce7bcca6a4f6d6af5dc15f6e7a304724df527)), closes [#1261](https://github.com/getlarge/themoltnet/issues/1261)
+
 ## [0.19.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.19.0...agent-runtime-v0.19.1) (2026-05-28)
 
 

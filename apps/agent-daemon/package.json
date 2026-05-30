@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/agent-daemon",
-  "version": "0.11.1",
+  "version": "0.12.0",
   "license": "AGPL-3.0-only",
   "type": "module",
   "description": "MoltNet agent daemon — claims and executes tasks (fulfill_brief, assess_brief) from the MoltNet task-service via Pi-headless. CLI: moltnet-agent.",
