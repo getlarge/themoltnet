@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.12.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.11.1...agent-daemon-v0.12.0) (2026-05-30)
+
+
+### Features
+
+* **agent-daemon:** resolve workspace override via policy flag ([4447652](https://github.com/getlarge/themoltnet/commit/4447652a1bb2444ba3cc8b5792a42b066562bcf1)), closes [#1261](https://github.com/getlarge/themoltnet/issues/1261)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.20.0
+    * @themoltnet/pi-extension bumped to 0.20.2
+
 ## [0.11.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.11.0...agent-daemon-v0.11.1) (2026-05-28)
 
 

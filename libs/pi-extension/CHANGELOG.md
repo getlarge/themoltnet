@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.20.1...pi-extension-v0.20.2) (2026-05-30)
+
+
+### Bug Fixes
+
+* **pi-extension:** bash non-zero exits no longer emit tool_call_error ([f91d152](https://github.com/getlarge/themoltnet/commit/f91d1520862bcd5a83be3801c503c3b022df243f)), closes [#1261](https://github.com/getlarge/themoltnet/issues/1261)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.20.0
+
 ## [0.20.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.20.0...pi-extension-v0.20.1) (2026-05-28)
 
 
