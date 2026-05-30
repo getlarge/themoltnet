@@ -109,4 +109,37 @@ describe('CreateTaskDialog', () => {
     const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
     expect(request.input.successCriteria).toBeUndefined();
   });
+
+  it('omits execution from the payload when workspace stays default', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('task-1');
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'probe' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.input.execution).toBeUndefined();
+  });
+
+  it('emits the chosen workspace mode in input.execution.workspace', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('task-1');
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'scaffold candidate task type' },
+    });
+    fireEvent.change(screen.getByLabelText(/workspace/i), {
+      target: { value: 'dedicated_worktree' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.input.execution).toEqual({
+      workspace: 'dedicated_worktree',
+    });
+  });
 });

@@ -5,6 +5,25 @@ import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 
 export const FREEFORM_TYPE = 'freeform' as const;
 
+export const FreeformExecutionOptions = Type.Object(
+  {
+    /**
+     * Workspace mode the proposer wants for this task. Matches the
+     * `run_eval` convention so the daemon's registry-level override
+     * resolution is uniform across task types.
+     */
+    workspace: Type.Optional(
+      Type.Union([
+        Type.Literal('none'),
+        Type.Literal('shared_mount'),
+        Type.Literal('dedicated_worktree'),
+      ]),
+    ),
+  },
+  { $id: 'FreeformExecutionOptions', additionalProperties: false },
+);
+export type FreeformExecutionOptions = Static<typeof FreeformExecutionOptions>;
+
 export const FreeformTaskTypeProposal = Type.Object(
   {
     name: Type.String({ minLength: 1 }),
@@ -37,6 +56,13 @@ export const FreeformInput = Type.Object(
     suggestedTaskType: Type.Optional(Type.String({ minLength: 1 })),
     successCriteria: Type.Optional(SuccessCriteria),
     context: Type.Optional(TaskContext),
+    /**
+     * Optional proposer-supplied execution hints. The `workspace` field
+     * mirrors run_eval's input.execution.workspace surface; the daemon
+     * honors it because the freeform registry entry sets
+     * acceptsInputWorkspaceOverride.
+     */
+    execution: Type.Optional(FreeformExecutionOptions),
   },
   { $id: 'FreeformInput', additionalProperties: false },
 );
@@ -49,6 +75,13 @@ export const FreeformArtifact = Type.Object(
     description: Type.Optional(Type.String({ minLength: 1 })),
     url: Type.Optional(Type.String({ minLength: 1 })),
     path: Type.Optional(Type.String({ minLength: 1 })),
+    /**
+     * Inline artifact content, up to 64 KiB. Matches the diary-entry content
+     * cap so structured editors and renderers can handle either uniformly.
+     * For larger or binary content use `path` (worktree-ephemeral) or `url`
+     * (caller-managed); persistent file-backed artifacts are a follow-up.
+     */
+    body: Type.Optional(Type.String({ maxLength: 65536 })),
   },
   { $id: 'FreeformArtifact', additionalProperties: false },
 );

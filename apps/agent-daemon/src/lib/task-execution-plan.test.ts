@@ -182,4 +182,76 @@ describe('buildDaemonTaskExecutionPlan', () => {
     expect(out.worktreeBranch).toBeNull();
     expect(out.workspaceScope).toBe('session');
   });
+
+  it('defaults freeform tasks to shared_mount when no override is supplied', () => {
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: '99999999-9999-4999-8999-999999999999',
+        taskType: 'freeform',
+        correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        input: { brief: 'probe' },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
+      },
+      identity,
+      1800,
+    );
+
+    expect(out.workspaceMode).toBe('shared_mount');
+    // shared_mount keeps workspaceId null per the existing daemon contract.
+    expect(out.workspaceId).toBeNull();
+  });
+
+  it('honors freeform input.execution.workspace=dedicated_worktree', () => {
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        taskType: 'freeform',
+        correlationId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        input: {
+          brief: 'scaffold a candidate task type',
+          execution: { workspace: 'dedicated_worktree' },
+        },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
+      },
+      identity,
+      1800,
+    );
+
+    expect(out.workspaceMode).toBe('dedicated_worktree');
+    expect(out.worktreeBranch).toBe('task/freeform-bbbbbbbb');
+    expect(out.workspaceScope).toBe('session');
+  });
+
+  it('honors freeform input.execution.workspace=none as scratch_mount', () => {
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        taskType: 'freeform',
+        correlationId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+        input: {
+          brief: 'analyze diary entries; no repo access needed',
+          execution: { workspace: 'none' },
+        },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
+      },
+      identity,
+      1800,
+    );
+
+    expect(out.workspaceMode).toBe('scratch_mount');
+    expect(out.worktreeBranch).toBeNull();
+    expect(out.workspaceScope).toBe('session');
+  });
 });

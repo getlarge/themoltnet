@@ -17,6 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   describeToolErrorMessage,
   isBashTimeoutResult,
+  shouldEmitToolCallError,
   wireSessionAbort,
 } from './execute-pi-task.js';
 import {
@@ -486,5 +487,39 @@ describe('describeToolErrorMessage', () => {
     expect(describeToolErrorMessage({ ok: false, code: 128 })).toContain(
       '"code":128',
     );
+  });
+});
+
+describe('shouldEmitToolCallError', () => {
+  it('suppresses tool_call_error for bash subprocess non-zero exits', () => {
+    // Bash returning isError=true on a non-zero exit is the discovery loop
+    // doing its job (probe for absent tool, observe exit 127). Don't pollute
+    // the message stream with spurious error events.
+    expect(shouldEmitToolCallError({ toolName: 'bash', isError: true })).toBe(
+      false,
+    );
+  });
+
+  it('preserves tool_call_error for non-bash tool failures', () => {
+    // MCP/transport/runtime failures stay as kind:"error" so consumers can
+    // actually see when the runtime breaks.
+    expect(
+      shouldEmitToolCallError({
+        toolName: 'moltnet_get_task',
+        isError: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('emits nothing when the tool call succeeded', () => {
+    expect(shouldEmitToolCallError({ toolName: 'bash', isError: false })).toBe(
+      false,
+    );
+    expect(
+      shouldEmitToolCallError({
+        toolName: 'moltnet_get_task',
+        isError: false,
+      }),
+    ).toBe(false);
   });
 });

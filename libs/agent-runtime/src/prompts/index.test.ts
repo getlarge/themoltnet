@@ -44,6 +44,10 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('taxonomy_probe');
     expect(prompt).toContain('proposedTaskType');
     expect(prompt).toContain('submit_freeform_output');
+    // Artifact shape sketch must mention the new inline body field and flag
+    // path as worktree-ephemeral so agents stop dropping content on the floor.
+    expect(prompt).toContain('"body"');
+    expect(prompt).toMatch(/ephemeral|not persisted/i);
   });
 
   it('rejects fulfill_brief with empty brief', () => {

@@ -17,6 +17,7 @@ describe('deriveTaskSessionDescriptor', () => {
         workspaceMode: 'dedicated_worktree',
         workspaceScope: 'session',
         sessionScope: 'correlation',
+        acceptsInputWorkspaceOverride: false,
         usesSubagents: false,
       },
       sessionKey:

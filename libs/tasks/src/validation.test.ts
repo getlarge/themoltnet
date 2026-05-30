@@ -161,6 +161,49 @@ describe('validateTaskCreateRequest', () => {
 
     expect(errors).toEqual([]);
   });
+
+  it.each(['none', 'shared_mount', 'dedicated_worktree'] as const)(
+    'accepts freeform input with execution.workspace=%s',
+    (workspace) => {
+      const errors = validateTaskCreateRequest({
+        taskType: 'freeform',
+        input: {
+          brief: 'probe',
+          execution: { workspace },
+        },
+      });
+      expect(errors).toEqual([]);
+    },
+  );
+
+  it('rejects freeform input with unknown execution.workspace value', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'freeform',
+      input: {
+        brief: 'probe',
+        execution: { workspace: 'not_a_mode' },
+      },
+    });
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('accepts freeform artifacts with inline body up to 64 KiB', () => {
+    const body = 'x'.repeat(65_536);
+    const errors = validateTaskOutput('freeform', {
+      summary: 'done',
+      artifacts: [{ kind: 'markdown', title: 'report', body }],
+    });
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects freeform artifacts with body larger than 64 KiB', () => {
+    const body = 'x'.repeat(65_537);
+    const errors = validateTaskOutput('freeform', {
+      summary: 'done',
+      artifacts: [{ kind: 'markdown', title: 'report', body }],
+    });
+    expect(errors.length).toBeGreaterThan(0);
+  });
 });
 
 describe('normalizeTaskInputForCreate', () => {
@@ -652,9 +695,9 @@ describe('taskTypeResumable', () => {
     expect(taskTypeResumable('fulfill_brief')).toBe(true);
   });
 
-  it('keeps assessment/judge built-ins non-resumable but lets run_eval persist producer context', () => {
+  it('keeps assessment/judge built-ins non-resumable while freeform and run_eval persist producer context', () => {
     expect(taskTypeResumable('assess_brief')).toBe(false);
-    expect(taskTypeResumable('freeform')).toBe(false);
+    expect(taskTypeResumable('freeform')).toBe(true);
     expect(taskTypeResumable('run_eval')).toBe(true);
     expect(taskTypeResumable('judge_eval_attempt')).toBe(false);
   });
@@ -669,9 +712,9 @@ describe('taskTypeWorkspaceScope', () => {
     expect(taskTypeWorkspaceScope('fulfill_brief')).toBe('session');
   });
 
-  it('keeps review/judge built-ins attempt-scoped while run_eval stays session-scoped', () => {
+  it('keeps review/judge built-ins attempt-scoped while freeform and run_eval are session-scoped', () => {
     expect(taskTypeWorkspaceScope('assess_brief')).toBe('attempt');
-    expect(taskTypeWorkspaceScope('freeform')).toBe('attempt');
+    expect(taskTypeWorkspaceScope('freeform')).toBe('session');
     expect(taskTypeWorkspaceScope('pr_review')).toBe('attempt');
     expect(taskTypeWorkspaceScope('run_eval')).toBe('session');
     expect(taskTypeWorkspaceScope('judge_eval_attempt')).toBe('attempt');
@@ -687,9 +730,9 @@ describe('taskTypeSessionScope', () => {
     expect(taskTypeSessionScope('fulfill_brief')).toBe('correlation');
   });
 
-  it('keeps review tasks non-reusable by default', () => {
+  it('keeps review tasks non-reusable by default while freeform uses correlation scope', () => {
     expect(taskTypeSessionScope('assess_brief')).toBe('none');
-    expect(taskTypeSessionScope('freeform')).toBe('none');
+    expect(taskTypeSessionScope('freeform')).toBe('correlation');
     expect(taskTypeSessionScope('pr_review')).toBe('none');
     expect(taskTypeSessionScope('judge_pack')).toBe('none');
   });
@@ -707,6 +750,7 @@ describe('getTaskExecutionPolicy', () => {
       workspaceMode: 'dedicated_worktree',
       workspaceScope: 'session',
       sessionScope: 'correlation',
+      acceptsInputWorkspaceOverride: false,
       usesSubagents: false,
     });
   });
@@ -717,7 +761,20 @@ describe('getTaskExecutionPolicy', () => {
       workspaceMode: 'shared_mount',
       workspaceScope: 'attempt',
       sessionScope: 'none',
+      acceptsInputWorkspaceOverride: false,
       usesSubagents: false,
     });
+  });
+
+  it('surfaces acceptsInputWorkspaceOverride for opt-in task types', () => {
+    expect(
+      getTaskExecutionPolicy('freeform').acceptsInputWorkspaceOverride,
+    ).toBe(true);
+    expect(
+      getTaskExecutionPolicy('run_eval').acceptsInputWorkspaceOverride,
+    ).toBe(true);
+    expect(
+      getTaskExecutionPolicy('fulfill_brief').acceptsInputWorkspaceOverride,
+    ).toBe(false);
   });
 });

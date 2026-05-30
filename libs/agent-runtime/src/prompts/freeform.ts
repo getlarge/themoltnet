@@ -99,7 +99,7 @@ export function buildFreeformUserPrompt(
         shapeSketch: [
           '{',
           '  "summary": "<2-5 sentence result>",',
-          '  "artifacts": [{ "kind": "...", "title": "...", "description": "...", "url": "...", "path": "..." }],',
+          '  "artifacts": [{ "kind": "...", "title": "...", "description": "...", "body": "<inline content up to 64 KiB; preferred for textual output so it persists with the task>", "url": "...", "path": "<worktree-ephemeral; not persisted after completion>" }],',
           '  "proposedTaskType": { "name": "...", "rationale": "...", "inputShape": {}, "outputShape": {} },',
           '  "followUpTasks": [{ "title": "...", "brief": "...", "suggestedTaskType": "..." }],',
           '  "diaryEntryIds": ["..."],',
