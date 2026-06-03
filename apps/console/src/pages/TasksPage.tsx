@@ -25,6 +25,7 @@ import { useLocation, useSearch } from 'wouter';
 import { getApiClient } from '../api.js';
 import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { getTaskStatusQuery, TASK_STATUS_FILTERS } from '../tasks/status.js';
 import { useLaneQueries } from '../tasks/useLaneQueries.js';
 import { useTeam } from '../team/useTeam.js';
@@ -50,6 +51,7 @@ export function TasksPage() {
   const status = getTaskStatusQuery(params.get('status'));
   const [view, setView] = useState<'board' | 'table'>('board');
   const [showCreate, setShowCreate] = useState(false);
+  const isMobile = useIsMobile();
   const teamId = selectedTeam?.id;
 
   const diariesQuery = useDiarySummaries(teamId ?? null);
@@ -341,9 +343,11 @@ export function TasksPage() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: selectedTaskId
-                    ? 'minmax(0, 1fr) minmax(320px, 420px)'
-                    : '1fr',
+                  gridTemplateColumns: isMobile
+                    ? 'minmax(0, 1fr)'
+                    : selectedTaskId
+                      ? 'minmax(0, 1fr) minmax(320px, 420px)'
+                      : '1fr',
                   gap: theme.spacing[4],
                   alignItems: 'start',
                 }}
@@ -359,6 +363,8 @@ export function TasksPage() {
                     attempt={latestAttempt}
                     messages={selectedMessagesQuery.data ?? []}
                     learnMoreHref={AGENT_DAEMON_DOCS_HREF}
+                    defaultCollapsed={isMobile}
+                    onClose={() => selectTask(undefined)}
                   />
                 ) : null}
               </div>

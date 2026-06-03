@@ -1,12 +1,11 @@
 import { useTheme } from '@themoltnet/design-system';
-import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useState } from 'react';
 
+import { useIsMobile, useIsTablet } from '../hooks/useIsMobile.js';
 import { Header } from './Header.js';
 import { Sidebar } from './Sidebar.js';
 
 const COLLAPSED_KEY = 'moltnet-sidebar-collapsed';
-const MOBILE_BREAKPOINT = 768;
-const TABLET_BREAKPOINT = 1024;
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const theme = useTheme();
@@ -14,19 +13,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     () => localStorage.getItem(COLLAPSED_KEY) === 'true',
   );
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
-
-  useEffect(() => {
-    function check() {
-      const w = window.innerWidth;
-      setIsMobile(w < MOBILE_BREAKPOINT);
-      setIsTablet(w >= MOBILE_BREAKPOINT && w < TABLET_BREAKPOINT);
-    }
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
 
   const effectiveCollapsed = isTablet ? !collapsed : collapsed;
 
