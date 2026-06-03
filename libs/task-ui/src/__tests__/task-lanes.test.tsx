@@ -254,4 +254,47 @@ describe('TaskLivePane', () => {
     // JsonViewer renders defaultExpanded, so its collapse toggle is visible.
     expect(screen.getByText('Collapse JSON')).toBeInTheDocument();
   });
+
+  it('renders collapsed when defaultCollapsed is true', () => {
+    renderWithTheme(
+      <TaskLivePane
+        task={taskWith('running', 'abcdef1234')}
+        attempt={attemptFixture}
+        messages={messagesFixture}
+        defaultCollapsed
+      />,
+    );
+    expect(screen.queryByRole('tab', { name: /turns/i })).toBeNull();
+    expect(screen.queryByText('Reading task context.')).toBeNull();
+  });
+
+  it('toggles collapse from the header', () => {
+    renderWithTheme(
+      <TaskLivePane
+        task={taskWith('running', 'abcdef1234')}
+        attempt={attemptFixture}
+        messages={messagesFixture}
+        defaultCollapsed
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /curate pack/i }));
+    expect(screen.getByRole('tab', { name: /turns/i })).toBeInTheDocument();
+  });
+
+  it('calls onClose from the close button without toggling', () => {
+    let closed = false;
+    renderWithTheme(
+      <TaskLivePane
+        task={taskWith('running', 'abcdef1234')}
+        attempt={attemptFixture}
+        messages={messagesFixture}
+        onClose={() => {
+          closed = true;
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    expect(closed).toBe(true);
+    expect(screen.getByRole('tab', { name: /turns/i })).toBeInTheDocument();
+  });
 });

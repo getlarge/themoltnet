@@ -13,6 +13,7 @@ import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
 import { getApiClient } from '../api.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 
 export function TaskAttemptPage({
   id,
@@ -22,6 +23,7 @@ export function TaskAttemptPage({
   attemptN: number;
 }) {
   const theme = useTheme();
+  const isMobile = useIsMobile();
   const taskQuery = useQuery({
     ...getTaskOptions({
       client: getApiClient(),
@@ -83,7 +85,9 @@ export function TaskAttemptPage({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) minmax(260px, 360px)',
+          gridTemplateColumns: isMobile
+            ? 'minmax(0, 1fr)'
+            : 'minmax(0, 1fr) minmax(260px, 360px)',
           gap: theme.spacing[5],
           alignItems: 'start',
         }}

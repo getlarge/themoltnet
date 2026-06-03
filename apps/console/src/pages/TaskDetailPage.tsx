@@ -14,9 +14,11 @@ import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { Link, useLocation } from 'wouter';
 
 import { getApiClient } from '../api.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 
 export function TaskDetailPage({ id }: { id: string }) {
   const theme = useTheme();
+  const isMobile = useIsMobile();
   const [, navigate] = useLocation();
   const taskQuery = useQuery({
     ...getTaskOptions({
@@ -77,7 +79,9 @@ export function TaskDetailPage({ id }: { id: string }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) minmax(260px, 360px)',
+          gridTemplateColumns: isMobile
+            ? 'minmax(0, 1fr)'
+            : 'minmax(0, 1fr) minmax(260px, 360px)',
           gap: theme.spacing[5],
           alignItems: 'start',
         }}
