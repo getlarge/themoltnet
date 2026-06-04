@@ -5,9 +5,11 @@
  * `TaskUserPromptContext.priorContext` so the freeform builder can
  * render the "Prior context" section.
  *
- * Failure mode is graceful: any error from the API client (network,
- * 404, malformed output) yields `null` so the prompt still assembles
- * without a Prior context section. Caller logs the failure.
+ * Returns `null` when the named attempt is missing or carries no
+ * output. Network/API errors are NOT caught — they propagate. The
+ * caller (`executePiTask`) wraps the call in try/catch and downgrades
+ * to a `prior_context_resolve_failed` event so the agent runs without
+ * a Prior context section rather than crashing the attempt.
  */
 import type { FreeformArtifact, FreeformOutput } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';

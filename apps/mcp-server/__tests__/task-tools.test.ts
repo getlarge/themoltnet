@@ -379,6 +379,7 @@ describe('Task tools', () => {
             usage: null,
             contentSignature: null,
             signedAt: null,
+            daemonState: null,
           },
         ]) as never,
       );

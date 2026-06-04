@@ -1117,4 +1117,58 @@ describe('freeform validateInputAsync — continuation', () => {
     );
     expect(errors).toEqual([]);
   });
+
+  it('skips readiness checks when deferReadinessChecks is true', async () => {
+    // Continuation proposed via tasks_continue auto-injects a
+    // `task_status: completed` claim condition, which causes task-service
+    // to set deferReadinessChecks. The parent attempt is still running
+    // — readiness checks must defer to claim time, but stable checks
+    // (source exists, source is freeform, fork mode) still fire.
+    const listAttempts = vi.fn();
+    const errors = await validator(
+      {
+        brief: 'continue while parent still running',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        deferReadinessChecks: true,
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts,
+      }),
+    );
+    expect(errors).toEqual([]);
+    // Should also avoid the listAttempts roundtrip when deferring.
+    expect(listAttempts).not.toHaveBeenCalled();
+  });
+
+  it('still rejects mode=fork when deferReadinessChecks is true', async () => {
+    // Fork mode is a stable check on the input — fires regardless of
+    // deferral so callers learn the mode is invalid at create time.
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1, mode: 'fork' },
+      },
+      makeCtx({
+        deferReadinessChecks: true,
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.forkModeNotImplemented');
+  });
+
+  it('still rejects unknown source when deferReadinessChecks is true', async () => {
+    // Stable check: source-exists fires regardless of deferral.
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        deferReadinessChecks: true,
+        resolveTask: vi.fn().mockResolvedValue(null),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceTaskNotFound');
+  });
 });

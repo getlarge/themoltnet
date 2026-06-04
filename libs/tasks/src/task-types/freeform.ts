@@ -186,6 +186,32 @@ export async function validateFreeformInputAsync(
     ];
   }
 
+  // Stable check: fork mode rejection doesn't depend on parent runtime
+  // state. Fires even when readiness checks are deferred (e.g. a
+  // continuation proposed with a `task_status: completed` claim
+  // condition while the parent is still running) so callers learn the
+  // mode is invalid at create time rather than at claim time.
+  if (cf.mode === 'fork') {
+    return [
+      {
+        field: 'input/continueFrom/mode',
+        message:
+          'fork mode not yet implemented; see https://github.com/getlarge/themoltnet/issues/1293',
+        code: 'freeform.forkModeNotImplemented',
+      },
+    ];
+  }
+
+  // Readiness checks: parent attempt completed, daemon-reported
+  // eligibility, fresh TTL. When `ctx.deferReadinessChecks` is true
+  // (set by task-service when the create carries an unsatisfied
+  // claim condition such as the auto-injected `task_status: completed`
+  // gate `tasks_continue` injects), these are re-evaluated when the
+  // claim condition is later checked. Skipping them here lets callers
+  // propose a continuation against a still-running parent — the
+  // claim-time recheck is the real gate.
+  if (ctx.deferReadinessChecks) return [];
+
   const attempts = await ctx.listAttempts(cf.taskId);
   const attempt = attempts.find((a) => a.attemptN === cf.attemptN);
   if (!attempt || attempt.status !== 'completed') {
@@ -194,17 +220,6 @@ export async function validateFreeformInputAsync(
         field: 'input/continueFrom/attemptN',
         message: `Source attempt ${cf.attemptN} on task ${cf.taskId} is not in 'completed' state`,
         code: 'freeform.sourceAttemptNotCompleted',
-      },
-    ];
-  }
-
-  if (cf.mode === 'fork') {
-    return [
-      {
-        field: 'input/continueFrom/mode',
-        message:
-          'fork mode not yet implemented; see https://github.com/getlarge/themoltnet/issues/1293',
-        code: 'freeform.forkModeNotImplemented',
       },
     ];
   }

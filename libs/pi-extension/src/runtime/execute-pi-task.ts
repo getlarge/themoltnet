@@ -495,9 +495,14 @@ export async function executePiTask(
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        // Non-fatal — degrade to no Prior context section.
+        // Non-fatal — agent runs without a Prior context section. The
+        // `severity: 'warn'` tag lets observers filter for degraded
+        // continuations even though TaskMessageKind only exposes
+        // 'info'/'error' at the wire level. Specific event name
+        // (`prior_context_resolve_failed`) is the structured filter key.
         await emit('info', {
           event: 'prior_context_resolve_failed',
+          severity: 'warn',
           sourceTaskId: continueFrom.taskId,
           sourceAttemptN: continueFrom.attemptN,
           message,
