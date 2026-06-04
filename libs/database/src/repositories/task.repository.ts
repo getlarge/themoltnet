@@ -529,6 +529,7 @@ export function createTaskRepository(db: Database) {
           | 'usage'
           | 'contentSignature'
           | 'signedAt'
+          | 'daemonState'
         >
       >,
     ): Promise<TaskAttempt | null> {

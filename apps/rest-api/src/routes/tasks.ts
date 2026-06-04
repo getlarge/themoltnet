@@ -410,6 +410,7 @@ export function taskRoutes(fastify: FastifyInstance) {
             executorManifest: request.body.executorManifest,
             executorFingerprint: request.body.executorFingerprint,
             executorSignature: request.body.executorSignature,
+            daemonState: request.body.daemonState ?? null,
           },
         );
       } catch (error) {

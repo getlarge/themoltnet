@@ -29,6 +29,7 @@ import {
   BUILT_IN_TASK_TYPES,
   type ClaimCondition,
   type CorrelationSeal,
+  type DaemonState,
   getTaskCreateSideEffects,
   getTaskTypeRegistry,
   normalizeTaskInputForCreate,
@@ -1220,6 +1221,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         executorManifest?: Record<string, unknown>;
         executorFingerprint?: string;
         executorSignature?: string;
+        daemonState?: DaemonState | null;
       },
     ): Promise<Task> {
       const canReport = await permissionChecker.canReportTask(
@@ -1318,6 +1320,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           outputCid: body.outputCid,
           usage: body.usage,
           completedExecutorFingerprint: completedExecutor?.fingerprint ?? null,
+          daemonState: body.daemonState ?? null,
         },
         'progress',
       );
