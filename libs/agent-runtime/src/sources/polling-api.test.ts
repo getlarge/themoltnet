@@ -1,10 +1,18 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import type { Agent, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AgentRuntimeLogger } from '../runtime.js';
 import { makeFulfillBriefTask } from '../test-fixtures.js';
-import { PollingApiTaskSource } from './polling-api.js';
+import type { ContinuationSlotRegistry } from './polling-api.js';
+import {
+  isContinuationClaimableByThisDaemon,
+  PollingApiTaskSource,
+} from './polling-api.js';
 
 const silentLogger: AgentRuntimeLogger = {
   debug: () => {},
@@ -335,5 +343,69 @@ describe('PollingApiTaskSource', () => {
     expect(result?.task.id).toBe(matching.id);
     expect(claim).toHaveBeenCalledTimes(1);
     expect(claim).toHaveBeenCalledWith(matching.id, { leaseTtlSec: 60 });
+  });
+});
+
+describe('isContinuationClaimableByThisDaemon', () => {
+  function makeSlotRegistry(
+    slot: { session?: { sessionDir?: string } } | null,
+  ): ContinuationSlotRegistry {
+    return {
+      findLatestProducerSlotByTaskAttempt: vi.fn().mockReturnValue(slot),
+    };
+  }
+
+  it('returns true for tasks without continueFrom', () => {
+    expect(
+      isContinuationClaimableByThisDaemon(
+        { input: { brief: 'x' } } as never,
+        makeSlotRegistry(null),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false when no slot exists for the source', () => {
+    expect(
+      isContinuationClaimableByThisDaemon(
+        {
+          input: {
+            brief: 'x',
+            continueFrom: { taskId: 'aaa', attemptN: 1 },
+          },
+        } as never,
+        makeSlotRegistry(null),
+      ),
+    ).toBe(false);
+  });
+
+  it("returns false when slot exists but sessionDir doesn't exist on disk", () => {
+    const slot = { session: { sessionDir: '/tmp/does/not/exist-xyz-123' } };
+    expect(
+      isContinuationClaimableByThisDaemon(
+        {
+          input: {
+            brief: 'x',
+            continueFrom: { taskId: 'aaa', attemptN: 1 },
+          },
+        } as never,
+        makeSlotRegistry(slot),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns true when slot + sessionDir both exist', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'session-'));
+    const slot = { session: { sessionDir: tmpDir } };
+    expect(
+      isContinuationClaimableByThisDaemon(
+        {
+          input: {
+            brief: 'x',
+            continueFrom: { taskId: 'aaa', attemptN: 1 },
+          },
+        } as never,
+        makeSlotRegistry(slot),
+      ),
+    ).toBe(true);
   });
 });

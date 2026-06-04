@@ -217,6 +217,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         stopWhenEmpty: opts.stopWhenEmpty,
         debug: common.debug,
         logger: rootLogger,
+        // Warm-resume affinity: skip continuations whose source warm
+        // slot lives on a different daemon. See #1287.
+        slotRegistry,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
