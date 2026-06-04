@@ -146,7 +146,6 @@ describe('validateTaskCreateRequest', () => {
       taskType: 'fulfill_brief',
       input: {
         brief: 'Implement feature X',
-        title: 'Feature X',
         acceptanceCriteria: ['match existing module tone'],
       },
     });
@@ -160,7 +159,6 @@ describe('validateTaskCreateRequest', () => {
     const errors = validateTaskCreateRequest({
       taskType: 'freeform',
       input: {
-        title: 'Investigate task taxonomy',
         brief: 'Decide whether this should become a new task type.',
         expectedOutput: 'A recommendation and a proposed task type if useful.',
         suggestedTaskType: 'taxonomy_probe',

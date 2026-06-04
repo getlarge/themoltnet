@@ -43,9 +43,12 @@ export interface TaskAttemptWithManifests extends TaskAttempt {
 /** Filters shared by `list` and `count` (everything except limit/cursor). */
 export interface TaskListFilterOpts {
   teamId: string;
+  query?: string;
   status?: Task['status'];
   statuses?: Task['status'][];
   taskTypes?: string[];
+  tags?: string[];
+  excludeTags?: string[];
   executorProvider?: string;
   executorModel?: string;
   correlationId?: string;
@@ -69,6 +72,24 @@ export function createTaskRepository(db: Database) {
 
   function buildListFilters(opts: TaskListFilterOpts): SQL[] {
     const filters: SQL[] = [eq(tasks.teamId, opts.teamId)];
+    const query = opts.query?.trim();
+    if (query) {
+      const pattern = `%${escapeLikePattern(query)}%`;
+      const clauses: SQL[] = [
+        sql`${tasks.taskType} ILIKE ${pattern} ESCAPE '\\'`,
+        sql`${tasks.title} ILIKE ${pattern} ESCAPE '\\'`,
+        sql`array_to_string(${tasks.tags}, ' ') ILIKE ${pattern} ESCAPE '\\'`,
+        sql`${tasks.input}::text ILIKE ${pattern} ESCAPE '\\'`,
+      ];
+      if (looksLikeUuidPrefix(query)) {
+        const idPrefix = `${escapeLikePattern(query)}%`;
+        clauses.push(
+          sql`${tasks.id}::text ILIKE ${idPrefix} ESCAPE '\\'`,
+          sql`${tasks.correlationId}::text ILIKE ${idPrefix} ESCAPE '\\'`,
+        );
+      }
+      filters.push(sql`(${sql.join(clauses, sql` OR `)})`);
+    }
     if (opts.status) filters.push(eq(tasks.status, opts.status));
     const statuses = opts.statuses?.filter((s) => s.length > 0) ?? [];
     if (statuses.length === 1) {
@@ -82,6 +103,24 @@ export function createTaskRepository(db: Database) {
       filters.push(eq(tasks.taskType, taskTypes[0]));
     } else if (taskTypes.length > 1) {
       filters.push(inArray(tasks.taskType, taskTypes));
+    }
+    const tags = normalizeList(opts.tags);
+    if (tags.length > 0) {
+      filters.push(
+        sql`${tasks.tags} @> ARRAY[${sql.join(
+          tags.map((tag) => sql`${tag}`),
+          sql`,`,
+        )}]::text[]`,
+      );
+    }
+    const excludeTags = normalizeList(opts.excludeTags);
+    if (excludeTags.length > 0) {
+      filters.push(
+        sql`NOT (${tasks.tags} && ARRAY[${sql.join(
+          excludeTags.map((tag) => sql`${tag}`),
+          sql`,`,
+        )}]::text[])`,
+      );
     }
     if (opts.executorProvider && opts.executorModel) {
       // Either no restriction set, or our pair is one of the allowed
@@ -164,6 +203,21 @@ export function createTaskRepository(db: Database) {
     async findByIds(ids: string[]): Promise<Task[]> {
       if (ids.length === 0) return [];
       return getExecutor(db).select().from(tasks).where(inArray(tasks.id, ids));
+    },
+
+    async updateMetadata(
+      id: string,
+      metadata: { title?: string | null; tags?: string[] },
+    ): Promise<Task | null> {
+      const patch: Partial<Pick<NewTask, 'title' | 'tags'>> = {};
+      if ('title' in metadata) patch.title = metadata.title ?? null;
+      if ('tags' in metadata) patch.tags = metadata.tags;
+      const [row] = await getExecutor(db)
+        .update(tasks)
+        .set({ ...patch, updatedAt: sql`now()` })
+        .where(eq(tasks.id, id))
+        .returning();
+      return row ?? null;
     },
 
     /**
@@ -268,7 +322,10 @@ export function createTaskRepository(db: Database) {
       teamId: string;
       status?: Task['status'];
       statuses?: Task['status'][];
+      query?: string;
       taskTypes?: string[];
+      tags?: string[];
+      excludeTags?: string[];
       // When both are provided, filter the result to tasks that either
       // have an empty `allowed_executors` array (no restriction) or
       // include this exact `(provider, model)` pair. Both are expected
@@ -770,6 +827,20 @@ export function createTaskRepository(db: Database) {
       return { items: hasMore ? rows.slice(0, limit) : rows, hasMore };
     },
   };
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
+
+function looksLikeUuidPrefix(value: string): boolean {
+  return /^[0-9a-f]{1,8}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,4}(?:-[0-9a-f]{0,12})?)?)?)?$/i.test(
+    value,
+  );
+}
+
+function normalizeList(values: string[] | undefined): string[] {
+  return values?.map((value) => value.trim()).filter(Boolean) ?? [];
 }
 
 export type TaskRepository = ReturnType<typeof createTaskRepository>;

@@ -538,6 +538,7 @@ export function createMockServices(): MockServices {
       create: vi.fn(),
       list: vi.fn(),
       get: vi.fn(),
+      updateMetadata: vi.fn(),
       claim: vi.fn(),
       heartbeat: vi.fn(),
       complete: vi.fn(),

@@ -1,6 +1,7 @@
 import { computeJsonCid } from '@moltnet/crypto-service';
 import type { Task as DbTask, TransactionRunner } from '@moltnet/database';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
+import { KetoNamespace } from '@moltnet/auth';
 import { FormatRegistry } from '@sinclair/typebox';
 import {
   afterEach,
@@ -125,6 +126,12 @@ type TaskRepositoryMocks = {
       excludeTaskId?: string;
     }) => Promise<DbTask | null>
   >;
+  updateMetadata: Mock<
+    (
+      id: string,
+      metadata: { title?: string | null; tags?: string[] },
+    ) => Promise<DbTask | null>
+  >;
   create: Mock<(newTask: Record<string, unknown>) => Promise<DbTask>>;
   listWaitingTasks: Mock<() => Promise<DbTask[]>>;
   listWaitingTasksReferencingTask: Mock<(taskId: string) => Promise<DbTask[]>>;
@@ -148,6 +155,9 @@ type CorrelationSealRepositoryMocks = {
 };
 
 type PermissionCheckerMocks = {
+  canAccessTeam: Mock<
+    (teamId: string, callerId: string, callerNs: string) => Promise<boolean>
+  >;
   canProposeTask: Mock<
     (diaryId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
@@ -245,6 +255,19 @@ function makeMocks(
         }) => Promise<DbTask | null>
       >()
       .mockResolvedValue(null),
+    updateMetadata: vi
+      .fn<
+        (
+          id: string,
+          metadata: { title?: string | null; tags?: string[] },
+        ) => Promise<DbTask | null>
+      >()
+      .mockImplementation((id, metadata) => {
+        const row = opts.visibleTasks?.[id];
+        return Promise.resolve(
+          row ? ({ ...row, ...metadata } as DbTask) : null,
+        );
+      }),
     create: vi
       .fn<(newTask: Record<string, unknown>) => Promise<DbTask>>()
       .mockImplementation((newTask) => {
@@ -325,6 +348,15 @@ function makeMocks(
         .mockResolvedValue(null),
     },
     permissionChecker: {
+      canAccessTeam: vi
+        .fn<
+          (
+            teamId: string,
+            callerId: string,
+            callerNs: string,
+          ) => Promise<boolean>
+        >()
+        .mockResolvedValue(true),
       canProposeTask: vi
         .fn<
           (
@@ -412,11 +444,12 @@ function judgeCreateInput() {
 function fulfillCreateInput() {
   return {
     taskType: 'fulfill_brief',
+    title: 'Feature work',
+    tags: ['observability', 'cohort', 'observability'],
     teamId: TEAM_ID,
     diaryId: DIARY_ID,
     inputPayload: {
       brief: 'Implement the feature.',
-      title: 'Feature work',
     },
     callerId: AGENT_ID,
     callerNs: 'agent' as const,
@@ -570,12 +603,15 @@ describe('createTaskService.create — producer input normalization', () => {
 
     expect(mocks.taskRepository.create).toHaveBeenCalledOnce();
     const newTask = mocks.taskRepository.create.mock.calls[0][0] as {
+      title: string | null;
+      tags: string[];
       input: Record<string, unknown>;
       inputCid: string;
     };
+    expect(newTask.title).toBe('Feature work');
+    expect(newTask.tags).toEqual(['observability', 'cohort']);
     expect(newTask.input).toMatchObject({
       brief: 'Implement the feature.',
-      title: 'Feature work',
       successCriteria: {
         version: 1,
         gates: [
@@ -619,6 +655,34 @@ describe('createTaskService.create — producer input normalization', () => {
     };
     expect(newTask.proposedByAgentId).toBe(AGENT_ID);
     expect(newTask.proposedByHumanId).toBeNull();
+  });
+});
+
+describe('createTaskService.updateMetadata', () => {
+  it('normalizes mutable task metadata without touching input', async () => {
+    const task = makeRunEvalTask(RUN_TASK);
+    const mocks = makeMocks({ visibleTasks: { [RUN_TASK]: task } });
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const updated = await service.updateMetadata(RUN_TASK, {
+      title: '  Cohort probe  ',
+      tags: ['observability', ' cohort ', 'observability', ''],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+    });
+
+    expect(mocks.permissionChecker.canAccessTeam).toHaveBeenCalledWith(
+      TEAM_ID,
+      AGENT_ID,
+      KetoNamespace.Agent,
+    );
+    expect(mocks.taskRepository.updateMetadata).toHaveBeenCalledWith(RUN_TASK, {
+      title: 'Cohort probe',
+      tags: ['observability', 'cohort'],
+    });
+    expect(updated.input).toEqual(task.input);
   });
 });
 

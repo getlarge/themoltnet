@@ -33,6 +33,7 @@ import {
   TaskAttemptParamsSchema,
   TaskListResponseSchema,
   TaskParamsSchema,
+  UpdateTaskMetadataBodySchema,
 } from '../schemas.js';
 import { TaskServiceError } from '../services/task.service.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
@@ -135,6 +136,8 @@ export function taskRoutes(fastify: FastifyInstance) {
         const normalised = normalizeTaskCreateRequest(request.body);
         const task = await fastify.taskService.create({
           taskType: request.body.taskType,
+          title: request.body.title,
+          tags: request.body.tags,
           teamId: request.body.teamId,
           diaryId: request.body.diaryId,
           inputPayload: request.body.input,
@@ -203,9 +206,12 @@ export function taskRoutes(fastify: FastifyInstance) {
       try {
         return await fastify.taskService.list({
           teamId: request.query.teamId,
+          query: request.query.query,
           status: request.query.status,
           statuses: request.query.statuses,
           taskTypes: request.query.taskTypes,
+          tags: request.query.tags,
+          excludeTags: request.query.excludeTags,
           executorProvider: provider?.toLowerCase(),
           executorModel: model?.toLowerCase(),
           correlationId: request.query.correlationId,
@@ -258,6 +264,45 @@ export function taskRoutes(fastify: FastifyInstance) {
           identityId,
           callerNs,
         );
+      } catch (error) {
+        if (error instanceof TaskServiceError) throw toTaskProblem(error);
+        throw error;
+      }
+    },
+  );
+
+  // PATCH /tasks/:id
+  server.patch(
+    '/tasks/:id',
+    {
+      schema: {
+        operationId: 'updateTaskMetadata',
+        tags: ['tasks'],
+        description:
+          'Update mutable task metadata used for cohorting and search.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        params: TaskParamsSchema,
+        body: UpdateTaskMetadataBodySchema,
+        response: {
+          200: Type.Ref(Task),
+          400: Type.Ref(ValidationProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectType } = getAuthContext(request);
+      const callerNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      try {
+        return await fastify.taskService.updateMetadata(request.params.id, {
+          ...('title' in request.body ? { title: request.body.title } : {}),
+          ...('tags' in request.body ? { tags: request.body.tags } : {}),
+          callerId: identityId,
+          callerNs,
+        });
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
         throw error;

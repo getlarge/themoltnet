@@ -27,6 +27,8 @@ export function dbTaskToWire(row: DbTask): Task {
   return {
     id: row.id,
     taskType: row.taskType,
+    title: row.title ?? null,
+    tags: row.tags ?? [],
     teamId: row.teamId,
     diaryId: row.diaryId ?? null,
     outputKind: row.outputKind,

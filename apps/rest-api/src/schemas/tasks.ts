@@ -34,6 +34,12 @@ export const TaskAttemptParamsSchema = Type.Object(
 export const CreateTaskBodySchema = Type.Object(
   {
     taskType: Type.String({ minLength: 1 }),
+    title: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+    tags: Type.Optional(
+      Type.Array(Type.String({ minLength: 1, maxLength: 128 }), {
+        maxItems: 20,
+      }),
+    ),
     teamId: Type.String({ format: 'uuid' }),
     diaryId: Type.String({ format: 'uuid' }),
     input: Type.Record(Type.String(), Type.Unknown()),
@@ -63,9 +69,28 @@ export const CreateTaskBodySchema = Type.Object(
   { $id: 'CreateTaskBody' },
 );
 
+export const UpdateTaskMetadataBodySchema = Type.Object(
+  {
+    title: Type.Optional(
+      Type.Union([Type.String({ minLength: 1, maxLength: 255 }), Type.Null()]),
+    ),
+    tags: Type.Optional(
+      Type.Array(Type.String({ minLength: 1, maxLength: 128 }), {
+        maxItems: 20,
+      }),
+    ),
+  },
+  {
+    $id: 'UpdateTaskMetadataBody',
+    additionalProperties: false,
+    minProperties: 1,
+  },
+);
+
 export const ListTasksQuerySchema = Type.Object(
   {
     teamId: Type.String({ format: 'uuid' }),
+    query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
     status: Type.Optional(Type.Ref(TaskStatus)),
     // OR filter over multiple statuses (e.g. a board lane covering
     // waiting+queued). Combined with `status` it's the union of both. Lets a
@@ -75,6 +100,18 @@ export const ListTasksQuerySchema = Type.Object(
       Type.Array(Type.String({ minLength: 1 }), {
         maxItems: 20,
         description: 'Repeated task type filter. Single value also accepted.',
+      }),
+    ),
+    tags: Type.Optional(
+      Type.Array(Type.String({ minLength: 1, maxLength: 128 }), {
+        maxItems: 20,
+        description: 'Repeated tags filter. Task must include all tags.',
+      }),
+    ),
+    excludeTags: Type.Optional(
+      Type.Array(Type.String({ minLength: 1, maxLength: 128 }), {
+        maxItems: 20,
+        description: 'Repeated excluded tags filter.',
       }),
     ),
     // Daemon advertises its `(provider, model)` to scope the result to
@@ -265,6 +302,7 @@ export const taskSchemas = [
   TaskParamsSchema,
   TaskAttemptParamsSchema,
   CreateTaskBodySchema,
+  UpdateTaskMetadataBodySchema,
   ListTasksQuerySchema,
   ClaimTaskBodySchema,
   HeartbeatBodySchema,
