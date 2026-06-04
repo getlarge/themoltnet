@@ -1,5 +1,5 @@
-import type { FastifyInstance } from 'fastify';
 import { KetoNamespace } from '@moltnet/auth';
+import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { TaskServiceError } from '../src/services/task.service.js';

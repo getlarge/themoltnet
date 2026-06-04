@@ -1,7 +1,7 @@
+import { KetoNamespace } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import type { Task as DbTask, TransactionRunner } from '@moltnet/database';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
-import { KetoNamespace } from '@moltnet/auth';
 import { FormatRegistry } from '@sinclair/typebox';
 import {
   afterEach,
