@@ -1,5 +1,9 @@
 import { type Static, Type } from '@sinclair/typebox';
 
+import type {
+  AsyncTaskValidationContext,
+  TaskValidationError,
+} from '../async-validation.js';
 import { TaskContext } from '../context.js';
 import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 
@@ -126,3 +130,106 @@ export const FreeformOutput = Type.Object(
   { $id: 'FreeformOutput', additionalProperties: false },
 );
 export type FreeformOutput = Static<typeof FreeformOutput>;
+
+/**
+ * Server-side preflight for `freeform` task-create. Runs after the
+ * sync TypeBox check passes and only kicks in when
+ * `input.continueFrom` is set — i.e. the proposer is asking to
+ * resume a prior freeform attempt's warm slot (#1287).
+ *
+ * Failure modes, in evaluation order:
+ *  1. `freeform.sourceTaskNotFound` — source task id does not resolve
+ *     (does not exist OR caller can't read it; we don't distinguish).
+ *  2. `freeform.sourceTaskTypeNotSupported` — source isn't `freeform`.
+ *     v1 only supports freeform → freeform continuation.
+ *  3. `freeform.sourceAttemptNotCompleted` — named attempt is missing
+ *     or not in `completed` state; warm continuation only makes sense
+ *     once the parent has produced a terminal output.
+ *  4. `freeform.forkModeNotImplemented` — `mode: 'fork'` is the wire
+ *     surface for copy-on-write continuation tracked in #1293; v1
+ *     rejects it server-side so daemons never have to branch.
+ *  5. `freeform.sourceNotResumeEligible` — `daemonState` is null or
+ *     `slotResumableUntil` is null. Older completions (pre-#1287) and
+ *     daemons that opt out fall here.
+ *  6. `freeform.sourceResumeExpired` — `slotResumableUntil` is in the
+ *     past; the warm slot's TTL has elapsed and no daemon is
+ *     guaranteed to still hold it.
+ *
+ * Returns on the first failure (no "report all six") — the checks
+ * are sequential preconditions, later ones presume earlier ones hold.
+ */
+export async function validateFreeformInputAsync(
+  input: unknown,
+  ctx: AsyncTaskValidationContext,
+): Promise<TaskValidationError[]> {
+  const cf = (input as { continueFrom?: FreeformContinueFrom }).continueFrom;
+  if (!cf) return [];
+
+  const source = await ctx.resolveTask(cf.taskId);
+  if (!source) {
+    return [
+      {
+        field: 'input/continueFrom/taskId',
+        message: `Source task ${cf.taskId} does not resolve to a task you can read`,
+        code: 'freeform.sourceTaskNotFound',
+      },
+    ];
+  }
+
+  if (source.taskType !== FREEFORM_TYPE) {
+    return [
+      {
+        field: 'input/continueFrom/taskId',
+        message: `Source task type '${source.taskType}' is not continuable; only freeform → freeform is supported in v1`,
+        code: 'freeform.sourceTaskTypeNotSupported',
+      },
+    ];
+  }
+
+  const attempts = await ctx.listAttempts(cf.taskId);
+  const attempt = attempts.find((a) => a.attemptN === cf.attemptN);
+  if (!attempt || attempt.status !== 'completed') {
+    return [
+      {
+        field: 'input/continueFrom/attemptN',
+        message: `Source attempt ${cf.attemptN} on task ${cf.taskId} is not in 'completed' state`,
+        code: 'freeform.sourceAttemptNotCompleted',
+      },
+    ];
+  }
+
+  if (cf.mode === 'fork') {
+    return [
+      {
+        field: 'input/continueFrom/mode',
+        message:
+          'fork mode not yet implemented; see https://github.com/getlarge/themoltnet/issues/1293',
+        code: 'freeform.forkModeNotImplemented',
+      },
+    ];
+  }
+
+  if (!attempt.daemonState || attempt.daemonState.slotResumableUntil === null) {
+    return [
+      {
+        field: 'input/continueFrom',
+        message:
+          'Source attempt did not report continuation eligibility (older completion or daemon opted out)',
+        code: 'freeform.sourceNotResumeEligible',
+      },
+    ];
+  }
+
+  const expiresAt = new Date(attempt.daemonState.slotResumableUntil).getTime();
+  if (Number.isNaN(expiresAt) || expiresAt <= Date.now()) {
+    return [
+      {
+        field: 'input/continueFrom',
+        message: `Source attempt's warm slot expired at ${attempt.daemonState.slotResumableUntil} (reported at ${attempt.daemonState.reportedAt})`,
+        code: 'freeform.sourceResumeExpired',
+      },
+    ];
+  }
+
+  return [];
+}

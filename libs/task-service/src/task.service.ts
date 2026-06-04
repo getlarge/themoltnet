@@ -266,6 +266,16 @@ export function createTaskService(deps: TaskServiceDeps) {
         const row = await taskRepository.findById(taskId);
         return row ? dbTaskToWire(row) : null;
       },
+      async listAttempts(taskId: string) {
+        const canView = await permissionChecker.canViewTask(
+          taskId,
+          callerId,
+          callerNs,
+        );
+        if (!canView) return [];
+        const attempts = await taskRepository.listAttempts(taskId);
+        return attempts.map(dbAttemptToWire);
+      },
       async listTasksByCorrelation(correlationId: string) {
         const rows = await taskRepository.findByCorrelationId(correlationId);
         if (rows.length === 0) return [];

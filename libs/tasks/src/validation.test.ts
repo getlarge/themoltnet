@@ -1,7 +1,12 @@
 import { Value } from '@sinclair/typebox/value';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import type {
+  AsyncTaskValidationContext,
+  TaskValidationError,
+} from './async-validation.js';
 import { FreeformInput } from './task-types/freeform.js';
+import { BUILT_IN_TASK_TYPES, FREEFORM_TYPE } from './task-types/index.js';
 import {
   getTaskExecutionPolicy,
   normalizeTaskCreateRequest,
@@ -951,5 +956,165 @@ describe('FreeformInput.continueFrom', () => {
       },
     });
     expect(ok).toBe(false);
+  });
+});
+
+describe('freeform validateInputAsync — continuation', () => {
+  const validator = BUILT_IN_TASK_TYPES[FREEFORM_TYPE].validateInputAsync as (
+    input: unknown,
+    ctx: AsyncTaskValidationContext,
+  ) => Promise<TaskValidationError[]>;
+
+  const SOURCE_TASK_ID = '11111111-1111-4111-8111-111111111111';
+
+  const makeCtx = (
+    overrides: Partial<AsyncTaskValidationContext> = {},
+  ): AsyncTaskValidationContext => ({
+    resolveTask: vi.fn().mockResolvedValue(null),
+    listAttempts: vi.fn().mockResolvedValue([]),
+    listTasksByCorrelation: vi.fn().mockResolvedValue([]),
+    findCorrelationSeal: vi.fn().mockResolvedValue(null),
+    resolveContextPack: vi.fn().mockResolvedValue(null),
+    resolveRenderedPack: vi.fn().mockResolvedValue(null),
+    ...overrides,
+  });
+
+  it('passes when continueFrom is absent', async () => {
+    const errors = await validator({ brief: 'standalone' }, makeCtx());
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects when source task does not exist', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({ resolveTask: vi.fn().mockResolvedValue(null) }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceTaskNotFound');
+  });
+
+  it('rejects when source task is not freeform', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'fulfill_brief' }),
+        listAttempts: vi.fn().mockResolvedValue([]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceTaskTypeNotSupported');
+  });
+
+  it('rejects when source attempt is not completed', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi
+          .fn()
+          .mockResolvedValue([
+            { attemptN: 1, status: 'running', daemonState: null },
+          ]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceAttemptNotCompleted');
+  });
+
+  it('rejects mode=fork', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: {
+          taskId: SOURCE_TASK_ID,
+          attemptN: 1,
+          mode: 'fork',
+        },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi.fn().mockResolvedValue([
+          {
+            attemptN: 1,
+            status: 'completed',
+            daemonState: {
+              reportedAt: new Date().toISOString(),
+              slotResumableUntil: new Date(Date.now() + 60_000).toISOString(),
+            },
+          },
+        ]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.forkModeNotImplemented');
+  });
+
+  it('rejects when daemonState is null', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi
+          .fn()
+          .mockResolvedValue([
+            { attemptN: 1, status: 'completed', daemonState: null },
+          ]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceNotResumeEligible');
+  });
+
+  it('rejects when slotResumableUntil is past now', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi.fn().mockResolvedValue([
+          {
+            attemptN: 1,
+            status: 'completed',
+            daemonState: {
+              reportedAt: '2026-06-04T10:00:00.000Z',
+              slotResumableUntil: '2026-06-04T10:30:00.000Z',
+            },
+          },
+        ]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceResumeExpired');
+  });
+
+  it('passes when daemonState is fresh', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi.fn().mockResolvedValue([
+          {
+            attemptN: 1,
+            status: 'completed',
+            daemonState: {
+              reportedAt: new Date().toISOString(),
+              slotResumableUntil: new Date(Date.now() + 60_000).toISOString(),
+            },
+          },
+        ]),
+      }),
+    );
+    expect(errors).toEqual([]);
   });
 });
