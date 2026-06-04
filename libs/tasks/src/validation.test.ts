@@ -1,6 +1,7 @@
 import { Value } from '@sinclair/typebox/value';
 import { describe, expect, it } from 'vitest';
 
+import { FreeformInput } from './task-types/freeform.js';
 import {
   getTaskExecutionPolicy,
   normalizeTaskCreateRequest,
@@ -899,5 +900,56 @@ describe('normalizeTaskCreateRequest correlationId default', () => {
       input: { brief: 'probe' },
     });
     expect(result.correlationId).toBe(callerCid);
+  });
+});
+
+describe('FreeformInput.continueFrom', () => {
+  it('accepts a continueFrom pointer with default mode', () => {
+    const ok = Value.Check(FreeformInput, {
+      brief: 'next step',
+      continueFrom: {
+        taskId: '11111111-1111-4111-8111-111111111111',
+        attemptN: 1,
+      },
+    });
+    expect(ok).toBe(true);
+  });
+
+  it.each(['extend', 'fork'] as const)(
+    'accepts mode=%s on continueFrom',
+    (mode) => {
+      const ok = Value.Check(FreeformInput, {
+        brief: 'next step',
+        continueFrom: {
+          taskId: '11111111-1111-4111-8111-111111111111',
+          attemptN: 1,
+          mode,
+        },
+      });
+      expect(ok).toBe(true);
+    },
+  );
+
+  it('rejects mode outside the union', () => {
+    const ok = Value.Check(FreeformInput, {
+      brief: 'next step',
+      continueFrom: {
+        taskId: '11111111-1111-4111-8111-111111111111',
+        attemptN: 1,
+        mode: 'merge',
+      },
+    });
+    expect(ok).toBe(false);
+  });
+
+  it('rejects attemptN < 1', () => {
+    const ok = Value.Check(FreeformInput, {
+      brief: 'x',
+      continueFrom: {
+        taskId: '11111111-1111-4111-8111-111111111111',
+        attemptN: 0,
+      },
+    });
+    expect(ok).toBe(false);
   });
 });

@@ -24,6 +24,23 @@ export const FreeformExecutionOptions = Type.Object(
 );
 export type FreeformExecutionOptions = Static<typeof FreeformExecutionOptions>;
 
+export const FreeformContinueFrom = Type.Object(
+  {
+    taskId: Type.String({ format: 'uuid' }),
+    attemptN: Type.Integer({ minimum: 1 }),
+    /**
+     * v1 wire schema only. `'extend'` (default) resumes the parent slot in
+     * place. `'fork'` is the API surface for the future copy-on-write
+     * continuation tracked in #1293; v1 server-side validator rejects it.
+     */
+    mode: Type.Optional(
+      Type.Union([Type.Literal('extend'), Type.Literal('fork')]),
+    ),
+  },
+  { $id: 'FreeformContinueFrom', additionalProperties: false },
+);
+export type FreeformContinueFrom = Static<typeof FreeformContinueFrom>;
+
 export const FreeformTaskTypeProposal = Type.Object(
   {
     name: Type.String({ minLength: 1 }),
@@ -63,6 +80,12 @@ export const FreeformInput = Type.Object(
      * acceptsInputWorkspaceOverride.
      */
     execution: Type.Optional(FreeformExecutionOptions),
+    /**
+     * When set, the daemon treats this task as a warm-resume continuation
+     * of the named source attempt. See docs/superpowers/specs/2026-06-04-
+     * tasks-continue-design.md.
+     */
+    continueFrom: Type.Optional(FreeformContinueFrom),
   },
   { $id: 'FreeformInput', additionalProperties: false },
 );

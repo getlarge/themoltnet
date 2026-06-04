@@ -84,12 +84,16 @@ function formatField(prefix: string, path: string): string {
  * gates); both run server-side before validation.
  */
 export function normalizeTaskCreateRequest<
-  T extends { correlationId?: string | null },
+  T extends Record<string, unknown> & { correlationId?: string | null },
 >(request: T): T & { correlationId: string } {
-  if (request.correlationId) {
-    return { ...request, correlationId: request.correlationId };
-  }
-  return { ...request, correlationId: randomUUID() };
+  return {
+    ...request,
+    // `??` not `||` so that an empty-string correlationId (passed
+    // through validation upstream) is preserved verbatim. Upstream
+    // TypeBox/schema validation is responsible for rejecting empties
+    // when they're invalid in domain terms.
+    correlationId: request.correlationId ?? randomUUID(),
+  };
 }
 
 export function normalizeTaskInputForCreate(
