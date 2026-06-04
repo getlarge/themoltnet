@@ -112,6 +112,46 @@ function maybeAttachWarmSlotContext(
   stateDirs: DaemonStateDirs,
   slotRegistry: DaemonSlotRegistry,
 ): DaemonTaskExecutionPlan {
+  if (claimedTask.task.taskType === 'freeform') {
+    const continueFrom = (
+      claimedTask.task.input as {
+        continueFrom?: { taskId: string; attemptN: number };
+      }
+    ).continueFrom;
+
+    if (!continueFrom) return basePlan;
+
+    const resolution = resolveWarmSlot(
+      slotRegistry,
+      continueFrom.taskId,
+      continueFrom.attemptN,
+      stateDirs,
+    );
+
+    if (resolution.kind === 'missing') {
+      throw new ProducerContextResolutionError(
+        `Continuation source task ${continueFrom.taskId} attempt ${continueFrom.attemptN} has no live daemon slot on this daemon — claim affinity filter should have prevented this claim`,
+      );
+    }
+    if (resolution.kind === 'no-session-path') {
+      throw new ProducerContextResolutionError(
+        `Continuation source attempt ${continueFrom.taskId}/${continueFrom.attemptN} has no persisted Pi session path`,
+      );
+    }
+
+    return {
+      ...basePlan,
+      workspaceMode: 'dedicated_worktree',
+      worktreeBranch: resolution.producerSlot.workspace?.worktreeBranch ?? null,
+      sessionPersistence: {
+        sessionDir: `${stateDirs.piSessionsDir}/continue-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,
+        forkFromSessionPath: resolution.sessionPath,
+      },
+      // Importantly: NO workspaceSeed. Continuation mounts the parent's
+      // worktree branch directly via worktreeBranch; we do not copy.
+    };
+  }
+
   if (claimedTask.task.taskType !== 'judge_eval_attempt') {
     return basePlan;
   }
