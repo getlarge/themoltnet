@@ -19,6 +19,7 @@ import type { FastifyInstance } from 'fastify';
 import type {
   TaskAttemptsListInput,
   TaskConsoleLinkInput,
+  TaskContinueInput,
   TaskCreateInput,
   TaskGetInput,
   TaskListInput,
@@ -30,6 +31,7 @@ import {
   TaskAttemptsListSchema,
   TaskConsoleLinkOutputSchema,
   TaskConsoleLinkSchema,
+  TaskContinueSchema,
   TaskCreateSchema,
   TaskGetSchema,
   TaskListOutputSchema,
@@ -153,6 +155,110 @@ export async function handleTasksCreate(
   if (error || !data) {
     deps.logger.error({ tool: 'tasks_create', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to create task'));
+  }
+
+  return structuredResult(withConsoleUrl(data, deps));
+}
+
+export async function handleTasksContinue(
+  args: TaskContinueInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'tasks_continue' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  // 1. Read source via existing api-client. We need teamId / diaryId /
+  //    correlationId / allowedExecutors / requiredExecutorTrustLevel to
+  //    construct a coherent CreateTaskRequest; the server-side async
+  //    validator handles the deeper preconditions (source taskType,
+  //    attempt status, slotResumableUntil) on the POST /tasks call.
+  const { data: source, error: getErr } = await getTask({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.fromTaskId },
+  });
+  if (getErr || !source) {
+    deps.logger.error(
+      { tool: 'tasks_continue', err: getErr },
+      'tool.error.source_task_not_found',
+    );
+    return errorResult(
+      extractApiErrorMessage(
+        getErr,
+        `Source task ${args.fromTaskId} not found`,
+      ),
+    );
+  }
+
+  if (source.teamId === null || source.diaryId === null) {
+    return errorResult(
+      `Source task ${args.fromTaskId} is missing teamId/diaryId and cannot be continued`,
+    );
+  }
+
+  // 2. Construct the freeform continuation input. Only forward optional
+  //    overrides that the caller actually set so the server-side
+  //    defaults still apply.
+  const freeformInput: Record<string, unknown> = {
+    brief: args.brief,
+    continueFrom: {
+      taskId: args.fromTaskId,
+      attemptN: args.fromAttemptN,
+      ...(args.mode ? { mode: args.mode } : {}),
+    },
+  };
+  if (args.title) freeformInput.title = args.title;
+  if (args.expectedOutput) freeformInput.expectedOutput = args.expectedOutput;
+  if (args.constraints?.length) freeformInput.constraints = args.constraints;
+  if (args.execution) freeformInput.execution = args.execution;
+  if (args.successCriteria)
+    freeformInput.successCriteria = args.successCriteria;
+
+  // 3. Sync validation. The async server-side preflight handles the
+  //    source-attempt eligibility checks; here we just catch shape errors
+  //    early so we don't burn a REST round-trip.
+  const validationErrors = validateTaskCreateRequest({
+    taskType: 'freeform',
+    input: freeformInput,
+  });
+  if (validationErrors.length > 0) {
+    return structuredErrorResult(formatValidationErrors(validationErrors));
+  }
+
+  // 4. Delegate to standard create. The auto-injected `task_status:
+  //    completed` claim condition on the parent closes the race between
+  //    reading source state at T0 and the server persisting the create
+  //    at T1 — claim conditions are re-evaluated at every daemon poll.
+  const { data, error } = await createTask({
+    client: deps.client,
+    auth: () => token,
+    body: {
+      taskType: 'freeform',
+      teamId: source.teamId,
+      diaryId: source.diaryId,
+      input: freeformInput,
+      ...(source.correlationId ? { correlationId: source.correlationId } : {}),
+      ...(source.allowedExecutors?.length
+        ? { allowedExecutors: source.allowedExecutors }
+        : {}),
+      ...(source.requiredExecutorTrustLevel
+        ? { requiredExecutorTrustLevel: source.requiredExecutorTrustLevel }
+        : {}),
+      claimCondition: {
+        op: 'task_status',
+        taskId: args.fromTaskId,
+        statuses: ['completed'],
+      },
+    },
+  });
+
+  if (error || !data) {
+    deps.logger.error({ tool: 'tasks_continue', err: error }, 'tool.error');
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to create continuation task'),
+    );
   }
 
   return structuredResult(withConsoleUrl(data, deps));
@@ -322,6 +428,18 @@ export function registerTaskTools(
     },
     async (args: TaskCreateInput, ctx: HandlerContext) =>
       handleTasksCreate(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'tasks_continue',
+      description:
+        'Create a freeform continuation of a prior freeform attempt with warm Pi-session resume. Reads the source task, builds a freeform CreateTaskRequest with input.continueFrom plus an auto-injected task_status:completed claim condition, then delegates to tasks_create. No new server endpoint — see issue #1287.',
+      inputSchema: TaskContinueSchema,
+      outputSchema: TaskOutputSchema,
+    },
+    async (args: TaskContinueInput, ctx: HandlerContext) =>
+      handleTasksContinue(args, deps, ctx),
   );
 
   fastify.mcpAddTool(

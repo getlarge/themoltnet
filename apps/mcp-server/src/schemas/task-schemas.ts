@@ -20,6 +20,8 @@ import type {
 import {
   ExecutorRef,
   ExecutorTrustLevel,
+  FreeformExecutionOptions,
+  SuccessCriteria,
   Task,
   TaskAttempt,
   TaskMessage,
@@ -137,6 +139,48 @@ type _TaskCreateInputMatchesApi = AssertSchemaToApi<
   Static<typeof TaskCreateSchema>,
   TaskCreateInput
 >;
+
+/**
+ * Input schema for the `tasks_continue` MCP tool. Unlike the other task
+ * tools this one is composed client-side: the handler reads the source
+ * task via `tasks_get`, builds a `freeform` CreateTaskRequest with
+ * `input.continueFrom` set, and POSTs it through `tasks_create`. There
+ * is no dedicated server endpoint — see issue #1287.
+ *
+ * Keys use camelCase here (rather than the snake_case convention used by
+ * the rest of the task tool surface) because every field maps 1:1 onto
+ * the `freeform` task input shape and we want the MCP surface to read
+ * the same as the wire schema for the warm-resume code path.
+ */
+export const TaskContinueSchema = Type.Object(
+  {
+    fromTaskId: Type.String({
+      format: 'uuid',
+      description: 'ID of the source freeform task to continue from.',
+    }),
+    fromAttemptN: Type.Integer({
+      minimum: 1,
+      description: 'Attempt number on the source task to resume.',
+    }),
+    brief: Type.String({
+      minLength: 1,
+      description:
+        'New work request for the continuation. The daemon resumes the source attempt’s warm slot and applies this brief as the next user turn.',
+    }),
+    title: Type.Optional(Type.String({ minLength: 1 })),
+    expectedOutput: Type.Optional(Type.String({ minLength: 1 })),
+    constraints: Type.Optional(
+      Type.Array(Type.String({ minLength: 1 }), { maxItems: 20 }),
+    ),
+    execution: Type.Optional(FreeformExecutionOptions),
+    successCriteria: Type.Optional(SuccessCriteria),
+    mode: Type.Optional(
+      Type.Union([Type.Literal('extend'), Type.Literal('fork')]),
+    ),
+  },
+  { additionalProperties: false },
+);
+export type TaskContinueInput = Static<typeof TaskContinueSchema>;
 
 export const TaskGetSchema = Type.Object({
   id: Type.String({
