@@ -199,12 +199,15 @@ describe('Task Tools E2E', () => {
         },
       },
     });
-    const created = parseToolResult<{ id: string }>(createResult);
+    const created = parseToolResult<{ id: string; inputCid: string }>(
+      createResult,
+    );
     expect(
       createResult.isError,
       `tasks_create error: ${created.content[0].text}`,
     ).toBeUndefined();
     const sourceTaskId = created.parsed.id;
+    const sourceInputCid = created.parsed.inputCid;
 
     // 2. Claim + heartbeat + complete the source attempt with a daemonState
     //    payload that reports a fresh `slotResumableUntil`. This is what the
@@ -234,6 +237,21 @@ describe('Task Tools E2E', () => {
 
     const output = {
       summary: 'Source freeform attempt completed for the tasks_continue e2e.',
+      // Required because freeform tasks auto-inject a submit-output gate
+      // into the input's successCriteria, so the output validator demands a
+      // verification record. inputCid pins the assessment to the exact
+      // input the producer evaluated.
+      verification: {
+        inputCid: sourceInputCid,
+        results: [
+          {
+            id: 'submit-output',
+            kind: 'gate' as const,
+            status: 'pass' as const,
+          },
+        ],
+        passed: true,
+      },
     };
     const outputCid = await computeJsonCid(output);
     const resumableUntil = new Date(Date.now() + 60 * 60 * 1000).toISOString();
