@@ -36,7 +36,8 @@ const TASK_FIXTURES: Array<{
       buildTaskUserPrompt(
         makeFulfillBriefTask({
           taskType: FULFILL_BRIEF_TYPE,
-          input: { brief: 'do', title: 'x' },
+          title: 'x',
+          input: { brief: 'do' },
         }),
         ctx,
       ).text,

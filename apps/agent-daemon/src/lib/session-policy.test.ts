@@ -8,7 +8,7 @@ describe('deriveTaskSessionDescriptor', () => {
       id: '11111111-1111-4111-8111-111111111111',
       taskType: 'fulfill_brief',
       correlationId: '22222222-2222-4222-8222-222222222222',
-      input: { brief: 'Fix the daemon', title: 'Warm sessions' },
+      input: { brief: 'Fix the daemon' },
     });
 
     expect(out).toEqual({

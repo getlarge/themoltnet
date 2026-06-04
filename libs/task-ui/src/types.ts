@@ -87,6 +87,8 @@ export type ClaimCondition =
 export interface TaskSummary {
   id: string;
   taskType: string;
+  title: string | null;
+  tags: string[];
   teamId: string;
   diaryId: string | null;
   outputKind: OutputKind;

@@ -37,7 +37,7 @@ export interface DaemonTaskExecutionPlan {
 export function buildDaemonTaskExecutionPlan(
   task: Pick<
     ClaimedTask['task'],
-    'id' | 'taskType' | 'correlationId' | 'input'
+    'id' | 'taskType' | 'title' | 'correlationId' | 'input'
   >,
   stateDirs: DaemonStateDirs,
   identity: DaemonSlotIdentity,
@@ -98,7 +98,7 @@ function slugSlotIdentityComponent(input: string): string {
 function resolveTaskWorktreeBranch(
   task: Pick<
     ClaimedTask['task'],
-    'taskType' | 'correlationId' | 'id' | 'input'
+    'taskType' | 'title' | 'correlationId' | 'id' | 'input'
   >,
   workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount',
 ): string | null {
@@ -109,12 +109,11 @@ function resolveTaskWorktreeBranch(
   if (task.taskType === 'fulfill_brief') {
     const input = task.input as {
       brief?: unknown;
-      title?: unknown;
       scopeHint?: unknown;
     };
     const title =
-      typeof input.title === 'string' && input.title.trim().length > 0
-        ? input.title
+      typeof task.title === 'string' && task.title.trim().length > 0
+        ? task.title
         : typeof input.brief === 'string' && input.brief.trim().length > 0
           ? input.brief
           : task.taskType;

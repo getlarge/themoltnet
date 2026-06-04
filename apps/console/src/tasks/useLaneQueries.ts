@@ -12,6 +12,7 @@ const LANE_PAGE_SIZE = 20;
 
 interface LaneFilters {
   teamId: string | undefined;
+  query?: string;
   taskTypes?: string[];
   correlationId?: string;
   enabled: boolean;
@@ -28,7 +29,13 @@ export function useLaneQueries(filters: LaneFilters): {
   counts: Record<TaskLaneId, number>;
   refetchAll: () => void;
 } {
-  const { teamId, taskTypes, correlationId, enabled } = filters;
+  const {
+    teamId,
+    query: taskQuery,
+    taskTypes,
+    correlationId,
+    enabled,
+  } = filters;
 
   // Active lanes (pending/active) keep polling so claims/transitions surface.
   // TASK_LANES is a stable constant, so this fixed-length map calls the same
@@ -40,6 +47,7 @@ export function useLaneQueries(filters: LaneFilters): {
         client: getApiClient(),
         query: {
           teamId: teamId ?? '',
+          query: taskQuery?.trim() || undefined,
           statuses: lane.statuses,
           taskTypes: taskTypes && taskTypes.length ? taskTypes : undefined,
           correlationId: correlationId?.trim() || undefined,

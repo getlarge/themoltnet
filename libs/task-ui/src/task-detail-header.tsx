@@ -28,8 +28,11 @@ export function TaskDetailHeader({
 }: TaskDetailHeaderProps) {
   const theme = useTheme();
   const actorId = task.proposedByAgentId ?? task.proposedByHumanId;
+  const taskTitle = task.title || humanizeToken(task.taskType);
 
   const facts = [
+    ['Task type', humanizeToken(task.taskType)],
+    ['Tags', task.tags.length > 0 ? task.tags.join(', ') : '—'],
     ['Team', renderTeamLabel?.(task.teamId) ?? task.teamId],
     ['Diary', renderDiaryLabel?.(task.diaryId) ?? task.diaryId ?? '—'],
     ['Proposer', renderActorLabel?.(actorId) ?? actorId ?? '—'],
@@ -53,7 +56,7 @@ export function TaskDetailHeader({
             <Stack direction="row" align="center" gap={2} wrap>
               <TaskStatusBadge status={task.status} />
               <Text variant="h2" style={{ margin: 0 }}>
-                {humanizeToken(task.taskType)}
+                {taskTitle}
               </Text>
             </Stack>
             <Stack direction="row" gap={2} align="center" wrap>

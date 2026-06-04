@@ -3,6 +3,8 @@ import type { TaskAttemptSummary, TaskMessage, TaskSummary } from '../types.js';
 export const taskFixture: TaskSummary = {
   id: '11111111-1111-4111-8111-111111111111',
   taskType: 'curate_pack',
+  title: 'Curate task UI context',
+  tags: ['task-ui', 'observability'],
   teamId: '22222222-2222-4222-8222-222222222222',
   diaryId: '33333333-3333-4333-8333-333333333333',
   outputKind: 'artifact',

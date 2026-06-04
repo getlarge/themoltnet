@@ -82,7 +82,7 @@ export function DependsOnBuilder({
             ) : (
               visibleCandidates.map((task) => (
                 <option key={task.id} value={task.id}>
-                  {task.taskType} · {task.id.slice(0, 8)}
+                  {task.title || task.taskType} · {task.id.slice(0, 8)}
                 </option>
               ))
             )}
