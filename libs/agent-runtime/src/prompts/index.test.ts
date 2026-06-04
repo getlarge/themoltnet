@@ -298,6 +298,32 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt.text).toContain('Some notes.');
   });
 
+  it('forwards priorContext through buildTaskUserPrompt to freeform builder', () => {
+    const task = makeFulfillBriefTask({
+      taskType: FREEFORM_TYPE,
+      input: {
+        brief: 'continue the work',
+        continueFrom: {
+          taskId: '11111111-1111-4111-8111-111111111111',
+          attemptN: 1,
+        },
+      } as never,
+    });
+    const prompt = buildTaskUserPrompt(task, {
+      diaryId: 'd1',
+      taskId: 'new-task',
+      priorContext: {
+        summary: 'Prior summary marker XYZ.',
+        artifacts: [
+          { kind: 'markdown', title: 'notes', body: 'Prior body marker.' },
+        ],
+      },
+    }).text;
+    expect(prompt).toContain('Prior context');
+    expect(prompt).toContain('Prior summary marker XYZ.');
+    expect(prompt).toContain('Prior body marker.');
+  });
+
   it('omits Prior context section when continueFrom is absent', () => {
     const prompt = buildFreeformUserPrompt({ brief: 'standalone' } as never, {
       taskId: 'new-task',

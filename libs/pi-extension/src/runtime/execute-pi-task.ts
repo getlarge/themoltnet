@@ -30,6 +30,7 @@ import {
   createWriteToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
+import { FREEFORM_TYPE } from '@moltnet/tasks';
 import { Value } from '@sinclair/typebox/value';
 import {
   buildTaskUserPrompt,
@@ -60,6 +61,10 @@ import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
 import type { PiTaskExecutionPlanFactory } from './execution-plan.js';
 import { injectTaskContext } from './inject-task-context.js';
+import {
+  type ContinueFromPointer,
+  resolvePriorContext,
+} from './resolve-prior-context.js';
 import { buildRuntimeInstructor } from './runtime-instructor.js';
 import {
   createSubagentTool,
@@ -460,6 +465,46 @@ export async function executePiTask(
       workspaceBranch: activeWorkspace.branch,
     });
 
+    // Resolve `freeform.continueFrom` source-attempt material before we
+    // build the prompt. The freeform builder renders a "Prior context"
+    // section when this is present. Errors are non-fatal — the prompt
+    // still assembles without the section. See #1287.
+    let resolvedPriorContext: TaskUserPromptContext['priorContext'];
+    const continueFrom = (
+      task.input as { continueFrom?: ContinueFromPointer } | undefined
+    )?.continueFrom;
+    if (task.taskType === FREEFORM_TYPE && continueFrom) {
+      try {
+        const priorAgent = await connect({ configDir: managed.agentDir });
+        const resolved = await resolvePriorContext(priorAgent, continueFrom);
+        if (resolved) {
+          resolvedPriorContext = resolved;
+          await emit('info', {
+            event: 'prior_context_resolved',
+            sourceTaskId: continueFrom.taskId,
+            sourceAttemptN: continueFrom.attemptN,
+            hasSummary: !!resolved.summary,
+            artifactCount: resolved.artifacts?.length ?? 0,
+          });
+        } else {
+          await emit('info', {
+            event: 'prior_context_empty',
+            sourceTaskId: continueFrom.taskId,
+            sourceAttemptN: continueFrom.attemptN,
+          });
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        // Non-fatal — degrade to no Prior context section.
+        await emit('info', {
+          event: 'prior_context_resolve_failed',
+          sourceTaskId: continueFrom.taskId,
+          sourceAttemptN: continueFrom.attemptN,
+          message,
+        });
+      }
+    }
+
     let taskPrompt: string;
     try {
       const promptCtx: TaskUserPromptContext = {
@@ -479,6 +524,7 @@ export async function executePiTask(
                 : undefined,
         },
         extras: opts.promptExtras,
+        priorContext: resolvedPriorContext,
       };
       const assembled = buildTaskUserPrompt(task, promptCtx);
       taskPrompt = assembled.text;
