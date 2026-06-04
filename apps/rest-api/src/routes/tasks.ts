@@ -6,6 +6,7 @@ import {
 } from '@moltnet/models';
 import {
   BUILT_IN_TASK_TYPES,
+  normalizeTaskCreateRequest,
   Task,
   TASK_TYPE_SCHEMA_CIDS,
   TaskAttempt,
@@ -131,13 +132,14 @@ export function taskRoutes(fastify: FastifyInstance) {
       const callerNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
+        const normalised = normalizeTaskCreateRequest(request.body);
         const task = await fastify.taskService.create({
           taskType: request.body.taskType,
           teamId: request.body.teamId,
           diaryId: request.body.diaryId,
           inputPayload: request.body.input,
           references: request.body.references,
-          correlationId: request.body.correlationId,
+          correlationId: normalised.correlationId,
           claimCondition: request.body.claimCondition,
           maxAttempts: request.body.maxAttempts,
           expiresInSec: request.body.expiresInSec,

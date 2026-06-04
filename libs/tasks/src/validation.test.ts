@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getTaskExecutionPolicy,
+  normalizeTaskCreateRequest,
   normalizeTaskInputForCreate,
   SUBMIT_OUTPUT_GATE_ID,
   taskTypeResumable,
@@ -872,5 +873,31 @@ describe('TaskAttempt.daemonState', () => {
         }),
       ),
     ).toBe(false);
+  });
+});
+
+describe('normalizeTaskCreateRequest correlationId default', () => {
+  it('generates a fresh UUID when caller omits correlationId', () => {
+    const result = normalizeTaskCreateRequest({
+      taskType: 'freeform',
+      teamId: '11111111-1111-4111-8111-111111111111',
+      diaryId: '22222222-2222-4222-8222-222222222222',
+      input: { brief: 'probe' },
+    });
+    expect(result.correlationId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+  });
+
+  it('preserves caller-supplied correlationId', () => {
+    const callerCid = '33333333-3333-4333-8333-333333333333';
+    const result = normalizeTaskCreateRequest({
+      taskType: 'freeform',
+      teamId: '11111111-1111-4111-8111-111111111111',
+      diaryId: '22222222-2222-4222-8222-222222222222',
+      correlationId: callerCid,
+      input: { brief: 'probe' },
+    });
+    expect(result.correlationId).toBe(callerCid);
   });
 });

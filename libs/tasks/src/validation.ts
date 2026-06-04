@@ -1,5 +1,7 @@
 import './formats.js';
 
+import { randomUUID } from 'node:crypto';
+
 import type { TSchema } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 
@@ -72,6 +74,22 @@ function getTaskTypeEntry(taskType: string) {
 
 function formatField(prefix: string, path: string): string {
   return path ? `${prefix}${path}` : prefix;
+}
+
+/**
+ * Server-side normalisation of a task create request. Generates a
+ * correlationId when the caller omits it so every task is correlation-
+ * queryable by default. Preserves caller-supplied values. Composes with
+ * `normalizeTaskInputForCreate` (which handles task-type-specific input
+ * gates); both run server-side before validation.
+ */
+export function normalizeTaskCreateRequest<
+  T extends { correlationId?: string | null },
+>(request: T): T & { correlationId: string } {
+  if (request.correlationId) {
+    return { ...request, correlationId: request.correlationId };
+  }
+  return { ...request, correlationId: randomUUID() };
 }
 
 export function normalizeTaskInputForCreate(
