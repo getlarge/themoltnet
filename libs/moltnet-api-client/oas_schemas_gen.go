@@ -2589,8 +2589,10 @@ type CreateTaskReq struct {
 	References                 []TaskRef             `json:"references"`
 	RequiredExecutorTrustLevel OptExecutorTrustLevel `json:"requiredExecutorTrustLevel"`
 	RunningTimeoutSec          OptInt                `json:"runningTimeoutSec"`
+	Tags                       []string              `json:"tags"`
 	TaskType                   string                `json:"taskType"`
 	TeamId                     uuid.UUID             `json:"teamId"`
+	Title                      OptString             `json:"title"`
 }
 
 // GetAllowedExecutors returns the value of AllowedExecutors.
@@ -2648,6 +2650,11 @@ func (s *CreateTaskReq) GetRunningTimeoutSec() OptInt {
 	return s.RunningTimeoutSec
 }
 
+// GetTags returns the value of Tags.
+func (s *CreateTaskReq) GetTags() []string {
+	return s.Tags
+}
+
 // GetTaskType returns the value of TaskType.
 func (s *CreateTaskReq) GetTaskType() string {
 	return s.TaskType
@@ -2656,6 +2663,11 @@ func (s *CreateTaskReq) GetTaskType() string {
 // GetTeamId returns the value of TeamId.
 func (s *CreateTaskReq) GetTeamId() uuid.UUID {
 	return s.TeamId
+}
+
+// GetTitle returns the value of Title.
+func (s *CreateTaskReq) GetTitle() OptString {
+	return s.Title
 }
 
 // SetAllowedExecutors sets the value of AllowedExecutors.
@@ -2713,6 +2725,11 @@ func (s *CreateTaskReq) SetRunningTimeoutSec(val OptInt) {
 	s.RunningTimeoutSec = val
 }
 
+// SetTags sets the value of Tags.
+func (s *CreateTaskReq) SetTags(val []string) {
+	s.Tags = val
+}
+
 // SetTaskType sets the value of TaskType.
 func (s *CreateTaskReq) SetTaskType(val string) {
 	s.TaskType = val
@@ -2721,6 +2738,11 @@ func (s *CreateTaskReq) SetTaskType(val string) {
 // SetTeamId sets the value of TeamId.
 func (s *CreateTaskReq) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
+}
+
+// SetTitle sets the value of Title.
+func (s *CreateTaskReq) SetTitle(val OptString) {
+	s.Title = val
 }
 
 type CreateTaskReqInput map[string]jx.Raw
@@ -14792,6 +14814,52 @@ func (o OptUpdateRenderedPackReq) Or(d UpdateRenderedPackReq) UpdateRenderedPack
 	return d
 }
 
+// NewOptUpdateTaskMetadataReq returns new OptUpdateTaskMetadataReq with value set to v.
+func NewOptUpdateTaskMetadataReq(v UpdateTaskMetadataReq) OptUpdateTaskMetadataReq {
+	return OptUpdateTaskMetadataReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateTaskMetadataReq is optional UpdateTaskMetadataReq.
+type OptUpdateTaskMetadataReq struct {
+	Value UpdateTaskMetadataReq
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateTaskMetadataReq was set.
+func (o OptUpdateTaskMetadataReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateTaskMetadataReq) Reset() {
+	var v UpdateTaskMetadataReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateTaskMetadataReq) SetTo(v UpdateTaskMetadataReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateTaskMetadataReq) Get() (v UpdateTaskMetadataReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateTaskMetadataReq) Or(d UpdateTaskMetadataReq) UpdateTaskMetadataReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptVerifyResultSigner returns new OptVerifyResultSigner with value set to v.
 func NewOptVerifyResultSigner(v VerifyResultSigner) OptVerifyResultSigner {
 	return OptVerifyResultSigner{
@@ -19323,8 +19391,10 @@ type Task struct {
 	RequiredExecutorTrustLevel TaskRequiredExecutorTrustLevel `json:"requiredExecutorTrustLevel"`
 	RunningTimeoutSec          NilInt                         `json:"runningTimeoutSec"`
 	Status                     TaskStatus                     `json:"status"`
+	Tags                       []string                       `json:"tags"`
 	TaskType                   string                         `json:"taskType"`
 	TeamId                     uuid.UUID                      `json:"teamId"`
+	Title                      NilString                      `json:"title"`
 }
 
 // GetAcceptedAttemptN returns the value of AcceptedAttemptN.
@@ -19447,6 +19517,11 @@ func (s *Task) GetStatus() TaskStatus {
 	return s.Status
 }
 
+// GetTags returns the value of Tags.
+func (s *Task) GetTags() []string {
+	return s.Tags
+}
+
 // GetTaskType returns the value of TaskType.
 func (s *Task) GetTaskType() string {
 	return s.TaskType
@@ -19455,6 +19530,11 @@ func (s *Task) GetTaskType() string {
 // GetTeamId returns the value of TeamId.
 func (s *Task) GetTeamId() uuid.UUID {
 	return s.TeamId
+}
+
+// GetTitle returns the value of Title.
+func (s *Task) GetTitle() NilString {
+	return s.Title
 }
 
 // SetAcceptedAttemptN sets the value of AcceptedAttemptN.
@@ -19577,6 +19657,11 @@ func (s *Task) SetStatus(val TaskStatus) {
 	s.Status = val
 }
 
+// SetTags sets the value of Tags.
+func (s *Task) SetTags(val []string) {
+	s.Tags = val
+}
+
 // SetTaskType sets the value of TaskType.
 func (s *Task) SetTaskType(val string) {
 	s.TaskType = val
@@ -19587,11 +19672,17 @@ func (s *Task) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
 }
 
-func (*Task) cancelTaskRes()   {}
-func (*Task) completeTaskRes() {}
-func (*Task) createTaskRes()   {}
-func (*Task) failTaskRes()     {}
-func (*Task) getTaskRes()      {}
+// SetTitle sets the value of Title.
+func (s *Task) SetTitle(val NilString) {
+	s.Title = val
+}
+
+func (*Task) cancelTaskRes()         {}
+func (*Task) completeTaskRes()       {}
+func (*Task) createTaskRes()         {}
+func (*Task) failTaskRes()           {}
+func (*Task) getTaskRes()            {}
+func (*Task) updateTaskMetadataRes() {}
 
 type TaskAllowedExecutorsItem struct {
 	Model    string `json:"model"`
@@ -21693,6 +21784,43 @@ type UpdateRenderedPackUnauthorized ProblemDetails
 
 func (*UpdateRenderedPackUnauthorized) updateRenderedPackRes() {}
 
+type UpdateTaskMetadataForbidden ProblemDetails
+
+func (*UpdateTaskMetadataForbidden) updateTaskMetadataRes() {}
+
+type UpdateTaskMetadataNotFound ProblemDetails
+
+func (*UpdateTaskMetadataNotFound) updateTaskMetadataRes() {}
+
+type UpdateTaskMetadataReq struct {
+	Tags  []string     `json:"tags"`
+	Title OptNilString `json:"title"`
+}
+
+// GetTags returns the value of Tags.
+func (s *UpdateTaskMetadataReq) GetTags() []string {
+	return s.Tags
+}
+
+// GetTitle returns the value of Title.
+func (s *UpdateTaskMetadataReq) GetTitle() OptNilString {
+	return s.Title
+}
+
+// SetTags sets the value of Tags.
+func (s *UpdateTaskMetadataReq) SetTags(val []string) {
+	s.Tags = val
+}
+
+// SetTitle sets the value of Title.
+func (s *UpdateTaskMetadataReq) SetTitle(val OptNilString) {
+	s.Title = val
+}
+
+type UpdateTaskMetadataUnauthorized ProblemDetails
+
+func (*UpdateTaskMetadataUnauthorized) updateTaskMetadataRes() {}
+
 type UpdateTeamMemberRoleBadRequest ProblemDetails
 
 func (*UpdateTeamMemberRoleBadRequest) updateTeamMemberRoleRes() {}
@@ -21888,9 +22016,10 @@ func (s *ValidationProblemDetails) SetAdditionalProps(val ValidationProblemDetai
 	s.AdditionalProps = val
 }
 
-func (*ValidationProblemDetails) completeTaskRes() {}
-func (*ValidationProblemDetails) createTaskRes()   {}
-func (*ValidationProblemDetails) listTasksRes()    {}
+func (*ValidationProblemDetails) completeTaskRes()       {}
+func (*ValidationProblemDetails) createTaskRes()         {}
+func (*ValidationProblemDetails) listTasksRes()          {}
+func (*ValidationProblemDetails) updateTaskMetadataRes() {}
 
 type ValidationProblemDetailsAdditional map[string]jx.Raw
 

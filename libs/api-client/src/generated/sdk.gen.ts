@@ -280,6 +280,9 @@ import type {
   UpdateRenderedPackData,
   UpdateRenderedPackErrors,
   UpdateRenderedPackResponses,
+  UpdateTaskMetadataData,
+  UpdateTaskMetadataErrors,
+  UpdateTaskMetadataResponses,
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleErrors,
   UpdateTeamMemberRoleResponses,
@@ -1925,6 +1928,34 @@ export const getTask = <ThrowOnError extends boolean = false>(
       ...options,
     },
   );
+
+/**
+ * Update mutable task metadata used for cohorting and search.
+ */
+export const updateTaskMetadata = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateTaskMetadataData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateTaskMetadataResponses,
+    UpdateTaskMetadataErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
 
 /**
  * List all attempts for a task.

@@ -291,8 +291,10 @@ export type CreateTaskBody = {
   references?: Array<TaskRef>;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
   runningTimeoutSec?: number;
+  tags?: Array<string>;
   taskType: string;
   teamId: string;
+  title?: string;
 };
 
 export type CryptoIdentity = {
@@ -681,16 +683,25 @@ export type ListTasksQuery = {
   correlationId?: string;
   cursor?: string;
   diaryId?: string;
+  /**
+   * Repeated excluded tags filter.
+   */
+  excludeTags?: Array<string>;
   hasAttempts?: boolean;
   limit?: number;
   model?: string;
   proposedByAgentId?: string;
   proposedByHumanId?: string;
   provider?: string;
+  query?: string;
   queuedAfter?: string;
   queuedBefore?: string;
   status?: TaskStatus;
   statuses?: Array<TaskStatus>;
+  /**
+   * Repeated tags filter. Task must include all tags.
+   */
+  tags?: Array<string>;
   /**
    * Repeated task type filter. Single value also accepted.
    */
@@ -1456,8 +1467,10 @@ export type Task = {
     | 'failed'
     | 'cancelled'
     | 'expired';
+  tags: Array<string>;
   taskType: string;
   teamId: string;
+  title: string | null;
 };
 
 export type TaskAttempt = {
@@ -1609,6 +1622,11 @@ export type TaskUsage = {
   outputTokens: number;
   provider?: string;
   toolCalls?: number;
+};
+
+export type UpdateTaskMetadataBody = {
+  tags?: Array<string>;
+  title?: string | null;
 };
 
 export type ValidationError = {
@@ -5227,12 +5245,21 @@ export type ListTasksData = {
   path?: never;
   query: {
     teamId: string;
+    query?: string;
     status?: TaskStatus;
     statuses?: Array<TaskStatus>;
     /**
      * Repeated task type filter. Single value also accepted.
      */
     taskTypes?: Array<string>;
+    /**
+     * Repeated tags filter. Task must include all tags.
+     */
+    tags?: Array<string>;
+    /**
+     * Repeated excluded tags filter.
+     */
+    excludeTags?: Array<string>;
     provider?: string;
     model?: string;
     correlationId?: string;
@@ -5292,8 +5319,10 @@ export type CreateTaskData = {
     references?: Array<TaskRef>;
     requiredExecutorTrustLevel?: ExecutorTrustLevel;
     runningTimeoutSec?: number;
+    tags?: Array<string>;
     taskType: string;
     teamId: string;
+    title?: string;
   };
   path?: never;
   query?: never;
@@ -5387,6 +5416,50 @@ export type GetTaskResponses = {
 };
 
 export type GetTaskResponse = GetTaskResponses[keyof GetTaskResponses];
+
+export type UpdateTaskMetadataData = {
+  body?: {
+    tags?: Array<string>;
+    title?: string | null;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}';
+};
+
+export type UpdateTaskMetadataErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type UpdateTaskMetadataError =
+  UpdateTaskMetadataErrors[keyof UpdateTaskMetadataErrors];
+
+export type UpdateTaskMetadataResponses = {
+  /**
+   * Default Response
+   */
+  200: Task;
+};
+
+export type UpdateTaskMetadataResponse =
+  UpdateTaskMetadataResponses[keyof UpdateTaskMetadataResponses];
 
 export type ListTaskAttemptsData = {
   body?: never;

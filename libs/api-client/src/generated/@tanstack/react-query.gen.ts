@@ -105,6 +105,7 @@ import {
   updateDiaryEntryById,
   updateEntryRelationStatus,
   updateRenderedPack,
+  updateTaskMetadata,
   updateTeamMemberRole,
   verifyAgentSignature,
   verifyCryptoSignature,
@@ -388,6 +389,9 @@ import type {
   UpdateRenderedPackData,
   UpdateRenderedPackError,
   UpdateRenderedPackResponse,
+  UpdateTaskMetadataData,
+  UpdateTaskMetadataError,
+  UpdateTaskMetadataResponse,
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleError,
   UpdateTeamMemberRoleResponse,
@@ -2782,6 +2786,33 @@ export const getTaskOptions = (options: Options<GetTaskData>) =>
     },
     queryKey: getTaskQueryKey(options),
   });
+
+/**
+ * Update mutable task metadata used for cohorting and search.
+ */
+export const updateTaskMetadataMutation = (
+  options?: Partial<Options<UpdateTaskMetadataData>>,
+): UseMutationOptions<
+  UpdateTaskMetadataResponse,
+  UpdateTaskMetadataError,
+  Options<UpdateTaskMetadataData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateTaskMetadataResponse,
+    UpdateTaskMetadataError,
+    Options<UpdateTaskMetadataData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateTaskMetadata({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const listTaskAttemptsQueryKey = (
   options: Options<ListTaskAttemptsData>,
