@@ -7,6 +7,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import { makeFulfillBriefTask } from '../test-fixtures.js';
+import { buildFreeformUserPrompt } from './freeform.js';
 import { buildTaskUserPrompt } from './index.js';
 
 describe('buildTaskUserPrompt', () => {
@@ -269,6 +270,58 @@ describe('buildTaskUserPrompt', () => {
     const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).not.toContain('Moltnet-Correlation-Id');
     expect(prompt).not.toMatch(/^## Correlation/m);
+  });
+
+  it('renders Prior context section when continueFrom is present', () => {
+    const prompt = buildFreeformUserPrompt(
+      {
+        brief: 'continue the work',
+        continueFrom: {
+          taskId: '11111111-1111-4111-8111-111111111111',
+          attemptN: 1,
+        },
+      } as never,
+      {
+        taskId: 'new-task',
+        priorContext: {
+          summary:
+            'The agent established that the canary token is ABC-XYZ-123.',
+          artifacts: [
+            { kind: 'markdown', title: 'notes', body: 'Some notes.' },
+          ],
+        },
+      },
+    );
+    expect(prompt.text).toContain('Prior context');
+    expect(prompt.text).toContain('canary token is ABC-XYZ-123');
+    expect(prompt.text).toContain('notes');
+    expect(prompt.text).toContain('Some notes.');
+  });
+
+  it('omits Prior context section when continueFrom is absent', () => {
+    const prompt = buildFreeformUserPrompt({ brief: 'standalone' } as never, {
+      taskId: 'new-task',
+    });
+    expect(prompt.text).not.toContain('Prior context');
+  });
+
+  it('omits artifact body when over 16 KiB and emits a pointer line', () => {
+    const big = 'x'.repeat(17_000);
+    const prompt = buildFreeformUserPrompt(
+      {
+        brief: 'continue',
+        continueFrom: { taskId: 'aaa', attemptN: 1 },
+      } as never,
+      {
+        taskId: 'new-task',
+        priorContext: {
+          summary: 'done',
+          artifacts: [{ kind: 'markdown', title: 'big', body: big }],
+        },
+      },
+    );
+    expect(prompt.text).not.toContain(big);
+    expect(prompt.text).toMatch(/artifact 0.+kind: markdown.+title: big/i);
   });
 
   it('throws on unknown taskType', () => {

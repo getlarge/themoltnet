@@ -10,6 +10,53 @@ import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
   taskId: string;
+  /**
+   * Source-task material to inline into the prompt when this is a
+   * continuation. Caller computes and passes; the prompt builder only
+   * decides how to render (inlining threshold, manifest fallback).
+   */
+  priorContext?: {
+    summary?: string;
+    artifacts?: ReadonlyArray<{
+      kind: string;
+      title: string;
+      body?: string;
+    }>;
+  };
+}
+
+const INLINE_ARTIFACT_THRESHOLD = 16 * 1024;
+const TOTAL_INLINE_BUDGET = 32 * 1024;
+
+function buildPriorContextSection(
+  priorContext: Ctx['priorContext'],
+): string | null {
+  if (!priorContext) return null;
+  const lines: string[] = ['# Prior context', ''];
+  if (priorContext.summary) {
+    lines.push('## Summary', priorContext.summary, '');
+  }
+  let inlineUsed = priorContext.summary?.length ?? 0;
+  priorContext.artifacts?.forEach((art, i) => {
+    const bodyLen = art.body?.length ?? 0;
+    const inlinable =
+      art.body &&
+      bodyLen < INLINE_ARTIFACT_THRESHOLD &&
+      inlineUsed + bodyLen < TOTAL_INLINE_BUDGET;
+    if (inlinable) {
+      lines.push(`## Artifact ${i}: ${art.title} (${art.kind})`, art.body!, '');
+      inlineUsed += bodyLen;
+    } else {
+      lines.push(
+        `## Artifact ${i} (pointer): kind: ${art.kind}, title: ${art.title}`,
+        '(body omitted; use tasks_get to retrieve full content)',
+        '',
+      );
+    }
+  });
+  // Trim trailing blank line so the assembler controls inter-section spacing.
+  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+  return lines.join('\n');
 }
 
 export function buildFreeformUserPrompt(
@@ -107,6 +154,19 @@ export function buildFreeformUserPrompt(
       }),
     },
   ];
+
+  const priorContextBody = buildPriorContextSection(ctx.priorContext);
+  if (priorContextBody) {
+    sections.splice(
+      sections.findIndex((s) => s.id === 'freeform.workflow') + 1,
+      0,
+      {
+        id: 'freeform.prior_context',
+        source: 'task_input',
+        body: priorContextBody,
+      },
+    );
+  }
 
   return assembleTaskPrompt('freeform', sections);
 }
