@@ -211,6 +211,7 @@ export type {
   CryptoVerifyResult,
   CustomPackEntryResult,
   CustomPackResult,
+  DaemonState,
   DeleteDiaryData,
   DeleteDiaryEntryByIdData,
   DeleteDiaryEntryByIdError,

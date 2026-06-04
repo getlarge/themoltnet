@@ -99,6 +99,7 @@ export type CompileStats = {
 
 export type CompleteTaskBody = {
   contentSignature?: string;
+  daemonState?: DaemonState | null;
   executorFingerprint?: string;
   executorManifest?: {
     [key: string]: unknown;
@@ -322,6 +323,11 @@ export type CustomPackResult = {
   params: {
     [key: string]: unknown;
   };
+};
+
+export type DaemonState = {
+  reportedAt: string;
+  slotResumableUntil: string | null;
 };
 
 export type DiaryCatalog = {
@@ -1468,6 +1474,10 @@ export type TaskAttempt = {
     [key: string]: unknown;
   } | null;
   contentSignature: string | null;
+  daemonState: {
+    reportedAt: string;
+    slotResumableUntil: string | null;
+  } | null;
   error: {
     code: string;
     message: string;
@@ -5416,6 +5426,7 @@ export type ListTaskAttemptsResponse =
 export type CompleteTaskData = {
   body: {
     contentSignature?: string;
+    daemonState?: DaemonState | null;
     executorFingerprint?: string;
     executorManifest?: {
       [key: string]: unknown;

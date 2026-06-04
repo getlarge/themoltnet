@@ -236,15 +236,25 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       // loop that used to live below is gone: it would now double-
       // call `/complete` on every task and the server returns 409
       // "Task is already in terminal state" on the second call.
-      onTaskFinished: (output, claimedTask) =>
-        finalizeTask(ctx.agent, output, {
+      onTaskFinished: (output, claimedTask) => {
+        // `executeTask`'s finally block has already called `finishSlot`
+        // by the time we land here, so the slot's `expires_at_ms`
+        // reflects the post-completion idle TTL — that's the
+        // `slotResumableUntil` window we stamp on the attempt row.
+        const resolved = slotRegistry.findLatestProducerSlotByTaskAttempt(
+          claimedTask.task.id,
+          claimedTask.attemptN,
+        );
+        return finalizeTask(ctx.agent, output, {
           task: claimedTask.task,
+          slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
           writeCorrelationAnchors: makePrBodyAnchorWriter({
             gh: createGhCliClient(),
             logger: rootLogger,
           }),
           log: (msg, err) => rootLogger.warn({ err }, msg),
-        }),
+        });
+      },
       executeTask: async (claimedTask, reporter) => {
         let executionPlan: ReturnType<typeof executionPlans.getOrCreate>;
         try {
