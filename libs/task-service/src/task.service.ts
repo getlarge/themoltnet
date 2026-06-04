@@ -1019,7 +1019,38 @@ export function createTaskService(deps: TaskServiceDeps) {
       });
 
       // CAS update: atomically move status from 'queued' → 'dispatched' (Issue 1).
-      const claimedRow = await taskRepository.claimIfQueued(taskId);
+      // For freeform continuations (#1287), serialise concurrent claim
+      // attempts that target the same parent attempt with a non-blocking
+      // advisory lock. If the lock is already held by another daemon, we
+      // signal `conflict` so the task remains queued for the next poll
+      // cycle instead of having two daemons race past `claimIfQueued`
+      // (which races even though it's a CAS, because the race is at the
+      // *parent attempt* level — two different queued continuations of
+      // the same parent could otherwise both win).
+      const continueFrom = (
+        row.input as
+          | { continueFrom?: { taskId: string; attemptN: number } }
+          | null
+          | undefined
+      )?.continueFrom;
+      const claimedRow = await transactionRunner.runInTransaction(
+        async () => {
+          if (continueFrom) {
+            const acquired = await taskRepository.tryAcquireContinuationLock(
+              continueFrom.taskId,
+              continueFrom.attemptN,
+            );
+            if (!acquired) {
+              throw new TaskServiceError(
+                'conflict',
+                'Another daemon is claiming a continuation of the same parent attempt; leaving task queued',
+              );
+            }
+          }
+          return taskRepository.claimIfQueued(taskId);
+        },
+        { name: 'task.claim.cas' },
+      );
       if (!claimedRow) {
         throw new TaskServiceError(
           'conflict',
