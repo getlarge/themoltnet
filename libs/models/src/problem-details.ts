@@ -55,8 +55,15 @@ export const ValidationErrorSchema = Type.Object(
   {
     field: Type.String(),
     message: Type.String(),
+    /**
+     * Optional machine-readable code for branch-able client handling
+     * (e.g. `freeform.sourceTaskNotFound`). Free-form by convention:
+     * `<scope>.<failure>` with dot-namespacing. Absent when the producer
+     * didn't emit one — older code paths just send `field` + `message`.
+     */
+    code: Type.Optional(Type.String()),
   },
-  { $id: 'ValidationError' },
+  { $id: 'ValidationError', additionalProperties: false },
 );
 
 export type ValidationError = Static<typeof ValidationErrorSchema>;
