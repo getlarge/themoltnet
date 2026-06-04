@@ -13,7 +13,7 @@ import {
   validateTaskCreateRequest,
   validateTaskOutput,
 } from './validation.js';
-import { DaemonState } from './wire.js';
+import { DaemonState, TaskAttempt } from './wire.js';
 
 describe('validateTaskCreateRequest', () => {
   it('rejects prototype task type keys as unknown', () => {
@@ -815,6 +815,62 @@ describe('DaemonState', () => {
       Value.Check(DaemonState, {
         slotResumableUntil: null,
       }),
+    ).toBe(false);
+  });
+});
+
+describe('TaskAttempt.daemonState', () => {
+  // Minimal valid TaskAttempt row. All fields required; daemonState is the
+  // field under test.
+  function makeAttempt(daemonState: unknown): unknown {
+    return {
+      taskId: '11111111-1111-4111-8111-111111111111',
+      attemptN: 1,
+      claimedByAgentId: '22222222-2222-4222-8222-222222222222',
+      runtimeId: null,
+      claimedAt: '2026-06-04T12:00:00.000Z',
+      startedAt: null,
+      completedAt: null,
+      status: 'claimed',
+      output: null,
+      outputCid: null,
+      claimedExecutorFingerprint: null,
+      claimedExecutorManifest: null,
+      completedExecutorFingerprint: null,
+      completedExecutorManifest: null,
+      error: null,
+      usage: null,
+      contentSignature: null,
+      signedAt: null,
+      daemonState,
+    };
+  }
+
+  it('accepts a populated daemonState block', () => {
+    expect(
+      Value.Check(
+        TaskAttempt,
+        makeAttempt({
+          reportedAt: '2026-06-04T12:00:00.000Z',
+          slotResumableUntil: '2026-06-04T12:30:00.000Z',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('accepts daemonState = null for older completions', () => {
+    expect(Value.Check(TaskAttempt, makeAttempt(null))).toBe(true);
+  });
+
+  it('rejects malformed daemonState payload', () => {
+    expect(
+      Value.Check(
+        TaskAttempt,
+        makeAttempt({
+          reportedAt: 'not-a-date',
+          slotResumableUntil: null,
+        }),
+      ),
     ).toBe(false);
   });
 });

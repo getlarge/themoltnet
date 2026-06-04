@@ -387,6 +387,14 @@ export const TaskAttempt = Type.Object(
     usage: Type.Union([TaskUsage, Type.Null()]),
     contentSignature: Type.Union([Type.String(), Type.Null()]),
     signedAt: Type.Union([IsoTimestamp, Type.Null()]),
+    /**
+     * Daemon-asserted runtime state stamped on the attempt at completion
+     * time. `null` for older completions written before this surface
+     * existed, and for completions where the daemon opts out (task type
+     * unsupported, slot not allocated). See `DaemonState` for the
+     * boundary contract.
+     */
+    daemonState: Type.Union([DaemonState, Type.Null()]),
   },
   { $id: 'TaskAttempt', additionalProperties: false },
 );
