@@ -101,6 +101,33 @@ const IsoTimestamp = Type.String({ format: 'date-time' });
 const MAX_CLAIM_CONDITION_BRANCHES = 8;
 const MAX_CLAIM_CONDITION_STATUSES = 8;
 
+/**
+ * Daemon-asserted runtime state stamped onto a `TaskAttemptSummary` at
+ * attempt-completion time. The server persists this block verbatim and
+ * reads `slotResumableUntil` for `tasks_continue` create-time
+ * eligibility; the daemon-side claim-affinity filter is the runtime
+ * truth. The block carries its own `reportedAt` so consumers can reason
+ * about staleness without reading documentation. All daemon-asserted
+ * state lives here — top-level attempt fields stay server-authoritative.
+ *
+ * Adding new fields requires explicit design review (intentional
+ * boundary; see docs/superpowers/specs/2026-06-04-tasks-continue-design.md).
+ */
+export const DaemonState = Type.Object(
+  {
+    /** When the daemon wrote this block. Consumers gauge staleness vs. now. */
+    reportedAt: IsoTimestamp,
+    /**
+     * Daemon-asserted "this attempt's warm slot is alive until T". `null`
+     * = not eligible for continuation (task type unsupported, slot already
+     * evicted at completion, daemon opted out).
+     */
+    slotResumableUntil: Type.Union([IsoTimestamp, Type.Null()]),
+  },
+  { $id: 'DaemonState', additionalProperties: false },
+);
+export type DaemonState = Static<typeof DaemonState>;
+
 export type ClaimCondition =
   | {
       op: 'all';

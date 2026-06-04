@@ -1,3 +1,4 @@
+import { Value } from '@sinclair/typebox/value';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -12,6 +13,7 @@ import {
   validateTaskCreateRequest,
   validateTaskOutput,
 } from './validation.js';
+import { DaemonState } from './wire.js';
 
 describe('validateTaskCreateRequest', () => {
   it('rejects prototype task type keys as unknown', () => {
@@ -775,6 +777,44 @@ describe('getTaskExecutionPolicy', () => {
     ).toBe(true);
     expect(
       getTaskExecutionPolicy('fulfill_brief').acceptsInputWorkspaceOverride,
+    ).toBe(false);
+  });
+});
+
+describe('DaemonState', () => {
+  it('accepts a reportedAt timestamp and a non-null slotResumableUntil', () => {
+    expect(
+      Value.Check(DaemonState, {
+        reportedAt: '2026-06-04T12:00:00.000Z',
+        slotResumableUntil: '2026-06-04T12:30:00.000Z',
+      }),
+    ).toBe(true);
+  });
+
+  it('accepts slotResumableUntil = null (not eligible)', () => {
+    expect(
+      Value.Check(DaemonState, {
+        reportedAt: '2026-06-04T12:00:00.000Z',
+        slotResumableUntil: null,
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects unknown fields (additionalProperties false)', () => {
+    expect(
+      Value.Check(DaemonState, {
+        reportedAt: '2026-06-04T12:00:00.000Z',
+        slotResumableUntil: null,
+        somethingExtra: 'x',
+      }),
+    ).toBe(false);
+  });
+
+  it('rejects when reportedAt is missing', () => {
+    expect(
+      Value.Check(DaemonState, {
+        slotResumableUntil: null,
+      }),
     ).toBe(false);
   });
 });
