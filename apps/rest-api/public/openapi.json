@@ -6599,7 +6599,11 @@
         "type": "object"
       },
       "ValidationError": {
+        "additionalProperties": false,
         "properties": {
+          "code": {
+            "type": "string"
+          },
           "field": {
             "type": "string"
           },
@@ -6815,7 +6819,11 @@
             "properties": {
               "errors": {
                 "items": {
+                  "additionalProperties": false,
                   "properties": {
+                    "code": {
+                      "type": "string"
+                    },
                     "field": {
                       "type": "string"
                     },

@@ -1612,6 +1612,7 @@ export type TaskUsage = {
 };
 
 export type ValidationError = {
+  code?: string;
   field: string;
   message: string;
 };
@@ -1684,6 +1685,7 @@ export type ValidationProblemDetails = {
     | undefined;
 } & {
   errors: Array<{
+    code?: string;
     field: string;
     message: string;
   }>;
