@@ -49,7 +49,7 @@ export function createExecutionPlanCache(args: {
         args.slotIdentity,
         args.warmSessionTtlSec,
       );
-      const plan = maybeAttachProducerContext(
+      const plan = maybeAttachWarmSlotContext(
         claimedTask,
         basePlan,
         args.stateDirs,
@@ -68,7 +68,45 @@ function buildClaimedTaskKey(task: CachedTask): string {
   return `${task.task.id}:${task.attemptN}`;
 }
 
-function maybeAttachProducerContext(
+type WarmSlotResolution =
+  | {
+      kind: 'found';
+      producerSlot: ResolvedProducerDaemonSlot;
+      sessionPath: string;
+      workspacePath: string;
+    }
+  | { kind: 'missing' }
+  | { kind: 'no-session-path' };
+
+function resolveWarmSlot(
+  slotRegistry: DaemonSlotRegistry,
+  sourceTaskId: string,
+  sourceAttemptN: number,
+  stateDirs: DaemonStateDirs,
+): WarmSlotResolution {
+  const producerContext = slotRegistry.findLatestProducerSlotByTaskAttempt(
+    sourceTaskId,
+    sourceAttemptN,
+  );
+  if (!producerContext) return { kind: 'missing' };
+
+  const sourceSessionPath = resolveProducerSessionPath(producerContext);
+  if (!sourceSessionPath) return { kind: 'no-session-path' };
+
+  const copiedWorkspaceSource = resolveProducerWorkspaceCopySource(
+    producerContext,
+    stateDirs,
+  );
+
+  return {
+    kind: 'found',
+    producerSlot: producerContext,
+    sessionPath: sourceSessionPath,
+    workspacePath: copiedWorkspaceSource,
+  };
+}
+
+function maybeAttachWarmSlotContext(
   claimedTask: CachedTask,
   basePlan: DaemonTaskExecutionPlan,
   stateDirs: DaemonStateDirs,
@@ -95,39 +133,35 @@ function maybeAttachProducerContext(
     );
   }
 
-  const producerContext = slotRegistry.findLatestProducerSlotByTaskAttempt(
+  const resolution = resolveWarmSlot(
+    slotRegistry,
     targetTaskId,
     targetAttemptN,
+    stateDirs,
   );
-  if (!producerContext) {
+
+  if (resolution.kind === 'missing') {
     throw new ProducerContextResolutionError(
       `No live producer daemon slot found for task ${targetTaskId} attempt ${targetAttemptN}`,
     );
   }
-
-  const sourceSessionPath = resolveProducerSessionPath(producerContext);
-  if (!sourceSessionPath) {
+  if (resolution.kind === 'no-session-path') {
     throw new ProducerContextResolutionError(
       `Producer task ${targetTaskId} attempt ${targetAttemptN} has no persisted Pi session path`,
     );
   }
-
-  const copiedWorkspaceSource = resolveProducerWorkspaceCopySource(
-    producerContext,
-    stateDirs,
-  );
 
   return {
     ...basePlan,
     workspaceMode: 'scratch_mount',
     worktreeBranch: null,
     workspaceSeed: {
-      copyFromPath: copiedWorkspaceSource,
+      copyFromPath: resolution.workspacePath,
       source: 'producer',
     },
     sessionPersistence: {
       sessionDir: `${stateDirs.piSessionsDir}/judge-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,
-      forkFromSessionPath: sourceSessionPath,
+      forkFromSessionPath: resolution.sessionPath,
     },
   };
 }
