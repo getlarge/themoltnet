@@ -148,7 +148,7 @@ func TestE2E_CLI_TeamLifecycle(t *testing.T) {
 	}
 	foundInvitee = false
 	for _, m := range members.Items {
-		if m.SubjectId == inviteeAgentID && m.Role == "managers" {
+		if m.SubjectId == inviteeAgentID && m.Role == moltnetapi.ListTeamMembersOKItemsItemRoleManager {
 			foundInvitee = true
 			break
 		}
@@ -183,7 +183,7 @@ func TestE2E_CLI_TeamLifecycle(t *testing.T) {
 	}
 	foundInvitee = false
 	for _, m := range members.Items {
-		if m.SubjectId == inviteeAgentID && m.Role == "members" {
+		if m.SubjectId == inviteeAgentID && m.Role == moltnetapi.ListTeamMembersOKItemsItemRoleMember {
 			foundInvitee = true
 			break
 		}
