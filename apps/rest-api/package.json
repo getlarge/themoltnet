@@ -14,12 +14,14 @@
   },
   "files": [
     "dist",
-    "public"
+    "public",
+    "models"
   ],
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
-    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force"
+    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
+    "download-model": "node ../../tools/download-embedding-model.mjs --cache-dir ./models"
   },
   "dependencies": {
     "@fastify/cors": "catalog:",
@@ -86,6 +88,13 @@
       "scope:public",
       "platform:server"
     ],
+    "namedInputs": {
+      "default": [
+        "{projectRoot}/**/*",
+        "!{projectRoot}/models/**",
+        "sharedGlobals"
+      ]
+    },
     "targets": {
       "build": {
         "outputs": [
@@ -113,7 +122,22 @@
       },
       "docker:build": {
         "dependsOn": [
-          "build:migrate"
+          "build:migrate",
+          "download-model"
+        ]
+      },
+      "download-model": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "{workspaceRoot}/tools/download-embedding-model.mjs"
+        ],
+        "options": {
+          "command": "pnpm run download-model",
+          "cwd": "apps/rest-api"
+        },
+        "outputs": [
+          "{projectRoot}/models"
         ]
       },
       "e2e": {
