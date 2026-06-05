@@ -759,9 +759,9 @@ class PgDaemonSlotStore implements DaemonSlotStore {
           state TEXT NOT NULL CHECK (state IN ('active', 'idle')),
           last_task_id TEXT NOT NULL,
           last_attempt_n INTEGER NOT NULL,
-          created_at_ms INTEGER NOT NULL,
-          last_used_at_ms INTEGER NOT NULL,
-          expires_at_ms INTEGER NOT NULL,
+          created_at_ms BIGINT NOT NULL,
+          last_used_at_ms BIGINT NOT NULL,
+          expires_at_ms BIGINT NOT NULL,
           PRIMARY KEY (agent_name, provider, model, slot_key)
         );
 
@@ -801,6 +801,11 @@ class PgDaemonSlotStore implements DaemonSlotStore {
             last_attempt_n,
             last_used_at_ms DESC
           );
+
+        ALTER TABLE daemon_slots
+          ALTER COLUMN created_at_ms TYPE BIGINT,
+          ALTER COLUMN last_used_at_ms TYPE BIGINT,
+          ALTER COLUMN expires_at_ms TYPE BIGINT;
       `),
     );
   }

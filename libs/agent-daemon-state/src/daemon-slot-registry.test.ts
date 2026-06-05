@@ -14,6 +14,7 @@ import {
   DaemonSlotRegistry,
   resolveLatestPiSessionPath,
 } from './daemon-slot-registry.js';
+import { pgDaemonSlots } from './pg-schema.js';
 
 describe('DaemonSlotRegistry', () => {
   const tempRoots: string[] = [];
@@ -137,5 +138,11 @@ describe('DaemonSlotRegistry', () => {
     expect(resolved?.session?.sessionPath).toBe(sessionPath);
     expect(resolved?.workspace?.workspaceId).toBe('task-aaaaaaaa');
     expect(resolved?.workspace?.worktreePath).toBe(worktreePath);
+  });
+
+  it('uses 64-bit Postgres columns for epoch millisecond timestamps', () => {
+    expect(pgDaemonSlots.createdAtMs.getSQLType()).toBe('bigint');
+    expect(pgDaemonSlots.lastUsedAtMs.getSQLType()).toBe('bigint');
+    expect(pgDaemonSlots.expiresAtMs.getSQLType()).toBe('bigint');
   });
 });

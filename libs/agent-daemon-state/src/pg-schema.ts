@@ -1,4 +1,11 @@
-import { index, integer, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+} from 'drizzle-orm/pg-core';
 
 export const pgDaemonSlots = pgTable(
   'daemon_slots',
@@ -11,9 +18,9 @@ export const pgDaemonSlots = pgTable(
     state: text('state', { enum: ['active', 'idle'] }).notNull(),
     lastTaskId: text('last_task_id').notNull(),
     lastAttemptN: integer('last_attempt_n').notNull(),
-    createdAtMs: integer('created_at_ms').notNull(),
-    lastUsedAtMs: integer('last_used_at_ms').notNull(),
-    expiresAtMs: integer('expires_at_ms').notNull(),
+    createdAtMs: bigint('created_at_ms', { mode: 'number' }).notNull(),
+    lastUsedAtMs: bigint('last_used_at_ms', { mode: 'number' }).notNull(),
+    expiresAtMs: bigint('expires_at_ms', { mode: 'number' }).notNull(),
   },
   (table) => [
     primaryKey({
