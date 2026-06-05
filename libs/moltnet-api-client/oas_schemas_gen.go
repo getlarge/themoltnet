@@ -2833,10 +2833,10 @@ type CreateTeamInviteCreated struct {
 	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
 	// UUID v4 identifier.
-	ID       uuid.UUID `json:"id"`
-	MaxUses  int       `json:"maxUses"`
-	Role     string    `json:"role"`
-	UseCount int       `json:"useCount"`
+	ID       uuid.UUID                   `json:"id"`
+	MaxUses  int                         `json:"maxUses"`
+	Role     CreateTeamInviteCreatedRole `json:"role"`
+	UseCount int                         `json:"useCount"`
 }
 
 // GetCode returns the value of Code.
@@ -2865,7 +2865,7 @@ func (s *CreateTeamInviteCreated) GetMaxUses() int {
 }
 
 // GetRole returns the value of Role.
-func (s *CreateTeamInviteCreated) GetRole() string {
+func (s *CreateTeamInviteCreated) GetRole() CreateTeamInviteCreatedRole {
 	return s.Role
 }
 
@@ -2900,7 +2900,7 @@ func (s *CreateTeamInviteCreated) SetMaxUses(val int) {
 }
 
 // SetRole sets the value of Role.
-func (s *CreateTeamInviteCreated) SetRole(val string) {
+func (s *CreateTeamInviteCreated) SetRole(val CreateTeamInviteCreatedRole) {
 	s.Role = val
 }
 
@@ -2910,6 +2910,47 @@ func (s *CreateTeamInviteCreated) SetUseCount(val int) {
 }
 
 func (*CreateTeamInviteCreated) createTeamInviteRes() {}
+
+type CreateTeamInviteCreatedRole string
+
+const (
+	CreateTeamInviteCreatedRoleManager CreateTeamInviteCreatedRole = "manager"
+	CreateTeamInviteCreatedRoleMember  CreateTeamInviteCreatedRole = "member"
+)
+
+// AllValues returns all CreateTeamInviteCreatedRole values.
+func (CreateTeamInviteCreatedRole) AllValues() []CreateTeamInviteCreatedRole {
+	return []CreateTeamInviteCreatedRole{
+		CreateTeamInviteCreatedRoleManager,
+		CreateTeamInviteCreatedRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateTeamInviteCreatedRole) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateTeamInviteCreatedRoleManager:
+		return []byte(s), nil
+	case CreateTeamInviteCreatedRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateTeamInviteCreatedRole) UnmarshalText(data []byte) error {
+	switch CreateTeamInviteCreatedRole(data) {
+	case CreateTeamInviteCreatedRoleManager:
+		*s = CreateTeamInviteCreatedRoleManager
+		return nil
+	case CreateTeamInviteCreatedRoleMember:
+		*s = CreateTeamInviteCreatedRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type CreateTeamInviteForbidden ProblemDetails
 
@@ -8935,10 +8976,10 @@ func (s *GetTeamOK) SetUpdatedAt(val time.Time) {
 func (*GetTeamOK) getTeamRes() {}
 
 type GetTeamOKMembersItem struct {
-	DisplayName string    `json:"displayName"`
-	Email       OptString `json:"email"`
-	Fingerprint OptString `json:"fingerprint"`
-	Role        string    `json:"role"`
+	DisplayName string                   `json:"displayName"`
+	Email       OptString                `json:"email"`
+	Fingerprint OptString                `json:"fingerprint"`
+	Role        GetTeamOKMembersItemRole `json:"role"`
 	// UUID v4 identifier.
 	SubjectId   uuid.UUID                       `json:"subjectId"`
 	SubjectType GetTeamOKMembersItemSubjectType `json:"subjectType"`
@@ -8960,7 +9001,7 @@ func (s *GetTeamOKMembersItem) GetFingerprint() OptString {
 }
 
 // GetRole returns the value of Role.
-func (s *GetTeamOKMembersItem) GetRole() string {
+func (s *GetTeamOKMembersItem) GetRole() GetTeamOKMembersItemRole {
 	return s.Role
 }
 
@@ -8990,7 +9031,7 @@ func (s *GetTeamOKMembersItem) SetFingerprint(val OptString) {
 }
 
 // SetRole sets the value of Role.
-func (s *GetTeamOKMembersItem) SetRole(val string) {
+func (s *GetTeamOKMembersItem) SetRole(val GetTeamOKMembersItemRole) {
 	s.Role = val
 }
 
@@ -9002,6 +9043,54 @@ func (s *GetTeamOKMembersItem) SetSubjectId(val uuid.UUID) {
 // SetSubjectType sets the value of SubjectType.
 func (s *GetTeamOKMembersItem) SetSubjectType(val GetTeamOKMembersItemSubjectType) {
 	s.SubjectType = val
+}
+
+type GetTeamOKMembersItemRole string
+
+const (
+	GetTeamOKMembersItemRoleOwner   GetTeamOKMembersItemRole = "owner"
+	GetTeamOKMembersItemRoleManager GetTeamOKMembersItemRole = "manager"
+	GetTeamOKMembersItemRoleMember  GetTeamOKMembersItemRole = "member"
+)
+
+// AllValues returns all GetTeamOKMembersItemRole values.
+func (GetTeamOKMembersItemRole) AllValues() []GetTeamOKMembersItemRole {
+	return []GetTeamOKMembersItemRole{
+		GetTeamOKMembersItemRoleOwner,
+		GetTeamOKMembersItemRoleManager,
+		GetTeamOKMembersItemRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetTeamOKMembersItemRole) MarshalText() ([]byte, error) {
+	switch s {
+	case GetTeamOKMembersItemRoleOwner:
+		return []byte(s), nil
+	case GetTeamOKMembersItemRoleManager:
+		return []byte(s), nil
+	case GetTeamOKMembersItemRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetTeamOKMembersItemRole) UnmarshalText(data []byte) error {
+	switch GetTeamOKMembersItemRole(data) {
+	case GetTeamOKMembersItemRoleOwner:
+		*s = GetTeamOKMembersItemRoleOwner
+		return nil
+	case GetTeamOKMembersItemRoleManager:
+		*s = GetTeamOKMembersItemRoleManager
+		return nil
+	case GetTeamOKMembersItemRoleMember:
+		*s = GetTeamOKMembersItemRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type GetTeamOKMembersItemSubjectType string
@@ -9419,13 +9508,13 @@ type JoinTeamNotFound ProblemDetails
 func (*JoinTeamNotFound) joinTeamRes() {}
 
 type JoinTeamOK struct {
-	Role string `json:"role"`
+	Role JoinTeamOKRole `json:"role"`
 	// UUID v4 identifier.
 	TeamId uuid.UUID `json:"teamId"`
 }
 
 // GetRole returns the value of Role.
-func (s *JoinTeamOK) GetRole() string {
+func (s *JoinTeamOK) GetRole() JoinTeamOKRole {
 	return s.Role
 }
 
@@ -9435,7 +9524,7 @@ func (s *JoinTeamOK) GetTeamId() uuid.UUID {
 }
 
 // SetRole sets the value of Role.
-func (s *JoinTeamOK) SetRole(val string) {
+func (s *JoinTeamOK) SetRole(val JoinTeamOKRole) {
 	s.Role = val
 }
 
@@ -9445,6 +9534,47 @@ func (s *JoinTeamOK) SetTeamId(val uuid.UUID) {
 }
 
 func (*JoinTeamOK) joinTeamRes() {}
+
+type JoinTeamOKRole string
+
+const (
+	JoinTeamOKRoleManager JoinTeamOKRole = "manager"
+	JoinTeamOKRoleMember  JoinTeamOKRole = "member"
+)
+
+// AllValues returns all JoinTeamOKRole values.
+func (JoinTeamOKRole) AllValues() []JoinTeamOKRole {
+	return []JoinTeamOKRole{
+		JoinTeamOKRoleManager,
+		JoinTeamOKRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s JoinTeamOKRole) MarshalText() ([]byte, error) {
+	switch s {
+	case JoinTeamOKRoleManager:
+		return []byte(s), nil
+	case JoinTeamOKRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *JoinTeamOKRole) UnmarshalText(data []byte) error {
+	switch JoinTeamOKRole(data) {
+	case JoinTeamOKRoleManager:
+		*s = JoinTeamOKRoleManager
+		return nil
+	case JoinTeamOKRoleMember:
+		*s = JoinTeamOKRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type JoinTeamReq struct {
 	Code string `json:"code"`
@@ -10483,10 +10613,10 @@ type ListTeamInvitesOKItemsItem struct {
 	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
 	// UUID v4 identifier.
-	ID       uuid.UUID `json:"id"`
-	MaxUses  int       `json:"maxUses"`
-	Role     string    `json:"role"`
-	UseCount int       `json:"useCount"`
+	ID       uuid.UUID                      `json:"id"`
+	MaxUses  int                            `json:"maxUses"`
+	Role     ListTeamInvitesOKItemsItemRole `json:"role"`
+	UseCount int                            `json:"useCount"`
 }
 
 // GetCode returns the value of Code.
@@ -10515,7 +10645,7 @@ func (s *ListTeamInvitesOKItemsItem) GetMaxUses() int {
 }
 
 // GetRole returns the value of Role.
-func (s *ListTeamInvitesOKItemsItem) GetRole() string {
+func (s *ListTeamInvitesOKItemsItem) GetRole() ListTeamInvitesOKItemsItemRole {
 	return s.Role
 }
 
@@ -10550,13 +10680,54 @@ func (s *ListTeamInvitesOKItemsItem) SetMaxUses(val int) {
 }
 
 // SetRole sets the value of Role.
-func (s *ListTeamInvitesOKItemsItem) SetRole(val string) {
+func (s *ListTeamInvitesOKItemsItem) SetRole(val ListTeamInvitesOKItemsItemRole) {
 	s.Role = val
 }
 
 // SetUseCount sets the value of UseCount.
 func (s *ListTeamInvitesOKItemsItem) SetUseCount(val int) {
 	s.UseCount = val
+}
+
+type ListTeamInvitesOKItemsItemRole string
+
+const (
+	ListTeamInvitesOKItemsItemRoleManager ListTeamInvitesOKItemsItemRole = "manager"
+	ListTeamInvitesOKItemsItemRoleMember  ListTeamInvitesOKItemsItemRole = "member"
+)
+
+// AllValues returns all ListTeamInvitesOKItemsItemRole values.
+func (ListTeamInvitesOKItemsItemRole) AllValues() []ListTeamInvitesOKItemsItemRole {
+	return []ListTeamInvitesOKItemsItemRole{
+		ListTeamInvitesOKItemsItemRoleManager,
+		ListTeamInvitesOKItemsItemRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListTeamInvitesOKItemsItemRole) MarshalText() ([]byte, error) {
+	switch s {
+	case ListTeamInvitesOKItemsItemRoleManager:
+		return []byte(s), nil
+	case ListTeamInvitesOKItemsItemRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListTeamInvitesOKItemsItemRole) UnmarshalText(data []byte) error {
+	switch ListTeamInvitesOKItemsItemRole(data) {
+	case ListTeamInvitesOKItemsItemRoleManager:
+		*s = ListTeamInvitesOKItemsItemRoleManager
+		return nil
+	case ListTeamInvitesOKItemsItemRoleMember:
+		*s = ListTeamInvitesOKItemsItemRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type ListTeamInvitesUnauthorized ProblemDetails
@@ -10588,10 +10759,10 @@ func (s *ListTeamMembersOK) SetItems(val []ListTeamMembersOKItemsItem) {
 func (*ListTeamMembersOK) listTeamMembersRes() {}
 
 type ListTeamMembersOKItemsItem struct {
-	DisplayName string    `json:"displayName"`
-	Email       OptString `json:"email"`
-	Fingerprint OptString `json:"fingerprint"`
-	Role        string    `json:"role"`
+	DisplayName string                         `json:"displayName"`
+	Email       OptString                      `json:"email"`
+	Fingerprint OptString                      `json:"fingerprint"`
+	Role        ListTeamMembersOKItemsItemRole `json:"role"`
 	// UUID v4 identifier.
 	SubjectId   uuid.UUID                             `json:"subjectId"`
 	SubjectType ListTeamMembersOKItemsItemSubjectType `json:"subjectType"`
@@ -10613,7 +10784,7 @@ func (s *ListTeamMembersOKItemsItem) GetFingerprint() OptString {
 }
 
 // GetRole returns the value of Role.
-func (s *ListTeamMembersOKItemsItem) GetRole() string {
+func (s *ListTeamMembersOKItemsItem) GetRole() ListTeamMembersOKItemsItemRole {
 	return s.Role
 }
 
@@ -10643,7 +10814,7 @@ func (s *ListTeamMembersOKItemsItem) SetFingerprint(val OptString) {
 }
 
 // SetRole sets the value of Role.
-func (s *ListTeamMembersOKItemsItem) SetRole(val string) {
+func (s *ListTeamMembersOKItemsItem) SetRole(val ListTeamMembersOKItemsItemRole) {
 	s.Role = val
 }
 
@@ -10655,6 +10826,54 @@ func (s *ListTeamMembersOKItemsItem) SetSubjectId(val uuid.UUID) {
 // SetSubjectType sets the value of SubjectType.
 func (s *ListTeamMembersOKItemsItem) SetSubjectType(val ListTeamMembersOKItemsItemSubjectType) {
 	s.SubjectType = val
+}
+
+type ListTeamMembersOKItemsItemRole string
+
+const (
+	ListTeamMembersOKItemsItemRoleOwner   ListTeamMembersOKItemsItemRole = "owner"
+	ListTeamMembersOKItemsItemRoleManager ListTeamMembersOKItemsItemRole = "manager"
+	ListTeamMembersOKItemsItemRoleMember  ListTeamMembersOKItemsItemRole = "member"
+)
+
+// AllValues returns all ListTeamMembersOKItemsItemRole values.
+func (ListTeamMembersOKItemsItemRole) AllValues() []ListTeamMembersOKItemsItemRole {
+	return []ListTeamMembersOKItemsItemRole{
+		ListTeamMembersOKItemsItemRoleOwner,
+		ListTeamMembersOKItemsItemRoleManager,
+		ListTeamMembersOKItemsItemRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListTeamMembersOKItemsItemRole) MarshalText() ([]byte, error) {
+	switch s {
+	case ListTeamMembersOKItemsItemRoleOwner:
+		return []byte(s), nil
+	case ListTeamMembersOKItemsItemRoleManager:
+		return []byte(s), nil
+	case ListTeamMembersOKItemsItemRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListTeamMembersOKItemsItemRole) UnmarshalText(data []byte) error {
+	switch ListTeamMembersOKItemsItemRole(data) {
+	case ListTeamMembersOKItemsItemRoleOwner:
+		*s = ListTeamMembersOKItemsItemRoleOwner
+		return nil
+	case ListTeamMembersOKItemsItemRoleManager:
+		*s = ListTeamMembersOKItemsItemRoleManager
+		return nil
+	case ListTeamMembersOKItemsItemRoleMember:
+		*s = ListTeamMembersOKItemsItemRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type ListTeamMembersOKItemsItemSubjectType string
@@ -10724,11 +10943,11 @@ func (*ListTeamsOK) listTeamsRes() {}
 
 type ListTeamsOKItemsItem struct {
 	// UUID v4 identifier.
-	ID       uuid.UUID `json:"id"`
-	Name     string    `json:"name"`
-	Personal bool      `json:"personal"`
-	Role     string    `json:"role"`
-	Status   string    `json:"status"`
+	ID       uuid.UUID                `json:"id"`
+	Name     string                   `json:"name"`
+	Personal bool                     `json:"personal"`
+	Role     ListTeamsOKItemsItemRole `json:"role"`
+	Status   string                   `json:"status"`
 }
 
 // GetID returns the value of ID.
@@ -10747,7 +10966,7 @@ func (s *ListTeamsOKItemsItem) GetPersonal() bool {
 }
 
 // GetRole returns the value of Role.
-func (s *ListTeamsOKItemsItem) GetRole() string {
+func (s *ListTeamsOKItemsItem) GetRole() ListTeamsOKItemsItemRole {
 	return s.Role
 }
 
@@ -10772,13 +10991,61 @@ func (s *ListTeamsOKItemsItem) SetPersonal(val bool) {
 }
 
 // SetRole sets the value of Role.
-func (s *ListTeamsOKItemsItem) SetRole(val string) {
+func (s *ListTeamsOKItemsItem) SetRole(val ListTeamsOKItemsItemRole) {
 	s.Role = val
 }
 
 // SetStatus sets the value of Status.
 func (s *ListTeamsOKItemsItem) SetStatus(val string) {
 	s.Status = val
+}
+
+type ListTeamsOKItemsItemRole string
+
+const (
+	ListTeamsOKItemsItemRoleOwner   ListTeamsOKItemsItemRole = "owner"
+	ListTeamsOKItemsItemRoleManager ListTeamsOKItemsItemRole = "manager"
+	ListTeamsOKItemsItemRoleMember  ListTeamsOKItemsItemRole = "member"
+)
+
+// AllValues returns all ListTeamsOKItemsItemRole values.
+func (ListTeamsOKItemsItemRole) AllValues() []ListTeamsOKItemsItemRole {
+	return []ListTeamsOKItemsItemRole{
+		ListTeamsOKItemsItemRoleOwner,
+		ListTeamsOKItemsItemRoleManager,
+		ListTeamsOKItemsItemRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListTeamsOKItemsItemRole) MarshalText() ([]byte, error) {
+	switch s {
+	case ListTeamsOKItemsItemRoleOwner:
+		return []byte(s), nil
+	case ListTeamsOKItemsItemRoleManager:
+		return []byte(s), nil
+	case ListTeamsOKItemsItemRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListTeamsOKItemsItemRole) UnmarshalText(data []byte) error {
+	switch ListTeamsOKItemsItemRole(data) {
+	case ListTeamsOKItemsItemRoleOwner:
+		*s = ListTeamsOKItemsItemRoleOwner
+		return nil
+	case ListTeamsOKItemsItemRoleManager:
+		*s = ListTeamsOKItemsItemRoleManager
+		return nil
+	case ListTeamsOKItemsItemRoleMember:
+		*s = ListTeamsOKItemsItemRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type ListTeamsUnauthorized ProblemDetails
@@ -21710,12 +21977,12 @@ type UpdateTeamMemberRoleNotFound ProblemDetails
 func (*UpdateTeamMemberRoleNotFound) updateTeamMemberRoleRes() {}
 
 type UpdateTeamMemberRoleOK struct {
-	Role    string `json:"role"`
-	Updated bool   `json:"updated"`
+	Role    UpdateTeamMemberRoleOKRole `json:"role"`
+	Updated bool                       `json:"updated"`
 }
 
 // GetRole returns the value of Role.
-func (s *UpdateTeamMemberRoleOK) GetRole() string {
+func (s *UpdateTeamMemberRoleOK) GetRole() UpdateTeamMemberRoleOKRole {
 	return s.Role
 }
 
@@ -21725,7 +21992,7 @@ func (s *UpdateTeamMemberRoleOK) GetUpdated() bool {
 }
 
 // SetRole sets the value of Role.
-func (s *UpdateTeamMemberRoleOK) SetRole(val string) {
+func (s *UpdateTeamMemberRoleOK) SetRole(val UpdateTeamMemberRoleOKRole) {
 	s.Role = val
 }
 
@@ -21735,6 +22002,47 @@ func (s *UpdateTeamMemberRoleOK) SetUpdated(val bool) {
 }
 
 func (*UpdateTeamMemberRoleOK) updateTeamMemberRoleRes() {}
+
+type UpdateTeamMemberRoleOKRole string
+
+const (
+	UpdateTeamMemberRoleOKRoleManager UpdateTeamMemberRoleOKRole = "manager"
+	UpdateTeamMemberRoleOKRoleMember  UpdateTeamMemberRoleOKRole = "member"
+)
+
+// AllValues returns all UpdateTeamMemberRoleOKRole values.
+func (UpdateTeamMemberRoleOKRole) AllValues() []UpdateTeamMemberRoleOKRole {
+	return []UpdateTeamMemberRoleOKRole{
+		UpdateTeamMemberRoleOKRoleManager,
+		UpdateTeamMemberRoleOKRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateTeamMemberRoleOKRole) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateTeamMemberRoleOKRoleManager:
+		return []byte(s), nil
+	case UpdateTeamMemberRoleOKRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateTeamMemberRoleOKRole) UnmarshalText(data []byte) error {
+	switch UpdateTeamMemberRoleOKRole(data) {
+	case UpdateTeamMemberRoleOKRoleManager:
+		*s = UpdateTeamMemberRoleOKRoleManager
+		return nil
+	case UpdateTeamMemberRoleOKRoleMember:
+		*s = UpdateTeamMemberRoleOKRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type UpdateTeamMemberRoleReq struct {
 	Role UpdateTeamMemberRoleReqRole `json:"role"`

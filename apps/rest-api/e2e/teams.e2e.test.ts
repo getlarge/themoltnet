@@ -102,7 +102,7 @@ describe('Teams', () => {
         (t: { name: string }) => t.name === 'list-test-team',
       );
       expect(team).toBeDefined();
-      expect(team!.role).toBe('owners');
+      expect(team!.role).toBe('owner');
     });
   });
 
@@ -219,7 +219,7 @@ describe('Teams', () => {
         (m: { subjectId: string }) => m.subjectId === agentB.identityId,
       );
       expect(memberB).toBeDefined();
-      expect(memberB!.role).toBe('members');
+      expect(memberB!.role).toBe('member');
     });
 
     it('agent B can now view the team', async () => {
@@ -298,7 +298,7 @@ describe('Teams', () => {
         (m: { subjectId: string }) => m.subjectId === agentB.identityId,
       );
       expect(memberB).toBeDefined();
-      expect(memberB!.role).toBe('managers');
+      expect(memberB!.role).toBe('manager');
     });
 
     it('updates member roles explicitly', async () => {
@@ -322,7 +322,7 @@ describe('Teams', () => {
       const memberB = members!.items.find(
         (m: { subjectId: string }) => m.subjectId === agentB.identityId,
       );
-      expect(memberB!.role).toBe('members');
+      expect(memberB!.role).toBe('member');
     });
 
     it('downgrades an existing manager when joining with a member invite', async () => {
@@ -367,7 +367,7 @@ describe('Teams', () => {
         (m: { subjectId: string }) => m.subjectId === agentB.identityId,
       );
       expect(memberB).toBeDefined();
-      expect(memberB!.role).toBe('members');
+      expect(memberB!.role).toBe('member');
     });
 
     it('rejects owner role changes explicitly', async () => {
@@ -534,7 +534,7 @@ describe('Teams', () => {
         (t: { personal: boolean }) => t.personal,
       );
       expect(personal).toBeDefined();
-      expect(personal!.role).toBe('owners');
+      expect(personal!.role).toBe('owner');
       expect(personal!.status).toBe('active');
     });
   });

@@ -63,7 +63,7 @@ interface KetoMember {
 interface EnrichedMember {
   subjectId: string;
   subjectType: 'agent' | 'human';
-  role: string;
+  role: TeamRole;
   displayName: string;
   fingerprint?: string;
   email?: string;
@@ -204,7 +204,7 @@ async function resolveMembers(
       return {
         subjectId: m.subjectId,
         subjectType,
-        role: m.relation,
+        role: teamRelationToRole(m.relation),
         displayName: m.subjectId.slice(0, 8),
       };
     }
@@ -215,7 +215,7 @@ async function resolveMembers(
       return {
         subjectId: m.subjectId,
         subjectType,
-        role: m.relation,
+        role: teamRelationToRole(m.relation),
         displayName: username ?? m.subjectId.slice(0, 8),
         email,
       };
@@ -226,7 +226,7 @@ async function resolveMembers(
     return {
       subjectId: m.subjectId,
       subjectType,
-      role: m.relation,
+      role: teamRelationToRole(m.relation),
       displayName: fingerprint ?? m.subjectId.slice(0, 8),
       fingerprint,
     };
@@ -399,9 +399,6 @@ export function teamRoutes(fastify: FastifyInstance) {
         ).map((t) => [t.id, t]),
       );
 
-      // Build role map from the Keto tuples we already have
-      const roleMap = new Map(teamRoles.map((r) => [r.teamId, r.relation]));
-
       const items = teamRoles
         .map((r) => {
           const team = teamsMap.get(r.teamId);
@@ -411,7 +408,7 @@ export function teamRoutes(fastify: FastifyInstance) {
             name: team.name,
             personal: team.personal,
             status: team.status,
-            role: roleMap.get(r.teamId) ?? 'member',
+            role: teamRelationToRole(r.relation),
           };
         })
         .filter((item): item is NonNullable<typeof item> => item !== null);

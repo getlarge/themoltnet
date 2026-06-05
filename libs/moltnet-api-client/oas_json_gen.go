@@ -8904,7 +8904,7 @@ func (s *CreateTeamInviteCreated) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("role")
-		e.Str(s.Role)
+		s.Role.Encode(e)
 	}
 	{
 		e.FieldStart("useCount")
@@ -8994,9 +8994,7 @@ func (s *CreateTeamInviteCreated) Decode(d *jx.Decoder) error {
 		case "role":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Str()
-				s.Role = string(v)
-				if err != nil {
+				if err := s.Role.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -9067,6 +9065,46 @@ func (s *CreateTeamInviteCreated) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateTeamInviteCreated) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateTeamInviteCreatedRole as json.
+func (s CreateTeamInviteCreatedRole) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateTeamInviteCreatedRole from json.
+func (s *CreateTeamInviteCreatedRole) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateTeamInviteCreatedRole to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateTeamInviteCreatedRole(v) {
+	case CreateTeamInviteCreatedRoleManager:
+		*s = CreateTeamInviteCreatedRoleManager
+	case CreateTeamInviteCreatedRoleMember:
+		*s = CreateTeamInviteCreatedRoleMember
+	default:
+		*s = CreateTeamInviteCreatedRole(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateTeamInviteCreatedRole) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateTeamInviteCreatedRole) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -24458,7 +24496,7 @@ func (s *GetTeamOKMembersItem) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("role")
-		e.Str(s.Role)
+		s.Role.Encode(e)
 	}
 	{
 		e.FieldStart("subjectId")
@@ -24523,9 +24561,7 @@ func (s *GetTeamOKMembersItem) Decode(d *jx.Decoder) error {
 		case "role":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.Role = string(v)
-				if err != nil {
+				if err := s.Role.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -24606,6 +24642,48 @@ func (s *GetTeamOKMembersItem) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *GetTeamOKMembersItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetTeamOKMembersItemRole as json.
+func (s GetTeamOKMembersItemRole) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes GetTeamOKMembersItemRole from json.
+func (s *GetTeamOKMembersItemRole) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetTeamOKMembersItemRole to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch GetTeamOKMembersItemRole(v) {
+	case GetTeamOKMembersItemRoleOwner:
+		*s = GetTeamOKMembersItemRoleOwner
+	case GetTeamOKMembersItemRoleManager:
+		*s = GetTeamOKMembersItemRoleManager
+	case GetTeamOKMembersItemRoleMember:
+		*s = GetTeamOKMembersItemRoleMember
+	default:
+		*s = GetTeamOKMembersItemRole(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetTeamOKMembersItemRole) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetTeamOKMembersItemRole) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -26259,7 +26337,7 @@ func (s *JoinTeamOK) Encode(e *jx.Encoder) {
 func (s *JoinTeamOK) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("role")
-		e.Str(s.Role)
+		s.Role.Encode(e)
 	}
 	{
 		e.FieldStart("teamId")
@@ -26284,9 +26362,7 @@ func (s *JoinTeamOK) Decode(d *jx.Decoder) error {
 		case "role":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.Role = string(v)
-				if err != nil {
+				if err := s.Role.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -26357,6 +26433,46 @@ func (s *JoinTeamOK) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *JoinTeamOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes JoinTeamOKRole as json.
+func (s JoinTeamOKRole) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes JoinTeamOKRole from json.
+func (s *JoinTeamOKRole) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode JoinTeamOKRole to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch JoinTeamOKRole(v) {
+	case JoinTeamOKRoleManager:
+		*s = JoinTeamOKRoleManager
+	case JoinTeamOKRoleMember:
+		*s = JoinTeamOKRoleMember
+	default:
+		*s = JoinTeamOKRole(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s JoinTeamOKRole) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *JoinTeamOKRole) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -30437,7 +30553,7 @@ func (s *ListTeamInvitesOKItemsItem) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("role")
-		e.Str(s.Role)
+		s.Role.Encode(e)
 	}
 	{
 		e.FieldStart("useCount")
@@ -30527,9 +30643,7 @@ func (s *ListTeamInvitesOKItemsItem) Decode(d *jx.Decoder) error {
 		case "role":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Str()
-				s.Role = string(v)
-				if err != nil {
+				if err := s.Role.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -30600,6 +30714,46 @@ func (s *ListTeamInvitesOKItemsItem) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ListTeamInvitesOKItemsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListTeamInvitesOKItemsItemRole as json.
+func (s ListTeamInvitesOKItemsItemRole) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ListTeamInvitesOKItemsItemRole from json.
+func (s *ListTeamInvitesOKItemsItemRole) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListTeamInvitesOKItemsItemRole to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ListTeamInvitesOKItemsItemRole(v) {
+	case ListTeamInvitesOKItemsItemRoleManager:
+		*s = ListTeamInvitesOKItemsItemRoleManager
+	case ListTeamInvitesOKItemsItemRoleMember:
+		*s = ListTeamInvitesOKItemsItemRoleMember
+	default:
+		*s = ListTeamInvitesOKItemsItemRole(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ListTeamInvitesOKItemsItemRole) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListTeamInvitesOKItemsItemRole) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -30851,7 +31005,7 @@ func (s *ListTeamMembersOKItemsItem) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("role")
-		e.Str(s.Role)
+		s.Role.Encode(e)
 	}
 	{
 		e.FieldStart("subjectId")
@@ -30916,9 +31070,7 @@ func (s *ListTeamMembersOKItemsItem) Decode(d *jx.Decoder) error {
 		case "role":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.Role = string(v)
-				if err != nil {
+				if err := s.Role.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -30999,6 +31151,48 @@ func (s *ListTeamMembersOKItemsItem) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ListTeamMembersOKItemsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListTeamMembersOKItemsItemRole as json.
+func (s ListTeamMembersOKItemsItemRole) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ListTeamMembersOKItemsItemRole from json.
+func (s *ListTeamMembersOKItemsItemRole) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListTeamMembersOKItemsItemRole to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ListTeamMembersOKItemsItemRole(v) {
+	case ListTeamMembersOKItemsItemRoleOwner:
+		*s = ListTeamMembersOKItemsItemRoleOwner
+	case ListTeamMembersOKItemsItemRoleManager:
+		*s = ListTeamMembersOKItemsItemRoleManager
+	case ListTeamMembersOKItemsItemRoleMember:
+		*s = ListTeamMembersOKItemsItemRoleMember
+	default:
+		*s = ListTeamMembersOKItemsItemRole(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ListTeamMembersOKItemsItemRole) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListTeamMembersOKItemsItemRole) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -31248,7 +31442,7 @@ func (s *ListTeamsOKItemsItem) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("role")
-		e.Str(s.Role)
+		s.Role.Encode(e)
 	}
 	{
 		e.FieldStart("status")
@@ -31312,9 +31506,7 @@ func (s *ListTeamsOKItemsItem) Decode(d *jx.Decoder) error {
 		case "role":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.Role = string(v)
-				if err != nil {
+				if err := s.Role.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -31385,6 +31577,48 @@ func (s *ListTeamsOKItemsItem) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ListTeamsOKItemsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListTeamsOKItemsItemRole as json.
+func (s ListTeamsOKItemsItemRole) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ListTeamsOKItemsItemRole from json.
+func (s *ListTeamsOKItemsItemRole) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListTeamsOKItemsItemRole to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ListTeamsOKItemsItemRole(v) {
+	case ListTeamsOKItemsItemRoleOwner:
+		*s = ListTeamsOKItemsItemRoleOwner
+	case ListTeamsOKItemsItemRoleManager:
+		*s = ListTeamsOKItemsItemRoleManager
+	case ListTeamsOKItemsItemRoleMember:
+		*s = ListTeamsOKItemsItemRoleMember
+	default:
+		*s = ListTeamsOKItemsItemRole(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ListTeamsOKItemsItemRole) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListTeamsOKItemsItemRole) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -54898,7 +55132,7 @@ func (s *UpdateTeamMemberRoleOK) Encode(e *jx.Encoder) {
 func (s *UpdateTeamMemberRoleOK) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("role")
-		e.Str(s.Role)
+		s.Role.Encode(e)
 	}
 	{
 		e.FieldStart("updated")
@@ -54923,9 +55157,7 @@ func (s *UpdateTeamMemberRoleOK) Decode(d *jx.Decoder) error {
 		case "role":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.Role = string(v)
-				if err != nil {
+				if err := s.Role.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -54996,6 +55228,46 @@ func (s *UpdateTeamMemberRoleOK) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateTeamMemberRoleOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateTeamMemberRoleOKRole as json.
+func (s UpdateTeamMemberRoleOKRole) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateTeamMemberRoleOKRole from json.
+func (s *UpdateTeamMemberRoleOKRole) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateTeamMemberRoleOKRole to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateTeamMemberRoleOKRole(v) {
+	case UpdateTeamMemberRoleOKRoleManager:
+		*s = UpdateTeamMemberRoleOKRoleManager
+	case UpdateTeamMemberRoleOKRoleMember:
+		*s = UpdateTeamMemberRoleOKRoleMember
+	default:
+		*s = UpdateTeamMemberRoleOKRole(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateTeamMemberRoleOKRole) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateTeamMemberRoleOKRole) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

@@ -330,6 +330,12 @@ export const UpdateTeamMemberRoleSchema = Type.Object({
   role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
 });
 
+export const TeamRoleSchema = Type.Union([
+  Type.Literal('owner'),
+  Type.Literal('manager'),
+  Type.Literal('member'),
+]);
+
 export const TeamResponseSchema = Type.Object({
   id: UuidSchema,
   name: Type.String(),
@@ -342,7 +348,7 @@ const DateTimeUnsafe = Type.Unsafe<Date | string>(
 export const TeamInviteResponseSchema = Type.Object({
   id: UuidSchema,
   code: Type.String(),
-  role: Type.String(),
+  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
   maxUses: Type.Integer(),
   useCount: Type.Integer(),
   expiresAt: DateTimeUnsafe,
@@ -352,7 +358,7 @@ export const TeamInviteResponseSchema = Type.Object({
 export const TeamMemberSchema = Type.Object({
   subjectId: UuidSchema,
   subjectType: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
-  role: Type.String(),
+  role: TeamRoleSchema,
   displayName: Type.String(),
   fingerprint: Type.Optional(Type.String()),
   email: Type.Optional(Type.String()),
@@ -363,7 +369,7 @@ export const TeamListItemSchema = Type.Object({
   name: Type.String(),
   personal: Type.Boolean(),
   status: Type.String(),
-  role: Type.String(),
+  role: TeamRoleSchema,
 });
 
 export const TeamDetailSchema = Type.Object({
@@ -381,12 +387,12 @@ export const TeamDetailSchema = Type.Object({
 
 export const JoinTeamResponseSchema = Type.Object({
   teamId: UuidSchema,
-  role: Type.String(),
+  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
 });
 
 export const UpdateTeamMemberRoleResponseSchema = Type.Object({
   updated: Type.Boolean(),
-  role: Type.String(),
+  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
 });
 
 export const DeletedResponseSchema = Type.Object({
