@@ -607,9 +607,15 @@ importers:
         specifier: 'catalog:'
         version: 3.9.0(react@19.2.4)
     devDependencies:
+      '@moltnet/bootstrap':
+        specifier: workspace:*
+        version: link:../../libs/bootstrap
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
+      '@moltnet/database':
+        specifier: workspace:*
+        version: link:../../libs/database
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.59.1
@@ -619,6 +625,9 @@ importers:
       '@testing-library/react':
         specifier: ^16.0.0
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../../libs/sdk
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.10

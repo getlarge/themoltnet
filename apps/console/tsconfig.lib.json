@@ -38,6 +38,15 @@
       "path": "../../libs/diary-ui/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/sdk/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/database/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/bootstrap/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/crypto-service/tsconfig.lib.json"
     },
     {
