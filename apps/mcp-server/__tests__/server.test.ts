@@ -589,6 +589,10 @@ describe('buildApp', () => {
           "name": "tasks_console_link",
         },
         {
+          "inputSchema": "efe8c69b446ce007",
+          "name": "tasks_continue",
+        },
+        {
           "inputSchema": "9c0b8526f48db6e1",
           "name": "tasks_create",
         },

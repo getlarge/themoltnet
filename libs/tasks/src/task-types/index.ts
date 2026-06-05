@@ -19,7 +19,12 @@ import {
   CuratePackInput,
   CuratePackOutput,
 } from './curate-pack.js';
-import { FREEFORM_TYPE, FreeformInput, FreeformOutput } from './freeform.js';
+import {
+  FREEFORM_TYPE,
+  FreeformInput,
+  FreeformOutput,
+  validateFreeformInputAsync,
+} from './freeform.js';
 import {
   FULFILL_BRIEF_TYPE,
   FulfillBriefInput,
@@ -256,6 +261,7 @@ export const BUILT_IN_TASK_TYPES = {
     acceptsInputWorkspaceOverride: true,
     requiresReferences: false,
     validateOutput: requireVerificationWhenCriteriaPresent,
+    validateInputAsync: validateFreeformInputAsync,
   },
   [FULFILL_BRIEF_TYPE]: {
     name: FULFILL_BRIEF_TYPE,

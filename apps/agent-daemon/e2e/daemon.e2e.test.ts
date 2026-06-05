@@ -129,6 +129,23 @@ describe('Agent daemon (e2e)', () => {
     });
   }
 
+  function proposeFreeformTask(
+    correlationId: string,
+    continueFrom?: { taskId: string; attemptN: number },
+  ) {
+    return agent.tasks.create({
+      taskType: 'freeform',
+      teamId,
+      diaryId,
+      correlationId,
+      input: {
+        brief: 'Exercise freeform tasks_continue warm-resume path in e2e',
+        title: 'Freeform warm-resume e2e',
+        ...(continueFrom ? { continueFrom } : {}),
+      },
+    });
+  }
+
   function proposeRunEvalTask(
     correlationId: string,
     variantLabel = 'baseline',
@@ -728,6 +745,206 @@ describe('Agent daemon (e2e)', () => {
     }
   }, 60_000);
 
+  describe('freeform tasks_continue warm-slot affinity', () => {
+    // Canonical fake-parent scenario for #1287: seed a freeform warm
+    // slot via the stub harness (real task row + slot registry rows,
+    // no LLM, no Pi boot), then create a continuation. Affinity filter
+    // claims on the daemon that owns the slot; skips on the daemon
+    // that doesn't.
+
+    it('claims a continuation when the warm slot is alive on this daemon', async () => {
+      const mountRoot = mkdtempSync(
+        join(tmpdir(), 'daemon-continue-claim-e2e-'),
+      );
+      tempRoots.push(mountRoot);
+
+      const stateDirs = ensureDaemonStateDirs(mountRoot);
+      const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+      const slotIdentity: DaemonSlotIdentity = {
+        agentName: 'e2e-daemon',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+      };
+      const correlationId = randomUUID();
+      // Long TTL so the affinity filter's existsSync(sessionDir) check
+      // and the server-side `slotResumableUntil` future-check both pass
+      // by the time the continuation task is created and polled.
+      const warmSessionTtlSec = 600;
+
+      try {
+        // 1. Run a real freeform parent task through the stub harness.
+        //    This seeds: a `freeform` row + completed attempt with
+        //    daemonState.slotResumableUntil; a daemon_slots row keyed by
+        //    `freeform:correlation:<corr>`; a session row pointing at a
+        //    .jsonl on disk under stateDirs.piSessionsDir.
+        const parent = await proposeFreeformTask(correlationId);
+        const parentRun = await runStubbedSlotAwareTask({
+          agent,
+          taskId: parent.id,
+          mountRoot,
+          stateDirs,
+          slotRegistry,
+          slotIdentity,
+          warmSessionTtlSec,
+        });
+        expect(parentRun.output.status).toBe('completed');
+
+        const seeded = readDaemonSlotState(stateDirs.registryDbPath);
+        expect(seeded.slots).toHaveLength(1);
+        expect(seeded.sessions).toHaveLength(1);
+        const seededSessionPath = seeded.sessions[0]?.sessionPath as string;
+        expect(seededSessionPath).toBeTruthy();
+        expect(existsSync(seededSessionPath)).toBe(true);
+        // Stamp a distinctive marker into the seeded JSONL so we can
+        // assert the continuation plan's forkFromSessionPath points
+        // back at the same byte sequence.
+        const seededMarker = `seed-marker-${parent.id}`;
+        appendFileSync(seededSessionPath, `${seededMarker}\n`, 'utf8');
+
+        // Sanity: the parent's completion reported a future slotResumableUntil
+        // (otherwise the server will reject the continuation with
+        // freeform.sourceNotResumeEligible before the daemon ever sees it).
+        const parentRow = await agent.tasks.get(parent.id);
+        const parentAttempts = await agent.tasks.listAttempts(parent.id);
+        const acceptedAttempt = parentAttempts.find(
+          (a) => a.attemptN === parentRow.acceptedAttemptN,
+        ) as
+          | { daemonState?: { slotResumableUntil?: string | null } }
+          | undefined;
+        expect(acceptedAttempt?.daemonState?.slotResumableUntil).toBeTruthy();
+
+        // 2. Create the continuation task.
+        const continuationCorrelationId = randomUUID();
+        const continuation = await proposeFreeformTask(
+          continuationCorrelationId,
+          { taskId: parent.id, attemptN: parentRun.output.attemptN },
+        );
+
+        // 3. Drive a PollingApiTaskSource WITH the warm slot registry.
+        //    The affinity filter should let this claim through.
+        const claimingSource = new PollingApiTaskSource({
+          agent,
+          teamId,
+          taskTypes: ['freeform'],
+          leaseTtlSec: 60,
+          stopWhenEmpty: true,
+          slotRegistry,
+          logger: silentLogger,
+        });
+        const claimed = await claimingSource.claim();
+        expect(claimed?.task.id).toBe(continuation.id);
+
+        // 4. Build the execution plan the daemon would build at this
+        //    point — same path as the production runtime.
+        const planCache = createExecutionPlanCache({
+          stateDirs,
+          slotIdentity,
+          warmSessionTtlSec,
+          slotRegistry,
+        });
+        const continuationPlan = planCache.getOrCreate(claimed!);
+        expect(continuationPlan.workspaceMode).toBe('dedicated_worktree');
+        expect(continuationPlan.sessionPersistence?.forkFromSessionPath).toBe(
+          seededSessionPath,
+        );
+        // Assert the prepared sessionDir is the per-continuation directory
+        // (the daemon will fork the seed into it before booting Pi).
+        expect(continuationPlan.sessionPersistence?.sessionDir).toContain(
+          `continue-${continuation.id}-attempt-${claimed!.attemptN}`,
+        );
+        // The forkFromSessionPath must point at the seeded JSONL on disk,
+        // verbatim. Read it back to confirm the marker we stamped is there.
+        const forkPath =
+          continuationPlan.sessionPersistence!.forkFromSessionPath!;
+        expect(existsSync(forkPath)).toBe(true);
+        const forkContents = readFileSync(forkPath, 'utf8');
+        expect(forkContents).toContain(seededMarker);
+
+        // Tidy.
+        await agent.tasks.cancel(continuation.id, {
+          reason: 'cleanup after warm-slot continuation claim assertion',
+        });
+      } finally {
+        slotRegistry.close();
+      }
+    }, 60_000);
+
+    it('skips a continuation when this daemon has no slot for it', async () => {
+      // Two registries: one ("owner") seeds a parent; the other
+      // ("stranger") simulates a daemon that never ran the parent.
+      // The stranger's affinity filter should refuse to claim.
+      const ownerRoot = mkdtempSync(join(tmpdir(), 'daemon-continue-owner-'));
+      const strangerRoot = mkdtempSync(
+        join(tmpdir(), 'daemon-continue-stranger-'),
+      );
+      tempRoots.push(ownerRoot, strangerRoot);
+
+      const ownerStateDirs = ensureDaemonStateDirs(ownerRoot);
+      const strangerStateDirs = ensureDaemonStateDirs(strangerRoot);
+      const ownerRegistry = new DaemonSlotRegistry(
+        ownerStateDirs.registryDbPath,
+      );
+      const strangerRegistry = new DaemonSlotRegistry(
+        strangerStateDirs.registryDbPath,
+      );
+      const slotIdentity: DaemonSlotIdentity = {
+        agentName: 'e2e-daemon',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+      };
+      const correlationId = randomUUID();
+      const warmSessionTtlSec = 600;
+
+      try {
+        const parent = await proposeFreeformTask(correlationId);
+        const parentRun = await runStubbedSlotAwareTask({
+          agent,
+          taskId: parent.id,
+          mountRoot: ownerRoot,
+          stateDirs: ownerStateDirs,
+          slotRegistry: ownerRegistry,
+          slotIdentity,
+          warmSessionTtlSec,
+        });
+        expect(parentRun.output.status).toBe('completed');
+
+        const continuationCorrelationId = randomUUID();
+        const continuation = await proposeFreeformTask(
+          continuationCorrelationId,
+          { taskId: parent.id, attemptN: parentRun.output.attemptN },
+        );
+
+        // Stranger source: drain mode + empty slot registry. The
+        // affinity filter sees no slot for the source attempt and
+        // refuses to claim; the source returns null instead of looping.
+        const strangerSource = new PollingApiTaskSource({
+          agent,
+          teamId,
+          taskTypes: ['freeform'],
+          leaseTtlSec: 60,
+          stopWhenEmpty: true,
+          slotRegistry: strangerRegistry,
+          logger: silentLogger,
+        });
+        const claimed = await strangerSource.claim();
+        expect(claimed).toBeNull();
+
+        // The continuation row remains queued — no attempt was opened
+        // against it by the stranger.
+        const continuationRow = await agent.tasks.get(continuation.id);
+        expect(continuationRow.status).toBe('queued');
+
+        // Tidy.
+        await agent.tasks.cancel(continuation.id, {
+          reason: 'cleanup after warm-slot continuation skip assertion',
+        });
+      } finally {
+        ownerRegistry.close();
+        strangerRegistry.close();
+      }
+    }, 60_000);
+  });
+
   describe('Task.allowedExecutors filter', () => {
     // Empty allowlist tasks remain visible to every daemon. A pinned
     // task is only listed for daemons whose `(provider, model)` is in
@@ -968,7 +1185,24 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   const outputs = await runtime.start();
   expect(outputs).toHaveLength(1);
   const [output] = outputs;
-  await finalizeTask(args.agent, output);
+  // Mirror the production daemon: forward the warm-slot expiry through to
+  // /complete so freeform attempts report a non-null `slotResumableUntil`,
+  // which is what `validateFreeformInputAsync` requires for continuation
+  // tasks to pass create-time async validation.
+  const plan = usedExecutionPlan;
+  const taskForCtx =
+    plan && plan.slotKey ? await args.agent.tasks.get(args.taskId) : null;
+  const slotForCtx =
+    plan && plan.slotKey
+      ? (args.slotRegistry.findLatestProducerSlotByTaskAttempt(
+          args.taskId,
+          output.attemptN,
+        )?.slot ?? null)
+      : null;
+  await finalizeTask(args.agent, output, {
+    task: taskForCtx ?? undefined,
+    slot: slotForCtx ? { expiresAtMs: slotForCtx.expiresAtMs } : null,
+  });
   return {
     output,
     executionPlan: usedExecutionPlan,
@@ -995,6 +1229,14 @@ async function buildStubbedTaskOutput(
         totalTokens: 10,
         durationMs: 100,
         traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+        verification: buildProducerVerification(claimedTask.task.inputCid),
+      };
+    case 'freeform':
+      return {
+        summary: `stubbed freeform output for ${claimedTask.task.id}`,
+        // The server auto-injects a `submit-output` success criterion on
+        // freeform task creation, so the producer-side verification record
+        // is required even when the proposer didn't supply criteria.
         verification: buildProducerVerification(claimedTask.task.inputCid),
       };
     case 'fulfill_brief':

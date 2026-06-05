@@ -1,7 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { Value } from '@sinclair/typebox/value';
+import { describe, expect, it, vi } from 'vitest';
 
+import type {
+  AsyncTaskValidationContext,
+  TaskValidationError,
+} from './async-validation.js';
+import { FreeformInput } from './task-types/freeform.js';
+import { BUILT_IN_TASK_TYPES, FREEFORM_TYPE } from './task-types/index.js';
 import {
   getTaskExecutionPolicy,
+  normalizeTaskCreateRequest,
   normalizeTaskInputForCreate,
   SUBMIT_OUTPUT_GATE_ID,
   taskTypeResumable,
@@ -12,6 +20,7 @@ import {
   validateTaskCreateRequest,
   validateTaskOutput,
 } from './validation.js';
+import { DaemonState, TaskAttempt } from './wire.js';
 
 describe('validateTaskCreateRequest', () => {
   it('rejects prototype task type keys as unknown', () => {
@@ -776,5 +785,390 @@ describe('getTaskExecutionPolicy', () => {
     expect(
       getTaskExecutionPolicy('fulfill_brief').acceptsInputWorkspaceOverride,
     ).toBe(false);
+  });
+});
+
+describe('DaemonState', () => {
+  it('accepts a reportedAt timestamp and a non-null slotResumableUntil', () => {
+    expect(
+      Value.Check(DaemonState, {
+        reportedAt: '2026-06-04T12:00:00.000Z',
+        slotResumableUntil: '2026-06-04T12:30:00.000Z',
+      }),
+    ).toBe(true);
+  });
+
+  it('accepts slotResumableUntil = null (not eligible)', () => {
+    expect(
+      Value.Check(DaemonState, {
+        reportedAt: '2026-06-04T12:00:00.000Z',
+        slotResumableUntil: null,
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects unknown fields (additionalProperties false)', () => {
+    expect(
+      Value.Check(DaemonState, {
+        reportedAt: '2026-06-04T12:00:00.000Z',
+        slotResumableUntil: null,
+        somethingExtra: 'x',
+      }),
+    ).toBe(false);
+  });
+
+  it('rejects when reportedAt is missing', () => {
+    expect(
+      Value.Check(DaemonState, {
+        slotResumableUntil: null,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('TaskAttempt.daemonState', () => {
+  // Minimal valid TaskAttempt row. All fields required; daemonState is the
+  // field under test.
+  function makeAttempt(daemonState: unknown): unknown {
+    return {
+      taskId: '11111111-1111-4111-8111-111111111111',
+      attemptN: 1,
+      claimedByAgentId: '22222222-2222-4222-8222-222222222222',
+      runtimeId: null,
+      claimedAt: '2026-06-04T12:00:00.000Z',
+      startedAt: null,
+      completedAt: null,
+      status: 'claimed',
+      output: null,
+      outputCid: null,
+      claimedExecutorFingerprint: null,
+      claimedExecutorManifest: null,
+      completedExecutorFingerprint: null,
+      completedExecutorManifest: null,
+      error: null,
+      usage: null,
+      contentSignature: null,
+      signedAt: null,
+      daemonState,
+    };
+  }
+
+  it('accepts a populated daemonState block', () => {
+    expect(
+      Value.Check(
+        TaskAttempt,
+        makeAttempt({
+          reportedAt: '2026-06-04T12:00:00.000Z',
+          slotResumableUntil: '2026-06-04T12:30:00.000Z',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('accepts daemonState = null for older completions', () => {
+    expect(Value.Check(TaskAttempt, makeAttempt(null))).toBe(true);
+  });
+
+  it('rejects malformed daemonState payload', () => {
+    expect(
+      Value.Check(
+        TaskAttempt,
+        makeAttempt({
+          reportedAt: 'not-a-date',
+          slotResumableUntil: null,
+        }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe('normalizeTaskCreateRequest correlationId default', () => {
+  it('generates a fresh UUID when caller omits correlationId', () => {
+    const result = normalizeTaskCreateRequest({
+      taskType: 'freeform',
+      teamId: '11111111-1111-4111-8111-111111111111',
+      diaryId: '22222222-2222-4222-8222-222222222222',
+      input: { brief: 'probe' },
+    });
+    expect(result.correlationId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+  });
+
+  it('preserves caller-supplied correlationId', () => {
+    const callerCid = '33333333-3333-4333-8333-333333333333';
+    const result = normalizeTaskCreateRequest({
+      taskType: 'freeform',
+      teamId: '11111111-1111-4111-8111-111111111111',
+      diaryId: '22222222-2222-4222-8222-222222222222',
+      correlationId: callerCid,
+      input: { brief: 'probe' },
+    });
+    expect(result.correlationId).toBe(callerCid);
+  });
+});
+
+describe('FreeformInput.continueFrom', () => {
+  it('accepts a continueFrom pointer with default mode', () => {
+    const ok = Value.Check(FreeformInput, {
+      brief: 'next step',
+      continueFrom: {
+        taskId: '11111111-1111-4111-8111-111111111111',
+        attemptN: 1,
+      },
+    });
+    expect(ok).toBe(true);
+  });
+
+  it.each(['extend', 'fork'] as const)(
+    'accepts mode=%s on continueFrom',
+    (mode) => {
+      const ok = Value.Check(FreeformInput, {
+        brief: 'next step',
+        continueFrom: {
+          taskId: '11111111-1111-4111-8111-111111111111',
+          attemptN: 1,
+          mode,
+        },
+      });
+      expect(ok).toBe(true);
+    },
+  );
+
+  it('rejects mode outside the union', () => {
+    const ok = Value.Check(FreeformInput, {
+      brief: 'next step',
+      continueFrom: {
+        taskId: '11111111-1111-4111-8111-111111111111',
+        attemptN: 1,
+        mode: 'merge',
+      },
+    });
+    expect(ok).toBe(false);
+  });
+
+  it('rejects attemptN < 1', () => {
+    const ok = Value.Check(FreeformInput, {
+      brief: 'x',
+      continueFrom: {
+        taskId: '11111111-1111-4111-8111-111111111111',
+        attemptN: 0,
+      },
+    });
+    expect(ok).toBe(false);
+  });
+});
+
+describe('freeform validateInputAsync — continuation', () => {
+  const validator = BUILT_IN_TASK_TYPES[FREEFORM_TYPE].validateInputAsync as (
+    input: unknown,
+    ctx: AsyncTaskValidationContext,
+  ) => Promise<TaskValidationError[]>;
+
+  const SOURCE_TASK_ID = '11111111-1111-4111-8111-111111111111';
+
+  const makeCtx = (
+    overrides: Partial<AsyncTaskValidationContext> = {},
+  ): AsyncTaskValidationContext => ({
+    resolveTask: vi.fn().mockResolvedValue(null),
+    listAttempts: vi.fn().mockResolvedValue([]),
+    listTasksByCorrelation: vi.fn().mockResolvedValue([]),
+    findCorrelationSeal: vi.fn().mockResolvedValue(null),
+    resolveContextPack: vi.fn().mockResolvedValue(null),
+    resolveRenderedPack: vi.fn().mockResolvedValue(null),
+    ...overrides,
+  });
+
+  it('passes when continueFrom is absent', async () => {
+    const errors = await validator({ brief: 'standalone' }, makeCtx());
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects when source task does not exist', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({ resolveTask: vi.fn().mockResolvedValue(null) }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceTaskNotFound');
+  });
+
+  it('rejects when source task is not freeform', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'fulfill_brief' }),
+        listAttempts: vi.fn().mockResolvedValue([]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceTaskTypeNotSupported');
+  });
+
+  it('rejects when source attempt is not completed', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi
+          .fn()
+          .mockResolvedValue([
+            { attemptN: 1, status: 'running', daemonState: null },
+          ]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceAttemptNotCompleted');
+  });
+
+  it('rejects mode=fork', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: {
+          taskId: SOURCE_TASK_ID,
+          attemptN: 1,
+          mode: 'fork',
+        },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi.fn().mockResolvedValue([
+          {
+            attemptN: 1,
+            status: 'completed',
+            daemonState: {
+              reportedAt: new Date().toISOString(),
+              slotResumableUntil: new Date(Date.now() + 60_000).toISOString(),
+            },
+          },
+        ]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.forkModeNotImplemented');
+  });
+
+  it('rejects when daemonState is null', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi
+          .fn()
+          .mockResolvedValue([
+            { attemptN: 1, status: 'completed', daemonState: null },
+          ]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceNotResumeEligible');
+  });
+
+  it('rejects when slotResumableUntil is past now', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi.fn().mockResolvedValue([
+          {
+            attemptN: 1,
+            status: 'completed',
+            daemonState: {
+              reportedAt: '2026-06-04T10:00:00.000Z',
+              slotResumableUntil: '2026-06-04T10:30:00.000Z',
+            },
+          },
+        ]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceResumeExpired');
+  });
+
+  it('passes when daemonState is fresh', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi.fn().mockResolvedValue([
+          {
+            attemptN: 1,
+            status: 'completed',
+            daemonState: {
+              reportedAt: new Date().toISOString(),
+              slotResumableUntil: new Date(Date.now() + 60_000).toISOString(),
+            },
+          },
+        ]),
+      }),
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it('skips readiness checks when deferReadinessChecks is true', async () => {
+    // Continuation proposed via tasks_continue auto-injects a
+    // `task_status: completed` claim condition, which causes task-service
+    // to set deferReadinessChecks. The parent attempt is still running
+    // — readiness checks must defer to claim time, but stable checks
+    // (source exists, source is freeform, fork mode) still fire.
+    const listAttempts = vi.fn();
+    const errors = await validator(
+      {
+        brief: 'continue while parent still running',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        deferReadinessChecks: true,
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts,
+      }),
+    );
+    expect(errors).toEqual([]);
+    // Should also avoid the listAttempts roundtrip when deferring.
+    expect(listAttempts).not.toHaveBeenCalled();
+  });
+
+  it('still rejects mode=fork when deferReadinessChecks is true', async () => {
+    // Fork mode is a stable check on the input — fires regardless of
+    // deferral so callers learn the mode is invalid at create time.
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1, mode: 'fork' },
+      },
+      makeCtx({
+        deferReadinessChecks: true,
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.forkModeNotImplemented');
+  });
+
+  it('still rejects unknown source when deferReadinessChecks is true', async () => {
+    // Stable check: source-exists fires regardless of deferral.
+    const errors = await validator(
+      {
+        brief: 'x',
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        deferReadinessChecks: true,
+        resolveTask: vi.fn().mockResolvedValue(null),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.sourceTaskNotFound');
   });
 });

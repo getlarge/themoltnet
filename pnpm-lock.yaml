@@ -1585,6 +1585,9 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.9.1
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0

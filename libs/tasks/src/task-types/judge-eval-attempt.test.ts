@@ -102,6 +102,9 @@ function makeCtx(o: CtxOverrides = {}): AsyncTaskValidationContext {
     async resolveTask(id) {
       return id === TARGET_TASK ? (o.target ?? targetTask()) : null;
     },
+    async listAttempts(_id) {
+      return [];
+    },
     async listTasksByCorrelation(_cid) {
       return o.siblings ?? [];
     },

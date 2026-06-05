@@ -191,6 +191,41 @@ export function createTaskRepository(db: Database) {
       );
     },
 
+    /**
+     * Try to acquire a non-blocking transaction advisory lock keyed on
+     * (continuationParentTaskId, continuationParentAttemptN). Returns true
+     * if acquired, false if another transaction already holds it.
+     *
+     * Non-blocking by design (`pg_try_advisory_xact_lock`): the caller
+     * (the daemon claim transaction) treats `false` as "another daemon
+     * got there first; leave the task queued for the next poll cycle."
+     * Auto-released on commit/rollback.
+     *
+     * NB: this is the first non-blocking advisory lock in the codebase.
+     * The other advisory locks (correlation-seal, task-create guard,
+     * task-messages append) use the blocking `pg_advisory_xact_lock`
+     * because their concurrent-access path does want to serialize. Here
+     * we want races to back off, not queue inside Postgres — only one
+     * daemon can claim a continuation of a given parent attempt at a
+     * time, and losers should retry on the next poll rather than wait.
+     */
+    async tryAcquireContinuationLock(
+      parentTaskId: string,
+      parentAttemptN: number,
+    ): Promise<boolean> {
+      if (!hasActiveTransaction()) {
+        throw new Error(
+          'tryAcquireContinuationLock must be called inside a TransactionRunner-managed transaction; pg_try_advisory_xact_lock has no effect outside one',
+        );
+      }
+      const key = `continueFrom:${parentTaskId}:${parentAttemptN}`;
+      const result = await getExecutor(db).execute(
+        sql`SELECT pg_try_advisory_xact_lock(hashtextextended(${key}::text, 0::bigint)) AS acquired`,
+      );
+      const row = result.rows[0] as { acquired?: boolean } | undefined;
+      return Boolean(row?.acquired);
+    },
+
     async findActiveTaskByInputMatch(args: {
       taskType: string;
       inputMatches: ReadonlyArray<{
@@ -529,6 +564,7 @@ export function createTaskRepository(db: Database) {
           | 'usage'
           | 'contentSignature'
           | 'signedAt'
+          | 'daemonState'
         >
       >,
     ): Promise<TaskAttempt | null> {

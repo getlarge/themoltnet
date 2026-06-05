@@ -15,7 +15,7 @@ import {
 
 interface ProblemError extends FastifyError {
   detail?: string;
-  validationErrors?: { field: string; message: string }[];
+  validationErrors?: { field: string; message: string; code?: string }[];
   retryAfter?: number;
   /** RFC 9457 extension members merged into the problem+json body. */
   extensions?: Record<string, unknown>;

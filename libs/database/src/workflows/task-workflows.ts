@@ -19,6 +19,14 @@ export type TaskProgressEvent =
       outputCid?: string;
       completedExecutorFingerprint?: string;
       usage?: unknown;
+      /**
+       * Daemon-asserted runtime state at completion time (e.g. warm-slot
+       * resumability). Stamped onto `task_attempts.daemon_state` by the
+       * workflow's persistResult transaction. See libs/tasks/src/wire.ts
+       * `DaemonState` for the boundary contract. Null when the daemon
+       * doesn't report state (older daemons, non-resumable tasks).
+       */
+      daemonState?: unknown;
     }
   | { kind: 'failed'; error?: unknown }
   | { kind: 'cancelled'; error?: unknown };
@@ -64,6 +72,7 @@ export interface TaskWorkflowDeps {
         | 'completedExecutorFingerprint'
         | 'error'
         | 'usage'
+        | 'daemonState'
       >
     >,
   ): Promise<TaskAttempt | null>;
@@ -452,6 +461,12 @@ export function initTaskWorkflows(): void {
                     ? (evt.error ?? null)
                     : null,
                 usage: evt.kind === 'completed' ? (evt.usage ?? null) : null,
+                // Stamp daemonState only on the completed branch (#1287).
+                // failed/cancelled attempts are not resumable by design.
+                daemonState:
+                  evt.kind === 'completed'
+                    ? ((evt.daemonState ?? null) as TaskAttempt['daemonState'])
+                    : null,
               });
               if (evt.kind === 'completed') {
                 // Don't clobber a cancel that raced with this completion

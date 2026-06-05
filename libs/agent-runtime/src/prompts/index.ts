@@ -60,6 +60,21 @@ export interface TaskUserPromptContext {
     source?: 'producer_attachment' | 'producer_copy';
   };
   extras?: Record<string, unknown>;
+  /**
+   * Resolved source-task material for `freeform.continueFrom`
+   * continuations. Caller (the daemon runtime) fetches the source
+   * attempt's output via the API client and projects `summary` +
+   * `artifacts` into this shape. Only consumed by the freeform builder;
+   * other builders ignore it. Absent for non-continuation tasks.
+   */
+  priorContext?: {
+    summary?: string;
+    artifacts?: ReadonlyArray<{
+      kind: string;
+      title: string;
+      body?: string;
+    }>;
+  };
 }
 
 /**
@@ -89,6 +104,7 @@ export function buildTaskUserPrompt(
       }
       return buildFreeformUserPrompt(task.input, {
         taskId: ctx.taskId,
+        priorContext: ctx.priorContext,
       });
     }
 

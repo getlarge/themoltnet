@@ -17,7 +17,7 @@
  * repositories), and each task type's validator uses the contract
  * methods to express its preflight checks.
  */
-import type { Task } from './wire.js';
+import type { Task, TaskAttempt } from './wire.js';
 
 /**
  * Validation error returned by both sync `validateTaskCreateRequest`
@@ -32,6 +32,16 @@ import type { Task } from './wire.js';
 export interface TaskValidationError {
   readonly field: string;
   readonly message: string;
+  /**
+   * Optional machine-readable code so downstream consumers (REST API
+   * error envelopes, daemons, MCP tooling) can branch on specific
+   * failure modes without string-matching `message`. Format is
+   * dot-namespaced: `<taskType>.<failure>` (e.g.
+   * `freeform.sourceTaskNotFound`). Free-form string; the registry
+   * is intentionally not closed so each task type can introduce its
+   * own codes without churning this contract.
+   */
+  readonly code?: string;
 }
 
 /**
@@ -103,6 +113,16 @@ export interface AsyncTaskValidationContext {
    * otherwise be allowed to see).
    */
   resolveTask(taskId: string): Promise<Task | null>;
+
+  /**
+   * List attempts for a task id. Same caller-bound visibility as
+   * `resolveTask` — returns `[]` if the caller can't read the task
+   * (indistinguishable from "task has no attempts yet"). Used by
+   * task types whose validators need to inspect per-attempt state
+   * (e.g. `freeform.continueFrom` checks the source attempt's
+   * `daemonState.slotResumableUntil`).
+   */
+  listAttempts(taskId: string): Promise<TaskAttempt[]>;
 
   /**
    * List tasks sharing a `correlation_id`. Same caller-bound

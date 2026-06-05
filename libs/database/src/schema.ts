@@ -1251,6 +1251,9 @@ export const taskAttempts = pgTable(
     usage: jsonb('usage'),
     contentSignature: text('content_signature'),
     signedAt: timestamp('signed_at', { withTimezone: true }),
+    // Daemon-asserted runtime state stamped at completion time. See
+    // libs/tasks/src/wire.ts DaemonState for the boundary contract.
+    daemonState: jsonb('daemon_state'),
   },
   (table) => [
     primaryKey({ columns: [table.taskId, table.attemptN] }),

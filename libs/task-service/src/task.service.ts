@@ -29,6 +29,7 @@ import {
   BUILT_IN_TASK_TYPES,
   type ClaimCondition,
   type CorrelationSeal,
+  type DaemonState,
   getTaskCreateSideEffects,
   getTaskTypeRegistry,
   normalizeTaskInputForCreate,
@@ -265,6 +266,16 @@ export function createTaskService(deps: TaskServiceDeps) {
         if (!canView) return null;
         const row = await taskRepository.findById(taskId);
         return row ? dbTaskToWire(row) : null;
+      },
+      async listAttempts(taskId: string) {
+        const canView = await permissionChecker.canViewTask(
+          taskId,
+          callerId,
+          callerNs,
+        );
+        if (!canView) return [];
+        const attempts = await taskRepository.listAttempts(taskId);
+        return attempts.map(dbAttemptToWire);
       },
       async listTasksByCorrelation(correlationId: string) {
         const rows = await taskRepository.findByCorrelationId(correlationId);
@@ -1008,7 +1019,38 @@ export function createTaskService(deps: TaskServiceDeps) {
       });
 
       // CAS update: atomically move status from 'queued' → 'dispatched' (Issue 1).
-      const claimedRow = await taskRepository.claimIfQueued(taskId);
+      // For freeform continuations (#1287), serialise concurrent claim
+      // attempts that target the same parent attempt with a non-blocking
+      // advisory lock. If the lock is already held by another daemon, we
+      // signal `conflict` so the task remains queued for the next poll
+      // cycle instead of having two daemons race past `claimIfQueued`
+      // (which races even though it's a CAS, because the race is at the
+      // *parent attempt* level — two different queued continuations of
+      // the same parent could otherwise both win).
+      const continueFrom = (
+        row.input as
+          | { continueFrom?: { taskId: string; attemptN: number } }
+          | null
+          | undefined
+      )?.continueFrom;
+      const claimedRow = await transactionRunner.runInTransaction(
+        async () => {
+          if (continueFrom) {
+            const acquired = await taskRepository.tryAcquireContinuationLock(
+              continueFrom.taskId,
+              continueFrom.attemptN,
+            );
+            if (!acquired) {
+              throw new TaskServiceError(
+                'conflict',
+                'Another daemon is claiming a continuation of the same parent attempt; leaving task queued',
+              );
+            }
+          }
+          return taskRepository.claimIfQueued(taskId);
+        },
+        { name: 'task.claim.cas' },
+      );
       if (!claimedRow) {
         throw new TaskServiceError(
           'conflict',
@@ -1210,6 +1252,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         executorManifest?: Record<string, unknown>;
         executorFingerprint?: string;
         executorSignature?: string;
+        daemonState?: DaemonState | null;
       },
     ): Promise<Task> {
       const canReport = await permissionChecker.canReportTask(
@@ -1308,6 +1351,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           outputCid: body.outputCid,
           usage: body.usage,
           completedExecutorFingerprint: completedExecutor?.fingerprint ?? null,
+          daemonState: body.daemonState ?? null,
         },
         'progress',
       );

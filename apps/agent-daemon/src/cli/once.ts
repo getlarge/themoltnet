@@ -279,12 +279,23 @@ export async function runOnce(argv: string[]): Promise<number> {
       // Finalize inside the runtime loop so the correlation anchor writer
       // sees the claimedTask alongside its output. once mode only ever
       // claims one task, so this fires exactly once.
-      onTaskFinished: (output, claimedTask) =>
-        finalizeTask(ctx.agent, output, {
+      onTaskFinished: (output, claimedTask) => {
+        // Look up the slot record at finalize time. `executeTask`'s
+        // finally block has already called `finishSlot` which updates
+        // `expires_at_ms` to the post-completion idle TTL — that's
+        // exactly the `slotResumableUntil` window we want stamped on
+        // the attempt row.
+        const resolved = slotRegistry.findLatestProducerSlotByTaskAttempt(
+          claimedTask.task.id,
+          claimedTask.attemptN,
+        );
+        return finalizeTask(ctx.agent, output, {
           task: claimedTask.task,
+          slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
           writeCorrelationAnchors,
           log: (msg, err) => rootLogger.warn({ err }, msg),
-        }),
+        });
+      },
       executeTask,
     });
 

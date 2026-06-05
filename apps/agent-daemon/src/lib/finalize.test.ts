@@ -2,7 +2,11 @@ import type { Task, TaskOutput } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { finalizeTask, type WriteCorrelationAnchors } from './finalize.js';
+import {
+  buildDaemonStateForComplete,
+  finalizeTask,
+  type WriteCorrelationAnchors,
+} from './finalize.js';
 
 interface CompleteBody {
   output: Record<string, unknown>;
@@ -284,5 +288,37 @@ describe('finalizeTask — fulfill_brief correlation hook', () => {
     expect(m.complete).not.toHaveBeenCalled();
     expect(m.fail).not.toHaveBeenCalled();
     expect(writer).not.toHaveBeenCalled();
+  });
+});
+
+describe('buildDaemonStateForComplete', () => {
+  it('returns null for non-freeform task types', () => {
+    expect(buildDaemonStateForComplete('fulfill_brief', null)).toBeNull();
+    expect(
+      buildDaemonStateForComplete('fulfill_brief', { expiresAtMs: 12345 }),
+    ).toBeNull();
+    expect(buildDaemonStateForComplete('discovery', null)).toBeNull();
+  });
+
+  it('reports null slotResumableUntil for freeform without a slot', () => {
+    const state = buildDaemonStateForComplete('freeform', null);
+    expect(state).not.toBeNull();
+    expect(state?.slotResumableUntil).toBeNull();
+    // reportedAt must be a parseable ISO timestamp
+    expect(typeof state?.reportedAt).toBe('string');
+    expect(Number.isNaN(Date.parse(state!.reportedAt))).toBe(false);
+  });
+
+  it('reports null slotResumableUntil for freeform when expiresAtMs is falsy', () => {
+    const state = buildDaemonStateForComplete('freeform', { expiresAtMs: 0 });
+    expect(state?.slotResumableUntil).toBeNull();
+  });
+
+  it('reports ISO slotResumableUntil for freeform with a slot expiry', () => {
+    const expiresAtMs = Date.UTC(2026, 0, 1, 12, 0, 0);
+    const state = buildDaemonStateForComplete('freeform', { expiresAtMs });
+    expect(state).not.toBeNull();
+    expect(state?.slotResumableUntil).toBe(new Date(expiresAtMs).toISOString());
+    expect(Number.isNaN(Date.parse(state!.reportedAt))).toBe(false);
   });
 });

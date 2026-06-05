@@ -59,6 +59,7 @@ export function dbAttemptToWire(
   row: DbTaskAttempt & {
     claimedExecutorManifest?: unknown;
     completedExecutorManifest?: unknown;
+    daemonState?: unknown;
   },
 ): TaskAttempt {
   return {
@@ -82,6 +83,7 @@ export function dbAttemptToWire(
     usage: (row.usage as TaskUsage) ?? null,
     contentSignature: row.contentSignature ?? null,
     signedAt: row.signedAt?.toISOString() ?? null,
+    daemonState: (row.daemonState as TaskAttempt['daemonState']) ?? null,
   };
 }
 

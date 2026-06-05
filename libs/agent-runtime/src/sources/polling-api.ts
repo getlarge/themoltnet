@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+
 import type { Task, TaskStatus } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
@@ -5,6 +7,48 @@ import { pino } from 'pino';
 
 import type { AgentRuntimeLogger } from '../runtime.js';
 import type { ClaimedTask, TaskSource } from './types.js';
+
+/**
+ * Structural shape of the slot registry needed by the affinity filter.
+ * Declared here so `libs/agent-runtime` does not depend on
+ * `apps/agent-daemon`. The daemon's concrete `DaemonSlotRegistry`
+ * satisfies this by duck typing.
+ */
+export interface ContinuationSlotRegistry {
+  findLatestProducerSlotByTaskAttempt(
+    taskId: string,
+    attemptN: number,
+  ): { session?: { sessionDir?: string | null } | null } | null;
+}
+
+/**
+ * Claim-time affinity filter for warm-resume continuations.
+ *
+ * - No `continueFrom` → claimable (true).
+ * - `continueFrom` set + no slot in registry → not claimable (some other
+ *   daemon owns the warm slot, or it's been reaped).
+ * - `continueFrom` set + slot exists but its `sessionDir` is missing on
+ *   disk → not claimable (stale registry row, slot directory was wiped).
+ * - `continueFrom` set + slot exists + `sessionDir` present on disk →
+ *   claimable.
+ *
+ * Pure predicate over `(task, slotRegistry)` — no side effects.
+ */
+export function isContinuationClaimableByThisDaemon(
+  task: { input?: { continueFrom?: { taskId: string; attemptN: number } } },
+  slotRegistry: ContinuationSlotRegistry,
+): boolean {
+  const cf = task.input?.continueFrom;
+  if (!cf) return true;
+  const slot = slotRegistry.findLatestProducerSlotByTaskAttempt(
+    cf.taskId,
+    cf.attemptN,
+  );
+  if (!slot) return false;
+  const sessionDir = slot.session?.sessionDir;
+  if (!sessionDir || !existsSync(sessionDir)) return false;
+  return true;
+}
 
 export interface PollingApiTaskSourceOptions {
   agent: Agent;
@@ -52,6 +96,14 @@ export interface PollingApiTaskSourceOptions {
    * `drain` daemon mode for batch eval runs.
    */
   stopWhenEmpty?: boolean;
+  /**
+   * Slot registry used for the claim-time affinity filter on
+   * `freeform.continueFrom` tasks. When omitted, the affinity filter is a
+   * no-op (continuations are always claimable) — appropriate for
+   * non-pi daemon entry points (e.g. drain/e2e harnesses) that don't
+   * manage warm slots.
+   */
+  slotRegistry?: ContinuationSlotRegistry;
   /** Logger; defaults to a self-named pino instance. */
   logger?: AgentRuntimeLogger;
   /**
@@ -179,6 +231,17 @@ export class PollingApiTaskSource implements TaskSource {
           this.opts.diaryIds &&
           this.opts.diaryIds.length > 0 &&
           (item.diaryId === null || !this.opts.diaryIds.includes(item.diaryId))
+        ) {
+          continue;
+        }
+        // Warm-resume affinity filter — skip continuations targeting a
+        // warm slot this daemon doesn't own (or whose sessionDir is
+        // gone). Other daemons skip too if they also don't own it; the
+        // task lingers queued until the original daemon polls or the
+        // server's dispatch_timeout_sec fires. See #1287, #1299.
+        if (
+          this.opts.slotRegistry &&
+          !isContinuationClaimableByThisDaemon(item, this.opts.slotRegistry)
         ) {
           continue;
         }

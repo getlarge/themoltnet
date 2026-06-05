@@ -49,7 +49,7 @@ export function createExecutionPlanCache(args: {
         args.slotIdentity,
         args.warmSessionTtlSec,
       );
-      const plan = maybeAttachProducerContext(
+      const plan = maybeAttachWarmSlotContext(
         claimedTask,
         basePlan,
         args.stateDirs,
@@ -68,12 +68,90 @@ function buildClaimedTaskKey(task: CachedTask): string {
   return `${task.task.id}:${task.attemptN}`;
 }
 
-function maybeAttachProducerContext(
+type WarmSlotResolution =
+  | {
+      kind: 'found';
+      producerSlot: ResolvedProducerDaemonSlot;
+      sessionPath: string;
+      workspacePath: string;
+    }
+  | { kind: 'missing' }
+  | { kind: 'no-session-path' };
+
+function resolveWarmSlot(
+  slotRegistry: DaemonSlotRegistry,
+  sourceTaskId: string,
+  sourceAttemptN: number,
+  stateDirs: DaemonStateDirs,
+): WarmSlotResolution {
+  const producerContext = slotRegistry.findLatestProducerSlotByTaskAttempt(
+    sourceTaskId,
+    sourceAttemptN,
+  );
+  if (!producerContext) return { kind: 'missing' };
+
+  const sourceSessionPath = resolveProducerSessionPath(producerContext);
+  if (!sourceSessionPath) return { kind: 'no-session-path' };
+
+  const copiedWorkspaceSource = resolveProducerWorkspaceCopySource(
+    producerContext,
+    stateDirs,
+  );
+
+  return {
+    kind: 'found',
+    producerSlot: producerContext,
+    sessionPath: sourceSessionPath,
+    workspacePath: copiedWorkspaceSource,
+  };
+}
+
+function maybeAttachWarmSlotContext(
   claimedTask: CachedTask,
   basePlan: DaemonTaskExecutionPlan,
   stateDirs: DaemonStateDirs,
   slotRegistry: DaemonSlotRegistry,
 ): DaemonTaskExecutionPlan {
+  if (claimedTask.task.taskType === 'freeform') {
+    const continueFrom = (
+      claimedTask.task.input as {
+        continueFrom?: { taskId: string; attemptN: number };
+      }
+    ).continueFrom;
+
+    if (!continueFrom) return basePlan;
+
+    const resolution = resolveWarmSlot(
+      slotRegistry,
+      continueFrom.taskId,
+      continueFrom.attemptN,
+      stateDirs,
+    );
+
+    if (resolution.kind === 'missing') {
+      throw new ProducerContextResolutionError(
+        `Continuation source task ${continueFrom.taskId} attempt ${continueFrom.attemptN} has no live daemon slot on this daemon — claim affinity filter should have prevented this claim`,
+      );
+    }
+    if (resolution.kind === 'no-session-path') {
+      throw new ProducerContextResolutionError(
+        `Continuation source attempt ${continueFrom.taskId}/${continueFrom.attemptN} has no persisted Pi session path`,
+      );
+    }
+
+    return {
+      ...basePlan,
+      workspaceMode: 'dedicated_worktree',
+      worktreeBranch: resolution.producerSlot.workspace?.worktreeBranch ?? null,
+      sessionPersistence: {
+        sessionDir: `${stateDirs.piSessionsDir}/continue-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,
+        forkFromSessionPath: resolution.sessionPath,
+      },
+      // Importantly: NO workspaceSeed. Continuation mounts the parent's
+      // worktree branch directly via worktreeBranch; we do not copy.
+    };
+  }
+
   if (claimedTask.task.taskType !== 'judge_eval_attempt') {
     return basePlan;
   }
@@ -95,39 +173,35 @@ function maybeAttachProducerContext(
     );
   }
 
-  const producerContext = slotRegistry.findLatestProducerSlotByTaskAttempt(
+  const resolution = resolveWarmSlot(
+    slotRegistry,
     targetTaskId,
     targetAttemptN,
+    stateDirs,
   );
-  if (!producerContext) {
+
+  if (resolution.kind === 'missing') {
     throw new ProducerContextResolutionError(
       `No live producer daemon slot found for task ${targetTaskId} attempt ${targetAttemptN}`,
     );
   }
-
-  const sourceSessionPath = resolveProducerSessionPath(producerContext);
-  if (!sourceSessionPath) {
+  if (resolution.kind === 'no-session-path') {
     throw new ProducerContextResolutionError(
       `Producer task ${targetTaskId} attempt ${targetAttemptN} has no persisted Pi session path`,
     );
   }
-
-  const copiedWorkspaceSource = resolveProducerWorkspaceCopySource(
-    producerContext,
-    stateDirs,
-  );
 
   return {
     ...basePlan,
     workspaceMode: 'scratch_mount',
     worktreeBranch: null,
     workspaceSeed: {
-      copyFromPath: copiedWorkspaceSource,
+      copyFromPath: resolution.workspacePath,
       source: 'producer',
     },
     sessionPersistence: {
       sessionDir: `${stateDirs.piSessionsDir}/judge-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,
-      forkFromSessionPath: sourceSessionPath,
+      forkFromSessionPath: resolution.sessionPath,
     },
   };
 }

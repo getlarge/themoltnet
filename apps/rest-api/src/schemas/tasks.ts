@@ -1,5 +1,6 @@
 import {
   ClaimCondition,
+  DaemonState,
   ExecutorRef,
   ExecutorTrustLevel,
   Task,
@@ -130,6 +131,12 @@ export const CompleteTaskBodySchema = Type.Object(
     executorManifest: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
     executorFingerprint: Type.Optional(Type.String({ minLength: 1 })),
     executorSignature: Type.Optional(Type.String({ minLength: 1 })),
+    // Daemon-asserted runtime state stamped onto the attempt row at
+    // completion time. Optional so older daemons that don't know about
+    // warm-slot resumability keep working — they persist null.
+    daemonState: Type.Optional(
+      Type.Union([Type.Ref(DaemonState), Type.Null()]),
+    ),
   },
   { $id: 'CompleteTaskBody' },
 );
@@ -249,6 +256,7 @@ export const taskSchemas = [
   TaskRef,
   TaskUsage,
   TaskError,
+  DaemonState,
   // Composite types
   Task,
   TaskAttempt,

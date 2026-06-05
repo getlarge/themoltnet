@@ -31,8 +31,43 @@ export interface FinalizeContext {
    * marker for fulfill_brief outputs that opened a PR.
    */
   task?: Task;
+  /**
+   * Daemon slot info for the attempt — used to compute `daemonState`
+   * stamped onto the attempt row at completion time. Pass `null` (or
+   * omit) when there was no slot (slot-less freeform, non-freeform
+   * task type). See `buildDaemonStateForComplete`.
+   */
+  slot?: { expiresAtMs: number | null } | null;
   writeCorrelationAnchors?: WriteCorrelationAnchors;
   log?: (msg: string, err?: unknown) => void;
+}
+
+/**
+ * Build the `daemonState` payload for a `/complete` call. Only freeform
+ * attempts that ran with a warm slot are eligible for continuation
+ * (`tasks_continue`, see issue #1287). Other task types and slot-less
+ * freeform completions report `null` for `slotResumableUntil`, which
+ * the server persists verbatim — continuations against such attempts
+ * fail validation with `freeform.sourceNotResumeEligible`.
+ *
+ * Returns `null` for non-freeform task types so the field is omitted
+ * from the request body (the server treats null and absent the same).
+ */
+export function buildDaemonStateForComplete(
+  taskType: string,
+  slot: { expiresAtMs: number | null } | null,
+): { reportedAt: string; slotResumableUntil: string | null } | null {
+  if (taskType !== 'freeform') return null;
+  if (!slot || !slot.expiresAtMs) {
+    return {
+      reportedAt: new Date().toISOString(),
+      slotResumableUntil: null,
+    };
+  }
+  return {
+    reportedAt: new Date().toISOString(),
+    slotResumableUntil: new Date(slot.expiresAtMs).toISOString(),
+  };
 }
 
 export async function finalizeTask(
@@ -44,6 +79,9 @@ export async function finalizeTask(
 
   if (output.status === 'completed' && output.output && output.outputCid) {
     try {
+      const daemonState = ctx.task
+        ? buildDaemonStateForComplete(ctx.task.taskType, ctx.slot ?? null)
+        : null;
       await agent.tasks.complete(output.taskId, output.attemptN, {
         output: output.output,
         outputCid: output.outputCid,
@@ -51,6 +89,7 @@ export async function finalizeTask(
         ...(output.contentSignature
           ? { contentSignature: output.contentSignature }
           : {}),
+        ...(daemonState ? { daemonState } : {}),
       });
     } catch (err) {
       // The server rejected the structured output (most commonly

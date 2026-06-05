@@ -1155,6 +1155,7 @@ func (*CompleteTaskNotFound) completeTaskRes() {}
 
 type CompleteTaskReq struct {
 	ContentSignature    OptString                          `json:"contentSignature"`
+	DaemonState         OptDaemonState                     `json:"daemonState"`
 	ExecutorFingerprint OptString                          `json:"executorFingerprint"`
 	ExecutorManifest    OptCompleteTaskReqExecutorManifest `json:"executorManifest"`
 	ExecutorSignature   OptString                          `json:"executorSignature"`
@@ -1166,6 +1167,11 @@ type CompleteTaskReq struct {
 // GetContentSignature returns the value of ContentSignature.
 func (s *CompleteTaskReq) GetContentSignature() OptString {
 	return s.ContentSignature
+}
+
+// GetDaemonState returns the value of DaemonState.
+func (s *CompleteTaskReq) GetDaemonState() OptDaemonState {
+	return s.DaemonState
 }
 
 // GetExecutorFingerprint returns the value of ExecutorFingerprint.
@@ -1201,6 +1207,11 @@ func (s *CompleteTaskReq) GetUsage() TaskUsage {
 // SetContentSignature sets the value of ContentSignature.
 func (s *CompleteTaskReq) SetContentSignature(val OptString) {
 	s.ContentSignature = val
+}
+
+// SetDaemonState sets the value of DaemonState.
+func (s *CompleteTaskReq) SetDaemonState(val OptDaemonState) {
+	s.DaemonState = val
 }
 
 // SetExecutorFingerprint sets the value of ExecutorFingerprint.
@@ -3434,6 +3445,32 @@ func (s *CustomPackResultParams) init() CustomPackResultParams {
 		*s = m
 	}
 	return m
+}
+
+// Ref: #/components/schemas/DaemonState
+type DaemonState struct {
+	ReportedAt         time.Time   `json:"reportedAt"`
+	SlotResumableUntil NilDateTime `json:"slotResumableUntil"`
+}
+
+// GetReportedAt returns the value of ReportedAt.
+func (s *DaemonState) GetReportedAt() time.Time {
+	return s.ReportedAt
+}
+
+// GetSlotResumableUntil returns the value of SlotResumableUntil.
+func (s *DaemonState) GetSlotResumableUntil() NilDateTime {
+	return s.SlotResumableUntil
+}
+
+// SetReportedAt sets the value of ReportedAt.
+func (s *DaemonState) SetReportedAt(val time.Time) {
+	s.ReportedAt = val
+}
+
+// SetSlotResumableUntil sets the value of SlotResumableUntil.
+func (s *DaemonState) SetSlotResumableUntil(val NilDateTime) {
+	s.SlotResumableUntil = val
 }
 
 type DeleteDiaryBadRequest ProblemDetails
@@ -12381,6 +12418,51 @@ func (o NilTaskAttemptCompletedExecutorManifest) Or(d TaskAttemptCompletedExecut
 	return d
 }
 
+// NewNilTaskAttemptDaemonState returns new NilTaskAttemptDaemonState with value set to v.
+func NewNilTaskAttemptDaemonState(v TaskAttemptDaemonState) NilTaskAttemptDaemonState {
+	return NilTaskAttemptDaemonState{
+		Value: v,
+	}
+}
+
+// NilTaskAttemptDaemonState is nullable TaskAttemptDaemonState.
+type NilTaskAttemptDaemonState struct {
+	Value TaskAttemptDaemonState
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilTaskAttemptDaemonState) SetTo(v TaskAttemptDaemonState) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilTaskAttemptDaemonState) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilTaskAttemptDaemonState) SetToNull() {
+	o.Null = true
+	var v TaskAttemptDaemonState
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilTaskAttemptDaemonState) Get() (v TaskAttemptDaemonState, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilTaskAttemptDaemonState) Or(d TaskAttemptDaemonState) TaskAttemptDaemonState {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilTaskAttemptError returns new NilTaskAttemptError with value set to v.
 func NewNilTaskAttemptError(v TaskAttemptError) NilTaskAttemptError {
 	return NilTaskAttemptError{
@@ -13106,6 +13188,52 @@ func (o OptCreateTeamInviteReqRole) Get() (v CreateTeamInviteReqRole, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCreateTeamInviteReqRole) Or(d CreateTeamInviteReqRole) CreateTeamInviteReqRole {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptDaemonState returns new OptDaemonState with value set to v.
+func NewOptDaemonState(v DaemonState) OptDaemonState {
+	return OptDaemonState{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptDaemonState is optional DaemonState.
+type OptDaemonState struct {
+	Value DaemonState
+	Set   bool
+}
+
+// IsSet returns true if OptDaemonState was set.
+func (o OptDaemonState) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptDaemonState) Reset() {
+	var v DaemonState
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptDaemonState) SetTo(v DaemonState) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptDaemonState) Get() (v DaemonState, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptDaemonState) Or(d DaemonState) DaemonState {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -19501,6 +19629,7 @@ type TaskAttempt struct {
 	CompletedExecutorFingerprint NilString                               `json:"completedExecutorFingerprint"`
 	CompletedExecutorManifest    NilTaskAttemptCompletedExecutorManifest `json:"completedExecutorManifest"`
 	ContentSignature             NilString                               `json:"contentSignature"`
+	DaemonState                  NilTaskAttemptDaemonState               `json:"daemonState"`
 	Error                        NilTaskAttemptError                     `json:"error"`
 	Output                       NilTaskAttemptOutput                    `json:"output"`
 	OutputCid                    NilString                               `json:"outputCid"`
@@ -19555,6 +19684,11 @@ func (s *TaskAttempt) GetCompletedExecutorManifest() NilTaskAttemptCompletedExec
 // GetContentSignature returns the value of ContentSignature.
 func (s *TaskAttempt) GetContentSignature() NilString {
 	return s.ContentSignature
+}
+
+// GetDaemonState returns the value of DaemonState.
+func (s *TaskAttempt) GetDaemonState() NilTaskAttemptDaemonState {
+	return s.DaemonState
 }
 
 // GetError returns the value of Error.
@@ -19647,6 +19781,11 @@ func (s *TaskAttempt) SetContentSignature(val NilString) {
 	s.ContentSignature = val
 }
 
+// SetDaemonState sets the value of DaemonState.
+func (s *TaskAttempt) SetDaemonState(val NilTaskAttemptDaemonState) {
+	s.DaemonState = val
+}
+
 // SetError sets the value of Error.
 func (s *TaskAttempt) SetError(val NilTaskAttemptError) {
 	s.Error = val
@@ -19712,6 +19851,31 @@ func (s *TaskAttemptCompletedExecutorManifest) init() TaskAttemptCompletedExecut
 		*s = m
 	}
 	return m
+}
+
+type TaskAttemptDaemonState struct {
+	ReportedAt         time.Time   `json:"reportedAt"`
+	SlotResumableUntil NilDateTime `json:"slotResumableUntil"`
+}
+
+// GetReportedAt returns the value of ReportedAt.
+func (s *TaskAttemptDaemonState) GetReportedAt() time.Time {
+	return s.ReportedAt
+}
+
+// GetSlotResumableUntil returns the value of SlotResumableUntil.
+func (s *TaskAttemptDaemonState) GetSlotResumableUntil() NilDateTime {
+	return s.SlotResumableUntil
+}
+
+// SetReportedAt sets the value of ReportedAt.
+func (s *TaskAttemptDaemonState) SetReportedAt(val time.Time) {
+	s.ReportedAt = val
+}
+
+// SetSlotResumableUntil sets the value of SlotResumableUntil.
+func (s *TaskAttemptDaemonState) SetSlotResumableUntil(val NilDateTime) {
+	s.SlotResumableUntil = val
 }
 
 type TaskAttemptError struct {
@@ -21956,8 +22120,14 @@ func (s *ValidationProblemDetailsCode) UnmarshalText(data []byte) error {
 }
 
 type ValidationProblemDetailsErrorsItem struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
+	Code    OptString `json:"code"`
+	Field   string    `json:"field"`
+	Message string    `json:"message"`
+}
+
+// GetCode returns the value of Code.
+func (s *ValidationProblemDetailsErrorsItem) GetCode() OptString {
+	return s.Code
 }
 
 // GetField returns the value of Field.
@@ -21968,6 +22138,11 @@ func (s *ValidationProblemDetailsErrorsItem) GetField() string {
 // GetMessage returns the value of Message.
 func (s *ValidationProblemDetailsErrorsItem) GetMessage() string {
 	return s.Message
+}
+
+// SetCode sets the value of Code.
+func (s *ValidationProblemDetailsErrorsItem) SetCode(val OptString) {
+	s.Code = val
 }
 
 // SetField sets the value of Field.
