@@ -24,6 +24,11 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
+  type DaemonSlotIdentity,
+  DaemonSlotRegistry,
+  resolveLatestPiSessionPath,
+} from '@themoltnet/agent-daemon-state';
+import {
   AgentRuntime,
   type AgentRuntimeLogger,
   ApiTaskReporter,
@@ -34,14 +39,9 @@ import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  DaemonSlotRegistry,
-  resolveLatestPiSessionPath,
-} from '../src/lib/daemon-slot-registry.js';
 import { createExecutionPlanCache } from '../src/lib/execution-plan-cache.js';
 import { finalizeTask } from '../src/lib/finalize.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
-import { type DaemonSlotIdentity } from '../src/lib/task-execution-plan.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const silentLogger: AgentRuntimeLogger = {
@@ -662,7 +662,7 @@ describe('Agent daemon (e2e)', () => {
       expect(finalFirst.status).toBe('completed');
       expect(finalSecond.status).toBe('completed');
 
-      const expired = slotRegistry.reapExpiredSlots(Date.now() + 120_000);
+      const expired = await slotRegistry.reapExpiredSlots(Date.now() + 120_000);
       expect(expired).toHaveLength(1);
       expect(expired[0]?.slot.slotKey).toBe(afterSecond.slots[0]?.slotKey);
       expect(existsSync(firstSessionDir!)).toBe(false);
@@ -673,7 +673,7 @@ describe('Agent daemon (e2e)', () => {
       expect(afterReap.sessions).toHaveLength(0);
       expect(afterReap.workspaces).toHaveLength(0);
     } finally {
-      slotRegistry.close();
+      await slotRegistry.close();
     }
   }, 60_000);
 
@@ -715,7 +715,7 @@ describe('Agent daemon (e2e)', () => {
       expect(producerWorkspacePath).toBeTruthy();
       expect(existsSync(producerSessionPath!)).toBe(true);
       expect(existsSync(producerWorkspacePath!)).toBe(true);
-      const expired = slotRegistry.reapExpiredSlots(Date.now() + 120_000);
+      const expired = await slotRegistry.reapExpiredSlots(Date.now() + 120_000);
       expect(expired).toHaveLength(1);
       expect(existsSync(producerSessionPath!)).toBe(false);
       expect(existsSync(producerWorkspacePath!)).toBe(false);
@@ -741,7 +741,7 @@ describe('Agent daemon (e2e)', () => {
       );
       expect(judgeRun.executionPlan).toBeNull();
     } finally {
-      slotRegistry.close();
+      await slotRegistry.close();
     }
   }, 60_000);
 
@@ -842,7 +842,7 @@ describe('Agent daemon (e2e)', () => {
           warmSessionTtlSec,
           slotRegistry,
         });
-        const continuationPlan = planCache.getOrCreate(claimed!);
+        const continuationPlan = await planCache.getOrCreate(claimed!);
         expect(continuationPlan.workspaceMode).toBe('dedicated_worktree');
         expect(continuationPlan.sessionPersistence?.forkFromSessionPath).toBe(
           seededSessionPath,
@@ -865,7 +865,7 @@ describe('Agent daemon (e2e)', () => {
           reason: 'cleanup after warm-slot continuation claim assertion',
         });
       } finally {
-        slotRegistry.close();
+        await slotRegistry.close();
       }
     }, 60_000);
 
@@ -939,8 +939,8 @@ describe('Agent daemon (e2e)', () => {
           reason: 'cleanup after warm-slot continuation skip assertion',
         });
       } finally {
-        ownerRegistry.close();
-        strangerRegistry.close();
+        await ownerRegistry.close();
+        await strangerRegistry.close();
       }
     }, 60_000);
   });
@@ -1079,8 +1079,9 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
     warmSessionTtlSec: args.warmSessionTtlSec,
     slotRegistry: args.slotRegistry,
   });
-  let usedExecutionPlan: ReturnType<typeof executionPlans.getOrCreate> | null =
-    null;
+  let usedExecutionPlan: Awaited<
+    ReturnType<typeof executionPlans.getOrCreate>
+  > | null = null;
 
   const runtime = new AgentRuntime({
     source: new ApiTaskSource({
@@ -1095,8 +1096,8 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
         heartbeatIntervalMs: 0,
       }),
     executeTask: async (claimedTask, reporter) => {
-      args.slotRegistry.reapExpiredSlots();
-      const executionPlan = executionPlans.getOrCreate(claimedTask);
+      await args.slotRegistry.reapExpiredSlots();
+      const executionPlan = await executionPlans.getOrCreate(claimedTask);
       usedExecutionPlan = executionPlan;
       const worktreePath = resolveRecordedWorkspacePath(
         args.mountRoot,
@@ -1130,7 +1131,7 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
           );
         }
 
-        args.slotRegistry.beginSlot({
+        await args.slotRegistry.beginSlot({
           ...args.slotIdentity,
           slotKey: executionPlan.slotKey,
           taskType: claimedTask.task.taskType,
@@ -1166,7 +1167,7 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
       await reporter.finalize(output.usage);
       await reporter.close();
       if (executionPlan.slotKey) {
-        args.slotRegistry.finishSlot(
+        await args.slotRegistry.finishSlot(
           args.slotIdentity,
           executionPlan.slotKey,
           args.warmSessionTtlSec,
@@ -1194,9 +1195,11 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
     plan && plan.slotKey ? await args.agent.tasks.get(args.taskId) : null;
   const slotForCtx =
     plan && plan.slotKey
-      ? (args.slotRegistry.findLatestProducerSlotByTaskAttempt(
-          args.taskId,
-          output.attemptN,
+      ? ((
+          await args.slotRegistry.findLatestProducerSlotByTaskAttempt(
+            args.taskId,
+            output.attemptN,
+          )
         )?.slot ?? null)
       : null;
   await finalizeTask(args.agent, output, {

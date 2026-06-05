@@ -14,6 +14,7 @@ import {
   DaemonSlotRegistry,
   resolveLatestPiSessionPath,
 } from './daemon-slot-registry.js';
+import { pgDaemonSlots } from './pg-schema.js';
 
 describe('DaemonSlotRegistry', () => {
   const tempRoots: string[] = [];
@@ -24,7 +25,7 @@ describe('DaemonSlotRegistry', () => {
     }
   });
 
-  it('reaps expired idle slots and removes their persisted Pi session dirs', () => {
+  it('reaps expired idle slots and removes their persisted Pi session dirs', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-slot-registry-'));
     tempRoots.push(root);
     const dbPath = join(root, 'daemon-state.sqlite');
@@ -33,7 +34,7 @@ describe('DaemonSlotRegistry', () => {
     writeFileSync(join(sessionDir, 'session-a.jsonl'), '[]\n', 'utf8');
 
     const registry = new DaemonSlotRegistry(dbPath);
-    registry.beginSlot({
+    await registry.beginSlot({
       agentName: 'legreffier',
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
@@ -48,7 +49,7 @@ describe('DaemonSlotRegistry', () => {
       lastAttemptN: 1,
       ttlSec: 1,
     });
-    registry.finishSlot(
+    await registry.finishSlot(
       {
         agentName: 'legreffier',
         provider: 'anthropic',
@@ -59,8 +60,8 @@ describe('DaemonSlotRegistry', () => {
       join(sessionDir, 'session-a.jsonl'),
     );
 
-    const expired = registry.reapExpiredSlots(Date.now() + 2_000);
-    registry.close();
+    const expired = await registry.reapExpiredSlots(Date.now() + 2_000);
+    await registry.close();
 
     expect(expired).toHaveLength(1);
     expect(expired[0]?.slot.slotKey).toBe('fulfill_brief:correlation:test');
@@ -85,7 +86,7 @@ describe('DaemonSlotRegistry', () => {
     expect(resolveLatestPiSessionPath(sessionDir)).toBe(newer);
   });
 
-  it('finds the latest producer slot context by task id and attempt number', () => {
+  it('finds the latest producer slot context by task id and attempt number', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-slot-producer-'));
     tempRoots.push(root);
     const dbPath = join(root, 'daemon-state.sqlite');
@@ -97,7 +98,7 @@ describe('DaemonSlotRegistry', () => {
     writeFileSync(sessionPath, '[]\n', 'utf8');
 
     const registry = new DaemonSlotRegistry(dbPath);
-    registry.beginSlot({
+    await registry.beginSlot({
       agentName: 'local-eval-943',
       provider: 'ollama-cloud',
       model: 'qwen3.5',
@@ -112,7 +113,7 @@ describe('DaemonSlotRegistry', () => {
       lastAttemptN: 1,
       ttlSec: 60,
     });
-    registry.finishSlot(
+    await registry.finishSlot(
       {
         agentName: 'local-eval-943',
         provider: 'ollama-cloud',
@@ -123,11 +124,11 @@ describe('DaemonSlotRegistry', () => {
       sessionPath,
     );
 
-    const resolved = registry.findLatestProducerSlotByTaskAttempt(
+    const resolved = await registry.findLatestProducerSlotByTaskAttempt(
       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       1,
     );
-    registry.close();
+    await registry.close();
 
     expect(resolved?.slot.slotKey).toBe(
       'run_eval:correlation:test:variant:baseline',
@@ -137,5 +138,11 @@ describe('DaemonSlotRegistry', () => {
     expect(resolved?.session?.sessionPath).toBe(sessionPath);
     expect(resolved?.workspace?.workspaceId).toBe('task-aaaaaaaa');
     expect(resolved?.workspace?.worktreePath).toBe(worktreePath);
+  });
+
+  it('uses 64-bit Postgres columns for epoch millisecond timestamps', () => {
+    expect(pgDaemonSlots.createdAtMs.getSQLType()).toBe('bigint');
+    expect(pgDaemonSlots.lastUsedAtMs.getSQLType()).toBe('bigint');
+    expect(pgDaemonSlots.expiresAtMs.getSQLType()).toBe('bigint');
   });
 });

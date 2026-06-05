@@ -1,24 +1,24 @@
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import type { ClaimedTask } from '@themoltnet/agent-runtime';
-
 import {
+  type DaemonSlotIdentity,
   type DaemonSlotRegistry,
   type ResolvedProducerDaemonSlot,
   resolveLatestPiSessionPath,
-} from './daemon-slot-registry.js';
+} from '@themoltnet/agent-daemon-state';
+import type { ClaimedTask } from '@themoltnet/agent-runtime';
+
 import type { DaemonStateDirs } from './state-dir.js';
 import {
   buildDaemonTaskExecutionPlan,
-  type DaemonSlotIdentity,
   type DaemonTaskExecutionPlan,
 } from './task-execution-plan.js';
 
 type CachedTask = Pick<ClaimedTask, 'task' | 'attemptN'>;
 
 export interface ExecutionPlanCache {
-  getOrCreate(claimedTask: CachedTask): DaemonTaskExecutionPlan;
+  getOrCreate(claimedTask: CachedTask): Promise<DaemonTaskExecutionPlan>;
   delete(claimedTask: CachedTask): void;
 }
 
@@ -38,7 +38,9 @@ export function createExecutionPlanCache(args: {
   const cache = new Map<string, DaemonTaskExecutionPlan>();
 
   return {
-    getOrCreate(claimedTask: CachedTask): DaemonTaskExecutionPlan {
+    async getOrCreate(
+      claimedTask: CachedTask,
+    ): Promise<DaemonTaskExecutionPlan> {
       const key = buildClaimedTaskKey(claimedTask);
       const existing = cache.get(key);
       if (existing) return existing;
@@ -49,7 +51,7 @@ export function createExecutionPlanCache(args: {
         args.slotIdentity,
         args.warmSessionTtlSec,
       );
-      const plan = maybeAttachWarmSlotContext(
+      const plan = await maybeAttachWarmSlotContext(
         claimedTask,
         basePlan,
         args.stateDirs,
@@ -78,16 +80,17 @@ type WarmSlotResolution =
   | { kind: 'missing' }
   | { kind: 'no-session-path' };
 
-function resolveWarmSlot(
+async function resolveWarmSlot(
   slotRegistry: DaemonSlotRegistry,
   sourceTaskId: string,
   sourceAttemptN: number,
   stateDirs: DaemonStateDirs,
-): WarmSlotResolution {
-  const producerContext = slotRegistry.findLatestProducerSlotByTaskAttempt(
-    sourceTaskId,
-    sourceAttemptN,
-  );
+): Promise<WarmSlotResolution> {
+  const producerContext =
+    await slotRegistry.findLatestProducerSlotByTaskAttempt(
+      sourceTaskId,
+      sourceAttemptN,
+    );
   if (!producerContext) return { kind: 'missing' };
 
   const sourceSessionPath = resolveProducerSessionPath(producerContext);
@@ -106,12 +109,12 @@ function resolveWarmSlot(
   };
 }
 
-function maybeAttachWarmSlotContext(
+async function maybeAttachWarmSlotContext(
   claimedTask: CachedTask,
   basePlan: DaemonTaskExecutionPlan,
   stateDirs: DaemonStateDirs,
   slotRegistry: DaemonSlotRegistry,
-): DaemonTaskExecutionPlan {
+): Promise<DaemonTaskExecutionPlan> {
   if (claimedTask.task.taskType === 'freeform') {
     const continueFrom = (
       claimedTask.task.input as {
@@ -121,7 +124,7 @@ function maybeAttachWarmSlotContext(
 
     if (!continueFrom) return basePlan;
 
-    const resolution = resolveWarmSlot(
+    const resolution = await resolveWarmSlot(
       slotRegistry,
       continueFrom.taskId,
       continueFrom.attemptN,
@@ -173,7 +176,7 @@ function maybeAttachWarmSlotContext(
     );
   }
 
-  const resolution = resolveWarmSlot(
+  const resolution = await resolveWarmSlot(
     slotRegistry,
     targetTaskId,
     targetAttemptN,

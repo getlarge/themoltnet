@@ -2,6 +2,12 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
+  type DaemonSlotIdentity,
+  DaemonSlotRegistry,
+  resolveDaemonStateStorageConfig,
+  resolveLatestPiSessionPath,
+} from '@themoltnet/agent-daemon-state';
+import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
@@ -19,10 +25,6 @@ import {
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
 import {
-  DaemonSlotRegistry,
-  resolveLatestPiSessionPath,
-} from '../lib/daemon-slot-registry.js';
-import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
 } from '../lib/execution-plan-cache.js';
@@ -38,7 +40,6 @@ import {
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
-import { type DaemonSlotIdentity } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
 export async function runOnce(argv: string[]): Promise<number> {
@@ -75,8 +76,14 @@ export async function runOnce(argv: string[]): Promise<number> {
     throw err;
   }
   const sandbox = resolveSandbox(process.cwd(), values.sandbox);
+  const cfg = loadConfig();
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
-  const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+  const slotRegistry = new DaemonSlotRegistry(
+    resolveDaemonStateStorageConfig(
+      stateDirs.registryDbPath,
+      cfg.agentDaemonStateDatabaseUrl,
+    ),
+  );
   const slotIdentity: DaemonSlotIdentity = {
     agentName: opts.agent,
     provider: opts.provider,
@@ -91,7 +98,6 @@ export async function runOnce(argv: string[]): Promise<number> {
   });
   const ctx = await resolveAgentContext(opts.agent);
 
-  const cfg = loadConfig();
   const otelShutdown = await initWorkerOtel({
     serviceName: 'moltnet.agent-daemon.once',
     agentDir: ctx.agentDir,
@@ -166,7 +172,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     });
     const executeTask: TaskExecutor = async (claimedTask, reporter) => {
       try {
-        const expired = slotRegistry.reapExpiredSlots();
+        const expired = await slotRegistry.reapExpiredSlots();
         if (expired.length > 0) {
           rootLogger.info(
             {
@@ -185,9 +191,9 @@ export async function runOnce(argv: string[]): Promise<number> {
           'agent-daemon.daemon_slot_reap_failed',
         );
       }
-      let executionPlan: ReturnType<typeof executionPlans.getOrCreate>;
+      let executionPlan: Awaited<ReturnType<typeof executionPlans.getOrCreate>>;
       try {
-        executionPlan = executionPlans.getOrCreate(claimedTask);
+        executionPlan = await executionPlans.getOrCreate(claimedTask);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         rootLogger.warn(
@@ -217,7 +223,7 @@ export async function runOnce(argv: string[]): Promise<number> {
         };
       }
       if (executionPlan.slotKey && executionPlan.sessionPersistence) {
-        slotRegistry.beginSlot({
+        await slotRegistry.beginSlot({
           ...slotIdentity,
           slotKey: executionPlan.slotKey,
           taskType: claimedTask.task.taskType,
@@ -242,7 +248,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       } finally {
         executionPlans.delete(claimedTask);
         if (executionPlan.slotKey) {
-          slotRegistry.finishSlot(
+          await slotRegistry.finishSlot(
             slotIdentity,
             executionPlan.slotKey,
             opts.warmSessionTtlSec,
@@ -279,13 +285,13 @@ export async function runOnce(argv: string[]): Promise<number> {
       // Finalize inside the runtime loop so the correlation anchor writer
       // sees the claimedTask alongside its output. once mode only ever
       // claims one task, so this fires exactly once.
-      onTaskFinished: (output, claimedTask) => {
+      onTaskFinished: async (output, claimedTask) => {
         // Look up the slot record at finalize time. `executeTask`'s
         // finally block has already called `finishSlot` which updates
         // `expires_at_ms` to the post-completion idle TTL — that's
         // exactly the `slotResumableUntil` window we want stamped on
         // the attempt row.
-        const resolved = slotRegistry.findLatestProducerSlotByTaskAttempt(
+        const resolved = await slotRegistry.findLatestProducerSlotByTaskAttempt(
           claimedTask.task.id,
           claimedTask.attemptN,
         );
@@ -309,7 +315,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     console.log(JSON.stringify(output, null, 2));
     return output.status === 'completed' ? 0 : 1;
   } finally {
-    slotRegistry.close();
+    await slotRegistry.close();
     await otelShutdown();
     await shutdownLogger();
   }
