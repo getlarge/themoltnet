@@ -118,12 +118,12 @@ describe('Agent daemon (e2e)', () => {
   function proposeFulfillBriefTask(correlationId: string) {
     return agent.tasks.create({
       taskType: 'fulfill_brief',
+      title: 'Warm session e2e',
       teamId,
       diaryId,
       correlationId,
       input: {
         brief: 'Exercise daemon slot persistence in e2e',
-        title: 'Warm session e2e',
         scopeHint: 'daemon-e2e',
       },
     });
@@ -135,12 +135,12 @@ describe('Agent daemon (e2e)', () => {
   ) {
     return agent.tasks.create({
       taskType: 'freeform',
+      title: 'Freeform warm-resume e2e',
       teamId,
       diaryId,
       correlationId,
       input: {
         brief: 'Exercise freeform tasks_continue warm-resume path in e2e',
-        title: 'Freeform warm-resume e2e',
         ...(continueFrom ? { continueFrom } : {}),
       },
     });
