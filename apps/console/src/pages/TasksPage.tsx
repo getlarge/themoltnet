@@ -1,4 +1,4 @@
-import { createTask, listTasks, type TaskStatus } from '@moltnet/api-client';
+import { createTask, type TaskStatus } from '@moltnet/api-client';
 import {
   getTaskOptions,
   listTaskAttemptsOptions,
@@ -17,7 +17,11 @@ import {
   TaskQueueTable,
   TaskTypeFacet,
 } from '@moltnet/task-ui';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
@@ -37,6 +41,7 @@ const AGENT_DAEMON_DOCS_HREF = `${getConfig().docsUrl}/use/agent-daemon`;
 
 export function TasksPage() {
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const search = useSearch();
   const params = useMemo(() => new URLSearchParams(search), [search]);
@@ -137,19 +142,26 @@ export function TasksPage() {
   const searchPickerCandidates = useCallback(
     async (searchText: string) => {
       if (!teamId) return [];
-      const { data, error } = await listTasks({
-        client: getApiClient(),
-        query: {
-          teamId,
-          query: searchText.trim() || undefined,
-          statuses: ['waiting', 'queued', 'dispatched', 'running', 'completed'],
-          limit: 20,
-        },
-      });
-      if (error || !data) return [];
+      const data = await queryClient.fetchQuery(
+        listTasksOptions({
+          client: getApiClient(),
+          query: {
+            teamId,
+            query: searchText.trim() || undefined,
+            statuses: [
+              'waiting',
+              'queued',
+              'dispatched',
+              'running',
+              'completed',
+            ],
+            limit: 20,
+          },
+        }),
+      );
       return data.items;
     },
-    [teamId],
+    [queryClient, teamId],
   );
 
   function updateTaskTypes(next: string[]) {
