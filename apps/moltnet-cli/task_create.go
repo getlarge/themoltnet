@@ -22,6 +22,8 @@ type taskCreateOpts struct {
 	credPath string
 
 	taskType  string
+	title     string
+	titleSet  bool
 	teamID    string
 	diaryID   string
 	inputFile string // "-" or path; empty defaults to stdin
@@ -152,6 +154,13 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 		TeamId:   teamID,
 		DiaryId:  diaryID,
 		Input:    inputMap,
+	}
+	if opts.titleSet {
+		title := strings.TrimSpace(opts.title)
+		if title == "" {
+			return nil, fmt.Errorf("--title must not be empty when provided")
+		}
+		req.Title = moltnetapi.NewOptString(title)
 	}
 
 	if opts.correlationIDSet {

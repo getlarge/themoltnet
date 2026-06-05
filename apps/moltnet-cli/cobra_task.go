@@ -43,9 +43,9 @@ matching the respective wire schema. JSON-blob flags are ugly in the shell but
 lossless for the nested external object on TaskRef and the tightly-coupled
 provider+model pair on ExecutorRef.`,
 		Example: `  # Stdin input (default)
-  echo '{"brief":"Fix issue #123","title":"...","scopeHint":"misc"}' \
+  echo '{"brief":"Fix issue #123","scopeHint":"misc"}' \
     | moltnet task create --task-type fulfill_brief \
-        --team-id <uuid> --diary-id <uuid>
+        --team-id <uuid> --diary-id <uuid> --title "Fix issue #123"
 
   # File input
   moltnet task create --task-type fulfill_brief \
@@ -81,6 +81,8 @@ provider+model pair on ExecutorRef.`,
 				apiURL:                        resolveAPIURL(cmd, credPath),
 				credPath:                      credPath,
 				taskType:                      flagString(cmd, "task-type"),
+				title:                         flagString(cmd, "title"),
+				titleSet:                      cmd.Flags().Changed("title"),
 				teamID:                        flagString(cmd, "team-id"),
 				diaryID:                       flagString(cmd, "diary-id"),
 				inputFile:                     flagString(cmd, "input-file"),
@@ -107,6 +109,7 @@ provider+model pair on ExecutorRef.`,
 		},
 	}
 	cmd.Flags().String("task-type", "", "Task type name (required)")
+	cmd.Flags().String("title", "", "Mutable task title metadata")
 	cmd.Flags().String("team-id", "", "Team UUID (required)")
 	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
 	cmd.Flags().String("input-file", "-", `Path to the input JSON blob; "-" reads stdin (default)`)

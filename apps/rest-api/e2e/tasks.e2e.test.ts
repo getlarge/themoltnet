@@ -390,11 +390,11 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         body: {
           taskType: 'fulfill_brief',
+          title: 'taskTypes filter fulfill',
           teamId: proposer.personalTeamId,
           diaryId: proposer.privateDiaryId,
           input: {
             brief: 'taskTypes filter fulfill',
-            title: 'taskTypes filter fulfill',
           },
         },
       });
