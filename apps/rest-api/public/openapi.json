@@ -965,12 +965,26 @@
             "minimum": 1,
             "type": "integer"
           },
+          "tags": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
           "taskType": {
             "minLength": 1,
             "type": "string"
           },
           "teamId": {
             "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
             "type": "string"
           }
         },
@@ -2654,6 +2668,16 @@
             "format": "uuid",
             "type": "string"
           },
+          "excludeTags": {
+            "description": "Repeated excluded tags filter.",
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
           "hasAttempts": {
             "type": "boolean"
           },
@@ -2679,6 +2703,11 @@
             "minLength": 1,
             "type": "string"
           },
+          "query": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
           "queuedAfter": {
             "format": "date-time",
             "type": "string"
@@ -2695,6 +2724,16 @@
               "$ref": "#/components/schemas/TaskStatus"
             },
             "maxItems": 8,
+            "type": "array"
+          },
+          "tags": {
+            "description": "Repeated tags filter. Task must include all tags.",
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
             "type": "array"
           },
           "taskTypes": {
@@ -5799,6 +5838,12 @@
               }
             ]
           },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "taskType": {
             "minLength": 1,
             "type": "string"
@@ -5806,11 +5851,23 @@
           "teamId": {
             "format": "uuid",
             "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "id",
           "taskType",
+          "title",
+          "tags",
           "teamId",
           "diaryId",
           "outputKind",
@@ -6596,6 +6653,34 @@
           "inputTokens",
           "outputTokens"
         ],
+        "type": "object"
+      },
+      "UpdateTaskMetadataBody": {
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "tags": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
         "type": "object"
       },
       "ValidationError": {
@@ -15887,6 +15972,16 @@
           },
           {
             "in": "query",
+            "name": "query",
+            "required": false,
+            "schema": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "status",
             "schema": {
               "$ref": "#/components/schemas/TaskStatus"
@@ -15911,6 +16006,36 @@
             "required": false,
             "schema": {
               "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            }
+          },
+          {
+            "description": "Repeated tags filter. Task must include all tags.",
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "items": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            }
+          },
+          {
+            "description": "Repeated excluded tags filter.",
+            "in": "query",
+            "name": "excludeTags",
+            "required": false,
+            "schema": {
+              "items": {
+                "maxLength": 128,
                 "minLength": 1,
                 "type": "string"
               },
@@ -16160,12 +16285,26 @@
                     "minimum": 1,
                     "type": "integer"
                   },
+                  "tags": {
+                    "items": {
+                      "maxLength": 128,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  },
                   "taskType": {
                     "minLength": 1,
                     "type": "string"
                   },
                   "teamId": {
                     "format": "uuid",
+                    "type": "string"
+                  },
+                  "title": {
+                    "maxLength": 255,
+                    "minLength": 1,
                     "type": "string"
                   }
                 },
@@ -16302,6 +16441,121 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Task"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      },
+      "patch": {
+        "description": "Update mutable task metadata used for cohorting and search.",
+        "operationId": "updateTaskMetadata",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "minProperties": 1,
+                "properties": {
+                  "tags": {
+                    "items": {
+                      "maxLength": 128,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  },
+                  "title": {
+                    "anyOf": [
+                      {
+                        "maxLength": 255,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
                 }
               }
             },

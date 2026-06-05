@@ -65,11 +65,11 @@ export async function createTask(input: FulfillTaskInput): Promise<Task> {
 
   return input.agent.tasks.create({
     taskType: 'fulfill_brief',
+    ...(input.title ? { title: input.title } : {}),
     teamId: input.teamId,
     diaryId: input.diaryId,
     input: {
       brief: briefWithSource,
-      ...(input.title ? { title: input.title } : {}),
       ...(input.successCriteria
         ? { successCriteria: input.successCriteria }
         : {}),

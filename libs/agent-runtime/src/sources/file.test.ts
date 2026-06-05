@@ -79,7 +79,8 @@ describe('FileTaskSource', () => {
 
   it('rejects a well-formed Task whose input fails the type schema', async () => {
     const task = makeFulfillBriefTask({
-      input: { brief: '', title: 'x' } as unknown as Record<string, unknown>,
+      title: 'x',
+      input: { brief: '' } as unknown as Record<string, unknown>,
     });
     const src = new FileTaskSource(write(task));
     await expect(src.claim()).rejects.toThrow(/input/);

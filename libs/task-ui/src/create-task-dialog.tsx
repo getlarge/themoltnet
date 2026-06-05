@@ -48,9 +48,10 @@ export interface CreateTaskRequest {
   teamId: string;
   diaryId: string;
   taskType: 'freeform';
+  title?: string;
+  tags?: string[];
   input: {
     brief: string;
-    title?: string;
     expectedOutput?: string;
     successCriteria?: BuiltSuccessCriteria;
     execution?: { workspace: FreeformWorkspaceMode };
@@ -89,6 +90,7 @@ export function CreateTaskDialog({
   const theme = useTheme();
   const [brief, setBrief] = useState('');
   const [title, setTitle] = useState('');
+  const [tags, setTags] = useState('');
   const [expectedOutput, setExpectedOutput] = useState('');
   const [diaryId, setDiaryId] = useState(diaries[0]?.id ?? '');
   // Empty string = "use registry default". Any other value gets sent through
@@ -123,13 +125,15 @@ export function CreateTaskDialog({
     setError(null);
     try {
       const successCriteria = buildSuccessCriteria(assertions, sideEffects);
+      const normalizedTags = normalizeTagsInput(tags);
       const taskId = await onSubmit({
         teamId,
         diaryId,
         taskType: 'freeform',
+        ...(title.trim() ? { title: title.trim() } : {}),
+        ...(normalizedTags.length > 0 ? { tags: normalizedTags } : {}),
         input: {
           brief: brief.trim(),
-          ...(title.trim() ? { title: title.trim() } : {}),
           ...(expectedOutput.trim()
             ? { expectedOutput: expectedOutput.trim() }
             : {}),
@@ -140,6 +144,7 @@ export function CreateTaskDialog({
       });
       setBrief('');
       setTitle('');
+      setTags('');
       setExpectedOutput('');
       setWorkspaceMode('');
       setDependsRows([]);
@@ -202,6 +207,13 @@ export function CreateTaskDialog({
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Short label"
+        />
+
+        <Input
+          label="Tags (optional)"
+          value={tags}
+          onChange={(event) => setTags(event.target.value)}
+          placeholder="Comma-separated labels"
         />
 
         <Stack gap={1}>
@@ -303,4 +315,16 @@ export function CreateTaskDialog({
       </Stack>
     </Dialog>
   );
+}
+
+function normalizeTagsInput(value: string): string[] {
+  const seen = new Set<string>();
+  const tags: string[] = [];
+  for (const raw of value.split(',')) {
+    const tag = raw.trim();
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    tags.push(tag);
+  }
+  return tags;
 }

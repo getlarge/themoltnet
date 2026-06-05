@@ -15,9 +15,9 @@ describe('buildTaskUserPrompt', () => {
 
   it('builds fulfill_brief prompt with brief text', () => {
     const task = makeFulfillBriefTask({
+      title: 'Feature X',
       input: {
         brief: 'Implement feature X',
-        title: 'Feature X',
         scopeHint: 'misc',
       },
     });
@@ -29,8 +29,8 @@ describe('buildTaskUserPrompt', () => {
   it('builds freeform prompt with discovery instructions', () => {
     const task = makeFulfillBriefTask({
       taskType: FREEFORM_TYPE,
+      title: 'Task taxonomy',
       input: {
-        title: 'Task taxonomy',
         brief: 'Figure out if this recurring request deserves a typed task.',
         expectedOutput: 'Recommendation with proposed type if useful.',
         suggestedTaskType: 'taxonomy_probe',
@@ -53,7 +53,8 @@ describe('buildTaskUserPrompt', () => {
 
   it('rejects fulfill_brief with empty brief', () => {
     const task = makeFulfillBriefTask({
-      input: { brief: '', title: 'x' },
+      title: 'x',
+      input: { brief: '' },
     });
     expect(() => buildTaskUserPrompt(task, ctx)).toThrow(/validation/);
   });
@@ -235,7 +236,8 @@ describe('buildTaskUserPrompt', () => {
     const correlationId = '22222222-3333-4444-8555-666666666666';
     const task = makeFulfillBriefTask({
       correlationId,
-      input: { brief: 'do the thing', title: 'thing' },
+      title: 'thing',
+      input: { brief: 'do the thing' },
     });
     const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain(correlationId);
@@ -247,7 +249,8 @@ describe('buildTaskUserPrompt', () => {
     const correlationId = '22222222-3333-4444-8555-666666666666';
     const task = makeFulfillBriefTask({
       correlationId,
-      input: { brief: 'do the thing', title: 'thing' },
+      title: 'thing',
+      input: { brief: 'do the thing' },
     });
     const prompt = buildTaskUserPrompt(task, {
       ...ctx,
@@ -265,7 +268,8 @@ describe('buildTaskUserPrompt', () => {
   it('omits the correlation section when correlationId is null', () => {
     const task = makeFulfillBriefTask({
       correlationId: null,
-      input: { brief: 'no chain', title: 'x' },
+      title: 'x',
+      input: { brief: 'no chain' },
     });
     const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).not.toContain('Moltnet-Correlation-Id');

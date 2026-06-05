@@ -54,7 +54,8 @@ const rubricBinary = {
 describe('prompt snapshots (assembler refactor pin)', () => {
   it('fulfill_brief — minimal', () => {
     const task = makeFulfillBriefTask({
-      input: { brief: 'Do the thing', title: 'Thing', scopeHint: 'misc' },
+      title: 'Thing',
+      input: { brief: 'Do the thing', scopeHint: 'misc' },
     });
     expect(buildTaskUserPrompt(task, baseCtx).text).toMatchSnapshot();
   });
@@ -62,7 +63,8 @@ describe('prompt snapshots (assembler refactor pin)', () => {
   it('fulfill_brief — correlation + dedicated worktree', () => {
     const task = makeFulfillBriefTask({
       correlationId: '22222222-3333-4444-8555-666666666666',
-      input: { brief: 'Do the thing', title: 'Thing', scopeHint: 'misc' },
+      title: 'Thing',
+      input: { brief: 'Do the thing', scopeHint: 'misc' },
     });
     const prompt = buildTaskUserPrompt(task, {
       ...baseCtx,

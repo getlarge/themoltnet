@@ -38,7 +38,7 @@ export function buildFulfillBriefUserPrompt(
   input: FulfillBriefInput,
   ctx: Ctx,
 ): AssembledPrompt {
-  const { brief, title, seedFiles, scopeHint } = input;
+  const { brief, seedFiles, scopeHint } = input;
 
   const header = [
     '# Fulfill Brief Agent',
@@ -49,7 +49,7 @@ export function buildFulfillBriefUserPrompt(
     'invariants for this task: identity, gh authentication, diary discipline,',
     'and the accountable-commit shape. Follow it for every commit.',
     '',
-    `## Task: ${title ?? 'Fulfill brief'}`,
+    '## Task: Fulfill brief',
     '',
     `Task id: \`${ctx.taskId}\``,
   ].join('\n');

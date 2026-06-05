@@ -29,6 +29,7 @@ export function TaskLaneCard({
     : prRef?.external?.issue
       ? `#${prRef.external.issue}`
       : null;
+  const taskTitle = task.title || humanizeToken(task.taskType);
 
   return (
     <button
@@ -53,7 +54,7 @@ export function TaskLaneCard({
         <Stack direction="row" align="center" gap={2}>
           {isActive ? <LivePulse /> : null}
           <Text style={{ fontWeight: theme.font.weight.semibold }}>
-            {humanizeToken(task.taskType)}
+            {taskTitle}
           </Text>
         </Stack>
         <Text
@@ -61,8 +62,22 @@ export function TaskLaneCard({
           color="muted"
           style={{ fontFamily: theme.font.family.mono }}
         >
-          {task.id.slice(0, 8)}
+          {humanizeToken(task.taskType)} · {task.id.slice(0, 8)}
         </Text>
+        {task.tags.length > 0 ? (
+          <Stack direction="row" gap={1} wrap>
+            {task.tags.slice(0, 4).map((tag) => (
+              <Text
+                key={tag}
+                variant="caption"
+                color="muted"
+                style={{ fontFamily: theme.font.family.mono }}
+              >
+                #{tag}
+              </Text>
+            ))}
+          </Stack>
+        ) : null}
         <Stack
           direction="row"
           align="center"

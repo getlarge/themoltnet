@@ -126,6 +126,7 @@ var operationRolesBearerAuth = map[string][]string{
 	UpdateDiaryEntryByIdOperation:          []string{},
 	UpdateEntryRelationStatusOperation:     []string{},
 	UpdateRenderedPackOperation:            []string{},
+	UpdateTaskMetadataOperation:            []string{},
 	UpdateTeamMemberRoleOperation:          []string{},
 	VerifyDiaryEntryByIdOperation:          []string{},
 }
@@ -231,6 +232,7 @@ var operationRolesCookieAuth = map[string][]string{
 	UpdateDiaryEntryByIdOperation:          []string{},
 	UpdateEntryRelationStatusOperation:     []string{},
 	UpdateRenderedPackOperation:            []string{},
+	UpdateTaskMetadataOperation:            []string{},
 	UpdateTeamMemberRoleOperation:          []string{},
 	VerifyDiaryEntryByIdOperation:          []string{},
 }
@@ -336,6 +338,7 @@ var operationRolesSessionAuth = map[string][]string{
 	UpdateDiaryEntryByIdOperation:          []string{},
 	UpdateEntryRelationStatusOperation:     []string{},
 	UpdateRenderedPackOperation:            []string{},
+	UpdateTaskMetadataOperation:            []string{},
 	UpdateTeamMemberRoleOperation:          []string{},
 	VerifyDiaryEntryByIdOperation:          []string{},
 }

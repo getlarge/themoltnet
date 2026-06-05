@@ -357,6 +357,10 @@ type UpdateRenderedPackRes interface {
 	updateRenderedPackRes()
 }
 
+type UpdateTaskMetadataRes interface {
+	updateTaskMetadataRes()
+}
+
 type UpdateTeamMemberRoleRes interface {
 	updateTeamMemberRoleRes()
 }

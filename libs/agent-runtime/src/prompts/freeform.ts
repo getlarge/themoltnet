@@ -96,12 +96,6 @@ export function buildFreeformUserPrompt(
   const sections: PromptSection[] = [
     { id: 'freeform.header', source: 'header', body: header },
     {
-      id: 'freeform.title',
-      source: 'task_input',
-      header: 'Title',
-      body: input.title ?? '',
-    },
-    {
       id: 'freeform.brief',
       source: 'task_input',
       header: 'Brief',

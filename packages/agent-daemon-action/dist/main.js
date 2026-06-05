@@ -34615,11 +34615,11 @@ async function createTask(input) {
 	const briefWithSource = input.brief.includes(input.referenceUrl) ? input.brief : `${input.brief}\n\nSource: ${input.referenceUrl}`;
 	return input.agent.tasks.create({
 		taskType: "fulfill_brief",
+		...input.title ? { title: input.title } : {},
 		teamId: input.teamId,
 		diaryId: input.diaryId,
 		input: {
 			brief: briefWithSource,
-			...input.title ? { title: input.title } : {},
 			...input.successCriteria ? { successCriteria: input.successCriteria } : {}
 		},
 		correlationId: input.correlationId,

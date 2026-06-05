@@ -292,6 +292,8 @@ export const Task = Type.Object(
   {
     id: Uuid,
     taskType: Type.String({ minLength: 1 }),
+    title: Type.Union([Type.String(), Type.Null()]),
+    tags: Type.Array(Type.String()),
     teamId: Uuid,
     diaryId: Type.Union([Uuid, Type.Null()]),
 

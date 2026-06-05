@@ -168,6 +168,8 @@ class Task implements Namespace {
   permits = {
     view: (ctx: Context) =>
       this.related.parent.traverse((d) => d.permits.read(ctx)),
+    edit_metadata: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.write(ctx)),
     cancel: (ctx: Context) =>
       this.related.claimant.includes(ctx.subject) ||
       this.related.parent.traverse((d) => d.permits.write(ctx)),

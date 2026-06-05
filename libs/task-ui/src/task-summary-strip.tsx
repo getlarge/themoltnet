@@ -18,6 +18,7 @@ export function TaskSummaryStrip({
   onOpenTask,
 }: TaskSummaryStripProps) {
   const theme = useTheme();
+  const taskTitle = task.title || humanizeToken(task.taskType);
 
   return (
     <Card
@@ -34,7 +35,7 @@ export function TaskSummaryStrip({
         <Stack direction="row" align="center" gap={2} wrap>
           <TaskStatusBadge status={task.status} />
           <Text style={{ fontWeight: theme.font.weight.semibold }}>
-            {humanizeToken(task.taskType)}
+            {taskTitle}
           </Text>
           <Text variant="caption" color="muted">
             {formatRelativeAge(task.queuedAt, now)}
@@ -51,7 +52,7 @@ export function TaskSummaryStrip({
         >
           {latestAttempt
             ? `Attempt ${latestAttempt.attemptN} by ${latestAttempt.claimedByAgentId}`
-            : `No attempts yet · ${task.id}`}
+            : `No attempts yet · ${humanizeToken(task.taskType)} · ${task.id}`}
         </Text>
       </Stack>
 

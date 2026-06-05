@@ -879,6 +879,15 @@ func (UnimplementedHandler) UpdateRenderedPack(ctx context.Context, req OptUpdat
 	return r, ht.ErrNotImplemented
 }
 
+// UpdateTaskMetadata implements updateTaskMetadata operation.
+//
+// Update mutable task metadata used for cohorting and search.
+//
+// PATCH /tasks/{id}
+func (UnimplementedHandler) UpdateTaskMetadata(ctx context.Context, req OptUpdateTaskMetadataReq, params UpdateTaskMetadataParams) (r UpdateTaskMetadataRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // UpdateTeamMemberRole implements updateTeamMemberRole operation.
 //
 // Update a member role between member and manager. Requires manage_members permission.

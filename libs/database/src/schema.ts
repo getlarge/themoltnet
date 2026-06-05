@@ -993,6 +993,13 @@ export const tasks = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     taskType: varchar('task_type', { length: 100 }).notNull(),
+    // Operator-facing cohort metadata. Not part of input_cid: this is mutable
+    // indexing/observability metadata, not the immutable task promise body.
+    title: varchar('title', { length: 255 }),
+    tags: text('tags')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     teamId: uuid('team_id')
       .notNull()
       .references(() => teams.id, { onDelete: 'restrict' }),
@@ -1070,6 +1077,7 @@ export const tasks = pgTable(
   (table) => [
     index('tasks_team_status_idx').on(table.teamId, table.status),
     index('tasks_type_status_idx').on(table.taskType, table.status),
+    index('tasks_tags_gin_idx').using('gin', table.tags),
     index('tasks_diary_idx')
       .on(table.diaryId)
       .where(sql`diary_id IS NOT NULL`),

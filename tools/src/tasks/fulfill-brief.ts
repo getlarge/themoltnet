@@ -116,6 +116,11 @@ interface GhIssue {
   comments: { body: string; author: { login: string } }[];
 }
 
+interface FulfillBriefTaskDraft {
+  title: string;
+  input: FulfillBriefInput;
+}
+
 function fetchIssue(cwd: string, ghToken: string): GhIssue {
   const raw = execFileSync(
     'gh',
@@ -130,7 +135,7 @@ function fetchIssue(cwd: string, ghToken: string): GhIssue {
   return JSON.parse(raw) as GhIssue;
 }
 
-function buildBriefFromIssue(issue: GhIssue): FulfillBriefInput {
+function buildBriefFromIssue(issue: GhIssue): FulfillBriefTaskDraft {
   const labelList = issue.labels.map((l) => l.name).join(', ');
   const recent = issue.comments
     .slice(-5)
@@ -162,9 +167,11 @@ function buildBriefFromIssue(issue: GhIssue): FulfillBriefInput {
     .join('\n');
 
   return {
-    brief,
     title: issue.title,
-    scopeHint: 'misc',
+    input: {
+      brief,
+      scopeHint: 'misc',
+    },
   };
 }
 
@@ -197,17 +204,18 @@ async function main() {
   const issue = fetchIssue(cwd, ghToken);
   console.error(`[issue] #${issue.number}: ${issue.title}`);
 
-  const input = buildBriefFromIssue(issue);
+  const draft = buildBriefFromIssue(issue);
 
   if (dryRun) {
     console.log(
       JSON.stringify(
         {
           taskType: FULFILL_BRIEF_TYPE,
+          title: draft.title,
           teamId,
           diaryId,
           correlationId,
-          input,
+          input: draft.input,
         },
         null,
         2,
@@ -219,10 +227,11 @@ async function main() {
   const agent = await connect({ configDir: agentDir });
   const task = await agent.tasks.create({
     taskType: FULFILL_BRIEF_TYPE,
+    title: draft.title,
     teamId,
     diaryId,
     correlationId,
-    input: input as unknown as Record<string, unknown>,
+    input: draft.input as unknown as Record<string, unknown>,
     references: [
       {
         taskId: null,

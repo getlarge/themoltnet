@@ -45,6 +45,7 @@ export function TasksPage() {
     const raw = params.get('task_type');
     return raw ? raw.split(',') : [];
   });
+  const [taskQuery, setTaskQuery] = useState(params.get('query') ?? '');
   const [correlationId, setCorrelationId] = useState(
     params.get('correlation_id') ?? '',
   );
@@ -66,6 +67,7 @@ export function TasksPage() {
       client: getApiClient(),
       query: {
         teamId: teamId ?? '',
+        query: taskQuery.trim() || undefined,
         status,
         taskTypes: taskTypes.length ? taskTypes : undefined,
         correlationId: correlationId.trim() || undefined,
@@ -99,6 +101,7 @@ export function TasksPage() {
     refetchAll: refetchLanes,
   } = useLaneQueries({
     teamId,
+    query: taskQuery,
     taskTypes,
     correlationId,
     enabled: enabled && view === 'board',
@@ -285,6 +288,15 @@ export function TasksPage() {
               availableTypes={registeredTaskTypes}
               selected={taskTypes}
               onChange={updateTaskTypes}
+            />
+            <input
+              aria-label="Search tasks"
+              placeholder="Search title, tags, input, id"
+              value={taskQuery}
+              onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                setTaskQuery(event.target.value)
+              }
+              style={inputStyle(theme)}
             />
             <input
               aria-label="Correlation ID"

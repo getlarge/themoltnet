@@ -42,7 +42,7 @@ export function TaskQueueTable({
   }
 
   const columns =
-    'minmax(150px, 1.1fr) minmax(110px, .7fr) minmax(190px, 1.4fr) minmax(120px, .9fr) minmax(130px, 1fr) minmax(90px, .6fr) minmax(70px, .5fr)';
+    'minmax(190px, 1.3fr) minmax(110px, .7fr) minmax(170px, 1fr) minmax(190px, 1.4fr) minmax(120px, .9fr) minmax(130px, 1fr) minmax(90px, .6fr) minmax(70px, .5fr)';
 
   return (
     <div
@@ -66,8 +66,9 @@ export function TaskQueueTable({
             textTransform: 'uppercase',
           }}
         >
-          <span>Type</span>
+          <span>Task</span>
           <span>Status</span>
+          <span>Tags</span>
           <span>Correlation</span>
           <span>Diary</span>
           <span>Proposer</span>
@@ -110,18 +111,33 @@ export function TaskQueueTable({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {humanizeToken(task.taskType)}
+                  {task.title || humanizeToken(task.taskType)}
                 </Text>
                 <Text
                   variant="caption"
                   color="muted"
                   style={{ fontFamily: theme.font.family.mono }}
                 >
-                  {task.id.slice(0, 8)}
+                  {humanizeToken(task.taskType)} · {task.id.slice(0, 8)}
                 </Text>
               </span>
               <span>
                 <TaskStatusBadge status={task.status} />
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <Text
+                  variant="caption"
+                  color={task.tags.length > 0 ? undefined : 'muted'}
+                  style={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {task.tags.length > 0
+                    ? task.tags.map((tag) => `#${tag}`).join(' ')
+                    : '—'}
+                </Text>
               </span>
               <span
                 title={task.correlationId ?? undefined}

@@ -137,6 +137,8 @@ function taskWorkflowId(taskId: string, attemptN: number): string {
 
 export interface CreateTaskInput {
   taskType: string;
+  title?: string;
+  tags?: string[];
   teamId: string;
   diaryId?: string;
   inputPayload: Record<string, unknown>;
@@ -206,6 +208,23 @@ interface TaskServiceDeps {
    */
   transactionRunner: TransactionRunner;
   logger: Logger;
+}
+
+function normalizeTaskTitle(title: string | null | undefined): string | null {
+  const trimmed = title?.trim();
+  return trimmed || null;
+}
+
+function normalizeTaskTags(tags: string[] | undefined): string[] {
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  for (const tag of tags ?? []) {
+    const value = tag.trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    normalized.push(value);
+  }
+  return normalized;
 }
 
 export function createTaskService(deps: TaskServiceDeps) {
@@ -665,6 +684,8 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const newTask: NewTask = {
         taskType: input.taskType,
+        title: normalizeTaskTitle(input.title),
+        tags: normalizeTaskTags(input.tags),
         teamId: input.teamId,
         diaryId: input.diaryId,
         outputKind: taskTypeDef.outputKind,
@@ -854,6 +875,9 @@ export function createTaskService(deps: TaskServiceDeps) {
       status?: string;
       statuses?: string[];
       taskTypes?: string[];
+      query?: string;
+      tags?: string[];
+      excludeTags?: string[];
       // Daemon advertises its `(provider, model)` to filter the queue
       // down to tasks it can run. Both lowercased upstream. Both must
       // be set together; the route handler enforces this. When unset,
@@ -892,7 +916,10 @@ export function createTaskService(deps: TaskServiceDeps) {
         teamId: opts.teamId,
         status: opts.status as DbTask['status'] | undefined,
         statuses: opts.statuses as DbTask['status'][] | undefined,
+        query: opts.query,
         taskTypes: opts.taskTypes,
+        tags: opts.tags,
+        excludeTags: opts.excludeTags,
         executorProvider: opts.executorProvider,
         executorModel: opts.executorModel,
         correlationId: opts.correlationId,
@@ -948,6 +975,41 @@ export function createTaskService(deps: TaskServiceDeps) {
       if (!row) throw new TaskServiceError('not_found', 'Task not found');
 
       return dbTaskToWire(row);
+    },
+
+    async updateMetadata(
+      taskId: string,
+      input: {
+        title?: string | null;
+        tags?: string[];
+        callerId: string;
+        callerNs: KetoNamespace;
+      },
+    ): Promise<Task> {
+      const row = await taskRepository.findById(taskId);
+      if (!row) throw new TaskServiceError('not_found', 'Task not found');
+
+      const canEditMetadata = await permissionChecker.canEditTaskMetadata(
+        taskId,
+        input.callerId,
+        input.callerNs,
+      );
+      if (!canEditMetadata)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to update task metadata',
+        );
+
+      const updated = await taskRepository.updateMetadata(taskId, {
+        ...(input.title !== undefined
+          ? { title: normalizeTaskTitle(input.title) }
+          : {}),
+        ...(input.tags !== undefined
+          ? { tags: normalizeTaskTags(input.tags) }
+          : {}),
+      });
+      if (!updated) throw new TaskServiceError('not_found', 'Task not found');
+      return dbTaskToWire(updated);
     },
 
     async claim(

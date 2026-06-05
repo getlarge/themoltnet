@@ -1,3 +1,4 @@
+import { KetoNamespace } from '@moltnet/auth';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -17,6 +18,8 @@ const ATTEMPT_N = 1;
 const MOCK_TASK = {
   id: TASK_ID,
   taskType: 'fulfill_brief',
+  title: 'Task worker',
+  tags: ['observability'],
   teamId: TEAM_ID,
   diaryId: DIARY_ID,
   outputKind: 'artifact' as const,
@@ -82,6 +85,8 @@ describe('POST /tasks', () => {
       headers: { authorization: 'Bearer test-token' },
       payload: {
         taskType: 'fulfill_brief',
+        title: 'Task worker',
+        tags: ['observability', 'cohort'],
         teamId: TEAM_ID,
         diaryId: DIARY_ID,
         input: { brief: 'Ship a task worker.' },
@@ -94,6 +99,12 @@ describe('POST /tasks', () => {
       taskType: 'fulfill_brief',
     });
     expect(mocks.taskService.create).toHaveBeenCalledOnce();
+    expect(mocks.taskService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Task worker',
+        tags: ['observability', 'cohort'],
+      }),
+    );
   });
 
   it('passes the agent identityId as proposerId for agent callers', async () => {
@@ -251,8 +262,11 @@ describe('GET /tasks', () => {
       method: 'GET',
       url:
         `/tasks?teamId=${TEAM_ID}` +
+        '&query=task%20worker' +
         '&taskTypes=fulfill_brief' +
         '&taskTypes=curate_pack' +
+        '&tags=observability' +
+        '&excludeTags=legacy' +
         `&diaryId=${DIARY_ID}` +
         `&proposedByAgentId=${OWNER_ID}` +
         `&proposedByHumanId=550e8400-e29b-41d4-a716-446655440099` +
@@ -269,7 +283,10 @@ describe('GET /tasks', () => {
     expect(mocks.taskService.list).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
+        query: 'task worker',
         taskTypes: ['fulfill_brief', 'curate_pack'],
+        tags: ['observability'],
+        excludeTags: ['legacy'],
         diaryId: DIARY_ID,
         proposedByAgentId: OWNER_ID,
         proposedByHumanId: '550e8400-e29b-41d4-a716-446655440099',
@@ -345,6 +362,68 @@ describe('GET /tasks', () => {
     const call = mocks.taskService.list.mock.calls[0][0];
     expect(call.executorProvider).toBeUndefined();
     expect(call.executorModel).toBeUndefined();
+  });
+});
+
+describe('PATCH /tasks/:id', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof createMockServices>;
+
+  beforeEach(async () => {
+    mocks = createMockServices();
+    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  it('updates mutable task metadata', async () => {
+    mocks.taskService.updateMetadata.mockResolvedValue({
+      ...MOCK_TASK,
+      title: 'Renamed cohort',
+      tags: ['cohort', 'retry'],
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tasks/${TASK_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: {
+        title: 'Renamed cohort',
+        tags: ['cohort', 'retry'],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id: TASK_ID,
+      title: 'Renamed cohort',
+      tags: ['cohort', 'retry'],
+    });
+    expect(mocks.taskService.updateMetadata).toHaveBeenCalledWith(TASK_ID, {
+      title: 'Renamed cohort',
+      tags: ['cohort', 'retry'],
+      callerId: OWNER_ID,
+      callerNs: KetoNamespace.Agent,
+    });
+  });
+
+  it('clears title without changing tags when title is null', async () => {
+    mocks.taskService.updateMetadata.mockResolvedValue({
+      ...MOCK_TASK,
+      title: null,
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/tasks/${TASK_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: { title: null },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.taskService.updateMetadata).toHaveBeenCalledWith(TASK_ID, {
+      title: null,
+      callerId: OWNER_ID,
+      callerNs: KetoNamespace.Agent,
+    });
   });
 });
 

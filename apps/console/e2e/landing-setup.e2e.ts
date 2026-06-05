@@ -106,7 +106,8 @@ test('seed shared team, diary, tasks, and agent invite', async ({ page }) => {
         diaryId,
         taskType: 'freeform',
         maxAttempts: 1,
-        input: { brief, title },
+        title,
+        input: { brief },
       },
     });
     if (!result.data) {

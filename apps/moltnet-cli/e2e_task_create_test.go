@@ -96,7 +96,6 @@ func (h *taskCreateHarness) runExpectingFailure(
 func fulfillBriefInput(corrID string) string {
 	return fmt.Sprintf(`{
   "brief": "E2E smoke for task create — correlation %s",
-  "title": "E2E task create smoke",
   "scopeHint": "misc"
 }`, corrID)
 }
@@ -161,6 +160,7 @@ func TestE2E_CLI_TaskCreate_Happy(t *testing.T) {
 		"--task-type", "fulfill_brief",
 		"--team-id", e2ePersonalTeamID.String(),
 		"--diary-id", e2eDiaryID.String(),
+		"--title", "E2E task create smoke",
 		"--correlation-id", corr,
 	)
 
@@ -207,6 +207,7 @@ func TestE2E_CLI_TaskCreate_DryRunDoesNotPersist(t *testing.T) {
 		"--task-type", "fulfill_brief",
 		"--team-id", e2ePersonalTeamID.String(),
 		"--diary-id", e2eDiaryID.String(),
+		"--title", "E2E task create smoke",
 		"--correlation-id", corr,
 		"--dry-run",
 	)
@@ -219,6 +220,9 @@ func TestE2E_CLI_TaskCreate_DryRunDoesNotPersist(t *testing.T) {
 	}
 	if body["correlationId"] != corr {
 		t.Errorf("dry-run body correlationId = %v, want %s", body["correlationId"], corr)
+	}
+	if body["title"] != "E2E task create smoke" {
+		t.Errorf("dry-run body title = %v, want E2E task create smoke", body["title"])
 	}
 
 	// Nothing should have been persisted.
@@ -309,6 +313,7 @@ func TestE2E_CLI_TaskCreate_OutputIDFormat(t *testing.T) {
 		"--task-type", "fulfill_brief",
 		"--team-id", e2ePersonalTeamID.String(),
 		"--diary-id", e2eDiaryID.String(),
+		"--title", "E2E task create smoke",
 		"--correlation-id", corr,
 		"--output", "id",
 	)
@@ -344,6 +349,7 @@ func TestE2E_CLI_TaskCreate_MultipleReferences(t *testing.T) {
 		"--task-type", "fulfill_brief",
 		"--team-id", e2ePersonalTeamID.String(),
 		"--diary-id", e2eDiaryID.String(),
+		"--title", "E2E task create smoke",
 		"--correlation-id", corr,
 		"--reference", ref0,
 		"--reference", ref1,

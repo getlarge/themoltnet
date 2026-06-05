@@ -22,7 +22,7 @@ describe('@moltnet/task-ui', () => {
   });
 
   it('renders a queue table optimized for task scanning', () => {
-    renderWithTheme(
+    const { container } = renderWithTheme(
       <TaskQueueTable
         tasks={[taskFixture]}
         renderDiaryLabel={(id) => `Diary ${id?.slice(0, 4)}`}
@@ -30,7 +30,10 @@ describe('@moltnet/task-ui', () => {
       />,
     );
 
-    expect(screen.getByText('Curate Pack')).toBeInTheDocument();
+    expect(screen.getByText('Curate task UI context')).toBeInTheDocument();
+    expect(container).toHaveTextContent('Curate Pack');
+    expect(container).toHaveTextContent('11111111');
+    expect(container).toHaveTextContent('#task-ui #observability');
     expect(screen.getByText('Running')).toBeInTheDocument();
     expect(screen.getByText(taskFixture.correlationId!)).toBeInTheDocument();
     expect(screen.getByText('Diary 3333')).toBeInTheDocument();

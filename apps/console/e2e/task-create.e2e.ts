@@ -104,7 +104,8 @@ test.describe.serial('Create task from console', () => {
     await page.getByLabel(/expected output/i).fill('A short written summary.');
     await page.getByRole('button', { name: /create task/i }).click();
 
-    // Verify via the API that the optional fields persisted on the input.
+    // Verify via the API that title persisted as task metadata while
+    // expectedOutput stayed in the freeform input.
     const client = createTokenSessionApiClient(sessionToken);
     await expect
       .poll(async () => {
@@ -114,7 +115,7 @@ test.describe.serial('Create task from console', () => {
           (t) =>
             typeof t.input === 'object' &&
             t.input !== null &&
-            (t.input as Record<string, unknown>).title === title &&
+            t.title === title &&
             (t.input as Record<string, unknown>).expectedOutput ===
               'A short written summary.',
         );

@@ -5,12 +5,13 @@ export function makeFulfillBriefTask(overrides: Partial<Task> = {}): Task {
   return {
     id: '11111111-1111-4111-8111-111111111111',
     taskType: FULFILL_BRIEF_TYPE,
+    title: 'Test',
+    tags: [],
     teamId: '22222222-2222-4222-8222-222222222222',
     diaryId: null,
     outputKind: 'artifact',
     input: {
       brief: 'Test brief',
-      title: 'Test',
       scopeHint: 'misc',
     },
     inputSchemaCid: 'cid-placeholder-input-schema',

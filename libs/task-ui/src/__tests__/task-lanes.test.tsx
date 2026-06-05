@@ -96,10 +96,13 @@ describe('task-lanes', () => {
 
 describe('TaskLaneCard', () => {
   it('renders type, short id, and status badge', () => {
-    renderWithTheme(<TaskLaneCard task={taskWith('running', 'abcdef1234')} />);
-    expect(screen.getByText('Curate Pack')).toBeInTheDocument();
+    const { container } = renderWithTheme(
+      <TaskLaneCard task={taskWith('running', 'abcdef1234')} />,
+    );
+    expect(screen.getByText('Curate task UI context')).toBeInTheDocument();
+    expect(container).toHaveTextContent('Curate Pack');
     expect(screen.getByText('Running')).toBeInTheDocument();
-    expect(screen.getByText('abcdef12')).toBeInTheDocument();
+    expect(container).toHaveTextContent('abcdef12');
   });
 
   it('invokes onSelect with the task when clicked', () => {
@@ -132,14 +135,13 @@ describe('TaskLaneColumn', () => {
         ]}
       />,
     );
-    expect(screen.getByText('aaaa1111')).toBeInTheDocument();
-    expect(screen.getByText('bbbb2222')).toBeInTheDocument();
+    expect(screen.getAllByText('Curate task UI context')).toHaveLength(2);
   });
 });
 
 describe('TaskLaneBoard', () => {
   it('renders all five lanes with their per-lane data', () => {
-    renderWithTheme(
+    const { container } = renderWithTheme(
       <TaskLaneBoard
         lanes={{
           pending: { tasks: [taskWith('queued', 'q1')], total: 1 },
@@ -153,9 +155,10 @@ describe('TaskLaneBoard', () => {
     expect(screen.getByText('Done')).toBeInTheDocument();
     expect(screen.getByText('Failed')).toBeInTheDocument();
     expect(screen.getByText('Closed')).toBeInTheDocument();
-    expect(screen.getByText('q1')).toBeInTheDocument();
-    expect(screen.getByText('r1')).toBeInTheDocument();
-    expect(screen.getByText('d1')).toBeInTheDocument();
+    expect(screen.getAllByText('Curate task UI context')).toHaveLength(3);
+    expect(container).toHaveTextContent('q1');
+    expect(container).toHaveTextContent('r1');
+    expect(container).toHaveTextContent('d1');
   });
 
   it('shows the real total in a lane header even when more remain', () => {
@@ -228,14 +231,15 @@ describe('TaskTurnStream', () => {
 
 describe('TaskLivePane', () => {
   it('renders header, turns by default, and footer usage', () => {
-    renderWithTheme(
+    const { container } = renderWithTheme(
       <TaskLivePane
         task={taskWith('running', 'abcdef1234')}
         attempt={attemptFixture}
         messages={messagesFixture}
       />,
     );
-    expect(screen.getByText('Curate Pack')).toBeInTheDocument();
+    expect(screen.getByText('Curate task UI context')).toBeInTheDocument();
+    expect(container).toHaveTextContent('Curate Pack');
     expect(screen.getByText('Reading task context.')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /turns/i })).toBeInTheDocument();
   });

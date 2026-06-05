@@ -94,6 +94,8 @@ func TestRunTaskCreate_Happy(t *testing.T) {
 
 	var out bytes.Buffer
 	opts := newCreateOpts(`{"brief":"smoke test","scopeHint":"misc"}`)
+	opts.title = "Smoke title"
+	opts.titleSet = true
 	opts.out = &out
 
 	if err := runTaskCreateWithClient(context.Background(), client, opts); err != nil {
@@ -118,6 +120,10 @@ func TestRunTaskCreate_Happy(t *testing.T) {
 	}
 	if h.lastCreate.TaskType != "fulfill_brief" {
 		t.Errorf("CreateTaskReq.TaskType = %q", h.lastCreate.TaskType)
+	}
+	title, ok := h.lastCreate.Title.Get()
+	if !ok || title != "Smoke title" {
+		t.Errorf("CreateTaskReq.Title = %q (set=%v), want Smoke title", title, ok)
 	}
 	briefRaw, ok := h.lastCreate.Input["brief"]
 	if !ok {

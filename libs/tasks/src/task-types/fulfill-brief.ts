@@ -16,9 +16,6 @@ export const FulfillBriefInput = Type.Object(
     /** Human-readable problem statement. Rendered into the system prompt. */
     brief: Type.String({ minLength: 1 }),
 
-    /** Optional title; defaults to a slug of `brief`. */
-    title: Type.Optional(Type.String()),
-
     /**
      * Proposer-stated, machine-verifiable success criteria. Pinned via
      * the task's `inputCid` (no separate hash needed — `successCriteria`

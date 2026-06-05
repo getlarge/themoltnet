@@ -14,8 +14,9 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         id: '11111111-1111-4111-8111-111111111111',
         taskType: 'fulfill_brief',
+        title: 'Warm sessions',
         correlationId: '22222222-2222-4222-8222-222222222222',
-        input: { brief: 'Fix the daemon', title: 'Warm sessions' },
+        input: { brief: 'Fix the daemon' },
       },
       {
         rootDir: '/repo/.moltnet/d',
@@ -47,6 +48,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         id: '33333333-3333-4333-8333-333333333333',
         taskType: 'assess_brief',
+        title: null,
         correlationId: '22222222-2222-4222-8222-222222222222',
         input: {
           targetTaskId: '44444444-4444-4444-8444-444444444444',
@@ -83,8 +85,9 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         id: '11111111-1111-4111-8111-111111111111',
         taskType: 'fulfill_brief',
+        title: 'Warm sessions',
         correlationId: '22222222-2222-4222-8222-222222222222',
-        input: { brief: 'Fix the daemon', title: 'Warm sessions' },
+        input: { brief: 'Fix the daemon' },
       },
       {
         rootDir: '/repo/.moltnet/d',
@@ -108,6 +111,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         id: '55555555-5555-4555-8555-555555555555',
         taskType: 'run_eval',
+        title: null,
         correlationId: '66666666-6666-4666-8666-666666666666',
         input: {
           scenario: { prompt: 'Evaluate this' },
@@ -148,6 +152,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         id: '77777777-7777-4777-8777-777777777777',
         taskType: 'run_eval',
+        title: null,
         correlationId: '88888888-8888-4888-8888-888888888888',
         input: {
           scenario: { prompt: 'Evaluate this' },
@@ -188,6 +193,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         id: '99999999-9999-4999-8999-999999999999',
         taskType: 'freeform',
+        title: null,
         correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         input: { brief: 'probe' },
       },
@@ -210,6 +216,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
         taskType: 'freeform',
+        title: null,
         correlationId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
         input: {
           brief: 'scaffold a candidate task type',
@@ -235,6 +242,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
         taskType: 'freeform',
+        title: null,
         correlationId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
         input: {
           brief: 'analyze diary entries; no repo access needed',

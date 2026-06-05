@@ -63,6 +63,28 @@ describe('CreateTaskDialog', () => {
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith('new-task-id'));
   });
 
+  it('submits task title and tags as top-level metadata', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('new-task-id');
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Do the thing' },
+    });
+    fireEvent.change(screen.getByLabelText(/title/i), {
+      target: { value: 'Task cohort probe' },
+    });
+    fireEvent.change(screen.getByLabelText(/tags/i), {
+      target: { value: 'observability, cohort, observability' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.title).toBe('Task cohort probe');
+    expect(request.tags).toEqual(['observability', 'cohort']);
+    expect(request.input).not.toHaveProperty('title');
+  });
+
   it('shows an inline error when onSubmit rejects', async () => {
     const onSubmit = vi.fn().mockRejectedValue(new Error('Boom'));
     renderDialog({ onSubmit });

@@ -591,6 +591,12 @@ type Handler interface {
 	//
 	// PATCH /rendered-packs/{id}
 	UpdateRenderedPack(ctx context.Context, req OptUpdateRenderedPackReq, params UpdateRenderedPackParams) (UpdateRenderedPackRes, error)
+	// UpdateTaskMetadata implements updateTaskMetadata operation.
+	//
+	// Update mutable task metadata used for cohorting and search.
+	//
+	// PATCH /tasks/{id}
+	UpdateTaskMetadata(ctx context.Context, req OptUpdateTaskMetadataReq, params UpdateTaskMetadataParams) (UpdateTaskMetadataRes, error)
 	// UpdateTeamMemberRole implements updateTeamMemberRole operation.
 	//
 	// Update a member role between member and manager. Requires manage_members permission.

@@ -33,11 +33,11 @@ describe('createTask', () => {
     expect(m.create).toHaveBeenCalledTimes(1);
     expect(m.create).toHaveBeenCalledWith({
       taskType: 'fulfill_brief',
+      title: 'Fix flaky test',
       teamId: BASE_INPUT.teamId,
       diaryId: BASE_INPUT.diaryId,
       input: {
         brief: `Issue body...\n\nSource: ${BASE_INPUT.referenceUrl}`,
-        title: 'Fix flaky test',
       },
       correlationId: BASE_INPUT.correlationId,
     });
@@ -67,8 +67,8 @@ describe('createTask', () => {
     const { title: _omit, ...noTitle } = BASE_INPUT;
     void _omit;
     await createTask({ agent: m.agent, ...noTitle });
-    const body = m.create.mock.calls[0][0] as { input: { title?: string } };
-    expect(body.input.title).toBeUndefined();
+    const body = m.create.mock.calls[0][0] as { title?: string };
+    expect(body.title).toBeUndefined();
   });
 
   it('propagates SDK errors verbatim', async () => {

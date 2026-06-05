@@ -58,11 +58,6 @@ export type FreeformTaskTypeProposal = Static<typeof FreeformTaskTypeProposal>;
 
 export const FreeformInput = Type.Object(
   {
-    /**
-     * Optional operator-facing title. The brief remains the source of truth
-     * for exploratory intent.
-     */
-    title: Type.Optional(Type.String({ minLength: 1 })),
     /** Natural-language work request when no narrower task type fits yet. */
     brief: Type.String({ minLength: 1 }),
     /**

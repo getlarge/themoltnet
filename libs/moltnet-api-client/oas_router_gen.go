@@ -152,7 +152,8 @@ var (
 		"GET": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn13AllowedHeaders = map[string]string{
-		"GET": "Authorization,X-Moltnet-Session-Token",
+		"GET":   "Authorization,X-Moltnet-Session-Token",
+		"PATCH": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn93AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Moltnet-Session-Token",
@@ -2132,12 +2133,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								s.handleGetTaskRequest([1]string{
 									args[0],
 								}, elemIsEscaped, w, r)
+							case "PATCH":
+								s.handleUpdateTaskMetadataRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
 							default:
 								s.notAllowed(w, r, notAllowedParams{
-									allowedMethods: "GET",
+									allowedMethods: "GET,PATCH",
 									allowedHeaders: rn13AllowedHeaders,
 									acceptPost:     "",
-									acceptPatch:    "",
+									acceptPatch:    "application/json",
 								})
 							}
 
@@ -4914,6 +4919,15 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 								r.name = GetTaskOperation
 								r.summary = ""
 								r.operationID = "getTask"
+								r.operationGroup = ""
+								r.pathPattern = "/tasks/{id}"
+								r.args = args
+								r.count = 1
+								return r, true
+							case "PATCH":
+								r.name = UpdateTaskMetadataOperation
+								r.summary = ""
+								r.operationID = "updateTaskMetadata"
 								r.operationGroup = ""
 								r.pathPattern = "/tasks/{id}"
 								r.args = args

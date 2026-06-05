@@ -44,6 +44,7 @@ export function TaskLivePane({
   const [tab, setTab] = useState<PaneTab>('turns');
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const live = task.status === 'running' || task.status === 'dispatched';
+  const taskTitle = task.title || humanizeToken(task.taskType);
 
   useEffect(() => {
     setCollapsed(defaultCollapsed);
@@ -98,14 +99,14 @@ export function TaskLivePane({
       >
         <Stack direction="row" align="center" gap={2} style={{ minWidth: 0 }}>
           <Text style={{ fontWeight: theme.font.weight.semibold }}>
-            {humanizeToken(task.taskType)}
+            {taskTitle}
           </Text>
           <Text
             variant="caption"
             color="muted"
             style={{ fontFamily: theme.font.family.mono }}
           >
-            {task.id.slice(0, 8)}
+            {humanizeToken(task.taskType)} · {task.id.slice(0, 8)}
             {attempt ? ` · attempt ${attempt.attemptN}` : ''}
           </Text>
         </Stack>
