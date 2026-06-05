@@ -45,7 +45,7 @@ export function GroupDetailPage({ groupId }: { groupId: string }) {
 
   const callerTeam = group ? teams.find((t) => t.id === group.teamId) : null;
   const callerRole = callerTeam?.role ?? 'member';
-  const canManage = callerRole === 'owners' || callerRole === 'managers';
+  const canManage = callerRole === 'owner' || callerRole === 'manager';
 
   const loadGroup = useCallback(async () => {
     setError(null);

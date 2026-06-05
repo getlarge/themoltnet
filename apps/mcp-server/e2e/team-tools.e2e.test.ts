@@ -234,7 +234,7 @@ describe('Team Tools E2E', () => {
       memberB,
       'agentB should appear in members after joining',
     ).toBeDefined();
-    expect(memberB!.role).toBe('members');
+    expect(memberB!.role).toBe('member');
   });
 
   // ── 7. teams_member_remove removes agentB ──

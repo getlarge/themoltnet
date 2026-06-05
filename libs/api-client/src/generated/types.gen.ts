@@ -5789,7 +5789,7 @@ export type ListTeamsResponses = {
       id: string;
       name: string;
       personal: boolean;
-      role: string;
+      role: 'owner' | 'manager' | 'member';
       status: string;
     }>;
   };
@@ -5897,7 +5897,7 @@ export type JoinTeamResponses = {
    * Default Response
    */
   200: {
-    role: string;
+    role: 'manager' | 'member';
     /**
      * UUID v4 identifier
      */
@@ -5994,7 +5994,7 @@ export type GetTeamResponses = {
       displayName: string;
       email?: string;
       fingerprint?: string;
-      role: string;
+      role: 'owner' | 'manager' | 'member';
       /**
        * UUID v4 identifier
        */
@@ -6216,7 +6216,7 @@ export type ListTeamInvitesResponses = {
        */
       id: string;
       maxUses: number;
-      role: string;
+      role: 'manager' | 'member';
       useCount: number;
     }>;
   };
@@ -6276,7 +6276,7 @@ export type CreateTeamInviteResponses = {
      */
     id: string;
     maxUses: number;
-    role: string;
+    role: 'manager' | 'member';
     useCount: number;
   };
 };
@@ -6373,7 +6373,7 @@ export type ListTeamMembersResponses = {
       displayName: string;
       email?: string;
       fingerprint?: string;
-      role: string;
+      role: 'owner' | 'manager' | 'member';
       /**
        * UUID v4 identifier
        */
@@ -6481,7 +6481,7 @@ export type UpdateTeamMemberRoleResponses = {
    * Default Response
    */
   200: {
-    role: string;
+    role: 'manager' | 'member';
     updated: boolean;
   };
 };

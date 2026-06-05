@@ -78,7 +78,7 @@ export function TeamDetailPage({ id }: { id: string }) {
 
   const callerTeam = teams.find((t) => t.id === id);
   const callerRole = callerTeam?.role ?? 'member';
-  const canManage = callerRole === 'owners' || callerRole === 'managers';
+  const canManage = callerRole === 'owner' || callerRole === 'manager';
 
   // Personal teams don't host groups or invites — exclude from allowed tabs so
   // direct links like `?tab=groups` on a personal team fall back to 'members'.
@@ -206,11 +206,11 @@ export function TeamDetailPage({ id }: { id: string }) {
   };
 
   const handleToggleMemberRole = async (member: TeamMember) => {
-    if (member.role === 'owners') return;
+    if (member.role === 'owner') return;
 
     setActionError(null);
     setUpdatingMemberId(member.subjectId);
-    const nextRole = member.role === 'managers' ? 'member' : 'manager';
+    const nextRole = member.role === 'manager' ? 'member' : 'manager';
 
     try {
       await updateTeamMemberRole({
@@ -294,15 +294,15 @@ export function TeamDetailPage({ id }: { id: string }) {
 
   const canRemoveMember = (member: TeamMember) => {
     if (!canManage) return false;
-    if (callerRole === 'managers' && member.role === 'owners') return false;
-    const owners = team.members.filter((m) => m.role === 'owners');
-    if (member.role === 'owners' && owners.length <= 1) return false;
+    if (callerRole === 'manager' && member.role === 'owner') return false;
+    const owners = team.members.filter((m) => m.role === 'owner');
+    if (member.role === 'owner' && owners.length <= 1) return false;
     return true;
   };
 
   const roleActionLabel = (member: TeamMember) => {
-    if (!canManage || member.role === 'owners') return null;
-    return member.role === 'managers'
+    if (!canManage || member.role === 'owner') return null;
+    return member.role === 'manager'
       ? 'Demote to member'
       : 'Promote to manager';
   };
@@ -441,7 +441,7 @@ export function TeamDetailPage({ id }: { id: string }) {
 
       {activeTab === 'diaries' && (
         <Stack gap={4}>
-          {callerRole === 'owners' && <PendingTransfersPanel teamId={id} />}
+          {callerRole === 'owner' && <PendingTransfersPanel teamId={id} />}
           <Text variant="h4">Diaries ({diaries.length})</Text>
           {diaries.length === 0 ? (
             <Text color="muted">No diaries scoped to this team yet.</Text>

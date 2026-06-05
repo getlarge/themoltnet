@@ -17311,7 +17311,26 @@
                             "type": "boolean"
                           },
                           "role": {
-                            "type": "string"
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "owner"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "manager"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "member"
+                                ],
+                                "type": "string"
+                              }
+                            ]
                           },
                           "status": {
                             "type": "string"
@@ -17587,7 +17606,20 @@
                 "schema": {
                   "properties": {
                     "role": {
-                      "type": "string"
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "manager"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "member"
+                          ],
+                          "type": "string"
+                        }
+                      ]
                     },
                     "teamId": {
                       "description": "UUID v4 identifier",
@@ -17806,7 +17838,26 @@
                             "type": "string"
                           },
                           "role": {
-                            "type": "string"
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "owner"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "manager"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "member"
+                                ],
+                                "type": "string"
+                              }
+                            ]
                           },
                           "subjectId": {
                             "description": "UUID v4 identifier",
@@ -18314,7 +18365,20 @@
                             "type": "integer"
                           },
                           "role": {
-                            "type": "string"
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "manager"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "member"
+                                ],
+                                "type": "string"
+                              }
+                            ]
                           },
                           "useCount": {
                             "type": "integer"
@@ -18468,7 +18532,20 @@
                       "type": "integer"
                     },
                     "role": {
-                      "type": "string"
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "manager"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "member"
+                          ],
+                          "type": "string"
+                        }
+                      ]
                     },
                     "useCount": {
                       "type": "integer"
@@ -18683,7 +18760,26 @@
                             "type": "string"
                           },
                           "role": {
-                            "type": "string"
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "owner"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "manager"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "member"
+                                ],
+                                "type": "string"
+                              }
+                            ]
                           },
                           "subjectId": {
                             "description": "UUID v4 identifier",
@@ -18928,7 +19024,20 @@
                 "schema": {
                   "properties": {
                     "role": {
-                      "type": "string"
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "manager"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "member"
+                          ],
+                          "type": "string"
+                        }
+                      ]
                     },
                     "updated": {
                       "type": "boolean"

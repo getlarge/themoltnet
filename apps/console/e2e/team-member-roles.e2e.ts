@@ -69,7 +69,7 @@ test('owner can promote a member to manager from the console', async ({
   await expect(ownerPage.getByText(member.email)).toBeVisible();
   await ownerPage.getByRole('button', { name: 'Promote to manager' }).click();
 
-  await expect(ownerPage.getByText('managers')).toBeVisible();
+  await expect(ownerPage.getByText('manager')).toBeVisible();
 
   await memberPage.goto(`${CONSOLE_URL}/teams/${team.id}`);
   await expect(memberPage.getByText('Invites')).toBeVisible();

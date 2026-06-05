@@ -64,7 +64,7 @@ export function DiaryDetailPage({ id }: { id: string }) {
 
   const sourceTeamRole = diaryTeamId ? callerRoleForTeam(diaryTeamId) : null;
   const canTransferDiary =
-    sourceTeamRole === 'owners' || sourceTeamRole === 'managers';
+    sourceTeamRole === 'owner' || sourceTeamRole === 'manager';
 
   const hasActiveFilters =
     state.q !== '' ||

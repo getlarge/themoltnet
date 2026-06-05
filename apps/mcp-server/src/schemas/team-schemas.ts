@@ -139,7 +139,11 @@ export const TeamsListOutputSchema = Type.Object({
       name: Type.String(),
       personal: Type.Boolean(),
       status: Type.String(),
-      role: Type.String(),
+      role: Type.Union([
+        Type.Literal('owner'),
+        Type.Literal('manager'),
+        Type.Literal('member'),
+      ]),
     }),
   ),
 });
@@ -147,7 +151,11 @@ export const TeamsListOutputSchema = Type.Object({
 const TeamMemberSchema = Type.Object({
   subjectId: Type.String(),
   subjectType: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
-  role: Type.String(),
+  role: Type.Union([
+    Type.Literal('owner'),
+    Type.Literal('manager'),
+    Type.Literal('member'),
+  ]),
   displayName: Type.String(),
   fingerprint: Type.Optional(Type.String()),
   email: Type.Optional(Type.String()),
@@ -177,7 +185,7 @@ export const TeamsCreateOutputSchema = Type.Object({
 
 export const TeamsJoinOutputSchema = Type.Object({
   teamId: Type.String(),
-  role: Type.String(),
+  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
 });
 
 export const TeamsDeleteOutputSchema = Type.Object({
@@ -187,7 +195,7 @@ export const TeamsDeleteOutputSchema = Type.Object({
 const TeamInviteSchema = Type.Object({
   id: Type.String(),
   code: Type.String(),
-  role: Type.String(),
+  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
   maxUses: Type.Number(),
   useCount: Type.Number(),
   expiresAt: Type.String(),
