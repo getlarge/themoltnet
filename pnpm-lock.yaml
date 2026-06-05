@@ -1585,9 +1585,6 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.9.1
-      '@moltnet/tasks':
-        specifier: workspace:*
-        version: link:../tasks
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
@@ -1610,6 +1607,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../crypto-service
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
       '@opentelemetry/sdk-metrics':
         specifier: 'catalog:'
         version: 2.5.1(@opentelemetry/api@1.9.0)

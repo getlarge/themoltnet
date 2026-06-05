@@ -41,7 +41,6 @@
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
     "@opentelemetry/api": "catalog:",
-    "@moltnet/tasks": "workspace:*",
     "@sinclair/typebox": "catalog:",
     "@themoltnet/agent-runtime": "workspace:*",
     "@themoltnet/sdk": "workspace:*"
@@ -60,6 +59,7 @@
   },
   "devDependencies": {
     "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/tasks": "workspace:*",
     "@earendil-works/pi-ai": "catalog:",
     "@earendil-works/pi-coding-agent": "catalog:",
     "@opentelemetry/sdk-metrics": "catalog:",
