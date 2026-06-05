@@ -265,7 +265,7 @@ export async function executePiTask(
   const attemptN = claimedTask.attemptN;
   const startTime = Date.now();
   const requestedMountPath = opts.mountPath ?? process.cwd();
-  const executionPlan = opts.makeExecutionPlan?.(claimedTask) ?? null;
+  const executionPlan = (await opts.makeExecutionPlan?.(claimedTask)) ?? null;
   let workspace: Awaited<ReturnType<typeof prepareTaskWorkspace>> | null = null;
   let mountPath = requestedMountPath;
   let cwdPath = requestedMountPath;
@@ -1178,8 +1178,8 @@ export async function executePiTask(
 
 function applyExecutionPlanSandboxOverrides(
   sandboxConfig: SandboxConfig | undefined,
-  executionPlan: ReturnType<
-    NonNullable<ExecutePiTaskOptions['makeExecutionPlan']>
+  executionPlan: Awaited<
+    ReturnType<NonNullable<ExecutePiTaskOptions['makeExecutionPlan']>>
   >,
 ): SandboxConfig | undefined {
   const shadowWrites = executionPlan?.workspaceAttachment?.shadowWrites;

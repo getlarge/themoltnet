@@ -355,17 +355,17 @@ describe('isContinuationClaimableByThisDaemon', () => {
     };
   }
 
-  it('returns true for tasks without continueFrom', () => {
-    expect(
+  it('returns true for tasks without continueFrom', async () => {
+    await expect(
       isContinuationClaimableByThisDaemon(
         { input: { brief: 'x' } } as never,
         makeSlotRegistry(null),
       ),
-    ).toBe(true);
+    ).resolves.toBe(true);
   });
 
-  it('returns false when no slot exists for the source', () => {
-    expect(
+  it('returns false when no slot exists for the source', async () => {
+    await expect(
       isContinuationClaimableByThisDaemon(
         {
           input: {
@@ -375,12 +375,12 @@ describe('isContinuationClaimableByThisDaemon', () => {
         } as never,
         makeSlotRegistry(null),
       ),
-    ).toBe(false);
+    ).resolves.toBe(false);
   });
 
-  it("returns false when slot exists but sessionDir doesn't exist on disk", () => {
+  it("returns false when slot exists but sessionDir doesn't exist on disk", async () => {
     const slot = { session: { sessionDir: '/tmp/does/not/exist-xyz-123' } };
-    expect(
+    await expect(
       isContinuationClaimableByThisDaemon(
         {
           input: {
@@ -390,13 +390,13 @@ describe('isContinuationClaimableByThisDaemon', () => {
         } as never,
         makeSlotRegistry(slot),
       ),
-    ).toBe(false);
+    ).resolves.toBe(false);
   });
 
-  it('returns true when slot + sessionDir both exist', () => {
+  it('returns true when slot + sessionDir both exist', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'session-'));
     const slot = { session: { sessionDir: tmpDir } };
-    expect(
+    await expect(
       isContinuationClaimableByThisDaemon(
         {
           input: {
@@ -406,6 +406,6 @@ describe('isContinuationClaimableByThisDaemon', () => {
         } as never,
         makeSlotRegistry(slot),
       ),
-    ).toBe(true);
+    ).resolves.toBe(true);
   });
 });

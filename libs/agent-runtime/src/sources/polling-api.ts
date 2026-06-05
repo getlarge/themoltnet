@@ -18,7 +18,10 @@ export interface ContinuationSlotRegistry {
   findLatestProducerSlotByTaskAttempt(
     taskId: string,
     attemptN: number,
-  ): { session?: { sessionDir?: string | null } | null } | null;
+  ):
+    | Promise<{ session?: { sessionDir?: string | null } | null } | null>
+    | { session?: { sessionDir?: string | null } | null }
+    | null;
 }
 
 /**
@@ -34,13 +37,13 @@ export interface ContinuationSlotRegistry {
  *
  * Pure predicate over `(task, slotRegistry)` — no side effects.
  */
-export function isContinuationClaimableByThisDaemon(
+export async function isContinuationClaimableByThisDaemon(
   task: { input?: { continueFrom?: { taskId: string; attemptN: number } } },
   slotRegistry: ContinuationSlotRegistry,
-): boolean {
+): Promise<boolean> {
   const cf = task.input?.continueFrom;
   if (!cf) return true;
-  const slot = slotRegistry.findLatestProducerSlotByTaskAttempt(
+  const slot = await slotRegistry.findLatestProducerSlotByTaskAttempt(
     cf.taskId,
     cf.attemptN,
   );
@@ -241,7 +244,10 @@ export class PollingApiTaskSource implements TaskSource {
         // server's dispatch_timeout_sec fires. See #1287, #1299.
         if (
           this.opts.slotRegistry &&
-          !isContinuationClaimableByThisDaemon(item, this.opts.slotRegistry)
+          !(await isContinuationClaimableByThisDaemon(
+            item,
+            this.opts.slotRegistry,
+          ))
         ) {
           continue;
         }

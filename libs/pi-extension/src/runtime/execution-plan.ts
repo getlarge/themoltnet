@@ -62,4 +62,4 @@ export interface PiTaskExecutionPlan {
 
 export type PiTaskExecutionPlanFactory = (
   claimedTask: ClaimedTask,
-) => PiTaskExecutionPlan | null;
+) => Promise<PiTaskExecutionPlan | null> | PiTaskExecutionPlan | null;
