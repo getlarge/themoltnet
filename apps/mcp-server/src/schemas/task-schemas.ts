@@ -20,7 +20,6 @@ import type {
 import {
   ExecutorRef,
   ExecutorTrustLevel,
-  FreeformExecutionOptions,
   SuccessCriteria,
   Task,
   TaskAttempt,
@@ -172,7 +171,13 @@ export const TaskContinueSchema = Type.Object(
     constraints: Type.Optional(
       Type.Array(Type.String({ minLength: 1 }), { maxItems: 20 }),
     ),
-    execution: Type.Optional(FreeformExecutionOptions),
+    // execution.workspace deliberately omitted: workspace mode for a
+    // continuation is inherited from the parent slot via
+    // maybeAttachWarmSlotContext (forces dedicated_worktree + the
+    // parent's worktreeBranch). Any caller-supplied override would be
+    // silently ignored at the daemon plan stage, so the server-side
+    // validator rejects it explicitly when continueFrom + execution are
+    // both set on the constructed input.
     successCriteria: Type.Optional(SuccessCriteria),
     mode: Type.Optional(
       Type.Union([Type.Literal('extend'), Type.Literal('fork')]),
