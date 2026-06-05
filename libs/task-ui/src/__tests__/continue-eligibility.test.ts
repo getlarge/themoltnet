@@ -34,6 +34,7 @@ describe('canContinueAttempt', () => {
 
     expect(result.eligible).toBe(true);
     expect(result.resumableUntil?.toISOString()).toBe(FUTURE);
+    expect(result.expired).toBe(false);
   });
 
   it('ineligible when task type is not freeform', () => {
@@ -44,6 +45,7 @@ describe('canContinueAttempt', () => {
     );
 
     expect(result.eligible).toBe(false);
+    expect(result.expired).toBe(false);
   });
 
   it('ineligible when attempt is not completed', () => {
@@ -54,6 +56,21 @@ describe('canContinueAttempt', () => {
     );
 
     expect(result.eligible).toBe(false);
+    expect(result.expired).toBe(false);
+  });
+
+  it('ineligible (and not expired) when a running attempt reports a future slot', () => {
+    // A daemon's heartbeat may set slotResumableUntil before the attempt
+    // is terminal. The UI must not show the badge for a non-completed
+    // attempt regardless of the slot timestamp.
+    const result = canContinueAttempt(
+      task('freeform'),
+      attempt('running', FUTURE),
+      NOW,
+    );
+
+    expect(result.eligible).toBe(false);
+    expect(result.expired).toBe(false);
   });
 
   it('ineligible when daemonState is missing', () => {
@@ -65,6 +82,7 @@ describe('canContinueAttempt', () => {
 
     expect(result.eligible).toBe(false);
     expect(result.resumableUntil).toBeNull();
+    expect(result.expired).toBe(false);
   });
 
   it('ineligible when slotResumableUntil is null', () => {
@@ -76,9 +94,10 @@ describe('canContinueAttempt', () => {
 
     expect(result.eligible).toBe(false);
     expect(result.resumableUntil).toBeNull();
+    expect(result.expired).toBe(false);
   });
 
-  it('ineligible when slotResumableUntil is in the past', () => {
+  it('ineligible + expired when slotResumableUntil is in the past', () => {
     const result = canContinueAttempt(
       task('freeform'),
       attempt('completed', PAST),
@@ -87,5 +106,6 @@ describe('canContinueAttempt', () => {
 
     expect(result.eligible).toBe(false);
     expect(result.resumableUntil?.toISOString()).toBe(PAST);
+    expect(result.expired).toBe(true);
   });
 });

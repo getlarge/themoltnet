@@ -144,6 +144,11 @@ test.describe.serial('Continue task from console', () => {
   });
 
   test('seeds a completed freeform parent with future slotResumableUntil', async () => {
+    // Pin the source's executor so the continuation-inherits-pinning
+    // assertion later has concrete values to compare against. The
+    // agent doesn't actually need to match this allowlist to claim the
+    // source — we never run the continuation; we only assert the
+    // create payload the console submitted carries the inheritance.
     const seeded = await seedCompletedFreeformAttempt({
       agent: agentCtx.agent,
       teamId: sharedTeamId,
@@ -151,6 +156,8 @@ test.describe.serial('Continue task from console', () => {
       brief: `Parent investigation ${nonce}`,
       title: sourceTitle,
       correlationId,
+      allowedExecutors: [{ provider: 'anthropic', model: 'claude-opus-4-7' }],
+      requiredExecutorTrustLevel: 'selfDeclared',
     });
     sourceTaskId = seeded.taskId;
     sourceAttemptN = seeded.attemptN;
@@ -230,5 +237,14 @@ test.describe.serial('Continue task from console', () => {
     expect(claim?.op).toBe('task_status');
     expect(claim?.taskId).toBe(sourceTaskId);
     expect(claim?.statuses).toEqual(['completed']);
+
+    // Executor pinning must flow through — dropping it would let the
+    // continuation be claimed by an executor the parent's proposer
+    // explicitly excluded. Mirrors the MCP tasks_continue + Go CLI
+    // task continue wire contracts.
+    expect(newTask?.allowedExecutors).toEqual([
+      { provider: 'anthropic', model: 'claude-opus-4-7' },
+    ]);
+    expect(newTask?.requiredExecutorTrustLevel).toBe('selfDeclared');
   });
 });

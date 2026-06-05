@@ -18,7 +18,11 @@ import {
   type SideEffectsForm,
 } from './success-criteria.js';
 import { SuccessCriteriaEditor } from './success-criteria-editor.js';
-import type { ClaimCondition, TaskSummary } from './types.js';
+import type {
+  ClaimCondition,
+  ExecutorTrustLevel,
+  TaskSummary,
+} from './types.js';
 
 export interface DiaryOption {
   id: string;
@@ -51,6 +55,14 @@ export interface CreateTaskRequest {
   title?: string;
   tags?: string[];
   correlationId?: string;
+  /**
+   * Executor allowlist + trust level inherited from a continuation source,
+   * mirroring the MCP `tasks_continue` and Go CLI `task continue`
+   * surfaces. Standalone (non-continuation) tasks omit these and let the
+   * server fall back to the registry defaults.
+   */
+  allowedExecutors?: { provider: string; model: string }[];
+  requiredExecutorTrustLevel?: ExecutorTrustLevel;
   input: {
     brief: string;
     expectedOutput?: string;
@@ -75,13 +87,18 @@ export interface ContinueFromSource {
   attemptN: number;
   sourceTitle?: string;
   /**
-   * Optional source-task properties to inherit on the continuation. The
-   * server inherits these automatically from the source on the equivalent
-   * MCP/CLI surfaces, but the dialog still needs to pass them through so
-   * the constructed CreateTaskRequest matches what the consumer's onSubmit
-   * forwards to POST /tasks.
+   * Source-task properties to inherit on the continuation. These mirror
+   * what the MCP `tasks_continue` tool (`apps/mcp-server/src/task-tools.ts`)
+   * and the Go CLI `task continue` (`apps/moltnet-cli/task_continue.go`)
+   * copy from the source — load-bearing because dropping them would let
+   * the continuation be claimed by an executor the parent's proposer
+   * explicitly excluded, or relax the trust-level pin. The dialog passes
+   * them through verbatim so the constructed CreateTaskRequest matches
+   * what the consumer's onSubmit forwards to POST /tasks.
    */
   correlationId?: string | null;
+  allowedExecutors?: { provider: string; model: string }[];
+  requiredExecutorTrustLevel?: ExecutorTrustLevel;
 }
 
 export interface CreateTaskDialogProps {
@@ -186,6 +203,15 @@ export function CreateTaskDialog({
         ...(normalizedTags.length > 0 ? { tags: normalizedTags } : {}),
         ...(isContinuation && continueFrom.correlationId
           ? { correlationId: continueFrom.correlationId }
+          : {}),
+        ...(isContinuation && continueFrom.allowedExecutors?.length
+          ? { allowedExecutors: continueFrom.allowedExecutors }
+          : {}),
+        ...(isContinuation && continueFrom.requiredExecutorTrustLevel
+          ? {
+              requiredExecutorTrustLevel:
+                continueFrom.requiredExecutorTrustLevel,
+            }
           : {}),
         input: {
           brief: brief.trim(),

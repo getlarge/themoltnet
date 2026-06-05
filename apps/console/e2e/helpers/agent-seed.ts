@@ -36,6 +36,17 @@ export interface SeedCompletedFreeformOptions {
   /** Optional correlationId — required for cross-attempt slot affinity. */
   correlationId?: string;
   /**
+   * Optional executor pinning on the source task. Tests that exercise
+   * the continuation's executor-allowlist inheritance contract should
+   * set this so the asserts have a concrete pin to compare against.
+   */
+  allowedExecutors?: { provider: string; model: string }[];
+  requiredExecutorTrustLevel?:
+    | 'selfDeclared'
+    | 'agentSigned'
+    | 'releaseVerifiedTool'
+    | 'sandboxAttested';
+  /**
    * How far in the future to push `daemonState.slotResumableUntil`. The
    * server doesn't enforce a max but the UI gates on "now < this", so 1h
    * is a safe default for an interactive test run.
@@ -67,6 +78,8 @@ export async function seedCompletedFreeformAttempt(
     brief,
     title,
     correlationId,
+    allowedExecutors,
+    requiredExecutorTrustLevel,
     slotTtlMs = 60 * 60 * 1000,
   } = options;
 
@@ -76,6 +89,8 @@ export async function seedCompletedFreeformAttempt(
     diaryId,
     ...(title ? { title } : {}),
     ...(correlationId ? { correlationId } : {}),
+    ...(allowedExecutors?.length ? { allowedExecutors } : {}),
+    ...(requiredExecutorTrustLevel ? { requiredExecutorTrustLevel } : {}),
     input: {
       brief,
     },

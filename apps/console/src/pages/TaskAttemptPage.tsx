@@ -93,7 +93,7 @@ export function TaskAttemptPage({
   const eligibility =
     task && attempt
       ? canContinueAttempt(task, attempt)
-      : { eligible: false, resumableUntil: null };
+      : { eligible: false, resumableUntil: null, expired: false };
 
   if (taskQuery.isLoading || attemptsQuery.isLoading) {
     return <Text color="muted">Loading attempt…</Text>;
@@ -122,10 +122,25 @@ export function TaskAttemptPage({
           <Text variant="h2" style={{ margin: 0 }}>
             Attempt {attemptN}
           </Text>
-          {eligibility.resumableUntil ? (
-            <Tooltip content="Daemon-local hint: the executor reported the warm slot would survive at least this long. Restart or eviction can shorten it.">
-              <Badge variant="info">
-                Resumable until{' '}
+          {/*
+            Badge appears only on completed freeform attempts that ever
+            reported a slotResumableUntil. Running/claimed attempts whose
+            daemons happen to publish a heartbeat-time slot would render
+            a misleading "Resumable until …" otherwise. The expired path
+            still surfaces the timestamp (muted) so the user understands
+            why Continue isn't offered.
+          */}
+          {(eligibility.eligible || eligibility.expired) &&
+          eligibility.resumableUntil ? (
+            <Tooltip
+              content={
+                eligibility.expired
+                  ? 'The warm slot TTL has elapsed; the daemon no longer guarantees a resumable session for this attempt.'
+                  : 'Daemon-local hint: the executor reported the warm slot would survive at least this long. Restart or eviction can shorten it.'
+              }
+            >
+              <Badge variant={eligibility.expired ? 'default' : 'info'}>
+                {eligibility.expired ? 'Slot expired' : 'Resumable until'}{' '}
                 {formatRelativeAge(eligibility.resumableUntil.toISOString())}
               </Badge>
             </Tooltip>
@@ -179,6 +194,13 @@ export function TaskAttemptPage({
             attemptN,
             sourceTitle: sourceTitle || undefined,
             correlationId: task.correlationId,
+            // Inherit executor pinning from the source — mirrors what
+            // the MCP tasks_continue tool and the Go CLI task continue
+            // do. Dropping these would let the continuation be claimed
+            // by an executor the parent's proposer excluded, or relax
+            // the trust-level pin.
+            allowedExecutors: task.allowedExecutors,
+            requiredExecutorTrustLevel: task.requiredExecutorTrustLevel,
           }}
           onClose={() => setShowContinue(false)}
           onSubmit={async (request: CreateTaskRequest) => {

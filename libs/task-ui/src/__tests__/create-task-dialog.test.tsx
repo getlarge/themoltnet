@@ -172,6 +172,8 @@ describe('CreateTaskDialog continuation mode', () => {
     attemptN: 2,
     sourceTitle: 'Round 1',
     correlationId: 'corr-1',
+    allowedExecutors: [{ provider: 'anthropic', model: 'claude-opus-4-7' }],
+    requiredExecutorTrustLevel: 'agentSigned' as const,
   };
 
   it('switches dialog title and submit label', () => {
@@ -223,5 +225,53 @@ describe('CreateTaskDialog continuation mode', () => {
       taskId: continueFrom.taskId,
       statuses: ['completed'],
     });
+  });
+
+  it('forwards executor allowlist + trust level from the source', async () => {
+    // Mirrors the MCP tasks_continue and Go CLI task continue wire
+    // contracts. Dropping these would let the continuation be claimed
+    // by an executor the parent's proposer explicitly excluded, or
+    // silently relax the trust-level pin.
+    const onSubmit = vi.fn().mockResolvedValue('continuation-id');
+    renderDialog({ continueFrom, onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Next step' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /continue task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.allowedExecutors).toEqual([
+      { provider: 'anthropic', model: 'claude-opus-4-7' },
+    ]);
+    expect(request.requiredExecutorTrustLevel).toBe('agentSigned');
+  });
+
+  it('omits executor pinning when the source did not pin', async () => {
+    // Standalone freeform tasks let the server fall back to the
+    // registry defaults; the dialog must not invent allowedExecutors
+    // entries or pick a trust level on the user's behalf.
+    const onSubmit = vi.fn().mockResolvedValue('continuation-id');
+    renderDialog({
+      continueFrom: {
+        taskId: continueFrom.taskId,
+        attemptN: continueFrom.attemptN,
+        sourceTitle: 'Untyped parent',
+        correlationId: null,
+      },
+      onSubmit,
+    });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Next step' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /continue task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.allowedExecutors).toBeUndefined();
+    expect(request.requiredExecutorTrustLevel).toBeUndefined();
+    expect(request.correlationId).toBeUndefined();
   });
 });
