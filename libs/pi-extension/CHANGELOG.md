@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.21.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.20.2...pi-extension-v0.21.0) (2026-06-05)
+
+
+### Features
+
+* **agent-runtime:** fetch source output for continuation prompt ([69e8a64](https://github.com/getlarge/themoltnet/commit/69e8a642995b06ba645ce4d9d0e456066b0380be)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+
+
+### Bug Fixes
+
+* **tasks:** pre-merge review fixes for PR [#1307](https://github.com/getlarge/themoltnet/issues/1307) ([71db8ac](https://github.com/getlarge/themoltnet/commit/71db8ac6956516dbf571c438d728f16e0eeb2907)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.21.0
+
 ## [0.20.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.20.1...pi-extension-v0.20.2) (2026-05-30)
 
 

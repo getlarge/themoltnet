@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.45.0](https://github.com/getlarge/themoltnet/compare/cli-v1.44.0...cli-v1.45.0) (2026-06-05)
+
+
+### Features
+
+* **moltnet-cli:** add 'task continue' subcommand for warm-resume continuations ([37edaf3](https://github.com/getlarge/themoltnet/commit/37edaf38c511438b73a65370e50407be1d2d8a0b))
+
+
+### Bug Fixes
+
+* **tasks-continue:** address PR [#1308](https://github.com/getlarge/themoltnet/issues/1308) review feedback ([f4dfe0d](https://github.com/getlarge/themoltnet/commit/f4dfe0d95a4ffabdb3a274a2ce3d6797418c1165))
+
 ## [1.44.0](https://github.com/getlarge/themoltnet/compare/cli-v1.43.1...cli-v1.44.0) (2026-05-26)
 
 
