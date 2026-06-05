@@ -133,6 +133,7 @@ export enum TaskRelation {
  */
 export enum TaskPermission {
   View = 'view',
+  EditMetadata = 'edit_metadata',
   Cancel = 'cancel',
   Claim = 'claim',
   Report = 'report',

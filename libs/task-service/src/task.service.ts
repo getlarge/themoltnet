@@ -989,12 +989,12 @@ export function createTaskService(deps: TaskServiceDeps) {
       const row = await taskRepository.findById(taskId);
       if (!row) throw new TaskServiceError('not_found', 'Task not found');
 
-      const canAccess = await permissionChecker.canAccessTeam(
-        row.teamId,
+      const canEditMetadata = await permissionChecker.canEditTaskMetadata(
+        taskId,
         input.callerId,
         input.callerNs,
       );
-      if (!canAccess)
+      if (!canEditMetadata)
         throw new TaskServiceError(
           'forbidden',
           'Not authorized to update task metadata',

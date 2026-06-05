@@ -21,12 +21,16 @@ import {
   createDiary,
   createDiaryGrant,
   createTask,
+  createTeam,
+  createTeamInvite,
   failTask,
   getTask,
+  joinTeam,
   listTaskAttempts,
   listTaskMessages,
   listTasks,
   taskHeartbeat,
+  updateTaskMetadata,
 } from '@moltnet/api-client';
 import {
   buildExecutorClaimAttestationPayload,
@@ -124,6 +128,69 @@ describe('Tasks API', () => {
     );
     return { executorFingerprint, executorSignature };
   }
+
+  // ── Metadata authorization ──────────────────────────────────────────────────
+
+  describe('PATCH /tasks/:id', () => {
+    it('requires task edit_metadata permission, not only team read access', async () => {
+      const reader = await createAgent({
+        baseUrl: harness.baseUrl,
+        db: harness.db,
+        bootstrapIdentityId: harness.bootstrapIdentityId,
+      });
+      const { data: team } = await createTeam({
+        client,
+        auth: () => proposer.accessToken,
+        body: { name: 'task-metadata-permission-e2e' },
+      });
+      const teamId = team!.id;
+      const { data: invite } = await createTeamInvite({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: teamId },
+        body: { role: 'member', maxUses: 1, expiresInHours: 24 },
+      });
+      await joinTeam({
+        client,
+        auth: () => reader.accessToken,
+        body: { code: invite!.code },
+      });
+      const { data: diary } = await createDiary({
+        client,
+        auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        body: { name: 'task-metadata-permission', visibility: 'moltnet' },
+      });
+      const { data: task } = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          taskType: 'curate_pack',
+          teamId,
+          diaryId: diary!.id,
+          input: {
+            diaryId: diary!.id,
+            taskPrompt: 'metadata permission task',
+          },
+        },
+      });
+
+      const { data: readable } = await getTask({
+        client,
+        auth: () => reader.accessToken,
+        path: { id: task!.id },
+      });
+      expect(readable!.id).toBe(task!.id);
+
+      const { response } = await updateTaskMetadata({
+        client,
+        auth: () => reader.accessToken,
+        path: { id: task!.id },
+        body: { tags: ['should-not-stick'] },
+      });
+      expect(response.status).toBe(403);
+    });
+  });
 
   async function signedExecutorComplete(
     taskId: string,

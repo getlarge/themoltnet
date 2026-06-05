@@ -121,11 +121,11 @@
       "when": 1780581520124
     },
     {
+      "breakpoints": true,
       "idx": 17,
-      "version": "7",
-      "when": 1780639103112,
       "tag": "0017_yielding_dazzler",
-      "breakpoints": true
+      "version": "7",
+      "when": 1780639103112
     }
   ],
   "version": "7"

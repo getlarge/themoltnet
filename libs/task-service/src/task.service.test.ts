@@ -164,6 +164,9 @@ type PermissionCheckerMocks = {
   canViewTask: Mock<
     (taskId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
+  canEditTaskMetadata: Mock<
+    (taskId: string, callerId: string, callerNs: string) => Promise<boolean>
+  >;
   canViewTasks: Mock<
     (
       taskIds: string[],
@@ -377,6 +380,15 @@ function makeMocks(
         .mockImplementation((taskId) =>
           Promise.resolve(Boolean(opts.visibleTasks?.[taskId])),
         ),
+      canEditTaskMetadata: vi
+        .fn<
+          (
+            taskId: string,
+            callerId: string,
+            callerNs: string,
+          ) => Promise<boolean>
+        >()
+        .mockResolvedValue(true),
       canViewTasks: vi
         .fn<
           (
@@ -673,8 +685,8 @@ describe('createTaskService.updateMetadata', () => {
       callerNs: KetoNamespace.Agent,
     });
 
-    expect(mocks.permissionChecker.canAccessTeam).toHaveBeenCalledWith(
-      TEAM_ID,
+    expect(mocks.permissionChecker.canEditTaskMetadata).toHaveBeenCalledWith(
+      RUN_TASK,
       AGENT_ID,
       KetoNamespace.Agent,
     );
