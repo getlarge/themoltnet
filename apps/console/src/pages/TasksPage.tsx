@@ -1,4 +1,4 @@
-import { createTask, type TaskStatus } from '@moltnet/api-client';
+import { createTask, listTasks, type TaskStatus } from '@moltnet/api-client';
 import {
   getTaskOptions,
   listTaskAttemptsOptions,
@@ -19,7 +19,7 @@ import {
 } from '@moltnet/task-ui';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
-import { type ChangeEvent, useMemo, useState } from 'react';
+import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
 
 import { getApiClient } from '../api.js';
@@ -134,6 +134,23 @@ export function TasksPage() {
     enabled,
   });
   const pickerCandidates = candidateQuery.data?.items ?? [];
+  const searchPickerCandidates = useCallback(
+    async (searchText: string) => {
+      if (!teamId) return [];
+      const { data, error } = await listTasks({
+        client: getApiClient(),
+        query: {
+          teamId,
+          query: searchText.trim() || undefined,
+          statuses: ['waiting', 'queued', 'dispatched', 'running', 'completed'],
+          limit: 20,
+        },
+      });
+      if (error || !data) return [];
+      return data.items;
+    },
+    [teamId],
+  );
 
   function updateTaskTypes(next: string[]) {
     setTaskTypes(next);
@@ -408,6 +425,7 @@ export function TasksPage() {
           diaries={diaryOptions}
           candidateTasks={pickerCandidates}
           availableTypes={registeredTaskTypes}
+          onSearchCandidates={searchPickerCandidates}
           onClose={() => setShowCreate(false)}
           onSubmit={async (request: CreateTaskRequest) => {
             const { data, error: apiError } = await createTask({

@@ -127,9 +127,10 @@ test.describe.serial('Create task from console', () => {
     await openCreateDialog(page);
 
     await page.getByLabel(/^brief/i).fill(`Runs after a prerequisite ${nonce}`);
-    // Add one prerequisite row (defaults to the first task · reaches completed).
-    await page.getByRole('button', { name: /add prerequisite/i }).click();
-    await expect(page.getByLabel(/prerequisite task/i)).toBeVisible();
+    await page.getByLabel(/search prerequisite tasks/i).focus();
+    await expect(page.getByRole('option').first()).toBeVisible();
+    await page.getByRole('option').first().click();
+    await expect(page.getByLabel(/^prerequisite task$/i)).toBeVisible();
 
     await page.getByRole('button', { name: /create task/i }).click();
 
