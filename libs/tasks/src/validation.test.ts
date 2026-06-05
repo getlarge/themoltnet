@@ -1054,6 +1054,21 @@ describe('freeform validateInputAsync — continuation', () => {
     expect(errors[0]?.code).toBe('freeform.forkModeNotImplemented');
   });
 
+  it('accepts execution.workspace when continueFrom is absent', async () => {
+    // Inverse of the executionWorkspaceNotInheritable check: the
+    // workspace override is fine on standalone freeform tasks, only
+    // continuations have to drop it. Guards against a regression that
+    // would over-broaden the new check.
+    const errors = await validator(
+      {
+        brief: 'standalone freeform with workspace override',
+        execution: { workspace: 'dedicated_worktree' },
+      },
+      makeCtx({}),
+    );
+    expect(errors).toEqual([]);
+  });
+
   it('rejects execution.workspace when continueFrom is set', async () => {
     // Workspace mode for a continuation is inherited from the parent
     // slot at the daemon plan stage; a caller-supplied override would

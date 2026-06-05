@@ -214,8 +214,8 @@ export async function validateFreeformInputAsync(
   // dedicated_worktree + the parent's worktreeBranch). A caller-supplied
   // execution.workspace would be silently overridden at the daemon plan
   // stage, so reject it at create time rather than let it look honored.
-  const execution = (input as { execution?: { workspace?: string } }).execution;
-  if (execution && execution.workspace) {
+  const execution = (input as Partial<FreeformInput>).execution;
+  if (execution?.workspace) {
     return [
       {
         field: 'input/execution/workspace',

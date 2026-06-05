@@ -173,7 +173,14 @@ func runTaskContinueWithClient(ctx context.Context, client *moltnetapi.Client, o
 // source; auto-inject a `task_status: completed` claim condition; pack
 // the caller's flags + continueFrom into `input`.
 func buildContinuationRequest(opts taskContinueOpts, source *moltnetapi.Task) (*moltnetapi.CreateTaskReq, error) {
-	fromTaskID, _ := uuid.Parse(opts.fromTaskID) // already validated upstream
+	// Already validated upstream — runTaskContinueWithClient rejects an
+	// unparseable --from-task-id before we get here. Failing loudly on
+	// the impossible path is friendlier than silently constructing a
+	// zero UUID if invariants ever break.
+	fromTaskID, err := uuid.Parse(opts.fromTaskID)
+	if err != nil {
+		return nil, fmt.Errorf("internal: unparseable fromTaskID %q reached buildContinuationRequest: %w", opts.fromTaskID, err)
+	}
 
 	// teamId is non-nullable on Task. diaryId is nullable on Task but the
 	// CreateTaskReq treats it as required; reject if source had none.
@@ -213,9 +220,20 @@ func buildContinuationRequest(opts taskContinueOpts, source *moltnetapi.Task) (*
 
 	// Inherit trust level. The two enums (TaskRequiredExecutorTrustLevel
 	// and ExecutorTrustLevel) carry the same string values; map across.
-	if lvl, ok := mapTaskTrustLevelToExecutor(source.RequiredExecutorTrustLevel); ok {
-		req.RequiredExecutorTrustLevel = moltnetapi.NewOptExecutorTrustLevel(lvl)
+	// Source.RequiredExecutorTrustLevel is non-nullable on the wire, so
+	// an unknown value here means the source predates a new server level
+	// (forward-incompat client) or the wire schema drifted. Fail closed
+	// rather than silently dropping the pin — losing the trust level on
+	// a continuation is a privilege relaxation we won't allow implicitly.
+	lvl, ok := mapTaskTrustLevelToExecutor(source.RequiredExecutorTrustLevel)
+	if !ok {
+		return nil, fmt.Errorf(
+			"source task %s has unrecognized requiredExecutorTrustLevel %q; refusing to drop the pin on the continuation. Upgrade the CLI to a version that knows this trust level.",
+			source.ID,
+			source.RequiredExecutorTrustLevel,
+		)
 	}
+	req.RequiredExecutorTrustLevel = moltnetapi.NewOptExecutorTrustLevel(lvl)
 
 	// Auto-inject claim condition: continuation cannot be claimed until
 	// the parent reaches `completed`. Load-bearing because the GetTask

@@ -327,6 +327,77 @@ func TestRunTaskContinue_SourceNotFreeform(t *testing.T) {
 	}
 }
 
+func TestRunTaskContinue_SourceMissingDiaryID(t *testing.T) {
+	// Source without a diaryId can't legally produce a CreateTaskReq —
+	// the wire shape requires it. Reject the continuation rather than
+	// silently constructing a malformed request.
+	srcID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
+	src := newTaskFixture(srcID, uuid.New())
+	src.TaskType = "freeform"
+	src.Status = moltnetapi.TaskStatusCompleted
+	src.RequiredExecutorTrustLevel = moltnetapi.TaskRequiredExecutorTrustLevelAgentSigned
+	src.DiaryId.SetToNull()
+
+	h := &stubContinueHandler{source: src}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskContinueWithClient(context.Background(), client, taskContinueOpts{
+		fromTaskID:     srcID.String(),
+		fromAttemptN:   1,
+		brief:          "x",
+		skipValidation: true,
+	})
+	if err == nil {
+		t.Fatal("expected error for source with no diaryId, got nil")
+	}
+	if !strings.Contains(err.Error(), "diaryId") {
+		t.Errorf("error = %q, want substring 'diaryId'", err)
+	}
+	if h.createCalls != 0 {
+		t.Errorf("CreateTask should not have been called (got %d)", h.createCalls)
+	}
+}
+
+func TestRunTaskContinue_UnknownTrustLevelFailsClosed(t *testing.T) {
+	// mapTaskTrustLevelToExecutor must return ok=false for any value the
+	// generated client doesn't know about, and buildContinuationRequest
+	// must refuse to drop the pin. Losing requiredExecutorTrustLevel on
+	// a continuation would be a silent privilege relaxation.
+	srcID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
+	src := freeformSourceFixture(srcID, uuid.New(), uuid.New(), uuid.New())
+	src.RequiredExecutorTrustLevel = moltnetapi.TaskRequiredExecutorTrustLevel(
+		"futureTrustLevelTheClientDoesNotKnow",
+	)
+
+	h := &stubContinueHandler{source: src}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskContinueWithClient(context.Background(), client, taskContinueOpts{
+		fromTaskID:     srcID.String(),
+		fromAttemptN:   1,
+		brief:          "x",
+		skipValidation: true,
+	})
+	if err == nil {
+		t.Fatal("expected error for unrecognized trust level, got nil")
+	}
+	if !strings.Contains(err.Error(), "trustLevel") &&
+		!strings.Contains(err.Error(), "TrustLevel") {
+		t.Errorf("error = %q, want it to mention the trust level", err)
+	}
+	if h.createCalls != 0 {
+		t.Errorf("CreateTask should not have been called (got %d)", h.createCalls)
+	}
+
+	// Lock the mapper's contract directly so a future refactor that
+	// changes the surrounding caller still keeps fail-closed semantics.
+	if _, ok := mapTaskTrustLevelToExecutor(
+		moltnetapi.TaskRequiredExecutorTrustLevel("nope"),
+	); ok {
+		t.Errorf("mapTaskTrustLevelToExecutor should return ok=false for unknown values")
+	}
+}
+
 func TestRunTaskContinue_DryRun(t *testing.T) {
 	srcID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
 	h := &stubContinueHandler{source: freeformSourceFixture(
