@@ -18,6 +18,10 @@
     "wouter": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
     "@testing-library/jest-dom": "catalog:",
     "@playwright/test": "catalog:",
     "@testing-library/react": "^16.0.0",

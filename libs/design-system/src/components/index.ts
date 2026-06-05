@@ -35,3 +35,4 @@ export {
   type TextProps,
   type TextVariant,
 } from './text.js';
+export { Tooltip, type TooltipProps } from './tooltip.js';

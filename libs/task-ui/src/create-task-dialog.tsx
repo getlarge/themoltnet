@@ -18,7 +18,11 @@ import {
   type SideEffectsForm,
 } from './success-criteria.js';
 import { SuccessCriteriaEditor } from './success-criteria-editor.js';
-import type { ClaimCondition, TaskSummary } from './types.js';
+import type {
+  ClaimCondition,
+  ExecutorTrustLevel,
+  TaskSummary,
+} from './types.js';
 
 export interface DiaryOption {
   id: string;
@@ -50,13 +54,51 @@ export interface CreateTaskRequest {
   taskType: 'freeform';
   title?: string;
   tags?: string[];
+  correlationId?: string;
+  /**
+   * Executor allowlist + trust level inherited from a continuation source,
+   * mirroring the MCP `tasks_continue` and Go CLI `task continue`
+   * surfaces. Standalone (non-continuation) tasks omit these and let the
+   * server fall back to the registry defaults.
+   */
+  allowedExecutors?: { provider: string; model: string }[];
+  requiredExecutorTrustLevel?: ExecutorTrustLevel;
   input: {
     brief: string;
     expectedOutput?: string;
     successCriteria?: BuiltSuccessCriteria;
     execution?: { workspace: FreeformWorkspaceMode };
+    continueFrom?: { taskId: string; attemptN: number };
   };
   claimCondition?: ClaimCondition;
+}
+
+/**
+ * Identifies the source attempt for a warm-resume continuation. When set,
+ * the dialog drops the workspace + depends-on fields (workspace is inherited
+ * from the parent slot; the parent-completed claim condition is auto-injected
+ * and would conflict with caller-supplied gates), pre-populates the title,
+ * and packs `input.continueFrom` + the `task_status:completed` claim condition
+ * on submit. Matches the wire contract enforced by the MCP `tasks_continue`
+ * tool and the Go CLI `task continue` subcommand (#1287, #1307, #1308).
+ */
+export interface ContinueFromSource {
+  taskId: string;
+  attemptN: number;
+  sourceTitle?: string;
+  /**
+   * Source-task properties to inherit on the continuation. These mirror
+   * what the MCP `tasks_continue` tool (`apps/mcp-server/src/task-tools.ts`)
+   * and the Go CLI `task continue` (`apps/moltnet-cli/task_continue.go`)
+   * copy from the source — load-bearing because dropping them would let
+   * the continuation be claimed by an executor the parent's proposer
+   * explicitly excluded, or relax the trust-level pin. The dialog passes
+   * them through verbatim so the constructed CreateTaskRequest matches
+   * what the consumer's onSubmit forwards to POST /tasks.
+   */
+  correlationId?: string | null;
+  allowedExecutors?: { provider: string; model: string }[];
+  requiredExecutorTrustLevel?: ExecutorTrustLevel;
 }
 
 export interface CreateTaskDialogProps {
@@ -75,6 +117,13 @@ export interface CreateTaskDialogProps {
   onSubmit: (request: CreateTaskRequest) => Promise<string>;
   /** Called with the new task id after a successful create. */
   onCreated: (taskId: string) => void;
+  /**
+   * When set, the dialog enters "continuation" mode: workspace and depends-on
+   * fields are dropped, the source title is pre-filled, and the submit payload
+   * includes `input.continueFrom` plus a `task_status:completed` claim
+   * condition on the parent.
+   */
+  continueFrom?: ContinueFromSource;
 }
 
 export function CreateTaskDialog({
@@ -86,10 +135,12 @@ export function CreateTaskDialog({
   onClose,
   onSubmit,
   onCreated,
+  continueFrom,
 }: CreateTaskDialogProps) {
   const theme = useTheme();
+  const isContinuation = continueFrom !== undefined;
   const [brief, setBrief] = useState('');
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(continueFrom?.sourceTitle ?? '');
   const [tags, setTags] = useState('');
   const [expectedOutput, setExpectedOutput] = useState('');
   const [diaryId, setDiaryId] = useState(diaries[0]?.id ?? '');
@@ -117,6 +168,13 @@ export function CreateTaskDialog({
     }
   }, [diaries, diaryId]);
 
+  // The dialog instance may be reused across continuations (different
+  // source attempts). useState only captures the initial sourceTitle; reset
+  // when the source changes so the prefilled title tracks the new parent.
+  useEffect(() => {
+    setTitle(continueFrom?.sourceTitle ?? '');
+  }, [continueFrom?.taskId, continueFrom?.attemptN, continueFrom?.sourceTitle]);
+
   const canSubmit = Boolean(brief.trim() && diaryId);
 
   const handleSubmit = async () => {
@@ -126,21 +184,54 @@ export function CreateTaskDialog({
     try {
       const successCriteria = buildSuccessCriteria(assertions, sideEffects);
       const normalizedTags = normalizeTagsInput(tags);
+      // Continuations: drop workspace (server rejects on input.continueFrom)
+      // and depends-on (the auto-injected task_status:completed gate on the
+      // parent is the only claim condition that makes sense here; allowing
+      // both would conflict).
+      const claimCondition: ClaimCondition | undefined = isContinuation
+        ? {
+            op: 'task_status',
+            taskId: continueFrom.taskId,
+            statuses: ['completed'],
+          }
+        : buildClaimCondition(dependsRows);
       const taskId = await onSubmit({
         teamId,
         diaryId,
         taskType: 'freeform',
         ...(title.trim() ? { title: title.trim() } : {}),
         ...(normalizedTags.length > 0 ? { tags: normalizedTags } : {}),
+        ...(isContinuation && continueFrom.correlationId
+          ? { correlationId: continueFrom.correlationId }
+          : {}),
+        ...(isContinuation && continueFrom.allowedExecutors?.length
+          ? { allowedExecutors: continueFrom.allowedExecutors }
+          : {}),
+        ...(isContinuation && continueFrom.requiredExecutorTrustLevel
+          ? {
+              requiredExecutorTrustLevel:
+                continueFrom.requiredExecutorTrustLevel,
+            }
+          : {}),
         input: {
           brief: brief.trim(),
           ...(expectedOutput.trim()
             ? { expectedOutput: expectedOutput.trim() }
             : {}),
           ...(successCriteria ? { successCriteria } : {}),
-          ...(workspaceMode ? { execution: { workspace: workspaceMode } } : {}),
+          ...(!isContinuation && workspaceMode
+            ? { execution: { workspace: workspaceMode } }
+            : {}),
+          ...(isContinuation
+            ? {
+                continueFrom: {
+                  taskId: continueFrom.taskId,
+                  attemptN: continueFrom.attemptN,
+                },
+              }
+            : {}),
         },
-        claimCondition: buildClaimCondition(dependsRows),
+        ...(claimCondition ? { claimCondition } : {}),
       });
       setBrief('');
       setTitle('');
@@ -189,15 +280,31 @@ export function CreateTaskDialog({
   );
 
   return (
-    <Dialog open={open} onClose={onClose} title="New task" width="520px">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={isContinuation ? 'Continue task' : 'New task'}
+      width="520px"
+    >
       <Stack gap={4}>
+        {isContinuation ? (
+          <Text variant="caption" color="muted">
+            Continuing attempt {continueFrom.attemptN} of task{' '}
+            {continueFrom.sourceTitle ?? continueFrom.taskId}. The new task will
+            inherit workspace mode and executor pinning from the parent slot.
+          </Text>
+        ) : null}
         <Stack gap={1}>
           {labelCaption('Brief', true)}
           <textarea
             aria-label="Brief"
             value={brief}
             onChange={(event) => setBrief(event.target.value)}
-            placeholder="Describe the work to be done…"
+            placeholder={
+              isContinuation
+                ? 'What should the continuation do next?'
+                : 'Describe the work to be done…'
+            }
             style={textareaStyle}
           />
         </Stack>
@@ -227,26 +334,30 @@ export function CreateTaskDialog({
           />
         </Stack>
 
-        <Stack gap={1}>
-          {labelCaption('Workspace mode (optional)')}
-          <select
-            aria-label="Workspace mode"
-            value={workspaceMode}
-            onChange={(event) =>
-              setWorkspaceMode(event.target.value as '' | FreeformWorkspaceMode)
-            }
-            style={selectStyle}
-          >
-            <option value="">Default (shared mount)</option>
-            <option value="shared_mount">
-              shared_mount — read-only exploration
-            </option>
-            <option value="dedicated_worktree">
-              dedicated_worktree — isolated branch, safe to mutate
-            </option>
-            <option value="none">none — scratch mount, no repo access</option>
-          </select>
-        </Stack>
+        {isContinuation ? null : (
+          <Stack gap={1}>
+            {labelCaption('Workspace mode (optional)')}
+            <select
+              aria-label="Workspace mode"
+              value={workspaceMode}
+              onChange={(event) =>
+                setWorkspaceMode(
+                  event.target.value as '' | FreeformWorkspaceMode,
+                )
+              }
+              style={selectStyle}
+            >
+              <option value="">Default (shared mount)</option>
+              <option value="shared_mount">
+                shared_mount — read-only exploration
+              </option>
+              <option value="dedicated_worktree">
+                dedicated_worktree — isolated branch, safe to mutate
+              </option>
+              <option value="none">none — scratch mount, no repo access</option>
+            </select>
+          </Stack>
+        )}
 
         <Stack gap={1}>
           {labelCaption('Diary', true)}
@@ -268,12 +379,14 @@ export function CreateTaskDialog({
           </select>
         </Stack>
 
-        <DependsOnBuilder
-          candidates={candidateTasks}
-          availableTypes={availableTypes}
-          rows={dependsRows}
-          onChange={setDependsRows}
-        />
+        {isContinuation ? null : (
+          <DependsOnBuilder
+            candidates={candidateTasks}
+            availableTypes={availableTypes}
+            rows={dependsRows}
+            onChange={setDependsRows}
+          />
+        )}
 
         <Stack gap={2}>
           <Button
@@ -309,7 +422,13 @@ export function CreateTaskDialog({
             onClick={() => void handleSubmit()}
             disabled={!canSubmit || isSubmitting}
           >
-            {isSubmitting ? 'Creating…' : 'Create task'}
+            {isSubmitting
+              ? isContinuation
+                ? 'Continuing…'
+                : 'Creating…'
+              : isContinuation
+                ? 'Continue task'
+                : 'Create task'}
           </Button>
         </Stack>
       </Stack>
