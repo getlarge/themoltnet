@@ -66,7 +66,6 @@ func TestE2E_CLI_TaskContinue_DryRunFromQueuedSource(t *testing.T) {
 		"--from-attempt-n", "1",
 		"--brief", "Next step: assert the chain",
 		"--title", "Round 2",
-		"--execution-workspace", "dedicated_worktree",
 		"--dry-run",
 		"--skip-validation",
 	)
@@ -110,9 +109,8 @@ func TestE2E_CLI_TaskContinue_DryRunFromQueuedSource(t *testing.T) {
 	if input["title"] != "Round 2" {
 		t.Errorf("input.title = %v", input["title"])
 	}
-	exec, _ := input["execution"].(map[string]any)
-	if exec == nil || exec["workspace"] != "dedicated_worktree" {
-		t.Errorf("input.execution = %v, want {workspace: dedicated_worktree}", exec)
+	if _, present := input["execution"]; present {
+		t.Errorf("input.execution should not be set on continuations; got %v", input["execution"])
 	}
 	cf, ok := input["continueFrom"].(map[string]any)
 	if !ok {

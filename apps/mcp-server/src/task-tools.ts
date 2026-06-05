@@ -212,7 +212,9 @@ export async function handleTasksContinue(
   if (args.title) freeformInput.title = args.title;
   if (args.expectedOutput) freeformInput.expectedOutput = args.expectedOutput;
   if (args.constraints?.length) freeformInput.constraints = args.constraints;
-  if (args.execution) freeformInput.execution = args.execution;
+  // execution.workspace deliberately not forwarded: continuations inherit
+  // workspace mode from the parent slot. The server-side async validator
+  // rejects execution.workspace when continueFrom is set.
   if (args.successCriteria)
     freeformInput.successCriteria = args.successCriteria;
 

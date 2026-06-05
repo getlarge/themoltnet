@@ -1054,6 +1054,50 @@ describe('freeform validateInputAsync — continuation', () => {
     expect(errors[0]?.code).toBe('freeform.forkModeNotImplemented');
   });
 
+  it('rejects execution.workspace when continueFrom is set', async () => {
+    // Workspace mode for a continuation is inherited from the parent
+    // slot at the daemon plan stage; a caller-supplied override would
+    // be silently dropped. Reject explicitly at create time.
+    const errors = await validator(
+      {
+        brief: 'x',
+        execution: { workspace: 'dedicated_worktree' },
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi.fn().mockResolvedValue([
+          {
+            attemptN: 1,
+            status: 'completed',
+            daemonState: {
+              reportedAt: new Date().toISOString(),
+              slotResumableUntil: new Date(Date.now() + 60_000).toISOString(),
+            },
+          },
+        ]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.executionWorkspaceNotInheritable');
+  });
+
+  it('still rejects execution.workspace when deferReadinessChecks is true', async () => {
+    // Stable check: misconfiguration surfaces at create time regardless
+    // of deferral.
+    const errors = await validator(
+      {
+        brief: 'x',
+        execution: { workspace: 'dedicated_worktree' },
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        deferReadinessChecks: true,
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.executionWorkspaceNotInheritable');
+  });
+
   it('rejects when daemonState is null', async () => {
     const errors = await validator(
       {

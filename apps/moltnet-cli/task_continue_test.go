@@ -177,7 +177,7 @@ func TestRunTaskContinue_HappyPath(t *testing.T) {
 	}
 }
 
-func TestRunTaskContinue_WithModeAndExecution(t *testing.T) {
+func TestRunTaskContinue_WithMode(t *testing.T) {
 	srcID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
 	teamID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
 	diaryID := uuid.MustParse("33333333-3333-4333-8333-333333333333")
@@ -187,14 +187,13 @@ func TestRunTaskContinue_WithModeAndExecution(t *testing.T) {
 	_, _, client := newTestServer(t, h)
 
 	err := runTaskContinueWithClient(context.Background(), client, taskContinueOpts{
-		fromTaskID:         srcID.String(),
-		fromAttemptN:       2,
-		brief:              "Branch from completed parent",
-		mode:               "extend",
-		modeSet:            true,
-		executionWorkspace: "dedicated_worktree",
-		outputMode:         "id",
-		skipValidation:     true,
+		fromTaskID:     srcID.String(),
+		fromAttemptN:   2,
+		brief:          "Branch from completed parent",
+		mode:           "extend",
+		modeSet:        true,
+		outputMode:     "id",
+		skipValidation: true,
 	})
 	if err != nil {
 		t.Fatalf("runTaskContinueWithClient: %v", err)
@@ -208,9 +207,10 @@ func TestRunTaskContinue_WithModeAndExecution(t *testing.T) {
 		t.Errorf("continueFrom missing attemptN=2: %s", cf)
 	}
 
-	exec := h.lastCreate.Input["execution"]
-	if !strings.Contains(string(exec), `"workspace":"dedicated_worktree"`) {
-		t.Errorf("execution.workspace = %s, want dedicated_worktree", exec)
+	// execution.workspace is intentionally not part of the continuation
+	// surface — the parent slot's workspace is inherited at the daemon.
+	if _, present := h.lastCreate.Input["execution"]; present {
+		t.Errorf("input.execution should never be set on a continuation: %s", h.lastCreate.Input["execution"])
 	}
 }
 

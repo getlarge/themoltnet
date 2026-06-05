@@ -44,21 +44,20 @@ so a continuation cannot be claimed once the parent leaves 'completed'.
 Use --mode fork to request copy-on-write (sessionDir + worktree clone);
 v1 rejects this locally with a pointer to #1293.
 
-Use --execution-workspace to override the daemon's workspace mode for
-this continuation. Recognized values: none (scratch_mount), shared_mount,
-dedicated_worktree. Omit to inherit the freeform default (shared_mount).`,
+Workspace mode is inherited from the parent slot (the daemon forces
+dedicated_worktree + the parent's worktreeBranch on continuations);
+there is no --execution-workspace override.`,
 		Example: `  # Continue attempt 1 of a completed freeform task
   moltnet task continue \
     --from-task-id <uuid> --from-attempt-n 1 \
     --brief "Next step: render the rebased branch and run the harness"
 
-  # Pre-populate a continuation with a tighter brief + execution override
+  # Pre-populate a continuation with a tighter brief and constraints
   moltnet task continue \
     --from-task-id <uuid> --from-attempt-n 1 \
     --brief "Reduce the test surface" \
     --title "Round 2" \
-    --constraint "no PR" --constraint "stay under 10 minutes" \
-    --execution-workspace dedicated_worktree
+    --constraint "no PR" --constraint "stay under 10 minutes"
 
   # Dry-run prints the CreateTaskReq without posting; useful in scripts
   moltnet task continue \
@@ -73,23 +72,22 @@ dedicated_worktree. Omit to inherit the freeform default (shared_mount).`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath := flagString(cmd, "credentials")
 			opts := taskContinueOpts{
-				apiURL:             resolveAPIURL(cmd, credPath),
-				credPath:           credPath,
-				fromTaskID:         flagString(cmd, "from-task-id"),
-				fromAttemptN:       flagInt(cmd, "from-attempt-n"),
-				brief:              flagString(cmd, "brief"),
-				title:              flagString(cmd, "title"),
-				titleSet:           cmd.Flags().Changed("title"),
-				expectedOutput:     flagString(cmd, "expected-output"),
-				expectedSet:        cmd.Flags().Changed("expected-output"),
-				constraints:        flagStringArray(cmd, "constraint"),
-				executionWorkspace: flagString(cmd, "execution-workspace"),
-				mode:               flagString(cmd, "mode"),
-				modeSet:            cmd.Flags().Changed("mode"),
-				skipValidation:     flagBool(cmd, "skip-validation"),
-				dryRun:             flagBool(cmd, "dry-run"),
-				outputMode:         flagString(cmd, "output"),
-				out:                cmd.OutOrStdout(),
+				apiURL:         resolveAPIURL(cmd, credPath),
+				credPath:       credPath,
+				fromTaskID:     flagString(cmd, "from-task-id"),
+				fromAttemptN:   flagInt(cmd, "from-attempt-n"),
+				brief:          flagString(cmd, "brief"),
+				title:          flagString(cmd, "title"),
+				titleSet:       cmd.Flags().Changed("title"),
+				expectedOutput: flagString(cmd, "expected-output"),
+				expectedSet:    cmd.Flags().Changed("expected-output"),
+				constraints:    flagStringArray(cmd, "constraint"),
+				mode:           flagString(cmd, "mode"),
+				modeSet:        cmd.Flags().Changed("mode"),
+				skipValidation: flagBool(cmd, "skip-validation"),
+				dryRun:         flagBool(cmd, "dry-run"),
+				outputMode:     flagString(cmd, "output"),
+				out:            cmd.OutOrStdout(),
 			}
 			if !cmd.Flags().Changed("from-attempt-n") {
 				opts.fromAttemptN = 1
@@ -103,7 +101,6 @@ dedicated_worktree. Omit to inherit the freeform default (shared_mount).`,
 	cmd.Flags().String("title", "", "Optional operator-facing title")
 	cmd.Flags().String("expected-output", "", "Optional expected-output prose")
 	cmd.Flags().StringArray("constraint", nil, "Constraint string; repeatable")
-	cmd.Flags().String("execution-workspace", "", "Workspace mode override: none|shared_mount|dedicated_worktree")
 	cmd.Flags().String("mode", "", "Continuation mode: extend (default)|fork (rejected in v1; see #1293)")
 	cmd.Flags().Bool("skip-validation", false, "Skip client-side JSON Schema validation of the constructed input")
 	cmd.Flags().Bool("dry-run", false, "Print the canonical CreateTaskReq and exit; no POST")

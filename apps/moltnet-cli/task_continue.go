@@ -44,8 +44,6 @@ type taskContinueOpts struct {
 
 	constraints []string
 
-	executionWorkspace string
-
 	mode    string
 	modeSet bool
 
@@ -94,17 +92,11 @@ func runTaskContinueWithClient(ctx context.Context, client *moltnetapi.Client, o
 		return fmt.Errorf(
 			"--mode must be one of: extend, fork (got %q)", opts.mode)
 	}
-	if opts.executionWorkspace != "" {
-		switch opts.executionWorkspace {
-		case "none", "shared_mount", "dedicated_worktree":
-			// ok
-		default:
-			return fmt.Errorf(
-				"--execution-workspace must be one of: none, shared_mount, dedicated_worktree (got %q)",
-				opts.executionWorkspace,
-			)
-		}
-	}
+	// execution.workspace is intentionally not exposed: continuations
+	// inherit workspace mode from the parent slot via the daemon's
+	// maybeAttachWarmSlotContext (forces dedicated_worktree + parent
+	// worktreeBranch). The async validator rejects it explicitly when
+	// continueFrom is set.
 
 	// 1. Read source.
 	srcRes, err := client.GetTask(ctx, moltnetapi.GetTaskParams{ID: fromTaskID})
@@ -274,16 +266,6 @@ func buildContinuationInput(opts taskContinueOpts, fromTaskID uuid.UUID) (moltne
 			return nil, fmt.Errorf("marshal constraints: %w", err)
 		}
 		input["constraints"] = cRaw
-	}
-
-	if opts.executionWorkspace != "" {
-		execRaw, err := json.Marshal(map[string]string{
-			"workspace": opts.executionWorkspace,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("marshal execution: %w", err)
-		}
-		input["execution"] = execRaw
 	}
 
 	cf := map[string]any{
