@@ -813,6 +813,16 @@ jobs:
           REST_API_URL: http://localhost:8080
           CONSOLE_BASE_URL: http://localhost:5174
           MAILSLURPER_API_URL: http://localhost:4437
+          # task-continue.e2e provisions a real agent via @moltnet/bootstrap,
+          # which talks directly to the Ory admin APIs and the app DB. Mirror
+          # the host-port mappings the e2e Docker stack publishes (see
+          # docker-compose.base.yaml + docker-compose.e2e.yaml).
+          DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
+          ORY_HYDRA_ADMIN_URL: http://localhost:4445
+          ORY_HYDRA_PUBLIC_URL: http://localhost:4444
+          ORY_KETO_PUBLIC_URL: http://localhost:4466
+          ORY_KETO_ADMIN_URL: http://localhost:4467
+          ORY_KRATOS_ADMIN_URL: http://localhost:4434
         run: pnpm exec nx run @moltnet/console:e2e
       - name: Docker Compose logs
         if: failure()
