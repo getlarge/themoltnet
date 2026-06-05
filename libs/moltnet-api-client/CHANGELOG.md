@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.3](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.2...moltnet-api-client-v1.30.3) (2026-06-05)
+
+
+### Bug Fixes
+
+* **ci:** regenerate Go api-client + add verification to MCP e2e completion ([aaca26c](https://github.com/getlarge/themoltnet/commit/aaca26c22a63584f74bbacaf9739c8859cf3ffc8)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+
 ## [1.30.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.1...moltnet-api-client-v1.30.2) (2026-05-29)
 
 

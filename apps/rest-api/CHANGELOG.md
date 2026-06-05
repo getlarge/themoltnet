@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.5.1...rest-api-v0.6.0) (2026-06-05)
+
+
+### Features
+
+* **agent-daemon:** stamp daemonState on attempt complete ([27bbd7b](https://github.com/getlarge/themoltnet/commit/27bbd7be0ae8cf761db15813030d6c0b3c9b81f3)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+* **task-service:** persist daemonState on attempt complete ([afdd41e](https://github.com/getlarge/themoltnet/commit/afdd41e68a15b2b1aeddbd0cce7fba92b3ed2a28)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+* **tasks:** auto-generate correlationId server-side when absent ([f8acde3](https://github.com/getlarge/themoltnet/commit/f8acde3c4b83111113f747870bbbd821673b030b)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+
+
+### Bug Fixes
+
+* **models:** propagate validation error.code through REST responses ([7c8480a](https://github.com/getlarge/themoltnet/commit/7c8480abc7fd0f4a8bd04523b969c267d3ae8b0d)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+
 ## [0.5.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.5.0...rest-api-v0.5.1) (2026-05-29)
 
 

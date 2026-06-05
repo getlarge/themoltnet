@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.21.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.20.0...agent-runtime-v0.21.0) (2026-06-05)
+
+
+### Features
+
+* **agent-runtime:** claim-time affinity filter for continuations ([a5ff332](https://github.com/getlarge/themoltnet/commit/a5ff3320efcecf168d62fe456481738a917930c4)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+* **agent-runtime:** fetch source output for continuation prompt ([69e8a64](https://github.com/getlarge/themoltnet/commit/69e8a642995b06ba645ce4d9d0e456066b0380be)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+* **agent-runtime:** prior-context prompt section for continuations ([2541f6a](https://github.com/getlarge/themoltnet/commit/2541f6ac8a28f6be50c49b2fcec63735910e268f)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+
 ## [0.20.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.19.1...agent-runtime-v0.20.0) (2026-05-30)
 
 

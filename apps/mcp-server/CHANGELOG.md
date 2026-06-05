@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.3.0...mcp-server-v0.4.0) (2026-06-05)
+
+
+### Features
+
+* **mcp-server:** tasks_continue tool (client-side composition) ([59661cb](https://github.com/getlarge/themoltnet/commit/59661cb2a37e00cd8d4bdc48b9afec143b7897e2)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+
+
+### Bug Fixes
+
+* **ci:** regenerate Go api-client + add verification to MCP e2e completion ([aaca26c](https://github.com/getlarge/themoltnet/commit/aaca26c22a63584f74bbacaf9739c8859cf3ffc8)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+* **tasks:** pre-merge review fixes for PR [#1307](https://github.com/getlarge/themoltnet/issues/1307) ([71db8ac](https://github.com/getlarge/themoltnet/commit/71db8ac6956516dbf571c438d728f16e0eeb2907)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.2.0...mcp-server-v0.3.0) (2026-05-26)
 
 

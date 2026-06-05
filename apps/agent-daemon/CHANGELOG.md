@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.12.0...agent-daemon-v0.13.0) (2026-06-05)
+
+
+### Features
+
+* **agent-daemon:** continueFrom branch in maybeAttachWarmSlotContext ([56331ad](https://github.com/getlarge/themoltnet/commit/56331adfa0ab8258a33f757aa7dfcb61f706c0b8)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+* **agent-daemon:** stamp daemonState on attempt complete ([27bbd7b](https://github.com/getlarge/themoltnet/commit/27bbd7be0ae8cf761db15813030d6c0b3c9b81f3)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+* **agent-runtime:** claim-time affinity filter for continuations ([a5ff332](https://github.com/getlarge/themoltnet/commit/a5ff3320efcecf168d62fe456481738a917930c4)), closes [#1287](https://github.com/getlarge/themoltnet/issues/1287)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.21.0
+    * @themoltnet/pi-extension bumped to 0.21.0
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.11.1...agent-daemon-v0.12.0) (2026-05-30)
 
 
