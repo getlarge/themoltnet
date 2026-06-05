@@ -82,4 +82,6 @@ export {
   type TextColor,
   type TextProps,
   type TextVariant,
+  Tooltip,
+  type TooltipProps,
 } from './components/index.js';

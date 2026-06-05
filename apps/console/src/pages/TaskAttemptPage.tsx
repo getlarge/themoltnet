@@ -1,18 +1,34 @@
+import { createTask } from '@moltnet/api-client';
 import {
   getTaskOptions,
   listTaskAttemptsOptions,
   listTaskMessagesOptions,
+  listTaskSchemasOptions,
 } from '@moltnet/api-client/query';
 import {
+  canContinueAttempt,
+  CreateTaskDialog,
+  type CreateTaskRequest,
+  formatRelativeAge,
   TaskActionPanel,
   TaskAttemptDetail,
   TaskMessagesTimeline,
 } from '@moltnet/task-ui';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
-import { Link } from 'wouter';
+import {
+  Badge,
+  Button,
+  Card,
+  Stack,
+  Text,
+  Tooltip,
+  useTheme,
+} from '@themoltnet/design-system';
+import { useMemo, useState } from 'react';
+import { Link, useLocation } from 'wouter';
 
 import { getApiClient } from '../api.js';
+import { useDiarySummaries } from '../diaries/hooks.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
 export function TaskAttemptPage({
@@ -58,6 +74,27 @@ export function TaskAttemptPage({
     (item) => item.attemptN === attemptN,
   );
 
+  const [, navigate] = useLocation();
+  const [showContinue, setShowContinue] = useState(false);
+  const diariesQuery = useDiarySummaries(task?.teamId ?? null);
+  const diaryOptions = useMemo(
+    () => (diariesQuery.data ?? []).map((d) => ({ id: d.id, name: d.name })),
+    [diariesQuery.data],
+  );
+  const schemasQuery = useQuery({
+    ...listTaskSchemasOptions({ client: getApiClient() }),
+    enabled: Boolean(task),
+  });
+  const registeredTaskTypes = useMemo(
+    () => (schemasQuery.data?.items ?? []).map((s) => s.taskType),
+    [schemasQuery.data],
+  );
+
+  const eligibility =
+    task && attempt
+      ? canContinueAttempt(task, attempt)
+      : { eligible: false, resumableUntil: null };
+
   if (taskQuery.isLoading || attemptsQuery.isLoading) {
     return <Text color="muted">Loading attempt…</Text>;
   }
@@ -70,6 +107,8 @@ export function TaskAttemptPage({
     );
   }
 
+  const sourceTitle = task.title ?? '';
+
   return (
     <Stack gap={6}>
       <Stack gap={2}>
@@ -79,7 +118,24 @@ export function TaskAttemptPage({
         >
           &larr; Task detail
         </Link>
-        <Text variant="h2">Attempt {attemptN}</Text>
+        <Stack direction="row" gap={3} align="center" wrap>
+          <Text variant="h2" style={{ margin: 0 }}>
+            Attempt {attemptN}
+          </Text>
+          {eligibility.resumableUntil ? (
+            <Tooltip content="Daemon-local hint: the executor reported the warm slot would survive at least this long. Restart or eviction can shorten it.">
+              <Badge variant="info">
+                Resumable until{' '}
+                {formatRelativeAge(eligibility.resumableUntil.toISOString())}
+              </Badge>
+            </Tooltip>
+          ) : null}
+          {eligibility.eligible ? (
+            <Button size="sm" onClick={() => setShowContinue(true)}>
+              Continue
+            </Button>
+          ) : null}
+        </Stack>
       </Stack>
 
       <div
@@ -110,6 +166,41 @@ export function TaskAttemptPage({
 
         <TaskActionPanel task={task} selectedAttempt={attempt} />
       </div>
+
+      {eligibility.eligible ? (
+        <CreateTaskDialog
+          open={showContinue}
+          teamId={task.teamId}
+          diaries={diaryOptions}
+          candidateTasks={[]}
+          availableTypes={registeredTaskTypes}
+          continueFrom={{
+            taskId: task.id,
+            attemptN,
+            sourceTitle: sourceTitle || undefined,
+            correlationId: task.correlationId,
+          }}
+          onClose={() => setShowContinue(false)}
+          onSubmit={async (request: CreateTaskRequest) => {
+            const { data, error: apiError } = await createTask({
+              client: getApiClient(),
+              body: request,
+            });
+            if (apiError || !data || !('id' in data)) {
+              const detail =
+                apiError && typeof apiError === 'object' && 'detail' in apiError
+                  ? String((apiError as { detail?: unknown }).detail)
+                  : 'Failed to create continuation';
+              throw new Error(detail);
+            }
+            return data.id;
+          }}
+          onCreated={(taskId) => {
+            setShowContinue(false);
+            navigate(`/tasks/${taskId}`);
+          }}
+        />
+      ) : null}
     </Stack>
   );
 }

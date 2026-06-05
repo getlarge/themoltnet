@@ -165,3 +165,63 @@ describe('CreateTaskDialog', () => {
     });
   });
 });
+
+describe('CreateTaskDialog continuation mode', () => {
+  const continueFrom = {
+    taskId: '11111111-1111-4111-8111-111111111111',
+    attemptN: 2,
+    sourceTitle: 'Round 1',
+    correlationId: 'corr-1',
+  };
+
+  it('switches dialog title and submit label', () => {
+    renderDialog({ continueFrom });
+
+    expect(screen.getAllByText('Continue task').length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('button', { name: /continue task/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /create task/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('pre-fills title from the source attempt', () => {
+    renderDialog({ continueFrom });
+    expect(screen.getByLabelText(/title/i)).toHaveValue('Round 1');
+  });
+
+  it('hides workspace and depends-on fields', () => {
+    renderDialog({ continueFrom });
+    expect(screen.queryByLabelText(/workspace/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/depends on/i)).not.toBeInTheDocument();
+  });
+
+  it('packs continueFrom + parent-completed claim condition on submit', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('continuation-id');
+    renderDialog({ continueFrom, onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Next step' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /continue task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.taskType).toBe('freeform');
+    expect(request.correlationId).toBe('corr-1');
+    expect(request.input.brief).toBe('Next step');
+    expect(request.title).toBe('Round 1');
+    expect(request.input).not.toHaveProperty('title');
+    expect(request.input.execution).toBeUndefined();
+    expect(request.input.continueFrom).toEqual({
+      taskId: continueFrom.taskId,
+      attemptN: 2,
+    });
+    expect(request.claimCondition).toEqual({
+      op: 'task_status',
+      taskId: continueFrom.taskId,
+      statuses: ['completed'],
+    });
+  });
+});

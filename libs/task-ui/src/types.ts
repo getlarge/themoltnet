@@ -135,6 +135,12 @@ export interface TaskAttemptSummary {
   usage: TaskUsage | null;
   contentSignature: string | null;
   signedAt: string | null;
+  daemonState?: DaemonState | null;
+}
+
+export interface DaemonState {
+  reportedAt: string;
+  slotResumableUntil: string | null;
 }
 
 export interface TaskMessage {

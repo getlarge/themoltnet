@@ -4,6 +4,11 @@ export {
   MAX_DEPENDS_DEPTH,
 } from './claim-condition.js';
 export {
+  canContinueAttempt,
+  type ContinueEligibility,
+} from './continue-eligibility.js';
+export {
+  type ContinueFromSource,
   CreateTaskDialog,
   type CreateTaskDialogProps,
   type CreateTaskRequest,
@@ -111,6 +116,7 @@ export {
 } from './task-turn-stream.js';
 export { TaskTypeFacet, type TaskTypeFacetProps } from './task-type-facet.js';
 export type {
+  DaemonState,
   ExecutorTrustLevel,
   OutputKind,
   TaskAction,
