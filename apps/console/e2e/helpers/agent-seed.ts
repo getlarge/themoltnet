@@ -31,7 +31,7 @@ export interface SeedCompletedFreeformOptions {
   diaryId: string;
   /** Brief field on the source task input. */
   brief: string;
-  /** Optional title field on the source task input. */
+  /** Optional top-level title on the source task. */
   title?: string;
   /** Optional correlationId — required for cross-attempt slot affinity. */
   correlationId?: string;
@@ -74,10 +74,10 @@ export async function seedCompletedFreeformAttempt(
     taskType: 'freeform',
     teamId,
     diaryId,
+    ...(title ? { title } : {}),
     ...(correlationId ? { correlationId } : {}),
     input: {
       brief,
-      ...(title ? { title } : {}),
     },
   });
 
