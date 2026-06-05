@@ -33,6 +33,9 @@
       "path": "../../libs/sdk/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/agent-daemon-state/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/pi-extension/tsconfig.lib.json"
     },
     {

@@ -4,6 +4,12 @@ import { parseArgs } from 'node:util';
 
 import type { TaskOutput } from '@moltnet/tasks';
 import {
+  type DaemonSlotIdentity,
+  DaemonSlotRegistry,
+  resolveDaemonStateStorageConfig,
+  resolveLatestPiSessionPath,
+} from '@themoltnet/agent-daemon-state';
+import {
   AgentRuntime,
   ApiTaskReporter,
   PollingApiTaskSource,
@@ -19,10 +25,6 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
-import {
-  DaemonSlotRegistry,
-  resolveLatestPiSessionPath,
-} from '../lib/daemon-slot-registry.js';
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
@@ -40,7 +42,6 @@ import {
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
-import { type DaemonSlotIdentity } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 
 export interface PollSharedArgs {
@@ -118,8 +119,14 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   }
 
   const sandbox = resolveSandbox(process.cwd(), values.sandbox);
+  const cfg = loadConfig();
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
-  const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+  const slotRegistry = new DaemonSlotRegistry(
+    resolveDaemonStateStorageConfig(
+      stateDirs.registryDbPath,
+      cfg.agentDaemonStateDatabaseUrl,
+    ),
+  );
   const slotIdentity: DaemonSlotIdentity = {
     agentName: common.agent,
     provider: common.provider,
@@ -134,7 +141,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   });
   const ctx = await resolveAgentContext(common.agent);
 
-  const cfg = loadConfig();
   const otelShutdown = await initWorkerOtel({
     serviceName: opts.serviceName,
     agentDir: ctx.agentDir,
@@ -236,12 +242,12 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       // loop that used to live below is gone: it would now double-
       // call `/complete` on every task and the server returns 409
       // "Task is already in terminal state" on the second call.
-      onTaskFinished: (output, claimedTask) => {
+      onTaskFinished: async (output, claimedTask) => {
         // `executeTask`'s finally block has already called `finishSlot`
         // by the time we land here, so the slot's `expires_at_ms`
         // reflects the post-completion idle TTL — that's the
         // `slotResumableUntil` window we stamp on the attempt row.
-        const resolved = slotRegistry.findLatestProducerSlotByTaskAttempt(
+        const resolved = await slotRegistry.findLatestProducerSlotByTaskAttempt(
           claimedTask.task.id,
           claimedTask.attemptN,
         );
@@ -256,9 +262,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         });
       },
       executeTask: async (claimedTask, reporter) => {
-        let executionPlan: ReturnType<typeof executionPlans.getOrCreate>;
+        let executionPlan: Awaited<
+          ReturnType<typeof executionPlans.getOrCreate>
+        >;
         try {
-          executionPlan = executionPlans.getOrCreate(claimedTask);
+          executionPlan = await executionPlans.getOrCreate(claimedTask);
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           rootLogger.warn(
@@ -288,9 +296,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           };
         }
         const sessionDescriptor = executionPlan.descriptor;
-        let expired: ReturnType<typeof slotRegistry.reapExpiredSlots>;
+        let expired: Awaited<ReturnType<typeof slotRegistry.reapExpiredSlots>>;
         try {
-          expired = slotRegistry.reapExpiredSlots();
+          expired = await slotRegistry.reapExpiredSlots();
           if (expired.length > 0) {
             rootLogger.info(
               {
@@ -375,7 +383,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           };
         }
         if (executionPlan.slotKey && executionPlan.sessionPersistence) {
-          slotRegistry.beginSlot({
+          await slotRegistry.beginSlot({
             ...slotIdentity,
             slotKey: executionPlan.slotKey,
             taskType: claimedTask.task.taskType,
@@ -400,7 +408,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         } finally {
           executionPlans.delete(claimedTask);
           if (executionPlan.slotKey) {
-            slotRegistry.finishSlot(
+            await slotRegistry.finishSlot(
               slotIdentity,
               executionPlan.slotKey,
               common.warmSessionTtlSec,
@@ -421,7 +429,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     const anyFailed = drained.some((o) => o.status !== 'completed');
     return anyFailed ? 1 : 0;
   } finally {
-    slotRegistry.close();
+    await slotRegistry.close();
     await otelShutdown();
     await shutdownLogger();
   }

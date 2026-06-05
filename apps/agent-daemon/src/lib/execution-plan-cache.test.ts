@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { Task } from '@moltnet/tasks';
+import { DaemonSlotRegistry } from '@themoltnet/agent-daemon-state';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { DaemonSlotRegistry } from './daemon-slot-registry.js';
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
@@ -20,7 +20,7 @@ describe('createExecutionPlanCache', () => {
     }
   });
 
-  it('copies producer scratch workspace into a fresh judge scratch workspace and forks its session', () => {
+  it('copies producer scratch workspace into a fresh judge scratch workspace and forks its session', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-'));
     tempRoots.push(mountRoot);
     const stateDirs = {
@@ -44,7 +44,7 @@ describe('createExecutionPlanCache', () => {
     writeFileSync(producerSessionPath, '[]\n', 'utf8');
 
     const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
-    slotRegistry.beginSlot({
+    await slotRegistry.beginSlot({
       agentName: 'local-eval-943',
       provider: 'ollama-cloud',
       model: 'qwen3.5',
@@ -59,7 +59,7 @@ describe('createExecutionPlanCache', () => {
       lastAttemptN: 1,
       ttlSec: 300,
     });
-    slotRegistry.finishSlot(
+    await slotRegistry.finishSlot(
       {
         agentName: 'local-eval-943',
         provider: 'ollama-cloud',
@@ -81,7 +81,7 @@ describe('createExecutionPlanCache', () => {
       slotRegistry,
     });
 
-    const plan = cache.getOrCreate({
+    const plan = await cache.getOrCreate({
       attemptN: 1,
       task: {
         id: '22222222-2222-4222-8222-222222222222',
@@ -122,10 +122,10 @@ describe('createExecutionPlanCache', () => {
     expect(plan.slotKey).toBeNull();
     expect(plan.workspaceId).toBeNull();
 
-    slotRegistry.close();
+    await slotRegistry.close();
   });
 
-  it('fails clearly when a judge task cannot resolve producer daemon state', () => {
+  it('fails clearly when a judge task cannot resolve producer daemon state', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-miss-'));
     tempRoots.push(mountRoot);
     const stateDirs = {
@@ -147,7 +147,7 @@ describe('createExecutionPlanCache', () => {
       slotRegistry,
     });
 
-    expect(() =>
+    await expect(
       cache.getOrCreate({
         attemptN: 1,
         task: {
@@ -161,12 +161,12 @@ describe('createExecutionPlanCache', () => {
           },
         } as unknown as Task,
       }),
-    ).toThrow(ProducerContextResolutionError);
+    ).rejects.toThrow(ProducerContextResolutionError);
 
-    slotRegistry.close();
+    await slotRegistry.close();
   });
 
-  it('attaches warm-slot context for freeform continuations', () => {
+  it('attaches warm-slot context for freeform continuations', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-cont-'));
     tempRoots.push(mountRoot);
     const stateDirs = {
@@ -194,7 +194,7 @@ describe('createExecutionPlanCache', () => {
     );
 
     const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
-    slotRegistry.beginSlot({
+    await slotRegistry.beginSlot({
       agentName: 'a',
       provider: 'p',
       model: 'm',
@@ -209,7 +209,7 @@ describe('createExecutionPlanCache', () => {
       lastAttemptN: 1,
       ttlSec: 300,
     });
-    slotRegistry.finishSlot(
+    await slotRegistry.finishSlot(
       { agentName: 'a', provider: 'p', model: 'm' },
       'freeform:correlation:abc',
       300,
@@ -223,7 +223,7 @@ describe('createExecutionPlanCache', () => {
       slotRegistry,
     });
 
-    const plan = cache.getOrCreate({
+    const plan = await cache.getOrCreate({
       attemptN: 1,
       task: {
         id: '22222222-2222-4222-8222-222222222222',
@@ -249,10 +249,10 @@ describe('createExecutionPlanCache', () => {
     );
     expect(plan.workspaceSeed).toBeUndefined();
 
-    slotRegistry.close();
+    await slotRegistry.close();
   });
 
-  it('throws when freeform continueFrom cannot resolve a producer slot', () => {
+  it('throws when freeform continueFrom cannot resolve a producer slot', async () => {
     const mountRoot = mkdtempSync(
       join(tmpdir(), 'daemon-exec-plan-cont-miss-'),
     );
@@ -272,7 +272,7 @@ describe('createExecutionPlanCache', () => {
       slotRegistry,
     });
 
-    expect(() =>
+    await expect(
       cache.getOrCreate({
         attemptN: 1,
         task: {
@@ -288,12 +288,12 @@ describe('createExecutionPlanCache', () => {
           },
         } as unknown as Task,
       }),
-    ).toThrow(ProducerContextResolutionError);
+    ).rejects.toThrow(ProducerContextResolutionError);
 
-    slotRegistry.close();
+    await slotRegistry.close();
   });
 
-  it('uses the shared mount root as the judge copy source for shared-mount producers', () => {
+  it('uses the shared mount root as the judge copy source for shared-mount producers', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-shared-'));
     tempRoots.push(mountRoot);
     const stateDirs = {
@@ -309,7 +309,7 @@ describe('createExecutionPlanCache', () => {
     writeFileSync(producerSessionPath, '[]\n', 'utf8');
 
     const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
-    slotRegistry.beginSlot({
+    await slotRegistry.beginSlot({
       agentName: 'local-eval-943',
       provider: 'ollama-cloud',
       model: 'qwen3.5',
@@ -324,7 +324,7 @@ describe('createExecutionPlanCache', () => {
       lastAttemptN: 1,
       ttlSec: 300,
     });
-    slotRegistry.finishSlot(
+    await slotRegistry.finishSlot(
       {
         agentName: 'local-eval-943',
         provider: 'ollama-cloud',
@@ -346,7 +346,7 @@ describe('createExecutionPlanCache', () => {
       slotRegistry,
     });
 
-    const plan = cache.getOrCreate({
+    const plan = await cache.getOrCreate({
       attemptN: 1,
       task: {
         id: '22222222-2222-4222-8222-222222222222',
@@ -365,6 +365,6 @@ describe('createExecutionPlanCache', () => {
       source: 'producer',
     });
 
-    slotRegistry.close();
+    await slotRegistry.close();
   });
 });

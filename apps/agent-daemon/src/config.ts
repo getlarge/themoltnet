@@ -10,10 +10,14 @@ export interface DaemonConfig {
   otelEndpoint: string;
   /** Pino log level override; empty = per-mode default (info, or debug with --debug). */
   logLevel: string;
+  /** Optional daemon-state database URL. Empty = per-sandbox SQLite file. */
+  agentDaemonStateDatabaseUrl: string;
 }
 
 export function loadConfig(): DaemonConfig {
   return {
+    agentDaemonStateDatabaseUrl:
+      process.env['MOLTNET_AGENT_DAEMON_STATE_DATABASE_URL'] ?? '',
     otelEndpoint: process.env['MOLTNET_OTEL_ENDPOINT'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
   };

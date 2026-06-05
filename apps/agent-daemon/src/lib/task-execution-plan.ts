@@ -1,14 +1,12 @@
+import type { DaemonSlotIdentity } from '@themoltnet/agent-daemon-state';
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
-import type { DaemonSlotIdentity } from './daemon-slot-registry.js';
 import {
   deriveTaskSessionDescriptor,
   type TaskSessionDescriptor,
 } from './session-policy.js';
 import { slugifyAsciiLower } from './slugify.js';
 import type { DaemonStateDirs } from './state-dir.js';
-
-export type { DaemonSlotIdentity } from './daemon-slot-registry.js';
 
 export interface DaemonTaskExecutionPlan {
   descriptor: TaskSessionDescriptor;
