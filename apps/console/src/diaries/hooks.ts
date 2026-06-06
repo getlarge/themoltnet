@@ -25,9 +25,9 @@ import {
   useInfiniteQuery,
   useQuery,
 } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
 
 import { getApiClient } from '../api.js';
+import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import type { DiarySummary, EntryDetailData } from './utils.js';
 
 const DEFAULT_LIMIT = 20;
@@ -42,15 +42,6 @@ export const SEARCH_LIMIT = 50;
 
 function client() {
   return getApiClient();
-}
-
-function useDebouncedValue<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const handle = window.setTimeout(() => setDebounced(value), delay);
-    return () => window.clearTimeout(handle);
-  }, [value, delay]);
-  return debounced;
 }
 
 /**

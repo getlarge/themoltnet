@@ -29,6 +29,7 @@ import { useLocation, useSearch } from 'wouter';
 import { getApiClient } from '../api.js';
 import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
+import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { getTaskStatusQuery, TASK_STATUS_FILTERS } from '../tasks/status.js';
 import { useLaneQueries } from '../tasks/useLaneQueries.js';
@@ -60,6 +61,13 @@ export function TasksPage() {
   const isMobile = useIsMobile();
   const teamId = selectedTeam?.id;
 
+  // Debounce the free-text filters before they feed TanStack query keys. The
+  // inputs stay bound to the raw state (typing feels instant), but queries only
+  // re-run once typing settles — one request per pause instead of one per
+  // keystroke across the table + every board lane. See issue #1320.
+  const debouncedTaskQuery = useDebouncedValue(taskQuery, 250);
+  const debouncedCorrelationId = useDebouncedValue(correlationId, 250);
+
   const diariesQuery = useDiarySummaries(teamId ?? null);
   const diaryOptions = useMemo(
     () => (diariesQuery.data ?? []).map((d) => ({ id: d.id, name: d.name })),
@@ -67,19 +75,23 @@ export function TasksPage() {
   );
 
   const enabled = Boolean(teamId);
+  // The shared infinite query backs the table view only. Board mode runs its own
+  // per-lane queries (useLaneQueries), so keeping this query hot during board
+  // mode just duplicated every lane's load against the global rate limiter.
+  // Gate it on the table view so it idles while the board is shown (#1320).
   const query = useInfiniteQuery({
     ...listTasksInfiniteOptions({
       client: getApiClient(),
       query: {
         teamId: teamId ?? '',
-        query: taskQuery.trim() || undefined,
+        query: debouncedTaskQuery.trim() || undefined,
         status,
         taskTypes: taskTypes.length ? taskTypes : undefined,
-        correlationId: correlationId.trim() || undefined,
+        correlationId: debouncedCorrelationId.trim() || undefined,
         limit: PAGE_SIZE,
       },
     }),
-    enabled,
+    enabled: enabled && view === 'table',
     initialPageParam: { query: { teamId: teamId ?? '' } },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     refetchInterval: (query) => {
@@ -106,9 +118,9 @@ export function TasksPage() {
     refetchAll: refetchLanes,
   } = useLaneQueries({
     teamId,
-    query: taskQuery,
+    query: debouncedTaskQuery,
     taskTypes,
-    correlationId,
+    correlationId: debouncedCorrelationId,
     enabled: enabled && view === 'board',
   });
 
@@ -126,7 +138,8 @@ export function TasksPage() {
 
   // Dedicated candidate set for the depends-on picker — scoped to selectable
   // prerequisite statuses (non-terminal + completed), independent of the
-  // board's display filter.
+  // board's display filter. Only fetched while the create dialog is open so it
+  // does not contribute to the request budget on every Tasks page load (#1320).
   const candidateQuery = useQuery({
     ...listTasksOptions({
       client: getApiClient(),
@@ -136,7 +149,7 @@ export function TasksPage() {
         limit: 50,
       },
     }),
-    enabled,
+    enabled: enabled && showCreate,
   });
   const pickerCandidates = candidateQuery.data?.items ?? [];
   const searchPickerCandidates = useCallback(
@@ -455,7 +468,11 @@ export function TasksPage() {
           }}
           onCreated={() => {
             setShowCreate(false);
-            void query.refetch();
+            // Refresh whichever view is showing. In board mode the table query
+            // is disabled, so refetching it would be a no-op (and silently fail
+            // to surface the new task) — refetch the lanes instead (#1320).
+            if (view === 'board') refetchLanes();
+            else void query.refetch();
           }}
         />
       ) : null}
