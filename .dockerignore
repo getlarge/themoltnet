@@ -29,9 +29,10 @@ node_modules
 .pnpm-store
 
 # --- Build / cache artifacts (host-only) ---
-# We DO ship per-app `dist/` (prebuilt vite SSR bundles, models, drizzle SQL),
-# so dist/ itself is NOT excluded. But typescript incremental + Nx caches are
-# never consumed by any Dockerfile.
+# We DO ship per-app `dist/` (prebuilt vite SSR bundles, drizzle SQL) and
+# `apps/rest-api/models/` (baked embedding model, #1309), so dist/ and that
+# sibling models/ are NOT excluded. But typescript incremental + Nx caches
+# are never consumed by any Dockerfile.
 **/out-tsc
 **/.tsbuildinfo
 .nx

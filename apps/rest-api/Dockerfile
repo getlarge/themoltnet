@@ -6,7 +6,9 @@
 #
 # Architecture (issue #1223):
 #   * Host (Nx targets, Nx Cloud cached): build, build:migrate, download-model
-#     → produces apps/rest-api/dist/{main.js,migrate.js,openapi.json,models/}
+#     → produces apps/rest-api/{dist/{main.js,migrate.js,openapi.json},models/}
+#     The model directory is a sibling of dist/ (not under it) so the
+#     33 MB blob doesn't bust the build target's input cache; see #1309.
 #   * Docker build stage: runs `pnpm install --frozen-lockfile --prod` and
 #     `pnpm deploy` inside a linux container so optional native deps
 #     (onnxruntime-node, sharp, …) resolve to the right linux binaries.
@@ -54,9 +56,17 @@ LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
 LABEL org.opencontainers.image.description="MoltNet REST API"
 LABEL org.opencontainers.image.licenses="MIT"
 
+# The embedding model is baked into the image at host build time by the
+# `download-model` Nx target (apps/rest-api/package.json) — it writes
+# Xenova/e5-small-v2 (q8 ONNX) into apps/rest-api/models/, which
+# `pnpm deploy` ships into /app/models below via the `files` glob.
+# EMBEDDING_ALLOW_REMOTE_MODELS=false makes the embedding service fail
+# loudly if the cache is empty rather than silently falling back to
+# HuggingFace (where rate limits killed CI in #1309). Local dev that
+# wants the runtime download must override the env var to true.
 ENV NODE_ENV=production \
     EMBEDDING_CACHE_DIR=/app/models \
-    EMBEDDING_ALLOW_REMOTE_MODELS=true
+    EMBEDDING_ALLOW_REMOTE_MODELS=false
 WORKDIR /app
 
 # Runtime tree: app + production node_modules, linux-native.
