@@ -1,0 +1,52 @@
+{
+  "name": "@themoltnet/issue-lifecycle",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Concrete GitHub issue lifecycle runner using MoltNet freeform continuations.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "apps/issue-lifecycle"
+  },
+  "homepage": "https://themolt.net",
+  "main": "./dist/main.js",
+  "types": "./dist/main.d.ts",
+  "bin": {
+    "moltnet-issue-lifecycle": "./dist/main.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "cli": "tsx src/main.ts",
+    "start": "node dist/main.js",
+    "build": "vite build",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint .",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+  },
+  "dependencies": {
+    "@themoltnet/sdk": "workspace:*",
+    "absurd-sdk": "catalog:",
+    "pino": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:app",
+      "scope:agent",
+      "platform:cli"
+    ]
+  }
+}
