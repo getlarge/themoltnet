@@ -98,6 +98,30 @@ themselves. Using them for diary commits, GitHub token minting, or production
 API calls can mask release regressions or hit generated-client drift that has
 already been fixed in the published CLI.
 
+## Activated Agent GitHub Authorship
+
+When a session is activated through LeGreffier, `GIT_CONFIG_GLOBAL` points at
+`.moltnet/<agent>/gitconfig`. In that mode, GitHub write actions must use that
+activated agent's GitHub App token. Do not create or update PRs, issues,
+comments, labels, or reviews with bare `gh` or with a generic GitHub connector
+that would attribute the action to the human account.
+
+Use this wrapper for `gh pr ...`, `gh issue ...`, and write-capable
+`gh api ...` commands whenever `GIT_CONFIG_GLOBAL` resolves to a
+`.moltnet/<agent>/gitconfig` path:
+
+```bash
+CFG="$GIT_CONFIG_GLOBAL"
+case "$CFG" in /*) ;; *) CFG="$(git rev-parse --show-toplevel)/$CFG" ;; esac
+CREDS="$(dirname "$CFG")/moltnet.json"
+[ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
+GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
+```
+
+If token minting fails, stop instead of letting `gh` fall back to the human
+login. The only exception is an explicit user request for visible human
+authorship on that specific GitHub write action.
+
 ## E2E Tests
 
 E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack must be running before you execute tests** — the test setup only polls health endpoints, it does not start/stop containers.
