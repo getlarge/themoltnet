@@ -6,7 +6,7 @@
   "libs/agent-runtime": "0.22.0",
   "libs/design-system": "0.8.0",
   "libs/dspy-adapters": "0.9.2",
-  "libs/moltnet-api-client": "1.30.3",
+  "libs/moltnet-api-client": "1.30.4",
   "libs/pi-extension": "0.22.0",
   "libs/sdk": "0.106.0",
   "packages/cli": "1.45.1",

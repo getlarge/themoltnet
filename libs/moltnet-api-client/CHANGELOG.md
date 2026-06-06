@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.4](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.3...moltnet-api-client-v1.30.4) (2026-06-06)
+
+
+### Codegen
+
+* **moltnet-api-client:** cover create task title field ([95e1269](https://github.com/getlarge/themoltnet/commit/95e12697c97b662e49bdc93bf2f109e997ffaa8e))
+
 ## [1.30.3](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.2...moltnet-api-client-v1.30.3) (2026-06-05)
 
 
