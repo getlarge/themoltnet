@@ -26,6 +26,23 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  issue-lifecycle-db:
+    extends:
+      file: docker-compose.base.yaml
+      service: issue-lifecycle-db
+    volumes:
+      - issue-lifecycle-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  issue-lifecycle-db-migrate:
+    extends:
+      file: docker-compose.base.yaml
+      service: issue-lifecycle-db-migrate
+    depends_on:
+      issue-lifecycle-db:
+        condition: service_healthy
+    restart: on-failure
+
   kratos-postgres:
     extends:
       file: docker-compose.base.yaml
@@ -139,6 +156,7 @@ services:
 
 volumes:
   app-db-data:
+  issue-lifecycle-db-data:
   kratos-db-data:
   hydra-db-data:
   keto-db-data:

@@ -25,6 +25,42 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-moltnet}:${POSTGRES_PASSWORD:-moltnet_secret}@app-db:5432/${POSTGRES_DB:-moltnet}
 
+  issue-lifecycle-db:
+    image: postgres:16
+    ports:
+      - '55434:5432'
+    environment:
+      POSTGRES_USER: ${ISSUE_LIFECYCLE_POSTGRES_USER:-issue_lifecycle}
+      POSTGRES_PASSWORD: ${ISSUE_LIFECYCLE_POSTGRES_PASSWORD:-issue_lifecycle_secret}
+      POSTGRES_DB: ${ISSUE_LIFECYCLE_POSTGRES_DB:-issue_lifecycle}
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${ISSUE_LIFECYCLE_POSTGRES_USER:-issue_lifecycle} -d ${ISSUE_LIFECYCLE_POSTGRES_DB:-issue_lifecycle}',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  issue-lifecycle-db-migrate:
+    build:
+      context: .
+      dockerfile: infra/absurd/Dockerfile
+    environment:
+      ABSURD_DATABASE_URL: postgresql://${ISSUE_LIFECYCLE_POSTGRES_USER:-issue_lifecycle}:${ISSUE_LIFECYCLE_POSTGRES_PASSWORD:-issue_lifecycle_secret}@issue-lifecycle-db:5432/${ISSUE_LIFECYCLE_POSTGRES_DB:-issue_lifecycle}
+      ABSURD_QUEUE_NAME: ${ISSUE_LIFECYCLE_QUEUE_NAME:-issue-lifecycle}
+    command:
+      - sh
+      - -ec
+      - |
+        if psql "$${ABSURD_DATABASE_URL}" -tAc "select to_regprocedure('absurd.create_queue(text)')" | grep -q create_queue; then
+          echo "Absurd schema already initialized"
+        else
+          uvx absurdctl init
+        fi
+        uvx absurdctl create-queue "$${ABSURD_QUEUE_NAME}"
+
   kratos-postgres:
     image: postgres:16
     environment:

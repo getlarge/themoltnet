@@ -22,6 +22,20 @@ services:
         condition: service_healthy
     restart: 'on-failure:3'
 
+  issue-lifecycle-db:
+    extends:
+      file: docker-compose.base.yaml
+      service: issue-lifecycle-db
+
+  issue-lifecycle-db-migrate:
+    extends:
+      file: docker-compose.base.yaml
+      service: issue-lifecycle-db-migrate
+    depends_on:
+      issue-lifecycle-db:
+        condition: service_healthy
+    restart: 'on-failure:3'
+
   kratos-postgres:
     extends:
       file: docker-compose.base.yaml

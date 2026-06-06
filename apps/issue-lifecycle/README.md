@@ -84,6 +84,11 @@ See the Absurd docs for
 [`absurdctl`](https://earendil-works.github.io/absurd/tools/absurdctl/) and
 [database setup and migrations](https://earendil-works.github.io/absurd/guide/database-setup-and-migrations/).
 
+For the repository's local and e2e Docker stacks, this setup is handled by the
+`issue-lifecycle-db` and `issue-lifecycle-db-migrate` compose services. They run
+Postgres separately from the main MoltNet app DB and initialize the default
+`issue-lifecycle` Absurd queue.
+
 ## Retry And Recovery Model
 
 The lifecycle runner deliberately decouples orchestration from execution:
@@ -236,6 +241,12 @@ export NX_LOAD_DOT_ENV_FILES=false
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
 ```
 
+The stack includes a dedicated Absurd database for this app:
+
+```bash
+ISSUE_LIFECYCLE_DATABASE_URL="postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle"
+```
+
 Then run an agent daemon against that stack. See
 [apps/agent-daemon/README.md](../agent-daemon/README.md) for provisioning a
 throwaway agent and smoke-testing task execution.
@@ -244,10 +255,7 @@ Finally, point the lifecycle runner at a Postgres database usable by Absurd and
 a sandbox GitHub issue:
 
 ```bash
-export ISSUE_LIFECYCLE_DATABASE_URL="postgresql://..."
-export ABSURD_DATABASE_URL="$ISSUE_LIFECYCLE_DATABASE_URL"
-uvx absurdctl init
-uvx absurdctl create-queue issue-lifecycle
+export ISSUE_LIFECYCLE_DATABASE_URL="postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle"
 
 pnpm --filter @themoltnet/issue-lifecycle cli \
   --repo getlarge/themoltnet \
