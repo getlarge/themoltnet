@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.22.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.21.0...pi-extension-v0.22.0) (2026-06-06)
+
+
+### Features
+
+* **agent-daemon:** extract durable daemon state ([3512bf1](https://github.com/getlarge/themoltnet/commit/3512bf1bde6ec2d05003e0cc60ff31352bb75f3d))
+* **agent-runtime:** allow async continuation state ([d93d0a4](https://github.com/getlarge/themoltnet/commit/d93d0a44efdf7280687946083e0de2fe7135dffd))
+
+
+### Bug Fixes
+
+* prevent pi-extension private dependency leak ([5ce2ec9](https://github.com/getlarge/themoltnet/commit/5ce2ec94a7837b0cf6cc7427f4bbcbeacc88e154))
+* prevent pi-extension private dependency leak ([4d77b82](https://github.com/getlarge/themoltnet/commit/4d77b8232e2df75327713557920403be9d7c2e9d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.22.0
+
 ## [0.21.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.20.2...pi-extension-v0.21.0) (2026-06-05)
 
 

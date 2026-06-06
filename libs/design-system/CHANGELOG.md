@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.7.2...design-system-v0.8.0) (2026-06-06)
+
+
+### Features
+
+* **console:** 'Continue this task' button on completed freeform attempts ([cfc785b](https://github.com/getlarge/themoltnet/commit/cfc785b3babfabb03af100ac01bb0ccc59a7a7c3)), closes [#1303](https://github.com/getlarge/themoltnet/issues/1303)
+* **console:** 'Continue this task' button on completed freeform attempts ([#1303](https://github.com/getlarge/themoltnet/issues/1303)) ([db4f1aa](https://github.com/getlarge/themoltnet/commit/db4f1aabdb765e117a402ce51cfa2c51bcb72a4a))
+
 ## [0.7.2](https://github.com/getlarge/themoltnet/compare/design-system-v0.7.1...design-system-v0.7.2) (2026-05-08)
 
 
