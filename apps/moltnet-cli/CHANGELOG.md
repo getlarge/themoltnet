@@ -1,12 +1,5 @@
 # Changelog
 
-## [1.45.1](https://github.com/getlarge/themoltnet/compare/cli-v1.45.0...cli-v1.45.1) (2026-06-06)
-
-
-### Bug Fixes
-
-* prevent pi-extension private dependency leak ([5ce2ec9](https://github.com/getlarge/themoltnet/commit/5ce2ec94a7837b0cf6cc7427f4bbcbeacc88e154))
-
 ## [1.45.0](https://github.com/getlarge/themoltnet/compare/cli-v1.44.0...cli-v1.45.0) (2026-06-05)
 
 
