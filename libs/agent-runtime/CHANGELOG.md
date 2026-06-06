@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.21.0...agent-runtime-v0.22.0) (2026-06-06)
+
+
+### Features
+
+* **agent-daemon:** extract durable daemon state ([3512bf1](https://github.com/getlarge/themoltnet/commit/3512bf1bde6ec2d05003e0cc60ff31352bb75f3d))
+* **agent-runtime:** allow async continuation state ([d93d0a4](https://github.com/getlarge/themoltnet/commit/d93d0a44efdf7280687946083e0de2fe7135dffd))
+
 ## [0.21.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.20.0...agent-runtime-v0.21.0) (2026-06-05)
 
 

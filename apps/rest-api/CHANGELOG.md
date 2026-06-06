@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.6.0...rest-api-v0.6.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* **rest-api:** bake e5-small-v2 into image to stop HF 429s killing CI ([#1309](https://github.com/getlarge/themoltnet/issues/1309)) ([fd91bec](https://github.com/getlarge/themoltnet/commit/fd91bec2c1776a5a8e3aea4c3bfb2d39738bf689))
+* **rest-api:** bake e5-small-v2 into the image to stop HF 429s killing CI ([7a9ef7d](https://github.com/getlarge/themoltnet/commit/7a9ef7df181ef18a873a0c38413e63b22f89d4f8))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.5.1...rest-api-v0.6.0) (2026-06-05)
 
 

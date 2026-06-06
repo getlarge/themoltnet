@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.13.0...agent-daemon-v0.14.0) (2026-06-06)
+
+
+### Features
+
+* **agent-daemon-state:** add durable state package ([1b5c5a9](https://github.com/getlarge/themoltnet/commit/1b5c5a9a40ce5f1685ed2602083856a77cc8a734))
+* **agent-daemon:** extract durable daemon state ([3512bf1](https://github.com/getlarge/themoltnet/commit/3512bf1bde6ec2d05003e0cc60ff31352bb75f3d))
+* **agent-daemon:** use durable state package ([d46f00b](https://github.com/getlarge/themoltnet/commit/d46f00b198d0bc06aaf5ace605b7dd77879aa334))
+
+
+### Bug Fixes
+
+* **tasks:** update daemon e2e task titles ([5f06c62](https://github.com/getlarge/themoltnet/commit/5f06c620174b729edadd2b5ae69cae9fd9d9f281))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.22.0
+    * @themoltnet/pi-extension bumped to 0.22.0
+
 ## [0.13.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.12.0...agent-daemon-v0.13.0) (2026-06-05)
 
 
