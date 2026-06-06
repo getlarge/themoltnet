@@ -59,6 +59,31 @@ The workflow input is normalized before execution, so a missing `correlationId`
 is generated once at CLI parse time and reused for task correlation and Absurd
 idempotency.
 
+### Absurd Database Setup
+
+`absurd-sdk` does not install its own Postgres schema. The database passed to
+`--database-url` must already be initialized with `absurdctl`; otherwise startup
+fails when the app calls `app.createQueue(...)` and Postgres cannot find
+Absurd's `absurd.create_queue(...)` function.
+
+One-off local setup:
+
+```bash
+export ABSURD_DATABASE_URL="$ISSUE_LIFECYCLE_DATABASE_URL"
+uvx absurdctl init
+uvx absurdctl create-queue issue-lifecycle
+```
+
+The app still calls `app.createQueue(...)` on startup so the configured queue is
+present, but it assumes the Absurd schema and functions have already been
+installed. For production-like environments, generate/apply Absurd SQL through
+the normal database migration path instead of treating runtime startup as the
+schema installer.
+
+See the Absurd docs for
+[`absurdctl`](https://earendil-works.github.io/absurd/tools/absurdctl/) and
+[database setup and migrations](https://earendil-works.github.io/absurd/guide/database-setup-and-migrations/).
+
 ## Retry And Recovery Model
 
 The lifecycle runner deliberately decouples orchestration from execution:
@@ -163,7 +188,7 @@ Defaults:
 Development form:
 
 ```bash
-pnpm --filter @themoltnet/issue-lifecycle cli -- \
+pnpm --filter @themoltnet/issue-lifecycle cli \
   --repo getlarge/themoltnet \
   --issue 1327 \
   --database-url "$ISSUE_LIFECYCLE_DATABASE_URL"
@@ -219,8 +244,12 @@ Finally, point the lifecycle runner at a Postgres database usable by Absurd and
 a sandbox GitHub issue:
 
 ```bash
-ISSUE_LIFECYCLE_DATABASE_URL="postgresql://..." \
-pnpm --filter @themoltnet/issue-lifecycle cli -- \
+export ISSUE_LIFECYCLE_DATABASE_URL="postgresql://..."
+export ABSURD_DATABASE_URL="$ISSUE_LIFECYCLE_DATABASE_URL"
+uvx absurdctl init
+uvx absurdctl create-queue issue-lifecycle
+
+pnpm --filter @themoltnet/issue-lifecycle cli \
   --repo getlarge/themoltnet \
   --issue <sandbox-issue-number>
 ```
