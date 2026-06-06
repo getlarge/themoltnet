@@ -234,6 +234,63 @@ Local manual testing needs three moving parts:
 3. this issue-lifecycle app, so the durable lifecycle can create continuations
    and wait on GitHub/PR signals
 
+### Prerequisites And Permission Checks
+
+Pick the agent deliberately before starting the daemon:
+
+- For a local smoke that stops at task creation or executes non-GitHub work, use
+  a throwaway local agent from `bootstrap-local-agent`.
+- For a full lifecycle that opens or updates real GitHub PRs, use an activated
+  production agent with GitHub App credentials. A local throwaway agent has no
+  GitHub App and should not be expected to run `gh` operations.
+
+Minimum checks:
+
+```bash
+# Docker and the local stack must be reachable.
+docker info >/dev/null
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml ps
+
+# The dedicated Absurd DB must be initialized by compose.
+ABSURD_DATABASE_URL="postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle" \
+  uvx absurdctl list-queues
+
+# The daemon identity must have local MoltNet credentials.
+test -f ".moltnet/<agent>/moltnet.json"
+test -f ".moltnet/<agent>/env"
+source ".moltnet/<agent>/env"
+test -n "$MOLTNET_TEAM_ID"
+test -n "$MOLTNET_DIARY_ID"
+
+# Pi/model credentials must exist before starting apps/agent-daemon.
+test -f "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/auth.json"
+
+# The daemon needs a sandbox policy for host commands and workspace mounting.
+test -f sandbox.json
+```
+
+Task and diary permissions:
+
+- The lifecycle runner creates tasks using the selected `--agent`.
+- The daemon should usually run as that same agent for local smoke tests.
+- If the daemon runs as a different agent, grant it access to the selected
+  `teamId` and writer access to the selected `diaryId` before starting the
+  lifecycle. Otherwise it may be able to see a task but fail when producing
+  accountable output.
+- Generated implementation tasks require a diary entry as part of
+  `input.successCriteria.sideEffects`, so diary write access is not optional for
+  implementation smoke tests.
+
+GitHub permissions:
+
+- The lifecycle runner itself reads the GitHub issue, labels, and PR state
+  through `gh`; provide `GH_TOKEN`/`GITHUB_TOKEN`, or run with an activated agent
+  whose `.moltnet/<agent>/moltnet.json` can mint a GitHub token.
+- The plan approval label defaults to `moltnet:plan-approved`; the issue must be
+  in a repository where a human can add that label when the plan is ready.
+- Stop before implementation unless the issue, branch, and repository are
+  disposable or the agent is intentionally allowed to push branches/open PRs.
+
 Start the normal e2e stack first:
 
 ```bash
