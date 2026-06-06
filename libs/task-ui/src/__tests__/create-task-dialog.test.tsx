@@ -97,7 +97,7 @@ describe('CreateTaskDialog', () => {
     expect(await screen.findByText('Boom')).toBeInTheDocument();
   });
 
-  it('includes authored success criteria in the request', async () => {
+  it('includes authored success criteria gates and assertions in the request', async () => {
     const onSubmit = vi.fn().mockResolvedValue('t1');
     renderDialog({ onSubmit });
 
@@ -106,6 +106,18 @@ describe('CreateTaskDialog', () => {
     });
     // Success criteria is collapsed by default; reveal it.
     fireEvent.click(screen.getByRole('button', { name: /success criteria/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add schema gate/i }));
+    fireEvent.change(screen.getByLabelText('Schema CID'), {
+      target: { value: 'bafy-schema' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /add cid gate/i }));
+    fireEvent.change(screen.getByLabelText('CID path'), {
+      target: { value: 'outputCid' },
+    });
+    fireEvent.change(screen.getByLabelText('Expected CID'), {
+      target: { value: 'bafy-output' },
+    });
+    fireEvent.click(screen.getAllByLabelText('Gate required')[1]);
     fireEvent.click(screen.getByRole('button', { name: /add assertion/i }));
     fireEvent.change(screen.getByLabelText('Assertion path'), {
       target: { value: 'commits.*.sha' },
@@ -116,6 +128,20 @@ describe('CreateTaskDialog', () => {
     const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
     expect(request.input.successCriteria).toEqual({
       version: 1,
+      gates: [
+        {
+          id: 'g1',
+          kind: 'schema-check',
+          spec: { schemaCid: 'bafy-schema' },
+          required: true,
+        },
+        {
+          id: 'g2',
+          kind: 'cid-equals',
+          spec: { path: 'outputCid', expected: 'bafy-output' },
+          required: false,
+        },
+      ],
       assertions: [{ id: 'a1', path: 'commits.*.sha', op: 'exists' }],
     });
   });

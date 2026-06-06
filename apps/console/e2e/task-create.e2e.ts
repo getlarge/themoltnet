@@ -160,14 +160,14 @@ test.describe.serial('Create task from console', () => {
       .toBe(true);
   });
 
-  test('creates a task with authored success criteria (assertion)', async ({
-    page,
-  }) => {
+  test('creates a task with authored success criteria', async ({ page }) => {
     await openCreateDialog(page);
     await page.getByLabel(/^brief/i).fill(`Gated task ${nonce}`);
 
-    // Reveal the success-criteria editor and add one `exists` assertion.
+    // Reveal the success-criteria editor and add one gate plus one assertion.
     await page.getByRole('button', { name: /success criteria/i }).click();
+    await page.getByRole('button', { name: /add schema gate/i }).click();
+    await page.getByLabel(/schema cid/i).fill('bafy-schema-e2e');
     await page.getByRole('button', { name: /add assertion/i }).click();
     await page.getByLabel(/assertion path/i).fill('commits.*.sha');
 
@@ -188,11 +188,28 @@ test.describe.serial('Create task from console', () => {
               `Gated task ${nonce}`,
         );
         const criteria = (task?.input as Record<string, unknown> | undefined)
-          ?.successCriteria as { assertions?: unknown[] } | undefined;
-        return Array.isArray(criteria?.assertions)
-          ? criteria.assertions.length
-          : 0;
+          ?.successCriteria as
+          | { gates?: unknown[]; assertions?: unknown[] }
+          | undefined;
+        const gates = Array.isArray(criteria?.gates) ? criteria.gates : [];
+        return {
+          assertions: Array.isArray(criteria?.assertions)
+            ? criteria.assertions.length
+            : 0,
+          hasSubmitGate: gates.some(
+            (gate) =>
+              typeof gate === 'object' &&
+              gate !== null &&
+              (gate as Record<string, unknown>).kind === 'submit-tool-call',
+          ),
+          hasSchemaGate: gates.some(
+            (gate) =>
+              typeof gate === 'object' &&
+              gate !== null &&
+              (gate as Record<string, unknown>).kind === 'schema-check',
+          ),
+        };
       })
-      .toBeGreaterThanOrEqual(1);
+      .toEqual({ assertions: 1, hasSubmitGate: true, hasSchemaGate: true });
   });
 });
