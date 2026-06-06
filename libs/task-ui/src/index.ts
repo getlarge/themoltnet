@@ -38,9 +38,13 @@ export {
   buildSuccessCriteria,
   type BuiltSuccessCriteria,
   EMPTY_SIDE_EFFECTS,
+  GATE_KINDS,
+  type GateKind,
+  type GateRow,
   opUsesMax,
   opUsesValue,
   type SideEffectsForm,
+  type SuccessCriteriaGate,
 } from './success-criteria.js';
 export {
   SuccessCriteriaEditor,

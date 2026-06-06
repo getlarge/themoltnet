@@ -1,9 +1,9 @@
 /**
- * Phase-1 success-criteria authoring (assertions + side effects). Types are
+ * Success-criteria authoring (gates + assertions + side effects). Types are
  * declared locally so task-ui stays free of @moltnet/api-client; they are a
  * structural subset of the server's SuccessCriteria schema
- * (libs/tasks/src/success-criteria.ts). Gates, rubric, and minComposite are
- * intentionally out of scope for phase 1 (see issue #1267).
+ * (libs/tasks/src/success-criteria.ts). Rubric and minComposite remain
+ * deferred to a later phase (see issue #1267).
  */
 
 export type AssertionOp =
@@ -20,6 +20,22 @@ export const ASSERTION_OPS: AssertionOp[] = [
   'in-range',
   'min-length',
 ];
+
+export type GateKind = 'schema-check' | 'cid-equals';
+
+export const GATE_KINDS: GateKind[] = ['schema-check', 'cid-equals'];
+
+/** A single gate row in the editor (UI shape, pre-serialization). */
+export interface GateRow {
+  kind: GateKind;
+  required: boolean;
+  /** schema-check only: CIDv1 of the schema document. */
+  schemaCid?: string;
+  /** cid-equals only: dotted path inside the verification context. */
+  path?: string;
+  /** cid-equals only: expected CID value. */
+  expected?: string;
+}
 
 /** A single assertion row in the editor (UI shape, pre-serialization). */
 export interface AssertionRow {
@@ -48,6 +64,20 @@ export interface SuccessCriteriaAssertion {
   value?: unknown;
 }
 
+export type SuccessCriteriaGate =
+  | {
+      id: string;
+      kind: 'schema-check';
+      spec: { schemaCid: string };
+      required: boolean;
+    }
+  | {
+      id: string;
+      kind: 'cid-equals';
+      spec: { path: string; expected: string };
+      required: boolean;
+    };
+
 export interface SuccessCriteriaSideEffects {
   diaryEntryRequired?: boolean;
   diaryEntryTags?: string[];
@@ -56,6 +86,7 @@ export interface SuccessCriteriaSideEffects {
 
 export interface BuiltSuccessCriteria {
   version: 1;
+  gates?: SuccessCriteriaGate[];
   assertions?: SuccessCriteriaAssertion[];
   sideEffects?: SuccessCriteriaSideEffects;
 }
@@ -74,6 +105,15 @@ export function opUsesValue(op: AssertionOp): boolean {
 /** Whether `op` uses the second `max` bound (`in-range` only). */
 export function opUsesMax(op: AssertionOp): boolean {
   return op === 'in-range';
+}
+
+function hasGateInput(row: GateRow): boolean {
+  if (row.kind === 'schema-check') {
+    return (row.schemaCid ?? '').trim().length > 0;
+  }
+  return (
+    (row.path ?? '').trim().length > 0 && (row.expected ?? '').trim().length > 0
+  );
 }
 
 function coerceAssertionValue(row: AssertionRow): unknown {
@@ -108,8 +148,30 @@ function coerceAssertionValue(row: AssertionRow): unknown {
  */
 export function buildSuccessCriteria(
   assertions: AssertionRow[],
+  gates: GateRow[],
   sideEffects: SideEffectsForm,
 ): BuiltSuccessCriteria | undefined {
+  const validGates = gates.filter(hasGateInput);
+  const builtGates: SuccessCriteriaGate[] = validGates.map((row, index) => {
+    if (row.kind === 'schema-check') {
+      return {
+        id: `g${index + 1}`,
+        kind: 'schema-check',
+        spec: { schemaCid: (row.schemaCid ?? '').trim() },
+        required: row.required,
+      };
+    }
+    return {
+      id: `g${index + 1}`,
+      kind: 'cid-equals',
+      spec: {
+        path: (row.path ?? '').trim(),
+        expected: (row.expected ?? '').trim(),
+      },
+      required: row.required,
+    };
+  });
+
   const validAssertions = assertions.filter(
     (row) => row.path.trim().length > 0,
   );
@@ -137,10 +199,16 @@ export function buildSuccessCriteria(
   }
   const hasSideEffects = Object.keys(builtSideEffects).length > 0;
 
-  if (builtAssertions.length === 0 && !hasSideEffects) return undefined;
+  if (
+    builtGates.length === 0 &&
+    builtAssertions.length === 0 &&
+    !hasSideEffects
+  )
+    return undefined;
 
   return {
     version: 1,
+    ...(builtGates.length > 0 ? { gates: builtGates } : {}),
     ...(builtAssertions.length > 0 ? { assertions: builtAssertions } : {}),
     ...(hasSideEffects ? { sideEffects: builtSideEffects } : {}),
   };

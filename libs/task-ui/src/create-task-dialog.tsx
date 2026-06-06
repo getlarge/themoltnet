@@ -15,6 +15,7 @@ import {
   buildSuccessCriteria,
   type BuiltSuccessCriteria,
   EMPTY_SIDE_EFFECTS,
+  type GateRow,
   type SideEffectsForm,
 } from './success-criteria.js';
 import { SuccessCriteriaEditor } from './success-criteria-editor.js';
@@ -157,6 +158,7 @@ export function CreateTaskDialog({
     '' | FreeformWorkspaceMode
   >('');
   const [dependsRows, setDependsRows] = useState<DependsRow[]>([]);
+  const [gates, setGates] = useState<GateRow[]>([]);
   const [assertions, setAssertions] = useState<AssertionRow[]>([]);
   const [sideEffects, setSideEffects] =
     useState<SideEffectsForm>(EMPTY_SIDE_EFFECTS);
@@ -188,7 +190,11 @@ export function CreateTaskDialog({
     setIsSubmitting(true);
     setError(null);
     try {
-      const successCriteria = buildSuccessCriteria(assertions, sideEffects);
+      const successCriteria = buildSuccessCriteria(
+        assertions,
+        gates,
+        sideEffects,
+      );
       const normalizedTags = normalizeTagsInput(tags);
       // Continuations: drop workspace (server rejects on input.continueFrom)
       // and depends-on (the auto-injected task_status:completed gate on the
@@ -245,6 +251,7 @@ export function CreateTaskDialog({
       setExpectedOutput('');
       setWorkspaceMode('');
       setDependsRows([]);
+      setGates([]);
       setAssertions([]);
       setSideEffects(EMPTY_SIDE_EFFECTS);
       onCreated(taskId);
@@ -406,6 +413,8 @@ export function CreateTaskDialog({
           </Button>
           {showAdvanced ? (
             <SuccessCriteriaEditor
+              gates={gates}
+              onGatesChange={setGates}
               assertions={assertions}
               onAssertionsChange={setAssertions}
               sideEffects={sideEffects}
