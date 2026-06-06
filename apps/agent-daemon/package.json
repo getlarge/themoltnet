@@ -48,7 +48,6 @@
   "devDependencies": {
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
-    "@moltnet/database": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "tsx": "catalog:",
     "typescript": "catalog:",

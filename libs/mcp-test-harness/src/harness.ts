@@ -1,10 +1,7 @@
 /* eslint-disable no-restricted-syntax -- e2e harness reads env directly, matching existing Docker-backed test setups */
 
 import { createClient, createDiary } from '@moltnet/api-client';
-import { bootstrapGenesisAgents, type GenesisAgent } from '@moltnet/bootstrap';
-import { createDatabase } from '@moltnet/database';
-
-const DEFAULT_SCOPES = 'diary:read diary:write crypto:sign agent:profile';
+import { createE2EAgentHarness, type GenesisAgent } from '@moltnet/bootstrap';
 
 interface HarnessAgent {
   agent: GenesisAgent;
@@ -29,52 +26,26 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   console.log('[MCP E2E] Creating test harness...');
 
   const mcpServerUrl = process.env.MCP_SERVER_URL ?? 'http://127.0.0.1:8001';
-  const restApiUrl = process.env.REST_API_URL ?? 'http://127.0.0.1:8080';
-  const databaseUrl =
-    process.env.DATABASE_URL ??
-    'postgresql://moltnet:moltnet_secret@127.0.0.1:5433/moltnet';
-  const hydraAdminUrl =
-    process.env.ORY_HYDRA_ADMIN_URL ?? 'http://127.0.0.1:4445';
-  const hydraPublicUrl =
-    process.env.ORY_HYDRA_PUBLIC_URL ?? 'http://127.0.0.1:4444';
-  const ketoReadUrl =
-    process.env.ORY_KETO_PUBLIC_URL ?? 'http://127.0.0.1:4466';
-  const ketoWriteUrl =
-    process.env.ORY_KETO_ADMIN_URL ?? 'http://127.0.0.1:4467';
-  const kratosAdminUrl =
-    process.env.ORY_KRATOS_ADMIN_URL ?? 'http://127.0.0.1:4434';
 
-  const { db, pool } = createDatabase(databaseUrl);
-  await db.execute('SELECT 1');
+  // Delegate genesis-agent bootstrap + DB lifecycle to the shared lib.
+  // The MCP harness layers on top: each `createAgent` call also creates
+  // a public diary the test fixture relies on, and the harness exposes
+  // an initial agent at construction time.
+  const inner = await createE2EAgentHarness({
+    restApiUrl: process.env.REST_API_URL,
+    databaseUrl: process.env.DATABASE_URL,
+    hydraPublicUrl: process.env.ORY_HYDRA_PUBLIC_URL,
+    hydraAdminUrl: process.env.ORY_HYDRA_ADMIN_URL,
+    ketoReadUrl: process.env.ORY_KETO_PUBLIC_URL,
+    ketoWriteUrl: process.env.ORY_KETO_ADMIN_URL,
+    kratosAdminUrl: process.env.ORY_KRATOS_ADMIN_URL,
+    // eslint-disable-next-line no-console
+    log: (message) => console.log(`[MCP E2E] ${message}`),
+  });
 
   async function createAgent(name: string): Promise<HarnessAgent> {
-    const result = await bootstrapGenesisAgents({
-      config: {
-        databaseUrl,
-        ory: {
-          mode: 'split',
-          kratosAdminUrl,
-          hydraAdminUrl,
-          hydraPublicUrl,
-          ketoReadUrl,
-          ketoWriteUrl,
-        },
-      },
-      db,
-      names: [name],
-      scopes: DEFAULT_SCOPES,
-      // eslint-disable-next-line no-console
-      log: (message) => console.log(`[MCP E2E] ${message}`),
-    });
-
-    if (result.errors.length > 0) {
-      throw new Error(
-        `Failed to bootstrap test agent: ${result.errors[0].error}`,
-      );
-    }
-
-    const agent = result.agents[0];
-    const client = createClient({ baseUrl: restApiUrl });
+    const agent = await inner.createAgent(name);
+    const client = createClient({ baseUrl: inner.restApiUrl });
     const { data: publicDiary, error } = await createDiary({
       client,
       auth: () => agent.accessToken,
@@ -100,7 +71,7 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   try {
     initialAgent = await createAgent('e2e-mcp-test-agent');
   } catch (error) {
-    await pool.end();
+    await inner.teardown();
     throw error;
   }
 
@@ -113,14 +84,14 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
 
   return {
     mcpBaseUrl: mcpServerUrl,
-    restApiUrl,
+    restApiUrl: inner.restApiUrl,
     agent,
     privateDiaryId,
     publicDiaryId,
     personalTeamId,
     createAgent,
     async teardown() {
-      await pool.end();
+      await inner.teardown();
     },
   };
 }
