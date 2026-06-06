@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.14.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.14.0...agent-daemon-v0.14.1) (2026-06-06)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-daemon-state bumped to 0.2.0
+
 ## [0.14.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.13.0...agent-daemon-v0.14.0) (2026-06-06)
 
 
