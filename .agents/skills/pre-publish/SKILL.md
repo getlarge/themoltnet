@@ -9,6 +9,12 @@ Mandatory checklist before publishing any package to npm. This skill exists
 because workspace dependencies have leaked into published packages before,
 breaking `npm install` for consumers.
 
+For deeper incident context, load
+`../rendered-pack-708fda04/SKILL.md` when debugging `check:pack` failures,
+Vite SSR packaging, or private `@moltnet/*` dependency leaks. That rendered
+pack links the pi-extension recurrence to the earlier legreffier,
+pi-extension, agent-runtime, check-pack, and Vite 8 incidents.
+
 ## When to trigger
 
 - Before running `pnpm publish` or `npm publish` on any package
@@ -24,6 +30,8 @@ not marked `"private": true`. Current published packages:
 
 - `@themoltnet/sdk` (libs/sdk)
 - `@themoltnet/design-system` (libs/design-system)
+- `@themoltnet/pi-extension` (libs/pi-extension)
+- `@themoltnet/agent-runtime` (libs/agent-runtime)
 - `@themoltnet/cli` (packages/cli)
 - `@themoltnet/github-agent` (packages/github-agent)
 - `@themoltnet/legreffier` (packages/legreffier-cli)
@@ -118,6 +126,25 @@ didn't check the `dependencies` field itself.
 
 **Prevention**: The `check:pack` script now validates that no `@moltnet/*`
 packages appear in `dependencies`. Run it before every publish.
+
+### Private task/runtime deps in pi-extension (recurring release failure)
+
+**What happened**: Release CI for `@themoltnet/pi-extension@0.21.0` passed
+the Vite build, then failed `check:pack` because `@moltnet/tasks` appeared
+in `dependencies`.
+
+**Why this matters**: `@moltnet/tasks` is private. Consumers cannot install it
+from npm. If pi-extension imports it and Vite bundles it via `ssr.noExternal`,
+it belongs in `devDependencies`, not `dependencies`.
+
+**Prevention**:
+
+- Treat `@moltnet/tasks` like every other private `@moltnet/*` package.
+- Keep bundled private workspace deps in `devDependencies`.
+- Keep published `@themoltnet/*` packages in `dependencies` only when runtime
+  consumers need to install them.
+- If the failure says `private workspace packages in dependencies`, fix
+  `package.json` placement before changing Vite.
 
 ### SDK pattern (correct)
 
