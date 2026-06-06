@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 import { useTheme } from '../hooks.js';
 
@@ -8,6 +8,9 @@ export interface DialogProps {
   title?: string;
   children: ReactNode;
   width?: string;
+  ariaLabel?: string;
+  ariaDescribedBy?: string;
+  closeLabel?: string;
 }
 
 export function Dialog({
@@ -16,36 +19,75 @@ export function Dialog({
   title,
   children,
   width = '480px',
+  ariaLabel,
+  ariaDescribedBy,
+  closeLabel = 'Close',
 }: DialogProps) {
   const theme = useTheme();
   const ref = useRef<HTMLDialogElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const closingFromPropsRef = useRef(false);
+  const titleId = useId();
+  const [rendered, setRendered] = useState(open);
 
   useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      // showModal may not be available in test environments (jsdom)
-      if (typeof dialog.showModal === 'function') {
-        dialog.showModal();
-      }
-    } else if (!open && dialog.open) {
-      dialog.close();
-    }
+    if (open) setRendered(true);
   }, [open]);
 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    const handleClose = () => onClose();
+    if (open && !dialog.open) {
+      previouslyFocusedRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      // showModal may not be available in test environments (jsdom)
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      }
+    } else if (!open && dialog.open) {
+      closingFromPropsRef.current = true;
+      dialog.close();
+      previouslyFocusedRef.current?.focus();
+      previouslyFocusedRef.current = null;
+      setRendered(false);
+    } else if (!open) {
+      setRendered(false);
+    }
+  }, [open, rendered]);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    const handleClose = () => {
+      if (closingFromPropsRef.current) {
+        closingFromPropsRef.current = false;
+        return;
+      }
+      onClose();
+    };
+    const handleCancel = (event: Event) => {
+      event.preventDefault();
+      onClose();
+    };
     dialog.addEventListener('close', handleClose);
-    return () => dialog.removeEventListener('close', handleClose);
+    dialog.addEventListener('cancel', handleCancel);
+    return () => {
+      dialog.removeEventListener('close', handleClose);
+      dialog.removeEventListener('cancel', handleCancel);
+    };
   }, [onClose]);
 
-  if (!open) return null;
+  if (!rendered) return null;
 
   return (
     <dialog
       ref={ref}
+      aria-label={title ? undefined : ariaLabel}
+      aria-labelledby={title ? titleId : undefined}
+      aria-describedby={ariaDescribedBy}
+      aria-modal="true"
       style={{
         position: 'fixed',
         maxWidth: width,
@@ -76,6 +118,7 @@ export function Dialog({
             }}
           >
             <span
+              id={titleId}
               style={{
                 fontSize: theme.font.size.lg,
                 fontWeight: theme.font.weight.semibold,
@@ -86,7 +129,7 @@ export function Dialog({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={closeLabel}
               style={{
                 background: 'none',
                 border: 'none',

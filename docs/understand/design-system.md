@@ -86,6 +86,36 @@ function MyPage() {
 | `CodeBlock`      | Block or `inline` code display in monospace                                              |
 | `KeyFingerprint` | Amber-styled Ed25519 fingerprint with optional clipboard copy                            |
 
+## Accessibility
+
+Accessibility belongs in the design system, not in scattered consumer memory.
+New components and component changes must follow these rules:
+
+1. **Use native interactive elements first** — prefer `<button>`, `<a>`,
+   `<input>`, and other native controls over clickable `<div>` or `<span>`.
+   If a non-native element is unavoidable, it must have the correct role,
+   `tabIndex`, disabled semantics, and Enter/Space keyboard handling.
+2. **Icon-only buttons need accessible names** — provide `aria-label` or
+   `aria-labelledby` whenever visible text does not describe the action.
+3. **Form controls need labels and descriptions** — associate labels with
+   `htmlFor`/`id` or `aria-labelledby`, and connect help/error text with
+   `aria-describedby`.
+4. **Do not rely on color alone** — status and validation states must include
+   text, icons with accessible names, or ARIA state in addition to color.
+5. **Meet WCAG AA contrast** — normal text must meet 4.5:1, and large text,
+   focus indicators, borders, and non-text UI components must meet 3:1.
+6. **Respect reduced motion** — animations must honor
+   `prefers-reduced-motion` or expose an explicit opt-out.
+7. **Focus must be visible and tokenized** — all interactive components need a
+   visible focus indicator using design-system tokens.
+8. **Announce transient state** — copy success, async completion, and errors
+   that appear after user action should use `aria-live` or an equivalent
+   accessible notification pattern.
+
+The component-level audit lives in
+`libs/design-system/ACCESSIBILITY.md`. Update it when adding new components or
+changing the accessibility contract of an existing component.
+
 ## Rules for UI builders
 
 1. **Import from `@themoltnet/design-system`** — never hardcode color hex values, font stacks, or spacing pixels

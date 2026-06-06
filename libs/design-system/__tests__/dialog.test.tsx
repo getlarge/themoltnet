@@ -77,6 +77,77 @@ describe('Dialog', () => {
         <p>Content</p>
       </Dialog>,
     );
-    expect(screen.getByText('My Dialog')).toBeDefined();
+    expect(screen.getByRole('dialog', { name: 'My Dialog' })).toBeDefined();
+  });
+
+  it('uses ariaLabel when no visible title is provided', () => {
+    renderWithTheme(
+      <Dialog open onClose={() => {}} ariaLabel="Background task progress">
+        <p>Content</p>
+      </Dialog>,
+    );
+
+    expect(
+      screen.getByRole('dialog', { name: 'Background task progress' }),
+    ).toBeDefined();
+  });
+
+  it('supports an external description', () => {
+    renderWithTheme(
+      <>
+        <p id="dialog-description">This action cannot be undone.</p>
+        <Dialog
+          open
+          onClose={() => {}}
+          title="Delete team"
+          ariaDescribedBy="dialog-description"
+        >
+          <p>Content</p>
+        </Dialog>
+      </>,
+    );
+
+    expect(screen.getByRole('dialog')).toHaveAccessibleDescription(
+      'This action cannot be undone.',
+    );
+  });
+
+  it('restores focus when closed through the controlled open prop', () => {
+    const { rerender } = renderWithTheme(
+      <>
+        <button type="button">Open dialog</button>
+        <Dialog open={false} onClose={() => {}} title="Settings">
+          <button type="button">Save</button>
+        </Dialog>
+      </>,
+    );
+
+    const opener = screen.getByRole('button', { name: 'Open dialog' });
+    opener.focus();
+
+    rerender(
+      <MoltThemeProvider>
+        <>
+          <button type="button">Open dialog</button>
+          <Dialog open onClose={() => {}} title="Settings">
+            <button type="button">Save</button>
+          </Dialog>
+        </>
+      </MoltThemeProvider>,
+    );
+
+    rerender(
+      <MoltThemeProvider>
+        <>
+          <button type="button">Open dialog</button>
+          <Dialog open={false} onClose={() => {}} title="Settings">
+            <button type="button">Save</button>
+          </Dialog>
+        </>
+      </MoltThemeProvider>,
+    );
+
+    expect(opener).toHaveFocus();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

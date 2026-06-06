@@ -8,6 +8,8 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'accent';
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: Size;
+  loading?: boolean;
+  loadingLabel?: string;
 }
 
 const sizeStyles: Record<Size, React.CSSProperties> = {
@@ -19,13 +21,19 @@ const sizeStyles: Record<Size, React.CSSProperties> = {
 export function Button({
   variant = 'primary',
   size = 'md',
+  type = 'button',
   disabled,
+  loading,
+  loadingLabel,
   style,
   children,
+  'aria-busy': ariaBusy,
+  'aria-label': ariaLabel,
   ...rest
 }: ButtonProps) {
   const theme = useTheme();
   const { hovered, focused, pressed, handlers } = useInteractive();
+  const isDisabled = disabled || loading;
 
   const base: React.CSSProperties = {
     display: 'inline-flex',
@@ -37,9 +45,9 @@ export function Button({
     fontFamily: 'inherit',
     fontWeight: theme.font.weight.medium,
     lineHeight: theme.font.lineHeight.normal,
-    cursor: disabled ? 'not-allowed' : 'pointer',
+    cursor: isDisabled ? 'not-allowed' : 'pointer',
     transition: `background ${theme.transition.fast}, color ${theme.transition.fast}, box-shadow ${theme.transition.fast}, opacity ${theme.transition.fast}`,
-    opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+    opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1,
     outline: 'none',
     ...sizeStyles[size],
   };
@@ -88,7 +96,10 @@ export function Button({
 
   return (
     <button
-      disabled={disabled}
+      type={type}
+      disabled={isDisabled}
+      aria-busy={ariaBusy ?? (loading ? true : undefined)}
+      aria-label={loading && loadingLabel ? loadingLabel : ariaLabel}
       style={{ ...base, ...variants[variant], ...style }}
       {...handlers}
       {...rest}

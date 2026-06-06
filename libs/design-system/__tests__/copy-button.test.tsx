@@ -26,8 +26,20 @@ describe('CopyButton', () => {
     expect(writeText).toHaveBeenCalledWith('mlt_inv_abc123');
   });
 
+  it('announces successful copy state', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText },
+    });
+
+    renderWithTheme(<CopyButton value="mlt_inv_abc123" />);
+    fireEvent.click(screen.getByRole('button', { name: /copy/i }));
+
+    expect(await screen.findByText('Copied')).toBeInTheDocument();
+  });
+
   it('renders with custom label', () => {
     renderWithTheme(<CopyButton value="abc" label="Code" />);
-    expect(screen.getByText('Code')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Copy Code' })).toBeDefined();
   });
 });
