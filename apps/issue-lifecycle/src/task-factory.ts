@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
+import { computeJsonCid } from '@moltnet/crypto-service';
+import type { SuccessCriteria } from '@moltnet/tasks';
+
 import type {
   GithubIssue,
   IssueLifecycleInput,
@@ -9,6 +12,7 @@ import type {
 
 const DEFAULT_APPROVAL_LABEL = 'moltnet:plan-approved';
 const DEFAULT_SKIP_NOTIFY_LABEL = 'moltnet:skip-notify';
+const ARTIFACT_BODY_PATH = 'artifacts.0.body';
 
 export interface LifecycleDefaults {
   correlationId: string;
@@ -33,10 +37,20 @@ export function normalizeLifecycleInput(
   };
 }
 
-function issueReference(issue: GithubIssue) {
+async function issueReference(
+  input: IssueLifecycleInput & LifecycleDefaults,
+  issue: GithubIssue,
+) {
   return {
     taskId: null,
-    outputCid: `gh:issue:${issue.number}`,
+    outputCid: await computeJsonCid({
+      kind: 'github_issue',
+      repo: input.repo,
+      number: issue.number,
+      title: issue.title,
+      body: issue.body,
+      labels: issue.labels,
+    }),
     role: 'context' as const,
     external: {
       kind: 'github_issue' as const,
@@ -54,11 +68,53 @@ function taskReference(taskId: string, attempt: SdkTaskAttempt) {
   };
 }
 
-function baseBody(
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function withParentDependency(
+  successCriteria: SuccessCriteria,
+  parentTaskId: string,
+  parentAttempt: SdkTaskAttempt,
+): SuccessCriteria {
+  return {
+    ...successCriteria,
+    gates: [
+      ...(successCriteria.gates ?? []),
+      {
+        id: 'continue-from-parent-attempt',
+        kind: 'submit-tool-call',
+        description:
+          `This task must continue from parent task ${parentTaskId} ` +
+          `attempt ${parentAttempt.attemptN}; the lifecycle artifact body ` +
+          'must include sourceTaskId and sourceAttemptN for that parent.',
+        required: true,
+      },
+    ],
+    assertions: [
+      ...(successCriteria.assertions ?? []),
+      {
+        id: 'source-task-id',
+        path: ARTIFACT_BODY_PATH,
+        op: 'matches',
+        value: `"sourceTaskId"\\s*:\\s*"${escapeRegex(parentTaskId)}"`,
+      },
+      {
+        id: 'source-attempt-n',
+        path: ARTIFACT_BODY_PATH,
+        op: 'matches',
+        value: `"sourceAttemptN"\\s*:\\s*${parentAttempt.attemptN}`,
+      },
+    ],
+  };
+}
+
+async function baseBody(
   input: IssueLifecycleInput & LifecycleDefaults,
   title: string,
   brief: string,
   issue: GithubIssue,
+  successCriteria: SuccessCriteria,
 ) {
   return {
     taskType: 'freeform',
@@ -71,9 +127,9 @@ function baseBody(
       expectedOutput:
         'Return normal freeform output plus an artifact with kind issue_lifecycle_state and a JSON body.',
       suggestedTaskType: 'github_issue_lifecycle',
-      successCriteria: { version: 1 },
+      successCriteria,
     },
-    references: [issueReference(issue)],
+    references: [await issueReference(input, issue)],
     ...(input.allowedExecutors
       ? { allowedExecutors: input.allowedExecutors }
       : {}),
@@ -83,10 +139,10 @@ function baseBody(
   } satisfies Parameters<TaskClient['createTask']>[0];
 }
 
-export function buildTriageTask(
+export async function buildTriageTask(
   input: IssueLifecycleInput & LifecycleDefaults,
   issue: GithubIssue,
-): Parameters<TaskClient['createTask']>[0] {
+): Promise<Parameters<TaskClient['createTask']>[0]> {
   const brief = [
     `Triage GitHub issue ${input.repo}#${issue.number}: ${issue.title}`,
     '',
@@ -100,28 +156,60 @@ export function buildTriageTask(
     'Required artifact body shape:',
     '{"phase":"classified","decision":"plan","summary":"..."}',
   ].join('\n');
+  const body = await baseBody(
+    input,
+    `Triage issue #${issue.number}`,
+    brief,
+    issue,
+    lifecycleSuccessCriteria({
+      step: 'triage',
+      expectedPhase: 'classified',
+      expectedDecisionPattern: 'plan|needs_triage',
+      requiredFields: ['summary'],
+      dependency: 'Initial task. Classify the issue before any planning work.',
+    }),
+  );
 
   return {
-    ...baseBody(input, `Triage issue #${issue.number}`, brief, issue),
+    ...body,
     input: {
-      ...baseBody(input, `Triage issue #${issue.number}`, brief, issue).input,
+      ...body.input,
       execution: { workspace: 'dedicated_worktree' },
     },
   };
 }
 
-export function buildContinuationTask(args: {
+export async function buildContinuationTask(args: {
   input: IssueLifecycleInput & LifecycleDefaults;
   issue: GithubIssue;
   parentTaskId: string;
   parentAttempt: SdkTaskAttempt;
   title: string;
   brief: string;
-}): Parameters<TaskClient['createTask']>[0] {
+  successCriteria: SuccessCriteria;
+}): Promise<Parameters<TaskClient['createTask']>[0]> {
+  const successCriteria = withParentDependency(
+    args.successCriteria,
+    args.parentTaskId,
+    args.parentAttempt,
+  );
+  const continuationBrief = [
+    args.brief,
+    '',
+    `This task continues from task ${args.parentTaskId} attempt ${args.parentAttempt.attemptN}.`,
+    'Include sourceTaskId and sourceAttemptN in the issue_lifecycle_state artifact body.',
+  ].join('\n');
+  const body = await baseBody(
+    args.input,
+    args.title,
+    continuationBrief,
+    args.issue,
+    successCriteria,
+  );
   return {
-    ...baseBody(args.input, args.title, args.brief, args.issue),
+    ...body,
     input: {
-      ...baseBody(args.input, args.title, args.brief, args.issue).input,
+      ...body.input,
       continueFrom: {
         taskId: args.parentTaskId,
         attemptN: args.parentAttempt.attemptN,
@@ -129,7 +217,7 @@ export function buildContinuationTask(args: {
       },
     },
     references: [
-      issueReference(args.issue),
+      await issueReference(args.input, args.issue),
       taskReference(args.parentTaskId, args.parentAttempt),
     ],
     claimCondition: {
@@ -139,6 +227,128 @@ export function buildContinuationTask(args: {
     },
   };
 }
+
+function lifecycleSuccessCriteria(args: {
+  step: string;
+  expectedPhase: string;
+  expectedDecisionPattern: string;
+  requiredFields?: string[];
+  dependency: string;
+  sideEffects?: SuccessCriteria['sideEffects'];
+}): SuccessCriteria {
+  return {
+    version: 1,
+    gates: [
+      {
+        id: `${args.step}-lifecycle-artifact`,
+        kind: 'submit-tool-call',
+        description:
+          'Output must include artifacts[0] with kind "issue_lifecycle_state" and a JSON string body.',
+        required: true,
+      },
+      {
+        id: `${args.step}-depends-on-previous-output`,
+        kind: 'submit-tool-call',
+        description: args.dependency,
+        required: true,
+      },
+    ],
+    assertions: [
+      {
+        id: `${args.step}-artifact-kind`,
+        path: 'artifacts.0.kind',
+        op: 'equals',
+        value: 'issue_lifecycle_state',
+      },
+      {
+        id: `${args.step}-phase`,
+        path: ARTIFACT_BODY_PATH,
+        op: 'matches',
+        value: `"phase"\\s*:\\s*"${args.expectedPhase}"`,
+      },
+      {
+        id: `${args.step}-decision`,
+        path: ARTIFACT_BODY_PATH,
+        op: 'matches',
+        value: `"decision"\\s*:\\s*"(${args.expectedDecisionPattern})"`,
+      },
+      ...(args.requiredFields ?? []).map((field) => ({
+        id: `${args.step}-${field}`,
+        path: ARTIFACT_BODY_PATH,
+        op: 'matches' as const,
+        value: `"${field}"\\s*:`,
+      })),
+    ],
+    ...(args.sideEffects ? { sideEffects: args.sideEffects } : {}),
+  };
+}
+
+export const lifecycleCriteria = {
+  plan(): SuccessCriteria {
+    return lifecycleSuccessCriteria({
+      step: 'plan',
+      expectedPhase: 'plan_generated',
+      expectedDecisionPattern: 'ready_for_review',
+      requiredFields: ['summary', 'plan'],
+      dependency:
+        'Continue from the accepted triage attempt. Use the classified issue context and do not implement.',
+    });
+  },
+  review(): SuccessCriteria {
+    return lifecycleSuccessCriteria({
+      step: 'plan-review',
+      expectedPhase: 'plan_generated',
+      expectedDecisionPattern: 'review_passed|findings',
+      requiredFields: ['summary'],
+      dependency:
+        'Continue from the accepted plan attempt. Review the current plan only; do not implement.',
+    });
+  },
+  revisePlan(): SuccessCriteria {
+    return lifecycleSuccessCriteria({
+      step: 'plan-revision',
+      expectedPhase: 'plan_generated',
+      expectedDecisionPattern: 'ready_for_review',
+      requiredFields: ['summary', 'plan'],
+      dependency:
+        'Continue from the accepted review attempt and resolve every reported finding.',
+    });
+  },
+  implement(): SuccessCriteria {
+    return lifecycleSuccessCriteria({
+      step: 'implementation',
+      expectedPhase: 'pr_open',
+      expectedDecisionPattern: 'link_pr',
+      requiredFields: ['summary', 'prNumber', 'prUrl'],
+      dependency:
+        'Continue from the approved plan or failed-check retry context. Implement under repository instructions and link the PR.',
+      sideEffects: {
+        diaryEntryRequired: true,
+        diaryEntryTags: ['accountable-commit'],
+      },
+    });
+  },
+  release(): SuccessCriteria {
+    return lifecycleSuccessCriteria({
+      step: 'release',
+      expectedPhase: 'releasing',
+      expectedDecisionPattern: 'ship',
+      requiredFields: ['summary'],
+      dependency:
+        'Continue only after the linked PR is merged. Perform release bookkeeping or state that none is required.',
+    });
+  },
+  notify(): SuccessCriteria {
+    return lifecycleSuccessCriteria({
+      step: 'notify',
+      expectedPhase: 'done',
+      expectedDecisionPattern: 'notify',
+      requiredFields: ['summary', 'notifySkipped'],
+      dependency:
+        'Continue from the release task and notify participants unless the workflow skipped notification.',
+    });
+  },
+};
 
 export function planBrief(issue: GithubIssue): string {
   return [

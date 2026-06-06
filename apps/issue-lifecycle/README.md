@@ -59,6 +59,44 @@ The workflow input is normalized before execution, so a missing `correlationId`
 is generated once at CLI parse time and reused for task correlation and Absurd
 idempotency.
 
+## Retry And Recovery Model
+
+The lifecycle runner deliberately decouples orchestration from execution:
+
+- Absurd owns durable workflow state, waits, and retrying the orchestration task
+  after process crashes.
+- MoltNet owns task persistence, task attempts, accepted outputs, and
+  continuation references.
+- `apps/agent-daemon` owns claiming and executing the generated `freeform`
+  tasks.
+- GitHub owns the external human/CI signals: approval labels, PR checks, and
+  merge state.
+
+The runner should retry transient orchestration steps such as GitHub reads,
+MoltNet task creation, task polling, and PR polling. It should not automatically
+retry semantic agent work by rerunning the same task attempt. Instead, it creates
+new continuation tasks when the workflow calls for another agent loop:
+
+- plan review findings create a plan-revision task
+- failed PR checks create an implementation-retry task
+- missing human approval is a durable wait, not a failure
+
+`src/absurd.ts` currently registers the workflow with `defaultMaxAttempts: 3`.
+That protects the lifecycle worker from short-lived process, network, or API
+failures. If the workflow fails because the accepted task artifact is malformed,
+the PR retry budget is exhausted, or the review budget is exhausted, that is a
+domain failure and should remain visible rather than being hidden by blind
+retries.
+
+Recovery expectation:
+
+1. restart the issue-lifecycle process with the same Absurd database and queue
+2. Absurd resumes the workflow task from the last durable step
+3. already-created MoltNet tasks remain discoverable through their persisted
+   task ids and accepted attempts
+4. if the runner was stopped while waiting on approval, task completion, or PR
+   merge, it resumes polling instead of recreating prior work
+
 ## Task Contract
 
 All generated agent tasks use `taskType: "freeform"`.
@@ -158,6 +196,14 @@ the released MoltNet CLI from `.moltnet/<agent>/moltnet.json`.
 
 ## Manual E2E-Stack Smoke Test
 
+Local manual testing needs three moving parts:
+
+1. the MoltNet e2e stack, so the SDK can create/read tasks
+2. at least one `apps/agent-daemon` instance, so generated `freeform` tasks are
+   actually claimed and executed
+3. this issue-lifecycle app, so the durable lifecycle can create continuations
+   and wait on GitHub/PR signals
+
 Start the normal e2e stack first:
 
 ```bash
@@ -165,8 +211,12 @@ export NX_LOAD_DOT_ENV_FILES=false
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
 ```
 
-Then point the runner at a Postgres database usable by Absurd and a sandbox
-GitHub issue:
+Then run an agent daemon against that stack. See
+[apps/agent-daemon/README.md](../agent-daemon/README.md) for provisioning a
+throwaway agent and smoke-testing task execution.
+
+Finally, point the lifecycle runner at a Postgres database usable by Absurd and
+a sandbox GitHub issue:
 
 ```bash
 ISSUE_LIFECYCLE_DATABASE_URL="postgresql://..." \

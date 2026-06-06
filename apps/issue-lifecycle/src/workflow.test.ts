@@ -1,3 +1,4 @@
+import type { SuccessCriteria } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
 import type { FakeGithub } from './test-fakes.js';
@@ -54,6 +55,23 @@ describe('runGithubIssueLifecycle', () => {
     expect(tasks.created[0]?.input).toMatchObject({
       execution: { workspace: 'dedicated_worktree' },
     });
+    const issueOutputCid = tasks.created[0]?.references?.[0]?.outputCid;
+    expect(issueOutputCid).toMatch(/^ba/);
+    expect(issueOutputCid).not.toContain('gh:issue');
+    expect(
+      (
+        tasks.created[0]?.input as
+          | { successCriteria?: SuccessCriteria }
+          | undefined
+      )?.successCriteria?.assertions,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'triage-phase',
+          value: '"phase"\\s*:\\s*"classified"',
+        }),
+      ]),
+    );
     const secondInput = tasks.created[1]?.input as
       | {
           continueFrom?: {
@@ -61,12 +79,44 @@ describe('runGithubIssueLifecycle', () => {
             attemptN?: unknown;
             mode?: unknown;
           };
+          brief?: string;
+          successCriteria?: SuccessCriteria;
         }
       | undefined;
     expect(typeof secondInput?.continueFrom?.taskId).toBe('string');
+    const sourceTaskId = secondInput?.continueFrom?.taskId as string;
     expect(secondInput?.continueFrom).toMatchObject({
       attemptN: 1,
       mode: 'extend',
+    });
+    expect(secondInput?.brief).toContain(
+      `This task continues from task ${sourceTaskId} attempt 1.`,
+    );
+    expect(secondInput?.successCriteria?.assertions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'plan-phase',
+          value: '"phase"\\s*:\\s*"plan_generated"',
+        }),
+        expect.objectContaining({
+          id: 'source-task-id',
+          value: `"sourceTaskId"\\s*:\\s*"${sourceTaskId}"`,
+        }),
+        expect.objectContaining({
+          id: 'source-attempt-n',
+          value: '"sourceAttemptN"\\s*:\\s*1',
+        }),
+      ]),
+    );
+    expect(
+      (
+        tasks.created[3]?.input as
+          | { successCriteria?: SuccessCriteria }
+          | undefined
+      )?.successCriteria?.sideEffects,
+    ).toEqual({
+      diaryEntryRequired: true,
+      diaryEntryTags: ['accountable-commit'],
     });
     expect(tasks.created.slice(1).every((task) => task.claimCondition)).toBe(
       true,

@@ -4,6 +4,7 @@ import {
   buildTriageTask,
   implementationBrief,
   implementationRetryBrief,
+  lifecycleCriteria,
   normalizeLifecycleInput,
   notifyBrief,
   planBrief,
@@ -83,9 +84,10 @@ export async function runGithubIssueLifecycle(
     deps.github.getIssue(input.repo, input.issueNumber),
   );
 
-  const triageTask = await ctx.step('task.triage.create', () =>
-    deps.tasks.createTask(buildTriageTask(input, issue)),
-  );
+  const triageTask = await ctx.step('task.triage.create', async () => {
+    const body = await buildTriageTask(input, issue);
+    return deps.tasks.createTask(body);
+  });
   const triage = await waitForAcceptedTask(
     triageTask.id,
     deps.tasks,
@@ -96,18 +98,18 @@ export async function runGithubIssueLifecycle(
     throw new Error(`triage produced unexpected phase ${triage.state.phase}`);
   }
 
-  const planTask = await ctx.step('task.plan.create', () =>
-    deps.tasks.createTask(
-      buildContinuationTask({
-        input,
-        issue,
-        parentTaskId: triage.task.id,
-        parentAttempt: triage.attempt,
-        title: `Plan issue #${issue.number}`,
-        brief: planBrief(issue),
-      }),
-    ),
-  );
+  const planTask = await ctx.step('task.plan.create', async () => {
+    const body = await buildContinuationTask({
+      input,
+      issue,
+      parentTaskId: triage.task.id,
+      parentAttempt: triage.attempt,
+      title: `Plan issue #${issue.number}`,
+      brief: planBrief(issue),
+      successCriteria: lifecycleCriteria.plan(),
+    });
+    return deps.tasks.createTask(body);
+  });
   let latestPlan = await waitForAcceptedTask(
     planTask.id,
     deps.tasks,
@@ -117,17 +119,20 @@ export async function runGithubIssueLifecycle(
 
   let reviewPassed = false;
   for (let round = 1; round <= input.maxReviewRounds; round += 1) {
-    const reviewTask = await ctx.step(`task.plan-review.${round}.create`, () =>
-      deps.tasks.createTask(
-        buildContinuationTask({
+    const reviewTask = await ctx.step(
+      `task.plan-review.${round}.create`,
+      async () => {
+        const body = await buildContinuationTask({
           input,
           issue,
           parentTaskId: latestPlan.task.id,
           parentAttempt: latestPlan.attempt,
           title: `Review plan for issue #${issue.number}`,
           brief: reviewBrief(),
-        }),
-      ),
+          successCriteria: lifecycleCriteria.review(),
+        });
+        return deps.tasks.createTask(body);
+      },
     );
     const review = await waitForAcceptedTask(
       reviewTask.id,
@@ -146,17 +151,18 @@ export async function runGithubIssueLifecycle(
     }
     const revisionTask = await ctx.step(
       `task.plan-revision.${round}.create`,
-      () =>
-        deps.tasks.createTask(
-          buildContinuationTask({
-            input,
-            issue,
-            parentTaskId: review.task.id,
-            parentAttempt: review.attempt,
-            title: `Revise plan for issue #${issue.number}`,
-            brief: revisePlanBrief(findings),
-          }),
-        ),
+      async () => {
+        const body = await buildContinuationTask({
+          input,
+          issue,
+          parentTaskId: review.task.id,
+          parentAttempt: review.attempt,
+          title: `Revise plan for issue #${issue.number}`,
+          brief: revisePlanBrief(findings),
+          successCriteria: lifecycleCriteria.revisePlan(),
+        });
+        return deps.tasks.createTask(body);
+      },
     );
     latestPlan = await waitForAcceptedTask(
       revisionTask.id,
@@ -182,9 +188,10 @@ export async function runGithubIssueLifecycle(
     attempt <= input.maxImplementationRetries;
     attempt += 1
   ) {
-    const implTask = await ctx.step(`task.implement.${attempt}.create`, () =>
-      deps.tasks.createTask(
-        buildContinuationTask({
+    const implTask = await ctx.step(
+      `task.implement.${attempt}.create`,
+      async () => {
+        const body = await buildContinuationTask({
           input,
           issue,
           parentTaskId: implementationParent.task.id,
@@ -194,8 +201,10 @@ export async function runGithubIssueLifecycle(
             attempt === 0
               ? implementationBrief(issue)
               : implementationRetryBrief(),
-        }),
-      ),
+          successCriteria: lifecycleCriteria.implement(),
+        });
+        return deps.tasks.createTask(body);
+      },
     );
     const impl = await waitForAcceptedTask(
       implTask.id,
@@ -227,18 +236,18 @@ export async function runGithubIssueLifecycle(
 
   if (prNumber === null) throw new Error('implementation did not open a PR');
 
-  const releaseTask = await ctx.step('task.release.create', () =>
-    deps.tasks.createTask(
-      buildContinuationTask({
-        input,
-        issue,
-        parentTaskId: implementationParent.task.id,
-        parentAttempt: implementationParent.attempt,
-        title: `Release issue #${issue.number}`,
-        brief: releaseBrief(prNumber),
-      }),
-    ),
-  );
+  const releaseTask = await ctx.step('task.release.create', async () => {
+    const body = await buildContinuationTask({
+      input,
+      issue,
+      parentTaskId: implementationParent.task.id,
+      parentAttempt: implementationParent.attempt,
+      title: `Release issue #${issue.number}`,
+      brief: releaseBrief(prNumber),
+      successCriteria: lifecycleCriteria.release(),
+    });
+    return deps.tasks.createTask(body);
+  });
   const release = await waitForAcceptedTask(
     releaseTask.id,
     deps.tasks,
@@ -252,18 +261,18 @@ export async function runGithubIssueLifecycle(
     input.skipNotifyLabel,
   );
   if (!skipNotify) {
-    const notifyTask = await ctx.step('task.notify.create', () =>
-      deps.tasks.createTask(
-        buildContinuationTask({
-          input,
-          issue,
-          parentTaskId: release.task.id,
-          parentAttempt: release.attempt,
-          title: `Notify issue #${issue.number}`,
-          brief: notifyBrief(issue),
-        }),
-      ),
-    );
+    const notifyTask = await ctx.step('task.notify.create', async () => {
+      const body = await buildContinuationTask({
+        input,
+        issue,
+        parentTaskId: release.task.id,
+        parentAttempt: release.attempt,
+        title: `Notify issue #${issue.number}`,
+        brief: notifyBrief(issue),
+        successCriteria: lifecycleCriteria.notify(),
+      });
+      return deps.tasks.createTask(body);
+    });
     await waitForAcceptedTask(
       notifyTask.id,
       deps.tasks,
