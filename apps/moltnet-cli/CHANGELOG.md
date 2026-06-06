@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.45.2](https://github.com/getlarge/themoltnet/compare/cli-v1.45.1...cli-v1.45.2) (2026-06-06)
+
+
+### Bug Fixes
+
+* **moltnet-cli:** force release for api client sync ([7e68d30](https://github.com/getlarge/themoltnet/commit/7e68d307d6636af115c0afde080a5de739a798c6))
+* **moltnet-cli:** force release for api client sync ([35dee50](https://github.com/getlarge/themoltnet/commit/35dee50c5188a6cc209dc0c5950bd0e474206f18))
+
 ## [1.45.1](https://github.com/getlarge/themoltnet/compare/cli-v1.45.0...cli-v1.45.1) (2026-06-06)
 
 
