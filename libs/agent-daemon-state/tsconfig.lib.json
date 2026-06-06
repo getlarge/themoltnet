@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "composite": true,
-    "outDir": "./out-tsc",
+    "outDir": "./dist",
     "rootDir": "./src",
-    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
     "types": ["node"]
   },
   "exclude": [
