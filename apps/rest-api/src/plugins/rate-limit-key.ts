@@ -2,38 +2,35 @@
  * Rate-limit key derivation.
  *
  * The @fastify/rate-limit hook runs at `onRequest`, BEFORE the auth preHandler
- * populates `request.authContext`. So the limiter cannot read a resolved
- * identity — it must derive a stable per-identity bucket key from the raw
- * request itself. This module does that cheaply and WITHOUT verifying anything:
- * the key only selects a counter bucket, never grants access. A forged or
- * garbage token still fails real signature/session verification later in the
- * auth preHandler and never reaches a handler — the worst an attacker can do by
- * choosing a key is rate-limit themselves.
+ * populates `request.authContext`, and it increments the bucket counter at that
+ * point — even for requests the preHandler will later reject with 401. So the
+ * limiter cannot read a resolved identity; it must derive a stable bucket key
+ * from the raw request, and that key MUST be something the caller *owns*, not
+ * something they can freely *choose*.
  *
- * Keys are namespaced by source (`id:`, `tok:`, `sess:`, `ip:`) so an
- * attacker-chosen claim value can never collide with another principal's bucket
- * (e.g. a `sub` set to a victim's IP string lands in `id:`, not `ip:`).
+ * Why we key on the token bytes, not a decoded claim: an earlier version
+ * decoded the (unverified) `moltnet:identity_id` JWT claim and keyed on it.
+ * Because the bucket increments before signature verification, an attacker could
+ * send a token carrying a *victim's* identity id (obtainable from `creator`
+ * blocks in API responses) and burn the victim's budget — a targeted
+ * cross-identity DoS (issue #1336 review). Hashing the opaque token / raw bearer
+ * value instead binds the bucket to bytes the attacker cannot forge for someone
+ * else: the worst they can do is rate-limit their own token. The trade-off is
+ * that two distinct live tokens for the same principal get separate buckets,
+ * which is acceptable (and arguably correct) for abuse isolation.
  *
- * See issue #1336 and the incident write-up: before this, every authenticated
- * request fell through to `request.ip`, collapsing all identities behind a
- * proxy/NAT (and, with no trustProxy, behind the Fly edge IP) into one bucket
- * AND onto the stricter anonymous limit.
+ * Keys are namespaced by source (`tok:`, `sess:`, `ip:`) so values from
+ * different sources can never collide.
+ *
+ * Before this whole change, every authenticated request fell through to
+ * `request.ip`, collapsing all identities behind a proxy/NAT (and, with no
+ * trustProxy, behind the Fly edge IP) into one bucket AND onto the stricter
+ * anonymous limit.
  */
 
 import { createHash } from 'node:crypto';
 
-const SESSION_TOKEN_HEADER = 'x-moltnet-session-token';
-
-/** Ory opaque access/handle token prefixes — not JWTs, cannot be decoded. */
-const ORY_OPAQUE_PREFIXES = ['ory_at_', 'ory_ht_'];
-
-/**
- * Kratos session cookie names: `ory_kratos_session` (self-hosted) and
- * `ory_session_<slug>` (Ory Network). Anchored to header start or `; ` so a
- * value like `analytics_id=ory_session_x` does not match. Mirrors the auth
- * plugin's cookie gating.
- */
-const KRATOS_COOKIE_NAME_REGEX = /(?:^|;\s*)ory(?:_kratos_session|_session_)/;
+import { KRATOS_COOKIE_NAME_REGEX, SESSION_TOKEN_HEADER } from '@moltnet/auth';
 
 /** The minimal request shape the key derivation needs. */
 export interface RateLimitKeyInput {
@@ -59,40 +56,14 @@ function bearerToken(headers: RateLimitKeyInput['headers']): string | null {
   if (!header) return null;
   const parts = header.split(' ');
   if (parts.length !== 2 || parts[0] !== 'Bearer') return null;
-  return parts[1].trim() || null;
-}
-
-function isOpaqueOryToken(token: string): boolean {
-  return ORY_OPAQUE_PREFIXES.some((prefix) => token.startsWith(prefix));
-}
-
-/**
- * Pull a stable identity id from a JWT's claims WITHOUT verifying it. A JWT is
- * `header.payload.signature`; we base64url-decode the payload segment only and
- * read claims. No signature check — that is the auth preHandler's job, and this
- * value only selects a rate-limit bucket. Prefers the enriched
- * `moltnet:identity_id` claim, falls back to `sub`. Returns null if the token
- * is not a well-formed JWT with a JSON payload.
- */
-function identityFromJwt(token: string): string | null {
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-  try {
-    const json = Buffer.from(parts[1], 'base64url').toString('utf8');
-    const claims = JSON.parse(json) as Record<string, unknown>;
-    if (!claims || typeof claims !== 'object') return null;
-    const identityId =
-      (claims['moltnet:identity_id'] as string | undefined) ??
-      (claims['sub'] as string | undefined);
-    return identityId?.trim() || null;
-  } catch {
-    return null;
-  }
+  // headerValue already trimmed; the token segment carries no leading/trailing
+  // space because we split on a single space and require exactly two parts.
+  return parts[1] || null;
 }
 
 function cookieHeader(headers: RateLimitKeyInput['headers']): string | null {
   const raw = headers['cookie'];
-  const value = Array.isArray(raw) ? raw.join('; ') : raw;
+  const value = Array.isArray(raw) ? raw[0] : raw;
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
@@ -101,28 +72,22 @@ function cookieHeader(headers: RateLimitKeyInput['headers']): string | null {
 /**
  * Derive the rate-limit bucket key for a request. Resolution order mirrors the
  * auth preHandler: Kratos session (native token header, then cookie), then
- * Bearer (JWT decode, then opaque-token hash), then anonymous IP fallback.
+ * Bearer token, then anonymous IP fallback. Authenticated sources are keyed on
+ * a hash of the credential bytes — never on a decoded, attacker-choosable claim.
  */
 export function deriveRateLimitKey(request: RateLimitKeyInput): string {
   const { headers, ip } = request;
 
-  // 1. Native Kratos session token header.
+  // 1. Native Kratos session token header → hash of the token bytes.
   const sessionToken = headerValue(headers, SESSION_TOKEN_HEADER);
   if (sessionToken) return `sess:${sha256(sessionToken)}`;
 
-  // 2. Bearer token (JWT or opaque).
+  // 2. Bearer token (JWT or opaque Ory token) → hash of the token bytes.
+  // We intentionally do NOT decode/trust JWT claims here (see file header).
   const token = bearerToken(headers);
-  if (token) {
-    if (!isOpaqueOryToken(token)) {
-      const identityId = identityFromJwt(token);
-      if (identityId) return `id:${identityId}`;
-    }
-    // Opaque token, or an undecodable bearer value: hash the token itself.
-    // Still a stable per-token (≈ per-identity) bucket, far better than IP.
-    return `tok:${sha256(token)}`;
-  }
+  if (token) return `tok:${sha256(token)}`;
 
-  // 3. Browser Kratos session cookie.
+  // 3. Browser Kratos session cookie → hash of the cookie header bytes.
   const cookie = cookieHeader(headers);
   if (cookie && KRATOS_COOKIE_NAME_REGEX.test(cookie)) {
     return `sess:${sha256(cookie)}`;
@@ -135,11 +100,9 @@ export function deriveRateLimitKey(request: RateLimitKeyInput): string {
 /**
  * True when a derived key represents an authenticated principal (not an IP
  * fallback). The rate-limit `max()` uses this to apply the authenticated limit
- * instead of the stricter anonymous limit — fixing the second half of the
- * onRequest race where authed users were silently capped at the anon limit.
+ * instead of the stricter anonymous limit — fixing the half of the onRequest
+ * race where authed users were silently capped at the anon limit.
  */
 export function isAuthenticatedKey(key: string): boolean {
-  return (
-    key.startsWith('id:') || key.startsWith('tok:') || key.startsWith('sess:')
-  );
+  return key.startsWith('tok:') || key.startsWith('sess:');
 }

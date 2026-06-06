@@ -14,7 +14,11 @@ import type {
 } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { SESSION_TOKEN_HEADER, TEAM_HEADER } from './constants.js';
+import {
+  KRATOS_COOKIE_NAME_REGEX,
+  SESSION_TOKEN_HEADER,
+  TEAM_HEADER,
+} from './constants.js';
 import { KetoNamespace } from './keto-constants.js';
 import type { PermissionChecker } from './permission-checker.js';
 import type { RelationshipWriter } from './relationship-writer.js';
@@ -74,17 +78,12 @@ function extractCookieHeader(request: FastifyRequest): string | null {
 
 /**
  * Does the raw Cookie header contain a Kratos session cookie by NAME?
- *
- * Kratos uses `ory_kratos_session` by default and `ory_session_<slug>` on
- * Ory Network deployments. We anchor the match to the start of the header
- * or a `; ` separator so values (e.g. `analytics_id=ory_session_abc`)
- * don't trigger false positives.
+ * Uses the shared {@link KRATOS_COOKIE_NAME_REGEX} so this gating and the
+ * rate-limit key extractor recognize the same cookie names.
  *
  * This avoids a Kratos round-trip for every anonymous browser request
  * (e.g. on public endpoints that also accept optional auth).
  */
-const KRATOS_COOKIE_NAME_REGEX = /(?:^|;\s*)ory(?:_kratos_session|_session_)/;
-
 function cookieLooksLikeKratosSession(cookie: string): boolean {
   return KRATOS_COOKIE_NAME_REGEX.test(cookie);
 }

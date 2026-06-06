@@ -25,7 +25,11 @@ import {
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
-/** A decodable (unsigned) JWT carrying a moltnet:identity_id claim. */
+/**
+ * A JWT-shaped token. The limiter keys on the token *bytes* (not the decoded
+ * claim), so distinct `identityId` values produce distinct token strings and
+ * therefore distinct buckets — which is exactly what these tests exercise.
+ */
 function jwtFor(identityId: string): string {
   const b64 = (obj: unknown) =>
     Buffer.from(JSON.stringify(obj)).toString('base64url');
@@ -91,6 +95,35 @@ describe('Rate limiter keys by identity, not IP (#1336)', () => {
     // The authenticated limit header reflects the auth limit, not the anon one.
     const limited = await hit(app, token);
     expect(limited.headers['x-ratelimit-limit']).toBe('3');
+
+    await app.close();
+  });
+
+  it('a forged token claiming a victim identity cannot exhaust the victim bucket', async () => {
+    // Cross-identity DoS regression (#1336 review): the limiter increments at
+    // onRequest, before auth rejects a bad token. If it keyed on the (unverified)
+    // moltnet:identity_id claim, an attacker could set the victim's id and burn
+    // the victim's budget. Keying on token BYTES prevents that — the attacker's
+    // forged token is different bytes, so it lands in its own bucket.
+    const app = await createTestApp(mocks, VALID_AUTH_CONTEXT, {
+      rateLimitGlobalAuth: 2,
+      rateLimitGlobalAnon: 2,
+    });
+
+    const victimToken = jwtFor('victim-identity');
+    // Same claimed identity, different bytes — an attacker who learned the
+    // victim's identityId (e.g. from a creator block) but not the token.
+    const forgedToken = `${victimToken}-forged-by-attacker`;
+
+    // Attacker hammers with the forged token until ITS bucket is exhausted.
+    expect((await hit(app, forgedToken)).statusCode).toBe(200);
+    expect((await hit(app, forgedToken)).statusCode).toBe(200);
+    expect((await hit(app, forgedToken)).statusCode).toBe(429);
+
+    // The victim's real token is untouched — full budget remains.
+    expect((await hit(app, victimToken)).statusCode).toBe(200);
+    expect((await hit(app, victimToken)).statusCode).toBe(200);
+    expect((await hit(app, victimToken)).statusCode).toBe(429);
 
     await app.close();
   });

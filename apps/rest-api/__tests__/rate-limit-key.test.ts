@@ -6,9 +6,10 @@ import {
 } from '../src/plugins/rate-limit-key.js';
 
 /**
- * Build a decodable JWT (header.payload.signature). The signature is not
- * checked — deriveRateLimitKey only decodes claims to pick a bucket, it never
- * verifies. Real verification still happens later in the auth preHandler.
+ * Build a JWT-shaped token (header.payload.signature). deriveRateLimitKey does
+ * NOT decode or trust the payload — it keys on a hash of the whole token byte
+ * string — so the claims only matter for the anti-forgery test below, which
+ * proves a chosen identity claim does NOT influence the bucket.
  */
 function makeJwt(claims: Record<string, unknown>): string {
   const b64 = (obj: unknown) =>
@@ -28,70 +29,100 @@ function req(input: Partial<KeyInput>): KeyInput {
 }
 
 describe('deriveRateLimitKey', () => {
-  describe('Bearer JWT (agent / human enriched token)', () => {
-    it('keys on the moltnet:identity_id claim', () => {
-      const token = makeJwt({
-        'moltnet:identity_id': 'aaaa-aaaa',
-        sub: 'client-123',
-      });
+  describe('Bearer token (JWT or opaque) — keyed on token bytes, not claims', () => {
+    it('keys on a hash of the token, namespaced tok:', () => {
       const key = deriveRateLimitKey(
-        req({ headers: { authorization: `Bearer ${token}` } }),
+        req({
+          headers: {
+            authorization: `Bearer ${makeJwt({ 'moltnet:identity_id': 'a' })}`,
+          },
+        }),
       );
-      expect(key).toBe('id:aaaa-aaaa');
+      expect(key).toMatch(/^tok:[a-f0-9]{64}$/);
     });
 
-    it('falls back to sub when moltnet:identity_id is absent', () => {
-      const token = makeJwt({ sub: 'client-123' });
-      const key = deriveRateLimitKey(
-        req({ headers: { authorization: `Bearer ${token}` } }),
+    it('is stable for the same token and distinct across different tokens', () => {
+      const t1 = makeJwt({ 'moltnet:identity_id': 'a' });
+      const t2 = makeJwt({ 'moltnet:identity_id': 'b' });
+      const k1 = deriveRateLimitKey(
+        req({ headers: { authorization: `Bearer ${t1}` } }),
       );
-      expect(key).toBe('id:client-123');
+      const k1again = deriveRateLimitKey(
+        req({ headers: { authorization: `Bearer ${t1}` } }),
+      );
+      const k2 = deriveRateLimitKey(
+        req({ headers: { authorization: `Bearer ${t2}` } }),
+      );
+      expect(k1).toBe(k1again);
+      expect(k1).not.toBe(k2);
     });
 
-    it('gives two identities on the SAME ip distinct keys (the #1336 bug)', () => {
+    it('gives two distinct tokens on the same IP separate keys (the #1336 IP-collapse bug)', () => {
       const ip = '203.0.113.9';
       const a = deriveRateLimitKey(
         req({
           ip,
-          headers: {
-            authorization: `Bearer ${makeJwt({ 'moltnet:identity_id': 'agent-a' })}`,
-          },
+          headers: { authorization: `Bearer ${makeJwt({ sub: 'agent-a' })}` },
         }),
       );
       const b = deriveRateLimitKey(
         req({
           ip,
-          headers: {
-            authorization: `Bearer ${makeJwt({ 'moltnet:identity_id': 'agent-b' })}`,
-          },
+          headers: { authorization: `Bearer ${makeJwt({ sub: 'agent-b' })}` },
         }),
       );
       expect(a).not.toBe(b);
-      expect(a).toBe('id:agent-a');
-      expect(b).toBe('id:agent-b');
     });
-  });
 
-  describe('Opaque Ory bearer token', () => {
-    it('keys on a hash of the token (cannot decode pre-introspection)', () => {
+    it('keys opaque Ory tokens on the token hash too', () => {
       const key = deriveRateLimitKey(
         req({ headers: { authorization: 'Bearer ory_at_OPAQUEvalue123' } }),
       );
       expect(key).toMatch(/^tok:[a-f0-9]{64}$/);
     });
+  });
 
-    it('is stable for the same opaque token and distinct across tokens', () => {
-      const k1 = deriveRateLimitKey(
-        req({ headers: { authorization: 'Bearer ory_at_AAA' } }),
+  describe('Anti-forgery: a chosen identity claim cannot target a victim bucket (#1336 review)', () => {
+    it('does NOT let an attacker land in a victim’s bucket by setting moltnet:identity_id', () => {
+      // The victim's own (valid) token.
+      const victimToken = makeJwt({ 'moltnet:identity_id': 'victim-123' });
+      const victimKey = deriveRateLimitKey(
+        req({
+          ip: '10.0.0.1',
+          headers: { authorization: `Bearer ${victimToken}` },
+        }),
       );
-      const k2 = deriveRateLimitKey(
-        req({ headers: { authorization: 'Bearer ory_at_AAA' } }),
+
+      // An attacker forges a DIFFERENT token that merely *claims* the victim's id.
+      const forgedToken = makeJwt({ 'moltnet:identity_id': 'victim-123' });
+      // (different signature segment guarantees different bytes)
+      const forgedToken2 = `${forgedToken}-attacker`;
+      const forgedKey = deriveRateLimitKey(
+        req({
+          ip: '10.0.0.2',
+          headers: { authorization: `Bearer ${forgedToken2}` },
+        }),
       );
-      const k3 = deriveRateLimitKey(
-        req({ headers: { authorization: 'Bearer ory_ht_BBB' } }),
+
+      // Because keys are token-byte hashes, the forged token CANNOT collide with
+      // the victim's bucket — the attacker can only exhaust their own token.
+      expect(forgedKey).not.toBe(victimKey);
+    });
+
+    it('an attacker cannot fabricate the victim’s token bytes', () => {
+      // The only way to land in victim-123's bucket is to present the victim's
+      // exact token bytes — which the attacker does not have. Same claim, same
+      // IP, but a different token string ⇒ different bucket.
+      const tokenA = makeJwt({ 'moltnet:identity_id': 'victim-123', jti: '1' });
+      const tokenB = makeJwt({ 'moltnet:identity_id': 'victim-123', jti: '2' });
+      const ip = '198.51.100.1';
+      const keyA = deriveRateLimitKey(
+        req({ ip, headers: { authorization: `Bearer ${tokenA}` } }),
       );
-      expect(k1).toBe(k2);
-      expect(k1).not.toBe(k3);
+      const keyB = deriveRateLimitKey(
+        req({ ip, headers: { authorization: `Bearer ${tokenB}` } }),
+      );
+      expect(keyA).not.toBe(keyB);
     });
   });
 
@@ -126,42 +157,41 @@ describe('deriveRateLimitKey', () => {
       expect(key).toBe('ip:198.51.100.4');
     });
 
-    it('namespaces ip so a forged sub cannot collide with an ip bucket', () => {
-      // An attacker who sets sub to a victim's IP string still lands in the
-      // id: namespace, never the ip: namespace.
-      const token = makeJwt({ 'moltnet:identity_id': '198.51.100.4' });
-      const forged = deriveRateLimitKey(
-        req({
-          ip: '10.0.0.1',
-          headers: { authorization: `Bearer ${token}` },
-        }),
+    it('namespaces ip so a token-hash can never collide with an ip bucket', () => {
+      const tokKey = deriveRateLimitKey(
+        req({ headers: { authorization: 'Bearer anything' } }),
       );
-      const victimAnon = deriveRateLimitKey(
+      const ipKey = deriveRateLimitKey(
         req({ ip: '198.51.100.4', headers: {} }),
       );
-      expect(forged).toBe('id:198.51.100.4');
-      expect(victimAnon).toBe('ip:198.51.100.4');
-      expect(forged).not.toBe(victimAnon);
+      expect(tokKey.startsWith('tok:')).toBe(true);
+      expect(ipKey.startsWith('ip:')).toBe(true);
+      expect(tokKey).not.toBe(ipKey);
     });
   });
 
   describe('malformed bearer token', () => {
-    it('falls back to ip when the JWT cannot be decoded', () => {
+    it('still keys on the token bytes for a non-JWT bearer value', () => {
       const key = deriveRateLimitKey(
         req({
           ip: '192.0.2.5',
           headers: { authorization: 'Bearer not.a.jwt' },
         }),
       );
-      // Undecodable, non-opaque -> hash the token string rather than crash.
       expect(key).toMatch(/^tok:[a-f0-9]{64}$/);
+    });
+
+    it('falls back to ip when the Authorization header is not a Bearer scheme', () => {
+      const key = deriveRateLimitKey(
+        req({ ip: '192.0.2.6', headers: { authorization: 'Basic abc' } }),
+      );
+      expect(key).toBe('ip:192.0.2.6');
     });
   });
 });
 
 describe('isAuthenticatedKey', () => {
-  it('treats id:/tok:/sess: keys as authenticated and ip: as anonymous', () => {
-    expect(isAuthenticatedKey('id:aaaa')).toBe(true);
+  it('treats tok:/sess: keys as authenticated and ip: as anonymous', () => {
     expect(isAuthenticatedKey('tok:deadbeef')).toBe(true);
     expect(isAuthenticatedKey('sess:deadbeef')).toBe(true);
     expect(isAuthenticatedKey('ip:203.0.113.1')).toBe(false);

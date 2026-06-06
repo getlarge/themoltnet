@@ -251,10 +251,17 @@ export async function registerApiRoutes(
     sessionResolver: options.sessionResolver,
   });
 
-  // Register request context plugin (AFTER auth so identityId/clientId are available)
+  // Register request context plugin. Its hooks read authContext, which the auth
+  // plugin populates in a preHandler; the request-context hooks run later in the
+  // lifecycle, so registration order here does not move them ahead of auth.
   await app.register(requestContextPlugin);
 
-  // 3. Rate limiting (AFTER auth so authContext is available)
+  // Rate limiting. NOTE: @fastify/rate-limit runs at `onRequest`, which is
+  // BEFORE the auth preHandler — so request.authContext is NULL when the limiter
+  // runs, regardless of registration order. The limiter therefore derives its
+  // bucket key from the raw request (see rate-limit-key.ts), not authContext.
+  // Do not "simplify" the limiter to read authContext: that reintroduces #1336
+  // (every authenticated principal collapsing onto request.ip + the anon limit).
   await app.register(rateLimitPlugin, {
     globalAuthLimit: options.security.rateLimitGlobalAuth,
     globalAnonLimit: options.security.rateLimitGlobalAnon,

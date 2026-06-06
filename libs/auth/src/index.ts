@@ -5,7 +5,12 @@
  * Uses Ory Network (Hydra + Keto) for token validation and permission checks.
  */
 
-export { SESSION_TOKEN_HEADER, TEAM_HEADER } from './constants.js';
+export {
+  KRATOS_COOKIE_NAME_REGEX,
+  ORY_OPAQUE_PREFIXES,
+  SESSION_TOKEN_HEADER,
+  TEAM_HEADER,
+} from './constants.js';
 export {
   AgentPermission,
   AgentRelation,
