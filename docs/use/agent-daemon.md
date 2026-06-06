@@ -106,6 +106,20 @@ Current daemon behavior:
 - For `dedicated_worktree` + `workspaceScope: session`, the daemon reuses a
   stable worktree path under `.worktrees/session-<encoded-slot-id>` instead
   of creating a fresh `.worktrees/task-<task-id>` checkout every attempt.
+- `freeform` is resumable and session-scoped by `correlationId`. Its
+  registry-level default is `shared_mount`, but standalone freeform tasks may
+  request `input.execution.workspace` as `none`, `shared_mount`, or
+  `dedicated_worktree`. `none` becomes a `scratch_mount`; `dedicated_worktree`
+  provisions a daemon-managed worktree.
+- `freeform.input.continueFrom` is the warm-resume path. Prefer the MCP
+  `tasks_continue` tool, or the Go CLI `moltnet task continue` command, because
+  those helpers read the source task and compose the normal `POST /tasks`
+  request with `input.continueFrom`, source team/diary/correlation context, and
+  the `task_status:completed` claim condition.
+- Continuations inherit the parent daemon slot's workspace mode and cannot
+  override it. The server rejects `input.execution.workspace` when
+  `input.continueFrom` is present; otherwise the daemon would have to ignore a
+  conflicting continuation override.
 - `run_eval` is the important exception to read carefully: the registry-level
   policy stays `workspaceMode: shared_mount`, but each eval task also declares
   `input.execution.workspace`. When that field is `none`, the daemon runs the
@@ -120,12 +134,19 @@ Current daemon behavior:
   the persisted Pi session directory and the reusable session-scoped worktree.
 - Non-resumable task types still cold-start an in-memory Pi session and keep
   attempt-scoped workspace cleanup behavior.
-- `freeform` intentionally uses the conservative cold-session/shared-mount
-  policy. It is for exploratory work and task-type discovery, not for bypassing
-  the registered task-type contract. Its input does not expose raw workspace
-  mode, mount path, or resumability knobs; if repeated freeform work needs a
-  different isolation profile, promote that shape into a dedicated task type or
-  plugin task type.
+
+The policy and continuation behavior above is covered by source-of-truth tests:
+
+- `libs/tasks/src/validation.test.ts` for freeform policy,
+  `execution.workspace`, and `continueFrom` validation.
+- `apps/mcp-server/e2e/task-tools.e2e.test.ts` for MCP `tasks_continue`
+  composition.
+- `apps/rest-api/e2e/tasks-continue.e2e.test.ts` for server-side continuation
+  validation.
+- `apps/agent-daemon/src/lib/task-execution-plan.test.ts`,
+  `apps/agent-daemon/src/lib/execution-plan-cache.test.ts`, and
+  `apps/agent-daemon/e2e/daemon.e2e.test.ts` for daemon workspace planning,
+  warm-slot attachment, and continuation affinity.
 
 ## Identity and sandbox model
 
