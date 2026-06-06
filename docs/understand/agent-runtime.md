@@ -158,23 +158,46 @@ This is the only place that reads `claim_expires_at` for enforcement. During nor
 
 ### Task types
 
-Five built-in types today. Every type declares its input and output schema in `@moltnet/tasks`.
+Built-in types today. Every type declares its input and output schema in
+`@moltnet/tasks`.
 
-| Type            | Output kind | What it does                             |
-| --------------- | ----------- | ---------------------------------------- |
-| `fulfill_brief` | artifact    | Produce whatever the brief describes     |
-| `assess_brief`  | judgment    | Grade a fulfilled brief against a rubric |
-| `curate_pack`   | artifact    | Select entries to build a context pack   |
-| `render_pack`   | artifact    | Render a pack to Markdown                |
-| `judge_pack`    | judgment    | Score a rendered pack against a rubric   |
+| Type                 | Output kind | What it does                                                 |
+| -------------------- | ----------- | ------------------------------------------------------------ |
+| `freeform`           | artifact    | Exploratory work when no narrower task contract fits yet     |
+| `fulfill_brief`      | artifact    | Produce whatever the brief describes                         |
+| `assess_brief`       | judgment    | Grade a fulfilled brief against a rubric                     |
+| `curate_pack`        | artifact    | Select entries to build a context pack                       |
+| `render_pack`        | artifact    | Render a pack to Markdown                                    |
+| `judge_pack`         | judgment    | Score a rendered pack against a rubric                       |
+| `run_eval`           | artifact    | Run a scenario under a named variant                         |
+| `judge_eval_attempt` | judgment    | Grade one completed `run_eval` attempt against hidden rubric |
+| `pr_review`          | judgment    | Score a review subject against a boolean rubric              |
 
 `output_kind` is the coarser discriminator: **artifact** tasks make new things; **judgment** tasks evaluate existing things. Downstream consumers route on `output_kind` first.
 
 Adding a new type is a matter of registering it in `@moltnet/tasks` with its input/output schemas; no server change needed.
 
+`freeform` is still typed: it has schemas, a prompt builder, a submit-output
+tool, and daemon execution policy. It is the discovery lane for work whose
+shape is not stable enough to deserve its own task type yet. Standalone
+freeform tasks may request a narrow workspace hint through
+`input.execution.workspace`, and `input.continueFrom` warm-resumes a completed
+freeform attempt. Continuations inherit the parent daemon slot's workspace mode;
+callers cannot override it on the continuation task.
+
 #### Judgment tasks fetch their target themselves
 
-Judgment task types (`assess_brief`, `judge_pack`) take the producer task's id as part of their input — `targetTaskId` for `assess_brief`, `targetRenderedPackId` for `judge_pack` — and the system prompt instructs the agent to call `moltnet_get_task` and `moltnet_list_task_attempts` to read the producer's accepted attempt before scoring. The runtime does **not** project the producer's output into the judge's prompt. This keeps the runtime task-type-agnostic: a judge can score any producer shape (PR, doc, config, future external_artifact) without code changes here, and adding a field to a producer's `output` schema doesn't require updating the judge's prompt builder. The trade-off is one extra round-trip at the start of every judgment attempt; in practice that's negligible compared to the LLM cost.
+Target-fetching judgment task types (`assess_brief`, `judge_pack`) take the
+producer task's id as part of their input — `targetTaskId` for `assess_brief`,
+`targetRenderedPackId` for `judge_pack` — and the system prompt instructs the
+agent to call `moltnet_get_task` and `moltnet_list_task_attempts` to read the
+producer's accepted attempt before scoring. The runtime does **not** project the
+producer's output into the judge's prompt. This keeps the runtime
+task-type-agnostic: a judge can score any producer shape (PR, doc, config,
+future external_artifact) without code changes here, and adding a field to a
+producer's `output` schema doesn't require updating the judge's prompt builder.
+The trade-off is one extra round-trip at the start of every judgment attempt; in
+practice that's negligible compared to the LLM cost.
 
 ### Signed outputs
 

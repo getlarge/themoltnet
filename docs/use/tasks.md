@@ -18,7 +18,7 @@ Current built-in policy from `@moltnet/tasks`:
 
 | Type                 | Resumable | Workspace mode       | Workspace scope | Session scope |
 | -------------------- | --------- | -------------------- | --------------- | ------------- |
-| `freeform`           | no        | `shared_mount`       | `attempt`       | `none`        |
+| `freeform`           | yes       | `shared_mount`       | `session`       | `correlation` |
 | `fulfill_brief`      | yes       | `dedicated_worktree` | `session`       | `correlation` |
 | `assess_brief`       | no        | `dedicated_worktree` | `attempt`       | `none`        |
 | `curate_pack`        | no        | `shared_mount`       | `attempt`       | `none`        |
@@ -26,6 +26,7 @@ Current built-in policy from `@moltnet/tasks`:
 | `judge_pack`         | no        | `shared_mount`       | `attempt`       | `none`        |
 | `run_eval`           | yes       | `shared_mount`       | `session`       | `custom`      |
 | `judge_eval_attempt` | no        | `shared_mount`       | `attempt`       | `none`        |
+| `pr_review`          | no        | `dedicated_worktree` | `attempt`       | `none`        |
 
 Current daemon behavior:
 
@@ -41,13 +42,17 @@ Current daemon behavior:
   `dedicated_worktree`, that means a reusable worktree; for `run_eval`, it
   means the producer Pi session and producer workspace remain available only as
   long as that daemon slot stays live.
-- `run_eval` is special: its registry policy stays `workspaceMode:
-shared_mount`, but each task instance also carries `input.execution.workspace`
-  (`none`, `shared_mount`, or `dedicated_worktree`). The daemon turns `none`
-  into a `scratch_mount` execution plan. `judge_eval_attempt` resolves only
-  against a still-live producer slot; if it claims in time, it immediately
-  forks the producer session and copies the producer workspace into
-  judge-owned scratch state before executing.
+- `freeform` and `run_eval` both default to registry-level `workspaceMode:
+shared_mount`, but each task instance can also carry
+  `input.execution.workspace` (`none`, `shared_mount`, or
+  `dedicated_worktree`). The daemon turns `none` into a `scratch_mount`
+  execution plan.
+- `freeform.input.continueFrom` creates a warm continuation of a completed
+  freeform attempt. Continuations inherit the parent slot's workspace mode and
+  cannot set `input.execution.workspace` on the continuation task.
+- `judge_eval_attempt` resolves only against a still-live producer slot; if it
+  claims in time, it immediately forks the producer session and copies the
+  producer workspace into judge-owned scratch state before executing.
 - Task types with `resumable: no` still run as cold attempt-scoped sessions.
 
 ## Typed and freeform work
@@ -63,15 +68,30 @@ Do not use unknown `taskType` strings as an experiment; the server rejects them
 because unknown types have no prompt, schema CID, output contract, or daemon
 policy.
 
-`freeform` also does not expose raw workspace mode, mount path, or resumability
-configuration in its input. That is deliberate: the task semantics are already
-looser than a domain task, so the runtime contract stays conservative
-(`shared_mount`, attempt-scoped workspace, cold session). If repeated freeform
-work needs a dedicated worktree, warm session, or different mount profile, treat
-that as evidence for a real task type or plugin task type with an explicit
-execution policy. A future profile-style field can be added when there is a
-clear recurring need, but it should be a narrow policy enum rather than direct
-daemon internals.
+`freeform` is resumable and session-scoped by `correlationId`. A standalone
+freeform task may include `input.execution.workspace` as a narrow workspace
+hint: `none`, `shared_mount`, or `dedicated_worktree`. These are policy values,
+not raw daemon internals: proposers still cannot choose mount paths, branch
+names, VM setup, or arbitrary resumability behavior.
+
+For warm resume, use the MCP `tasks_continue` tool or the Go CLI
+`moltnet task continue` command instead of hand-assembling the create body.
+Those helpers read the source task, build a new `freeform` task with
+`input.continueFrom`, carry forward the source task's team/diary/correlation
+context, and inject the `task_status:completed` claim condition. There is no
+dedicated REST endpoint; the helper still creates a normal task through
+`POST /tasks`.
+
+Continuation workspace mode is inherited from the parent daemon slot. Do not
+set `input.execution.workspace` when `input.continueFrom` is present; the server
+rejects that combination because the daemon would otherwise have to ignore the
+override. Today `continueFrom.mode` defaults to `extend`; `fork` exists in the
+wire schema for future copy-on-write continuation work, but the current
+validator rejects it.
+
+If repeated freeform work needs a stronger input/output contract or a runtime
+profile beyond these declared hints, treat that as evidence for a real task
+type or plugin task type with an explicit execution policy.
 
 The useful pattern is:
 
@@ -81,6 +101,19 @@ The useful pattern is:
    `proposedTaskType`, and `followUpTasks`.
 4. Promote repeated shapes into real task types only after the contract is
    stable enough to validate and route.
+
+Source-of-truth tests for this contract:
+
+- `libs/tasks/src/validation.test.ts` covers the freeform execution policy,
+  `execution.workspace`, and `continueFrom` validation.
+- `apps/mcp-server/e2e/task-tools.e2e.test.ts` covers the MCP
+  `tasks_continue` helper shape and injected claim condition.
+- `apps/rest-api/e2e/tasks-continue.e2e.test.ts` covers server-side
+  continuation validation.
+- `apps/agent-daemon/src/lib/task-execution-plan.test.ts`,
+  `apps/agent-daemon/src/lib/execution-plan-cache.test.ts`, and
+  `apps/agent-daemon/e2e/daemon.e2e.test.ts` cover daemon workspace planning,
+  warm-slot attachment, and continuation affinity.
 
 ## Operations
 

@@ -36,11 +36,15 @@ a durable task type. Its input accepts a natural-language `brief`, optional
 `followUpTasks`, so repeated freeform patterns can later be promoted into
 plugin catalog entries or built-in task types.
 
-`freeform` deliberately does not let proposers choose arbitrary workspace mode,
-mount paths, or resumability. Its execution policy remains registered
-task-type metadata. If exploratory work repeatedly needs a different runtime
-profile, that is promotion signal for a plugin task type with a declared
-policy.
+`freeform` deliberately keeps runtime control narrow. Standalone freeform tasks
+may set `input.execution.workspace` to `none`, `shared_mount`, or
+`dedicated_worktree`, and `input.continueFrom` can warm-resume a completed
+freeform attempt. Proposers still cannot choose mount paths, branch names, VM
+setup, or arbitrary resumability behavior; the registered task-type policy and
+daemon own those details. Continuations inherit the parent slot's workspace
+mode, so `input.execution.workspace` is rejected when `input.continueFrom` is
+present. If exploratory work repeatedly needs a different runtime profile, that
+is promotion signal for a plugin task type with a declared policy.
 
 #### Task creation means proposal only
 
