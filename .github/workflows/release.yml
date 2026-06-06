@@ -12,7 +12,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, agent-runtime, agent-daemon
+          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, agent-runtime, agent-daemon-state, agent-daemon
         required: false
         type: string
 
@@ -58,6 +58,8 @@ jobs:
       agent-runtime-tag-name: ${{ steps.release.outputs['libs/agent-runtime--tag_name'] }}
       pi-extension-release-created: ${{ steps.release.outputs['libs/pi-extension--release_created'] }}
       pi-extension-tag-name: ${{ steps.release.outputs['libs/pi-extension--tag_name'] }}
+      agent-daemon-state-release-created: ${{ steps.release.outputs['libs/agent-daemon-state--release_created'] }}
+      agent-daemon-state-tag-name: ${{ steps.release.outputs['libs/agent-daemon-state--tag_name'] }}
       design-system-release-created: ${{ steps.release.outputs['libs/design-system--release_created'] }}
       design-system-tag-name: ${{ steps.release.outputs['libs/design-system--tag_name'] }}
       agent-daemon-release-created: ${{ steps.release.outputs['apps/agent-daemon--release_created'] }}
@@ -99,6 +101,8 @@ jobs:
       agent-runtime-tag: ${{ steps.resolve.outputs.agent-runtime-tag }}
       pi-extension: ${{ steps.resolve.outputs.pi-extension }}
       pi-extension-tag: ${{ steps.resolve.outputs.pi-extension-tag }}
+      agent-daemon-state: ${{ steps.resolve.outputs.agent-daemon-state }}
+      agent-daemon-state-tag: ${{ steps.resolve.outputs.agent-daemon-state-tag }}
       design-system: ${{ steps.resolve.outputs.design-system }}
       design-system-tag: ${{ steps.resolve.outputs.design-system-tag }}
       agent-daemon: ${{ steps.resolve.outputs.agent-daemon }}
@@ -131,6 +135,8 @@ jobs:
           RP_AGENT_RUNTIME_TAG: ${{ needs.release-please.outputs.agent-runtime-tag-name }}
           RP_PI_EXTENSION_CREATED: ${{ needs.release-please.outputs.pi-extension-release-created }}
           RP_PI_EXTENSION_TAG: ${{ needs.release-please.outputs.pi-extension-tag-name }}
+          RP_AGENT_DAEMON_STATE_CREATED: ${{ needs.release-please.outputs.agent-daemon-state-release-created }}
+          RP_AGENT_DAEMON_STATE_TAG: ${{ needs.release-please.outputs.agent-daemon-state-tag-name }}
           RP_DESIGN_SYSTEM_CREATED: ${{ needs.release-please.outputs.design-system-release-created }}
           RP_DESIGN_SYSTEM_TAG: ${{ needs.release-please.outputs.design-system-tag-name }}
           RP_AGENT_DAEMON_CREATED: ${{ needs.release-please.outputs.agent-daemon-release-created }}
@@ -189,6 +195,7 @@ jobs:
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
           resolve "agent-runtime" "$RP_AGENT_RUNTIME_CREATED" "$RP_AGENT_RUNTIME_TAG" "agent-runtime"
           resolve "pi-extension" "$RP_PI_EXTENSION_CREATED" "$RP_PI_EXTENSION_TAG" "pi-extension"
+          resolve "agent-daemon-state" "$RP_AGENT_DAEMON_STATE_CREATED" "$RP_AGENT_DAEMON_STATE_TAG" "agent-daemon-state"
           resolve "agent-daemon" "$RP_AGENT_DAEMON_CREATED" "$RP_AGENT_DAEMON_TAG" "agent-daemon"
 
           # Forward version outputs
@@ -771,9 +778,55 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish-agent-daemon-state:
+    name: Publish Agent Daemon State to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.agent-daemon-state == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec nx run @themoltnet/agent-daemon-state:build
+
+      - run: pnpm exec nx run @themoltnet/agent-daemon-state:test
+
+      - run: pnpm exec nx run @themoltnet/agent-daemon-state:check:pack
+
+      - name: Publish @themoltnet/agent-daemon-state
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/agent-daemon-state publish --no-git-checks --access public --provenance
+
+      - name: Publish Agent Daemon State release
+        run: gh release edit "${{ needs.resolve-publish.outputs.agent-daemon-state-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-agent-daemon:
     name: Publish Agent Daemon to npm
-    needs: [resolve-publish, publish-agent-runtime, publish-pi-extension]
+    needs:
+      [
+        resolve-publish,
+        publish-agent-runtime,
+        publish-pi-extension,
+        publish-agent-daemon-state,
+      ]
     # Always run (even if upstream publish jobs were skipped because they
     # had no release this run); only publish if release-please cut a tag
     # for the daemon itself.

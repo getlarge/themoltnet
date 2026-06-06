@@ -2,15 +2,37 @@
   "name": "@themoltnet/agent-daemon-state",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
-  "private": true,
   "type": "module",
+  "description": "MoltNet agent daemon state - durable daemon slot registry and persistence helpers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/agent-daemon-state"
+  },
+  "homepage": "https://themolt.net",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     }
   },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/tsconfig.tsbuildinfo"
+  ],
   "scripts": {
+    "build": "tsc -b tsconfig.lib.json",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
     "test": "vitest run --passWithNoTests"
   },
   "nx": {
@@ -18,7 +40,21 @@
       "type:util",
       "scope:agent",
       "platform:server"
-    ]
+    ],
+    "targets": {
+      "typecheck": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": []
+      }
+    }
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
@@ -28,5 +64,8 @@
     "@types/pg": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

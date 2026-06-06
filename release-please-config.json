@@ -34,6 +34,10 @@
       ],
       "release-type": "node"
     },
+    "libs/agent-daemon-state": {
+      "component": "agent-daemon-state",
+      "release-type": "node"
+    },
     "libs/agent-runtime": {
       "component": "agent-runtime",
       "release-type": "node"
