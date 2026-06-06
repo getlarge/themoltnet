@@ -96,6 +96,11 @@ export interface SecurityOptions {
   rateLimitRegistration: number;
   /** Max requests per minute for readiness probes (default: 12) */
   rateLimitReadiness: number;
+  /**
+   * Number of trusted reverse-proxy hops (Fastify `trustProxy`). 0 = trust no
+   * proxy. Set to 1 behind Fly so request.ip is the real client, not the edge.
+   */
+  trustProxy: number;
   /** Base URL for callback URLs in GitHub App manifests (e.g. http://localhost:8000 in dev) */
   apiBaseUrl: string;
   /** Sponsor agent identity ID for issuing vouchers */
@@ -336,6 +341,10 @@ export async function registerApiRoutes(
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: options.logger ?? false,
+    // Trust the configured number of proxy hops so request.ip reflects the real
+    // client (used by the anonymous rate-limit fallback), not the Fly edge IP.
+    // Defaults to 0 (no proxy) for local/dev/test; set TRUST_PROXY=1 in Fly.
+    trustProxy: options.security.trustProxy,
     ajv: {
       customOptions: {
         removeAdditional: true,

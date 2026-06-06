@@ -508,6 +508,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitLegreffierStatus: config.security.RATE_LIMIT_LEGREFFIER_STATUS,
       rateLimitRegistration: config.security.RATE_LIMIT_REGISTRATION,
       rateLimitReadiness: config.security.RATE_LIMIT_READINESS,
+      trustProxy: config.security.TRUST_PROXY,
       apiBaseUrl: config.security.API_BASE_URL.replace(/\/$/, ''),
       sponsorAgentId: config.security.SPONSOR_AGENT_ID,
     },

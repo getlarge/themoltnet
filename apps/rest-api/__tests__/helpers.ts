@@ -53,6 +53,7 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitLegreffierStatus: 1000,
   rateLimitRegistration: 1000,
   rateLimitReadiness: 1000,
+  trustProxy: 0,
   apiBaseUrl: 'http://localhost:8000',
 };
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
