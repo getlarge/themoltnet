@@ -17,9 +17,13 @@ import {
   TaskQueueTable,
   TaskTypeFacet,
 } from '@moltnet/task-ui';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
-import { type ChangeEvent, useMemo, useState } from 'react';
+import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
 
 import { getApiClient } from '../api.js';
@@ -37,6 +41,7 @@ const AGENT_DAEMON_DOCS_HREF = `${getConfig().docsUrl}/use/agent-daemon`;
 
 export function TasksPage() {
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const search = useSearch();
   const params = useMemo(() => new URLSearchParams(search), [search]);
@@ -134,6 +139,30 @@ export function TasksPage() {
     enabled,
   });
   const pickerCandidates = candidateQuery.data?.items ?? [];
+  const searchPickerCandidates = useCallback(
+    async (searchText: string) => {
+      if (!teamId) return [];
+      const data = await queryClient.fetchQuery(
+        listTasksOptions({
+          client: getApiClient(),
+          query: {
+            teamId,
+            query: searchText.trim() || undefined,
+            statuses: [
+              'waiting',
+              'queued',
+              'dispatched',
+              'running',
+              'completed',
+            ],
+            limit: 20,
+          },
+        }),
+      );
+      return data.items;
+    },
+    [queryClient, teamId],
+  );
 
   function updateTaskTypes(next: string[]) {
     setTaskTypes(next);
@@ -408,6 +437,7 @@ export function TasksPage() {
           diaries={diaryOptions}
           candidateTasks={pickerCandidates}
           availableTypes={registeredTaskTypes}
+          onSearchCandidates={searchPickerCandidates}
           onClose={() => setShowCreate(false)}
           onSubmit={async (request: CreateTaskRequest) => {
             const { data, error: apiError } = await createTask({

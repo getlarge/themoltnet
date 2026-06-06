@@ -108,6 +108,11 @@ export interface CreateTaskDialogProps {
   candidateTasks: TaskSummary[];
   /** Registered task-type names, forwarded to the depends-on type filter. */
   availableTypes: string[];
+  /**
+   * Optional server-backed search for the depends-on picker. The dialog remains
+   * API-free; apps provide this when they can query `listTasks`.
+   */
+  onSearchCandidates?: (query: string) => Promise<TaskSummary[]>;
   onClose: () => void;
   /**
    * Perform the create. Resolves with the new task id on success; rejects (or
@@ -132,6 +137,7 @@ export function CreateTaskDialog({
   diaries,
   candidateTasks,
   availableTypes,
+  onSearchCandidates,
   onClose,
   onSubmit,
   onCreated,
@@ -383,6 +389,7 @@ export function CreateTaskDialog({
           <DependsOnBuilder
             candidates={candidateTasks}
             availableTypes={availableTypes}
+            onSearchCandidates={onSearchCandidates}
             rows={dependsRows}
             onChange={setDependsRows}
           />
