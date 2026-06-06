@@ -101,7 +101,12 @@ already been fixed in the published CLI.
 
 E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack must be running before you execute tests** — the test setup only polls health endpoints, it does not start/stop containers.
 
+**Set `NX_LOAD_DOT_ENV_FILES=false` in your shell before running e2e locally** (#1306). Nx ≥22 unconditionally loads the workspace-root `.env` via plain dotenv at bin startup. Our `.env` is dotenvx-encrypted, so plain-dotenv pulls ciphertext into every variable it defines — most importantly `DATABASE_URL`, which then leaks into every process Nx spawns and causes `pg-pool` to fall back to `::1:5432`. The CI workflow sets this env var at the job level; local devs need it in their shell (e.g. add to `~/.zshrc` or use `direnv`). Without it, e2e suites fail with `ENOTFOUND app-db` or `getaddrinfo` errors. The e2e harness defaults (`DEFAULT_E2E_DATABASE_URL` etc. in `@moltnet/bootstrap`) only fire when the env var is **unset**, not when it's set to ciphertext.
+
 ```bash
+# One-time per shell (or add to your shell rc):
+export NX_LOAD_DOT_ENV_FILES=false
+
 # Start the e2e stack (builds rest-api image locally)
 # COMPOSE_DISABLE_ENV_FILE prevents the root dotenvx .env from leaking into containers
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
@@ -119,7 +124,7 @@ pnpm run test:e2e
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v
 ```
 
-In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.ci.yaml` override), then runs all e2e suites sequentially.
+In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.ci.yaml` override), then runs all e2e suites sequentially. The CI workflow sets `NX_LOAD_DOT_ENV_FILES: false` at the workflow level (see `.github/workflows/ci.yml`).
 
 ## Repository Structure
 

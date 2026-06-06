@@ -558,9 +558,6 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
-      '@moltnet/database':
-        specifier: workspace:*
-        version: link:../../libs/database
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../../libs/tasks
@@ -1514,9 +1511,6 @@ importers:
       '@moltnet/bootstrap':
         specifier: workspace:*
         version: link:../bootstrap
-      '@moltnet/database':
-        specifier: workspace:*
-        version: link:../database
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
