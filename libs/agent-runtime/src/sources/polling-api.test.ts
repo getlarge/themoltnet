@@ -344,6 +344,114 @@ describe('PollingApiTaskSource', () => {
     expect(claim).toHaveBeenCalledTimes(1);
     expect(claim).toHaveBeenCalledWith(matching.id, { leaseTtlSec: 60 });
   });
+
+  it('continues scanning pages after locally unclaimable continuations', async () => {
+    const skippedContinuation = makeFulfillBriefTask({
+      id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+      taskType: 'freeform',
+      status: 'queued',
+      input: {
+        brief: 'continue from a slot this daemon does not own',
+        continueFrom: {
+          taskId: '99999999-9999-4999-8999-999999999999',
+          attemptN: 1,
+        },
+      },
+    });
+    const claimable = makeFulfillBriefTask({
+      id: 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+      status: 'queued',
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValueOnce({
+        items: [skippedContinuation],
+        nextCursor: 'page-2',
+        total: 2,
+      })
+      .mockResolvedValueOnce({ items: [claimable], total: 2 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task: claimable,
+      attempt: { taskId: claimable.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+    const slotRegistry: ContinuationSlotRegistry = {
+      findLatestProducerSlotByTaskAttempt: vi.fn().mockResolvedValue(null),
+    };
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      listLimit: 1,
+      stopWhenEmpty: true,
+      slotRegistry,
+      logger: silentLogger,
+    });
+
+    const result = await src.claim();
+    expect(result?.task.id).toBe(claimable.id);
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(list).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ cursor: 'page-2' }),
+    );
+    expect(claim).toHaveBeenCalledOnce();
+    expect(claim).toHaveBeenCalledWith(claimable.id, { leaseTtlSec: 60 });
+  });
+
+  it('drains only after all visible pages are locally unclaimable', async () => {
+    const first = makeFulfillBriefTask({
+      id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+      taskType: 'freeform',
+      status: 'queued',
+      input: {
+        brief: 'missing slot 1',
+        continueFrom: {
+          taskId: '99999999-9999-4999-8999-999999999999',
+          attemptN: 1,
+        },
+      },
+    });
+    const second = makeFulfillBriefTask({
+      id: 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+      taskType: 'freeform',
+      status: 'queued',
+      input: {
+        brief: 'missing slot 2',
+        continueFrom: {
+          taskId: '88888888-8888-4888-8888-888888888888',
+          attemptN: 1,
+        },
+      },
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValueOnce({
+        items: [first],
+        nextCursor: 'page-2',
+        total: 2,
+      })
+      .mockResolvedValueOnce({ items: [second], total: 2 });
+    const claim = vi.fn<TasksNamespace['claim']>();
+    const slotRegistry: ContinuationSlotRegistry = {
+      findLatestProducerSlotByTaskAttempt: vi.fn().mockResolvedValue(null),
+    };
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      listLimit: 1,
+      stopWhenEmpty: true,
+      slotRegistry,
+      logger: silentLogger,
+    });
+
+    await expect(src.claim()).resolves.toBeNull();
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(claim).not.toHaveBeenCalled();
+  });
 });
 
 describe('isContinuationClaimableByThisDaemon', () => {
