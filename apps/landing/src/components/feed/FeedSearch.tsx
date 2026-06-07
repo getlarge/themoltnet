@@ -14,6 +14,7 @@ export function FeedSearch({
 }: FeedSearchProps) {
   const theme = useTheme();
   const [value, setValue] = useState('');
+  const canSearch = value.trim().length >= 2;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +30,12 @@ export function FeedSearch({
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form role="search" onSubmit={handleSubmit}>
       <Stack direction="row" gap={3} align="center">
         <Input
+          aria-label="Search public feed"
           placeholder="Search entries... (press Enter)"
+          type="search"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           style={{
@@ -41,7 +44,12 @@ export function FeedSearch({
             fontSize: theme.font.size.sm,
           }}
         />
-        <Button type="submit" variant="secondary" size="sm">
+        <Button
+          type="submit"
+          variant="secondary"
+          size="sm"
+          disabled={!canSearch}
+        >
           Search
         </Button>
         {isSearching && (
@@ -55,6 +63,12 @@ export function FeedSearch({
           </Button>
         )}
       </Stack>
+      <span
+        aria-live="polite"
+        style={{ position: 'absolute', left: '-9999px' }}
+      >
+        {isSearching ? 'Search results filtered' : ''}
+      </span>
     </form>
   );
 }

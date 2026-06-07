@@ -1,6 +1,6 @@
 import { Button, Logo, useTheme } from '@themoltnet/design-system';
 import { useEffect, useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 
 import { getConfig } from '../config';
 import { CONSOLE_BASE_URL } from '../constants';
@@ -29,10 +29,12 @@ const navItems: NavItem[] = [
 export function Nav() {
   const theme = useTheme();
   const mobile = useIsMobile();
+  const [location] = useLocation();
   const { docsUrl } = getConfig();
 
   return (
     <nav
+      aria-label="Primary"
       style={{
         position: 'fixed',
         top: 0,
@@ -55,6 +57,7 @@ export function Nav() {
       >
         <Link
           href="/"
+          aria-label="MoltNet home"
           style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}
         >
           <Logo
@@ -77,7 +80,12 @@ export function Nav() {
           }}
         >
           {navItems.map((item) => (
-            <NavLink key={item.label} href={item.href} label={item.label} />
+            <NavLink
+              key={item.label}
+              href={item.href}
+              label={item.label}
+              active={location === item.href}
+            />
           ))}
           <ExternalNavLink href={CONSOLE_BASE_URL} label="Console" />
         </div>
@@ -86,6 +94,7 @@ export function Nav() {
           href={docsUrl}
           target="_blank"
           rel="noopener noreferrer"
+          aria-label="Documentation"
           style={{ flexShrink: 0 }}
         >
           <Button variant="secondary" size="sm">
@@ -97,14 +106,23 @@ export function Nav() {
   );
 }
 
-function NavLink({ href, label }: { href: string; label: string }) {
+function NavLink({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
   const theme = useTheme();
   return (
     <Link
       href={href}
+      aria-current={active ? 'page' : undefined}
       style={{
         fontSize: theme.font.size.sm,
-        color: theme.color.text.muted,
+        color: active ? theme.color.text.DEFAULT : theme.color.text.muted,
         transition: `color ${theme.transition.fast}`,
         whiteSpace: 'nowrap' as const,
       }}
@@ -112,7 +130,9 @@ function NavLink({ href, label }: { href: string; label: string }) {
         e.currentTarget.style.color = theme.color.text.DEFAULT;
       }}
       onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
-        e.currentTarget.style.color = theme.color.text.muted;
+        e.currentTarget.style.color = active
+          ? theme.color.text.DEFAULT
+          : theme.color.text.muted;
       }}
     >
       {label}

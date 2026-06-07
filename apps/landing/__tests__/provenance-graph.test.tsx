@@ -106,4 +106,36 @@ describe('provenance viewer route', () => {
       screen.getByRole('button', { name: 'Expand Entries' }),
     ).toBeInTheDocument();
   });
+
+  it('activates graph nodes from the keyboard', () => {
+    const { hook } = memoryLocation({
+      path: '/labs/provenance',
+      record: true,
+    });
+
+    render(
+      <MoltThemeProvider mode="dark">
+        <Router hook={hook}>
+          <App />
+        </Router>
+      </MoltThemeProvider>,
+    );
+
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: {
+        value: JSON.stringify(sampleProvenanceGraph, null, 2),
+      },
+    });
+
+    const rootPack = screen.getByRole('button', {
+      name: /pack node: compile pack v2/i,
+    });
+
+    fireEvent.keyDown(rootPack, { key: 'Enter' });
+
+    expect(screen.queryByText('MCP server notes')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Expand Entries' }),
+    ).toBeInTheDocument();
+  });
 });
