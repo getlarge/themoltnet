@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.22.0...agent-runtime-v0.22.1) (2026-06-07)
+
+
+### Bug Fixes
+
+* **agent-runtime:** scan pages after local claim skips ([4b8bf35](https://github.com/getlarge/themoltnet/commit/4b8bf35401452a44b797f0cce67e59d51ecbd9f6))
+* **agent-runtime:** scan pages after local claim skips ([eb0156a](https://github.com/getlarge/themoltnet/commit/eb0156ab7060604ca07f4fc221b57f4eba543287))
+
 ## [0.22.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.21.0...agent-runtime-v0.22.0) (2026-06-06)
 
 
