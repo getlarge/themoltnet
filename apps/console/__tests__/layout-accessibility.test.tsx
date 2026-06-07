@@ -62,7 +62,7 @@ describe('console layout accessibility', () => {
     render(<Sidebar id="console-sidebar" />, { wrapper: Wrapper });
 
     expect(
-      screen.getByRole('complementary', { name: 'Workspace navigation' }),
+      screen.getByRole('complementary', { name: 'Console navigation' }),
     ).toBeDefined();
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeDefined();
 

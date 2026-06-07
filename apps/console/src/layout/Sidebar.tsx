@@ -42,7 +42,7 @@ export function Sidebar({ collapsed = false, id }: SidebarProps) {
   return (
     <aside
       id={id}
-      aria-label="Workspace navigation"
+      aria-label="Console navigation"
       style={{
         display: 'flex',
         flexDirection: 'column',
