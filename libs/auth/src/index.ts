@@ -43,6 +43,7 @@ export {
   authPlugin,
   type AuthPluginOptions,
   optionalAuth,
+  populateAuthContext,
   requireAuth,
   requireScopes,
   type TeamResolver,

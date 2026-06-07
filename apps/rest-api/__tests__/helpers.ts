@@ -565,10 +565,19 @@ export async function createTestApp(
     pool?: { query(sql: string): Promise<unknown> };
     oryProjectUrl?: string;
   },
+  /**
+   * Override how a bearer token resolves to an AuthContext. Defaults to always
+   * returning the single injected `authContext`. Rate-limit identity-keying
+   * tests pass a per-token resolver so different tokens map to different (or the
+   * same) verified identities.
+   */
+  resolveAuthContextImpl?: (token: string) => AuthContext | null,
 ): Promise<FastifyInstance> {
   const mockTokenValidator: TokenValidator = {
     introspect: vi.fn().mockResolvedValue({ active: false }),
-    resolveAuthContext: vi.fn().mockResolvedValue(authContext),
+    resolveAuthContext: vi.fn(
+      async (token: string) => resolveAuthContextImpl?.(token) ?? authContext,
+    ),
   };
 
   const mockOAuth2Api = {

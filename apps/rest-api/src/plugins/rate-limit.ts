@@ -10,25 +10,6 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
 import { getTypeUri } from '../problems/registry.js';
-import { deriveRateLimitKey, isAuthenticatedKey } from './rate-limit-key.js';
-
-/**
- * Compute the rate-limit key once per request and memoize it. Both
- * `keyGenerator` and `max` need it, and both run at `onRequest` (before the auth
- * preHandler), so we cannot rely on `request.authContext` here — see
- * rate-limit-key.ts. Memoizing avoids decoding the JWT / hashing the token
- * twice per request.
- */
-const RATE_LIMIT_KEY = Symbol('moltnet.rateLimitKey');
-
-function rateLimitKeyFor(request: FastifyRequest): string {
-  const holder = request as unknown as Record<symbol, string | undefined>;
-  const cached = holder[RATE_LIMIT_KEY];
-  if (cached !== undefined) return cached;
-  const key = deriveRateLimitKey({ headers: request.headers, ip: request.ip });
-  holder[RATE_LIMIT_KEY] = key;
-  return key;
-}
 
 export interface RateLimitPluginOptions {
   /** Max requests per minute for authenticated users (default: 100) */
@@ -95,19 +76,20 @@ async function rateLimitPluginImpl(
   // Register global rate limiter
   await fastify.register(rateLimit, {
     global: true,
-    // The limiter runs at `onRequest`, before auth populates request.authContext
-    // (auth is a preHandler). So we derive a stable per-identity key directly
-    // from the raw request (JWT claim / token hash / session hash / IP), rather
-    // than reading authContext — which is always null here. See rate-limit-key.ts
-    // and issue #1336: keying off the (then-null) authContext silently collapsed
-    // every authenticated principal onto request.ip AND the anonymous limit.
-    keyGenerator: (request: FastifyRequest) => rateLimitKeyFor(request),
-    // Authenticated principals (id:/tok:/sess: keys) get the higher auth limit;
-    // anonymous (ip:) requests get the stricter anon limit.
+    // Key by the VERIFIED principal so all of one identity's tokens/sessions
+    // share a single budget. request.authContext is populated by the auth
+    // plugin's global `populateAuthContext` onRequest hook, which is registered
+    // BEFORE this plugin and therefore runs first — so authContext is available
+    // here despite both hooks being at the onRequest phase. Anonymous/public
+    // requests (no credential) fall back to the (proxy-aware) client IP.
+    // See issue #1336: the earlier bug was that authContext was resolved at the
+    // auth preHandler (after this hook), so it was always null here.
+    keyGenerator: (request: FastifyRequest) =>
+      request.authContext?.identityId ?? request.ip,
+    // Authenticated principals get the higher auth limit; anonymous requests get
+    // the stricter anon limit.
     max: (request: FastifyRequest) =>
-      isAuthenticatedKey(rateLimitKeyFor(request))
-        ? globalAuthLimit
-        : globalAnonLimit,
+      request.authContext?.identityId ? globalAuthLimit : globalAnonLimit,
     // 1 minute window
     timeWindow: '1 minute',
     // Add standard rate limit headers

@@ -1,18 +1,18 @@
 /**
  * Integration regression test for issue #1336: the rate limiter must bucket by
- * identity, not by IP. Before the fix, the limiter ran at `onRequest` (before
- * the auth preHandler set request.authContext), so keyGenerator always fell
- * through to request.ip — collapsing every authenticated principal behind a
- * shared IP onto ONE bucket and onto the stricter anonymous limit.
+ * the VERIFIED principal (identityId), not by IP and not per-token.
  *
- * These tests drive the real @fastify/rate-limit plugin via app.inject (all
- * inject requests share request.ip = 127.0.0.1), with low limits, and assert:
- *   1. Two distinct bearer identities on the same IP get SEPARATE budgets.
- *   2. An authenticated principal gets the authenticated limit, not the anon one.
+ * Before the fix the limiter ran at `onRequest` before the auth preHandler set
+ * request.authContext, so keyGenerator always fell through to request.ip —
+ * collapsing every authenticated principal behind a shared IP onto ONE bucket
+ * and onto the stricter anonymous limit. The fix resolves authContext in a
+ * global `onRequest` hook (registered before the limiter), so the limiter sees
+ * the verified identityId.
  *
- * The keying is driven by the JWT in the Authorization header (decoded by the
- * limiter's key extractor), independent of the mocked token validator that
- * satisfies the downstream auth preHandler.
+ * These tests drive the real @fastify/rate-limit plugin and the real auth
+ * onRequest hook via app.inject (all inject requests share request.ip), with low
+ * limits. The mock token validator maps each token to an identity, so we can
+ * exercise per-identity isolation AND multi-token coalescing.
  */
 
 import type { FastifyInstance } from 'fastify';
@@ -25,17 +25,19 @@ import {
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
+/** A bearer token string; its value is mapped to an identity by the resolver. */
+function tokenFor(label: string): string {
+  return `token-${label}`;
+}
+
 /**
- * A JWT-shaped token. The limiter keys on the token *bytes* (not the decoded
- * claim), so distinct `identityId` values produce distinct token strings and
- * therefore distinct buckets — which is exactly what these tests exercise.
+ * Per-token resolver: a token named `token-<identity>#<n>` resolves to identity
+ * `<identity>`. Lets one identity present multiple distinct tokens.
  */
-function jwtFor(identityId: string): string {
-  const b64 = (obj: unknown) =>
-    Buffer.from(JSON.stringify(obj)).toString('base64url');
-  const header = b64({ alg: 'RS256', typ: 'JWT' });
-  const payload = b64({ 'moltnet:identity_id': identityId, sub: 'client' });
-  return `${header}.${payload}.sig`;
+function resolverByTokenLabel(token: string) {
+  const m = /^token-([^#]+)(?:#.*)?$/.exec(token);
+  if (!m) return null;
+  return { ...VALID_AUTH_CONTEXT, identityId: m[1] };
 }
 
 async function hit(app: FastifyInstance, token: string) {
@@ -46,84 +48,96 @@ async function hit(app: FastifyInstance, token: string) {
   });
 }
 
-describe('Rate limiter keys by identity, not IP (#1336)', () => {
+describe('Rate limiter keys by verified identity (#1336)', () => {
   let mocks: MockServices;
 
   beforeEach(() => {
     mocks = createMockServices();
   });
 
-  it('gives two identities on the same IP separate budgets', async () => {
-    // Auth limit of 2/min. All inject requests share IP 127.0.0.1, so if the
-    // limiter still keyed by IP, identity B would inherit A's exhausted bucket.
-    const app = await createTestApp(mocks, VALID_AUTH_CONTEXT, {
-      rateLimitGlobalAuth: 2,
-      rateLimitGlobalAnon: 2,
-    });
+  it('gives two distinct identities on the same IP separate budgets', async () => {
+    const app = await createTestApp(
+      mocks,
+      VALID_AUTH_CONTEXT,
+      { rateLimitGlobalAuth: 2, rateLimitGlobalAnon: 2 },
+      undefined,
+      resolverByTokenLabel,
+    );
 
-    const tokenA = jwtFor('agent-aaaa');
-    const tokenB = jwtFor('agent-bbbb');
+    // Identity A exhausts its budget (2 allowed, 3rd 429).
+    expect((await hit(app, tokenFor('agent-a'))).statusCode).toBe(200);
+    expect((await hit(app, tokenFor('agent-a'))).statusCode).toBe(200);
+    expect((await hit(app, tokenFor('agent-a'))).statusCode).toBe(429);
 
-    // Exhaust identity A's budget (2 allowed, 3rd is 429).
-    expect((await hit(app, tokenA)).statusCode).toBe(200);
-    expect((await hit(app, tokenA)).statusCode).toBe(200);
-    expect((await hit(app, tokenA)).statusCode).toBe(429);
-
-    // Identity B — same IP — must still have a full, independent budget.
-    expect((await hit(app, tokenB)).statusCode).toBe(200);
-    expect((await hit(app, tokenB)).statusCode).toBe(200);
-    expect((await hit(app, tokenB)).statusCode).toBe(429);
+    // Identity B — same IP — has its own full budget.
+    expect((await hit(app, tokenFor('agent-b'))).statusCode).toBe(200);
+    expect((await hit(app, tokenFor('agent-b'))).statusCode).toBe(200);
+    expect((await hit(app, tokenFor('agent-b'))).statusCode).toBe(429);
 
     await app.close();
   });
 
-  it('applies the authenticated limit (not the anon limit) to a bearer identity', async () => {
-    // Anon limit 1, auth limit 3. An authenticated identity must get 3, proving
-    // max() consults the derived identity, not the (still-null at onRequest)
-    // authContext that previously forced everyone onto the anon limit.
-    const app = await createTestApp(mocks, VALID_AUTH_CONTEXT, {
-      rateLimitGlobalAuth: 3,
-      rateLimitGlobalAnon: 1,
-    });
+  it('shares ONE budget across multiple tokens of the same identity (coalescing)', async () => {
+    // The core requirement: an agent holding several JWT/session tokens must not
+    // get N budgets. Two different token strings resolve to the same identity.
+    const app = await createTestApp(
+      mocks,
+      VALID_AUTH_CONTEXT,
+      { rateLimitGlobalAuth: 2, rateLimitGlobalAnon: 2 },
+      undefined,
+      resolverByTokenLabel,
+    );
 
-    const token = jwtFor('agent-authed');
+    const token1 = 'token-same-agent#1';
+    const token2 = 'token-same-agent#2'; // different bytes, same identity
+
+    expect((await hit(app, token1)).statusCode).toBe(200);
+    expect((await hit(app, token2)).statusCode).toBe(200);
+    // Budget of 2 is now spent across the two tokens — the third request from
+    // EITHER token is throttled, proving they share a single identity bucket.
+    expect((await hit(app, token1)).statusCode).toBe(429);
+    expect((await hit(app, token2)).statusCode).toBe(429);
+
+    await app.close();
+  });
+
+  it('applies the authenticated limit (not the anon limit) to a verified identity', async () => {
+    const app = await createTestApp(
+      mocks,
+      VALID_AUTH_CONTEXT,
+      { rateLimitGlobalAuth: 3, rateLimitGlobalAnon: 1 },
+      undefined,
+      resolverByTokenLabel,
+    );
+
+    const token = tokenFor('agent-authed');
     expect((await hit(app, token)).statusCode).toBe(200);
     expect((await hit(app, token)).statusCode).toBe(200);
     expect((await hit(app, token)).statusCode).toBe(200);
     expect((await hit(app, token)).statusCode).toBe(429);
 
-    // The authenticated limit header reflects the auth limit, not the anon one.
     const limited = await hit(app, token);
     expect(limited.headers['x-ratelimit-limit']).toBe('3');
 
     await app.close();
   });
 
-  it('a forged token claiming a victim identity cannot exhaust the victim bucket', async () => {
-    // Cross-identity DoS regression (#1336 review): the limiter increments at
-    // onRequest, before auth rejects a bad token. If it keyed on the (unverified)
-    // moltnet:identity_id claim, an attacker could set the victim's id and burn
-    // the victim's budget. Keying on token BYTES prevents that — the attacker's
-    // forged token is different bytes, so it lands in its own bucket.
-    const app = await createTestApp(mocks, VALID_AUTH_CONTEXT, {
-      rateLimitGlobalAuth: 2,
-      rateLimitGlobalAnon: 2,
-    });
+  it('exposes the anon limit to unauthenticated requests (authContext null → IP key)', async () => {
+    // No credential resolves → authContext null → keyed by IP at the anon limit.
+    // An unauthenticated request to a protected route is rejected by requireAuth
+    // (401), but the rate-limit hook ran first and stamped the anon limit header.
+    const app = await createTestApp(
+      mocks,
+      null,
+      { rateLimitGlobalAuth: 9, rateLimitGlobalAnon: 4 },
+      undefined,
+      () => null,
+    );
 
-    const victimToken = jwtFor('victim-identity');
-    // Same claimed identity, different bytes — an attacker who learned the
-    // victim's identityId (e.g. from a creator block) but not the token.
-    const forgedToken = `${victimToken}-forged-by-attacker`;
-
-    // Attacker hammers with the forged token until ITS bucket is exhausted.
-    expect((await hit(app, forgedToken)).statusCode).toBe(200);
-    expect((await hit(app, forgedToken)).statusCode).toBe(200);
-    expect((await hit(app, forgedToken)).statusCode).toBe(429);
-
-    // The victim's real token is untouched — full budget remains.
-    expect((await hit(app, victimToken)).statusCode).toBe(200);
-    expect((await hit(app, victimToken)).statusCode).toBe(200);
-    expect((await hit(app, victimToken)).statusCode).toBe(429);
+    const res = await app.inject({ method: 'GET', url: '/agents/whoami' });
+    expect(res.statusCode).toBe(401); // requireAuth rejects (no credential)
+    // ...but the limiter keyed it as anonymous: the limit header is the anon cap.
+    expect(res.headers['x-ratelimit-limit']).toBe('4');
 
     await app.close();
   });
