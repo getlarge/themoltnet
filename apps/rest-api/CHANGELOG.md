@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.6.1...rest-api-v0.7.0) (2026-06-07)
+
+
+### Features
+
+* **rest-api:** read/write rate-limit bucket split ([#1336](https://github.com/getlarge/themoltnet/issues/1336)) ([3931fe4](https://github.com/getlarge/themoltnet/commit/3931fe47271d2cdc13daca541bb1fd6226b15bd6))
+* **rest-api:** read/write rate-limit bucket split ([#1336](https://github.com/getlarge/themoltnet/issues/1336)) ([4850c41](https://github.com/getlarge/themoltnet/commit/4850c41722ea29a8230e3ae8597c665d3e133420))
+
+
+### Bug Fixes
+
+* **rest-api:** key rate limiter on credential bytes, not unverified JWT claim ([#1336](https://github.com/getlarge/themoltnet/issues/1336)) ([23cb2db](https://github.com/getlarge/themoltnet/commit/23cb2db1e97ab3d232f3ee253997c2cb1d3ef6e6))
+* **rest-api:** pre-resolve IP throttle + configurable allowlist ([#1336](https://github.com/getlarge/themoltnet/issues/1336)) ([1c7478b](https://github.com/getlarge/themoltnet/commit/1c7478bfc787993eaa5f20664c79870aa4742b10))
+* **rest-api:** rate-limit by identity not IP, add trustProxy ([#1336](https://github.com/getlarge/themoltnet/issues/1336)) ([eaf519c](https://github.com/getlarge/themoltnet/commit/eaf519c5a76a777294e34dfedcb004ca2a53029b))
+* **rest-api:** rate-limit by identity not IP, add trustProxy ([#1336](https://github.com/getlarge/themoltnet/issues/1336)) ([d05a413](https://github.com/getlarge/themoltnet/commit/d05a413b7d9f3aa5f2fc6db9cb23e9525c6441cf))
+
 ## [0.6.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.6.0...rest-api-v0.6.1) (2026-06-06)
 
 
