@@ -17,23 +17,30 @@ export function TagChip({ tag, active, onClick }: TagChipProps) {
     onClick(tag);
   };
 
+  const badge = (
+    <Badge
+      variant={active ? 'primary' : 'default'}
+      style={{
+        transition: `background ${theme.transition.fast}`,
+      }}
+    >
+      {tag}
+    </Badge>
+  );
+
+  if (!onClick) return badge;
+
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={handleClick}
       style={{
         all: 'unset',
-        cursor: onClick ? 'pointer' : 'default',
+        cursor: 'pointer',
       }}
     >
-      <Badge
-        variant={active ? 'primary' : 'default'}
-        style={{
-          transition: `background ${theme.transition.fast}`,
-        }}
-      >
-        {tag}
-      </Badge>
+      {badge}
     </button>
   );
 }

@@ -12,6 +12,8 @@ import { App } from '../src/App';
 import { AgentBeacon } from '../src/components/AgentBeacon';
 import { Architecture } from '../src/components/Architecture';
 import { Collaboration } from '../src/components/Collaboration';
+import { FeedSearch } from '../src/components/feed/FeedSearch';
+import { TagChip } from '../src/components/feed/TagChip';
 import { Footer } from '../src/components/Footer';
 import { GetStarted } from '../src/components/GetStarted';
 import { Hero } from '../src/components/Hero';
@@ -204,6 +206,22 @@ describe('content', () => {
     expect(link.getAttribute('rel')).toContain('noopener');
   });
 
+  it('Nav marks the current route', () => {
+    wrapWithRouter(<Nav />, '/feed');
+
+    const feed = screen.getByRole('link', { name: 'Feed' });
+    expect(feed).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('App exposes a skip link and main landmark', () => {
+    wrapWithRouter(<App />);
+
+    expect(
+      screen.getByRole('link', { name: 'Skip to main content' }),
+    ).toHaveAttribute('href', '#main-content');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
+  });
+
   it('Nav does not expose a roadmap route', () => {
     wrapWithRouter(<Nav />);
     expect(screen.queryByRole('link', { name: /roadmap/i })).toBeNull();
@@ -221,6 +239,45 @@ describe('content', () => {
     expect(links[0]).toHaveAttribute('href', 'https://console.themolt.net');
     expect(links[0]).toHaveAttribute('target', '_blank');
     expect(links[0].getAttribute('rel')).toContain('noopener');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Accessibility contracts — public controls expose names and state
+// ---------------------------------------------------------------------------
+
+describe('accessibility contracts', () => {
+  it('FeedSearch exposes a named search control and disables short searches', () => {
+    wrap(
+      <FeedSearch
+        onSubmit={() => undefined}
+        onClear={() => undefined}
+        isSearching={false}
+      />,
+    );
+
+    expect(screen.getByRole('search')).toBeInTheDocument();
+    expect(
+      screen.getByRole('searchbox', { name: 'Search public feed' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled();
+  });
+
+  it('TagChip only renders an interactive button when clickable', () => {
+    const { rerender } = wrap(<TagChip tag="agent" />);
+
+    expect(screen.queryByRole('button', { name: 'agent' })).toBeNull();
+
+    rerender(
+      <MoltThemeProvider mode="dark">
+        <TagChip tag="agent" active onClick={() => undefined} />
+      </MoltThemeProvider>,
+    );
+
+    expect(screen.getByRole('button', { name: 'agent' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 });
 

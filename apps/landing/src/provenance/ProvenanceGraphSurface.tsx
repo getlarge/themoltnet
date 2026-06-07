@@ -1,5 +1,6 @@
 import type { ProvenanceGraph, ProvenanceGraphNode } from '@moltnet/models';
 import { AgentIdentityMark, useTheme } from '@themoltnet/design-system';
+import type { KeyboardEvent } from 'react';
 
 import type { GraphLayout } from './graph-layout';
 import type { GraphViewportState } from './graph-viewport';
@@ -81,9 +82,19 @@ export function ProvenanceGraphSurface({
   viewport,
 }: ProvenanceGraphSurfaceProps) {
   const theme = useTheme();
+  const activateNode = (
+    event: KeyboardEvent<SVGGElement>,
+    node: ProvenanceGraphNode,
+  ) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    onNodeClick(node);
+  };
 
   return (
     <svg
+      role="group"
+      aria-label={`${graph.nodes.length} provenance nodes and ${graph.edges.length} relationships`}
       width="100%"
       height="100%"
       viewBox={`0 0 ${containerWidth || layout.width} ${containerHeight || layout.height}`}
@@ -147,8 +158,13 @@ export function ProvenanceGraphSurface({
             <g
               key={node.id}
               data-graph-node="true"
+              role="button"
+              tabIndex={0}
+              aria-label={`${node.kind} node: ${node.label}`}
+              aria-pressed={selected}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={() => onNodeClick(node)}
+              onKeyDown={(event) => activateNode(event, node)}
               style={{ cursor: 'pointer' }}
             >
               <rect

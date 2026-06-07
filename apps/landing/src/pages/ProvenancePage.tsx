@@ -585,6 +585,7 @@ export function ProvenancePage() {
                     }}
                   >
                     <label
+                      htmlFor="provenance-json-upload"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -599,10 +600,18 @@ export function ProvenancePage() {
                     >
                       <span>Upload JSON</span>
                       <input
+                        id="provenance-json-upload"
                         type="file"
+                        aria-label="Upload provenance graph JSON"
                         accept="application/json,.json"
                         onChange={handleFileUpload}
-                        style={{ display: 'none' }}
+                        style={{
+                          position: 'absolute',
+                          width: 1,
+                          height: 1,
+                          opacity: 0,
+                          pointerEvents: 'none',
+                        }}
                       />
                     </label>
                     {shareUrl ? (
@@ -612,6 +621,7 @@ export function ProvenancePage() {
                     ) : null}
                   </div>
                   <textarea
+                    aria-label="Provenance graph JSON"
                     value={rawInput}
                     onChange={(event) => setRawInput(event.target.value)}
                     spellCheck={false}
