@@ -17,7 +17,10 @@ import {
   type TokenValidator,
 } from '@moltnet/auth';
 import scalarApiReference from '@scalar/fastify-api-reference';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, {
+  type FastifyInstance,
+  type FastifyServerOptions,
+} from 'fastify';
 import type { Redis } from 'ioredis';
 
 import pkg from '../package.json' with { type: 'json' };
@@ -172,7 +175,12 @@ export interface AppOptions {
   oryProjectUrl?: string;
   /** Application version exposed through OpenAPI metadata. */
   version?: string;
-  logger?: boolean;
+  /**
+   * Fastify logger option: `false` (default, silent), `true`, or a pino
+   * config/instance. Tests pass a stream-backed pino config to capture log
+   * output (e.g. asserting rate-limit onExceeded warns).
+   */
+  logger?: FastifyServerOptions['logger'];
 }
 
 /**

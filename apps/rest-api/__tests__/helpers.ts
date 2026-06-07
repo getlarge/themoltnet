@@ -15,7 +15,7 @@ import type { Agent, AgentVoucher, DiaryEntry } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 
-import { buildApp } from '../src/app.js';
+import { type AppOptions, buildApp } from '../src/app.js';
 import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
   AgentRepository,
@@ -575,6 +575,8 @@ export async function createTestApp(
    * same) verified identities.
    */
   resolveAuthContextImpl?: (token: string) => AuthContext | null,
+  /** Fastify logger option — pass a pino stream config to capture log output. */
+  logger?: AppOptions['logger'],
 ): Promise<FastifyInstance> {
   const mockTokenValidator: TokenValidator = {
     introspect: vi.fn().mockResolvedValue({ active: false }),
@@ -707,6 +709,7 @@ export async function createTestApp(
     },
     pool: healthOptions?.pool,
     oryProjectUrl: healthOptions?.oryProjectUrl,
+    ...(logger !== undefined ? { logger } : {}),
   });
 
   return app;

@@ -84,6 +84,18 @@ function makeAllowList(paths: readonly string[]): (url: string) => boolean {
 }
 
 /**
+ * Name the rate-limit bucket a request was throttled by, for the onExceeded log.
+ * Read routes carry `groupId: 'read'`; everything else is the global/per-route
+ * bucket. Low-cardinality string for log filtering.
+ */
+function bucketLabel(request: FastifyRequest): string {
+  const cfg = request.routeOptions?.config as
+    | { rateLimit?: { groupId?: string } }
+    | undefined;
+  return cfg?.rateLimit?.groupId ?? 'global';
+}
+
+/**
  * Register a pre-resolution IP throttle as an `onRequest` hook. MUST be
  * registered BEFORE the auth plugin so it runs before `populateAuthContext`
  * (which does network auth resolution). Caps resolution attempts per IP so a
@@ -205,6 +217,23 @@ async function rateLimitPluginImpl(
     // Fly.io polls /health every 30s — and the problem registry). Shared with
     // the pre-resolve throttle via the same allowList.
     allowList: (request: FastifyRequest) => isAllowListed(request.url),
+    // Emit a structured warn on every 429 so rate-limit events are filterable in
+    // logs/traces by bucket + subject_type + route (closes the #1336
+    // observability gap). identityId/teamId already ride along as pino child
+    // bindings set by the auth plugin, so we don't add them here (and keep the
+    // explicit fields low-cardinality). A dedicated OTel counter was considered
+    // and dropped as redundant with trace-based 429 queries — see issue #1336.
+    onExceeded: (request: FastifyRequest) => {
+      request.log.warn(
+        {
+          bucket: bucketLabel(request),
+          subjectType: request.authContext?.subjectType ?? 'anonymous',
+          method: request.method,
+          route: request.routeOptions?.url ?? request.url,
+        },
+        'rate limit exceeded',
+      );
+    },
   });
 
   // Store route-specific configs for use in route definitions
