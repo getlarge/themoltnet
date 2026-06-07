@@ -342,10 +342,20 @@ export const lifecycleCriteria = {
     return lifecycleSuccessCriteria({
       step: 'notify',
       expectedPhase: 'done',
-      expectedDecisionPattern: 'notify',
-      requiredFields: ['summary', 'notifySkipped'],
+      expectedDecisionPattern: 'notify|skip_notify',
+      requiredFields: [
+        'summary',
+        'notifySkipped',
+        'reflectionEntryId',
+        'linkedEntryIds',
+        'prReflectionUrl',
+      ],
       dependency:
-        'Continue from the release task and notify participants unless the workflow skipped notification.',
+        'Continue from the release task. Create the final reflection entry and publish its link in the PR body or a PR comment.',
+      sideEffects: {
+        diaryEntryRequired: true,
+        diaryEntryTags: ['reflection', 'issue-lifecycle'],
+      },
     });
   },
 };
@@ -412,11 +422,21 @@ export function releaseBrief(prNumber: number): string {
   ].join('\n');
 }
 
-export function notifyBrief(issue: GithubIssue): string {
+export function notifyBrief(
+  issue: GithubIssue,
+  prNumber: number,
+  skipNotify: boolean,
+): string {
   return [
-    `Notify participants that issue #${issue.number} is done.`,
-    'Thank the contributor if applicable.',
+    `Finalize issue #${issue.number}: ${issue.title}.`,
+    `Use PR #${prNumber} as the publication target for the final reflection link.`,
+    skipNotify
+      ? 'Do not notify issue participants because the skip-notify label is present.'
+      : 'Notify participants that the issue is done and thank the contributor if applicable.',
+    'Create a reflection diary entry that recaps this lifecycle session.',
+    'The reflection must link or cite the diary entries created during the lifecycle, including implementation/accountable-commit entries.',
+    'Add the reflection entry link to the PR body or to a PR comment.',
     'Required artifact body shape:',
-    '{"phase":"done","decision":"notify","summary":"...","notifySkipped":false}',
+    '{"phase":"done","decision":"notify","summary":"...","notifySkipped":false,"reflectionEntryId":"...","linkedEntryIds":["..."],"prReflectionUrl":"https://github.com/..."}',
   ].join('\n');
 }

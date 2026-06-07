@@ -34,6 +34,10 @@ describe('runGithubIssueLifecycle', () => {
         decision: 'notify',
         summary: 'notified',
         notifySkipped: false,
+        reflectionEntryId: 'entry-reflection',
+        linkedEntryIds: ['entry-implementation'],
+        prReflectionUrl:
+          'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
       },
     ]);
 
@@ -118,9 +122,63 @@ describe('runGithubIssueLifecycle', () => {
       diaryEntryRequired: true,
       diaryEntryTags: ['accountable-commit'],
     });
+    const notifyInput = tasks.created[5]?.input as
+      | { brief?: string; successCriteria?: SuccessCriteria }
+      | undefined;
+    expect(notifyInput?.brief).toContain(
+      'Create a reflection diary entry that recaps this lifecycle session.',
+    );
+    expect(notifyInput?.brief).toContain(
+      'Add the reflection entry link to the PR body or to a PR comment.',
+    );
+    expect(notifyInput?.successCriteria?.assertions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'notify-reflectionEntryId',
+        }),
+        expect.objectContaining({
+          id: 'notify-linkedEntryIds',
+        }),
+        expect.objectContaining({
+          id: 'notify-prReflectionUrl',
+        }),
+      ]),
+    );
+    expect(notifyInput?.successCriteria?.sideEffects).toEqual({
+      diaryEntryRequired: true,
+      diaryEntryTags: ['reflection', 'issue-lifecycle'],
+    });
     expect(tasks.created.slice(1).every((task) => task.claimCondition)).toBe(
       true,
     );
+  });
+
+  it('stops when triage says the issue needs more triage', async () => {
+    const { deps: d, tasks } = fakeDeps([
+      {
+        phase: 'classified',
+        decision: 'needs_triage',
+        summary: 'needs clarification',
+      },
+    ]);
+
+    await expect(
+      runGithubIssueLifecycle(
+        {
+          repo: 'getlarge/themoltnet',
+          issueNumber: 1327,
+          teamId: 'team',
+          diaryId: 'diary',
+          correlationId: '00000000-0000-4000-8000-000000000999',
+          pollIntervalSec: 1,
+        },
+        d,
+      ),
+    ).rejects.toThrow('triage did not approve planning: needs_triage');
+
+    expect(tasks.created.map((task) => task.title)).toEqual([
+      'Triage issue #1327',
+    ]);
   });
 
   it('creates a plan revision when review returns findings', async () => {
@@ -157,6 +215,16 @@ describe('runGithubIssueLifecycle', () => {
         prNumber: 42,
       },
       { phase: 'releasing', decision: 'ship', summary: 'released' },
+      {
+        phase: 'done',
+        decision: 'skip_notify',
+        summary: 'reflected',
+        notifySkipped: true,
+        reflectionEntryId: 'entry-reflection',
+        linkedEntryIds: ['entry-implementation'],
+        prReflectionUrl:
+          'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
+      },
     ]);
     (d.github as FakeGithub).skipNotify = true;
 
@@ -174,6 +242,9 @@ describe('runGithubIssueLifecycle', () => {
 
     expect(tasks.created.map((task) => task.title)).toContain(
       'Revise plan for issue #1327',
+    );
+    expect(tasks.created.map((task) => task.title)).toContain(
+      'Notify issue #1327',
     );
   });
 });

@@ -97,6 +97,11 @@ export async function runGithubIssueLifecycle(
   if (triage.state.phase !== 'classified') {
     throw new Error(`triage produced unexpected phase ${triage.state.phase}`);
   }
+  if (triage.state.decision !== 'plan') {
+    throw new Error(
+      `triage did not approve planning: ${triage.state.decision}`,
+    );
+  }
 
   const planTask = await ctx.step('task.plan.create', async () => {
     const body = await buildContinuationTask({
@@ -260,26 +265,24 @@ export async function runGithubIssueLifecycle(
     input.issueNumber,
     input.skipNotifyLabel,
   );
-  if (!skipNotify) {
-    const notifyTask = await ctx.step('task.notify.create', async () => {
-      const body = await buildContinuationTask({
-        input,
-        issue,
-        parentTaskId: release.task.id,
-        parentAttempt: release.attempt,
-        title: `Notify issue #${issue.number}`,
-        brief: notifyBrief(issue),
-        successCriteria: lifecycleCriteria.notify(),
-      });
-      return deps.tasks.createTask(body);
+  const notifyTask = await ctx.step('task.notify.create', async () => {
+    const body = await buildContinuationTask({
+      input,
+      issue,
+      parentTaskId: release.task.id,
+      parentAttempt: release.attempt,
+      title: `Notify issue #${issue.number}`,
+      brief: notifyBrief(issue, prNumber, skipNotify),
+      successCriteria: lifecycleCriteria.notify(),
     });
-    await waitForAcceptedTask(
-      notifyTask.id,
-      deps.tasks,
-      ctx,
-      input.pollIntervalSec,
-    );
-  }
+    return deps.tasks.createTask(body);
+  });
+  await waitForAcceptedTask(
+    notifyTask.id,
+    deps.tasks,
+    ctx,
+    input.pollIntervalSec,
+  );
 
   return { status: 'done', correlationId: input.correlationId, prNumber };
 }

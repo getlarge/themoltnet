@@ -175,10 +175,18 @@ Each accepted attempt must return normal freeform output plus an artifact:
 
 `src/artifact.ts` parses this artifact and gates workflow transitions.
 
+The final task always creates a reflection diary entry, even when participant
+notification is skipped. Its artifact must include `reflectionEntryId`,
+`linkedEntryIds`, and `prReflectionUrl`, where `prReflectionUrl` points to the PR
+body or PR comment that links the reflection entry.
+
 ## Human Gates
 
 Plan approval is never automated. The runner waits for the configured approval
 label before creating the implementation task.
+
+The skip-notification label skips participant notification only. It does not
+skip the final reflection entry or the PR body/comment link to that reflection.
 
 Defaults:
 
@@ -327,7 +335,9 @@ Expected smoke-test path:
 4. runner waits until the issue has `moltnet:plan-approved`
 5. implementation links a PR via `prNumber`
 6. failed checks create another implementation continuation
-7. merged PR creates release and notify continuations
+7. merged PR creates release and final notification/reflection continuations
+8. final reflection links the lifecycle diary entries and is published in the PR
+   body or a PR comment
 
 For manual testing, stop before destructive GitHub actions unless the issue and
 branch are disposable.

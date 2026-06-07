@@ -41,6 +41,10 @@ function successfulOutputs() {
       decision: 'notify',
       summary: 'notified',
       notifySkipped: false,
+      reflectionEntryId: 'entry-reflection',
+      linkedEntryIds: ['entry-implementation'],
+      prReflectionUrl:
+        'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
     },
   ];
 }
@@ -81,6 +85,23 @@ describe('GitHub issue lifecycle integration', () => {
       'Implement issue #1327',
       'Release issue #1327',
       'Notify issue #1327',
+    ]);
+  });
+
+  it('stops after triage when the issue needs clarification', async () => {
+    const { deps, tasks } = fakeDeps([
+      {
+        phase: 'classified',
+        decision: 'needs_triage',
+        summary: 'needs repro steps',
+      },
+    ]);
+
+    await expect(runGithubIssueLifecycle(BASE_INPUT, deps)).rejects.toThrow(
+      'triage did not approve planning: needs_triage',
+    );
+    expect(tasks.created.map((task) => task.title)).toEqual([
+      'Triage issue #1327',
     ]);
   });
 
