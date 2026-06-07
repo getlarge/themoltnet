@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.8.0...design-system-v0.9.0) (2026-06-07)
+
+
+### Features
+
+* **design-system:** add accessibility rules and patterns ([3f58b8b](https://github.com/getlarge/themoltnet/commit/3f58b8b7a29550cf1ba33e31b8db1572c19744f2))
+* **design-system:** add accessibility rules and patterns ([b8997e8](https://github.com/getlarge/themoltnet/commit/b8997e88407a52ca4988a004f45a30d2614595e3))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.7.2...design-system-v0.8.0) (2026-06-06)
 
 
