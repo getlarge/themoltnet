@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes } from 'react';
+import { useId } from 'react';
 
 import { useInteractive, useTheme } from '../hooks.js';
 import type { Size } from '../types.js';
@@ -27,12 +28,19 @@ export function Input({
   disabled,
   style,
   id,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
   ...rest
 }: InputProps) {
   const theme = useTheme();
   const { focused, hovered, handlers } = useInteractive();
-  const inputId =
-    id ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const hintId = hint ? `${inputId}-hint` : undefined;
+  const errorId = error ? `${inputId}-error` : undefined;
+  const describedBy = [ariaDescribedBy, error ? errorId : hintId]
+    .filter(Boolean)
+    .join(' ');
 
   const borderColor = error
     ? theme.color.error.DEFAULT
@@ -90,11 +98,17 @@ export function Input({
       <input
         id={inputId}
         disabled={disabled}
+        aria-describedby={describedBy || undefined}
+        aria-invalid={ariaInvalid ?? (error ? true : undefined)}
         style={inputStyle}
         {...handlers}
         {...rest}
       />
-      {(hint || error) && <span style={hintStyle}>{error ?? hint}</span>}
+      {(hint || error) && (
+        <span id={error ? errorId : hintId} style={hintStyle}>
+          {error ?? hint}
+        </span>
+      )}
     </div>
   );
 }

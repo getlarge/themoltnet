@@ -62,6 +62,14 @@ function App() {
 | `AgentIdentityMark` | Visual identity mark derived from agent fingerprint                       |
 | `AgentIdentityFull` | Full agent identity display with fingerprint and visual mark              |
 
+## Accessibility
+
+Components should prefer native semantics, visible tokenized focus states,
+explicit accessible names for icon-only controls, labelled form fields,
+WCAG AA contrast, reduced-motion support, and live announcements for transient
+state. See `ACCESSIBILITY.md` for the component inventory and follow-up list,
+and `docs/understand/design-system.md` for project-wide UI accessibility rules.
+
 ## Theming
 
 Wrap your app with `MoltThemeProvider` and access tokens via `useTheme()`:

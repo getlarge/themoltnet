@@ -7,9 +7,15 @@ export interface CopyButtonProps {
   value: string;
   label?: string;
   size?: Size;
+  ariaLabel?: string;
 }
 
-export function CopyButton({ value, label, size = 'md' }: CopyButtonProps) {
+export function CopyButton({
+  value,
+  label,
+  size = 'md',
+  ariaLabel,
+}: CopyButtonProps) {
   const theme = useTheme();
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -71,6 +77,7 @@ export function CopyButton({ value, label, size = 'md' }: CopyButtonProps) {
       <button
         type="button"
         onClick={() => void handleCopy()}
+        aria-label={ariaLabel ?? (label ? `Copy ${label}` : `Copy ${value}`)}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -90,6 +97,7 @@ export function CopyButton({ value, label, size = 'md' }: CopyButtonProps) {
       >
         <span>{value}</span>
         <span
+          aria-hidden="true"
           style={{
             fontSize: theme.font.size.xs,
             color: failed
@@ -100,6 +108,22 @@ export function CopyButton({ value, label, size = 'md' }: CopyButtonProps) {
           }}
         >
           {failed ? '✕' : copied ? '✓' : '⧉'}
+        </span>
+        <span
+          aria-live="polite"
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: 0,
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+          }}
+        >
+          {failed ? 'Copy failed' : copied ? 'Copied' : ''}
         </span>
       </button>
     </div>

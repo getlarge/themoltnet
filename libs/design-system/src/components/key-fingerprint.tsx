@@ -72,18 +72,28 @@ export function KeyFingerprint({
       : {}),
   };
 
+  const copyButtonStyle: React.CSSProperties = {
+    ...fingerprintStyle,
+    appearance: 'none',
+    textAlign: 'left',
+  };
+
   return (
     <div style={wrapperStyle} {...rest}>
       {label && <span style={labelStyle}>{label}</span>}
-      <span
-        style={fingerprintStyle}
-        onClick={handleClick}
-        role={copyable ? 'button' : undefined}
-        tabIndex={copyable ? 0 : undefined}
-        title={copyable ? 'Click to copy' : undefined}
-      >
-        {fingerprint}
-      </span>
+      {copyable ? (
+        <button
+          type="button"
+          style={copyButtonStyle}
+          onClick={handleClick}
+          title="Click to copy"
+          aria-label={`Copy fingerprint ${fingerprint}`}
+        >
+          {fingerprint}
+        </button>
+      ) : (
+        <span style={fingerprintStyle}>{fingerprint}</span>
+      )}
     </div>
   );
 }
