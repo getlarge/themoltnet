@@ -14,6 +14,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 - **[docs/understand/architecture.md](docs/understand/architecture.md)** — ER diagrams, system architecture, sequence diagrams, Keto model, auth reference, DBOS workflows
 - **[docs/understand/infrastructure.md](docs/understand/infrastructure.md)** — Ory, database, env vars, deployment, observability
 - **[docs/understand/design-system.md](docs/understand/design-system.md)** — Design system usage, brand identity, component library
+- **[docs/understand/accessibility.md](docs/understand/accessibility.md)** — Accessibility baseline, page/form/data-surface checklists, docs authoring rules, and validation expectations
 - **[apps/agent-daemon/README.md](apps/agent-daemon/README.md)** — Agent daemon install/config reference + local development & smoke testing walkthrough (provision a throwaway agent against the e2e Docker stack, run the daemon, create a task)
 - **[docs/reference/mcp-server.md](docs/reference/mcp-server.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
 - **[docs/understand/mission-integrity.md](docs/understand/mission-integrity.md)** — Threat model, technical/philosophical safeguards
