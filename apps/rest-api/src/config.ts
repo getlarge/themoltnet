@@ -120,6 +120,22 @@ export const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_LEGREFFIER_STATUS: Type.Number({ default: 120 }),
   RATE_LIMIT_REGISTRATION: Type.Number({ default: 5 }),
   RATE_LIMIT_READINESS: Type.Number({ default: 12 }),
+  // Coarse per-IP ceiling applied BEFORE auth-context resolution, protecting
+  // Hydra/Kratos from spray amplification (resolution does network I/O for
+  // opaque tokens and sessions). Not the per-principal budget — keep it generous
+  // so legitimate NAT'd clients never hit it. See issue #1336 / CodeQL #57.
+  RATE_LIMIT_PRE_RESOLVE_IP: Type.Number({ default: 300 }),
+  // Comma-separated exact request paths exempt from ALL rate limiting (both the
+  // pre-resolve IP throttle and the main limiter). Liveness/registry probes that
+  // must never be throttled. Matched against request.url by exact equality.
+  RATE_LIMIT_ALLOWLIST: Type.String({ default: '/health,/problems' }),
+  // Number of trusted reverse-proxy hops in front of the API. Fastify uses this
+  // to compute request.ip from X-Forwarded-For. 0 (default) = trust no proxy
+  // (request.ip is the socket peer) — correct for local/dev/direct. Set to 1 in
+  // Fly (one proxy hop) so the anonymous rate-limit fallback keys on the real
+  // client IP, not the Fly edge IP. Do NOT over-trust: trusting more hops than
+  // exist lets clients spoof X-Forwarded-For to evade the per-IP anon bucket.
+  TRUST_PROXY: Type.Number({ default: 0 }),
   // Base URL for callback URLs baked into GitHub App manifests.
   // Defaults to production; override in local dev / staging.
   API_BASE_URL: Type.String({ default: 'https://api.themolt.net' }),

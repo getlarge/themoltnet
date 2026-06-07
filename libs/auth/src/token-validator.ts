@@ -13,6 +13,7 @@ import type { DecodedJwt, VerifierOptions } from 'fast-jwt';
 import { createVerifier } from 'fast-jwt';
 import buildGetJwks from 'get-jwks';
 
+import { ORY_OPAQUE_PREFIXES } from './constants.js';
 import type {
   AgentAuthContext,
   AuthContext,
@@ -40,8 +41,6 @@ export interface TokenValidator {
   introspect(token: string): Promise<IntrospectionResult>;
   resolveAuthContext(token: string): Promise<AuthContext | null>;
 }
-
-const ORY_OPAQUE_PREFIXES = ['ory_at_', 'ory_ht_'];
 
 function isOpaqueToken(token: string): boolean {
   return ORY_OPAQUE_PREFIXES.some((prefix) => token.startsWith(prefix));

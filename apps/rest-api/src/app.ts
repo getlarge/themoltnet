@@ -23,7 +23,10 @@ import pkg from '../package.json' with { type: 'json' };
 import type { PackGcConfig } from './config.js';
 import { corsPluginFp } from './plugins/cors.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
-import { rateLimitPlugin } from './plugins/rate-limit.js';
+import {
+  rateLimitPlugin,
+  registerPreResolveThrottle,
+} from './plugins/rate-limit.js';
 import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentRoutes } from './routes/agents.js';
@@ -96,6 +99,22 @@ export interface SecurityOptions {
   rateLimitRegistration: number;
   /** Max requests per minute for readiness probes (default: 12) */
   rateLimitReadiness: number;
+  /**
+   * Coarse per-IP ceiling applied before auth-context resolution (anti-
+   * amplification guard for Hydra/Kratos). Generous; not the per-principal
+   * budget.
+   */
+  rateLimitPreResolveIp: number;
+  /**
+   * Exact request paths exempt from all rate limiting (pre-resolve throttle and
+   * main limiter), e.g. liveness/registry probes.
+   */
+  rateLimitAllowList: string[];
+  /**
+   * Number of trusted reverse-proxy hops (Fastify `trustProxy`). 0 = trust no
+   * proxy. Set to 1 behind Fly so request.ip is the real client, not the edge.
+   */
+  trustProxy: number;
   /** Base URL for callback URLs in GitHub App manifests (e.g. http://localhost:8000 in dev) */
   apiBaseUrl: string;
   /** Sponsor agent identity ID for issuing vouchers */
@@ -237,6 +256,16 @@ export async function registerApiRoutes(
   // Register global error handler (RFC 9457 Problem Details)
   await app.register(errorHandlerPlugin);
 
+  // Pre-resolution IP throttle — MUST run before the auth plugin's
+  // populateAuthContext onRequest hook (which does network auth resolution).
+  // Registered here so its onRequest hook precedes auth's; caps per-IP
+  // resolution attempts so a spray cannot amplify load onto Hydra/Kratos before
+  // the identity limiter (which runs after resolution) can throttle it.
+  registerPreResolveThrottle(app, {
+    preResolveIpLimit: options.security.rateLimitPreResolveIp,
+    allowList: options.security.rateLimitAllowList,
+  });
+
   // Register auth plugin (decorates tokenValidator, permissionChecker, request.authContext)
   await app.register(authPlugin, {
     tokenValidator: options.tokenValidator,
@@ -246,10 +275,18 @@ export async function registerApiRoutes(
     sessionResolver: options.sessionResolver,
   });
 
-  // Register request context plugin (AFTER auth so identityId/clientId are available)
+  // Register request context plugin. Its hooks read authContext, which the auth
+  // plugin populates in a preHandler; the request-context hooks run later in the
+  // lifecycle, so registration order here does not move them ahead of auth.
   await app.register(requestContextPlugin);
 
-  // 3. Rate limiting (AFTER auth so authContext is available)
+  // Rate limiting. The limiter keys on request.authContext.identityId, which the
+  // auth plugin's global `populateAuthContext` onRequest hook resolves. Both run
+  // at the onRequest phase, but the auth plugin is registered ABOVE, so its hook
+  // runs first and authContext is populated before the limiter reads it.
+  // Registration order here is load-bearing — do not move the limiter above auth
+  // (that reintroduces #1336: a null authContext collapses every principal onto
+  // request.ip and the anon limit).
   await app.register(rateLimitPlugin, {
     globalAuthLimit: options.security.rateLimitGlobalAuth,
     globalAnonLimit: options.security.rateLimitGlobalAnon,
@@ -263,6 +300,7 @@ export async function registerApiRoutes(
     legreffierStatusLimit: options.security.rateLimitLegreffierStatus,
     registrationLimit: options.security.rateLimitRegistration,
     readinessLimit: options.security.rateLimitReadiness,
+    allowList: options.security.rateLimitAllowList,
   });
 
   // Decorate with services (guard to allow pre-decoration by DBOS plugin)
@@ -336,6 +374,10 @@ export async function registerApiRoutes(
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: options.logger ?? false,
+    // Trust the configured number of proxy hops so request.ip reflects the real
+    // client (used by the anonymous rate-limit fallback), not the Fly edge IP.
+    // Defaults to 0 (no proxy) for local/dev/test; set TRUST_PROXY=1 in Fly.
+    trustProxy: options.security.trustProxy,
     ajv: {
       customOptions: {
         removeAdditional: true,

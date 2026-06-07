@@ -10,11 +10,16 @@ import type {
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
+  onRequestAsyncHookHandler,
   preHandlerAsyncHookHandler,
 } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { SESSION_TOKEN_HEADER, TEAM_HEADER } from './constants.js';
+import {
+  KRATOS_COOKIE_NAME_REGEX,
+  SESSION_TOKEN_HEADER,
+  TEAM_HEADER,
+} from './constants.js';
 import { KetoNamespace } from './keto-constants.js';
 import type { PermissionChecker } from './permission-checker.js';
 import type { RelationshipWriter } from './relationship-writer.js';
@@ -74,17 +79,12 @@ function extractCookieHeader(request: FastifyRequest): string | null {
 
 /**
  * Does the raw Cookie header contain a Kratos session cookie by NAME?
- *
- * Kratos uses `ory_kratos_session` by default and `ory_session_<slug>` on
- * Ory Network deployments. We anchor the match to the start of the header
- * or a `; ` separator so values (e.g. `analytics_id=ory_session_abc`)
- * don't trigger false positives.
+ * Uses the shared {@link KRATOS_COOKIE_NAME_REGEX} so this gating and the
+ * rate-limit key extractor recognize the same cookie names.
  *
  * This avoids a Kratos round-trip for every anonymous browser request
  * (e.g. on public endpoints that also accept optional auth).
  */
-const KRATOS_COOKIE_NAME_REGEX = /(?:^|;\s*)ory(?:_kratos_session|_session_)/;
-
 function cookieLooksLikeKratosSession(cookie: string): boolean {
   return KRATOS_COOKIE_NAME_REGEX.test(cookie);
 }
@@ -117,6 +117,13 @@ export const authPlugin = fp(
     decorateSafe('relationshipWriter', opts.relationshipWriter);
     decorateSafe('teamResolver', opts.teamResolver);
     decorateSafe('sessionResolver', opts.sessionResolver ?? null);
+
+    // Resolve authContext early (non-fatally) so onRequest-phase consumers —
+    // notably @fastify/rate-limit, which keys on identityId — see the verified
+    // principal. Enforcement still happens per-route via requireAuth/requireScopes
+    // at preHandler. Registered as a global onRequest hook; because the auth
+    // plugin is registered before the rate-limit plugin, this runs first.
+    fastify.addHook('onRequest', populateAuthContext);
   },
   {
     name: '@moltnet/auth',
@@ -207,14 +214,94 @@ async function resolveTeamContext(
   }
 }
 
+/**
+ * Non-fatally resolve and apply the request's *identity* (authContext) if a
+ * valid credential is present. Returns true if a context was applied. Does NOT
+ * resolve team context or throw on a missing/invalid credential — those are
+ * enforcement concerns layered on by requireAuth at preHandler. Shared by the
+ * global `populateAuthContext` onRequest hook and `optionalAuth` so identity
+ * resolution has exactly one implementation.
+ *
+ * Idempotent: returns true immediately if authContext is already set, so a
+ * normal request never pays the resolution cost (JWKS verify / Hydra introspect
+ * / Kratos session call) twice.
+ */
+async function resolveIdentityInto(request: FastifyRequest): Promise<boolean> {
+  if (request.authContext) return true;
+
+  // Try Kratos session first (native X-Moltnet-Session-Token header OR browser
+  // Cookie header). Native token takes precedence when both are present — see
+  // session-resolver.ts. The cookie header is only forwarded when it looks like
+  // a Kratos session cookie, to avoid round-tripping to Kratos for every
+  // browser request that happens to carry unrelated cookies.
+  const sessionToken = extractSessionToken(request);
+  const rawCookie = extractCookieHeader(request);
+  const cookie =
+    rawCookie && cookieLooksLikeKratosSession(rawCookie) ? rawCookie : null;
+  if ((sessionToken || cookie) && request.server.sessionResolver) {
+    const sessionContext = await request.server.sessionResolver.resolveSession({
+      sessionToken,
+      cookie,
+    });
+    if (sessionContext) {
+      applyAuthContext(request, sessionContext);
+      return true;
+    }
+    // Invalid session — fall through to Bearer token.
+  }
+
+  const token = extractBearerToken(request);
+  if (!token) return false;
+
+  const authContext =
+    await request.server.tokenValidator.resolveAuthContext(token);
+  if (!authContext) return false;
+
+  applyAuthContext(request, authContext);
+  return true;
+}
+
+/**
+ * Global `onRequest` hook that populates `request.authContext` for any request
+ * carrying a valid credential, BEFORE later onRequest hooks (notably
+ * @fastify/rate-limit, which keys on identityId) run. Non-fatal: requests
+ * without a credential — or to public routes — proceed with `authContext` null.
+ * Resolves identity only; team-context enforcement and the 401 stay in
+ * requireAuth at preHandler.
+ *
+ * This is the fix for #1336: the rate limiter runs at onRequest, so identity
+ * must be resolved at onRequest (not the auth preHandler) for the limiter to
+ * bucket by the verified principal instead of falling back to IP.
+ */
+export const populateAuthContext: onRequestAsyncHookHandler =
+  async function populateAuthContext(request: FastifyRequest) {
+    // Identity resolution is non-fatal here; never let it abort the request.
+    // An invalid/garbage credential simply leaves authContext null (the request
+    // is then IP-keyed and, on protected routes, 401'd by requireAuth).
+    try {
+      await resolveIdentityInto(request);
+    } catch (err) {
+      request.log.debug(
+        { err, path: request.url },
+        'auth: onRequest identity resolution failed; continuing unauthenticated',
+      );
+    }
+  };
+
 export const requireAuth: preHandlerAsyncHookHandler =
   async function requireAuth(request: FastifyRequest, _reply: FastifyReply) {
+    // Identity is normally resolved by the populateAuthContext onRequest hook;
+    // resolveIdentityInto short-circuits if so. If not (e.g. a unit test calling
+    // requireAuth directly), resolve it now with granular diagnostics. Team
+    // context is ALWAYS resolved here — it is enforcement, not identity, so it
+    // runs even when identity was pre-resolved at onRequest.
+    if (request.authContext) {
+      await resolveTeamContext(request, request.authContext);
+      return;
+    }
+
     // Try Kratos session first (native X-Moltnet-Session-Token header OR
-    // browser Cookie header). Native token takes precedence when both are
-    // present — see session-resolver.ts. The cookie header is only forwarded
-    // when it looks like a Kratos session cookie, to avoid round-tripping to
-    // Kratos for every browser request that happens to carry unrelated
-    // cookies (analytics, theme, CSRF, etc.).
+    // browser Cookie header). See resolveIdentityInto for cookie gating.
     const sessionToken = extractSessionToken(request);
     const rawCookie = extractCookieHeader(request);
     const cookie =
@@ -276,34 +363,12 @@ export const requireAuth: preHandlerAsyncHookHandler =
 
 export const optionalAuth: preHandlerAsyncHookHandler =
   async function optionalAuth(request: FastifyRequest) {
-    // Try Kratos session first (native token header OR browser cookie).
-    // See requireAuth() for the cookie gating rationale.
-    const sessionToken = extractSessionToken(request);
-    const rawCookie = extractCookieHeader(request);
-    const cookie =
-      rawCookie && cookieLooksLikeKratosSession(rawCookie) ? rawCookie : null;
-    if ((sessionToken || cookie) && request.server.sessionResolver) {
-      const sessionContext =
-        await request.server.sessionResolver.resolveSession({
-          sessionToken,
-          cookie,
-        });
-      if (sessionContext) {
-        await resolveTeamContext(request, sessionContext);
-        applyAuthContext(request, sessionContext);
-        return;
-      }
-    }
-
-    // Fall through to Bearer token
-    const token = extractBearerToken(request);
-    if (!token) return;
-
-    const authContext =
-      await request.server.tokenValidator.resolveAuthContext(token);
-    if (authContext) {
-      await resolveTeamContext(request, authContext);
-      applyAuthContext(request, authContext);
+    // Identity is usually pre-resolved by the onRequest hook (short-circuits).
+    // When a context is present, still resolve team context so an explicit
+    // x-moltnet-team-id is honored/enforced for the optionally-authed handler.
+    const resolved = await resolveIdentityInto(request);
+    if (resolved && request.authContext) {
+      await resolveTeamContext(request, request.authContext);
     }
   };
 

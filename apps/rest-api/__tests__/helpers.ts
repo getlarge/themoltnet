@@ -53,6 +53,9 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitLegreffierStatus: 1000,
   rateLimitRegistration: 1000,
   rateLimitReadiness: 1000,
+  rateLimitPreResolveIp: 1000,
+  rateLimitAllowList: ['/health', '/problems'],
+  trustProxy: 0,
   apiBaseUrl: 'http://localhost:8000',
 };
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -564,10 +567,19 @@ export async function createTestApp(
     pool?: { query(sql: string): Promise<unknown> };
     oryProjectUrl?: string;
   },
+  /**
+   * Override how a bearer token resolves to an AuthContext. Defaults to always
+   * returning the single injected `authContext`. Rate-limit identity-keying
+   * tests pass a per-token resolver so different tokens map to different (or the
+   * same) verified identities.
+   */
+  resolveAuthContextImpl?: (token: string) => AuthContext | null,
 ): Promise<FastifyInstance> {
   const mockTokenValidator: TokenValidator = {
     introspect: vi.fn().mockResolvedValue({ active: false }),
-    resolveAuthContext: vi.fn().mockResolvedValue(authContext),
+    resolveAuthContext: vi.fn(
+      async (token: string) => resolveAuthContextImpl?.(token) ?? authContext,
+    ),
   };
 
   const mockOAuth2Api = {

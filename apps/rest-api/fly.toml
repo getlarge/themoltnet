@@ -19,6 +19,9 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
   AXIOM_DATASET = "moltnet"
   AXIOM_METRICS_DATASET = "moltnet-metrics"
   # AXIOM_API_TOKEN — set via fly secrets
+  # One proxy hop (Fly edge) so request.ip is the real client for the
+  # anonymous rate-limit fallback, not the Fly edge IP. See issue #1336.
+  TRUST_PROXY = "1"
 
 [deploy]
   release_command = "node dist/migrate.js"

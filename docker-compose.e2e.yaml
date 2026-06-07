@@ -145,10 +145,16 @@ services:
       RATE_LIMIT_VOUCH: '10000'
       RATE_LIMIT_SIGNING: '10000'
       RATE_LIMIT_RECOVERY: '10000'
-      RATE_LIMIT_PUBLIC_VERIFY: '10000'
+      # Deliberately LOW so the rate-limit e2e suite can trip a real 429 with a
+      # handful of requests. /crypto/verify (the only consumer of this bucket) is
+      # used by no other e2e suite, so this does not affect sibling suites.
+      RATE_LIMIT_PUBLIC_VERIFY: '5'
       RATE_LIMIT_PUBLIC_SEARCH: '10000'
       RATE_LIMIT_LEGREFFIER_START: '10000'
       RATE_LIMIT_REGISTRATION: '10000'
+      # Keep the pre-resolve IP throttle high: every suite shares the localhost
+      # IP, so a low value here would throttle unrelated suites mid-run.
+      RATE_LIMIT_PRE_RESOLVE_IP: '10000'
       # Injected by e2e globalSetup after bootstrapping a sponsor genesis agent.
       # Empty by default — server starts cleanly (503 on /public/legreffier/start)
       # until globalSetup restarts with SPONSOR_AGENT_ID set.

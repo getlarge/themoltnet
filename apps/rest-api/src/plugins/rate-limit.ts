@@ -6,10 +6,11 @@
  */
 
 import rateLimit from '@fastify/rate-limit';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
 import { getTypeUri } from '../problems/registry.js';
+import { createPreResolveThrottle } from './pre-resolve-throttle.js';
 
 export interface RateLimitPluginOptions {
   /** Max requests per minute for authenticated users (default: 100) */
@@ -36,6 +37,64 @@ export interface RateLimitPluginOptions {
   registrationLimit: number;
   /** Max requests per minute for readiness probes (default: 12) */
   readinessLimit: number;
+  /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
+  allowList: readonly string[];
+}
+
+export interface PreResolveThrottleOptions {
+  /**
+   * Max requests per minute per client IP allowed BEFORE auth-context
+   * resolution. A coarse anti-amplification ceiling protecting Hydra/Kratos from
+   * spray, not the per-principal budget. Should be generous.
+   */
+  preResolveIpLimit: number;
+  /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
+  allowList: readonly string[];
+}
+
+const ONE_MINUTE_MS = 60_000;
+
+/**
+ * Build an exact-path allowList predicate from a list of paths. Shared by the
+ * pre-resolve throttle and the main limiter so both honor the same public
+ * exemptions configured via RATE_LIMIT_ALLOWLIST.
+ */
+function makeAllowList(paths: readonly string[]): (url: string) => boolean {
+  const set = new Set(paths);
+  return (url: string) => set.has(url);
+}
+
+/**
+ * Register a pre-resolution IP throttle as an `onRequest` hook. MUST be
+ * registered BEFORE the auth plugin so it runs before `populateAuthContext`
+ * (which does network auth resolution). Caps resolution attempts per IP so a
+ * single-IP spray cannot amplify load onto Hydra/Kratos. Shares the configured
+ * allowList and the RFC 9457 429 shape with the main limiter.
+ */
+export function registerPreResolveThrottle(
+  fastify: FastifyInstance,
+  options: PreResolveThrottleOptions,
+): void {
+  const throttle = createPreResolveThrottle(
+    options.preResolveIpLimit,
+    ONE_MINUTE_MS,
+  );
+  const isAllowListed = makeAllowList(options.allowList);
+
+  fastify.addHook(
+    'onRequest',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      if (isAllowListed(request.url)) return;
+
+      const retryAfter = throttle.hit(request.ip, Date.now());
+      if (retryAfter !== null) {
+        reply
+          .code(429)
+          .header('retry-after', String(retryAfter))
+          .send(buildRateLimitResponse(request, retryAfter));
+      }
+    },
+  );
 }
 
 /**
@@ -71,25 +130,28 @@ async function rateLimitPluginImpl(
     legreffierStatusLimit,
     registrationLimit,
     readinessLimit,
+    allowList,
   } = options;
+
+  const isAllowListed = makeAllowList(allowList);
 
   // Register global rate limiter
   await fastify.register(rateLimit, {
     global: true,
-    // Use identity ID for authenticated users, IP for anonymous
-    keyGenerator: (request: FastifyRequest) => {
-      const authContext = (
-        request as unknown as { authContext?: { identityId?: string } }
-      ).authContext;
-      return authContext?.identityId ?? request.ip;
-    },
-    // Dynamic max based on authentication status
-    max: (request: FastifyRequest) => {
-      const authContext = (
-        request as unknown as { authContext?: { identityId?: string } }
-      ).authContext;
-      return authContext?.identityId ? globalAuthLimit : globalAnonLimit;
-    },
+    // Key by the VERIFIED principal so all of one identity's tokens/sessions
+    // share a single budget. request.authContext is populated by the auth
+    // plugin's global `populateAuthContext` onRequest hook, which is registered
+    // BEFORE this plugin and therefore runs first — so authContext is available
+    // here despite both hooks being at the onRequest phase. Anonymous/public
+    // requests (no credential) fall back to the (proxy-aware) client IP.
+    // See issue #1336: the earlier bug was that authContext was resolved at the
+    // auth preHandler (after this hook), so it was always null here.
+    keyGenerator: (request: FastifyRequest) =>
+      request.authContext?.identityId ?? request.ip,
+    // Authenticated principals get the higher auth limit; anonymous requests get
+    // the stricter anon limit.
+    max: (request: FastifyRequest) =>
+      request.authContext?.identityId ? globalAuthLimit : globalAnonLimit,
     // 1 minute window
     timeWindow: '1 minute',
     // Add standard rate limit headers
@@ -112,10 +174,10 @@ async function rateLimitPluginImpl(
       const retryAfter = Math.ceil(context.ttl / 1000);
       return buildRateLimitResponse(request, retryAfter);
     },
-    // Skip rate limiting for liveness probe only (Fly.io polls /health every 30s)
-    allowList: (request: FastifyRequest) => {
-      return request.url === '/health' || request.url === '/problems';
-    },
+    // Skip rate limiting for the configured public paths (e.g. liveness probe —
+    // Fly.io polls /health every 30s — and the problem registry). Shared with
+    // the pre-resolve throttle via the same allowList.
+    allowList: (request: FastifyRequest) => isAllowListed(request.url),
   });
 
   // Store route-specific configs for use in route definitions
