@@ -1,0 +1,64 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "commitMessageAction": "update",
+  "commitMessageExtra": "to {{newVersion}}",
+  "commitMessagePrefix": "deps:",
+  "commitMessageTopic": "{{depName}}",
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": false,
+  "extends": ["config:recommended", "schedule:weekly"],
+  "lockFileMaintenance": {
+    "automerge": true,
+    "enabled": true,
+    "schedule": ["before 6:00 am on monday"]
+  },
+  "packageRules": [
+    {
+      "automerge": true,
+      "enabled": true,
+      "matchUpdateTypes": ["lockFileMaintenance"]
+    },
+    {
+      "automerge": true,
+      "matchUpdateTypes": ["patch", "pin", "digest"],
+      "platformAutomerge": true
+    },
+    {
+      "groupName": "minor dependencies",
+      "groupSlug": "minor-deps",
+      "matchUpdateTypes": ["minor"]
+    },
+    {
+      "dependencyDashboardApproval": true,
+      "matchUpdateTypes": ["major"],
+      "prPriority": -1
+    },
+    {
+      "groupName": "development tools",
+      "groupSlug": "dev-tools",
+      "matchPackageNames": [
+        "typescript",
+        "eslint",
+        "prettier",
+        "vitest",
+        "vite"
+      ]
+    },
+    {
+      "groupName": "Nx packages",
+      "groupSlug": "nx-packages",
+      "matchPackagePatterns": ["@nx/*"]
+    },
+    {
+      "groupName": "Fastify packages",
+      "groupSlug": "fastify-packages",
+      "matchPackagePatterns": ["@fastify/*"]
+    }
+  ],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "update-lockfile",
+  "rebaseWhen": "conflicted",
+  "suppressNotifications": ["artifactError"],
+  "timezone": "UTC"
+}
