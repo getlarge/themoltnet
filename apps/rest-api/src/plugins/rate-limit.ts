@@ -8,9 +8,13 @@
 import rateLimit from '@fastify/rate-limit';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
+import type { Redis } from 'ioredis';
 
 import { getTypeUri } from '../problems/registry.js';
 import { createPreResolveThrottle } from './pre-resolve-throttle.js';
+
+/** Redis key prefix so MoltNet rate-limit keys are identifiable in shared Redis. */
+const REDIS_NAMESPACE = 'moltnet-rl-';
 
 export interface RateLimitPluginOptions {
   /** Max requests per minute for authenticated users (default: 100) */
@@ -46,6 +50,14 @@ export interface RateLimitPluginOptions {
   readLimit: number;
   /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
   allowList: readonly string[];
+  /**
+   * ioredis client for the SHARED rate-limit store (per-identity budgets
+   * coherent across instances). When omitted, the limiter uses an in-memory
+   * store (single-instance). On a Redis error the limiter fails OPEN
+   * (skipOnError) so a Redis outage never 500s the API — the error surfaces via
+   * the client's own 'error' event (logged at bootstrap), not here.
+   */
+  redis?: Redis;
 }
 
 export interface PreResolveThrottleOptions {
@@ -139,6 +151,7 @@ async function rateLimitPluginImpl(
     readinessLimit,
     readLimit,
     allowList,
+    redis,
   } = options;
 
   const isAllowListed = makeAllowList(allowList);
@@ -146,6 +159,12 @@ async function rateLimitPluginImpl(
   // Register global rate limiter
   await fastify.register(rateLimit, {
     global: true,
+    // Shared store across instances when Redis is configured; otherwise the
+    // plugin's default in-memory store. skipOnError makes the limiter fail OPEN
+    // on a Redis error (a protective control must not 500 the whole API on a
+    // Redis blip) — the error is surfaced via the ioredis client's 'error'
+    // event, logged at bootstrap. nameSpace keeps keys identifiable in Redis.
+    ...(redis ? { redis, nameSpace: REDIS_NAMESPACE, skipOnError: true } : {}),
     // Key by the VERIFIED principal so all of one identity's tokens/sessions
     // share a single budget. request.authContext is populated by the auth
     // plugin's global `populateAuthContext` onRequest hook, which is registered

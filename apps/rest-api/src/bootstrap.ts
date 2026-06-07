@@ -64,11 +64,12 @@ import {
 } from '@moltnet/observability';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { Redis } from 'ioredis';
 
 import pkg from '../package.json' with { type: 'json' };
 import { registerApiRoutes } from './app.js';
 import type { AppConfig } from './config.js';
-import { resolveOryUrls } from './config.js';
+import { resolveOryUrls, resolveRedisConfig } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import { createAssertDiaryReadable } from './services/diary-readable.js';
 import {
@@ -95,6 +96,8 @@ export interface BootstrapResult {
   dbConnection: DatabaseConnection;
   observability: ObservabilityContext | null;
   nonceRepository: NonceRepository;
+  /** ioredis client backing the rate limiter, or null when Redis is unconfigured. */
+  rateLimitRedis: Redis | null;
 }
 
 export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
@@ -181,6 +184,40 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   // Seed the getDatabase() singleton so route-level code (e.g. advisory
   // locks) can obtain the shared Drizzle instance without a URL.
   getDatabase(config.database.DATABASE_URL);
+
+  // ── Rate-limit Redis client (optional) ─────────────────────────
+  // Backs the main rate limiter with a shared store so per-identity budgets are
+  // coherent across instances. Null when Redis is unconfigured (in-memory
+  // fallback). ioredis is tuned per @fastify/rate-limit guidance so a Redis
+  // outage fails fast (and the limiter fails open) instead of hanging requests.
+  const redisConfig = resolveRedisConfig(config.security);
+  let rateLimitRedis: Redis | null = null;
+  if (redisConfig) {
+    rateLimitRedis = new Redis({
+      connectionName: 'rest-api-ratelimit',
+      host: redisConfig.host,
+      port: redisConfig.port,
+      password: redisConfig.password,
+      db: redisConfig.db,
+      tls: redisConfig.tls,
+      connectTimeout: 500,
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
+      lazyConnect: false,
+    });
+    // The limiter fails open on store errors (skipOnError), which swallows them
+    // silently — so surface Redis problems here at error level. ioredis may
+    // re-emit on each reconnect attempt; that's acceptable as a loud alarm.
+    rateLimitRedis.on('error', (err) => {
+      app.log.error({ err }, 'rate-limit redis store error');
+    });
+    app.log.info(
+      { host: redisConfig.host, port: redisConfig.port },
+      'rate limiter using shared Redis store',
+    );
+  } else {
+    app.log.info('rate limiter using in-memory store (Redis not configured)');
+  }
 
   // ── Ory clients ────────────────────────────────────────────────
   const oryUrls = resolveOryUrls(config.ory);
@@ -520,6 +557,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     packGcConfig: config.packGc,
     pool: dbConnection.pool,
     oryProjectUrl: config.ory.ORY_PROJECT_URL,
+    ...(rateLimitRedis ? { rateLimitRedis } : {}),
   });
 
   // ── Observability metrics plugin ───────────────────────────────
@@ -530,5 +568,5 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     });
   }
 
-  return { app, dbConnection, observability, nonceRepository };
+  return { app, dbConnection, observability, nonceRepository, rateLimitRedis };
 }
