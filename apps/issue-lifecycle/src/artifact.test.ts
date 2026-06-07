@@ -29,6 +29,37 @@ describe('parseLifecycleStateArtifact', () => {
     expect(isReviewPassed(state)).toBe(true);
   });
 
+  it('normalizes structured review findings into revision text', () => {
+    const state = parseLifecycleStateArtifact({
+      artifacts: [
+        {
+          kind: 'issue_lifecycle_state',
+          title: 'state',
+          body: JSON.stringify({
+            phase: 'plan_generated',
+            decision: 'findings',
+            summary: 'Plan needs refinement',
+            findings: [
+              {
+                id: 'testing-approach',
+                priority: 'medium',
+                description: 'The test plan is too vague.',
+                suggestedAction: 'Name the integration test coverage.',
+              },
+              'Check release notes handling.',
+            ],
+          }),
+        },
+      ],
+    });
+
+    expect(state.findings).toEqual([
+      'testing-approach - medium - The test plan is too vague. - Name the integration test coverage.',
+      'Check release notes handling.',
+    ]);
+    expect(isReviewPassed(state)).toBe(false);
+  });
+
   it('rejects output without a lifecycle artifact', () => {
     expect(() => parseLifecycleStateArtifact({ artifacts: [] })).toThrow(
       /missing an issue_lifecycle_state/,

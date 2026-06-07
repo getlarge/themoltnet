@@ -74,6 +74,19 @@ async function waitForApprovalLabel(
   }
 }
 
+function reviewFindingsForRevision(
+  state: AcceptedTaskResult['state'],
+): string[] {
+  if (state.findings && state.findings.length > 0) return state.findings;
+  return [
+    [
+      `Review decision "${state.decision}" did not pass but produced no explicit findings.`,
+      `Review summary: ${state.summary}`,
+      'Revise the plan defensively, identify what the reviewer likely found insufficient, and make the next review artifact explicit.',
+    ].join(' '),
+  ];
+}
+
 export async function runGithubIssueLifecycle(
   rawInput: IssueLifecycleInput,
   deps: IssueLifecycleDeps,
@@ -150,10 +163,7 @@ export async function runGithubIssueLifecycle(
       break;
     }
 
-    const findings = review.state.findings ?? [];
-    if (findings.length === 0) {
-      throw new Error('plan review did not pass and produced no findings');
-    }
+    const findings = reviewFindingsForRevision(review.state);
     const revisionTask = await ctx.step(
       `task.plan-revision.${round}.create`,
       async () => {

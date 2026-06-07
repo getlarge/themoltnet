@@ -32,6 +32,34 @@ function parseJsonObject(raw: string): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
+function normalizeFinding(finding: unknown): string | null {
+  if (typeof finding === 'string') {
+    const trimmed = finding.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (
+    typeof finding !== 'object' ||
+    finding === null ||
+    Array.isArray(finding)
+  ) {
+    return null;
+  }
+
+  const record = finding as Record<string, unknown>;
+  const fields = [
+    record.id,
+    record.priority ?? record.severity,
+    record.description ?? record.problem,
+    record.requiredChange ?? record.suggestedAction,
+    record.fileOrArea ?? record.area,
+  ]
+    .filter((field): field is string => typeof field === 'string')
+    .map((field) => field.trim())
+    .filter((field) => field.length > 0);
+
+  return fields.length > 0 ? fields.join(' - ') : null;
+}
+
 export function parseLifecycleStateArtifact(
   output: unknown,
 ): LifecycleStateArtifact {
@@ -77,9 +105,10 @@ export function parseLifecycleStateArtifact(
   };
 
   if (Array.isArray(body.findings)) {
-    state.findings = body.findings.filter(
-      (finding): finding is string => typeof finding === 'string',
-    );
+    state.findings = body.findings.flatMap((finding) => {
+      const normalized = normalizeFinding(finding);
+      return normalized ? [normalized] : [];
+    });
   }
   if (typeof body.plan === 'string') state.plan = body.plan;
   if (typeof body.prNumber === 'number') state.prNumber = body.prNumber;

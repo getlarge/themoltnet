@@ -312,4 +312,146 @@ describe('runGithubIssueLifecycle', () => {
       'Notify issue #1327',
     );
   });
+
+  it('passes structured review findings to the revision task', async () => {
+    const { deps: d, tasks } = fakeDeps([
+      { phase: 'classified', decision: 'plan', summary: 'classified' },
+      {
+        phase: 'plan_generated',
+        decision: 'ready_for_review',
+        summary: 'planned',
+        plan: 'plan',
+      },
+      {
+        phase: 'plan_generated',
+        decision: 'findings',
+        summary: 'needs work',
+        findings: [
+          {
+            id: 'testing-approach',
+            priority: 'medium',
+            description: 'The test plan is too vague.',
+            suggestedAction: 'Name the integration test coverage.',
+          },
+        ],
+      },
+      {
+        phase: 'plan_generated',
+        decision: 'ready_for_review',
+        summary: 'revised',
+        plan: 'plan v2',
+      },
+      {
+        phase: 'plan_generated',
+        decision: 'review_passed',
+        summary: 'reviewed',
+        findings: [],
+      },
+      {
+        phase: 'pr_open',
+        decision: 'link_pr',
+        summary: 'implemented',
+        prNumber: 42,
+      },
+      { phase: 'releasing', decision: 'ship', summary: 'released' },
+      {
+        phase: 'done',
+        decision: 'skip_notify',
+        summary: 'reflected',
+        notifySkipped: true,
+        reflectionEntryId: 'entry-reflection',
+        linkedEntryIds: ['entry-implementation'],
+        prReflectionUrl:
+          'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
+      },
+    ]);
+
+    await runGithubIssueLifecycle(
+      {
+        repo: 'getlarge/themoltnet',
+        issueNumber: 1327,
+        teamId: 'team',
+        diaryId: 'diary',
+        correlationId: '00000000-0000-4000-8000-000000000999',
+        pollIntervalSec: 1,
+      },
+      d,
+    );
+
+    const revision = tasks.created.find(
+      (task) => task.title === 'Revise plan for issue #1327',
+    );
+    expect((revision?.input as { brief?: string }).brief).toContain(
+      'testing-approach - medium - The test plan is too vague. - Name the integration test coverage.',
+    );
+  });
+
+  it('creates a defensive revision when review fails without findings', async () => {
+    const { deps: d, tasks } = fakeDeps([
+      { phase: 'classified', decision: 'plan', summary: 'classified' },
+      {
+        phase: 'plan_generated',
+        decision: 'ready_for_review',
+        summary: 'planned',
+        plan: 'plan',
+      },
+      {
+        phase: 'plan_generated',
+        decision: 'findings',
+        summary: 'The plan lacks enough implementation detail.',
+        findings: [],
+      },
+      {
+        phase: 'plan_generated',
+        decision: 'ready_for_review',
+        summary: 'revised',
+        plan: 'plan v2',
+      },
+      {
+        phase: 'plan_generated',
+        decision: 'review_passed',
+        summary: 'reviewed',
+        findings: [],
+      },
+      {
+        phase: 'pr_open',
+        decision: 'link_pr',
+        summary: 'implemented',
+        prNumber: 42,
+      },
+      { phase: 'releasing', decision: 'ship', summary: 'released' },
+      {
+        phase: 'done',
+        decision: 'skip_notify',
+        summary: 'reflected',
+        notifySkipped: true,
+        reflectionEntryId: 'entry-reflection',
+        linkedEntryIds: ['entry-implementation'],
+        prReflectionUrl:
+          'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
+      },
+    ]);
+
+    await runGithubIssueLifecycle(
+      {
+        repo: 'getlarge/themoltnet',
+        issueNumber: 1327,
+        teamId: 'team',
+        diaryId: 'diary',
+        correlationId: '00000000-0000-4000-8000-000000000999',
+        pollIntervalSec: 1,
+      },
+      d,
+    );
+
+    const revision = tasks.created.find(
+      (task) => task.title === 'Revise plan for issue #1327',
+    );
+    expect((revision?.input as { brief?: string }).brief).toContain(
+      'Review decision "findings" did not pass but produced no explicit findings.',
+    );
+    expect((revision?.input as { brief?: string }).brief).toContain(
+      'The plan lacks enough implementation detail.',
+    );
+  });
 });
