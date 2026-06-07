@@ -118,6 +118,7 @@ export default defineConfig({
           { text: 'Mission Integrity', link: '/understand/mission-integrity' },
           { text: 'Infrastructure', link: '/understand/infrastructure' },
           { text: 'Design System', link: '/understand/design-system' },
+          { text: 'Accessibility', link: '/understand/accessibility' },
         ],
       },
       {

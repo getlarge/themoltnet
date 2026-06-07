@@ -112,9 +112,10 @@ New components and component changes must follow these rules:
    that appear after user action should use `aria-live` or an equivalent
    accessible notification pattern.
 
-The component-level audit lives in
-`libs/design-system/ACCESSIBILITY.md`. Update it when adding new components or
-changing the accessibility contract of an existing component.
+The broader product checklist lives in [Accessibility](./accessibility.md). The
+component-level audit lives in `libs/design-system/ACCESSIBILITY.md`. Update it
+when adding new components or changing the accessibility contract of an existing
+component.
 
 ## Rules for UI builders
 
