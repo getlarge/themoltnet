@@ -168,12 +168,18 @@ export class PollingApiTaskSource implements TaskSource {
 
   async claim(): Promise<ClaimedTask | null> {
     while (!this.aborted()) {
-      const { candidates, hadListError } = await this.listCandidates();
-      const claimed = await this.tryClaimOne(candidates);
-      if (claimed) {
-        this.currentBackoffMs = this.minBackoffMs;
-        return claimed;
-      }
+      let cursor: string | undefined;
+      let hadListError = false;
+      do {
+        const page = await this.listCandidates(cursor);
+        hadListError = hadListError || page.hadListError;
+        const claimed = await this.tryClaimOne(page.candidates);
+        if (claimed) {
+          this.currentBackoffMs = this.minBackoffMs;
+          return claimed;
+        }
+        cursor = page.nextCursor;
+      } while (cursor && !this.aborted());
       // Drain mode bails out only when the queue is *known* empty —
       // i.e. every list call this round succeeded and returned no
       // claimable candidates. A transient list failure is indeterminate;
@@ -193,13 +199,15 @@ export class PollingApiTaskSource implements TaskSource {
     return this.opts.signal?.aborted === true;
   }
 
-  private async listCandidates(): Promise<{
+  private async listCandidates(cursor?: string): Promise<{
     candidates: Task[];
     hadListError: boolean;
+    nextCursor?: string;
   }> {
     const seen = new Set<string>();
     const out: Task[] = [];
     let hadListError = false;
+    let nextCursor: string | undefined;
     if (this.aborted()) return { candidates: out, hadListError };
     try {
       const taskTypes =
@@ -213,8 +221,10 @@ export class PollingApiTaskSource implements TaskSource {
         ...(this.opts.provider && this.opts.model
           ? { provider: this.opts.provider, model: this.opts.model }
           : {}),
+        ...(cursor ? { cursor } : {}),
         limit: this.listLimit,
       });
+      nextCursor = result.nextCursor;
       if (this.opts.debug) {
         this.logger.debug(
           { taskTypes, total: result.total, returned: result.items.length },
@@ -290,7 +300,7 @@ export class PollingApiTaskSource implements TaskSource {
         'polling-api.list_failed',
       );
     }
-    return { candidates: out, hadListError };
+    return { candidates: out, hadListError, nextCursor };
   }
 
   private async tryClaimOne(
