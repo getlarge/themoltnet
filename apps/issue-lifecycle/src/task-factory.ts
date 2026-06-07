@@ -152,9 +152,10 @@ export async function buildTriageTask(
     'Classify the issue with useful tags such as feature, security, docs, or bug.',
     'If the issue is planning-ready, emit phase "classified" and decision "plan".',
     'If it needs clarification, emit phase "classified" and decision "needs_triage" with a concise summary.',
+    'Include classification, labels, planningReady, actionability, and missingInformation so the next step can understand the triage decision.',
     '',
     'Required artifact body shape:',
-    '{"phase":"classified","decision":"plan","summary":"..."}',
+    '{"phase":"classified","decision":"plan","summary":"...","classification":"feature|bug|docs|security|...","labels":["..."],"planningReady":true,"actionability":"...","missingInformation":[]}',
   ].join('\n');
   const body = await baseBody(
     input,
@@ -165,7 +166,14 @@ export async function buildTriageTask(
       step: 'triage',
       expectedPhase: 'classified',
       expectedDecisionPattern: 'plan|needs_triage',
-      requiredFields: ['summary'],
+      requiredFields: [
+        'summary',
+        'classification',
+        'labels',
+        'planningReady',
+        'actionability',
+        'missingInformation',
+      ],
       dependency: 'Initial task. Classify the issue before any planning work.',
     }),
   );
@@ -289,7 +297,16 @@ export const lifecycleCriteria = {
       step: 'plan',
       expectedPhase: 'plan_generated',
       expectedDecisionPattern: 'ready_for_review',
-      requiredFields: ['summary', 'plan'],
+      requiredFields: [
+        'summary',
+        'plan',
+        'risks',
+        'testStrategy',
+        'acceptanceCriteria',
+        'touchedAreas',
+        'estimatedDiffRisk',
+        'noImplementationPerformed',
+      ],
       dependency:
         'Continue from the accepted triage attempt. Use the classified issue context and do not implement.',
     });
@@ -299,7 +316,12 @@ export const lifecycleCriteria = {
       step: 'plan-review',
       expectedPhase: 'plan_generated',
       expectedDecisionPattern: 'review_passed|findings',
-      requiredFields: ['summary'],
+      requiredFields: [
+        'summary',
+        'findings',
+        'reviewedPlanSummary',
+        'noImplementationPerformed',
+      ],
       dependency:
         'Continue from the accepted plan attempt. Review the current plan only; do not implement.',
     });
@@ -309,7 +331,15 @@ export const lifecycleCriteria = {
       step: 'plan-revision',
       expectedPhase: 'plan_generated',
       expectedDecisionPattern: 'ready_for_review',
-      requiredFields: ['summary', 'plan'],
+      requiredFields: [
+        'summary',
+        'plan',
+        'resolvedFindings',
+        'remainingRisks',
+        'testStrategy',
+        'acceptanceCriteria',
+        'noImplementationPerformed',
+      ],
       dependency:
         'Continue from the accepted review attempt and resolve every reported finding.',
     });
@@ -319,7 +349,17 @@ export const lifecycleCriteria = {
       step: 'implementation',
       expectedPhase: 'pr_open',
       expectedDecisionPattern: 'link_pr',
-      requiredFields: ['summary', 'prNumber', 'prUrl'],
+      requiredFields: [
+        'summary',
+        'prNumber',
+        'prUrl',
+        'changedFiles',
+        'testsRun',
+        'diaryEntryIds',
+        'planDeviations',
+        'remainingRisks',
+        'diffStats',
+      ],
       dependency:
         'Continue from the approved plan or failed-check retry context. Implement under repository instructions and link the PR.',
       sideEffects: {
@@ -333,7 +373,12 @@ export const lifecycleCriteria = {
       step: 'release',
       expectedPhase: 'releasing',
       expectedDecisionPattern: 'ship',
-      requiredFields: ['summary'],
+      requiredFields: [
+        'summary',
+        'releaseRequired',
+        'releaseActions',
+        'evidence',
+      ],
       dependency:
         'Continue only after the linked PR is merged. Perform release bookkeeping or state that none is required.',
     });
@@ -349,6 +394,7 @@ export const lifecycleCriteria = {
         'reflectionEntryId',
         'linkedEntryIds',
         'prReflectionUrl',
+        'followUps',
       ],
       dependency:
         'Continue from the release task. Create the final reflection entry and publish its link in the PR body or a PR comment.',
@@ -366,8 +412,10 @@ export function planBrief(issue: GithubIssue): string {
     'Use the current session and worktree context from triage.',
     'Do not implement yet.',
     'Produce a concrete plan with risks, tests, and acceptance criteria.',
+    'Include touchedAreas and estimatedDiffRisk so reviewers can assess blast radius.',
+    'Set noImplementationPerformed to true.',
     'Required artifact body shape:',
-    '{"phase":"plan_generated","decision":"ready_for_review","summary":"...","plan":"..."}',
+    '{"phase":"plan_generated","decision":"ready_for_review","summary":"...","plan":"...","risks":["..."],"testStrategy":["..."],"acceptanceCriteria":["..."],"touchedAreas":["..."],"estimatedDiffRisk":"low|medium|high","noImplementationPerformed":true}',
   ].join('\n');
 }
 
@@ -376,9 +424,11 @@ export function reviewBrief(): string {
     'Review the current plan critically.',
     'If it is ready for human approval, emit decision "review_passed" and no findings.',
     'If it needs work, emit decision "findings" and include findings[].',
+    'Each finding should include enough detail to resolve it, either as a string or structured object.',
     'Do not implement code.',
+    'Set noImplementationPerformed to true.',
     'Required artifact body shape:',
-    '{"phase":"plan_generated","decision":"review_passed","summary":"...","findings":[]}',
+    '{"phase":"plan_generated","decision":"review_passed","summary":"...","findings":[],"reviewedPlanSummary":"...","noImplementationPerformed":true}',
   ].join('\n');
 }
 
@@ -389,8 +439,10 @@ export function revisePlanBrief(findings: string[]): string {
     ...findings.map((finding) => `- ${finding}`),
     '',
     'Do not implement yet.',
+    'Include resolvedFindings and remainingRisks so review can verify every finding was handled.',
+    'Set noImplementationPerformed to true.',
     'Required artifact body shape:',
-    '{"phase":"plan_generated","decision":"ready_for_review","summary":"...","plan":"..."}',
+    '{"phase":"plan_generated","decision":"ready_for_review","summary":"...","plan":"...","resolvedFindings":["..."],"remainingRisks":["..."],"testStrategy":["..."],"acceptanceCriteria":["..."],"noImplementationPerformed":true}',
   ].join('\n');
 }
 
@@ -399,8 +451,10 @@ export function implementationBrief(issue: GithubIssue): string {
     `Implement the approved plan for issue #${issue.number}: ${issue.title}.`,
     'Stay within repository instructions and LeGreffier accountable commit workflow.',
     'Open or link the PR when done.',
+    'Report changedFiles, testsRun, diaryEntryIds, planDeviations, remainingRisks, and diffStats.',
+    'If the non-generated diff exceeds 500 changed lines or 15 files, include largeDiffJustification.',
     'Required artifact body shape:',
-    '{"phase":"pr_open","decision":"link_pr","summary":"...","prNumber":123,"prUrl":"https://github.com/..."}',
+    '{"phase":"pr_open","decision":"link_pr","summary":"...","prNumber":123,"prUrl":"https://github.com/...","changedFiles":["..."],"testsRun":["..."],"diaryEntryIds":["..."],"planDeviations":[],"remainingRisks":[],"diffStats":{"files":1,"insertions":1,"deletions":0,"generatedFiles":[]}}',
   ].join('\n');
 }
 
@@ -408,8 +462,9 @@ export function implementationRetryBrief(): string {
   return [
     'The linked PR failed CI or merge gates.',
     'Inspect the PR/check failures, fix them, and update the same PR.',
+    'Report changedFiles, testsRun, diaryEntryIds, planDeviations, remainingRisks, and diffStats for the retry.',
     'Required artifact body shape:',
-    '{"phase":"pr_open","decision":"link_pr","summary":"...","prNumber":123,"prUrl":"https://github.com/..."}',
+    '{"phase":"pr_open","decision":"link_pr","summary":"...","prNumber":123,"prUrl":"https://github.com/...","changedFiles":["..."],"testsRun":["..."],"diaryEntryIds":["..."],"planDeviations":[],"remainingRisks":[],"diffStats":{"files":1,"insertions":1,"deletions":0,"generatedFiles":[]}}',
   ].join('\n');
 }
 
@@ -417,8 +472,9 @@ export function releaseBrief(prNumber: number): string {
   return [
     `The PR #${prNumber} merged. Perform any release bookkeeping that applies.`,
     'If no release action is needed, state that clearly.',
+    'Report releaseRequired, releaseActions, and evidence.',
     'Required artifact body shape:',
-    '{"phase":"releasing","decision":"ship","summary":"..."}',
+    '{"phase":"releasing","decision":"ship","summary":"...","releaseRequired":false,"releaseActions":[],"evidence":["..."]}',
   ].join('\n');
 }
 
@@ -436,7 +492,8 @@ export function notifyBrief(
     'Create a reflection diary entry that recaps this lifecycle session.',
     'The reflection must link or cite the diary entries created during the lifecycle, including implementation/accountable-commit entries.',
     'Add the reflection entry link to the PR body or to a PR comment.',
+    'Include followUps for any residual work or an empty array if none.',
     'Required artifact body shape:',
-    '{"phase":"done","decision":"notify","summary":"...","notifySkipped":false,"reflectionEntryId":"...","linkedEntryIds":["..."],"prReflectionUrl":"https://github.com/..."}',
+    '{"phase":"done","decision":"notify","summary":"...","notifySkipped":false,"reflectionEntryId":"...","linkedEntryIds":["..."],"prReflectionUrl":"https://github.com/...","followUps":[]}',
   ].join('\n');
 }

@@ -5,6 +5,13 @@ import type { FakeGithub } from './test-fakes.js';
 import { fakeDeps } from './test-fakes.js';
 import { runGithubIssueLifecycle } from './workflow.js';
 
+function assertionIds(taskInput: unknown): string[] {
+  return (
+    (taskInput as { successCriteria?: SuccessCriteria } | undefined)
+      ?.successCriteria?.assertions ?? []
+  ).map((assertion) => assertion.id);
+}
+
 describe('runGithubIssueLifecycle', () => {
   it('creates a freeform continuation chain through notify', async () => {
     const { deps: d, tasks } = fakeDeps([
@@ -76,6 +83,15 @@ describe('runGithubIssueLifecycle', () => {
         }),
       ]),
     );
+    expect(assertionIds(tasks.created[0]?.input)).toEqual(
+      expect.arrayContaining([
+        'triage-classification',
+        'triage-labels',
+        'triage-planningReady',
+        'triage-actionability',
+        'triage-missingInformation',
+      ]),
+    );
     const secondInput = tasks.created[1]?.input as
       | {
           continueFrom?: {
@@ -112,6 +128,40 @@ describe('runGithubIssueLifecycle', () => {
         }),
       ]),
     );
+    expect(assertionIds(secondInput)).toEqual(
+      expect.arrayContaining([
+        'plan-risks',
+        'plan-testStrategy',
+        'plan-acceptanceCriteria',
+        'plan-touchedAreas',
+        'plan-estimatedDiffRisk',
+        'plan-noImplementationPerformed',
+      ]),
+    );
+    expect(assertionIds(tasks.created[2]?.input)).toEqual(
+      expect.arrayContaining([
+        'plan-review-findings',
+        'plan-review-reviewedPlanSummary',
+        'plan-review-noImplementationPerformed',
+      ]),
+    );
+    expect(assertionIds(tasks.created[3]?.input)).toEqual(
+      expect.arrayContaining([
+        'implementation-changedFiles',
+        'implementation-testsRun',
+        'implementation-diaryEntryIds',
+        'implementation-planDeviations',
+        'implementation-remainingRisks',
+        'implementation-diffStats',
+      ]),
+    );
+    expect(assertionIds(tasks.created[4]?.input)).toEqual(
+      expect.arrayContaining([
+        'release-releaseRequired',
+        'release-releaseActions',
+        'release-evidence',
+      ]),
+    );
     expect(
       (
         tasks.created[3]?.input as
@@ -141,6 +191,9 @@ describe('runGithubIssueLifecycle', () => {
         }),
         expect.objectContaining({
           id: 'notify-prReflectionUrl',
+        }),
+        expect.objectContaining({
+          id: 'notify-followUps',
         }),
       ]),
     );
@@ -242,6 +295,18 @@ describe('runGithubIssueLifecycle', () => {
 
     expect(tasks.created.map((task) => task.title)).toContain(
       'Revise plan for issue #1327',
+    );
+    const revision = tasks.created.find(
+      (task) => task.title === 'Revise plan for issue #1327',
+    );
+    expect(assertionIds(revision?.input)).toEqual(
+      expect.arrayContaining([
+        'plan-revision-resolvedFindings',
+        'plan-revision-remainingRisks',
+        'plan-revision-testStrategy',
+        'plan-revision-acceptanceCriteria',
+        'plan-revision-noImplementationPerformed',
+      ]),
     );
     expect(tasks.created.map((task) => task.title)).toContain(
       'Notify issue #1327',
