@@ -53,7 +53,9 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
       }}
     >
       {/* Logo */}
-      <div
+      <button
+        type="button"
+        aria-label="Go to overview"
         style={{
           display: 'flex',
           flexDirection: 'row',
@@ -62,6 +64,11 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           justifyContent: collapsed ? 'center' : 'flex-start',
           padding: '0.5rem',
           cursor: 'pointer',
+          width: '100%',
+          background: 'transparent',
+          border: 0,
+          color: 'inherit',
+          font: 'inherit',
         }}
         onClick={() => navigate('/')}
       >
@@ -78,7 +85,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
             MoltNet
           </span>
         )}
-      </div>
+      </button>
 
       {/* Team selector */}
       {!collapsed && <TeamSelector />}
