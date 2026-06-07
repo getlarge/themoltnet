@@ -29,12 +29,16 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* Mobile drawer overlay */}
       {isMobile && mobileOpen && (
-        <div
+        <button
+          type="button"
+          aria-label="Close navigation menu"
           onClick={() => setMobileOpen(false)}
           style={{
             position: 'fixed',
             inset: 0,
             background: 'rgba(0,0,0,0.5)',
+            border: 0,
+            padding: 0,
             zIndex: 40,
           }}
         />
