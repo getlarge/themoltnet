@@ -30,18 +30,23 @@ function isActive(location: string, path: string): boolean {
 
 export interface SidebarProps {
   collapsed?: boolean;
+  id?: string;
 }
 
-export function Sidebar({ collapsed = false }: SidebarProps) {
+export function Sidebar({ collapsed = false, id }: SidebarProps) {
   const theme = useTheme();
   const [location, navigate] = useLocation();
 
   const width = collapsed ? 56 : 220;
 
   return (
-    <Stack
-      gap={2}
+    <aside
+      id={id}
+      aria-label="Console navigation"
       style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[2],
         width,
         minHeight: '100vh',
         padding: collapsed ? '1rem 0.25rem' : '1rem 0.75rem',
@@ -93,21 +98,29 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
       <Divider />
 
       {/* Nav items */}
-      <Stack gap={1}>
-        {navItems.map((item) => (
-          <Button
-            key={item.path}
-            variant={isActive(location, item.path) ? 'primary' : 'ghost'}
-            onClick={() => navigate(item.path)}
-            style={{
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              width: '100%',
-            }}
-          >
-            {collapsed ? item.label.charAt(0) : item.label}
-          </Button>
-        ))}
-      </Stack>
+      <nav aria-label="Primary">
+        <Stack gap={1}>
+          {navItems.map((item) => {
+            const active = isActive(location, item.path);
+
+            return (
+              <Button
+                key={item.path}
+                variant={active ? 'primary' : 'ghost'}
+                aria-current={active ? 'page' : undefined}
+                aria-label={collapsed ? item.label : undefined}
+                onClick={() => navigate(item.path)}
+                style={{
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  width: '100%',
+                }}
+              >
+                {collapsed ? item.label.charAt(0) : item.label}
+              </Button>
+            );
+          })}
+        </Stack>
+      </nav>
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
@@ -122,6 +135,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           onClick={() =>
             window.open(getConfig().docsUrl, '_blank', 'noopener,noreferrer')
           }
+          aria-label={collapsed ? 'Documentation' : undefined}
           title="Documentation"
           style={{
             justifyContent: collapsed ? 'center' : 'flex-start',
@@ -135,6 +149,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           onClick={() =>
             window.location.assign(`${getConfig().kratosUrl}/ui/settings`)
           }
+          aria-label={collapsed ? 'Settings' : undefined}
           style={{
             justifyContent: collapsed ? 'center' : 'flex-start',
             width: '100%',
@@ -143,6 +158,6 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           {collapsed ? 'S' : 'Settings'}
         </Button>
       </Stack>
-    </Stack>
+    </aside>
   );
 }
