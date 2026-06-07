@@ -39,6 +39,7 @@ const PAGE_SIZE = 30;
 
 /** Docs page explaining how to install and run an agent daemon. */
 const AGENT_DAEMON_DOCS_HREF = `${getConfig().docsUrl}/use/agent-daemon`;
+const SUCCESS_CRITERIA_DOCS_HREF = `${getConfig().docsUrl}/use/agent-executors#self-verification-producer-llm-evaluates-its-own-output`;
 
 export function TasksPage() {
   const theme = useTheme();
@@ -467,6 +468,7 @@ export function TasksPage() {
           candidateTasks={pickerCandidates}
           availableTypes={registeredTaskTypes}
           onSearchCandidates={searchPickerCandidates}
+          successCriteriaDocsHref={SUCCESS_CRITERIA_DOCS_HREF}
           onClose={() => setShowCreate(false)}
           onSubmit={async (request: CreateTaskRequest) => {
             const { data, error: apiError } = await createTask({

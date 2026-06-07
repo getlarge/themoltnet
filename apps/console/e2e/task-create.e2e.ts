@@ -162,19 +162,26 @@ test.describe.serial('Create task from console', () => {
 
   test('creates a task with authored success criteria', async ({ page }) => {
     await openCreateDialog(page);
-    await page.getByLabel(/^brief/i).fill(`Gated task ${nonce}`);
+    await page.getByLabel(/^brief/i).fill(`Rubric task ${nonce}`);
 
-    // Reveal the success-criteria editor and add one gate plus one assertion.
+    // Reveal the success-criteria editor and author one rubric criterion plus
+    // required evidence.
     await page.getByRole('button', { name: /success criteria/i }).click();
-    await page.getByRole('button', { name: /add schema gate/i }).click();
-    await page.getByLabel(/schema cid/i).fill('bafy-schema-e2e');
-    await page.getByRole('button', { name: /add assertion/i }).click();
-    await page.getByLabel(/assertion path/i).fill('commits.*.sha');
+    await page.getByRole('button', { name: /add criterion/i }).click();
+    await page.getByLabel(/rubric id/i).fill('console-e2e-rubric');
+    await page.getByLabel(/minimum acceptable score/i).fill('80');
+    await page.getByLabel(/criterion name/i).fill('implementation_quality');
+    await page.getByLabel(/weight/i).fill('100');
+    await page
+      .getByLabel(/criterion description/i)
+      .fill('Pass when the task is implemented and verified.');
+    await page.getByLabel(/require pr url/i).check();
+    await page.getByLabel(/require diary entry/i).check();
 
     await page.getByRole('button', { name: /create task/i }).click();
 
     // The assembled successCriteria must pass server validation and persist on
-    // the task input (the server also keeps its default submit gate).
+    // the task input.
     const client = createTokenSessionApiClient(sessionToken);
     await expect
       .poll(async () => {
@@ -185,31 +192,36 @@ test.describe.serial('Create task from console', () => {
             typeof t.input === 'object' &&
             t.input !== null &&
             (t.input as Record<string, unknown>).brief ===
-              `Gated task ${nonce}`,
+              `Rubric task ${nonce}`,
         );
         const criteria = (task?.input as Record<string, unknown> | undefined)
           ?.successCriteria as
-          | { gates?: unknown[]; assertions?: unknown[] }
+          | {
+              assertions?: unknown[];
+              minComposite?: number;
+              rubric?: { criteria?: unknown[]; rubricId?: string };
+              sideEffects?: { diaryEntryRequired?: boolean };
+            }
           | undefined;
-        const gates = Array.isArray(criteria?.gates) ? criteria.gates : [];
         return {
           assertions: Array.isArray(criteria?.assertions)
             ? criteria.assertions.length
             : 0,
-          hasSubmitGate: gates.some(
-            (gate) =>
-              typeof gate === 'object' &&
-              gate !== null &&
-              (gate as Record<string, unknown>).kind === 'submit-tool-call',
-          ),
-          hasSchemaGate: gates.some(
-            (gate) =>
-              typeof gate === 'object' &&
-              gate !== null &&
-              (gate as Record<string, unknown>).kind === 'schema-check',
-          ),
+          diaryEntryRequired:
+            criteria?.sideEffects?.diaryEntryRequired === true,
+          minComposite: criteria?.minComposite,
+          rubricCriteria: Array.isArray(criteria?.rubric?.criteria)
+            ? criteria.rubric.criteria.length
+            : 0,
+          rubricId: criteria?.rubric?.rubricId,
         };
       })
-      .toEqual({ assertions: 1, hasSubmitGate: true, hasSchemaGate: true });
+      .toEqual({
+        assertions: 1,
+        diaryEntryRequired: true,
+        minComposite: 0.8,
+        rubricCriteria: 1,
+        rubricId: 'console-e2e-rubric',
+      });
   });
 });

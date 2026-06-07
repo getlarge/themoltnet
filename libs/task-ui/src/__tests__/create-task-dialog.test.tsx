@@ -97,53 +97,94 @@ describe('CreateTaskDialog', () => {
     expect(await screen.findByText('Boom')).toBeInTheDocument();
   });
 
-  it('includes authored success criteria gates and assertions in the request', async () => {
+  it('includes authored rubric and required evidence in the request', async () => {
     const onSubmit = vi.fn().mockResolvedValue('t1');
     renderDialog({ onSubmit });
 
     fireEvent.change(screen.getByLabelText('Brief'), {
-      target: { value: 'Gated task' },
+      target: { value: 'Rubric task' },
     });
-    // Success criteria is collapsed by default; reveal it.
     fireEvent.click(screen.getByRole('button', { name: /success criteria/i }));
-    fireEvent.click(screen.getByRole('button', { name: /add schema gate/i }));
-    fireEvent.change(screen.getByLabelText('Schema CID'), {
-      target: { value: 'bafy-schema' },
+    fireEvent.click(screen.getByRole('button', { name: /add criterion/i }));
+    fireEvent.change(screen.getByLabelText('Rubric ID'), {
+      target: { value: 'custom-implementation' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /add cid gate/i }));
-    fireEvent.change(screen.getByLabelText('CID path'), {
-      target: { value: 'outputCid' },
+    fireEvent.change(screen.getByLabelText('Minimum acceptable score (%)'), {
+      target: { value: '85' },
     });
-    fireEvent.change(screen.getByLabelText('Expected CID'), {
-      target: { value: 'bafy-output' },
+    fireEvent.change(screen.getByLabelText('Criterion name'), {
+      target: { value: 'implementation quality' },
     });
-    fireEvent.click(screen.getAllByLabelText('Gate required')[1]);
-    fireEvent.click(screen.getByRole('button', { name: /add assertion/i }));
-    fireEvent.change(screen.getByLabelText('Assertion path'), {
-      target: { value: 'commits.*.sha' },
+    fireEvent.change(screen.getByLabelText('Weight (%)'), {
+      target: { value: '100' },
     });
+    fireEvent.change(screen.getByLabelText('Scoring mode 1'), {
+      target: { value: 'boolean' },
+    });
+    fireEvent.change(screen.getByLabelText('Criterion description 1'), {
+      target: { value: 'Pass when the implementation is correct.' },
+    });
+    fireEvent.click(screen.getByLabelText(/require pr url/i));
+    fireEvent.change(screen.getByLabelText(/require at least n commits/i), {
+      target: { value: '1' },
+    });
+    fireEvent.click(screen.getByLabelText(/require diary entry/i));
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
     expect(request.input.successCriteria).toEqual({
       version: 1,
-      gates: [
+      assertions: [
         {
-          id: 'g1',
-          kind: 'schema-check',
-          spec: { schemaCid: 'bafy-schema' },
-          required: true,
+          id: 'a1',
+          path: 'pullRequestUrl',
+          op: 'matches',
+          value: '^https://github\\.com/.+/.+/pull/[0-9]+$',
         },
-        {
-          id: 'g2',
-          kind: 'cid-equals',
-          spec: { path: 'outputCid', expected: 'bafy-output' },
-          required: false,
-        },
+        { id: 'a2', path: 'commits', op: 'min-length', value: 1 },
       ],
-      assertions: [{ id: 'a1', path: 'commits.*.sha', op: 'exists' }],
+      rubric: {
+        rubricId: 'custom-implementation',
+        version: 'v1',
+        criteria: [
+          {
+            id: 'implementation_quality',
+            description: 'Pass when the implementation is correct.',
+            weight: 1,
+            scoring: 'boolean',
+          },
+        ],
+      },
+      minComposite: 0.85,
+      sideEffects: { diaryEntryRequired: true },
     });
+  });
+
+  it('surfaces invalid rubric weights before submit', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('t1');
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Invalid rubric task' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /success criteria/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add criterion/i }));
+    fireEvent.change(screen.getByLabelText('Rubric ID'), {
+      target: { value: 'custom-implementation' },
+    });
+    fireEvent.change(screen.getByLabelText('Criterion name'), {
+      target: { value: 'implementation_quality' },
+    });
+    fireEvent.change(screen.getByLabelText('Weight (%)'), {
+      target: { value: '50' },
+    });
+
+    expect(
+      screen.getAllByText(/rubric weights must sum to 100%/i).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /create task/i })).toBeDisabled();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('omits successCriteria when none authored', async () => {
