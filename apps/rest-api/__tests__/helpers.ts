@@ -53,6 +53,8 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitLegreffierStatus: 1000,
   rateLimitRegistration: 1000,
   rateLimitReadiness: 1000,
+  rateLimitPreResolveIp: 1000,
+  rateLimitAllowList: ['/health', '/problems'],
   trustProxy: 0,
   apiBaseUrl: 'http://localhost:8000',
 };

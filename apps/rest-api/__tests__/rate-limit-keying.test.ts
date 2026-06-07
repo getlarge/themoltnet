@@ -141,4 +141,36 @@ describe('Rate limiter keys by verified identity (#1336)', () => {
 
     await app.close();
   });
+
+  it('pre-resolve IP throttle blocks spray BEFORE auth resolution (CodeQL #57)', async () => {
+    // The anti-amplification guard: a single IP spraying credentialed requests
+    // must be throttled BEFORE populateAuthContext does its (network) auth
+    // resolution, so it cannot amplify load onto Hydra/Kratos.
+    let resolveCalls = 0;
+    const countingResolver = (token: string) => {
+      resolveCalls += 1;
+      return resolverByTokenLabel(token);
+    };
+
+    const app = await createTestApp(
+      mocks,
+      VALID_AUTH_CONTEXT,
+      // High identity limits so ONLY the pre-resolve IP ceiling (2) can trip.
+      { rateLimitGlobalAuth: 1000, rateLimitPreResolveIp: 2 },
+      undefined,
+      countingResolver,
+    );
+
+    // Two opaque-ish tokens go through (each resolves once), the third is
+    // throttled at the IP gate before resolution.
+    expect((await hit(app, 'token-agent-x#1')).statusCode).toBe(200);
+    expect((await hit(app, 'token-agent-x#2')).statusCode).toBe(200);
+    const blocked = await hit(app, 'token-agent-x#3');
+    expect(blocked.statusCode).toBe(429);
+
+    // Crucially, the blocked request did NOT trigger auth resolution.
+    expect(resolveCalls).toBe(2);
+
+    await app.close();
+  });
 });

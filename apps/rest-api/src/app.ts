@@ -23,7 +23,10 @@ import pkg from '../package.json' with { type: 'json' };
 import type { PackGcConfig } from './config.js';
 import { corsPluginFp } from './plugins/cors.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
-import { rateLimitPlugin } from './plugins/rate-limit.js';
+import {
+  rateLimitPlugin,
+  registerPreResolveThrottle,
+} from './plugins/rate-limit.js';
 import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentRoutes } from './routes/agents.js';
@@ -96,6 +99,17 @@ export interface SecurityOptions {
   rateLimitRegistration: number;
   /** Max requests per minute for readiness probes (default: 12) */
   rateLimitReadiness: number;
+  /**
+   * Coarse per-IP ceiling applied before auth-context resolution (anti-
+   * amplification guard for Hydra/Kratos). Generous; not the per-principal
+   * budget.
+   */
+  rateLimitPreResolveIp: number;
+  /**
+   * Exact request paths exempt from all rate limiting (pre-resolve throttle and
+   * main limiter), e.g. liveness/registry probes.
+   */
+  rateLimitAllowList: string[];
   /**
    * Number of trusted reverse-proxy hops (Fastify `trustProxy`). 0 = trust no
    * proxy. Set to 1 behind Fly so request.ip is the real client, not the edge.
@@ -242,6 +256,16 @@ export async function registerApiRoutes(
   // Register global error handler (RFC 9457 Problem Details)
   await app.register(errorHandlerPlugin);
 
+  // Pre-resolution IP throttle — MUST run before the auth plugin's
+  // populateAuthContext onRequest hook (which does network auth resolution).
+  // Registered here so its onRequest hook precedes auth's; caps per-IP
+  // resolution attempts so a spray cannot amplify load onto Hydra/Kratos before
+  // the identity limiter (which runs after resolution) can throttle it.
+  registerPreResolveThrottle(app, {
+    preResolveIpLimit: options.security.rateLimitPreResolveIp,
+    allowList: options.security.rateLimitAllowList,
+  });
+
   // Register auth plugin (decorates tokenValidator, permissionChecker, request.authContext)
   await app.register(authPlugin, {
     tokenValidator: options.tokenValidator,
@@ -276,6 +300,7 @@ export async function registerApiRoutes(
     legreffierStatusLimit: options.security.rateLimitLegreffierStatus,
     registrationLimit: options.security.rateLimitRegistration,
     readinessLimit: options.security.rateLimitReadiness,
+    allowList: options.security.rateLimitAllowList,
   });
 
   // Decorate with services (guard to allow pre-decoration by DBOS plugin)
