@@ -37,6 +37,13 @@ export interface RateLimitPluginOptions {
   registrationLimit: number;
   /** Max requests per minute for readiness probes (default: 12) */
   readinessLimit: number;
+  /**
+   * Max requests per minute for authenticated GET reads (default: 150). All
+   * read routes share this one per-identity bucket (groupId 'read'), kept
+   * separate from — and more generous than — the global mutation budget so a
+   * burst of reads cannot starve writes. See issue #1336.
+   */
+  readLimit: number;
   /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
   allowList: readonly string[];
 }
@@ -130,6 +137,7 @@ async function rateLimitPluginImpl(
     legreffierStatusLimit,
     registrationLimit,
     readinessLimit,
+    readLimit,
     allowList,
   } = options;
 
@@ -222,6 +230,15 @@ async function rateLimitPluginImpl(
       max: readinessLimit,
       timeWindow: '1 minute',
     },
+    // Shared bucket for authenticated GET reads. `groupId: 'read'` makes every
+    // route that uses this config draw from ONE per-identity bucket, distinct
+    // from the global mutation budget. Apply via `config.rateLimit` on read
+    // routes (see e.g. tasks.ts GET handlers).
+    read: {
+      max: readLimit,
+      timeWindow: '1 minute',
+      groupId: 'read',
+    },
   });
 }
 
@@ -243,6 +260,7 @@ declare module 'fastify' {
       legreffierStatus: { max: number; timeWindow: string };
       registration: { max: number; timeWindow: string };
       readiness: { max: number; timeWindow: string };
+      read: { max: number; timeWindow: string; groupId: string };
     };
   }
 }

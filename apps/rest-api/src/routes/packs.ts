@@ -499,6 +499,7 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/:id/provenance',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getContextPackProvenanceById',
         tags: ['diary'],
@@ -558,6 +559,7 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/by-cid/:cid/provenance',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getContextPackProvenanceByCid',
         tags: ['diary'],
@@ -617,6 +619,7 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/:id/diff/:otherId',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'diffContextPacksById',
         tags: ['diary'],
@@ -656,6 +659,7 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/by-cid/:cid/diff/by-cid/:otherCid',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'diffContextPacksByCid',
         tags: ['diary'],
@@ -695,6 +699,7 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listContextPacks',
         tags: ['diary'],
@@ -798,6 +803,7 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/:id',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getContextPackById',
         tags: ['diary'],
@@ -907,6 +913,7 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/diaries/:id/packs',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listDiaryPacks',
         tags: ['diary'],

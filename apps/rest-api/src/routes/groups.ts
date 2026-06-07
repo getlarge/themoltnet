@@ -128,6 +128,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
   server.get(
     '/teams/:id/groups',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listGroups',
         tags: ['groups'],
@@ -171,6 +172,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
   server.get(
     '/groups/:groupId',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getGroup',
         tags: ['groups'],
@@ -339,6 +341,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
   server.get(
     '/groups/:groupId/members',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listGroupMembers',
         tags: ['groups'],

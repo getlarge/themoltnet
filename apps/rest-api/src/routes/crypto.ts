@@ -76,6 +76,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
   server.get(
     '/crypto/identity',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getCryptoIdentity',
         tags: ['crypto'],

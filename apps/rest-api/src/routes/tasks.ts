@@ -83,6 +83,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.get(
     '/tasks/schemas',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listTaskSchemas',
         tags: ['tasks'],
@@ -170,6 +171,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.get(
     '/tasks',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listTasks',
         tags: ['tasks'],
@@ -240,6 +242,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.get(
     '/tasks/:id',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getTask',
         tags: ['tasks'],
@@ -551,6 +554,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.get(
     '/tasks/:id/attempts',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listTaskAttempts',
         tags: ['tasks'],
@@ -586,6 +590,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.get(
     '/tasks/:id/attempts/:n/messages',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listTaskMessages',
         tags: ['tasks'],

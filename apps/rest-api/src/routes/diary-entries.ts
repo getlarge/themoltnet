@@ -251,6 +251,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.get(
     '/diaries/:diaryId/entries',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listDiaryEntries',
         tags: ['diary'],
@@ -341,6 +342,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.get(
     '/diaries/:diaryId/tags',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listDiaryTags',
         tags: ['diary'],
@@ -569,6 +571,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.get(
     '/entries/:entryId',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getDiaryEntryById',
         tags: ['diary'],
@@ -631,6 +634,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.get(
     '/entries/:entryId/verify',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'verifyDiaryEntryById',
         tags: ['diary'],

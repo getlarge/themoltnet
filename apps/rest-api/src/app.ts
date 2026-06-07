@@ -99,6 +99,8 @@ export interface SecurityOptions {
   rateLimitRegistration: number;
   /** Max requests per minute for readiness probes (default: 12) */
   rateLimitReadiness: number;
+  /** Shared per-identity budget for authenticated GET reads (default: 150). */
+  rateLimitGlobalRead: number;
   /**
    * Coarse per-IP ceiling applied before auth-context resolution (anti-
    * amplification guard for Hydra/Kratos). Generous; not the per-principal
@@ -300,6 +302,7 @@ export async function registerApiRoutes(
     legreffierStatusLimit: options.security.rateLimitLegreffierStatus,
     registrationLimit: options.security.rateLimitRegistration,
     readinessLimit: options.security.rateLimitReadiness,
+    readLimit: options.security.rateLimitGlobalRead,
     allowList: options.security.rateLimitAllowList,
   });
 

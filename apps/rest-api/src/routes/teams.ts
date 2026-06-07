@@ -368,6 +368,7 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.get(
     '/teams',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listTeams',
         tags: ['teams'],
@@ -421,6 +422,7 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.get(
     '/teams/:id',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getTeam',
         tags: ['teams'],
@@ -541,6 +543,7 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.get(
     '/teams/:id/members',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listTeamMembers',
         tags: ['teams'],
@@ -789,6 +792,7 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.get(
     '/teams/:id/invites',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listTeamInvites',
         tags: ['teams'],
