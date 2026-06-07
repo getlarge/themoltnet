@@ -1,18 +1,30 @@
 import { useTheme } from '@themoltnet/design-system';
-import { type ReactNode, useCallback, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { useLocation } from 'wouter';
 
 import { useIsMobile, useIsTablet } from '../hooks/useIsMobile.js';
 import { Header } from './Header.js';
 import { Sidebar } from './Sidebar.js';
 
 const COLLAPSED_KEY = 'moltnet-sidebar-collapsed';
+const MAIN_CONTENT_ID = 'main-content';
+const SIDEBAR_ID = 'console-sidebar';
 
 export function DashboardLayout({ children }: { children: ReactNode }) {
   const theme = useTheme();
+  const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem(COLLAPSED_KEY) === 'true',
   );
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [skipFocused, setSkipFocused] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
 
@@ -25,8 +37,33 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  useEffect(() => {
+    setMobileOpen(false);
+    mainRef.current?.focus();
+  }, [location]);
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <a
+        href={`#${MAIN_CONTENT_ID}`}
+        onFocus={() => setSkipFocused(true)}
+        onBlur={() => setSkipFocused(false)}
+        style={{
+          position: 'fixed',
+          left: theme.spacing[3],
+          top: skipFocused ? theme.spacing[3] : '-4rem',
+          zIndex: 100,
+          padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+          borderRadius: theme.radius.md,
+          background: theme.color.bg.surface,
+          color: theme.color.primary.DEFAULT,
+          boxShadow: theme.shadow.lg,
+          transition: `top ${theme.transition.fast}`,
+        }}
+      >
+        Skip to main content
+      </a>
+
       {/* Mobile drawer overlay */}
       {isMobile && mobileOpen && (
         <button
@@ -48,6 +85,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       {isMobile ? (
         mobileOpen && (
           <div
+            role="dialog"
+            aria-label="Navigation menu"
+            aria-modal="true"
             style={{
               position: 'fixed',
               left: 0,
@@ -56,11 +96,11 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               height: '100vh',
             }}
           >
-            <Sidebar collapsed={false} />
+            <Sidebar collapsed={false} id={SIDEBAR_ID} />
           </div>
         )
       ) : (
-        <Sidebar collapsed={effectiveCollapsed} />
+        <Sidebar collapsed={effectiveCollapsed} id={SIDEBAR_ID} />
       )}
 
       <div
@@ -72,12 +112,17 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         }}
       >
         <Header
+          menuControls={SIDEBAR_ID}
+          menuExpanded={isMobile ? mobileOpen : !effectiveCollapsed}
           onMenuClick={
             isMobile ? () => setMobileOpen((p) => !p) : toggleCollapse
           }
           showMenuButton
         />
         <main
+          id={MAIN_CONTENT_ID}
+          ref={mainRef}
+          tabIndex={-1}
           style={{
             flex: 1,
             padding: theme.spacing[6],
@@ -85,6 +130,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
             maxWidth: 1280,
             margin: '0 auto',
             width: '100%',
+            outline: 'none',
           }}
         >
           {children}

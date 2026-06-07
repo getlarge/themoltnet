@@ -3,20 +3,27 @@ import { Button, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { useAuth } from '../auth/useAuth.js';
 
 export interface HeaderProps {
+  menuControls?: string;
+  menuExpanded?: boolean;
   onMenuClick?: () => void;
   showMenuButton?: boolean;
 }
 
-export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
+export function Header({
+  menuControls,
+  menuExpanded,
+  onMenuClick,
+  showMenuButton = false,
+}: HeaderProps) {
   const theme = useTheme();
   const { username, email, logout } = useAuth();
 
   return (
-    <Stack
-      direction="row"
-      align="center"
-      gap={4}
+    <header
       style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: theme.spacing[4],
         padding: `${theme.spacing[3]} ${theme.spacing[6]}`,
         borderBottom: `1px solid ${theme.color.border.DEFAULT}`,
         justifyContent: 'space-between',
@@ -29,6 +36,8 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
             size="sm"
             onClick={onMenuClick}
             aria-label="Toggle sidebar"
+            aria-controls={menuControls}
+            aria-expanded={menuExpanded}
           >
             ☰
           </Button>
@@ -40,6 +49,6 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
           Logout
         </Button>
       </Stack>
-    </Stack>
+    </header>
   );
 }

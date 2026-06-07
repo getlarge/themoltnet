@@ -321,32 +321,40 @@ export function TeamDetailPage({ id }: { id: string }) {
         </Text>
       </Stack>
 
-      <Stack direction="row" gap={0}>
+      <div
+        role="tablist"
+        aria-label="Team sections"
+        style={{ display: 'flex', gap: 0 }}
+      >
         <TabButton
           label="Members"
+          panelId="team-members-panel"
           active={activeTab === 'members'}
           onClick={() => navigate(`/teams/${id}`)}
         />
         {!isPersonal && (
           <TabButton
             label="Groups"
+            panelId="team-groups-panel"
             active={activeTab === 'groups'}
             onClick={() => navigate(`/teams/${id}?tab=groups`)}
           />
         )}
         <TabButton
           label="Diaries"
+          panelId="team-diaries-panel"
           active={activeTab === 'diaries'}
           onClick={() => navigate(`/teams/${id}?tab=diaries`)}
         />
         {canManage && !isPersonal && (
           <TabButton
             label="Invites"
+            panelId="team-invites-panel"
             active={activeTab === 'invites'}
             onClick={() => navigate(`/teams/${id}?tab=invites`)}
           />
         )}
-      </Stack>
+      </div>
 
       <Divider />
 
@@ -375,120 +383,128 @@ export function TeamDetailPage({ id }: { id: string }) {
       )}
 
       {activeTab === 'members' && (
-        <Stack gap={4}>
-          {team.members.length > 5 && (
-            <Input
-              placeholder="Search members by name, email, or fingerprint"
-              value={memberQuery}
-              onChange={(e) => setMemberQuery(e.target.value)}
-              inputSize="sm"
-            />
-          )}
-          {filteredMembers.length === 0 ? (
-            <Text color="muted">No members match your search.</Text>
-          ) : (
-            <Stack gap={3}>
-              {filteredMembers.map((member) => (
-                <MemberRow
-                  key={member.subjectId}
-                  subjectId={member.subjectId}
-                  subjectType={member.subjectType}
-                  role={member.role}
-                  displayName={member.displayName}
-                  fingerprint={member.fingerprint}
-                  email={member.email}
-                  roleActionLabel={roleActionLabel(member) ?? undefined}
-                  roleActionPending={updatingMemberId === member.subjectId}
-                  canRemove={canRemoveMember(member)}
-                  onRoleAction={() => void handleToggleMemberRole(member)}
-                  onRemove={() => setConfirmRemove(member)}
-                />
-              ))}
-            </Stack>
-          )}
-        </Stack>
+        <div id="team-members-panel" role="tabpanel">
+          <Stack gap={4}>
+            {team.members.length > 5 && (
+              <Input
+                placeholder="Search members by name, email, or fingerprint"
+                value={memberQuery}
+                onChange={(e) => setMemberQuery(e.target.value)}
+                inputSize="sm"
+              />
+            )}
+            {filteredMembers.length === 0 ? (
+              <Text color="muted">No members match your search.</Text>
+            ) : (
+              <Stack gap={3}>
+                {filteredMembers.map((member) => (
+                  <MemberRow
+                    key={member.subjectId}
+                    subjectId={member.subjectId}
+                    subjectType={member.subjectType}
+                    role={member.role}
+                    displayName={member.displayName}
+                    fingerprint={member.fingerprint}
+                    email={member.email}
+                    roleActionLabel={roleActionLabel(member) ?? undefined}
+                    roleActionPending={updatingMemberId === member.subjectId}
+                    canRemove={canRemoveMember(member)}
+                    onRoleAction={() => void handleToggleMemberRole(member)}
+                    onRemove={() => setConfirmRemove(member)}
+                  />
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </div>
       )}
 
       {activeTab === 'groups' && (
-        <Stack gap={4}>
-          <Stack direction="row" justify="space-between" align="center">
-            <Text variant="h4">Groups ({groups.length})</Text>
-            {canManage && (
-              <Button size="sm" onClick={() => setShowCreateGroup(true)}>
-                Create group
-              </Button>
+        <div id="team-groups-panel" role="tabpanel">
+          <Stack gap={4}>
+            <Stack direction="row" justify="space-between" align="center">
+              <Text variant="h4">Groups ({groups.length})</Text>
+              {canManage && (
+                <Button size="sm" onClick={() => setShowCreateGroup(true)}>
+                  Create group
+                </Button>
+              )}
+            </Stack>
+            {groups.length === 0 ? (
+              <Text color="muted">
+                No groups yet. Groups let you bundle members for diary grants.
+              </Text>
+            ) : (
+              <Stack gap={3}>
+                {groups.map((g) => (
+                  <GroupCard
+                    key={g.id}
+                    id={g.id}
+                    name={g.name}
+                    canDelete={canManage}
+                    onDelete={() => setConfirmDeleteGroup(g)}
+                  />
+                ))}
+              </Stack>
             )}
           </Stack>
-          {groups.length === 0 ? (
-            <Text color="muted">
-              No groups yet. Groups let you bundle members for diary grants.
-            </Text>
-          ) : (
-            <Stack gap={3}>
-              {groups.map((g) => (
-                <GroupCard
-                  key={g.id}
-                  id={g.id}
-                  name={g.name}
-                  canDelete={canManage}
-                  onDelete={() => setConfirmDeleteGroup(g)}
-                />
-              ))}
-            </Stack>
-          )}
-        </Stack>
+        </div>
       )}
 
       {activeTab === 'diaries' && (
-        <Stack gap={4}>
-          {callerRole === 'owner' && <PendingTransfersPanel teamId={id} />}
-          <Text variant="h4">Diaries ({diaries.length})</Text>
-          {diaries.length === 0 ? (
-            <Text color="muted">No diaries scoped to this team yet.</Text>
-          ) : (
-            <Stack gap={3}>
-              {diaries.map((d) => (
-                <TeamDiaryCard
-                  key={d.id}
-                  diary={d}
-                  resolveSubject={resolveSubject}
-                  canManage={canManage}
-                  onGrantClick={(diary) => setGrantDialogDiary(diary)}
-                  refreshKey={grantsRefresh}
-                />
-              ))}
-            </Stack>
-          )}
-        </Stack>
+        <div id="team-diaries-panel" role="tabpanel">
+          <Stack gap={4}>
+            {callerRole === 'owner' && <PendingTransfersPanel teamId={id} />}
+            <Text variant="h4">Diaries ({diaries.length})</Text>
+            {diaries.length === 0 ? (
+              <Text color="muted">No diaries scoped to this team yet.</Text>
+            ) : (
+              <Stack gap={3}>
+                {diaries.map((d) => (
+                  <TeamDiaryCard
+                    key={d.id}
+                    diary={d}
+                    resolveSubject={resolveSubject}
+                    canManage={canManage}
+                    onGrantClick={(diary) => setGrantDialogDiary(diary)}
+                    refreshKey={grantsRefresh}
+                  />
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </div>
       )}
 
       {activeTab === 'invites' && canManage && !isPersonal && (
-        <Stack gap={4}>
-          <Stack direction="row" justify="space-between" align="center">
-            <Text variant="h4">Invites ({invites.length})</Text>
-            <Button size="sm" onClick={() => setShowCreateInvite(true)}>
-              Create invite
-            </Button>
-          </Stack>
-          {invites.length === 0 ? (
-            <Text color="muted">No active invites.</Text>
-          ) : (
-            <Stack gap={3}>
-              {invites.map((inv) => (
-                <InviteCard
-                  key={inv.id}
-                  id={inv.id}
-                  code={inv.code}
-                  role={inv.role ?? 'member'}
-                  maxUses={inv.maxUses}
-                  useCount={inv.useCount ?? 0}
-                  expiresAt={inv.expiresAt}
-                  onDelete={(invId) => setConfirmDeleteInvite(invId)}
-                />
-              ))}
+        <div id="team-invites-panel" role="tabpanel">
+          <Stack gap={4}>
+            <Stack direction="row" justify="space-between" align="center">
+              <Text variant="h4">Invites ({invites.length})</Text>
+              <Button size="sm" onClick={() => setShowCreateInvite(true)}>
+                Create invite
+              </Button>
             </Stack>
-          )}
-        </Stack>
+            {invites.length === 0 ? (
+              <Text color="muted">No active invites.</Text>
+            ) : (
+              <Stack gap={3}>
+                {invites.map((inv) => (
+                  <InviteCard
+                    key={inv.id}
+                    id={inv.id}
+                    code={inv.code}
+                    role={inv.role ?? 'member'}
+                    maxUses={inv.maxUses}
+                    useCount={inv.useCount ?? 0}
+                    expiresAt={inv.expiresAt}
+                    onDelete={(invId) => setConfirmDeleteInvite(invId)}
+                  />
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </div>
       )}
 
       <CreateInviteDialog
@@ -560,10 +576,12 @@ export function TeamDetailPage({ id }: { id: string }) {
 
 function TabButton({
   label,
+  panelId,
   active,
   onClick,
 }: {
   label: string;
+  panelId: string;
   active: boolean;
   onClick: () => void;
 }) {
@@ -571,6 +589,9 @@ function TabButton({
   return (
     <button
       type="button"
+      role="tab"
+      aria-controls={panelId}
+      aria-selected={active}
       onClick={onClick}
       style={{
         background: 'none',

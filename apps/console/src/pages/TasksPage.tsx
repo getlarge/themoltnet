@@ -261,7 +261,14 @@ export function TasksPage() {
             active team.
           </Text>
         </Stack>
-        <Stack direction="row" gap={2}>
+        <div
+          aria-label="Task actions"
+          style={{
+            display: 'flex',
+            gap: theme.spacing[2],
+            flexWrap: 'wrap',
+          }}
+        >
           <Button
             size="sm"
             onClick={() => setShowCreate(true)}
@@ -277,6 +284,7 @@ export function TasksPage() {
           <Button
             variant={view === 'board' ? 'primary' : 'secondary'}
             size="sm"
+            aria-pressed={view === 'board'}
             onClick={() => setView('board')}
           >
             Board
@@ -284,6 +292,7 @@ export function TasksPage() {
           <Button
             variant={view === 'table' ? 'primary' : 'secondary'}
             size="sm"
+            aria-pressed={view === 'table'}
             onClick={() => setView('table')}
           >
             Table
@@ -299,12 +308,19 @@ export function TasksPage() {
           >
             Refresh
           </Button>
-        </Stack>
+        </div>
       </Stack>
 
       <Card variant="surface" padding="md">
         <Stack gap={4}>
-          <Stack direction="row" gap={2} wrap>
+          <div
+            aria-label="Filter tasks by status"
+            style={{
+              display: 'flex',
+              gap: theme.spacing[2],
+              flexWrap: 'wrap',
+            }}
+          >
             <FilterButton active={!status} onClick={() => setStatus(undefined)}>
               All
             </FilterButton>
@@ -317,7 +333,7 @@ export function TasksPage() {
                 {candidate}
               </FilterButton>
             ))}
-          </Stack>
+          </div>
 
           <div
             style={{
@@ -505,6 +521,7 @@ function FilterButton({
     <Button
       variant={active ? 'primary' : 'secondary'}
       size="sm"
+      aria-pressed={active}
       onClick={onClick}
     >
       {children}

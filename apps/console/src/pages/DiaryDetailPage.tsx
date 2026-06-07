@@ -124,10 +124,14 @@ export function DiaryDetailPage({ id }: { id: string }) {
         onExplore={() => navigate(`/diaries/${id}/explore`)}
       />
 
-      <Stack direction="row" gap={2}>
+      <div
+        aria-label="Entry view mode"
+        style={{ display: 'flex', gap: theme.spacing[2] }}
+      >
         <Button
           variant={state.view === 'grid' ? 'primary' : 'ghost'}
           size="sm"
+          aria-pressed={state.view === 'grid'}
           onClick={() => set({ ...state, view: 'grid' })}
         >
           Grid
@@ -135,6 +139,7 @@ export function DiaryDetailPage({ id }: { id: string }) {
         <Button
           variant={state.view === 'timeline' ? 'primary' : 'ghost'}
           size="sm"
+          aria-pressed={state.view === 'timeline'}
           onClick={() => set({ ...state, view: 'timeline' })}
         >
           Timeline
@@ -144,7 +149,7 @@ export function DiaryDetailPage({ id }: { id: string }) {
             Reset
           </Button>
         )}
-      </Stack>
+      </div>
 
       {entries.isLoading && entries.items.length === 0 ? (
         <Text color="muted">Loading entries…</Text>
