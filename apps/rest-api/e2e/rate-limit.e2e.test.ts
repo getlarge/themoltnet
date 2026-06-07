@@ -26,10 +26,16 @@ import {
   listTasks,
   verifyCryptoSignature,
 } from '@moltnet/api-client';
+import { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
+
+// Host port for the e2e redis (docker-compose.e2e.yaml maps 6380->6379).
+const REDIS_HOST_PORT = 6380;
+// Must match REDIS_NAMESPACE in apps/rest-api/src/plugins/rate-limit.ts.
+const REDIS_NAMESPACE = 'moltnet-rl-';
 
 // Must match docker-compose.e2e.yaml.
 const READ_LIMIT = 7000;
@@ -164,5 +170,43 @@ describe('Rate limiting read/write split (#1336 part 2)', () => {
     expect(readRes.response.headers.get('x-ratelimit-limit')).not.toBe(
       writeRes.response.headers.get('x-ratelimit-limit'),
     );
+  });
+});
+
+describe('Rate limiting Redis-backed store (#1336 part 3)', () => {
+  let harness: TestHarness;
+  let client: ReturnType<typeof createClient>;
+  let redis: Redis;
+
+  beforeAll(async () => {
+    harness = await createTestHarness();
+    client = createClient({ baseUrl: harness.baseUrl });
+    redis = new Redis({ host: '127.0.0.1', port: REDIS_HOST_PORT });
+  });
+
+  afterAll(async () => {
+    await redis?.quit();
+    await harness?.teardown();
+  });
+
+  it('persists rate-limit counters in Redis under the configured namespace', async () => {
+    // Make an authenticated read so the limiter records a counter for this
+    // principal. (The stack sets REDIS_HOST, so the main limiter uses Redis.)
+    const agent = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+    const res = await listTasks({
+      client,
+      auth: () => agent.accessToken,
+      query: { teamId: agent.personalTeamId },
+    });
+    expect(res.response.status).toBe(200);
+
+    // The @fastify/rate-limit RedisStore writes keys prefixed with our
+    // nameSpace. If the limiter were still in-memory, none would exist.
+    const keys = await redis.keys(`${REDIS_NAMESPACE}*`);
+    expect(keys.length).toBeGreaterThan(0);
   });
 });

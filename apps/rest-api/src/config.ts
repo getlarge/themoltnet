@@ -134,6 +134,23 @@ export const SecurityConfigSchema = Type.Object({
   // pre-resolve IP throttle and the main limiter). Liveness/registry probes that
   // must never be throttled. Matched against request.url by exact equality.
   RATE_LIMIT_ALLOWLIST: Type.String({ default: '/health,/problems' }),
+  // Redis backing for the MAIN rate limiter so per-identity budgets are coherent
+  // across instances. When neither REDIS_URL nor REDIS_HOST is set, the limiter
+  // falls back to an in-memory store (single-instance behavior). The pre-resolve
+  // IP throttle stays in-memory regardless (coarse per-instance guard). On Redis
+  // error the limiter fails OPEN (skipOnError) so a Redis blip never 500s the
+  // API; the failure is logged at error level. See issue #1336 part 3.
+  REDIS_URL: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Redis connection URL (redis:// or rediss://)',
+    }),
+  ),
+  REDIS_HOST: Type.Optional(Type.String({ minLength: 1 })),
+  REDIS_PORT: Type.Optional(Type.Number({ minimum: 1, maximum: 65535 })),
+  REDIS_PASSWORD: Type.Optional(Type.String({ minLength: 1 })),
+  REDIS_DB: Type.Optional(Type.Number({ minimum: 0 })),
+  REDIS_TLS: Type.Optional(Type.Boolean({ default: false })),
   // Number of trusted reverse-proxy hops in front of the API. Fastify uses this
   // to compute request.ip from X-Forwarded-For. 0 (default) = trust no proxy
   // (request.ip is the socket peer) — correct for local/dev/direct. Set to 1 in
@@ -320,6 +337,81 @@ export function loadSecurityConfig(
     SecurityConfigSchema,
     pickEnv(SecurityConfigSchema, env),
   );
+}
+
+/** Resolved Redis connection params (ioredis-compatible options subset). */
+export interface ResolvedRedisConfig {
+  host: string;
+  port: number;
+  password?: string;
+  db?: number;
+  tls?: Record<string, unknown>;
+}
+
+/**
+ * Resolve Redis connection params from REDIS_* config, or null if Redis is not
+ * configured (neither REDIS_URL nor REDIS_HOST set) — in which case the rate
+ * limiter uses its in-memory store. Mirrors the mcp-server convention
+ * (resolveRedisConfig in apps/mcp-server/src/config.ts). REDIS_URL takes
+ * precedence over the discrete host/port fields.
+ */
+export function resolveRedisConfig(
+  security: Pick<
+    SecurityConfig,
+    | 'REDIS_URL'
+    | 'REDIS_HOST'
+    | 'REDIS_PORT'
+    | 'REDIS_PASSWORD'
+    | 'REDIS_DB'
+    | 'REDIS_TLS'
+  >,
+): ResolvedRedisConfig | null {
+  if (!security.REDIS_URL && !security.REDIS_HOST) {
+    return null;
+  }
+
+  if (security.REDIS_URL) {
+    let url: URL;
+    try {
+      url = new URL(security.REDIS_URL);
+    } catch (error) {
+      throw new Error(
+        `Invalid Security config:\n  - /REDIS_URL: ${error instanceof Error ? error.message : 'invalid URL'}`,
+      );
+    }
+    if (url.protocol !== 'redis:' && url.protocol !== 'rediss:') {
+      throw new Error(
+        'Invalid Security config:\n  - /REDIS_URL: Expected redis:// or rediss:// URL',
+      );
+    }
+    const dbFromPath = url.pathname
+      ? Number.parseInt(url.pathname.replace(/^\//, ''), 10)
+      : undefined;
+    return {
+      host: url.hostname,
+      port: url.port ? Number.parseInt(url.port, 10) : 6379,
+      password:
+        security.REDIS_PASSWORD ??
+        (url.password ? decodeURIComponent(url.password) : undefined),
+      db:
+        security.REDIS_DB ??
+        (dbFromPath === undefined || Number.isNaN(dbFromPath)
+          ? undefined
+          : dbFromPath),
+      tls:
+        security.REDIS_TLS === true || url.protocol === 'rediss:'
+          ? {}
+          : undefined,
+    };
+  }
+
+  return {
+    host: security.REDIS_HOST as string,
+    port: security.REDIS_PORT ?? 6379,
+    password: security.REDIS_PASSWORD,
+    db: security.REDIS_DB,
+    tls: security.REDIS_TLS === true ? {} : undefined,
+  };
 }
 
 // ============================================================================

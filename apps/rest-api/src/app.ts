@@ -18,6 +18,7 @@ import {
 } from '@moltnet/auth';
 import scalarApiReference from '@scalar/fastify-api-reference';
 import Fastify, { type FastifyInstance } from 'fastify';
+import type { Redis } from 'ioredis';
 
 import pkg from '../package.json' with { type: 'json' };
 import type { PackGcConfig } from './config.js';
@@ -159,6 +160,12 @@ export interface AppOptions {
   oryClients: OryClients;
   security: SecurityOptions;
   packGcConfig: PackGcConfig;
+  /**
+   * Optional ioredis client for the shared rate-limit store. When omitted, the
+   * rate limiter uses an in-memory store. Constructed and owned by the caller
+   * (bootstrap) so its lifecycle/shutdown is managed alongside the DB pool.
+   */
+  rateLimitRedis?: Redis;
   /** Database pool for readiness probe */
   pool?: HealthRouteOptions['pool'];
   /** Ory project URL for readiness probe */
@@ -303,6 +310,7 @@ export async function registerApiRoutes(
     registrationLimit: options.security.rateLimitRegistration,
     readinessLimit: options.security.rateLimitReadiness,
     readLimit: options.security.rateLimitGlobalRead,
+    redis: options.rateLimitRedis,
     allowList: options.security.rateLimitAllowList,
   });
 

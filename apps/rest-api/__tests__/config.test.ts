@@ -10,6 +10,7 @@ import {
   loadServerConfig,
   loadWebhookConfig,
   resolveOryUrls,
+  resolveRedisConfig,
 } from '../src/config.js';
 
 const validEnv = {
@@ -390,5 +391,81 @@ describe('loadConfig — SPONSOR_AGENT_ID', () => {
         SPONSOR_AGENT_ID: 'not-a-uuid',
       }),
     ).toThrow();
+  });
+});
+
+describe('resolveRedisConfig', () => {
+  it('returns null when neither REDIS_URL nor REDIS_HOST is set', () => {
+    expect(resolveRedisConfig({})).toBeNull();
+  });
+
+  it('resolves discrete host/port/password/db config', () => {
+    expect(
+      resolveRedisConfig({
+        REDIS_HOST: 'redis.internal',
+        REDIS_PORT: 6380,
+        REDIS_PASSWORD: 'secret',
+        REDIS_DB: 4,
+      }),
+    ).toEqual({
+      host: 'redis.internal',
+      port: 6380,
+      password: 'secret',
+      db: 4,
+      tls: undefined,
+    });
+  });
+
+  it('defaults the port to 6379 when only host is given', () => {
+    expect(resolveRedisConfig({ REDIS_HOST: 'redis' })).toMatchObject({
+      host: 'redis',
+      port: 6379,
+    });
+  });
+
+  it('enables TLS for host config when REDIS_TLS is true', () => {
+    expect(
+      resolveRedisConfig({ REDIS_HOST: 'redis', REDIS_TLS: true }),
+    ).toMatchObject({ tls: {} });
+  });
+
+  it('parses a redis:// URL into host/port/db', () => {
+    expect(
+      resolveRedisConfig({ REDIS_URL: 'redis://cache.internal:6380/3' }),
+    ).toEqual({
+      host: 'cache.internal',
+      port: 6380,
+      password: undefined,
+      db: 3,
+      tls: undefined,
+    });
+  });
+
+  it('treats a rediss:// URL as TLS-enabled', () => {
+    expect(
+      resolveRedisConfig({ REDIS_URL: 'rediss://:pw@cache.internal/7' }),
+    ).toMatchObject({
+      host: 'cache.internal',
+      port: 6379,
+      password: 'pw',
+      db: 7,
+      tls: {},
+    });
+  });
+
+  it('lets discrete REDIS_PASSWORD/DB override URL-embedded values', () => {
+    expect(
+      resolveRedisConfig({
+        REDIS_URL: 'redis://:urlpw@cache.internal/1',
+        REDIS_PASSWORD: 'override',
+        REDIS_DB: 9,
+      }),
+    ).toMatchObject({ password: 'override', db: 9 });
+  });
+
+  it('throws on a non-redis URL scheme', () => {
+    expect(() =>
+      resolveRedisConfig({ REDIS_URL: 'http://nope.example.com' }),
+    ).toThrow(/redis:\/\/ or rediss:\/\//);
   });
 });

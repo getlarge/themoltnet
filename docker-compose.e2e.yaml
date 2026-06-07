@@ -118,6 +118,10 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: redis
+    # Host port (6380 to avoid colliding with a local dev redis on 6379) so the
+    # rate-limit e2e can inspect that limiter keys actually land in Redis.
+    ports:
+      - '6380:6379'
 
   rest-api:
     build:
@@ -163,6 +167,10 @@ services:
       # Empty by default — server starts cleanly (503 on /public/legreffier/start)
       # until globalSetup restarts with SPONSOR_AGENT_ID set.
       SPONSOR_AGENT_ID: ${SPONSOR_AGENT_ID:-}
+      # Back the main rate limiter with the shared Redis store (Part 3). Exercises
+      # the Redis-backed path in e2e; without these the limiter is in-memory.
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
     depends_on:
       app-db:
         condition: service_healthy
@@ -173,6 +181,8 @@ services:
       hydra:
         condition: service_healthy
       keto:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test:

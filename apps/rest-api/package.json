@@ -67,6 +67,7 @@
     "drizzle-orm": "catalog:",
     "fastify": "catalog:",
     "fastify-plugin": "catalog:",
+    "ioredis": "catalog:",
     "pino": "catalog:",
     "pino-opentelemetry-transport": "catalog:",
     "pino-pretty": "catalog:",
