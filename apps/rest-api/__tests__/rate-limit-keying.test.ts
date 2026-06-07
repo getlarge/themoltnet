@@ -13,6 +13,14 @@
  * onRequest hook via app.inject (all inject requests share request.ip), with low
  * limits. The mock token validator maps each token to an identity, so we can
  * exercise per-identity isolation AND multi-token coalescing.
+ *
+ * NOTE: `hit()` targets GET /agents/whoami, which (since #1336 part 2) is in the
+ * 'read' group — so these tests set `rateLimitGlobalRead` as the budget under
+ * test. Identity keying works identically for the read bucket. A per-route
+ * `config.rateLimit.max` is a fixed number, so the read bucket applies the same
+ * limit to authed and anon requests alike (anon requests are 401'd by
+ * requireAuth anyway); the anon-vs-auth dynamic limit is exercised on a global-
+ * bucket route below.
  */
 
 import type { FastifyInstance } from 'fastify';
@@ -59,7 +67,7 @@ describe('Rate limiter keys by verified identity (#1336)', () => {
     const app = await createTestApp(
       mocks,
       VALID_AUTH_CONTEXT,
-      { rateLimitGlobalAuth: 2, rateLimitGlobalAnon: 2 },
+      { rateLimitGlobalRead: 2 },
       undefined,
       resolverByTokenLabel,
     );
@@ -83,7 +91,7 @@ describe('Rate limiter keys by verified identity (#1336)', () => {
     const app = await createTestApp(
       mocks,
       VALID_AUTH_CONTEXT,
-      { rateLimitGlobalAuth: 2, rateLimitGlobalAnon: 2 },
+      { rateLimitGlobalRead: 2 },
       undefined,
       resolverByTokenLabel,
     );
@@ -101,11 +109,11 @@ describe('Rate limiter keys by verified identity (#1336)', () => {
     await app.close();
   });
 
-  it('applies the authenticated limit (not the anon limit) to a verified identity', async () => {
+  it('applies the read limit to a verified identity on a read route', async () => {
     const app = await createTestApp(
       mocks,
       VALID_AUTH_CONTEXT,
-      { rateLimitGlobalAuth: 3, rateLimitGlobalAnon: 1 },
+      { rateLimitGlobalRead: 3 },
       undefined,
       resolverByTokenLabel,
     );
@@ -122,22 +130,39 @@ describe('Rate limiter keys by verified identity (#1336)', () => {
     await app.close();
   });
 
-  it('exposes the anon limit to unauthenticated requests (authContext null → IP key)', async () => {
-    // No credential resolves → authContext null → keyed by IP at the anon limit.
-    // An unauthenticated request to a protected route is rejected by requireAuth
-    // (401), but the rate-limit hook ran first and stamped the anon limit header.
+  it('applies auth vs anon limit dynamically on a global-bucket (mutation) route', async () => {
+    // POST /tasks is on the global bucket, whose `max` is the dynamic auth/anon
+    // function. An authenticated identity gets the auth limit...
     const app = await createTestApp(
       mocks,
-      null,
-      { rateLimitGlobalAuth: 9, rateLimitGlobalAnon: 4 },
+      VALID_AUTH_CONTEXT,
+      { rateLimitGlobalAuth: 7, rateLimitGlobalAnon: 4 },
       undefined,
-      () => null,
+      resolverByTokenLabel,
     );
 
-    const res = await app.inject({ method: 'GET', url: '/agents/whoami' });
-    expect(res.statusCode).toBe(401); // requireAuth rejects (no credential)
-    // ...but the limiter keyed it as anonymous: the limit header is the anon cap.
-    expect(res.headers['x-ratelimit-limit']).toBe('4');
+    const authed = await app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: {
+        authorization: `Bearer ${tokenFor('agent-authed')}`,
+        'content-type': 'application/json',
+      },
+      payload: {},
+    });
+    expect(authed.headers['x-ratelimit-limit']).toBe('7'); // auth limit
+
+    // ...and an unauthenticated request was keyed anon at onRequest (it is then
+    // rejected downstream — 400/401 depending on body validation order — but the
+    // rate-limit header already reflects the anon limit).
+    const anon = await app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { 'content-type': 'application/json' },
+      payload: {},
+    });
+    expect(anon.statusCode).not.toBe(200);
+    expect(anon.headers['x-ratelimit-limit']).toBe('4'); // anon limit
 
     await app.close();
   });

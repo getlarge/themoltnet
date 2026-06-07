@@ -190,6 +190,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/:id/rendered',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getLatestRenderedPack',
         tags: ['diary'],
@@ -239,6 +240,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
   server.get(
     '/diaries/:id/rendered-packs',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listDiaryRenderedPacks',
         tags: ['diary'],
@@ -283,6 +285,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
   server.get(
     '/rendered-packs/:id',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getRenderedPackById',
         tags: ['diary'],

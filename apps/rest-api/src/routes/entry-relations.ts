@@ -179,6 +179,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
   server.get(
     '/entries/:entryId/relations',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listEntryRelations',
         tags: ['diary'],

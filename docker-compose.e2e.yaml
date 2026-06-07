@@ -141,6 +141,10 @@ services:
       CORS_ORIGINS: 'http://localhost:5174,http://localhost:4433'
       RATE_LIMIT_GLOBAL_AUTH: '10000'
       RATE_LIMIT_GLOBAL_ANON: '10000'
+      # Distinct from GLOBAL_AUTH so the read/write-split e2e can assert the read
+      # bucket's limit header differs from the mutation bucket's. High enough that
+      # read-heavy sibling suites never trip it (shared per-identity read bucket).
+      RATE_LIMIT_GLOBAL_READ: '7000'
       RATE_LIMIT_EMBEDDING: '10000'
       RATE_LIMIT_VOUCH: '10000'
       RATE_LIMIT_SIGNING: '10000'

@@ -20,10 +20,20 @@
  * 1-minute window; exhausting it here is fine because nothing else depends on it.
  */
 
-import { createClient, verifyCryptoSignature } from '@moltnet/api-client';
+import {
+  createClient,
+  createTask,
+  listTasks,
+  verifyCryptoSignature,
+} from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
+
+// Must match docker-compose.e2e.yaml.
+const READ_LIMIT = 7000;
+const GLOBAL_AUTH_LIMIT = 10000;
 
 // Must match RATE_LIMIT_PUBLIC_VERIFY in docker-compose.e2e.yaml.
 const PUBLIC_VERIFY_LIMIT = 5;
@@ -102,5 +112,57 @@ describe('Rate limiting (429 contract)', () => {
     expect(results.every((r) => r.status === 200)).toBe(true);
     // And no rate-limit headers are attached to an allowlisted response.
     expect(results[0].headers.get('x-ratelimit-limit')).toBeNull();
+  });
+});
+
+describe('Rate limiting read/write split (#1336 part 2)', () => {
+  let harness: TestHarness;
+  let client: ReturnType<typeof createClient>;
+  let agent: TestAgent;
+
+  beforeAll(async () => {
+    harness = await createTestHarness();
+    client = createClient({ baseUrl: harness.baseUrl });
+    agent = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+  });
+
+  afterAll(async () => {
+    await harness?.teardown();
+  });
+
+  it('serves authenticated reads from a distinct, more generous bucket than mutations', async () => {
+    // A GET read (in the 'read' group) reports the read limit...
+    const readRes = await listTasks({
+      client,
+      auth: () => agent.accessToken,
+      query: { teamId: agent.personalTeamId },
+    });
+    expect(readRes.response.status).toBe(200);
+    expect(readRes.response.headers.get('x-ratelimit-limit')).toBe(
+      String(READ_LIMIT),
+    );
+
+    // ...a mutation (POST /tasks, global bucket) reports the global auth limit.
+    // The create may fail validation/business rules, but the limiter header is
+    // stamped regardless and must reflect the SEPARATE global bucket.
+    const writeRes = await createTask({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      body: {} as never,
+    });
+    expect(writeRes.response.headers.get('x-ratelimit-limit')).toBe(
+      String(GLOBAL_AUTH_LIMIT),
+    );
+
+    // The two buckets are distinct — reads are not capped at the mutation limit.
+    expect(READ_LIMIT).not.toBe(GLOBAL_AUTH_LIMIT);
+    expect(readRes.response.headers.get('x-ratelimit-limit')).not.toBe(
+      writeRes.response.headers.get('x-ratelimit-limit'),
+    );
   });
 });

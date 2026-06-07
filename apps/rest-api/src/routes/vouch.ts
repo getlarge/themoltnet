@@ -79,6 +79,7 @@ export async function vouchRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/vouch/active',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listActiveVouchers',
         tags: ['vouch'],

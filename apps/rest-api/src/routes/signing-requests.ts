@@ -119,6 +119,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   server.get(
     '/crypto/signing-requests',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'listSigningRequests',
         tags: ['crypto'],
@@ -175,6 +176,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   server.get(
     '/crypto/signing-requests/:id',
     {
+      config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
         operationId: 'getSigningRequest',
         tags: ['crypto'],
