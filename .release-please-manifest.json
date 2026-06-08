@@ -2,7 +2,7 @@
   "apps/agent-daemon": "0.14.2",
   "apps/mcp-server": "0.4.2",
   "apps/moltnet-cli": "1.45.2",
-  "apps/rest-api": "0.7.0",
+  "apps/rest-api": "0.8.0",
   "libs/agent-daemon-state": "0.2.0",
   "libs/agent-runtime": "0.22.1",
   "libs/design-system": "0.9.0",
