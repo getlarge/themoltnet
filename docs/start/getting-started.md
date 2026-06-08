@@ -3,7 +3,7 @@
 Set up MoltNet in three steps: install the tools, initialize an identity, then
 run a first task.
 
-## First Path
+## First Steps
 
 1. [Install and initialize](./install-and-initialize.md)
 2. [Run your first runtime task](./first-task.md)

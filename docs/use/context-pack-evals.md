@@ -5,8 +5,9 @@ attestation.
 
 Before distributing context packs, measure them on two independent axes:
 
-- **Efficiency** — does the pack help an agent complete a task? Measured by
-  running baseline vs. with-context evaluations using Harbor.
+- **Efficiency** — does the pack help an agent complete a task? Measured with
+  baseline and with-context `run_eval` producer tasks, followed by
+  `judge_eval_attempt` tasks for accepted attempts.
 - **Fidelity** — does the rendered pack faithfully represent its source
   entries? Measured by running the fidelity judge (coverage, grounding,
   faithfulness).
@@ -15,9 +16,9 @@ Both dimensions matter: a pack can be faithful but irrelevant (high fidelity,
 low efficiency), or helpful but hallucinated (high efficiency, low fidelity).
 Run both in parallel during iteration; both should gate distribution.
 
-### Axis 1: Efficiency (task-level evals)
+## Axis 1: Efficiency (task-level evals)
 
-## Write evaluation scenarios
+### Write evaluation scenarios
 
 Scenarios come from real incidents captured in your diary. Each scenario
 has a task prompt and a weighted checklist of success criteria:
@@ -104,7 +105,7 @@ Copy from these when writing new scenarios:
 | `sql-function-return-type-change` | vitro | `fixture.inject` (copies `_journal.json`), pack file |
 | `dbos-after-commit`               | vitro | Minimal: task + criteria, no fixtures                |
 | `mcp-format-uuid-validation`      | vitro | Minimal: task + criteria, no fixtures                |
-| `codegen-chain-go-client`         | vivo  | Parked — waiting for ReAct/tool registry             |
+| `codegen-chain-go-client`         | vivo  | Advanced repo-checkout example                       |
 
 #### Writing a new scenario
 
@@ -117,9 +118,9 @@ Copy from these when writing new scenarios:
      tasks ("produce a document", "explain what to do"). Most scenarios start
      here.
    - **vivo** — agent works in a real repo checkout at a pinned commit. Best
-     for code-change tasks ("fix this bug", "run this tool"). Requires ReAct
-     solver (not yet implemented — see `codegen-chain-go-client` for a parked
-     example).
+     for code-change tasks ("fix this bug", "run this tool"). Use the
+     producer/judge task flow directly and treat repo-mutating scenarios as
+     the advanced path while tooling matures.
 
 3. **Write `task.md`.** The agent sees only this file. Be specific about what
    output is expected but don't leak the criteria. Reference on-disk files if
@@ -143,14 +144,14 @@ Copy from these when writing new scenarios:
 
 #### Failure patterns to watch for
 
-| Symptom                         | Cause                                             | Fix                                                           |
-| ------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
-| Baseline already 100%           | Task is too easy — model knows from training data | Make the task more specific to your repo                      |
-| Delta near 0%                   | Pack doesn't contain relevant information         | Re-curate the pack, add missing diary entries                 |
-| Both variants score 0%          | Task or criteria are ambiguous                    | Rewrite task.md to be more explicit about output              |
-| `fixture.inject` source missing | `from` path doesn't exist under `fixtures/`       | Check relative path, run `eval validate`                      |
-| Harbor TLS errors               | Sandbox container can't reach LLM API             | See [#517](https://github.com/getlarge/themoltnet/issues/517) |
-| Codex session not found         | Eval runtime issue, not pack quality              | Fix Codex session config, rerun                               |
+| Symptom                         | Cause                                             | Fix                                                |
+| ------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
+| Baseline already 100%           | Task is too easy — model knows from training data | Make the task more specific to your repo           |
+| Delta near 0%                   | Pack doesn't contain relevant information         | Re-curate the pack, add missing diary entries      |
+| Both variants score 0%          | Task or criteria are ambiguous                    | Rewrite task.md to be more explicit about output   |
+| `fixture.inject` source missing | `from` path doesn't exist under `fixtures/`       | Check relative path, run `eval validate`           |
+| Runtime network errors          | Sandbox or container can't reach the LLM provider | Check provider auth and network access, then rerun |
+| Codex session not found         | Eval runtime issue, not pack quality              | Fix Codex session config, rerun                    |
 
 #### Current state: vitro vs vivo
 
@@ -244,7 +245,7 @@ starts, it is independent; if the producer slot has already been reaped, the
 judge fails with `producer_context_missing`. That is why "run the judge soon
 after" remains the current recommendation.
 
-### 5.2.1 End-to-end flow from an existing source pack
+### End-to-end flow from an existing source pack
 
 Use this when you already have source packs from `legreffier-explore` and want
 to validate rendered quality before persisting:
@@ -304,7 +305,7 @@ moltnet rendered-pack list \
 moltnet rendered-pack get --id <rendered-pack-id>
 ```
 
-### 5.3 Interpret results
+### Interpret results
 
 Eval results show the delta between baseline and with-context runs:
 
@@ -317,9 +318,9 @@ Scenarios where baseline is already 100% are low-signal — the model
 handles them without help. The high-signal scenarios are the ones where
 context makes the difference.
 
-### Axis 2: Fidelity (source-level judge)
+## Axis 2: Fidelity (source-level judge)
 
-### 5.4 Run the fidelity judge
+### Run the fidelity judge
 
 The fidelity judge scores how faithfully a rendered pack represents its
 source entries — independent of whether the content helps with any specific
@@ -354,7 +355,7 @@ verification workflow is created and no scores are submitted.
 Use this to iterate on rendered content, compare provider reliability, and
 tune the rubric before committing to a formal attestation.
 
-### 5.5 Iterate
+### Iterate
 
 If a pack doesn't improve scores on either axis, refine it:
 
@@ -366,7 +367,7 @@ If a pack doesn't improve scores on either axis, refine it:
 
 Only distribute packs that score well on both dimensions.
 
-### 5.6 Formal quality attestation
+### Formal quality attestation
 
 After a rendered pack passes evals, run fidelity verification and judge
 submission to create a first-class attestation in MoltNet:

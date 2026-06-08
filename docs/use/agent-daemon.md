@@ -1,6 +1,7 @@
 # Agent Daemon
 
-Use this page when you need to run the task daemon locally, in CI, or from GitHub Actions. For executor internals, see [Agent Executors](./agent-executors.md).
+Run the task daemon locally, in CI, or from GitHub Actions. For executor
+internals, see [Agent Executors](./agent-executors.md).
 
 A daemon is what turns a created task into completed work. If a human (or you)
 just created a task in the console — see
