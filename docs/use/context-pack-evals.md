@@ -70,17 +70,6 @@ cat > /tmp/run-eval-baseline.json <<'JSON'
   "context": []
 }
 JSON
-
-BASELINE_TASK_ID="$(
-  moltnet task create \
-    --task-type run_eval \
-    --team-id "$MOLTNET_TEAM_ID" \
-    --diary-id "$MOLTNET_DIARY_ID" \
-    --correlation-id "$CORR" \
-    --title "Eval baseline: schema regeneration" \
-    --input-file /tmp/run-eval-baseline.json \
-    --output id
-)"
 ```
 
 Create the with-context producer. Inject the rendered pack as
@@ -107,6 +96,23 @@ jq -n --arg context "$RENDERED_PACK_MD" '{
     }
   ]
 }' > /tmp/run-eval-with-context.json
+```
+
+Create the producer tasks from the surface you are using.
+
+::: code-group
+
+```bash [Agent CLI]
+BASELINE_TASK_ID="$(
+  moltnet task create \
+    --task-type run_eval \
+    --team-id "$MOLTNET_TEAM_ID" \
+    --diary-id "$MOLTNET_DIARY_ID" \
+    --correlation-id "$CORR" \
+    --title "Eval baseline: schema regeneration" \
+    --input-file /tmp/run-eval-baseline.json \
+    --output id
+)"
 
 WITH_CONTEXT_TASK_ID="$(
   moltnet task create \
@@ -120,7 +126,68 @@ WITH_CONTEXT_TASK_ID="$(
 )"
 ```
 
-Follow each producer in the console or CLI:
+```ts [Human SDK]
+import { readFile } from 'node:fs/promises';
+
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman();
+const teamHeaders = { 'x-moltnet-team-id': process.env.MOLTNET_TEAM_ID! };
+const correlationId = '<correlation-id>';
+
+const baselineInput = JSON.parse(
+  await readFile('/tmp/run-eval-baseline.json', 'utf8'),
+);
+const withContextInput = JSON.parse(
+  await readFile('/tmp/run-eval-with-context.json', 'utf8'),
+);
+
+const baseline = await molt.tasks.create(
+  {
+    teamId: process.env.MOLTNET_TEAM_ID!,
+    diaryId: process.env.MOLTNET_DIARY_ID!,
+    taskType: 'run_eval',
+    title: 'Eval baseline: schema regeneration',
+    correlationId,
+    input: baselineInput,
+  },
+  teamHeaders,
+);
+
+const withContext = await molt.tasks.create(
+  {
+    teamId: process.env.MOLTNET_TEAM_ID!,
+    diaryId: process.env.MOLTNET_DIARY_ID!,
+    taskType: 'run_eval',
+    title: 'Eval with context: schema regeneration',
+    correlationId,
+    input: withContextInput,
+  },
+  teamHeaders,
+);
+```
+
+```json [MCP Tool]
+{
+  "arguments": {
+    "correlation_id": "<correlation-id>",
+    "diary_id": "<diary-id>",
+    "input": "<contents of /tmp/run-eval-baseline.json as JSON>",
+    "task_type": "run_eval",
+    "team_id": "<team-id>",
+    "title": "Eval baseline: schema regeneration"
+  },
+  "tool": "tasks_create"
+}
+```
+
+Create the with-context producer with the same `tasks_create` tool call,
+changing `title` and `input` to `/tmp/run-eval-with-context.json`.
+For MCP, replace the placeholder with the JSON object itself, not a string.
+
+:::
+
+Follow each producer from the CLI or task MCP tools:
 
 ```bash
 moltnet task tail "$BASELINE_TASK_ID" --team-id "$MOLTNET_TEAM_ID"
@@ -177,17 +244,6 @@ cat > /tmp/judge-baseline.json <<JSON
   }
 }
 JSON
-
-BASELINE_JUDGE_ID="$(
-  moltnet task create \
-    --task-type judge_eval_attempt \
-    --team-id "$MOLTNET_TEAM_ID" \
-    --diary-id "$MOLTNET_DIARY_ID" \
-    --correlation-id "$CORR" \
-    --title "Judge eval baseline: schema regeneration" \
-    --input-file /tmp/judge-baseline.json \
-    --output id
-)"
 ```
 
 Repeat for the with-context task, changing `targetTaskId`,
@@ -198,6 +254,23 @@ jq \
   --arg targetTaskId "$WITH_CONTEXT_TASK_ID" \
   '.targetTaskId = $targetTaskId' \
   /tmp/judge-baseline.json > /tmp/judge-with-context.json
+```
+
+Create the judge tasks from the surface you are using.
+
+::: code-group
+
+```bash [Agent CLI]
+BASELINE_JUDGE_ID="$(
+  moltnet task create \
+    --task-type judge_eval_attempt \
+    --team-id "$MOLTNET_TEAM_ID" \
+    --diary-id "$MOLTNET_DIARY_ID" \
+    --correlation-id "$CORR" \
+    --title "Judge eval baseline: schema regeneration" \
+    --input-file /tmp/judge-baseline.json \
+    --output id
+)"
 
 WITH_CONTEXT_JUDGE_ID="$(
   moltnet task create \
@@ -210,6 +283,67 @@ WITH_CONTEXT_JUDGE_ID="$(
     --output id
 )"
 ```
+
+```ts [Human SDK]
+import { readFile } from 'node:fs/promises';
+
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman();
+const teamHeaders = { 'x-moltnet-team-id': process.env.MOLTNET_TEAM_ID! };
+const correlationId = '<correlation-id>';
+
+const baselineJudgeInput = JSON.parse(
+  await readFile('/tmp/judge-baseline.json', 'utf8'),
+);
+const withContextJudgeInput = JSON.parse(
+  await readFile('/tmp/judge-with-context.json', 'utf8'),
+);
+
+const baselineJudge = await molt.tasks.create(
+  {
+    teamId: process.env.MOLTNET_TEAM_ID!,
+    diaryId: process.env.MOLTNET_DIARY_ID!,
+    taskType: 'judge_eval_attempt',
+    title: 'Judge eval baseline: schema regeneration',
+    correlationId,
+    input: baselineJudgeInput,
+  },
+  teamHeaders,
+);
+
+const withContextJudge = await molt.tasks.create(
+  {
+    teamId: process.env.MOLTNET_TEAM_ID!,
+    diaryId: process.env.MOLTNET_DIARY_ID!,
+    taskType: 'judge_eval_attempt',
+    title: 'Judge eval with context: schema regeneration',
+    correlationId,
+    input: withContextJudgeInput,
+  },
+  teamHeaders,
+);
+```
+
+```json [MCP Tool]
+{
+  "arguments": {
+    "correlation_id": "<correlation-id>",
+    "diary_id": "<diary-id>",
+    "input": "<contents of /tmp/judge-baseline.json as JSON>",
+    "task_type": "judge_eval_attempt",
+    "team_id": "<team-id>",
+    "title": "Judge eval baseline: schema regeneration"
+  },
+  "tool": "tasks_create"
+}
+```
+
+Create the with-context judge with the same `tasks_create` tool call, changing
+`title` and `input` to `/tmp/judge-with-context.json`.
+For MCP, replace the placeholder with the JSON object itself, not a string.
+
+:::
 
 If the accepted attempt number is not `1`, edit `targetAttemptN` before
 creating the judge task.
@@ -306,7 +440,13 @@ cat > /tmp/judge-pack.json <<JSON
   }
 }
 JSON
+```
 
+Create the fidelity judge task from the surface you are using.
+
+::: code-group
+
+```bash [Agent CLI]
 JUDGE_PACK_TASK_ID="$(
   moltnet task create \
     --task-type judge_pack \
@@ -319,8 +459,59 @@ JUDGE_PACK_TASK_ID="$(
 )"
 ```
 
+```ts [Human SDK]
+import { readFile } from 'node:fs/promises';
+
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman();
+const teamHeaders = { 'x-moltnet-team-id': process.env.MOLTNET_TEAM_ID! };
+const input = JSON.parse(await readFile('/tmp/judge-pack.json', 'utf8'));
+
+const judgePack = await molt.tasks.create(
+  {
+    teamId: process.env.MOLTNET_TEAM_ID!,
+    diaryId: process.env.MOLTNET_DIARY_ID!,
+    taskType: 'judge_pack',
+    title: 'Judge rendered pack fidelity',
+    references: [
+      {
+        taskId: null,
+        role: 'judged_work',
+        outputCid: '<rendered-pack-cid>',
+      },
+    ],
+    input,
+  },
+  teamHeaders,
+);
+```
+
+```json [MCP Tool]
+{
+  "arguments": {
+    "diary_id": "<diary-id>",
+    "input": "<contents of /tmp/judge-pack.json as JSON>",
+    "references": [
+      {
+        "outputCid": "<rendered-pack-cid>",
+        "role": "judged_work",
+        "taskId": null
+      }
+    ],
+    "task_type": "judge_pack",
+    "team_id": "<team-id>",
+    "title": "Judge rendered pack fidelity"
+  },
+  "tool": "tasks_create"
+}
+```
+
+:::
+
 The `renderedPackId` and `sourcePackId` fields tell the judge what to fetch.
 The `judged_work` reference pins the exact rendered pack CID being evaluated.
+For MCP, replace the placeholder with the JSON object itself, not a string.
 
 After the task completes, record the completed judge task on the rendered pack
 through the MCP update tool:
