@@ -6,17 +6,19 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useEffect, useState } from 'react';
+import { type ChangeEvent, useEffect, useState } from 'react';
 
 import { buildClaimCondition, type DependsRow } from './claim-condition.js';
 import { DependsOnBuilder } from './depends-on-builder.js';
 import {
-  type AssertionRow,
   buildSuccessCriteria,
   type BuiltSuccessCriteria,
-  EMPTY_SIDE_EFFECTS,
-  type GateRow,
-  type SideEffectsForm,
+  EMPTY_EVIDENCE_REQUIREMENTS,
+  EMPTY_RUBRIC_FORM,
+  type EvidenceRequirementsForm,
+  getRubricWeightSummary,
+  type RubricForm,
+  validateRubricForm,
 } from './success-criteria.js';
 import { SuccessCriteriaEditor } from './success-criteria-editor.js';
 import type {
@@ -78,7 +80,7 @@ export interface CreateTaskRequest {
  * Identifies the source attempt for a warm-resume continuation. When set,
  * the dialog drops the workspace + depends-on fields (workspace is inherited
  * from the parent slot; the parent-completed claim condition is auto-injected
- * and would conflict with caller-supplied gates), pre-populates the title,
+ * and is the only dependency condition that makes sense here), pre-populates the title,
  * and packs `input.continueFrom` + the `task_status:completed` claim condition
  * on submit. Matches the wire contract enforced by the MCP `tasks_continue`
  * tool and the Go CLI `task continue` subcommand (#1287, #1307, #1308).
@@ -123,6 +125,8 @@ export interface CreateTaskDialogProps {
   onSubmit: (request: CreateTaskRequest) => Promise<string>;
   /** Called with the new task id after a successful create. */
   onCreated: (taskId: string) => void;
+  /** Documentation URL for producer self-verification and judge criteria. */
+  successCriteriaDocsHref?: string;
   /**
    * When set, the dialog enters "continuation" mode: workspace and depends-on
    * fields are dropped, the source title is pre-filled, and the submit payload
@@ -142,6 +146,7 @@ export function CreateTaskDialog({
   onClose,
   onSubmit,
   onCreated,
+  successCriteriaDocsHref,
   continueFrom,
 }: CreateTaskDialogProps) {
   const theme = useTheme();
@@ -158,10 +163,10 @@ export function CreateTaskDialog({
     '' | FreeformWorkspaceMode
   >('');
   const [dependsRows, setDependsRows] = useState<DependsRow[]>([]);
-  const [gates, setGates] = useState<GateRow[]>([]);
-  const [assertions, setAssertions] = useState<AssertionRow[]>([]);
-  const [sideEffects, setSideEffects] =
-    useState<SideEffectsForm>(EMPTY_SIDE_EFFECTS);
+  const [rubric, setRubric] = useState<RubricForm>(EMPTY_RUBRIC_FORM);
+  const [evidence, setEvidence] = useState<EvidenceRequirementsForm>(
+    EMPTY_EVIDENCE_REQUIREMENTS,
+  );
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -183,18 +188,19 @@ export function CreateTaskDialog({
     setTitle(continueFrom?.sourceTitle ?? '');
   }, [continueFrom?.taskId, continueFrom?.attemptN, continueFrom?.sourceTitle]);
 
-  const canSubmit = Boolean(brief.trim() && diaryId);
+  const rubricError = validateRubricForm(rubric);
+  const canSubmit = Boolean(brief.trim() && diaryId && !rubricError);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setIsSubmitting(true);
     setError(null);
     try {
-      const successCriteria = buildSuccessCriteria(
-        assertions,
-        gates,
-        sideEffects,
-      );
+      const currentRubricError = validateRubricForm(rubric);
+      if (currentRubricError) {
+        throw new Error(currentRubricError);
+      }
+      const successCriteria = buildSuccessCriteria(rubric, evidence);
       const normalizedTags = normalizeTagsInput(tags);
       // Continuations: drop workspace (server rejects on input.continueFrom)
       // and depends-on (the auto-injected task_status:completed gate on the
@@ -251,9 +257,8 @@ export function CreateTaskDialog({
       setExpectedOutput('');
       setWorkspaceMode('');
       setDependsRows([]);
-      setGates([]);
-      setAssertions([]);
-      setSideEffects(EMPTY_SIDE_EFFECTS);
+      setRubric(EMPTY_RUBRIC_FORM);
+      setEvidence(EMPTY_EVIDENCE_REQUIREMENTS);
       onCreated(taskId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create task');
@@ -297,7 +302,7 @@ export function CreateTaskDialog({
       open={open}
       onClose={onClose}
       title={isContinuation ? 'Continue task' : 'New task'}
-      width="520px"
+      width="760px"
     >
       <Stack gap={4}>
         {isContinuation ? (
@@ -325,14 +330,18 @@ export function CreateTaskDialog({
         <Input
           label="Title (optional)"
           value={title}
-          onChange={(event) => setTitle(event.target.value)}
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            setTitle(event.target.value)
+          }
           placeholder="Short label"
         />
 
         <Input
           label="Tags (optional)"
           value={tags}
-          onChange={(event) => setTags(event.target.value)}
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            setTags(event.target.value)
+          }
           placeholder="Comma-separated labels"
         />
 
@@ -413,15 +422,25 @@ export function CreateTaskDialog({
           </Button>
           {showAdvanced ? (
             <SuccessCriteriaEditor
-              gates={gates}
-              onGatesChange={setGates}
-              assertions={assertions}
-              onAssertionsChange={setAssertions}
-              sideEffects={sideEffects}
-              onSideEffectsChange={setSideEffects}
+              rubric={rubric}
+              onRubricChange={setRubric}
+              evidence={evidence}
+              onEvidenceChange={setEvidence}
+              docsHref={successCriteriaDocsHref}
             />
           ) : null}
         </Stack>
+
+        {rubricError ? (
+          <Text variant="caption" style={{ color: theme.color.error.DEFAULT }}>
+            {rubricError}
+          </Text>
+        ) : showAdvanced && getRubricWeightSummary(rubric).totalPercent > 0 ? (
+          <Text variant="caption" color="muted">
+            Rubric weights total{' '}
+            {getRubricWeightSummary(rubric).totalPercent.toFixed(1)}%.
+          </Text>
+        ) : null}
 
         {error ? (
           <Text variant="caption" style={{ color: theme.color.error.DEFAULT }}>

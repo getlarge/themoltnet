@@ -1,100 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  type AssertionRow,
   buildSuccessCriteria,
-  EMPTY_SIDE_EFFECTS,
-  type GateRow,
+  EMPTY_EVIDENCE_REQUIREMENTS,
+  EMPTY_RUBRIC_FORM,
+  getRubricWeightSummary,
+  normalizeCriterionId,
   opUsesMax,
   opUsesValue,
-  type SideEffectsForm,
+  validateRubricForm,
 } from '../success-criteria.js';
-
-function rows(...r: AssertionRow[]): AssertionRow[] {
-  return r;
-}
-
-function gates(...r: GateRow[]): GateRow[] {
-  return r;
-}
 
 describe('buildSuccessCriteria', () => {
   it('returns undefined when nothing is authored', () => {
-    expect(buildSuccessCriteria([], [], EMPTY_SIDE_EFFECTS)).toBeUndefined();
+    expect(buildSuccessCriteria()).toBeUndefined();
   });
 
-  it('drops assertion rows with a blank path', () => {
-    expect(
-      buildSuccessCriteria(
-        rows({ path: '  ', op: 'exists', value: '' }),
-        [],
-        EMPTY_SIDE_EFFECTS,
-      ),
-    ).toBeUndefined();
-  });
-
-  it('drops gate rows with incomplete input', () => {
-    expect(
-      buildSuccessCriteria(
-        [],
-        gates(
-          { kind: 'schema-check', required: true, schemaCid: ' ' },
-          {
-            kind: 'cid-equals',
-            required: true,
-            path: 'outputCid',
-            expected: '',
-          },
-        ),
-        EMPTY_SIDE_EFFECTS,
-      ),
-    ).toBeUndefined();
-  });
-
-  it('builds schema-check and cid-equals gates', () => {
-    const result = buildSuccessCriteria(
-      [],
-      gates(
-        {
-          kind: 'schema-check',
-          required: true,
-          schemaCid: 'bafy-schema',
-        },
-        {
-          kind: 'cid-equals',
-          required: false,
-          path: 'outputCid',
-          expected: 'bafy-output',
-        },
-      ),
-      EMPTY_SIDE_EFFECTS,
-    );
-
-    expect(result).toEqual({
-      version: 1,
-      gates: [
-        {
-          id: 'g1',
-          kind: 'schema-check',
-          spec: { schemaCid: 'bafy-schema' },
-          required: true,
-        },
-        {
-          id: 'g2',
-          kind: 'cid-equals',
-          spec: { path: 'outputCid', expected: 'bafy-output' },
-          required: false,
-        },
-      ],
+  it('builds a custom evidence assertion without a value', () => {
+    const result = buildSuccessCriteria(EMPTY_RUBRIC_FORM, {
+      ...EMPTY_EVIDENCE_REQUIREMENTS,
+      customAssertions: [{ path: 'commits.*.sha', op: 'exists', value: '' }],
     });
-  });
-
-  it('builds an exists assertion without a value', () => {
-    const result = buildSuccessCriteria(
-      rows({ path: 'commits.*.sha', op: 'exists', value: '' }),
-      [],
-      EMPTY_SIDE_EFFECTS,
-    );
     expect(result).toEqual({
       version: 1,
       assertions: [{ id: 'a1', path: 'commits.*.sha', op: 'exists' }],
@@ -102,14 +28,13 @@ describe('buildSuccessCriteria', () => {
   });
 
   it('coerces min-length to a number and in-range to a [min,max] tuple', () => {
-    const result = buildSuccessCriteria(
-      rows(
+    const result = buildSuccessCriteria(EMPTY_RUBRIC_FORM, {
+      ...EMPTY_EVIDENCE_REQUIREMENTS,
+      customAssertions: [
         { path: 'items', op: 'min-length', value: '3' },
         { path: 'score', op: 'in-range', value: '0', max: '1' },
-      ),
-      [],
-      EMPTY_SIDE_EFFECTS,
-    );
+      ],
+    });
     expect(result?.assertions?.[0]).toEqual({
       id: 'a1',
       path: 'items',
@@ -125,37 +50,115 @@ describe('buildSuccessCriteria', () => {
   });
 
   it('keeps matches value as a raw regex string', () => {
-    const result = buildSuccessCriteria(
-      rows({ path: 'title', op: 'matches', value: '^RFC-\\d+' }),
-      [],
-      EMPTY_SIDE_EFFECTS,
-    );
+    const result = buildSuccessCriteria(EMPTY_RUBRIC_FORM, {
+      ...EMPTY_EVIDENCE_REQUIREMENTS,
+      customAssertions: [{ path: 'title', op: 'matches', value: '^RFC-\\d+' }],
+    });
     expect(result?.assertions?.[0].value).toBe('^RFC-\\d+');
   });
 
-  it('builds sideEffects only for set fields', () => {
-    const sideEffects: SideEffectsForm = {
-      diaryEntryRequired: true,
-      diaryEntryTags: ['decision'],
-      referencedEntries: '2',
-    };
-    const result = buildSuccessCriteria([], [], sideEffects);
+  it('builds rubric criteria, minComposite, and normalized criterion ids', () => {
+    const result = buildSuccessCriteria({
+      rubricId: 'implementation-quality',
+      version: 'v1',
+      preamble: 'Judge the work.',
+      minCompositePercent: '85',
+      criteria: [
+        {
+          name: 'Implementation Quality',
+          weightPercent: '60',
+          scoring: 'llm_score',
+          description: 'Good implementation.',
+        },
+        {
+          name: 'evidence-quality',
+          weightPercent: '40',
+          scoring: 'boolean',
+          description: 'Good evidence.',
+        },
+      ],
+    });
+
     expect(result).toEqual({
       version: 1,
+      minComposite: 0.85,
+      rubric: {
+        rubricId: 'implementation-quality',
+        version: 'v1',
+        preamble: 'Judge the work.',
+        criteria: [
+          {
+            id: 'implementation_quality',
+            description: 'Good implementation.',
+            weight: 0.6,
+            scoring: 'llm_score',
+          },
+          {
+            id: 'evidence_quality',
+            description: 'Good evidence.',
+            weight: 0.4,
+            scoring: 'boolean',
+          },
+        ],
+      },
+    });
+  });
+
+  it('omits empty rubric criteria', () => {
+    const result = buildSuccessCriteria({
+      ...EMPTY_RUBRIC_FORM,
+      rubricId: 'r',
+      criteria: [
+        {
+          name: '',
+          weightPercent: '',
+          scoring: 'llm_score',
+          description: '',
+        },
+      ],
+    });
+
+    expect(result).toBeUndefined();
+  });
+
+  it('builds required evidence as assertions and side effects', () => {
+    const result = buildSuccessCriteria(EMPTY_RUBRIC_FORM, {
+      ...EMPTY_EVIDENCE_REQUIREMENTS,
+      requirePrUrl: true,
+      minCommits: '2',
+      requireDiaryEntry: true,
+      diaryEntryTags: ['accountable-commit'],
+      referencedEntries: '1',
+      requireOutputBody: true,
+      customAssertions: [{ path: 'summary', op: 'min-length', value: '20' }],
+    });
+
+    expect(result).toEqual({
+      version: 1,
+      assertions: [
+        {
+          id: 'a1',
+          path: 'pullRequestUrl',
+          op: 'matches',
+          value: '^https://github\\.com/.+/.+/pull/[0-9]+$',
+        },
+        { id: 'a2', path: 'commits', op: 'min-length', value: 2 },
+        { id: 'a3', path: 'body', op: 'exists' },
+        { id: 'a4', path: 'summary', op: 'min-length', value: 20 },
+      ],
       sideEffects: {
         diaryEntryRequired: true,
-        diaryEntryTags: ['decision'],
-        referencedEntries: 2,
+        diaryEntryTags: ['accountable-commit'],
+        referencedEntries: 1,
       },
     });
   });
 
   it('omits sideEffects entirely when none are set', () => {
-    const result = buildSuccessCriteria(
-      rows({ path: 'x', op: 'exists', value: '' }),
-      [],
-      EMPTY_SIDE_EFFECTS,
-    );
+    const result = buildSuccessCriteria(EMPTY_RUBRIC_FORM, {
+      ...EMPTY_EVIDENCE_REQUIREMENTS,
+      customAssertions: [{ path: 'x', op: 'exists', value: '' }],
+    });
     expect(result?.sideEffects).toBeUndefined();
   });
 
@@ -164,5 +167,42 @@ describe('buildSuccessCriteria', () => {
     expect(opUsesValue('equals')).toBe(true);
     expect(opUsesMax('in-range')).toBe(true);
     expect(opUsesMax('min-length')).toBe(false);
+  });
+
+  it('validates rubric weights client-side', () => {
+    const rubric = {
+      ...EMPTY_RUBRIC_FORM,
+      rubricId: 'r',
+      criteria: [
+        {
+          name: 'a',
+          weightPercent: '50',
+          scoring: 'llm_score' as const,
+          description: 'A',
+        },
+        {
+          name: 'b',
+          weightPercent: '25',
+          scoring: 'boolean' as const,
+          description: 'B',
+        },
+      ],
+    };
+
+    expect(getRubricWeightSummary(rubric)).toEqual({
+      totalPercent: 75,
+      error: 'Rubric weights must sum to 100% (currently 75.0%).',
+    });
+    expect(validateRubricForm(rubric)).toBe(
+      'Rubric weights must sum to 100% (currently 75.0%).',
+    );
+  });
+
+  it('normalizes criterion ids without regex backtracking', () => {
+    expect(normalizeCriterionId('__Implementation Quality!!')).toBe(
+      'implementation_quality',
+    );
+    expect(normalizeCriterionId('security___surface')).toBe('security_surface');
+    expect(normalizeCriterionId('___')).toBe('');
   });
 });
