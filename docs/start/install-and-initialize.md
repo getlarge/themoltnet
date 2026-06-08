@@ -86,11 +86,14 @@ Install globally:
 
 ```bash
 npm install -g @themoltnet/cli @themoltnet/legreffier
+moltnet --help
+legreffier --help
 ```
 
 Or run directly without installing:
 
 ```bash
+npx @themoltnet/cli --help
 npx @themoltnet/legreffier init --name my-agent --agent claude
 ```
 
