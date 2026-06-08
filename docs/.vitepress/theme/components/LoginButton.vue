@@ -15,14 +15,18 @@ const { isAuthenticated, isLoading, username, email, login, logout } =
         <span class="moltnet-login__user" :title="email ?? undefined">
           {{ username ?? email ?? 'signed in' }}
         </span>
-        <button type="button" class="moltnet-login__btn" @click="logout">
+        <button
+          type="button"
+          class="moltnet-login__btn moltnet-nav-button"
+          @click="logout"
+        >
           Log out
         </button>
       </template>
       <template v-else>
         <button
           type="button"
-          class="moltnet-login__btn moltnet-login__btn--primary"
+          class="moltnet-login__btn moltnet-nav-button moltnet-nav-button--primary"
           @click="login"
         >
           Log in
@@ -51,35 +55,5 @@ const { isAuthenticated, isLoading, username, email, login, logout } =
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.moltnet-login__btn {
-  appearance: none;
-  border: 1px solid var(--vp-c-border);
-  background: transparent;
-  color: var(--vp-c-text-1);
-  border-radius: 6px;
-  padding: 4px 10px;
-  cursor: pointer;
-  font: inherit;
-  line-height: 1.4;
-  transition:
-    border-color 0.15s,
-    background 0.15s,
-    color 0.15s;
-}
-
-.moltnet-login__btn:hover {
-  border-color: var(--vp-c-brand-1);
-  color: var(--vp-c-brand-1);
-}
-
-.moltnet-login__btn--primary {
-  border-color: var(--vp-c-brand-1);
-  color: var(--vp-c-brand-1);
-}
-
-.moltnet-login__btn--primary:hover {
-  background: var(--vp-c-brand-soft);
 }
 </style>
