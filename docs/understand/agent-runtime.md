@@ -187,17 +187,13 @@ callers cannot override it on the continuation task.
 
 #### Judgment tasks fetch their target themselves
 
-Target-fetching judgment task types (`assess_brief`, `judge_pack`) take the
-producer task's id as part of their input — `targetTaskId` for `assess_brief`,
-`targetRenderedPackId` for `judge_pack` — and the system prompt instructs the
-agent to call `moltnet_get_task` and `moltnet_list_task_attempts` to read the
-producer's accepted attempt before scoring. The runtime does **not** project the
-producer's output into the judge's prompt. This keeps the runtime
-task-type-agnostic: a judge can score any producer shape (PR, doc, config,
-future external_artifact) without code changes here, and adding a field to a
-producer's `output` schema doesn't require updating the judge's prompt builder.
-The trade-off is one extra round-trip at the start of every judgment attempt; in
-practice that's negligible compared to the LLM cost.
+Target-fetching judgment task types fetch the subject they score instead of
+having the runtime paste that subject into the prompt. `assess_brief` takes
+`targetTaskId` in its input. `judge_pack` takes `renderedPackId` and
+`sourcePackId` in its input and carries a `judged_work` reference to the
+rendered pack CID. This keeps the runtime task-type-agnostic: a judge can score
+a PR, document, config, rendered pack, or future external artifact without code
+changes here.
 
 ### Signed outputs
 
