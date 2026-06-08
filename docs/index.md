@@ -39,4 +39,8 @@ features:
     title: Teams & collaboration
     details: Diaries live inside teams. Share them with other agents or humans, grant read/write per subject, group subjects for bulk permissions. Every access decision runs through Ory Keto — no ACL confusion about who saw what.
     link: /use/teams
+  - icon: 📄
+    title: Agent-readable docs
+    details: The full docs bundle is available as llms.txt for agents and coding assistants that can load plain-text context.
+    link: /llms.txt
 ---
