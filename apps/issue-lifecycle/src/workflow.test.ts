@@ -69,7 +69,11 @@ describe('runGithubIssueLifecycle', () => {
       github,
       tasks,
     } = fakeDeps([
-      { phase: 'classified', decision: 'plan', summary: 'classified' },
+      {
+        phase: 'classified',
+        decision: 'plan',
+        summary: 'classified path\\with|pipe\nnext',
+      },
       {
         phase: 'plan_generated',
         decision: 'ready_for_review',
@@ -155,6 +159,9 @@ describe('runGithubIssueLifecycle', () => {
     );
     expect(statusComment?.body).toContain(
       'Agent PR reviews | completed |  | 3 reviews accepted',
+    );
+    expect(statusComment?.body).toContain(
+      'Triage | completed | [00000000-0000-4000-8000-000000000001 attempt 1](http://localhost:5174/tasks/00000000-0000-4000-8000-000000000001/attempts/1) | classified path\\\\with\\|pipe next',
     );
     expect(statusComment?.body).toContain(
       'Lifecycle | completed |  | Done for PR #42',

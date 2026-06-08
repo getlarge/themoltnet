@@ -193,7 +193,7 @@ interface LifecycleStatusLine {
 }
 
 function escapeTableCell(value: string): string {
-  return value.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+  return value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }
 
 function statusLabel(status: LifecycleStatusValue): string {
