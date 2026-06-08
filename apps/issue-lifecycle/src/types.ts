@@ -13,7 +13,7 @@ export type LifecyclePhase =
   | 'implementing'
   | 'pr_open'
   | 'pr_failed'
-  | 'releasing'
+  | 'pr_review'
   | 'notify'
   | 'done';
 
@@ -23,7 +23,9 @@ export interface IssueLifecycleInput {
   teamId: string;
   diaryId: string;
   correlationId?: string;
+  consoleUrl?: string;
   approvalLabel?: string;
+  readyForReviewLabel?: string;
   skipNotifyLabel?: string;
   allowedExecutors?: Array<{ provider: string; model: string }>;
   requiredExecutorTrustLevel?:
@@ -50,8 +52,32 @@ export interface PullRequestStatus {
   checks: 'pending' | 'success' | 'failure';
 }
 
+export interface GithubIssueComment {
+  id: number;
+  body: string;
+}
+
 export interface GithubClient {
   getIssue(repo: string, issueNumber: number): Promise<GithubIssue>;
+  listIssueComments(
+    repo: string,
+    issueNumber: number,
+  ): Promise<GithubIssueComment[]>;
+  createIssueComment(
+    repo: string,
+    issueNumber: number,
+    body: string,
+  ): Promise<void>;
+  updateIssueComment(
+    repo: string,
+    commentId: number,
+    body: string,
+  ): Promise<void>;
+  addIssueLabel(
+    repo: string,
+    issueNumber: number,
+    label: string,
+  ): Promise<void>;
   hasIssueLabel(
     repo: string,
     issueNumber: number,
@@ -83,9 +109,15 @@ export interface LifecycleStateArtifact {
   summary: string;
   findings?: string[];
   plan?: string;
+  reviewedPlanSummary?: string;
   prNumber?: number;
   prUrl?: string;
   notifySkipped?: boolean;
+  prReviewKind?: string;
+  prReviewCommentUrl?: string;
+  prReviewCommentBody?: string;
+  resolvedFindings?: string[];
+  ignoredFindings?: string[];
 }
 
 export interface AcceptedTaskResult {

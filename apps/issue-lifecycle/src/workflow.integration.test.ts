@@ -35,7 +35,51 @@ function successfulOutputs() {
       prNumber: 42,
       prUrl: 'https://github.com/getlarge/themoltnet/pull/42',
     },
-    { phase: 'releasing', decision: 'ship', summary: 'released' },
+    {
+      phase: 'pr_review',
+      decision: 'review_passed',
+      summary: 'complexity ok',
+      prReviewKind: 'complexity',
+      findings: [],
+      prReviewCommentUrl:
+        'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
+      prReviewCommentBody: 'complexity ok',
+      noImplementationPerformed: true,
+    },
+    {
+      phase: 'pr_review',
+      decision: 'review_passed',
+      summary: 'functional ok',
+      prReviewKind: 'functional',
+      findings: [],
+      prReviewCommentUrl:
+        'https://github.com/getlarge/themoltnet/pull/42#issuecomment-2',
+      prReviewCommentBody: 'functional ok',
+      noImplementationPerformed: true,
+    },
+    {
+      phase: 'pr_review',
+      decision: 'review_passed',
+      summary: 'security ok',
+      prReviewKind: 'security',
+      findings: [],
+      prReviewCommentUrl:
+        'https://github.com/getlarge/themoltnet/pull/42#issuecomment-3',
+      prReviewCommentBody: 'security ok',
+      noImplementationPerformed: true,
+    },
+    {
+      phase: 'pr_open',
+      decision: 'link_pr',
+      summary: 'review feedback checked',
+      prNumber: 42,
+      prUrl: 'https://github.com/getlarge/themoltnet/pull/42',
+      resolvedFindings: [],
+      ignoredFindings: [],
+      changedFiles: [],
+      testsRun: [],
+      diaryEntryIds: ['entry-implementation'],
+    },
     {
       phase: 'done',
       decision: 'notify',
@@ -74,6 +118,25 @@ describe('GitHub issue lifecycle integration', () => {
     );
 
     expect(result.status).toBe('done');
+    expect(github.comments).toHaveLength(3);
+    const approvalComment = github.comments.find((comment) =>
+      comment.body.includes('moltnet-issue-lifecycle:plan-approval'),
+    );
+    const statusComment = github.comments.find((comment) =>
+      comment.body.includes('moltnet-issue-lifecycle:status'),
+    );
+    expect(approvalComment?.body).toContain(
+      'Add the `moltnet:plan-approved` label',
+    );
+    expect(statusComment?.body).toContain(
+      'Human approval | completed |  | moltnet:plan-approved observed after prompt',
+    );
+    expect(statusComment?.body).toContain(
+      'Human PR review | completed | [PR #42](https://github.com/getlarge/themoltnet/pull/42) | Merged',
+    );
+    expect(github.labels).toEqual([
+      { issueNumber: 42, label: 'moltnet:ready-for-review' },
+    ]);
     expect(sleeps).toEqual([
       'wait-plan-approval-label',
       'wait-plan-approval-label',
@@ -83,7 +146,10 @@ describe('GitHub issue lifecycle integration', () => {
       'Plan issue #1327',
       'Review plan for issue #1327',
       'Implement issue #1327',
-      'Release issue #1327',
+      'Complexity review for PR #42',
+      'Functional review for PR #42',
+      'Security review for PR #42',
+      'Apply PR review feedback for issue #1327',
       'Notify issue #1327',
     ]);
   });
@@ -117,6 +183,7 @@ describe('GitHub issue lifecycle integration', () => {
       },
       ...successfulOutputs().slice(4),
     ]);
+    github.approvalResponses = [false, true];
     github.prResponses = [
       {
         number: 42,
@@ -128,7 +195,13 @@ describe('GitHub issue lifecycle integration', () => {
         number: 42,
         url: 'https://github.com/getlarge/themoltnet/pull/42',
         merged: false,
-        checks: 'failure',
+        checks: 'success',
+      },
+      {
+        number: 42,
+        url: 'https://github.com/getlarge/themoltnet/pull/42',
+        merged: false,
+        checks: 'success',
       },
       {
         number: 42,
@@ -144,8 +217,20 @@ describe('GitHub issue lifecycle integration', () => {
     expect(
       tasks.created.filter((task) => task.title === 'Implement issue #1327'),
     ).toHaveLength(2);
+    expect(
+      (tasks.created[3]?.input as { continueFrom?: unknown } | undefined)
+        ?.continueFrom,
+    ).toBeUndefined();
+    expect(
+      (tasks.created[4]?.input as { continueFrom?: unknown } | undefined)
+        ?.continueFrom,
+    ).toMatchObject({
+      taskId: '00000000-0000-4000-8000-000000000004',
+      attemptN: 1,
+      mode: 'extend',
+    });
     expect(tasks.created.map((task) => task.title)).toContain(
-      'Release issue #1327',
+      'Complexity review for PR #42',
     );
   });
 

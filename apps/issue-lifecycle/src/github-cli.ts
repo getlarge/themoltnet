@@ -1,6 +1,11 @@
 import { execFileSync } from 'node:child_process';
 
-import type { GithubClient, GithubIssue, PullRequestStatus } from './types.js';
+import type {
+  GithubClient,
+  GithubIssue,
+  GithubIssueComment,
+  PullRequestStatus,
+} from './types.js';
 
 interface GhIssueJson {
   number: number;
@@ -12,15 +17,21 @@ interface GhIssueJson {
 interface GhPrJson {
   number: number;
   url: string;
-  merged: boolean;
+  state: string;
+  mergedAt?: string | null;
   statusCheckRollup?: Array<{ conclusion?: string | null; status?: string }>;
 }
 
-function runGhJson<T>(
+interface GhIssueCommentJson {
+  id: number;
+  body?: string;
+}
+
+function runGh(
   args: string[],
   options: { token?: string; cwd?: string; env?: NodeJS.ProcessEnv },
-): T {
-  const raw = execFileSync('gh', args, {
+): string {
+  return execFileSync('gh', args, {
     encoding: 'utf8',
     cwd: options.cwd,
     env: {
@@ -29,6 +40,13 @@ function runGhJson<T>(
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
+}
+
+function runGhJson<T>(
+  args: string[],
+  options: { token?: string; cwd?: string; env?: NodeJS.ProcessEnv },
+): T {
+  const raw = runGh(args, options);
   return JSON.parse(raw) as T;
 }
 
@@ -89,6 +107,75 @@ export class GhCliGithubClient implements GithubClient {
     });
   }
 
+  listIssueComments(
+    repo: string,
+    issueNumber: number,
+  ): Promise<GithubIssueComment[]> {
+    const comments = runGhJson<GhIssueCommentJson[]>(
+      ['api', `repos/${repo}/issues/${issueNumber}/comments`],
+      this.options,
+    );
+    return Promise.resolve(
+      comments.map((comment) => ({
+        id: comment.id,
+        body: comment.body ?? '',
+      })),
+    );
+  }
+
+  createIssueComment(
+    repo: string,
+    issueNumber: number,
+    body: string,
+  ): Promise<void> {
+    runGh(
+      [
+        'api',
+        `repos/${repo}/issues/${issueNumber}/comments`,
+        '-f',
+        `body=${body}`,
+      ],
+      this.options,
+    );
+    return Promise.resolve();
+  }
+
+  updateIssueComment(
+    repo: string,
+    commentId: number,
+    body: string,
+  ): Promise<void> {
+    runGh(
+      [
+        'api',
+        `repos/${repo}/issues/comments/${commentId}`,
+        '-X',
+        'PATCH',
+        '-f',
+        `body=${body}`,
+      ],
+      this.options,
+    );
+    return Promise.resolve();
+  }
+
+  addIssueLabel(
+    repo: string,
+    issueNumber: number,
+    label: string,
+  ): Promise<void> {
+    runGh(
+      [
+        'api',
+        `repos/${repo}/issues/${issueNumber}/labels`,
+        '-f',
+        `labels[]=${label}`,
+      ],
+      this.options,
+    );
+    return Promise.resolve();
+  }
+
   async hasIssueLabel(
     repo: string,
     issueNumber: number,
@@ -107,14 +194,16 @@ export class GhCliGithubClient implements GithubClient {
         '--repo',
         repo,
         '--json',
-        'number,url,merged,statusCheckRollup',
+        'number,url,state,mergedAt,statusCheckRollup',
       ],
       this.options,
     );
     return Promise.resolve({
       number: pr.number,
       url: pr.url,
-      merged: pr.merged,
+      merged:
+        pr.state === 'MERGED' ||
+        (pr.mergedAt !== undefined && pr.mergedAt !== null),
       checks: checksConclusion(pr),
     });
   }

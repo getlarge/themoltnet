@@ -12,9 +12,63 @@ function assertionIds(taskInput: unknown): string[] {
   ).map((assertion) => assertion.id);
 }
 
+function prReviewOutputs() {
+  return [
+    {
+      phase: 'pr_review',
+      decision: 'review_passed',
+      summary: 'complexity ok',
+      prReviewKind: 'complexity',
+      findings: [],
+      prReviewCommentUrl:
+        'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
+      prReviewCommentBody: 'complexity ok',
+      noImplementationPerformed: true,
+    },
+    {
+      phase: 'pr_review',
+      decision: 'review_passed',
+      summary: 'functional ok',
+      prReviewKind: 'functional',
+      findings: [],
+      prReviewCommentUrl:
+        'https://github.com/getlarge/themoltnet/pull/42#issuecomment-2',
+      prReviewCommentBody: 'functional ok',
+      noImplementationPerformed: true,
+    },
+    {
+      phase: 'pr_review',
+      decision: 'review_passed',
+      summary: 'security ok',
+      prReviewKind: 'security',
+      findings: [],
+      prReviewCommentUrl:
+        'https://github.com/getlarge/themoltnet/pull/42#issuecomment-3',
+      prReviewCommentBody: 'security ok',
+      noImplementationPerformed: true,
+    },
+    {
+      phase: 'pr_open',
+      decision: 'link_pr',
+      summary: 'review feedback checked',
+      prNumber: 42,
+      prUrl: 'https://github.com/getlarge/themoltnet/pull/42',
+      resolvedFindings: [],
+      ignoredFindings: [],
+      changedFiles: [],
+      testsRun: [],
+      diaryEntryIds: ['entry-implementation'],
+    },
+  ];
+}
+
 describe('runGithubIssueLifecycle', () => {
   it('creates a freeform continuation chain through notify', async () => {
-    const { deps: d, tasks } = fakeDeps([
+    const {
+      deps: d,
+      github,
+      tasks,
+    } = fakeDeps([
       { phase: 'classified', decision: 'plan', summary: 'classified' },
       {
         phase: 'plan_generated',
@@ -35,7 +89,7 @@ describe('runGithubIssueLifecycle', () => {
         prNumber: 42,
         prUrl: 'https://github.com/getlarge/themoltnet/pull/42',
       },
-      { phase: 'releasing', decision: 'ship', summary: 'released' },
+      ...prReviewOutputs(),
       {
         phase: 'done',
         decision: 'notify',
@@ -47,6 +101,7 @@ describe('runGithubIssueLifecycle', () => {
           'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
       },
     ]);
+    github.approvalResponses = [false, true];
 
     const result = await runGithubIssueLifecycle(
       {
@@ -55,13 +110,63 @@ describe('runGithubIssueLifecycle', () => {
         teamId: 'team',
         diaryId: 'diary',
         correlationId: '00000000-0000-4000-8000-000000000999',
+        consoleUrl: 'http://localhost:5174/',
         pollIntervalSec: 1,
       },
       d,
     );
 
     expect(result).toMatchObject({ status: 'done', prNumber: 42 });
-    expect(tasks.created).toHaveLength(6);
+    expect(github.comments).toHaveLength(3);
+    const approvalComment = github.comments.find((comment) =>
+      comment.body.includes('moltnet-issue-lifecycle:plan-approval'),
+    );
+    const statusComment = github.comments.find((comment) =>
+      comment.body.includes('moltnet-issue-lifecycle:status'),
+    );
+    const readyComment = github.comments.find((comment) =>
+      comment.body.includes('moltnet-issue-lifecycle:ready-for-review'),
+    );
+    expect(approvalComment?.body).toContain(
+      'MoltNet Issue Lifecycle: Plan Ready',
+    );
+    expect(approvalComment?.body).toContain('moltnet:plan-approved');
+    expect(approvalComment?.body).toContain(
+      '00000000-0000-4000-8000-000000000999',
+    );
+    expect(approvalComment?.body).toContain(
+      'Console task chain: [open related tasks](http://localhost:5174/tasks?correlationId=00000000-0000-4000-8000-000000000999)',
+    );
+    expect(approvalComment?.body).toContain(
+      'Plan task: [`00000000-0000-4000-8000-000000000002` attempt 1](http://localhost:5174/tasks/00000000-0000-4000-8000-000000000002/attempts/1)',
+    );
+    expect(approvalComment?.body).toContain(
+      'Review task: [`00000000-0000-4000-8000-000000000003` attempt 1](http://localhost:5174/tasks/00000000-0000-4000-8000-000000000003/attempts/1)',
+    );
+    expect(approvalComment?.body).toContain('Approved plan:');
+    expect(approvalComment?.body).toContain('plan');
+    expect(approvalComment?.body).toContain('Reviewed plan summary:');
+    expect(statusComment?.body).toContain('MoltNet Issue Lifecycle: Status');
+    expect(statusComment?.body).toContain(
+      'Console task chain: [open related tasks](http://localhost:5174/tasks?correlationId=00000000-0000-4000-8000-000000000999)',
+    );
+    expect(statusComment?.body).toContain(
+      'Implementation | completed | [00000000-0000-4000-8000-000000000004 attempt 1](http://localhost:5174/tasks/00000000-0000-4000-8000-000000000004/attempts/1)',
+    );
+    expect(statusComment?.body).toContain(
+      'Agent PR reviews | completed |  | 3 reviews accepted',
+    );
+    expect(statusComment?.body).toContain(
+      'Lifecycle | completed |  | Done for PR #42',
+    );
+    expect(readyComment?.body).toContain(
+      'MoltNet Issue Lifecycle: Ready For Human Review',
+    );
+    expect(readyComment?.body).toContain('complexity ok');
+    expect(github.labels).toEqual([
+      { issueNumber: 42, label: 'moltnet:ready-for-review' },
+    ]);
+    expect(tasks.created).toHaveLength(9);
     expect(tasks.created[0]?.taskType).toBe('freeform');
     expect(tasks.created[0]?.input).toMatchObject({
       execution: { workspace: 'dedicated_worktree' },
@@ -147,6 +252,8 @@ describe('runGithubIssueLifecycle', () => {
     );
     expect(assertionIds(tasks.created[3]?.input)).toEqual(
       expect.arrayContaining([
+        'approved-plan-task-id',
+        'approved-review-task-id',
         'implementation-changedFiles',
         'implementation-testsRun',
         'implementation-diaryEntryIds',
@@ -155,11 +262,49 @@ describe('runGithubIssueLifecycle', () => {
         'implementation-diffStats',
       ]),
     );
+    const implementationInput = tasks.created[3]?.input as
+      | {
+          continueFrom?: unknown;
+          execution?: unknown;
+          successCriteria?: SuccessCriteria;
+        }
+      | undefined;
+    expect(implementationInput?.continueFrom).toBeUndefined();
+    expect(implementationInput?.execution).toEqual({
+      workspace: 'dedicated_worktree',
+    });
+    expect(tasks.created[3]?.claimCondition).toEqual({
+      op: 'task_status',
+      taskId: '00000000-0000-4000-8000-000000000003',
+      statuses: ['completed'],
+    });
+    expect(tasks.created[3]?.references).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          taskId: '00000000-0000-4000-8000-000000000002',
+        }),
+        expect.objectContaining({
+          taskId: '00000000-0000-4000-8000-000000000003',
+        }),
+      ]),
+    );
     expect(assertionIds(tasks.created[4]?.input)).toEqual(
       expect.arrayContaining([
-        'release-releaseRequired',
-        'release-releaseActions',
-        'release-evidence',
+        'pr-complexity-review-prReviewKind',
+        'pr-complexity-review-prReviewCommentUrl',
+        'pr-complexity-review-prReviewCommentBody',
+      ]),
+    );
+    expect(assertionIds(tasks.created[5]?.input)).toEqual(
+      expect.arrayContaining(['pr-functional-review-prReviewKind']),
+    );
+    expect(assertionIds(tasks.created[6]?.input)).toEqual(
+      expect.arrayContaining(['pr-security-review-prReviewKind']),
+    );
+    expect(assertionIds(tasks.created[7]?.input)).toEqual(
+      expect.arrayContaining([
+        'pr-review-resolution-resolvedFindings',
+        'pr-review-resolution-ignoredFindings',
       ]),
     );
     expect(
@@ -172,7 +317,7 @@ describe('runGithubIssueLifecycle', () => {
       diaryEntryRequired: true,
       diaryEntryTags: ['accountable-commit'],
     });
-    const notifyInput = tasks.created[5]?.input as
+    const notifyInput = tasks.created[8]?.input as
       | { brief?: string; successCriteria?: SuccessCriteria }
       | undefined;
     expect(notifyInput?.brief).toContain(
@@ -235,7 +380,11 @@ describe('runGithubIssueLifecycle', () => {
   });
 
   it('creates a plan revision when review returns findings', async () => {
-    const { deps: d, tasks } = fakeDeps([
+    const {
+      deps: d,
+      github,
+      tasks,
+    } = fakeDeps([
       { phase: 'classified', decision: 'plan', summary: 'classified' },
       {
         phase: 'plan_generated',
@@ -267,7 +416,7 @@ describe('runGithubIssueLifecycle', () => {
         summary: 'implemented',
         prNumber: 42,
       },
-      { phase: 'releasing', decision: 'ship', summary: 'released' },
+      ...prReviewOutputs(),
       {
         phase: 'done',
         decision: 'skip_notify',
@@ -279,6 +428,7 @@ describe('runGithubIssueLifecycle', () => {
           'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
       },
     ]);
+    github.approvalResponses = [false, true];
     (d.github as FakeGithub).skipNotify = true;
 
     await runGithubIssueLifecycle(
@@ -313,8 +463,79 @@ describe('runGithubIssueLifecycle', () => {
     );
   });
 
+  it('does not duplicate an existing approval prompt comment', async () => {
+    const correlationId = '00000000-0000-4000-8000-000000000999';
+    const { deps: d, github } = fakeDeps([
+      { phase: 'classified', decision: 'plan', summary: 'classified' },
+      {
+        phase: 'plan_generated',
+        decision: 'ready_for_review',
+        summary: 'planned',
+        plan: 'plan',
+      },
+      {
+        phase: 'plan_generated',
+        decision: 'review_passed',
+        summary: 'reviewed',
+        findings: [],
+      },
+      {
+        phase: 'pr_open',
+        decision: 'link_pr',
+        summary: 'implemented',
+        prNumber: 42,
+      },
+      ...prReviewOutputs(),
+      {
+        phase: 'done',
+        decision: 'skip_notify',
+        summary: 'reflected',
+        notifySkipped: true,
+        reflectionEntryId: 'entry-reflection',
+        linkedEntryIds: ['entry-implementation'],
+        prReflectionUrl:
+          'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
+      },
+    ]);
+    github.approvalResponses = [false, true];
+    github.comments = [
+      {
+        id: 1,
+        body: `<!-- moltnet-issue-lifecycle:plan-approval:${correlationId} -->`,
+      },
+    ];
+
+    await runGithubIssueLifecycle(
+      {
+        repo: 'getlarge/themoltnet',
+        issueNumber: 1327,
+        teamId: 'team',
+        diaryId: 'diary',
+        correlationId,
+        pollIntervalSec: 1,
+      },
+      d,
+    );
+
+    expect(github.comments).toHaveLength(3);
+    expect(
+      github.comments.filter((comment) =>
+        comment.body.includes('moltnet-issue-lifecycle:plan-approval'),
+      ),
+    ).toHaveLength(1);
+    expect(
+      github.comments.filter((comment) =>
+        comment.body.includes('moltnet-issue-lifecycle:status'),
+      ),
+    ).toHaveLength(1);
+  });
+
   it('passes structured review findings to the revision task', async () => {
-    const { deps: d, tasks } = fakeDeps([
+    const {
+      deps: d,
+      github,
+      tasks,
+    } = fakeDeps([
       { phase: 'classified', decision: 'plan', summary: 'classified' },
       {
         phase: 'plan_generated',
@@ -353,7 +574,7 @@ describe('runGithubIssueLifecycle', () => {
         summary: 'implemented',
         prNumber: 42,
       },
-      { phase: 'releasing', decision: 'ship', summary: 'released' },
+      ...prReviewOutputs(),
       {
         phase: 'done',
         decision: 'skip_notify',
@@ -365,6 +586,7 @@ describe('runGithubIssueLifecycle', () => {
           'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
       },
     ]);
+    github.approvalResponses = [false, true];
 
     await runGithubIssueLifecycle(
       {
@@ -387,7 +609,11 @@ describe('runGithubIssueLifecycle', () => {
   });
 
   it('creates a defensive revision when review fails without findings', async () => {
-    const { deps: d, tasks } = fakeDeps([
+    const {
+      deps: d,
+      github,
+      tasks,
+    } = fakeDeps([
       { phase: 'classified', decision: 'plan', summary: 'classified' },
       {
         phase: 'plan_generated',
@@ -419,7 +645,7 @@ describe('runGithubIssueLifecycle', () => {
         summary: 'implemented',
         prNumber: 42,
       },
-      { phase: 'releasing', decision: 'ship', summary: 'released' },
+      ...prReviewOutputs(),
       {
         phase: 'done',
         decision: 'skip_notify',
@@ -431,6 +657,7 @@ describe('runGithubIssueLifecycle', () => {
           'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
       },
     ]);
+    github.approvalResponses = [false, true];
 
     await runGithubIssueLifecycle(
       {

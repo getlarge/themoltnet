@@ -8,7 +8,7 @@ const PHASES = new Set<LifecyclePhase>([
   'implementing',
   'pr_open',
   'pr_failed',
-  'releasing',
+  'pr_review',
   'notify',
   'done',
 ]);
@@ -111,6 +111,9 @@ export function parseLifecycleStateArtifact(
     });
   }
   if (typeof body.plan === 'string') state.plan = body.plan;
+  if (typeof body.reviewedPlanSummary === 'string') {
+    state.reviewedPlanSummary = body.reviewedPlanSummary;
+  }
   if (typeof body.prNumber === 'number') state.prNumber = body.prNumber;
   if (typeof body.prUrl === 'string') state.prUrl = body.prUrl;
   if (typeof body.notifySkipped === 'boolean') {

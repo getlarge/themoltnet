@@ -47,10 +47,13 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
       'team-id': { type: 'string' },
       'diary-id': { type: 'string' },
       'correlation-id': { type: 'string' },
+      'console-url': { type: 'string' },
       'database-url': { type: 'string' },
       'queue-name': { type: 'string', default: 'issue-lifecycle' },
       'approval-label': { type: 'string' },
+      'ready-for-review-label': { type: 'string' },
       'skip-notify-label': { type: 'string' },
+      'github-auth': { type: 'string' },
       'poll-interval-sec': { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
     },
@@ -73,10 +76,18 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
 
   const databaseUrl =
     values['database-url'] ?? process.env.ISSUE_LIFECYCLE_DATABASE_URL;
+  const consoleUrl =
+    values['console-url'] ??
+    process.env.ISSUE_LIFECYCLE_CONSOLE_URL ??
+    process.env.CONSOLE_BASE_URL;
+  const githubAuth =
+    values['github-auth'] ?? process.env.ISSUE_LIFECYCLE_GITHUB_AUTH;
   const githubToken =
-    process.env.GH_TOKEN ||
-    process.env.GITHUB_TOKEN ||
-    getGithubToken(agentDir);
+    githubAuth === 'gh-cli'
+      ? undefined
+      : process.env.GH_TOKEN ||
+        process.env.GITHUB_TOKEN ||
+        getGithubToken(agentDir);
 
   const correlationId = values['correlation-id'] ?? randomUUID();
 
@@ -101,8 +112,12 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
         values['diary-id'] ??
         requireString(agentEnv.MOLTNET_DIARY_ID, 'MOLTNET_DIARY_ID'),
       correlationId,
+      ...(consoleUrl ? { consoleUrl } : {}),
       ...(values['approval-label']
         ? { approvalLabel: values['approval-label'] }
+        : {}),
+      ...(values['ready-for-review-label']
+        ? { readyForReviewLabel: values['ready-for-review-label'] }
         : {}),
       ...(values['skip-notify-label']
         ? { skipNotifyLabel: values['skip-notify-label'] }

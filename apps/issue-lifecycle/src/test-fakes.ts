@@ -112,11 +112,14 @@ export class FakeGithub implements GithubClient {
   approval = true;
   skipNotify = false;
   approvalResponses: boolean[] = [];
+  comments: Array<{ id: number; body: string }> = [];
+  labels: Array<{ issueNumber: number; label: string }> = [];
   prResponses: PullRequestStatus[] = [];
+  prPolls = 0;
   prStatus: PullRequestStatus = {
     number: 42,
     url: 'https://github.com/getlarge/themoltnet/pull/42',
-    merged: true,
+    merged: false,
     checks: 'success',
   };
 
@@ -129,6 +132,29 @@ export class FakeGithub implements GithubClient {
     });
   }
 
+  listIssueComments() {
+    return Promise.resolve(this.comments);
+  }
+
+  createIssueComment(_repo: string, _issueNumber: number, body: string) {
+    this.comments.push({ id: this.comments.length + 1, body });
+    return Promise.resolve();
+  }
+
+  updateIssueComment(_repo: string, commentId: number, body: string) {
+    const comment = this.comments.find(
+      (candidate) => candidate.id === commentId,
+    );
+    if (!comment) throw new Error(`missing comment ${commentId}`);
+    comment.body = body;
+    return Promise.resolve();
+  }
+
+  addIssueLabel(_repo: string, issueNumber: number, label: string) {
+    this.labels.push({ issueNumber, label });
+    return Promise.resolve();
+  }
+
   hasIssueLabel(_repo: string, _issueNumber: number, label: string) {
     if (label === 'moltnet:skip-notify') {
       return Promise.resolve(this.skipNotify);
@@ -138,7 +164,13 @@ export class FakeGithub implements GithubClient {
   }
 
   getPullRequest() {
-    return Promise.resolve(this.prResponses.shift() ?? this.prStatus);
+    const next = this.prResponses.shift();
+    if (next) return Promise.resolve(next);
+    this.prPolls += 1;
+    return Promise.resolve({
+      ...this.prStatus,
+      merged: this.prPolls >= 3,
+    });
   }
 }
 

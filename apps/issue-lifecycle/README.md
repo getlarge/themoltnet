@@ -11,11 +11,15 @@ flowchart TD
   C -->|human approval label| D[approved]
   D -->|implement| E[implementing]
   E -->|link_pr| F[pr_open]
-  F -->|pr_failed| G[pr_failed]
+  F -->|ci_failed| G[pr_failed]
   G -->|implement retry| E
-  F -->|pr_merged| H[releasing]
-  H -->|ship| I[notify]
-  I -->|notify / skip_notify| J[done]
+  F -->|ci_green| H[agent_pr_reviews]
+  H -->|complexity + functional + security| I[reviews_complete]
+  I -->|resolve relevant findings| K[review_resolution]
+  K -->|ci_failed| G
+  K -->|ci_green| L[ready_for_human_review]
+  L -->|human merge| M[notify]
+  M -->|notify / skip_notify| J[done]
 ```
 
 The app is intentionally separate from `apps/agent-daemon`: the daemon remains a
@@ -33,8 +37,11 @@ The runner owns orchestration, not implementation details. It:
 - passes prior work forward with `continueFrom`
 - links issue and task outputs through task references
 - waits for human plan approval through a GitHub label
-- polls PR status and creates implementation retry tasks on failed checks
-- runs release and notification continuations after merge
+- waits for green CI before PR review tasks
+- creates independent complexity, functional, and security PR review tasks
+- creates a review-resolution task that applies only truly relevant findings
+- labels/comments the PR as ready for human review after post-fix CI is green
+- creates the final notification/reflection continuation after merge
 
 The agents that claim the generated `freeform` tasks still own their local loop:
 reading repo instructions, planning, reviewing, implementing, and reporting the
@@ -58,6 +65,11 @@ github_issue_lifecycle;
 The workflow input is normalized before execution, so a missing `correlationId`
 is generated once at CLI parse time and reused for task correlation and Absurd
 idempotency.
+
+The approval prompt also links to the console task views for that correlation.
+By default those links use `https://console.themolt.net`; override with
+`--console-url` or `ISSUE_LIFECYCLE_CONSOLE_URL` when testing against a local
+console.
 
 ### Absurd Database Setup
 
@@ -109,6 +121,9 @@ new continuation tasks when the workflow calls for another agent loop:
 
 - plan review findings create a plan-revision task
 - failed PR checks create an implementation-retry task
+- green PR checks create independent PR review tasks
+- PR review outputs create a review-resolution task
+- post-review CI failures create an implementation-retry task
 - missing human approval is a durable wait, not a failure
 
 `src/absurd.ts` currently registers the workflow with `defaultMaxAttempts: 3`.
@@ -182,8 +197,25 @@ body or PR comment that links the reflection entry.
 
 ## Human Gates
 
-Plan approval is never automated. The runner waits for the configured approval
-label before creating the implementation task.
+Plan approval is never automated. After plan review passes, the runner posts an
+idempotent issue comment for the current correlation. That comment includes the
+full approved plan, review summary, console links for the related tasks, plan
+task id, review task id, and the exact label humans must add.
+
+The runner also maintains one separate status comment per correlation. The
+status comment is updated in place as lifecycle milestones change, including
+triage, planning, plan review, human approval, implementation, CI waits, agent
+PR reviews, review resolution, human PR review, notification/reflection, and completion. Each task-backed status row
+links to the console task or accepted attempt when available. This gives humans
+a stable place to inspect the active task chain without reading daemon logs.
+
+Only approve after reading the current correlation's prompt. If the approval
+label was already present before that prompt appeared, remove it and add it
+again after review; a stale label must not silently approve a new plan.
+
+If no implementation task appears after review, check whether the prompt exists
+for the current correlation and whether the approval label was re-added after
+that prompt.
 
 The skip-notification label skips participant notification only. It does not
 skip the final reflection entry or the PR body/comment link to that reflection.
@@ -191,6 +223,7 @@ skip the final reflection entry or the PR body/comment link to that reflection.
 Defaults:
 
 - approval label: `moltnet:plan-approved`
+- ready-for-review label: `moltnet:ready-for-review`
 - skip notification label: `moltnet:skip-notify`
 - poll interval: `30s`
 - max plan review rounds: `5`
@@ -224,13 +257,42 @@ Useful options:
 - `--team-id <uuid>`: overrides `.moltnet/<agent>/env`
 - `--diary-id <uuid>`: overrides `.moltnet/<agent>/env`
 - `--correlation-id <uuid>`: stable idempotency/correlation key
+- `--console-url <url>`: console base URL for task links in approval comments
 - `--queue-name <name>`: Absurd queue name
 - `--approval-label <label>`: human approval gate
+- `--ready-for-review-label <label>`: PR label applied after green CI and
+  agent reviews
 - `--skip-notify-label <label>`: notification skip gate
+- `--github-auth gh-cli`: local-only escape hatch that lets `gh` use its
+  configured auth instead of minting a MoltNet GitHub token
 - `--poll-interval-sec <n>`: wait interval for labels/tasks/PR status
 
 GitHub auth is resolved from `GH_TOKEN`, `GITHUB_TOKEN`, or a token minted with
 the released MoltNet CLI from `.moltnet/<agent>/moltnet.json`.
+
+### Local GitHub App Credentials
+
+For production-parity local e2e, the local agent should be backed by a
+persistent GitHub App installation, not by a human `gh auth` session. Store the
+agent's MoltNet credentials in the existing local agent directory:
+
+```text
+.moltnet/<agent>/moltnet.json
+.moltnet/<agent>/env
+```
+
+`moltnet.json` must remain uncommitted. It should contain only the local
+agent's MoltNet credential material; the GitHub App private key or installation
+secret should stay in the MoltNet/Ory credential backend that mints GitHub
+tokens for that agent. The local check for parity is:
+
+```bash
+moltnet github token --credentials ".moltnet/<agent>/moltnet.json"
+```
+
+Use `--github-auth gh-cli` only for manual simulations where you explicitly
+accept that the runner is using the operator's local GitHub session. Do not use
+that mode for CI-like e2e assertions.
 
 ## Manual E2E-Stack Smoke Test
 
@@ -251,6 +313,9 @@ Pick the agent deliberately before starting the daemon:
 - For a full lifecycle that opens or updates real GitHub PRs, use an activated
   production agent with GitHub App credentials. A local throwaway agent has no
   GitHub App and should not be expected to run `gh` operations.
+- For a production-parity local e2e agent, provision a dedicated persistent
+  GitHub App backed test agent and store only its MoltNet credentials under
+  `.moltnet/<agent>/`.
 
 Minimum checks:
 
@@ -316,11 +381,19 @@ Then run an agent daemon against that stack. See
 [apps/agent-daemon/README.md](../agent-daemon/README.md) for provisioning a
 throwaway agent and smoke-testing task execution.
 
+If the console is running locally, pass its base URL so GitHub approval comments
+link back to local task artifacts:
+
+```bash
+ISSUE_LIFECYCLE_CONSOLE_URL="http://localhost:5174"
+```
+
 Finally, point the lifecycle runner at a Postgres database usable by Absurd and
 a sandbox GitHub issue:
 
 ```bash
 export ISSUE_LIFECYCLE_DATABASE_URL="postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle"
+export ISSUE_LIFECYCLE_CONSOLE_URL="${ISSUE_LIFECYCLE_CONSOLE_URL:-http://localhost:5174}"
 
 pnpm --filter @themoltnet/issue-lifecycle cli \
   --repo getlarge/themoltnet \
@@ -332,12 +405,35 @@ Expected smoke-test path:
 1. runner creates a triage freeform task
 2. triage completion creates a plan task with `continueFrom`
 3. plan review loops until the lifecycle artifact reports pass
-4. runner waits until the issue has `moltnet:plan-approved`
-5. implementation links a PR via `prNumber`
-6. failed checks create another implementation continuation
-7. merged PR creates release and final notification/reflection continuations
-8. final reflection links the lifecycle diary entries and is published in the PR
-   body or a PR comment
+4. runner comments on the issue asking for `moltnet:plan-approved`; the comment
+   links the correlation task list plus the exact plan and review attempts
+5. runner maintains a separate status comment with the current lifecycle stage
+   and links to created tasks/attempts
+6. runner waits until the issue has `moltnet:plan-approved`
+7. initial implementation starts from a fresh session/worktree, gated on the
+   approved review task and carrying issue/plan/review task references
+8. implementation links a PR via `prNumber`
+9. failed checks create another implementation continuation from the prior
+   implementation attempt
+10. green CI creates independent complexity, functional, and security review
+    tasks; those tasks must post PR comments and report the exact comment bodies
+    and URLs in their outputs
+11. review-resolution continues from implementation, checks PR comments and
+    review task outputs, and applies only truly relevant findings
+12. CI is checked again after review-resolution; failures return to the
+    implementation retry loop
+13. green post-review CI applies `moltnet:ready-for-review` and posts a PR
+    comment for human review
+14. merged PR creates the final notification/reflection continuation
+15. final reflection links the lifecycle diary entries and is published in the PR
+    body or a PR comment
+
+If the human reviewer is not satisfied after the ready-for-review stage, the v1
+runner does not yet watch arbitrary PR review comments and auto-create another
+continuation. The intended follow-up is to create a standalone continuation task
+for the same correlation that references the PR review comment or task outputs;
+a future workflow revision can watch GitHub review/comment events and create
+that continuation automatically with dedupe markers.
 
 For manual testing, stop before destructive GitHub actions unless the issue and
 branch are disposable.
@@ -360,7 +456,9 @@ Current coverage:
 - happy freeform continuation chain
 - plan review findings and plan revision
 - human approval polling
+- lifecycle status comment creation/update
 - PR failed-check retry
+- parallel PR review task creation and ready-for-review labeling
 - review budget exhaustion
 - package build and published-file shape
 

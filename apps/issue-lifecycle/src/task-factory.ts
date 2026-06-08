@@ -11,12 +11,16 @@ import type {
 } from './types.js';
 
 const DEFAULT_APPROVAL_LABEL = 'moltnet:plan-approved';
+const DEFAULT_READY_FOR_REVIEW_LABEL = 'moltnet:ready-for-review';
 const DEFAULT_SKIP_NOTIFY_LABEL = 'moltnet:skip-notify';
+const DEFAULT_CONSOLE_URL = 'https://console.themolt.net';
 const ARTIFACT_BODY_PATH = 'artifacts.0.body';
 
 export interface LifecycleDefaults {
   correlationId: string;
+  consoleUrl: string;
   approvalLabel: string;
+  readyForReviewLabel: string;
   skipNotifyLabel: string;
   pollIntervalSec: number;
   maxReviewRounds: number;
@@ -29,12 +33,20 @@ export function normalizeLifecycleInput(
   return {
     ...input,
     correlationId: input.correlationId ?? randomUUID(),
+    consoleUrl: normalizeConsoleUrl(input.consoleUrl ?? DEFAULT_CONSOLE_URL),
     approvalLabel: input.approvalLabel ?? DEFAULT_APPROVAL_LABEL,
+    readyForReviewLabel:
+      input.readyForReviewLabel ?? DEFAULT_READY_FOR_REVIEW_LABEL,
     skipNotifyLabel: input.skipNotifyLabel ?? DEFAULT_SKIP_NOTIFY_LABEL,
     pollIntervalSec: input.pollIntervalSec ?? 30,
     maxReviewRounds: input.maxReviewRounds ?? 5,
     maxImplementationRetries: input.maxImplementationRetries ?? 3,
   };
+}
+
+function normalizeConsoleUrl(value: string): string {
+  const normalized = value.trim().replace(/\/+$/, '');
+  return normalized || DEFAULT_CONSOLE_URL;
 }
 
 async function issueReference(
@@ -104,6 +116,48 @@ function withParentDependency(
         path: ARTIFACT_BODY_PATH,
         op: 'matches',
         value: `"sourceAttemptN"\\s*:\\s*${parentAttempt.attemptN}`,
+      },
+    ],
+  };
+}
+
+function withApprovedPlanDependency(
+  successCriteria: SuccessCriteria,
+  args: {
+    planTaskId: string;
+    planAttempt: SdkTaskAttempt;
+    reviewTaskId: string;
+    reviewAttempt: SdkTaskAttempt;
+  },
+): SuccessCriteria {
+  return {
+    ...successCriteria,
+    gates: [
+      ...(successCriteria.gates ?? []),
+      {
+        id: 'fresh-implementation-from-approved-plan',
+        kind: 'submit-tool-call',
+        description:
+          'This implementation task must start from a fresh session/worktree ' +
+          `and use approved plan task ${args.planTaskId} attempt ` +
+          `${args.planAttempt.attemptN} plus review task ${args.reviewTaskId} ` +
+          `attempt ${args.reviewAttempt.attemptN} as durable context.`,
+        required: true,
+      },
+    ],
+    assertions: [
+      ...(successCriteria.assertions ?? []),
+      {
+        id: 'approved-plan-task-id',
+        path: ARTIFACT_BODY_PATH,
+        op: 'matches',
+        value: `"approvedPlanTaskId"\\s*:\\s*"${escapeRegex(args.planTaskId)}"`,
+      },
+      {
+        id: 'approved-review-task-id',
+        path: ARTIFACT_BODY_PATH,
+        op: 'matches',
+        value: `"approvedReviewTaskId"\\s*:\\s*"${escapeRegex(args.reviewTaskId)}"`,
       },
     ],
   };
@@ -231,6 +285,135 @@ export async function buildContinuationTask(args: {
     claimCondition: {
       op: 'task_status',
       taskId: args.parentTaskId,
+      statuses: ['completed'],
+    },
+  };
+}
+
+export async function buildFreshImplementationTask(args: {
+  input: IssueLifecycleInput & LifecycleDefaults;
+  issue: GithubIssue;
+  planTaskId: string;
+  planAttempt: SdkTaskAttempt;
+  reviewTaskId: string;
+  reviewAttempt: SdkTaskAttempt;
+  brief: string;
+  successCriteria: SuccessCriteria;
+}): Promise<Parameters<TaskClient['createTask']>[0]> {
+  const successCriteria = withApprovedPlanDependency(args.successCriteria, {
+    planTaskId: args.planTaskId,
+    planAttempt: args.planAttempt,
+    reviewTaskId: args.reviewTaskId,
+    reviewAttempt: args.reviewAttempt,
+  });
+  const freshBrief = [
+    args.brief,
+    '',
+    'Start from a fresh implementation session/worktree. Do not depend on prior chat/session context.',
+    `Use approved plan task ${args.planTaskId} attempt ${args.planAttempt.attemptN} and approved review task ${args.reviewTaskId} attempt ${args.reviewAttempt.attemptN} as durable context via task references.`,
+    'Include approvedPlanTaskId and approvedReviewTaskId in the issue_lifecycle_state artifact body.',
+  ].join('\n');
+  const body = await baseBody(
+    args.input,
+    `Implement issue #${args.issue.number}`,
+    freshBrief,
+    args.issue,
+    successCriteria,
+  );
+  return {
+    ...body,
+    input: {
+      ...body.input,
+      execution: { workspace: 'dedicated_worktree' },
+    },
+    references: [
+      await issueReference(args.input, args.issue),
+      taskReference(args.planTaskId, args.planAttempt),
+      taskReference(args.reviewTaskId, args.reviewAttempt),
+    ],
+    claimCondition: {
+      op: 'task_status',
+      taskId: args.reviewTaskId,
+      statuses: ['completed'],
+    },
+  };
+}
+
+export async function buildPrReviewTask(args: {
+  input: IssueLifecycleInput & LifecycleDefaults;
+  issue: GithubIssue;
+  implementationTaskId: string;
+  implementationAttempt: SdkTaskAttempt;
+  prNumber: number;
+  kind: 'complexity' | 'functional' | 'security';
+}): Promise<Parameters<TaskClient['createTask']>[0]> {
+  const body = await baseBody(
+    args.input,
+    `${reviewTitle(args.kind)} for PR #${args.prNumber}`,
+    prReviewBrief(args.kind, args.prNumber),
+    args.issue,
+    lifecycleCriteria.prReview(args.kind),
+  );
+  return {
+    ...body,
+    input: {
+      ...body.input,
+      execution: { workspace: 'dedicated_worktree' },
+    },
+    references: [
+      await issueReference(args.input, args.issue),
+      taskReference(args.implementationTaskId, args.implementationAttempt),
+    ],
+    claimCondition: {
+      op: 'task_status',
+      taskId: args.implementationTaskId,
+      statuses: ['completed'],
+    },
+  };
+}
+
+export async function buildPrReviewResolutionTask(args: {
+  input: IssueLifecycleInput & LifecycleDefaults;
+  issue: GithubIssue;
+  implementationTaskId: string;
+  implementationAttempt: SdkTaskAttempt;
+  reviewResults: Array<{
+    taskId: string;
+    attempt: SdkTaskAttempt;
+    kind: string;
+    summary: string;
+    decision: string;
+  }>;
+  prNumber: number;
+}): Promise<Parameters<TaskClient['createTask']>[0]> {
+  const brief = reviewResolutionBrief(args.prNumber, args.reviewResults);
+  const body = await baseBody(
+    args.input,
+    `Apply PR review feedback for issue #${args.issue.number}`,
+    brief,
+    args.issue,
+    lifecycleCriteria.reviewResolution(),
+  );
+  return {
+    ...body,
+    input: {
+      ...body.input,
+      continueFrom: {
+        taskId: args.implementationTaskId,
+        attemptN: args.implementationAttempt.attemptN,
+        mode: 'extend',
+      },
+    },
+    references: [
+      await issueReference(args.input, args.issue),
+      taskReference(args.implementationTaskId, args.implementationAttempt),
+      ...args.reviewResults.map((review) =>
+        taskReference(review.taskId, review.attempt),
+      ),
+    ],
+    claimCondition: {
+      op: 'task_status',
+      taskId: args.implementationTaskId,
       statuses: ['completed'],
     },
   };
@@ -368,19 +551,44 @@ export const lifecycleCriteria = {
       },
     });
   },
-  release(): SuccessCriteria {
+  prReview(kind: 'complexity' | 'functional' | 'security'): SuccessCriteria {
     return lifecycleSuccessCriteria({
-      step: 'release',
-      expectedPhase: 'releasing',
-      expectedDecisionPattern: 'ship',
+      step: `pr-${kind}-review`,
+      expectedPhase: 'pr_review',
+      expectedDecisionPattern: 'review_passed|findings',
       requiredFields: [
         'summary',
-        'releaseRequired',
-        'releaseActions',
-        'evidence',
+        'prReviewKind',
+        'findings',
+        'prReviewCommentUrl',
+        'prReviewCommentBody',
+        'noImplementationPerformed',
       ],
       dependency:
-        'Continue only after the linked PR is merged. Perform release bookkeeping or state that none is required.',
+        'Review the linked PR after CI is green. Start fresh, inspect the PR branch, and publish the exact PR comment body you report.',
+    });
+  },
+  reviewResolution(): SuccessCriteria {
+    return lifecycleSuccessCriteria({
+      step: 'pr-review-resolution',
+      expectedPhase: 'pr_open',
+      expectedDecisionPattern: 'link_pr',
+      requiredFields: [
+        'summary',
+        'prNumber',
+        'prUrl',
+        'resolvedFindings',
+        'ignoredFindings',
+        'changedFiles',
+        'testsRun',
+        'diaryEntryIds',
+      ],
+      dependency:
+        'Continue from the implementation task and use every PR review task output. Apply only findings that are truly relevant.',
+      sideEffects: {
+        diaryEntryRequired: true,
+        diaryEntryTags: ['accountable-commit'],
+      },
     });
   },
   notify(): SuccessCriteria {
@@ -397,7 +605,7 @@ export const lifecycleCriteria = {
         'followUps',
       ],
       dependency:
-        'Continue from the release task. Create the final reflection entry and publish its link in the PR body or a PR comment.',
+        'Continue after the PR is merged. Create the final reflection entry and publish its link in the PR body or a PR comment.',
       sideEffects: {
         diaryEntryRequired: true,
         diaryEntryTags: ['reflection', 'issue-lifecycle'],
@@ -452,9 +660,10 @@ export function implementationBrief(issue: GithubIssue): string {
     'Stay within repository instructions and LeGreffier accountable commit workflow.',
     'Open or link the PR when done.',
     'Report changedFiles, testsRun, diaryEntryIds, planDeviations, remainingRisks, and diffStats.',
+    'Report approvedPlanTaskId and approvedReviewTaskId so the lifecycle can audit which approved context was implemented.',
     'If the non-generated diff exceeds 500 changed lines or 15 files, include largeDiffJustification.',
     'Required artifact body shape:',
-    '{"phase":"pr_open","decision":"link_pr","summary":"...","prNumber":123,"prUrl":"https://github.com/...","changedFiles":["..."],"testsRun":["..."],"diaryEntryIds":["..."],"planDeviations":[],"remainingRisks":[],"diffStats":{"files":1,"insertions":1,"deletions":0,"generatedFiles":[]}}',
+    '{"phase":"pr_open","decision":"link_pr","summary":"...","prNumber":123,"prUrl":"https://github.com/...","approvedPlanTaskId":"...","approvedReviewTaskId":"...","changedFiles":["..."],"testsRun":["..."],"diaryEntryIds":["..."],"planDeviations":[],"remainingRisks":[],"diffStats":{"files":1,"insertions":1,"deletions":0,"generatedFiles":[]}}',
   ].join('\n');
 }
 
@@ -468,13 +677,70 @@ export function implementationRetryBrief(): string {
   ].join('\n');
 }
 
-export function releaseBrief(prNumber: number): string {
+function reviewTitle(kind: 'complexity' | 'functional' | 'security'): string {
+  switch (kind) {
+    case 'complexity':
+      return 'Complexity review';
+    case 'functional':
+      return 'Functional review';
+    case 'security':
+      return 'Security review';
+  }
+}
+
+function prReviewBrief(
+  kind: 'complexity' | 'functional' | 'security',
+  prNumber: number,
+): string {
+  const focus =
+    kind === 'complexity'
+      ? [
+          'Judge the implementation complexity and whether auto-merge would be reasonable.',
+          'Help the human understand blast radius, diff size, generated-code impact, and residual merge risk.',
+        ]
+      : kind === 'functional'
+        ? [
+            'Review whether the PR functionally satisfies the approved plan and issue.',
+            'Check tests, behavior changes, edge cases, and whether any changes are unnecessary.',
+          ]
+        : [
+            'Review security and integrity risks introduced by the PR.',
+            'Check auth, secrets, permissions, supply-chain, data exposure, and unsafe automation risks.',
+          ];
   return [
-    `The PR #${prNumber} merged. Perform any release bookkeeping that applies.`,
-    'If no release action is needed, state that clearly.',
-    'Report releaseRequired, releaseActions, and evidence.',
+    `${reviewTitle(kind)} for PR #${prNumber}.`,
+    'Start from a fresh session. Check out or inspect the PR branch as needed; do not assume another daemon has the implementation worktree.',
+    'Do not modify code.',
+    ...focus,
+    'Create a PR comment with your review. The artifact must include prReviewCommentBody word for word exactly as posted, and prReviewCommentUrl.',
+    'Use decision "review_passed" when there are no actionable findings. Use decision "findings" only for relevant changes that should be considered by the implementation agent.',
+    'Set noImplementationPerformed to true.',
     'Required artifact body shape:',
-    '{"phase":"releasing","decision":"ship","summary":"...","releaseRequired":false,"releaseActions":[],"evidence":["..."]}',
+    `{"phase":"pr_review","decision":"review_passed","summary":"...","prReviewKind":"${kind}","findings":[],"prReviewCommentUrl":"https://github.com/...","prReviewCommentBody":"...","noImplementationPerformed":true}`,
+  ].join('\n');
+}
+
+function reviewResolutionBrief(
+  prNumber: number,
+  reviews: Array<{
+    taskId: string;
+    kind: string;
+    summary: string;
+    decision: string;
+  }>,
+): string {
+  return [
+    `Continue implementation for PR #${prNumber} after agent PR reviews.`,
+    'Inspect the PR comments and the referenced review task outputs.',
+    'Apply changes only when a finding is truly relevant and improves the PR. It is acceptable to ignore weak, redundant, or incorrect findings, but explain why.',
+    'Update the same PR if changes are made. Do not open a new PR.',
+    'Review task summary:',
+    ...reviews.map(
+      (review) =>
+        `- ${review.kind}: task ${review.taskId}, decision ${review.decision}, summary: ${review.summary}`,
+    ),
+    'Required artifact body shape:',
+    '{"phase":"pr_open","decision":"link_pr","summary":"...","prNumber":123,"prUrl":"https://github.com/...","resolvedFindings":["..."],"ignoredFindings":["..."],"changedFiles":["..."],"testsRun":["..."],"diaryEntryIds":["..."]}',
   ].join('\n');
 }
 
