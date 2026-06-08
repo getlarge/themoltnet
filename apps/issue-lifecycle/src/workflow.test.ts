@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { FakeGithub } from './test-fakes.js';
 import { fakeDeps } from './test-fakes.js';
+import type { WorkflowContext } from './types.js';
 import { runGithubIssueLifecycle } from './workflow.js';
 
 function assertionIds(taskInput: unknown): string[] {
@@ -356,6 +357,75 @@ describe('runGithubIssueLifecycle', () => {
     expect(tasks.created.slice(1).every((task) => task.claimCondition)).toBe(
       true,
     );
+  });
+
+  it('uses event-aware waits when the workflow context supports them', async () => {
+    const { deps: d, github } = fakeDeps([
+      { phase: 'classified', decision: 'plan', summary: 'classified' },
+      {
+        phase: 'plan_generated',
+        decision: 'ready_for_review',
+        summary: 'planned',
+        plan: 'plan',
+      },
+      {
+        phase: 'plan_generated',
+        decision: 'review_passed',
+        summary: 'reviewed',
+        findings: [],
+      },
+      {
+        phase: 'pr_open',
+        decision: 'link_pr',
+        summary: 'implemented',
+        prNumber: 42,
+      },
+      ...prReviewOutputs(),
+      {
+        phase: 'done',
+        decision: 'skip_notify',
+        summary: 'reflected',
+        notifySkipped: true,
+        reflectionEntryId: 'entry-reflection',
+        linkedEntryIds: ['entry-implementation'],
+        prReflectionUrl:
+          'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
+      },
+    ]);
+    github.approvalResponses = [false, true];
+    const events: string[] = [];
+    const sleeps: string[] = [];
+    const ctx: WorkflowContext = {
+      step(_name, fn) {
+        return fn();
+      },
+      sleepFor(name) {
+        sleeps.push(name);
+        return Promise.resolve();
+      },
+      awaitEvent(eventName) {
+        events.push(eventName);
+        return Promise.resolve({});
+      },
+    };
+
+    await runGithubIssueLifecycle(
+      {
+        repo: 'getlarge/themoltnet',
+        issueNumber: 1327,
+        teamId: 'team',
+        diaryId: 'diary',
+        correlationId: '00000000-0000-4000-8000-000000000999',
+        pollIntervalSec: 1,
+      },
+      d,
+      ctx,
+    );
+
+    expect(events).toContain(
+      'github.issue.label:getlarge/themoltnet:1327:moltnet:plan-approved',
+    );
+    expect(sleeps).toEqual([]);
   });
 
   it('stops when triage says the issue needs more triage', async () => {

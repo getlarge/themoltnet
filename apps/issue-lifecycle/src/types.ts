@@ -95,6 +95,11 @@ export interface TaskClient {
 export interface WorkflowContext {
   step<T>(name: string, fn: () => Promise<T>): Promise<T>;
   sleepFor(name: string, seconds: number): Promise<void>;
+  awaitEvent?(
+    eventName: string,
+    options?: { stepName?: string; timeout?: number },
+  ): Promise<unknown>;
+  emitEvent?(eventName: string, payload?: unknown): Promise<void>;
 }
 
 export interface IssueLifecycleDeps {

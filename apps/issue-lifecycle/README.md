@@ -58,8 +58,13 @@ github_issue_lifecycle;
 `src/absurd.ts` adapts Absurd's `TaskContext` into the workflow context used by
 `src/workflow.ts`:
 
-- `ctx.step(...)` wraps durable side-effect boundaries
-- `ctx.sleepFor(...)` handles durable waits and polling
+- `ctx.step(...)` wraps durable side-effect boundaries; keep each external
+  mutation in its own step so replay cannot duplicate a partially completed
+  batch
+- `ctx.awaitEvent(...)` suspends on task, GitHub label, and PR events when an
+  event producer is available
+- `ctx.sleepFor(...)` remains the timeout fallback for waits whose producers are
+  still polled
 - `app.spawn(...)` starts one lifecycle run with an idempotency key
 
 The workflow input is normalized before execution, so a missing `correlationId`
@@ -95,6 +100,14 @@ schema installer.
 See the Absurd docs for
 [`absurdctl`](https://earendil-works.github.io/absurd/tools/absurdctl/) and
 [database setup and migrations](https://earendil-works.github.io/absurd/guide/database-setup-and-migrations/).
+When changing the workflow implementation, also read Absurd's
+[concepts](https://earendil-works.github.io/absurd/concepts/) page: completed
+steps are checkpoints, while code outside steps may run again during retries.
+For agent debugging, install Absurd's bundled skill with
+`absurdctl install-skill`; the
+[Working With Agents](https://earendil-works.github.io/absurd/agents/) guide
+documents that workflow and the `absurdctl` commands agents should reach for
+first.
 
 For the repository's local and e2e Docker stacks, this setup is handled by the
 `issue-lifecycle-db` and `issue-lifecycle-db-migrate` compose services. They run
@@ -140,7 +153,8 @@ Recovery expectation:
 3. already-created MoltNet tasks remain discoverable through their persisted
    task ids and accepted attempts
 4. if the runner was stopped while waiting on approval, task completion, or PR
-   merge, it resumes polling instead of recreating prior work
+   merge, it resumes the durable event wait or polling fallback instead of
+   recreating prior work
 
 ## Task Contract
 

@@ -17,6 +17,12 @@ function asWorkflowContext(ctx: TaskContext): WorkflowContext {
     sleepFor(name, seconds) {
       return ctx.sleepFor(name, seconds);
     },
+    awaitEvent(eventName, options) {
+      return ctx.awaitEvent(eventName, options);
+    },
+    emitEvent(eventName, payload) {
+      return ctx.emitEvent(eventName, payload as JsonValue | undefined);
+    },
   };
 }
 

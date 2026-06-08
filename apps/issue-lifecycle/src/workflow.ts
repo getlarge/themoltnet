@@ -1,4 +1,10 @@
-import { isReviewPassed, parseLifecycleStateArtifact } from './artifact.js';
+import { isReviewPassed } from './artifact.js';
+import {
+  acceptedStatusLine,
+  type LifecycleStatusLine,
+  setStatusLine,
+  taskStatusLine,
+} from './status-comment.js';
 import {
   buildContinuationTask,
   buildFreshImplementationTask,
@@ -18,10 +24,19 @@ import type {
   AcceptedTaskResult,
   IssueLifecycleDeps,
   IssueLifecycleInput,
-  SdkTask,
-  TaskClient,
   WorkflowContext,
 } from './types.js';
+import {
+  ensureApprovalPromptComment,
+  ensureReadyForReviewComment,
+  logCreatedTask,
+  reviewFindingsForRevision,
+  updateLifecycleStatusComment,
+  waitForAcceptedTask,
+  waitForApprovalLabel,
+  waitForGreenPrChecks,
+  waitForPrMergeOrFailure,
+} from './workflow-steps.js';
 
 const inlineContext: WorkflowContext = {
   step(_name, fn) {
@@ -31,443 +46,6 @@ const inlineContext: WorkflowContext = {
     return Promise.resolve();
   },
 };
-
-async function waitForAcceptedTask(
-  taskId: string,
-  tasks: TaskClient,
-  ctx: WorkflowContext,
-  pollIntervalSec: number,
-  logger: IssueLifecycleDeps['logger'],
-  description: string,
-): Promise<AcceptedTaskResult> {
-  logger?.info(
-    { taskId, description, pollIntervalSec },
-    'issue_lifecycle.task.wait.start',
-  );
-  for (;;) {
-    const task = await tasks.getTask(taskId);
-    logger?.info(
-      {
-        taskId,
-        description,
-        status: task.status,
-        acceptedAttemptN: task.acceptedAttemptN,
-      },
-      'issue_lifecycle.task.wait.poll',
-    );
-    if (task.status === 'failed' || task.status === 'cancelled') {
-      logger?.error(
-        { taskId, description, status: task.status },
-        'issue_lifecycle.task.wait.terminal_failure',
-      );
-      throw new Error(`task ${taskId} ended with status ${task.status}`);
-    }
-    if (task.status === 'completed' && task.acceptedAttemptN !== null) {
-      const attempts = await tasks.listAttempts(taskId);
-      const attempt = attempts.find(
-        (candidate) => candidate.attemptN === task.acceptedAttemptN,
-      );
-      if (!attempt || attempt.status !== 'completed') {
-        throw new Error(`task ${taskId} accepted attempt is not completed`);
-      }
-      logger?.info(
-        {
-          taskId,
-          description,
-          acceptedAttemptN: task.acceptedAttemptN,
-          outputCid: attempt.outputCid,
-        },
-        'issue_lifecycle.task.wait.accepted',
-      );
-      return {
-        task,
-        attempt,
-        state: parseLifecycleStateArtifact(attempt.output),
-      };
-    }
-    await ctx.sleepFor(`wait-task:${taskId}`, pollIntervalSec);
-  }
-}
-
-function logCreatedTask(
-  logger: IssueLifecycleDeps['logger'],
-  stage: string,
-  task: Awaited<ReturnType<TaskClient['createTask']>>,
-): void {
-  logger?.info(
-    {
-      stage,
-      taskId: task.id,
-      status: task.status,
-      correlationId: task.correlationId,
-      claimCondition: task.claimCondition,
-    },
-    'issue_lifecycle.task.created',
-  );
-}
-
-async function waitForApprovalLabel(
-  input: ReturnType<typeof normalizeLifecycleInput>,
-  deps: IssueLifecycleDeps,
-  ctx: WorkflowContext,
-): Promise<void> {
-  let observedLabelAbsent = false;
-  deps.logger?.info(
-    `waiting for issue ${input.repo}#${input.issueNumber} approval label "${input.approvalLabel}"`,
-  );
-  for (;;) {
-    const approved = await deps.github.hasIssueLabel(
-      input.repo,
-      input.issueNumber,
-      input.approvalLabel,
-    );
-    if (approved && observedLabelAbsent) {
-      deps.logger?.info(
-        `approval label "${input.approvalLabel}" detected on ${input.repo}#${input.issueNumber}`,
-      );
-      return;
-    }
-    if (approved) {
-      deps.logger?.warn(
-        `approval label "${input.approvalLabel}" was already present on ${input.repo}#${input.issueNumber}; remove it and add it again after reviewing the current approval prompt`,
-      );
-    } else {
-      observedLabelAbsent = true;
-      deps.logger?.info(
-        `approval label "${input.approvalLabel}" not present on ${input.repo}#${input.issueNumber}; sleeping ${input.pollIntervalSec}s`,
-      );
-    }
-    await ctx.sleepFor('wait-plan-approval-label', input.pollIntervalSec);
-  }
-}
-
-function approvalPromptMarker(correlationId: string): string {
-  return `<!-- moltnet-issue-lifecycle:plan-approval:${correlationId} -->`;
-}
-
-function lifecycleStatusMarker(correlationId: string): string {
-  return `<!-- moltnet-issue-lifecycle:status:${correlationId} -->`;
-}
-
-function readyForReviewMarker(correlationId: string): string {
-  return `<!-- moltnet-issue-lifecycle:ready-for-review:${correlationId} -->`;
-}
-
-function consoleCorrelationUrl(
-  input: ReturnType<typeof normalizeLifecycleInput>,
-): string {
-  const params = new URLSearchParams({ correlationId: input.correlationId });
-  return `${input.consoleUrl}/tasks?${params}`;
-}
-
-function consoleTaskUrl(
-  input: ReturnType<typeof normalizeLifecycleInput>,
-  taskId: string,
-): string {
-  return `${input.consoleUrl}/tasks/${taskId}`;
-}
-
-function consoleAttemptUrl(
-  input: ReturnType<typeof normalizeLifecycleInput>,
-  task: AcceptedTaskResult,
-): string {
-  return `${input.consoleUrl}/tasks/${task.task.id}/attempts/${task.attempt.attemptN}`;
-}
-
-type LifecycleStatusValue =
-  | 'pending'
-  | 'running'
-  | 'waiting'
-  | 'completed'
-  | 'failed';
-
-interface LifecycleStatusLine {
-  key: string;
-  label: string;
-  status: LifecycleStatusValue;
-  taskId?: string;
-  attemptN?: number;
-  summary?: string;
-  prNumber?: number;
-  prUrl?: string;
-}
-
-function escapeTableCell(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ');
-}
-
-function statusLabel(status: LifecycleStatusValue): string {
-  switch (status) {
-    case 'pending':
-      return 'pending';
-    case 'running':
-      return 'running';
-    case 'waiting':
-      return 'waiting';
-    case 'completed':
-      return 'completed';
-    case 'failed':
-      return 'failed';
-  }
-}
-
-function statusTaskLink(
-  input: ReturnType<typeof normalizeLifecycleInput>,
-  line: LifecycleStatusLine,
-): string {
-  if (!line.taskId) return '';
-  const label = line.attemptN
-    ? `${line.taskId} attempt ${line.attemptN}`
-    : line.taskId;
-  const url = line.attemptN
-    ? `${input.consoleUrl}/tasks/${line.taskId}/attempts/${line.attemptN}`
-    : consoleTaskUrl(input, line.taskId);
-  return `[${label}](${url})`;
-}
-
-function statusCommentBody(args: {
-  input: ReturnType<typeof normalizeLifecycleInput>;
-  issueNumber: number;
-  lines: LifecycleStatusLine[];
-}): string {
-  const rows = args.lines.map((line) => {
-    const detail =
-      line.prUrl && line.prNumber
-        ? `[PR #${line.prNumber}](${line.prUrl})`
-        : statusTaskLink(args.input, line);
-    return [
-      escapeTableCell(line.label),
-      statusLabel(line.status),
-      escapeTableCell(detail),
-      escapeTableCell(line.summary ?? ''),
-    ].join(' | ');
-  });
-  return [
-    lifecycleStatusMarker(args.input.correlationId),
-    '## MoltNet Issue Lifecycle: Status',
-    '',
-    `Issue: #${args.issueNumber}`,
-    `Correlation: \`${args.input.correlationId}\``,
-    `Console task chain: [open related tasks](${consoleCorrelationUrl(args.input)})`,
-    '',
-    '| Step | Status | Link | Note |',
-    '| --- | --- | --- | --- |',
-    ...rows,
-  ].join('\n');
-}
-
-function setStatusLine(
-  lines: LifecycleStatusLine[],
-  line: LifecycleStatusLine,
-): void {
-  const index = lines.findIndex((candidate) => candidate.key === line.key);
-  if (index === -1) {
-    lines.push(line);
-    return;
-  }
-  lines[index] = { ...lines[index], ...line };
-}
-
-function taskStatusLine(
-  key: string,
-  label: string,
-  status: LifecycleStatusValue,
-  task: SdkTask,
-  summary?: string,
-): LifecycleStatusLine {
-  return {
-    key,
-    label,
-    status,
-    taskId: task.id,
-    attemptN:
-      task.acceptedAttemptN === null ? undefined : task.acceptedAttemptN,
-    summary,
-  };
-}
-
-function acceptedStatusLine(
-  key: string,
-  label: string,
-  result: AcceptedTaskResult,
-): LifecycleStatusLine {
-  return {
-    key,
-    label,
-    status: 'completed',
-    taskId: result.task.id,
-    attemptN: result.attempt.attemptN,
-    summary: result.state.summary,
-  };
-}
-
-async function updateLifecycleStatusComment(args: {
-  input: ReturnType<typeof normalizeLifecycleInput>;
-  issueNumber: number;
-  lines: LifecycleStatusLine[];
-  deps: IssueLifecycleDeps;
-}): Promise<void> {
-  const marker = lifecycleStatusMarker(args.input.correlationId);
-  const body = statusCommentBody(args);
-  const comments = await args.deps.github.listIssueComments(
-    args.input.repo,
-    args.input.issueNumber,
-  );
-  const existing = comments.find((comment) => comment.body.includes(marker));
-  if (!existing) {
-    await args.deps.github.createIssueComment(
-      args.input.repo,
-      args.input.issueNumber,
-      body,
-    );
-    return;
-  }
-  if (existing.body === body) return;
-  await args.deps.github.updateIssueComment(args.input.repo, existing.id, body);
-}
-
-function approvalPromptBody(
-  input: ReturnType<typeof normalizeLifecycleInput>,
-  issueNumber: number,
-  latestPlan: AcceptedTaskResult,
-  review: AcceptedTaskResult,
-): string {
-  const plan = latestPlan.state.plan ?? latestPlan.state.summary;
-  const reviewedSummary =
-    review.state.reviewedPlanSummary ?? review.state.summary;
-  return [
-    approvalPromptMarker(input.correlationId),
-    `## MoltNet Issue Lifecycle: Plan Ready`,
-    '',
-    `The generated plan for issue #${issueNumber} passed review and is waiting for human approval.`,
-    '',
-    `Add the \`${input.approvalLabel}\` label to this issue to let the lifecycle create the implementation task.`,
-    '',
-    `Correlation: \`${input.correlationId}\``,
-    `Console task chain: [open related tasks](${consoleCorrelationUrl(input)})`,
-    `Plan task: [\`${latestPlan.task.id}\` attempt ${latestPlan.attempt.attemptN}](${consoleAttemptUrl(input, latestPlan)})`,
-    `Review task: [\`${review.task.id}\` attempt ${review.attempt.attemptN}](${consoleAttemptUrl(input, review)})`,
-    '',
-    `Approved plan:`,
-    '',
-    plan,
-    '',
-    `Reviewed plan summary:`,
-    '',
-    reviewedSummary,
-  ].join('\n');
-}
-
-async function ensureApprovalPromptComment(
-  input: ReturnType<typeof normalizeLifecycleInput>,
-  issueNumber: number,
-  latestPlan: AcceptedTaskResult,
-  review: AcceptedTaskResult,
-  deps: IssueLifecycleDeps,
-): Promise<void> {
-  const marker = approvalPromptMarker(input.correlationId);
-  const comments = await deps.github.listIssueComments(
-    input.repo,
-    input.issueNumber,
-  );
-  if (comments.some((comment) => comment.body.includes(marker))) {
-    deps.logger?.info(
-      `approval prompt already exists for ${input.repo}#${input.issueNumber} correlation ${input.correlationId}`,
-    );
-    return;
-  }
-
-  await deps.github.createIssueComment(
-    input.repo,
-    input.issueNumber,
-    approvalPromptBody(input, issueNumber, latestPlan, review),
-  );
-  deps.logger?.info(
-    `posted approval prompt on ${input.repo}#${input.issueNumber} for label "${input.approvalLabel}"`,
-  );
-}
-
-async function ensureReadyForReviewComment(
-  input: ReturnType<typeof normalizeLifecycleInput>,
-  prNumber: number,
-  reviewResults: AcceptedTaskResult[],
-  deps: IssueLifecycleDeps,
-): Promise<void> {
-  const marker = readyForReviewMarker(input.correlationId);
-  const body = [
-    marker,
-    '## MoltNet Issue Lifecycle: Ready For Human Review',
-    '',
-    `PR: #${prNumber}`,
-    `Correlation: \`${input.correlationId}\``,
-    `Console task chain: [open related tasks](${consoleCorrelationUrl(input)})`,
-    '',
-    'CI is green and the agent PR reviews plus review-resolution pass are complete.',
-    `The runner added the \`${input.readyForReviewLabel}\` label to mark the PR as ready for human review.`,
-    '',
-    '| Review | Task | Decision | Summary |',
-    '| --- | --- | --- | --- |',
-    ...reviewResults.map((review) =>
-      [
-        escapeTableCell(review.state.prReviewKind ?? 'review'),
-        statusTaskLink(input, {
-          key: review.task.id,
-          label: review.task.id,
-          status: 'completed',
-          taskId: review.task.id,
-          attemptN: review.attempt.attemptN,
-        }),
-        escapeTableCell(review.state.decision),
-        escapeTableCell(review.state.summary),
-      ].join(' | '),
-    ),
-  ].join('\n');
-  const comments = await deps.github.listIssueComments(input.repo, prNumber);
-  const existing = comments.find((comment) => comment.body.includes(marker));
-  if (existing) {
-    await deps.github.updateIssueComment(input.repo, existing.id, body);
-    return;
-  }
-  await deps.github.createIssueComment(input.repo, prNumber, body);
-}
-
-async function waitForGreenPrChecks(
-  input: ReturnType<typeof normalizeLifecycleInput>,
-  prNumber: number,
-  deps: IssueLifecycleDeps,
-  ctx: WorkflowContext,
-  attempt: number,
-): Promise<'green' | 'merged' | 'failure'> {
-  for (;;) {
-    const pr = await deps.github.getPullRequest(input.repo, prNumber);
-    deps.logger?.info(
-      {
-        prNumber,
-        merged: pr.merged,
-        checks: pr.checks,
-        attempt,
-      },
-      'issue_lifecycle.pr.poll',
-    );
-    if (pr.merged) return 'merged';
-    if (pr.checks === 'success') return 'green';
-    if (pr.checks === 'failure') return 'failure';
-    await ctx.sleepFor(`wait-pr:${prNumber}`, input.pollIntervalSec);
-  }
-}
-
-function reviewFindingsForRevision(
-  state: AcceptedTaskResult['state'],
-): string[] {
-  if (state.findings && state.findings.length > 0) return state.findings;
-  return [
-    [
-      `Review decision "${state.decision}" did not pass but produced no explicit findings.`,
-      `Review summary: ${state.summary}`,
-      'Revise the plan defensively, identify what the reviewer likely found insufficient, and make the next review artifact explicit.',
-    ].join(' '),
-  ];
-}
 
 export async function runGithubIssueLifecycle(
   rawInput: IssueLifecycleInput,
@@ -508,6 +86,7 @@ export async function runGithubIssueLifecycle(
       issueNumber: issue.number,
       lines: statusLines,
       deps,
+      ctx,
     });
 
   const triageTask = await ctx.step('task.triage.create', async () => {
@@ -759,14 +338,13 @@ export async function runGithubIssueLifecycle(
     throw new Error('plan review passed without an accepted review result');
   }
 
-  await ctx.step('approval.prompt.ensure', () =>
-    ensureApprovalPromptComment(
-      input,
-      issue.number,
-      latestPlan,
-      approvedReview,
-      deps,
-    ),
+  await ensureApprovalPromptComment(
+    input,
+    issue.number,
+    latestPlan,
+    approvedReview,
+    deps,
+    ctx,
   );
   setStatusLine(statusLines, {
     key: 'approval',
@@ -776,9 +354,7 @@ export async function runGithubIssueLifecycle(
   });
   await updateStatus();
 
-  await ctx.step('approval.label.wait', () =>
-    waitForApprovalLabel(input, deps, ctx),
-  );
+  await waitForApprovalLabel(input, deps, ctx);
   deps.logger?.info(
     { issueNumber: issue.number, correlationId: input.correlationId },
     'issue_lifecycle.approval.complete',
@@ -1068,19 +644,20 @@ export async function runGithubIssueLifecycle(
       continue;
     }
 
-    await ctx.step(`ready-for-review.${attempt}.ensure`, async () => {
-      await deps.github.addIssueLabel(
+    await ctx.step(`github.ready_for_review_label.${attempt}.add`, async () =>
+      deps.github.addIssueLabel(
         input.repo,
         reviewedPrNumber,
         input.readyForReviewLabel,
-      );
-      await ensureReadyForReviewComment(
-        input,
-        reviewedPrNumber,
-        reviewResults,
-        deps,
-      );
-    });
+      ),
+    );
+    await ensureReadyForReviewComment(
+      input,
+      reviewedPrNumber,
+      reviewResults,
+      deps,
+      ctx,
+    );
     setStatusLine(statusLines, {
       key: 'human-review',
       label: 'Human PR review',
@@ -1091,51 +668,35 @@ export async function runGithubIssueLifecycle(
     });
     await updateStatus();
 
-    let humanReviewMerged = false;
-    for (;;) {
-      const pr = await deps.github.getPullRequest(input.repo, reviewedPrNumber);
-      deps.logger?.info(
-        {
-          prNumber: linkedPrNumber,
-          merged: pr.merged,
-          checks: pr.checks,
-          attempt,
-        },
-        'issue_lifecycle.pr.human_review_poll',
-      );
-      if (pr.merged) {
-        deps.logger?.info(
-          { prNumber: reviewedPrNumber },
-          'issue_lifecycle.pr.merged',
-        );
-        setStatusLine(statusLines, {
-          key: 'human-review',
-          label: 'Human PR review',
-          status: 'completed',
-          prNumber: reviewedPrNumber,
-          prUrl: pr.url,
-          summary: 'Merged',
-        });
-        await updateStatus();
-        humanReviewMerged = true;
-        break;
-      }
-      if (pr.checks === 'failure') break;
-      await ctx.sleepFor(
-        `wait-pr-merge:${reviewedPrNumber}`,
-        input.pollIntervalSec,
-      );
+    const humanReview = await waitForPrMergeOrFailure({
+      input,
+      prNumber: reviewedPrNumber,
+      deps,
+      ctx,
+      attempt,
+    });
+    if (humanReview.status === 'merged') {
+      setStatusLine(statusLines, {
+        key: 'human-review',
+        label: 'Human PR review',
+        status: 'completed',
+        prNumber: reviewedPrNumber,
+        prUrl: humanReview.url,
+        summary: 'Merged',
+      });
+      await updateStatus();
+      break;
     }
-
-    if (humanReviewMerged) break;
   }
 
   if (prNumber === null) throw new Error('implementation did not open a PR');
 
-  const skipNotify = await deps.github.hasIssueLabel(
-    input.repo,
-    input.issueNumber,
-    input.skipNotifyLabel,
+  const skipNotify = await ctx.step('github.skip_notify_label.get', async () =>
+    deps.github.hasIssueLabel(
+      input.repo,
+      input.issueNumber,
+      input.skipNotifyLabel,
+    ),
   );
   deps.logger?.info(
     { skipNotify, skipNotifyLabel: input.skipNotifyLabel },
