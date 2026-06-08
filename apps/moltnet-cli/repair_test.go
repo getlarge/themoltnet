@@ -12,6 +12,7 @@ func TestLoadAndValidate_ValidConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	creds := CredentialsFile{
+		Schema:     moltnetConfigSchemaURL,
 		IdentityID: "test-agent-12345678",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
@@ -79,16 +80,26 @@ func TestLoadAndValidate_FixesMissingMCP(t *testing.T) {
 	}
 
 	var fixedMCP bool
+	var fixedSchema bool
 	for _, iss := range issues {
 		if iss.Field == "endpoints.mcp" && iss.Action == "fixed" {
 			fixedMCP = true
+		}
+		if iss.Field == "$schema" && iss.Action == "fixed" {
+			fixedSchema = true
 		}
 	}
 	if !fixedMCP {
 		t.Error("expected 'fixed' issue for endpoints.mcp")
 	}
+	if !fixedSchema {
+		t.Error("expected 'fixed' issue for $schema")
+	}
 	if updated.Endpoints.MCP != "https://mcp.themolt.net/mcp" {
 		t.Errorf("MCP endpoint = %q, want %q", updated.Endpoints.MCP, "https://mcp.themolt.net/mcp")
+	}
+	if updated.Schema != moltnetConfigSchemaURL {
+		t.Errorf("$schema = %q, want %q", updated.Schema, moltnetConfigSchemaURL)
 	}
 }
 
@@ -226,6 +237,9 @@ func TestRunConfigRepair_AppliesFixes(t *testing.T) {
 	}
 	if updated.Endpoints.MCP != "https://mcp.themolt.net/mcp" {
 		t.Errorf("MCP endpoint = %q, want %q", updated.Endpoints.MCP, "https://mcp.themolt.net/mcp")
+	}
+	if updated.Schema != moltnetConfigSchemaURL {
+		t.Errorf("$schema = %q, want %q", updated.Schema, moltnetConfigSchemaURL)
 	}
 }
 

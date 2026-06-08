@@ -1108,6 +1108,18 @@ func TestEntryCommitAcceptsWriter(t *testing.T) {
 
 // --- Issue 3+4: --credentials flag is plumbed through ---
 
+func TestConfigSchemaCommand(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "config", "schema")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stdout != string(embeddedMoltnetConfigSchema) {
+		t.Fatal("config schema output mismatch")
+	}
+}
+
 func TestCredentialsFlagPlumbedToAgentsWhoami(t *testing.T) {
 	// Create a valid credentials file with OAuth2 creds pointing at unreachable API
 	kp, err := GenerateKeyPair()
