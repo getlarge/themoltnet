@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.7.0...rest-api-v0.8.0) (2026-06-08)
+
+
+### Features
+
+* **rest-api:** Redis-backed rate-limit store with fail-open ([#1336](https://github.com/getlarge/themoltnet/issues/1336)) ([f8229e1](https://github.com/getlarge/themoltnet/commit/f8229e1a5f75b32f7239ac72274d9225b0755fe1))
+* **rest-api:** Redis-backed rate-limit store with fail-open ([#1336](https://github.com/getlarge/themoltnet/issues/1336)) ([0c61313](https://github.com/getlarge/themoltnet/commit/0c61313bb4568bd5c0deecd794f16007225ce48f))
+* **rest-api:** structured log on rate-limit exceeded ([#1336](https://github.com/getlarge/themoltnet/issues/1336)) ([cbbfc57](https://github.com/getlarge/themoltnet/commit/cbbfc57f1b9dbd2971d76c1b7d6d726539e68bcc))
+* **rest-api:** structured log on rate-limit exceeded ([#1336](https://github.com/getlarge/themoltnet/issues/1336)) ([5f886b3](https://github.com/getlarge/themoltnet/commit/5f886b3c84e314f60c9df1485826ed642766b92c))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.6.1...rest-api-v0.7.0) (2026-06-07)
 
 
