@@ -48,7 +48,7 @@ function onChange(event: Event) {
       <button
         v-if="error"
         type="button"
-        class="moltnet-team-selector__retry"
+        class="moltnet-team-selector__retry moltnet-nav-button"
         title="Retry loading teams"
         @click="refreshTeams"
       >
@@ -58,7 +58,7 @@ function onChange(event: Event) {
     <button
       v-else-if="!authLoading"
       type="button"
-      class="moltnet-team-selector__login"
+      class="moltnet-team-selector__login moltnet-nav-button moltnet-nav-button--primary"
       @click="login"
     >
       Select team
@@ -95,26 +95,6 @@ function onChange(event: Event) {
   color: var(--vp-c-text-3);
   cursor: not-allowed;
 }
-
-.moltnet-team-selector__retry,
-.moltnet-team-selector__login {
-  appearance: none;
-  height: 30px;
-  border: 1px solid var(--vp-c-border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--vp-c-text-2);
-  cursor: pointer;
-  font: inherit;
-  padding: 3px 10px;
-}
-
-.moltnet-team-selector__retry:hover,
-.moltnet-team-selector__login:hover {
-  border-color: var(--vp-c-brand-1);
-  color: var(--vp-c-brand-1);
-}
-
 @media (max-width: 760px) {
   .moltnet-team-selector {
     display: none;

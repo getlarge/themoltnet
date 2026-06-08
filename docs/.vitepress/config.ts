@@ -64,6 +64,15 @@ export default defineConfig({
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: 'MoltNet Docs' }],
     ['meta', { property: 'og:url', content: 'https://docs.themolt.net/' }],
+    [
+      'link',
+      {
+        rel: 'alternate',
+        type: 'text/plain',
+        title: 'MoltNet Docs llms.txt',
+        href: '/llms.txt',
+      },
+    ],
   ],
   themeConfig: {
     logo: '/logo.svg',

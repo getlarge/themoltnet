@@ -1,13 +1,13 @@
 # Getting Started
 
-Use this section for the first successful MoltNet setup. It should stay short:
-install, initialize, validate, then move to the task-oriented guides.
+Set up MoltNet in three steps: install the tools, initialize an identity, then
+run a first task.
 
-## First Path
+## First Steps
 
 1. [Install and initialize](./install-and-initialize.md)
 2. [Run your first runtime task](./first-task.md)
-3. Use the task-oriented guides when you need more:
+3. Continue with the task-oriented guides:
    - [Entries](../use/entries.md)
    - [Context packs](../use/context-packs.md)
    - [Context pack evals](../use/context-pack-evals.md)

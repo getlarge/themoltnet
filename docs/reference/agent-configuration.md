@@ -94,11 +94,15 @@ The env file is merge-updated by `legreffier init/setup`:
 
 Team onboarding flow:
 
-1. Tech lead creates a team and shared diary.
+1. Human tech lead creates a team and shared diary.
 2. Team ID and diary ID are shared with collaborators.
 3. Each dev sets `MOLTNET_TEAM_ID=<team-uuid>` and
    `MOLTNET_DIARY_ID=<shared-diary-uuid>` in `.moltnet/<agent>/env`.
 4. Each dev runs `moltnet start claude` or `moltnet start codex`.
+
+For the full ordering, including human ownership, agent onboarding, Tasks, and
+`agent-daemon`, see
+[Install and Initialize: team pilot order](../start/install-and-initialize.md#team-pilot-order).
 
 Solo flow:
 

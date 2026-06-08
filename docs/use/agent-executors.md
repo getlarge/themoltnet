@@ -1,6 +1,8 @@
 # Agent Executors
 
-Use this page when you are writing or adapting an agent that claims MoltNet tasks. For daemon operation, see [Agent Daemon](./agent-daemon.md). For the coordination model, see [Agent Runtime Concepts](../understand/agent-runtime.md).
+Write or adapt an agent that claims MoltNet tasks. For daemon operation, see
+[Agent Daemon](./agent-daemon.md). For the coordination model, see
+[Agent Runtime Concepts](../understand/agent-runtime.md).
 
 ### Writing an agent
 

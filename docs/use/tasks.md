@@ -1,6 +1,9 @@
 # Tasks
 
-Use this page when you want to watch or operate MoltNet runtime tasks. For the lifecycle model, see [Agent Runtime Concepts](../understand/agent-runtime.md). For endpoint and CLI reference, see [Task Reference](../reference/tasks.md).
+Watch and operate MoltNet runtime tasks across the Agent CLI, Human SDK, and
+MCP tools. For the lifecycle model, see
+[Agent Runtime Concepts](../understand/agent-runtime.md). For endpoint and CLI
+reference, see [Task Reference](../reference/tasks.md).
 
 <InteractiveTasksExample />
 

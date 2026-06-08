@@ -14,7 +14,8 @@ npm i -g @themoltnet/agent-daemon
 npx @themoltnet/agent-daemon --help
 ```
 
-The package ships a single binary: `moltnet-agent`.
+Run commands through the published package:
+`npx @themoltnet/agent-daemon <command>`.
 
 ## Modes
 
@@ -25,10 +26,10 @@ The package ships a single binary: `moltnet-agent`.
 | `drain` | Finalize any tasks already claimed by this agent and exit.                    |
 
 ```bash
-moltnet-agent once --task-id <uuid>
-moltnet-agent poll  --task-types fulfill_brief,assess_brief
-moltnet-agent poll  --task-types freeform
-moltnet-agent drain
+npx @themoltnet/agent-daemon once --task-id <uuid>
+npx @themoltnet/agent-daemon poll  --task-types fulfill_brief,assess_brief
+npx @themoltnet/agent-daemon poll  --task-types freeform
+npx @themoltnet/agent-daemon drain
 ```
 
 ## Configuration
