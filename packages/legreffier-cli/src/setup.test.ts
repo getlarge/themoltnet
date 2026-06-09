@@ -345,6 +345,28 @@ describe('buildCodexRules', () => {
     expect(rules).not.toContain('```');
     expect(rules).not.toContain('## ');
   });
+
+  it('stays in sync with the committed .codex/rules/legreffier.rules', async () => {
+    // The committed file in this repo is read by Codex agents running here;
+    // the generator output is what `legreffier port` writes into other repos.
+    // They must never drift — regenerate with:
+    //   node --experimental-strip-types -e \
+    //     "import('./src/setup.ts').then(m => process.stdout.write(m.buildCodexRules('legreffier')))" \
+    //     > ../../.codex/rules/legreffier.rules
+    const committed = await readFile(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        '..',
+        '..',
+        '..',
+        '.codex',
+        'rules',
+        'legreffier.rules',
+      ),
+      'utf-8',
+    );
+    expect(committed).toBe(buildCodexRules('legreffier'));
+  });
 });
 
 describe('writeSettingsLocal', () => {
