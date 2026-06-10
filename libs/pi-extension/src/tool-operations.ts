@@ -23,6 +23,14 @@ function shQuote(s: string): string {
   return "'" + s.replace(/'/g, "'\\''") + "'";
 }
 
+function normalizeGuestPath(p: string): string {
+  return path.posix.normalize(p.replaceAll(path.sep, path.posix.sep));
+}
+
+function isSameOrInsidePosixPath(candidate: string, root: string): boolean {
+  return candidate === root || candidate.startsWith(`${root}/`);
+}
+
 /**
  * Map a host-side absolute path to a guest-side workspace path.
  * Throws if the path escapes the workspace.
@@ -32,32 +40,30 @@ export function toGuestPath(
   localPath: string,
   guestWorkspace: string,
 ): string {
+  const normalizedGuestWorkspace = normalizeGuestPath(guestWorkspace);
+  const normalizedLocalPath = normalizeGuestPath(localPath);
+  const normalizedTaskSkillsMount = normalizeGuestPath(GUEST_TASK_SKILLS_MOUNT);
+
   // The LLM may address files by guest-absolute path because that's what the
   // system prompt implies. Accept those as-is; otherwise path.relative(hostCwd,
   // guestPath) produces an escape and Gondolin rejects the read.
-  if (
-    localPath === guestWorkspace ||
-    localPath.startsWith(`${guestWorkspace}/`)
-  ) {
-    return localPath;
+  if (isSameOrInsidePosixPath(normalizedLocalPath, normalizedGuestWorkspace)) {
+    return normalizedLocalPath;
   }
   // Same accommodation for the memory-backed task-context skills mount
   // (#943 slice 1.5). pi advertises injected skills with absolute paths
   // under this mount in `<available_skills>`; the agent has to be able
   // to Read them.
-  if (
-    localPath === GUEST_TASK_SKILLS_MOUNT ||
-    localPath.startsWith(`${GUEST_TASK_SKILLS_MOUNT}/`)
-  ) {
-    return localPath;
+  if (isSameOrInsidePosixPath(normalizedLocalPath, normalizedTaskSkillsMount)) {
+    return normalizedLocalPath;
   }
   const rel = path.relative(localCwd, localPath);
-  if (rel === '') return guestWorkspace;
+  if (rel === '') return normalizedGuestWorkspace;
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error(`path escapes workspace: ${localPath}`);
   }
   const posixRel = rel.split(path.sep).join(path.posix.sep);
-  return path.posix.join(guestWorkspace, posixRel);
+  return path.posix.join(normalizedGuestWorkspace, posixRel);
 }
 
 export function createGondolinReadOps(

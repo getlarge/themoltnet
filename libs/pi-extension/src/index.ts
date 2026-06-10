@@ -339,9 +339,13 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       // When the sandbox is running, read branch from the guest workspace
       // (the agent may have created/switched branches inside the VM).
       if (vm) {
-        const r = await vm.exec(
-          `git -C ${JSON.stringify(guestWorkspace)} branch --show-current`,
-        );
+        const r = await vm.exec([
+          'git',
+          '-C',
+          guestWorkspace,
+          'branch',
+          '--show-current',
+        ]);
         if (r.exitCode === 0 && r.stdout?.trim()) {
           cachedGitBranch = r.stdout.trim();
           return cachedGitBranch;
