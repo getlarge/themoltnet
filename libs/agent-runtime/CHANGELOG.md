@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.2](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.22.1...agent-runtime-v0.22.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* **agent-runtime:** avoid fixed workspace paths in prompts ([7a13abf](https://github.com/getlarge/themoltnet/commit/7a13abff09e725138f1f26f1022c92bd742ea560))
+
 ## [0.22.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.22.0...agent-runtime-v0.22.1) (2026-06-07)
 
 
