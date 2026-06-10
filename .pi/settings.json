@@ -1,10 +1,14 @@
 {
-  "defaultModel": "qwen3-coder:480b-cloud",
+  "defaultModel": "gemma4:31b-cloud",
   "defaultProvider": "ollama-cloud",
   "enableInstallTelemetry": false,
   "enabledModels": [
     "ollama-cloud/qwen3.5:cloud",
-    "ollama-cloud/qwen3-coder:480b-cloud"
+    "ollama-cloud/glm-5.1:cloud",
+    "ollama-cloud/qwen3-coder:480b-cloud",
+    "ollama/gemma4:12b",
+    "ollama-cloud/gemma4:31b-cloud",
+    "ollama-cloud/minimax-m3:cloud"
   ],
   "packages": ["npm:@ollama/pi-web-search", "npm:@themoltnet/pi-extension"],
   "transport": "sse",

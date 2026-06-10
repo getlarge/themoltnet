@@ -15,14 +15,10 @@
  *      system prompt; the agent fetches the body on demand via the
  *      Read tool.
  *
- * Skill files are written into the VM at
- * `/workspace/.moltnet/skills/<slug>/SKILL.md`. The agent's
- * Gondolin-bound Read tool is scoped to `/workspace`, so that path is
- * the only location the agent can actually read at runtime. pi only
- * reads `<available_skills>` metadata (name, description, location),
- * never the file body, so we construct synthetic `Skill` objects
- * pointing at the in-VM path without ever materialising the file on
- * the host.
+ * Skill files are written into a memory-backed VM mount. pi only reads
+ * `<available_skills>` metadata (name, description, location), never the file
+ * body, so we construct synthetic `Skill` objects pointing at the in-VM path
+ * without ever materialising the file on the host.
  */
 import {
   createSyntheticSourceInfo,
@@ -68,12 +64,6 @@ export interface VmFsForContext {
  * paths under this mount via `toGuestPath` in `tool-operations.ts`.
  */
 const SKILL_ROOT_IN_VM = GUEST_TASK_SKILLS_MOUNT;
-const INLINE_CONTEXT_ROOT_IN_VM = '/workspace/.moltnet/context';
-const WORKSPACE_CONTEXT_PACK = '/workspace/context-pack.md';
-const WORKSPACE_AGENTS_MD = '/workspace/AGENTS.md';
-const WORKSPACE_CLAUDE_DIR = '/workspace/.claude';
-const WORKSPACE_CLAUDE_MD = '/workspace/.claude/CLAUDE.md';
-
 /** Bounds borrowed from pi's skill validation; conservative caps so a
  *  malformed SKILL.md doesn't bloat the system prompt. */
 const MAX_SKILL_NAME = 64;
@@ -97,6 +87,8 @@ export interface InjectTaskContextArgs {
   context: TaskContext;
   /** Guest filesystem handle. In production this is `managed.vm.fs`. */
   fs: VmFsForContext;
+  /** Guest path where the active host workspace is mounted. */
+  guestWorkspace: string;
 }
 
 /**
@@ -108,6 +100,12 @@ export async function injectTaskContext(
 ): Promise<InjectedTaskContext> {
   const skills: Skill[] = [];
   const inlineContexts: Array<{ slug: string; content: string }> = [];
+  const { guestWorkspace } = args;
+  const inlineContextRoot = `${guestWorkspace}/.moltnet/context`;
+  const workspaceContextPack = `${guestWorkspace}/context-pack.md`;
+  const workspaceAgentsMd = `${guestWorkspace}/AGENTS.md`;
+  const workspaceClaudeDir = `${guestWorkspace}/.claude`;
+  const workspaceClaudeMd = `${workspaceClaudeDir}/CLAUDE.md`;
 
   const resolved = await resolveTaskContext({
     context: args.context,
@@ -120,8 +118,8 @@ export async function injectTaskContext(
         skills.push(buildSyntheticSkill({ slug, content, filePath, dir }));
       },
       contextFile: async ({ suggestedFileName, content }) => {
-        await args.fs.mkdir(INLINE_CONTEXT_ROOT_IN_VM, { recursive: true });
-        const filePath = `${INLINE_CONTEXT_ROOT_IN_VM}/${suggestedFileName}`;
+        await args.fs.mkdir(inlineContextRoot, { recursive: true });
+        const filePath = `${inlineContextRoot}/${suggestedFileName}`;
         await args.fs.writeFile(filePath, content, { mode: 0o644 });
         inlineContexts.push({
           slug: suggestedFileName.replace(/\.md$/u, ''),
@@ -133,14 +131,14 @@ export async function injectTaskContext(
 
   if (inlineContexts.length > 0) {
     const packContent = buildWorkspaceContextPack(inlineContexts);
-    await args.fs.writeFile(WORKSPACE_CONTEXT_PACK, packContent, {
+    await args.fs.writeFile(workspaceContextPack, packContent, {
       mode: 0o644,
     });
-    await args.fs.writeFile(WORKSPACE_AGENTS_MD, packContent, {
+    await args.fs.writeFile(workspaceAgentsMd, packContent, {
       mode: 0o644,
     });
-    await args.fs.mkdir(WORKSPACE_CLAUDE_DIR, { recursive: true });
-    await args.fs.writeFile(WORKSPACE_CLAUDE_MD, '@../context-pack.md\n', {
+    await args.fs.mkdir(workspaceClaudeDir, { recursive: true });
+    await args.fs.writeFile(workspaceClaudeMd, '@../context-pack.md\n', {
       mode: 0o644,
     });
   }

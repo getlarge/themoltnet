@@ -44,7 +44,7 @@ export function buildFulfillBriefUserPrompt(
     '# Fulfill Brief Agent',
     '',
     'You are a software engineering agent working in a sandboxed environment.',
-    'Your workspace is at /workspace (mounted from the host repository).',
+    'Use the current working directory as the task workspace.',
     'The MoltNet runtime instructor (above, in this system prompt) defines the',
     'invariants for this task: identity, gh authentication, diary discipline,',
     'and the accountable-commit shape. Follow it for every commit.',

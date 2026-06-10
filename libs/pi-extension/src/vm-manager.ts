@@ -13,19 +13,18 @@ import {
   VmCheckpoint,
 } from '@earendil-works/gondolin';
 
-const GUEST_WORKSPACE = '/workspace';
 /**
  * Memory-backed VFS mount used by the daemon to inject task-context
- * skills (#943 slice 1.5). Sibling of /workspace, NOT a sub-path —
- * Gondolin mounts can't nest. The agent's Gondolin-bound Read tool
- * accepts paths under this prefix (see toGuestPath in tool-operations.ts).
+ * skills (#943 slice 1.5). This is a separate top-level mount because
+ * Gondolin mounts can't nest. The agent's Gondolin-bound Read tool accepts
+ * paths under this prefix (see toGuestPath in tool-operations.ts).
  *
- * Why MemoryProvider rather than a path under /workspace:
+ * Why MemoryProvider rather than a path under the workspace mount:
  *   - Injected skills are ephemeral by intent: per-task-attempt input
  *     scoped to the VM lifetime. MemoryProvider models that exactly —
  *     in-memory, per-VM-instance, zero host artefacts, automatic
  *     cleanup on VM close.
- *   - Writing under /workspace fails in worktrees because we symlink
+ *   - Writing under the workspace mount fails in worktrees because we symlink
  *     `.moltnet/` to the main repo (so credentials are reachable from
  *     worktrees), and Gondolin's RealFSProvider correctly refuses to
  *     create paths whose ancestors' realpath escapes the mount root.
@@ -43,7 +42,7 @@ export interface VmConfig {
   checkpointPath: string;
   /** MoltNet agent name (used to resolve credentials). */
   agentName: string;
-  /** Host directory to mount at /workspace in the VM. */
+  /** Host directory to mount into the VM. */
   mountPath: string;
   /** Effective workspace shape selected by the caller. */
   workspaceMode?: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
@@ -253,6 +252,7 @@ async function vmRun(vm: VM, label: string, command: string): Promise<void> {
 export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const mainRepo = findMainWorktree();
   const agentDir = path.join(mainRepo, '.moltnet', config.agentName);
+  const guestWorkspace = path.resolve(config.mountPath);
 
   if (!existsSync(agentDir)) {
     throw new Error(
@@ -317,6 +317,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     NODE_NO_WARNINGS: '1',
     NODE_EXTRA_CA_CERTS: '/etc/ssl/certs/ca-certificates.crt',
     ...envOverrides,
+    MOLTNET_GUEST_WORKSPACE: guestWorkspace,
   };
 
   const resources = config.sandboxConfig?.resources;
@@ -329,7 +330,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     ...(resources?.cpus && { cpus: resources.cpus }),
     vfs: {
       mounts: {
-        [GUEST_WORKSPACE]: workspaceProvider,
+        [guestWorkspace]: workspaceProvider,
         // Memory-backed mount for task-context skill injection (#943).
         // Per-VM-instance, never persisted, never shared.
         [GUEST_TASK_SKILLS_MOUNT]: new MemoryProvider(),
@@ -375,7 +376,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     );
 
     // Tell git that the workspace mount is trusted regardless of UID. The host
-    // workspace is bind-mounted into /workspace via Gondolin's RealFSProvider,
+    // workspace is bind-mounted into the VM via Gondolin's RealFSProvider,
     // so the on-disk owner is the host's UID (typically 501) — not the guest's
     // 'agent' user (also UID 501 by happy coincidence, but git checks against
     // file ownership at the filesystem level). Without this, every git command
@@ -467,21 +468,17 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       mode: 0o600,
     });
 
-    // Inject gitconfig with VM-side signing key path and relative worktree
-    // paths. `worktree.useRelativePaths = true` (git >= 2.48) makes
-    // `git worktree add` write relative pointers — the only form that is
-    // simultaneously valid inside the VM (where the mount appears at
-    // `/workspace`) and on the host (where it appears at the real mount
-    // path). Without it the guest writes `/workspace/...` absolute paths
-    // that get persisted via RealFSProvider and leave corrupt worktree
-    // metadata on the host.
+    // Inject gitconfig with VM-side signing key path. The workspace is mounted
+    // at the same absolute path in the VM as on the host, so git worktree
+    // metadata can keep normal absolute paths without the
+    // extensions.relativeworktrees repository extension that breaks older git
+    // libraries.
     if (creds.gitconfig) {
       const vmSigningKey = `${vmSshDir}/id_ed25519`;
-      let vmGitconfig = creds.gitconfig.replace(
+      const vmGitconfig = creds.gitconfig.replace(
         /signingKey\s*=\s*.+/g,
         `signingKey = ${vmSigningKey}`,
       );
-      vmGitconfig = ensureRelativeWorktreePaths(vmGitconfig);
       await vm.fs.writeFile(`${vmAgentDir}/gitconfig`, vmGitconfig, {
         mode: 0o644,
       });
@@ -525,7 +522,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       vm,
       credentials: creds,
       mountPath: config.mountPath,
-      guestWorkspace: GUEST_WORKSPACE,
+      guestWorkspace,
       agentDir,
     };
   } catch (err) {
@@ -599,26 +596,4 @@ export function rewriteMoltnetJsonPaths(
   }
 
   return JSON.stringify(config);
-}
-
-/**
- * Ensure `[worktree] useRelativePaths = true` is set in the given
- * gitconfig text. If the section exists, rewrite the key; otherwise
- * append a new section.
- */
-export function ensureRelativeWorktreePaths(gitconfig: string): string {
-  const sectionRe = /^\[worktree\]\s*$/m;
-  const keyRe = /^(\[worktree\][\s\S]*?^)\s*useRelativePaths\s*=\s*\S+\s*$/m;
-
-  if (keyRe.test(gitconfig)) {
-    return gitconfig.replace(/^(\s*useRelativePaths\s*=\s*)\S+\s*$/m, '$1true');
-  }
-  if (sectionRe.test(gitconfig)) {
-    return gitconfig.replace(
-      sectionRe,
-      '[worktree]\n\tuseRelativePaths = true',
-    );
-  }
-  const sep = gitconfig.endsWith('\n') ? '' : '\n';
-  return `${gitconfig}${sep}[worktree]\n\tuseRelativePaths = true\n`;
 }

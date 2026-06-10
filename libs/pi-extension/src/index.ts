@@ -34,6 +34,7 @@ import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
 } from './moltnet/tools.js';
+import { buildWorkspaceMountInstructions } from './runtime/runtime-instructor.js';
 import { ensureSnapshot, type SandboxConfig } from './snapshot.js';
 import {
   createGondolinBashOps,
@@ -44,8 +45,6 @@ import {
 import { activateAgentEnv, findMainWorktree, resumeVm } from './vm-manager.js';
 
 export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
-
-const GUEST_WORKSPACE = '/workspace';
 
 export default function moltnetExtension(pi: ExtensionAPI) {
   // -- Flags ------------------------------------------------------------------
@@ -93,8 +92,10 @@ export default function moltnetExtension(pi: ExtensionAPI) {
   const localWrite = createWriteTool(localCwd);
   const localEdit = createEditTool(localCwd);
   const localBash = createBashTool(localCwd);
+  const initialGuestWorkspace = path.resolve(localCwd);
 
   let vm: VM | null = null;
+  let guestWorkspace = initialGuestWorkspace;
   let vmStarting: Promise<VM> | null = null;
   let worktreePath: string | null = null;
   let moltnetAgent: Awaited<ReturnType<typeof connect>> | null = null;
@@ -157,25 +158,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
         mountPath = worktreePath;
       }
 
-      // 3. Repair any worktree pointers corrupted by prior VM sessions.
-      // Before the VM started writing relative pointers, `git worktree add`
-      // inside the sandbox persisted `/workspace/...` absolute paths that
-      // are dead on the host. `git worktree repair --relative-paths`
-      // rewrites both the `.git/worktrees/<name>/gitdir` file and each
-      // worktree's `.git` file to relative form, which is valid from
-      // both the host and the guest. No-op if nothing needs fixing.
-      try {
-        execFileSync(
-          'git',
-          ['-C', mainRepo, 'worktree', 'repair', '--relative-paths'],
-          { stdio: 'pipe' },
-        );
-      } catch {
-        // Best-effort — older git versions without --relative-paths will
-        // fail here; the extension should not block the session on it.
-      }
-
-      // 4. Resume VM from snapshot
+      // 3. Resume VM from snapshot
       ctx?.ui.setStatus(
         'sandbox',
         ctx.ui.theme.fg('accent', 'Sandbox: starting...'),
@@ -202,10 +185,11 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       ]);
 
       vm = managed.vm;
+      guestWorkspace = managed.guestWorkspace;
 
       const label = worktreePath
-        ? `${mountPath} → ${GUEST_WORKSPACE}`
-        : `${localCwd} → ${GUEST_WORKSPACE}`;
+        ? `${mountPath} → ${guestWorkspace}`
+        : `${localCwd} → ${guestWorkspace}`;
       ctx?.ui.setStatus(
         'sandbox',
         ctx.ui.theme.fg('accent', `Sandbox: running (${label})`),
@@ -234,15 +218,20 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       vmStarting = null;
       moltnetAgent = null;
       teamId = null;
+      guestWorkspace = initialGuestWorkspace;
     }
   });
 
   pi.on('before_agent_start', async (event, ctx) => {
     await ensureVm(ctx);
-    const modified = event.systemPrompt.replace(
+    const promptWithSandboxCwd = event.systemPrompt.replace(
       `Current working directory: ${localCwd}`,
-      `Current working directory: ${GUEST_WORKSPACE} (sandbox, mounted from host: ${worktreePath ?? localCwd})`,
+      `Current working directory: ${guestWorkspace} (sandbox, mounted from host: ${worktreePath ?? localCwd})`,
     );
+    const modified = [
+      promptWithSandboxCwd,
+      buildWorkspaceMountInstructions(guestWorkspace),
+    ].join('\n\n');
     return { systemPrompt: modified };
   });
 
@@ -253,7 +242,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     async execute(id, params, signal, onUpdate, ctx) {
       const activeVm = await ensureVm(ctx);
       const tool = createReadTool(localCwd, {
-        operations: createGondolinReadOps(activeVm, localCwd),
+        operations: createGondolinReadOps(activeVm, localCwd, guestWorkspace),
       });
       return tool.execute(id, params, signal, onUpdate);
     },
@@ -264,7 +253,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     async execute(id, params, signal, onUpdate, ctx) {
       const activeVm = await ensureVm(ctx);
       const tool = createWriteTool(localCwd, {
-        operations: createGondolinWriteOps(activeVm, localCwd),
+        operations: createGondolinWriteOps(activeVm, localCwd, guestWorkspace),
       });
       return tool.execute(id, params, signal, onUpdate);
     },
@@ -275,7 +264,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     async execute(id, params, signal, onUpdate, ctx) {
       const activeVm = await ensureVm(ctx);
       const tool = createEditTool(localCwd, {
-        operations: createGondolinEditOps(activeVm, localCwd),
+        operations: createGondolinEditOps(activeVm, localCwd, guestWorkspace),
       });
       return tool.execute(id, params, signal, onUpdate);
     },
@@ -287,7 +276,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     async execute(id, params, signal, onUpdate, ctx) {
       const activeVm = await ensureVm(ctx);
       const tool = createBashTool(localCwd, {
-        operations: createGondolinBashOps(activeVm, localCwd),
+        operations: createGondolinBashOps(activeVm, localCwd, guestWorkspace),
       });
       return tool.execute(id, params, signal, onUpdate);
     },
@@ -295,7 +284,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
 
   pi.on('user_bash', (_event, _ctx) => {
     if (!vm) return;
-    return { operations: createGondolinBashOps(vm, localCwd) };
+    return { operations: createGondolinBashOps(vm, localCwd, guestWorkspace) };
   });
 
   // -- MoltNet custom tools (run on host, not in VM) -------------------------
@@ -350,7 +339,13 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       // When the sandbox is running, read branch from the guest workspace
       // (the agent may have created/switched branches inside the VM).
       if (vm) {
-        const r = await vm.exec('git -C /workspace branch --show-current');
+        const r = await vm.exec([
+          'git',
+          '-C',
+          guestWorkspace,
+          'branch',
+          '--show-current',
+        ]);
         if (r.exitCode === 0 && r.stdout?.trim()) {
           cachedGitBranch = r.stdout.trim();
           return cachedGitBranch;
@@ -424,6 +419,9 @@ export default function moltnetExtension(pi: ExtensionAPI) {
       return worktreePath;
     },
     localCwd,
+    get guestWorkspace() {
+      return guestWorkspace;
+    },
     get diaryId() {
       return diaryId;
     },

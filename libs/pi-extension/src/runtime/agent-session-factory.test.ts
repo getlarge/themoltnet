@@ -50,8 +50,8 @@ describe('buildAgentSession', () => {
 
   it('continues the persistent session by default', async () => {
     await buildAgentSession({
-      mountPath: '/workspace',
-      cwdPath: '/workspace',
+      mountPath: '/guest/workspace',
+      cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
       customTools: [],
@@ -61,9 +61,9 @@ describe('buildAgentSession', () => {
       sessionPersistence: { sessionDir: '/sessions/judge' },
     });
 
-    expect(list).toHaveBeenCalledWith('/workspace', '/sessions/judge');
+    expect(list).toHaveBeenCalledWith('/guest/workspace', '/sessions/judge');
     expect(continueRecent).toHaveBeenCalledWith(
-      '/workspace',
+      '/guest/workspace',
       '/sessions/judge',
     );
     expect(forkFrom).not.toHaveBeenCalled();
@@ -71,8 +71,8 @@ describe('buildAgentSession', () => {
 
   it('forks from the producer session when requested', async () => {
     await buildAgentSession({
-      mountPath: '/workspace',
-      cwdPath: '/workspace',
+      mountPath: '/guest/workspace',
+      cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
       customTools: [],
@@ -87,7 +87,7 @@ describe('buildAgentSession', () => {
 
     expect(forkFrom).toHaveBeenCalledWith(
       '/sessions/producer/session-a.jsonl',
-      '/workspace',
+      '/guest/workspace',
       '/sessions/judge',
     );
     expect(list).not.toHaveBeenCalled();

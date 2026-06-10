@@ -14,7 +14,6 @@
  * Anthropic-SDK one) plug in via the `executeTask` function injected into
  * `AgentRuntime`.
  */
-import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -112,7 +111,7 @@ const noopTurnEventHandler: TurnEventHandler = () => {};
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
   agentName: string;
-  /** Host cwd that the VM mounts at /workspace (defaults to `process.cwd()`). */
+  /** Host cwd that the VM mounts into the guest (defaults to `process.cwd()`). */
   mountPath?: string;
   /** LLM selection. */
   provider: string;
@@ -404,29 +403,6 @@ export async function executePiTask(
       return makeFailedOutput('worktree_setup_failed', message);
     }
 
-    // Repair worktree pointers on the host before the VM mounts the tree.
-    // Mirrors the interactive extension (libs/pi-extension/src/index.ts):
-    // rewrites each worktree's `.git` pointer and backlink to relative form
-    // so the VM (which sees the tree at `/workspace`) can still follow them,
-    // provided the worktree's relative depth from the main repo matches the
-    // VM's layout. No-op if nothing needs fixing.
-    try {
-      const mainRepoForRepair = findMainWorktree();
-      try {
-        execFileSync(
-          'git',
-          ['-C', mainRepoForRepair, 'worktree', 'repair', '--relative-paths'],
-          { stdio: 'pipe' },
-        );
-      } catch {
-        // Best-effort — older git versions lack --relative-paths.
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      await emitError('worktree_setup', message);
-      return makeFailedOutput('worktree_setup_failed', message);
-    }
-
     try {
       const sandboxConfig = applyExecutionPlanSandboxOverrides(
         opts.sandboxConfig,
@@ -566,6 +542,7 @@ export async function executePiTask(
       injectedContext = await injectTaskContext({
         context: contextArray,
         fs: managed.vm.fs,
+        guestWorkspace: managed.guestWorkspace,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -592,16 +569,32 @@ export async function executePiTask(
     // default by name at definition-registry merge time (AgentSession._refreshToolRegistry).
     const gondolinCustomTools = [
       createReadToolDefinition(mountPath, {
-        operations: createGondolinReadOps(managed.vm, mountPath),
+        operations: createGondolinReadOps(
+          managed.vm,
+          mountPath,
+          managed.guestWorkspace,
+        ),
       }),
       createWriteToolDefinition(mountPath, {
-        operations: createGondolinWriteOps(managed.vm, mountPath),
+        operations: createGondolinWriteOps(
+          managed.vm,
+          mountPath,
+          managed.guestWorkspace,
+        ),
       }),
       createEditToolDefinition(mountPath, {
-        operations: createGondolinEditOps(managed.vm, mountPath),
+        operations: createGondolinEditOps(
+          managed.vm,
+          mountPath,
+          managed.guestWorkspace,
+        ),
       }),
       createBashToolDefinition(mountPath, {
-        operations: createGondolinBashOps(managed.vm, mountPath),
+        operations: createGondolinBashOps(
+          managed.vm,
+          mountPath,
+          managed.guestWorkspace,
+        ),
       }),
     ] as unknown as ToolDefinition[];
 
@@ -692,6 +685,7 @@ export async function executePiTask(
         attemptN,
         diaryId,
         agentName: opts.agentName,
+        guestWorkspace: managed.guestWorkspace,
         correlationId: task.correlationId ?? null,
       });
       const appendSystemPrompt: string[] = [runtimeInstructor];

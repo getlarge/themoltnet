@@ -94,8 +94,8 @@ describe('buildRunEvalUserPrompt', () => {
     expect(out).toContain('Quoting a constraint back in a comment');
     expect(out).toContain('NOT following the task');
     // Inline-context path still names the materialized files.
-    expect(out).toContain('/workspace/context-pack.md');
-    expect(out).toContain('/workspace/AGENTS.md');
+    expect(out).toContain('context-pack.md');
+    expect(out).toContain('AGENTS.md');
   });
 
   it('does NOT leak the judge rubric or judge-only sections', () => {
