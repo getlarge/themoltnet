@@ -78,7 +78,7 @@ describe('resolveTaskContext', () => {
     expect(out.systemPromptPrefix).toContain(
       'Do not start workflows inside transactions.',
     );
-    expect(out.systemPromptPrefix).toContain('/workspace/context-pack.md');
+    expect(out.systemPromptPrefix).toContain('context-pack.md');
     expect(out.systemPromptPrefix).toContain('AGENTS.md');
   });
 

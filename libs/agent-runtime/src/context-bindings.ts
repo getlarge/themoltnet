@@ -122,7 +122,7 @@ function formatInlineContextBlock(slug: string, content: string): string {
     'as task-relevant background that may override generic coding instincts',
     'when it contains repo- or workflow-specific constraints.',
     'The same content is also materialized in the workspace as',
-    '`/workspace/context-pack.md` and mirrored in `AGENTS.md` for',
+    '`context-pack.md` and mirrored in `AGENTS.md` for',
     'repo-context discovery.',
     '',
     '<context>',

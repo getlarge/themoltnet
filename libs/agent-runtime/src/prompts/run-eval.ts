@@ -76,7 +76,7 @@ export function buildRunEvalUserPrompt(
         'NOT following the task. If the constraint affects behavior, it',
         'must affect behavior.',
         hasInlineContext
-          ? 'For `context_inline`, your FIRST content-inspection step is a `read` of `/workspace/context-pack.md` before your first `write` call. The same content is also mirrored in `/workspace/AGENTS.md` and may be referenced from `/workspace/.claude/CLAUDE.md`.'
+          ? 'For `context_inline`, your FIRST content-inspection step is a `read` of `context-pack.md` in the workspace root before your first `write` call. The same content is also mirrored in `AGENTS.md` and may be referenced from `.claude/CLAUDE.md`.'
           : 'When the context is delivered as a skill, inspect it before solving.',
         'If the Injected Task Context contains repo- or workflow-specific',
         'rules, those rules override your generic instincts.',
