@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.33.13](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.12...legreffier-v0.33.13) (2026-06-10)
+
+
+### Bug Fixes
+
+* **legreffier-cli:** regenerate codex rules with entry commands + add sync test ([a9dc91c](https://github.com/getlarge/themoltnet/commit/a9dc91cb9d63e0df67048d5c6f7aec56d24c0cfd))
+* **legreffier-cli:** regenerate codex rules with entry commands + add sync test ([0a459cc](https://github.com/getlarge/themoltnet/commit/0a459cc1bcee230c2e1bc62f3c4e2f23dd64ac0b))
+
 ## [0.33.12](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.11...legreffier-v0.33.12) (2026-06-07)
 
 
