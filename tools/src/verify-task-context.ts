@@ -97,6 +97,7 @@ async function main() {
     const injected = await injectTaskContext({
       context: CONTEXT,
       fs: managed.vm.fs,
+      guestWorkspace: managed.guestWorkspace,
     });
 
     // --- prompt_prefix
