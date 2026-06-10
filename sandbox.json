@@ -36,8 +36,8 @@
     ]
   },
   "resources": {
-    "cpus": 4,
-    "memory": "8G"
+    "cpus": 2,
+    "memory": "4G"
   },
   "resumeCommands": [
     {
