@@ -2,8 +2,6 @@ import { execFileSync } from 'node:child_process';
 
 import type { CommandRegistrar } from './types.js';
 
-const GUEST_WORKSPACE = '/workspace';
-
 export const registerResolveIssueCommand: CommandRegistrar = (pi, state) => {
   pi.registerCommand('resolve-issue', {
     description:
@@ -64,7 +62,7 @@ export const registerResolveIssueCommand: CommandRegistrar = (pi, state) => {
 
       pi.sendUserMessage(
         [
-          `**IMPORTANT**: Before doing anything else, read the file \`/workspace/.agents/skills/legreffier/SKILL.md\` and follow its workflow for all commits in this session. Every commit must have a diary entry.`,
+          `**IMPORTANT**: Before doing anything else, read the file \`${state.guestWorkspace}/.agents/skills/legreffier/SKILL.md\` and follow its workflow for all commits in this session. Every commit must have a diary entry.`,
           '',
           `## Task: Resolve Issue #${issue.number}`,
           '',
@@ -91,7 +89,7 @@ export const registerResolveIssueCommand: CommandRegistrar = (pi, state) => {
           `- Agent: ${meta.agentName}`,
           `- Diary: ${state.diaryId ?? 'unknown'}`,
           `- Branch: ${meta.gitBranch ?? 'main'}`,
-          `- Workspace: ${GUEST_WORKSPACE}`,
+          `- Workspace: ${state.guestWorkspace}`,
         ]
           .filter(Boolean)
           .join('\n'),

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildRuntimeInstructor } from './runtime-instructor.js';
+import {
+  buildRuntimeInstructor,
+  buildWorkspaceMountInstructions,
+} from './runtime-instructor.js';
 
 const ctx = {
   taskId: 'task-abc',
@@ -8,6 +11,7 @@ const ctx = {
   attemptN: 1,
   diaryId: 'diary-xyz',
   agentName: 'legreffier',
+  guestWorkspace: '/guest/workspace',
   correlationId: null,
 };
 
@@ -61,6 +65,13 @@ describe('runtime instructor', () => {
     expect(out).toMatch(/advisory/i);
   });
 
+  it('requires additional git worktrees to stay inside the mounted workspace', () => {
+    const out = buildRuntimeInstructor(ctx);
+    expect(out).toContain('.worktrees/<name>');
+    expect(out).toContain('outside the sandbox mount');
+    expect(out).toContain('non-existent checkout');
+  });
+
   it('mentions task:correlation:<id> when the task carries a correlationId', () => {
     const out = buildRuntimeInstructor({ ...ctx, correlationId: 'corr-xyz' });
     expect(out).toContain('task:correlation:corr-xyz');
@@ -69,5 +80,14 @@ describe('runtime instructor', () => {
   it('omits the correlation tag when correlationId is null', () => {
     const out = buildRuntimeInstructor(ctx); // correlationId: null
     expect(out).not.toMatch(/task:correlation:/);
+  });
+});
+
+describe('buildWorkspaceMountInstructions', () => {
+  it('uses the active guest workspace path in the shared instruction block', () => {
+    const out = buildWorkspaceMountInstructions('/mounted/repo');
+    expect(out).toContain('Local files in /mounted/repo');
+    expect(out).toContain('`/mounted/repo`');
+    expect(out).toContain('.worktrees/<name>');
   });
 });

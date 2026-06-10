@@ -80,7 +80,7 @@ export const SubagentToolParameters = Type.Object(
 export type SubagentToolParameters = Static<typeof SubagentToolParameters>;
 
 export interface CreateSubagentToolArgs {
-  /** Host directory mounted at /workspace inside the VM. */
+  /** Host directory mounted into the VM. */
   mountPath: string;
   /** Host working directory the subagent should start in. Defaults to mountPath. */
   cwdPath?: string;

@@ -403,7 +403,7 @@ async function buildSnapshot(
     '`,
   );
 
-  // Create agent user and workspace
+  // Create agent user. Workspace mounts are provided at resume time.
   await run(
     vm,
     log,
@@ -411,8 +411,8 @@ async function buildSnapshot(
     `sh -eu -c '
       addgroup -g 501 agent 2>/dev/null || true
       adduser -D -u 501 -G agent -h /home/agent -s /bin/sh agent 2>/dev/null || true
-      mkdir -p /home/agent/.moltnet /home/agent/.cache /workspace
-      chown -R agent:agent /home/agent /workspace
+      mkdir -p /home/agent/.moltnet /home/agent/.cache
+      chown -R agent:agent /home/agent
       chmod 644 /etc/gondolin/mitm/ca.crt 2>/dev/null || true
     '`,
   );

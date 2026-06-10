@@ -19,24 +19,25 @@ import { GUEST_TASK_SKILLS_MOUNT } from './vm-manager.js';
 
 export type { BashOperations, EditOperations, ReadOperations, WriteOperations };
 
-const GUEST_WORKSPACE = '/workspace';
-
 function shQuote(s: string): string {
   return "'" + s.replace(/'/g, "'\\''") + "'";
 }
 
 /**
- * Map a host-side absolute path to a guest-side /workspace path.
+ * Map a host-side absolute path to a guest-side workspace path.
  * Throws if the path escapes the workspace.
  */
-export function toGuestPath(localCwd: string, localPath: string): string {
-  // The LLM often addresses files by guest-absolute path (`/workspace/...`)
-  // because that's what the system prompt implies. Accept those as-is —
-  // otherwise `path.relative(hostCwd, '/workspace/...')` produces an escape
-  // and Gondolin rejects every read from that namespace.
+export function toGuestPath(
+  localCwd: string,
+  localPath: string,
+  guestWorkspace: string,
+): string {
+  // The LLM may address files by guest-absolute path because that's what the
+  // system prompt implies. Accept those as-is; otherwise path.relative(hostCwd,
+  // guestPath) produces an escape and Gondolin rejects the read.
   if (
-    localPath === GUEST_WORKSPACE ||
-    localPath.startsWith(`${GUEST_WORKSPACE}/`)
+    localPath === guestWorkspace ||
+    localPath.startsWith(`${guestWorkspace}/`)
   ) {
     return localPath;
   }
@@ -51,21 +52,25 @@ export function toGuestPath(localCwd: string, localPath: string): string {
     return localPath;
   }
   const rel = path.relative(localCwd, localPath);
-  if (rel === '') return GUEST_WORKSPACE;
+  if (rel === '') return guestWorkspace;
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error(`path escapes workspace: ${localPath}`);
   }
   const posixRel = rel.split(path.sep).join(path.posix.sep);
-  return path.posix.join(GUEST_WORKSPACE, posixRel);
+  return path.posix.join(guestWorkspace, posixRel);
 }
 
 export function createGondolinReadOps(
   vm: VM,
   localCwd: string,
+  guestWorkspace: string,
 ): ReadOperations {
   return {
     readFile: async (p) => {
-      const r = await vm.exec(['/bin/cat', toGuestPath(localCwd, p)]);
+      const r = await vm.exec([
+        '/bin/cat',
+        toGuestPath(localCwd, p, guestWorkspace),
+      ]);
       if (!r.ok) throw new Error(`cat failed (${r.exitCode}): ${r.stderr}`);
       return r.stdoutBuffer;
     },
@@ -73,7 +78,7 @@ export function createGondolinReadOps(
       const r = await vm.exec([
         '/bin/sh',
         '-lc',
-        `test -r ${shQuote(toGuestPath(localCwd, p))}`,
+        `test -r ${shQuote(toGuestPath(localCwd, p, guestWorkspace))}`,
       ]);
       if (!r.ok) throw new Error(`not readable: ${p}`);
     },
@@ -82,7 +87,7 @@ export function createGondolinReadOps(
         const r = await vm.exec([
           '/bin/sh',
           '-lc',
-          `file --mime-type -b ${shQuote(toGuestPath(localCwd, p))}`,
+          `file --mime-type -b ${shQuote(toGuestPath(localCwd, p, guestWorkspace))}`,
         ]);
         if (!r.ok) return null;
         const m = r.stdout.trim();
@@ -101,10 +106,11 @@ export function createGondolinReadOps(
 export function createGondolinWriteOps(
   vm: VM,
   localCwd: string,
+  guestWorkspace: string,
 ): WriteOperations {
   return {
     writeFile: async (p, content) => {
-      const guestPath = toGuestPath(localCwd, p);
+      const guestPath = toGuestPath(localCwd, p, guestWorkspace);
       const dir = path.posix.dirname(guestPath);
       const b64 = Buffer.from(content, 'utf8').toString('base64');
       const r = await vm.exec([
@@ -119,7 +125,11 @@ export function createGondolinWriteOps(
       if (!r.ok) throw new Error(`write failed (${r.exitCode}): ${r.stderr}`);
     },
     mkdir: async (dir) => {
-      const r = await vm.exec(['/bin/mkdir', '-p', toGuestPath(localCwd, dir)]);
+      const r = await vm.exec([
+        '/bin/mkdir',
+        '-p',
+        toGuestPath(localCwd, dir, guestWorkspace),
+      ]);
       if (!r.ok) throw new Error(`mkdir failed (${r.exitCode}): ${r.stderr}`);
     },
   };
@@ -128,19 +138,21 @@ export function createGondolinWriteOps(
 export function createGondolinEditOps(
   vm: VM,
   localCwd: string,
+  guestWorkspace: string,
 ): EditOperations {
-  const r = createGondolinReadOps(vm, localCwd);
-  const w = createGondolinWriteOps(vm, localCwd);
+  const r = createGondolinReadOps(vm, localCwd, guestWorkspace);
+  const w = createGondolinWriteOps(vm, localCwd, guestWorkspace);
   return { readFile: r.readFile, access: r.access, writeFile: w.writeFile };
 }
 
 export function createGondolinBashOps(
   vm: VM,
   localCwd: string,
+  guestWorkspace: string,
 ): BashOperations {
   return {
     exec: async (command, cwd, { onData, signal, timeout, env }) => {
-      const guestCwd = toGuestPath(localCwd, cwd);
+      const guestCwd = toGuestPath(localCwd, cwd, guestWorkspace);
       const ac = new AbortController();
       const onAbort = () => ac.abort();
       signal?.addEventListener('abort', onAbort, { once: true });

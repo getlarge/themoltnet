@@ -28,6 +28,7 @@ export interface ExtensionState {
   vm: VM | null;
   worktreePath: string | null;
   localCwd: string;
+  guestWorkspace: string;
   diaryId: string | null;
   moltnetAgent: Awaited<ReturnType<typeof connect>> | null;
   sessionErrors: TrackedError[];

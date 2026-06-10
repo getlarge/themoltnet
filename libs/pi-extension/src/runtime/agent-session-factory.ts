@@ -42,7 +42,7 @@ import {
 import { createPiOtelExtension } from '../otel/index.js';
 
 export interface BuildAgentSessionArgs {
-  /** Host directory mounted at /workspace inside the VM. */
+  /** Host directory mounted into the VM. */
   mountPath: string;
   /** Host working directory where the agent session should start. */
   cwdPath: string;

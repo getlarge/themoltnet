@@ -17,7 +17,11 @@ function mockFs(): VmFsForContext & {
 describe('injectTaskContext', () => {
   it('returns an inert result for an empty context array', async () => {
     const fs = mockFs();
-    const out = await injectTaskContext({ context: [], fs });
+    const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
+      context: [],
+      fs,
+    });
     expect(out.injected).toEqual([]);
     expect(out.skills).toEqual([]);
     expect(out.systemPromptPrefix).toBe('');
@@ -30,6 +34,7 @@ describe('injectTaskContext', () => {
     const fs = mockFs();
     const content = '# Pack fidelity skill body';
     const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
       context: [{ slug: 'pack-fidelity', binding: 'skill', content }],
       fs,
     });
@@ -61,6 +66,7 @@ describe('injectTaskContext', () => {
       '# Body',
     ].join('\n');
     const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
       context: [{ slug: 'pack-x', binding: 'skill', content }],
       fs,
     });
@@ -80,6 +86,7 @@ describe('injectTaskContext', () => {
       'body',
     ].join('\n');
     const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
       context: [{ slug: 'eo', binding: 'skill', content }],
       fs,
     });
@@ -89,6 +96,7 @@ describe('injectTaskContext', () => {
   it('falls back to slug-derived name + generic description without frontmatter', async () => {
     const fs = mockFs();
     const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
       context: [
         { slug: 'no-frontmatter', binding: 'skill', content: 'just text' },
       ],
@@ -103,6 +111,7 @@ describe('injectTaskContext', () => {
   it('concatenates prompt_prefix entries into systemPromptPrefix', async () => {
     const fs = mockFs();
     const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
       context: [
         { slug: 'a', binding: 'prompt_prefix', content: 'AAA' },
         { slug: 'b', binding: 'prompt_prefix', content: 'BBB' },
@@ -117,6 +126,7 @@ describe('injectTaskContext', () => {
   it('writes context_inline bytes into the workspace and injects a named prompt block', async () => {
     const fs = mockFs();
     const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
       context: [
         {
           slug: 'dbos-pack',
@@ -126,29 +136,29 @@ describe('injectTaskContext', () => {
       ],
       fs,
     });
-    expect(fs.mkdir).toHaveBeenCalledWith('/workspace/.moltnet/context', {
+    expect(fs.mkdir).toHaveBeenCalledWith('/guest/workspace/.moltnet/context', {
       recursive: true,
     });
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/workspace/.moltnet/context/dbos-pack.md',
+      '/guest/workspace/.moltnet/context/dbos-pack.md',
       '# Pack\nDo not start workflows inside transactions.',
       { mode: 0o644 },
     );
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/workspace/context-pack.md',
+      '/guest/workspace/context-pack.md',
       expect.stringContaining('## dbos-pack'),
       { mode: 0o644 },
     );
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/workspace/AGENTS.md',
+      '/guest/workspace/AGENTS.md',
       expect.stringContaining('## dbos-pack'),
       { mode: 0o644 },
     );
-    expect(fs.mkdir).toHaveBeenCalledWith('/workspace/.claude', {
+    expect(fs.mkdir).toHaveBeenCalledWith('/guest/workspace/.claude', {
       recursive: true,
     });
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/workspace/.claude/CLAUDE.md',
+      '/guest/workspace/.claude/CLAUDE.md',
       '@../context-pack.md\n',
       { mode: 0o644 },
     );
@@ -159,6 +169,7 @@ describe('injectTaskContext', () => {
   it('concatenates user_inline entries into userInlineSuffix', async () => {
     const fs = mockFs();
     const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
       context: [{ slug: 'a', binding: 'user_inline', content: 'hello' }],
       fs,
     });
@@ -169,6 +180,7 @@ describe('injectTaskContext', () => {
   it('exercises all four bindings end-to-end', async () => {
     const fs = mockFs();
     const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
       context: [
         { slug: 's1', binding: 'skill', content: '# Skill' },
         { slug: 'c1', binding: 'context_inline', content: '# Context' },
@@ -202,6 +214,7 @@ describe('injectTaskContext', () => {
       'body',
     ].join('\n');
     const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
       context: [{ slug: 'big', binding: 'skill', content }],
       fs,
     });
@@ -221,6 +234,7 @@ describe('injectTaskContext', () => {
       'real body bytes',
     ].join('\n');
     const out = await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
       context: [{ slug: 'broken-fm', binding: 'skill', content }],
       fs,
     });
@@ -239,6 +253,7 @@ describe('injectTaskContext', () => {
     fs.writeFile.mockRejectedValueOnce(new Error('ENOSPC'));
     await expect(
       injectTaskContext({
+        guestWorkspace: '/guest/workspace',
         context: [{ slug: 'x', binding: 'skill', content: 'y' }],
         fs,
       }),
@@ -250,6 +265,7 @@ describe('injectTaskContext', () => {
     fs.mkdir.mockRejectedValueOnce(new Error('EACCES'));
     await expect(
       injectTaskContext({
+        guestWorkspace: '/guest/workspace',
         context: [{ slug: 'x', binding: 'skill', content: 'y' }],
         fs,
       }),

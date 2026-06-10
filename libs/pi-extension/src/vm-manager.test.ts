@@ -2,11 +2,9 @@
  * Unit tests for vm-manager helpers:
  *   - rewriteMoltnetJsonPaths: portability of host-absolute paths into VM
  *   - loadCredentials: PEM reading and filename extraction
- *   - ensureRelativeWorktreePaths: gitconfig mutation (pre-existing)
  */
 import { execFileSync } from 'node:child_process';
 import {
-  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -22,7 +20,6 @@ import { describe, expect, it } from 'vitest';
 
 import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
-  ensureRelativeWorktreePaths,
   loadCredentials,
   rewriteMoltnetJsonPaths,
   shouldRunResumeCommand,
@@ -453,41 +450,6 @@ describe('loadCredentials Pi auth optionality', () => {
 });
 
 // ---------------------------------------------------------------------------
-// ensureRelativeWorktreePaths (pre-existing helper, regression guard)
-// ---------------------------------------------------------------------------
-
-describe('ensureRelativeWorktreePaths', () => {
-  it('appends [worktree] section when absent', () => {
-    const gc = '[core]\n\trepositoryformatversion = 0\n';
-    const out = ensureRelativeWorktreePaths(gc);
-    expect(out).toContain('[worktree]');
-    expect(out).toContain('useRelativePaths = true');
-  });
-
-  it('adds key when [worktree] section exists without key', () => {
-    const gc = '[core]\n\tbare = false\n[worktree]\n';
-    const out = ensureRelativeWorktreePaths(gc);
-    expect(out).toContain('useRelativePaths = true');
-    // should not duplicate the section header
-    expect((out.match(/\[worktree\]/g) ?? []).length).toBe(1);
-  });
-
-  it('rewrites existing useRelativePaths value to true', () => {
-    const gc = '[worktree]\n\tuseRelativePaths = false\n';
-    const out = ensureRelativeWorktreePaths(gc);
-    expect(out).toContain('useRelativePaths = true');
-    expect(out).not.toContain('useRelativePaths = false');
-  });
-
-  it('does not duplicate useRelativePaths when already set to true', () => {
-    const gc = '[worktree]\n\tuseRelativePaths = true\n';
-    const out = ensureRelativeWorktreePaths(gc);
-    expect((out.match(/useRelativePaths/g) ?? []).length).toBe(1);
-    expect(out).toContain('useRelativePaths = true');
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Dedicated worktree mount topology
 // ---------------------------------------------------------------------------
 
@@ -500,16 +462,8 @@ describe('dedicated worktree mount topology', () => {
     }).trim();
   }
 
-  function resolveGitdirPointer(worktreeDir: string, gitdirPointer: string) {
-    const prefix = 'gitdir: ';
-    expect(gitdirPointer.startsWith(prefix)).toBe(true);
-    const target = gitdirPointer.slice(prefix.length).trim();
-    return path.isAbsolute(target) ? target : path.resolve(worktreeDir, target);
-  }
-
-  it('keeps worktree git metadata reachable when mounting the repo root', () => {
+  it('keeps normal absolute git metadata when host and guest paths match', () => {
     const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-worktree-repro-'));
-    const guestRoot = mkdtempSync(path.join(tmpdir(), 'pi-guest-mount-'));
     const oldCwd = process.cwd();
     let workspace: {
       mountPath: string;
@@ -543,34 +497,22 @@ describe('dedicated worktree mount topology', () => {
         worktreeBranch: 'moltnet/correlation-1/demo-task',
         workspaceScope: 'session',
       });
-      runGit(repoRoot, ['worktree', 'repair', '--relative-paths']);
 
-      const guestMountRoot = path.join(guestRoot, 'workspace');
-      cpSync(workspace.mountPath, guestMountRoot, { recursive: true });
-      const guestWorkspace = path.join(
-        guestMountRoot,
-        path.relative(workspace.mountPath, workspace.cwdPath),
-      );
-
+      const guestWorkspace = path.resolve(workspace.cwdPath);
       const gitdirPointer = readFileSync(path.join(guestWorkspace, '.git'), {
         encoding: 'utf8',
       }).trim();
-      const resolvedGitdir = resolveGitdirPointer(
-        guestWorkspace,
-        gitdirPointer,
-      );
-
-      expect(resolvedGitdir.startsWith(guestRoot)).toBe(true);
-      expect(resolvedGitdir).toContain(
-        `${path.sep}.git${path.sep}worktrees${path.sep}session-slot-1`,
+      const resolvedGitdir = gitdirPointer.slice('gitdir: '.length);
+      expect(realpathSync(resolvedGitdir)).toBe(
+        realpathSync(
+          path.join(repoRoot, '.git', 'worktrees', 'session-slot-1'),
+        ),
       );
       const adminBacklink = readFileSync(
         path.join(resolvedGitdir, 'gitdir'),
         'utf8',
       ).trim();
-      expect(path.resolve(resolvedGitdir, adminBacklink)).toBe(
-        path.join(guestWorkspace, '.git'),
-      );
+      expect(adminBacklink).toBe(path.join(guestWorkspace, '.git'));
       expect(
         realpathSync(runGit(guestWorkspace, ['rev-parse', '--git-dir'])),
       ).toBe(realpathSync(resolvedGitdir));
@@ -581,7 +523,6 @@ describe('dedicated worktree mount topology', () => {
       process.chdir(oldCwd);
       workspace?.cleanup();
       rmSync(repoRoot, { recursive: true, force: true });
-      rmSync(guestRoot, { recursive: true, force: true });
     }
   });
 

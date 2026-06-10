@@ -13,7 +13,9 @@ the SDK and communicate outbound over HTTP.
 ```
 Host                          Gondolin VM
 ────────────────────          ─────────────────────────────────────
-pi + extension                /workspace  ← host cwd mounted here
+pi + extension                $MOLTNET_GUEST_WORKSPACE
+  │                             ← host cwd/worktree mounted at same abs path
+  │                              as the host, e.g. /Users/ed/.../repo
   │                           /home/agent/.moltnet/<name>/
   ├─ MoltNet SDK ──────────▶    moltnet.json  (API + GitHub App config)
   │   (diary, packs)            env           (MOLTNET_*, GIT_CONFIG_GLOBAL)
@@ -58,9 +60,11 @@ before injection so tools running inside the guest resolve the right paths:
 The gitconfig is also rewritten before injection:
 
 - `signingKey` → VM-side SSH key path
-- `[worktree] useRelativePaths = true` is injected so `git worktree add`
-  inside the VM writes relative `.git` pointers that remain valid on the
-  host after the session ends
+
+The workspace itself is mounted in the VM at the same absolute path as the
+host path. That keeps git worktree metadata as normal absolute host paths and
+avoids the `extensions.relativeworktrees` repository extension, which older git
+libraries such as Zed's libgit2 path can reject.
 
 ### Host-side activation
 
@@ -79,7 +83,7 @@ tools can use structured in-process calls rather than shell round-trips.
 
 | Tool                                | Runs in | Mechanism                                                                        |
 | ----------------------------------- | ------- | -------------------------------------------------------------------------------- |
-| `read`, `write`, `edit`             | VM      | Gondolin VFS — agent's FS view is `/workspace`                                   |
+| `read`, `write`, `edit`             | VM      | Gondolin VFS — agent's FS view is `$MOLTNET_GUEST_WORKSPACE`                     |
 | `bash`                              | VM      | `vm.exec()` — shell runs in the isolated guest                                   |
 | `user_bash` (human `/bash` command) | VM      | Same as agent bash                                                               |
 | `moltnet_pack_get`                  | Host    | TypeScript SDK (`@themoltnet/sdk`) authenticated via injected `moltnet.json`     |
@@ -204,13 +208,18 @@ Important properties:
 This split exists so repo-specific bootstrap can live in `sandbox.json` while
 `pi-extension` stays consumer-agnostic.
 
+The active workspace path is exposed to every resume command as
+`MOLTNET_GUEST_WORKSPACE`. Use that env var instead of hard-coding a guest
+path; the extension mounts the workspace at the same absolute path as the host
+checkout or dedicated worktree.
+
 Object form:
 
 ```json
 {
   "retries": 2,
   "retryBackoffMs": 5000,
-  "run": "cd /workspace && pnpm install --frozen-lockfile",
+  "run": "cd \"${MOLTNET_GUEST_WORKSPACE}\" && pnpm install --frozen-lockfile",
   "when": {
     "workspaceMode": ["shared_mount", "dedicated_worktree"]
   }
@@ -223,8 +232,8 @@ Object form:
 - `dedicated_worktree`: task runs in a disposable git worktree
 - `scratch_mount`: task runs in an empty scratch workspace with no repo checkout
 
-Use this when a resume step assumes a repository exists under `/workspace` and
-should be skipped for repo-free scratch runs.
+Use this when a resume step assumes a repository exists in the active workspace
+mount and should be skipped for repo-free scratch runs.
 
 ### `vfs`
 
@@ -240,14 +249,14 @@ the guest install its own with `pnpm install`.
 
 #### VFS caveat: shadowing is not a pnpm performance fix
 
-For this repo we hit two distinct `/workspace` problems:
+For this repo we hit two distinct workspace-mount problems:
 
 - the FUSE bridge makes file-write-heavy installs much slower than guest-local filesystems
-- the `/workspace` VFS path drops `chmod()` calls, which breaks tools that create files and chmod them later
+- the workspace VFS path drops `chmod()` calls, which breaks tools that create files and chmod them later
 
 Dogfood trail:
 
-- `47b67636-067a-4254-9098-38d00b4867bb` — `/workspace` install path measured at roughly 80x slower than guest tmpfs
+- `47b67636-067a-4254-9098-38d00b4867bb` — workspace install path measured at roughly 80x slower than guest tmpfs
 - `62082ec9-0554-4bdc-9c64-9d89ece3fa40` — `chmod()` gap on the workspace mount
 - `17f0ac6f-07f0-4e12-b5e5-d35a0fa2df6c` — first 100x pnpm recipe
 - `2e4e25a9-ef4b-46bf-a55d-6c2b1159ee61` — follow-up fix for per-workspace `node_modules`
@@ -316,7 +325,7 @@ Every snapshot includes:
 - `ca-certificates`, `curl`, `git`, `jq`, `ripgrep`, `tar`, `xz`
 - GitHub CLI (`gh`)
 - MoltNet CLI binary (`moltnet`, Go, no Node required)
-- `agent` user with `/home/agent` and `/workspace`
+- `agent` user with `/home/agent`
 
 ## Snapshot caching
 

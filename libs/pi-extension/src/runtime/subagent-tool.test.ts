@@ -34,7 +34,7 @@ const defaultRegistry = createSubagentContractRegistry([
 const stubArgs = (
   overrides: Partial<Parameters<typeof createSubagentTool>[0]> = {},
 ) => ({
-  mountPath: '/workspace',
+  mountPath: '/guest/workspace',
   piAuthDir: '/home/agent/.pi/agent',
   modelHandle: {} as Parameters<typeof createSubagentTool>[0]['modelHandle'],
   agentName: 'test-agent',
