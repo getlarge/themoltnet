@@ -29,8 +29,10 @@ export default defineConfig({
   },
   ssr: {
     // Bundle private workspace packages (@moltnet/crypto-service) into the
-    // JS output. @themoltnet/agent-runtime and @themoltnet/sdk are published
-    // packages and stay external.
-    noExternal: [/^@moltnet\//],
+    // JS output. Bundle TypeBox too: Pi's extension loader rewrites a narrow
+    // set of TypeBox specifiers and currently does not handle typebox/format.
+    // @themoltnet/agent-runtime and @themoltnet/sdk are published packages and
+    // stay external.
+    noExternal: [/^@moltnet\//, /^typebox(?:\/.*)?$/],
   },
 });
