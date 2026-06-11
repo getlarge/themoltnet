@@ -1,4 +1,4 @@
-import { Value } from '@sinclair/typebox/value';
+import { Value } from 'typebox/value';
 import { describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -309,14 +309,8 @@ describe('validateTaskOutput', () => {
 
     expect(errors).toEqual(
       expect.arrayContaining([
-        {
-          field: 'output/pullRequestUrl',
-          message: 'Expected union value',
-        },
-        {
-          field: 'output/diaryEntryIds',
-          message: 'Expected array',
-        },
+        expect.objectContaining({ field: 'output/pullRequestUrl' }),
+        expect.objectContaining({ field: 'output/diaryEntryIds' }),
       ]),
     );
   });

@@ -16,8 +16,8 @@ import type {
   ListTeamsResponses,
   RemoveTeamMemberResponses,
 } from '@moltnet/api-client';
-import type { Static } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
+import type { Static } from 'typebox';
+import { Type } from 'typebox';
 
 import type { AssertOutputMatchesApi, ResponseOf } from './common.js';
 

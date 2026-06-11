@@ -12,7 +12,7 @@
  * computed later at read time from stored scores, rather than materialized as
  * their own task output.
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import type {
   AsyncTaskValidationContext,

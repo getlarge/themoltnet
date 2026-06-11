@@ -30,7 +30,6 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { FREEFORM_TYPE } from '@moltnet/tasks';
-import { Value } from '@sinclair/typebox/value';
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
@@ -43,6 +42,7 @@ import {
   type TaskUserPromptContext,
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
+import { Value } from 'typebox/value';
 
 import {
   createMoltNetTools,

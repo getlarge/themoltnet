@@ -63,7 +63,7 @@
     "@opentelemetry/sdk-trace-node": "catalog:",
     "@opentelemetry/semantic-conventions": "catalog:",
     "@ory/client-fetch": "catalog:",
-    "@sinclair/typebox": "catalog:",
+    "typebox": "catalog:",
     "drizzle-orm": "catalog:",
     "fastify": "catalog:",
     "fastify-plugin": "catalog:",

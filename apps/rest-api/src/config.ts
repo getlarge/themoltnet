@@ -7,14 +7,15 @@
  * This is the ONLY file allowed to read process.env directly.
  */
 
-import type { Static, TObject } from '@sinclair/typebox';
-import { FormatRegistry, Type } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
+import type { Static, TObject } from 'typebox';
+import { Type } from 'typebox';
+import * as Format from 'typebox/format';
+import { Value } from 'typebox/value';
 
 // Register formats required by TypeBox Value validation (not needed for Fastify schema
 // compilation, but required when using Value.Check / Value.Errors directly).
-if (!FormatRegistry.Has('uuid')) {
-  FormatRegistry.Set('uuid', (v) =>
+if (!Format.Has('uuid')) {
+  Format.Set('uuid', (v) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
   );
 }
@@ -235,7 +236,9 @@ function validateSchema<T extends TObject>(
     return withDefaults;
   }
   const errors = [...Value.Errors(schema, withDefaults)];
-  const details = errors.map((e) => `  - ${e.path}: ${e.message}`).join('\n');
+  const details = errors
+    .map((e) => `  - ${e.instancePath}: ${e.message}`)
+    .join('\n');
   throw new Error(`Invalid ${name} config:\n${details}`);
 }
 

@@ -19,7 +19,7 @@ import {
   RunEvalInput,
   type Task,
 } from '@moltnet/tasks';
-import { Value } from '@sinclair/typebox/value';
+import { Value } from 'typebox/value';
 
 import type { AssembledPrompt } from './assemble.js';
 import { buildAssessBriefUserPrompt } from './assess-brief.js';

@@ -46,11 +46,11 @@ catalogs:
       specifier: ^9.6.1
       version: 9.6.1
     '@fastify/type-provider-typebox':
-      specifier: ^5.2.0
-      version: 5.2.0
+      specifier: ^6.1.0
+      version: 6.1.0
     '@getlarge/fastify-mcp':
-      specifier: ^1.3.0-getlarge.5
-      version: 1.3.0-getlarge.5
+      specifier: ^1.3.0-getlarge.6
+      version: 1.3.0-getlarge.6
     '@hey-api/openapi-ts':
       specifier: 0.89.2
       version: 0.89.2
@@ -168,9 +168,6 @@ catalogs:
     '@scalar/fastify-api-reference':
       specifier: ^1.0.0
       version: 1.44.25
-    '@sinclair/typebox':
-      specifier: ^0.34.0
-      version: 0.34.48
     '@swc-node/register':
       specifier: ~1.11.1
       version: 1.11.1
@@ -321,6 +318,9 @@ catalogs:
     tsx:
       specifier: ^4.7.0
       version: 4.21.0
+    typebox:
+      specifier: ^1.2.8
+      version: 1.2.8
     typescript:
       specifier: ~5.9.2
       version: 5.9.3
@@ -746,7 +746,7 @@ importers:
         version: 0.18.0(@opentelemetry/api@1.9.0)
       '@getlarge/fastify-mcp':
         specifier: 'catalog:'
-        version: 1.3.0-getlarge.5(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.34.48)
+        version: 1.3.0-getlarge.6(@opentelemetry/api@1.9.0)(typebox@1.2.8)
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
@@ -819,9 +819,6 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: 'catalog:'
         version: 1.39.0
-      '@sinclair/typebox':
-        specifier: 'catalog:'
-        version: 0.34.48
       '@themoltnet/design-system':
         specifier: workspace:*
         version: link:../../libs/design-system
@@ -840,6 +837,9 @@ importers:
       thread-stream:
         specifier: 'catalog:'
         version: 3.1.0
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
     devDependencies:
       '@modelcontextprotocol/sdk':
         specifier: 'catalog:'
@@ -891,7 +891,7 @@ importers:
         version: 9.6.1
       '@fastify/type-provider-typebox':
         specifier: 'catalog:'
-        version: 5.2.0(@sinclair/typebox@0.34.48)
+        version: 6.1.0(typebox@1.2.8)
       '@huggingface/transformers':
         specifier: 'catalog:'
         version: 3.8.1
@@ -988,9 +988,6 @@ importers:
       '@scalar/fastify-api-reference':
         specifier: 'catalog:'
         version: 1.44.25
-      '@sinclair/typebox':
-        specifier: 'catalog:'
-        version: 0.34.48
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
@@ -1018,6 +1015,9 @@ importers:
       thread-stream:
         specifier: 'catalog:'
         version: 3.1.0
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
       winston:
         specifier: 'catalog:'
         version: 3.17.0
@@ -1107,15 +1107,15 @@ importers:
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
-      '@sinclair/typebox':
-        specifier: 'catalog:'
-        version: 0.34.48
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../sdk
       pino:
         specifier: 'catalog:'
         version: 10.3.1
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
     devDependencies:
       '@moltnet/tasks':
         specifier: workspace:*
@@ -1542,9 +1542,9 @@ importers:
 
   libs/models:
     dependencies:
-      '@sinclair/typebox':
+      typebox:
         specifier: 'catalog:'
-        version: 0.34.48
+        version: 1.2.8
     devDependencies:
       typescript:
         specifier: 'catalog:'
@@ -1634,15 +1634,15 @@ importers:
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
-      '@sinclair/typebox':
-        specifier: 'catalog:'
-        version: 0.34.48
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../agent-runtime
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../sdk
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
     devDependencies:
       '@earendil-works/pi-ai':
         specifier: 'catalog:'
@@ -1755,9 +1755,9 @@ importers:
         specifier: workspace:*
         version: link:../tasks
     devDependencies:
-      '@sinclair/typebox':
+      typebox:
         specifier: 'catalog:'
-        version: 0.34.48
+        version: 1.2.8
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -1807,12 +1807,12 @@ importers:
 
   libs/tasks:
     dependencies:
-      '@sinclair/typebox':
-        specifier: 'catalog:'
-        version: 0.34.48
       multiformats:
         specifier: 'catalog:'
         version: 13.4.2
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
     devDependencies:
       typescript:
         specifier: 'catalog:'
@@ -1997,9 +1997,6 @@ importers:
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.34
-      '@sinclair/typebox':
-        specifier: 'catalog:'
-        version: 0.34.48
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../libs/agent-runtime
@@ -2024,6 +2021,9 @@ importers:
       smol-toml:
         specifier: '>=1.6.1'
         version: 1.6.1
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
       undici:
         specifier: '>=7.24.0'
         version: 7.24.7
@@ -3756,16 +3756,16 @@ packages:
   '@fastify/swagger@9.6.1':
     resolution: {integrity: sha512-fKlpJqFMWoi4H3EdUkDaMteEYRCfQMEkK0HJJ0eaf4aRlKd8cbq0pVkOfXDXmtvMTXYcnx3E+l023eFDBsA1HA==}
 
-  '@fastify/type-provider-typebox@5.2.0':
-    resolution: {integrity: sha512-RoUFTQNYlaVM/gXosFqlrUAD/JHC+OXLcj4DxNoMOag2GI7OydfCt+3vdT+6D2daJwhGAdkpxB0wLNqS7gf4CQ==}
+  '@fastify/type-provider-typebox@6.1.0':
+    resolution: {integrity: sha512-k29cOitDRcZhMXVjtRq0+caKxdWoArz7su+dQWGzGWnFG+fSKhevgiZ7nexHWuXOEEQzgJlh6cptIMu69beaTA==}
     peerDependencies:
-      '@sinclair/typebox': '>=0.26 <=0.34'
+      typebox: ^1.0.13
 
-  '@getlarge/fastify-mcp@1.3.0-getlarge.5':
-    resolution: {integrity: sha512-tD1/oR20VyRSwMY1ZLbSHFnzyWLfRQhswoQPybL72GWdLZGzIZCF+wR8Y128Vhxucdm8GpSzS+Qb6qk6N2LLYg==}
+  '@getlarge/fastify-mcp@1.3.0-getlarge.6':
+    resolution: {integrity: sha512-/T4OZKBDHYaWbV95rZ6v/wD+aob4EJHVJFxtPt5bbqp+XJdoa1VqeWdyDoxABwwNB05NVyne94PH0FNq+Nyohw==}
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0'
-      '@sinclair/typebox': ^0.34.0
+      typebox: ^1.0.13
     peerDependenciesMeta:
       '@opentelemetry/api':
         optional: true
@@ -5078,9 +5078,6 @@ packages:
 
   '@silvia-odwyer/photon-node@0.3.4':
     resolution: {integrity: sha512-bnly4BKB3KDTFxrUIcgCLbaeVVS8lrAkri1pEzskpmxu9MdfGQTy8b8EgcD83ywD3RPMsIulY8xJH5Awa+t9fA==}
-
-  '@sinclair/typebox@0.34.48':
-    resolution: {integrity: sha512-kKJTNuK3AQOrgjjotVxMrCn1sUJwM76wMszfq1kdU4uYVJjvEWuFQ6HgvLt4Xz3fSmZlTOxJ/Ie13KnIcWQXFA==}
 
   '@smithy/config-resolver@4.4.17':
     resolution: {integrity: sha512-TzDZcAnhTyAHbXVxWZo7/tEcrIeFq20IBk8So3OLOetWpR8EwY/yEqBMBFaJMeyEiREDq4NfEl+qO3OAUD+vbQ==}
@@ -10184,6 +10181,9 @@ packages:
   typebox@1.1.37:
     resolution: {integrity: sha512-jb7jp6KvOvvy5sd+11AfJ0/e0F0AS9RcOXd55oGi2ZnRHIGmFvrTaNF+ZidRmGBmmNTkM5KKl0Z37KzxJ+owEQ==}
 
+  typebox@1.2.8:
+    resolution: {integrity: sha512-rlsKhsd7L3082m9nxhFIB4Gl8jizLd/6YlFAWaz96hdV8+VJRjwYaYmDlT0jlTRwkb48SxCSSirqUtrg/HilNw==}
+
   typed-array-buffer@1.0.3:
     resolution: {integrity: sha512-nAYYwfY3qnzX30IkA6AQZjVbtK6duGontcQm1WSG1MD94YLqK0515GNApXkoxKOWMusVssAHWLh9SeaoefYFGw==}
     engines: {node: '>= 0.4'}
@@ -12844,16 +12844,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@fastify/type-provider-typebox@5.2.0(@sinclair/typebox@0.34.48)':
+  '@fastify/type-provider-typebox@6.1.0(typebox@1.2.8)':
     dependencies:
-      '@sinclair/typebox': 0.34.48
+      typebox: 1.2.8
 
-  '@getlarge/fastify-mcp@1.3.0-getlarge.5(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.34.48)':
+  '@getlarge/fastify-mcp@1.3.0-getlarge.6(@opentelemetry/api@1.9.0)(typebox@1.2.8)':
     dependencies:
       '@fastify/cors': 11.2.0
       '@fastify/jwt': 9.1.0
-      '@fastify/type-provider-typebox': 5.2.0(@sinclair/typebox@0.34.48)
-      '@sinclair/typebox': 0.34.48
+      '@fastify/type-provider-typebox': 6.1.0(typebox@1.2.8)
       fast-jwt: 6.1.0
       fastify-plugin: 5.1.0
       get-jwks: 11.0.3
@@ -12861,6 +12860,7 @@ snapshots:
       mqemitter: 7.1.0
       mqemitter-redis: 7.2.0
       safe-stable-stringify: 2.5.0
+      typebox: 1.2.8
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
     transitivePeerDependencies:
@@ -14227,8 +14227,6 @@ snapshots:
   '@shikijs/vscode-textmate@10.0.2': {}
 
   '@silvia-odwyer/photon-node@0.3.4': {}
-
-  '@sinclair/typebox@0.34.48': {}
 
   '@smithy/config-resolver@4.4.17':
     dependencies:
@@ -20381,6 +20379,8 @@ snapshots:
       mime-types: 3.0.2
 
   typebox@1.1.37: {}
+
+  typebox@1.2.8: {}
 
   typed-array-buffer@1.0.3:
     dependencies:

@@ -1,6 +1,6 @@
-import type { Static, TObject } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
+import type { Static, TObject } from 'typebox';
+import { Type } from 'typebox';
+import { Value } from 'typebox/value';
 
 export const McpServerConfigSchema = Type.Object({
   PORT: Type.Number({ default: 8001 }),
@@ -157,7 +157,9 @@ function validateSchema<T extends TObject>(
     return withDefaults;
   }
   const errors = [...Value.Errors(schema, withDefaults)];
-  const details = errors.map((e) => `  - ${e.path}: ${e.message}`).join('\n');
+  const details = errors
+    .map((e) => `  - ${e.instancePath}: ${e.message}`)
+    .join('\n');
   throw new Error(`Invalid ${name} config:\n${details}`);
 }
 

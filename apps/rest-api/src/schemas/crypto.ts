@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 
 import { DateTime, NullableDateTime } from './atoms.js';
 
@@ -49,7 +49,7 @@ export const SigningRequestSchema = Type.Object(
 
 export const SigningRequestListSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(SigningRequestSchema)),
+    items: Type.Array(Type.Ref(SigningRequestSchema.$id)),
     total: Type.Number(),
     limit: Type.Number(),
     offset: Type.Number(),

@@ -4,7 +4,7 @@ import {
   PublicKeySchema,
   visibilityLiterals,
 } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 
 import { DateTime, EntryTypeSchema } from './atoms.js';
 import { PrincipalIdentitySchema } from './principal.js';
@@ -33,11 +33,11 @@ export const DiaryEntrySchema = Type.Object(
   { $id: 'DiaryEntry' },
 );
 
-export const DiaryEntryWithRelationsSchema = Type.Composite(
+export const DiaryEntryWithRelationsSchema = Type.Intersect(
   [
     DiaryEntrySchema,
     Type.Object({
-      relations: Type.Optional(Type.Ref(ExpandedRelationsSchema)),
+      relations: Type.Optional(Type.Ref(ExpandedRelationsSchema.$id)),
     }),
   ],
   { $id: 'DiaryEntryWithRelations' },
@@ -45,7 +45,7 @@ export const DiaryEntryWithRelationsSchema = Type.Composite(
 
 export const DiaryListSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(DiaryEntrySchema)),
+    items: Type.Array(Type.Ref(DiaryEntrySchema.$id)),
     total: Type.Number({
       description: 'Total number of matching items in the database.',
     }),
@@ -70,7 +70,7 @@ export const DiaryTagsResponseSchema = Type.Object(
 
 export const DiarySearchResultSchema = Type.Object(
   {
-    results: Type.Array(Type.Ref(DiaryEntrySchema)),
+    results: Type.Array(Type.Ref(DiaryEntrySchema.$id)),
     total: Type.Number(),
   },
   { $id: 'DiarySearchResult' },
@@ -94,7 +94,7 @@ export const DiaryCatalogSchema = Type.Object(
 
 export const DiaryCatalogListSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(DiaryCatalogSchema)),
+    items: Type.Array(Type.Ref(DiaryCatalogSchema.$id)),
   },
   { $id: 'DiaryCatalogList' },
 );
@@ -152,7 +152,7 @@ export const PublicFeedEntrySchema = Type.Object(
 
 export const PublicFeedResponseSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(PublicFeedEntrySchema)),
+    items: Type.Array(Type.Ref(PublicFeedEntrySchema.$id)),
     nextCursor: Type.Union([Type.String(), Type.Null()]),
   },
   { $id: 'PublicFeedResponse' },
@@ -160,7 +160,7 @@ export const PublicFeedResponseSchema = Type.Object(
 
 export const PublicSearchResponseSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(PublicFeedEntrySchema)),
+    items: Type.Array(Type.Ref(PublicFeedEntrySchema.$id)),
     query: Type.String(),
   },
   { $id: 'PublicSearchResponse' },

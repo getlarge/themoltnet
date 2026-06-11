@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 
 import { DateTime } from './atoms.js';
 import { DiaryEntryWithCreatorSchema } from './diary.js';
@@ -19,17 +19,14 @@ export const ContextPackEntrySchema = Type.Object({
   originalTokens: Type.Union([Type.Number(), Type.Null()]),
   packedTokens: Type.Union([Type.Number(), Type.Null()]),
   rank: Type.Union([Type.Integer(), Type.Null()]),
-  createdAt: Type.Unsafe<Date | string>({
-    type: 'string',
-    format: 'date-time',
-  }),
+  createdAt: Type.Unsafe<Date | string>(Type.String({ format: 'date-time' })),
 });
 
-export const ExpandedPackEntrySchema = Type.Composite(
+export const ExpandedPackEntrySchema = Type.Intersect(
   [
     ContextPackEntrySchema,
     Type.Object({
-      entry: Type.Ref(DiaryEntryWithCreatorSchema),
+      entry: Type.Ref(DiaryEntryWithCreatorSchema.$id),
     }),
   ],
   { $id: 'ExpandedPackEntry' },
@@ -51,32 +48,29 @@ export const ContextPackSchema = Type.Object(
     ]),
     pinned: Type.Boolean(),
     expiresAt: Type.Union([
-      Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
+      Type.Unsafe<Date | string>(Type.String({ format: 'date-time' })),
       Type.Null(),
     ]),
-    createdAt: Type.Unsafe<Date | string>({
-      type: 'string',
-      format: 'date-time',
-    }),
+    createdAt: Type.Unsafe<Date | string>(Type.String({ format: 'date-time' })),
   },
   { $id: 'ContextPack' },
 );
 
-export const ContextPackExpandedSchema = Type.Composite(
+export const ContextPackExpandedSchema = Type.Intersect(
   [
     ContextPackSchema,
     Type.Object({
-      entries: Type.Array(Type.Ref(ExpandedPackEntrySchema)),
+      entries: Type.Array(Type.Ref(ExpandedPackEntrySchema.$id)),
     }),
   ],
   { $id: 'ContextPackExpanded' },
 );
 
-export const ContextPackResponseSchema = Type.Composite(
+export const ContextPackResponseSchema = Type.Intersect(
   [
     ContextPackSchema,
     Type.Object({
-      entries: Type.Optional(Type.Array(Type.Ref(ExpandedPackEntrySchema))),
+      entries: Type.Optional(Type.Array(Type.Ref(ExpandedPackEntrySchema.$id))),
     }),
   ],
   { $id: 'ContextPackResponse' },
@@ -84,7 +78,7 @@ export const ContextPackResponseSchema = Type.Composite(
 
 export const ContextPackListSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(ContextPackSchema)),
+    items: Type.Array(Type.Ref(ContextPackSchema.$id)),
     total: Type.Number({
       description: 'Total number of matching items in the database.',
     }),
@@ -100,7 +94,7 @@ export const ContextPackListSchema = Type.Object(
 
 export const ContextPackResponseListSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(ContextPackResponseSchema)),
+    items: Type.Array(Type.Ref(ContextPackResponseSchema.$id)),
     total: Type.Number({
       description: 'Total number of matching items in the database.',
     }),
@@ -152,8 +146,8 @@ export const CustomPackResultSchema = Type.Object(
     packCid: Type.String(),
     packType: Type.Literal('custom'),
     params: Type.Record(Type.String(), Type.Unknown()),
-    entries: Type.Array(Type.Ref(CustomPackEntryResultSchema)),
-    compileStats: Type.Ref(CompileStatsSchema),
+    entries: Type.Array(Type.Ref(CustomPackEntryResultSchema.$id)),
+    compileStats: Type.Ref(CompileStatsSchema.$id),
   },
   { $id: 'CustomPackResult' },
 );
@@ -216,17 +210,17 @@ const PackDiffEntryBaseSchema = Type.Object({
   packedTokens: Type.Union([Type.Integer(), Type.Null()]),
 });
 
-const PackDiffAddedEntrySchema = Type.Composite([
+const PackDiffAddedEntrySchema = Type.Intersect([
   PackDiffEntryBaseSchema,
   Type.Object({ rank: Type.Integer() }),
 ]);
 
-const PackDiffRemovedEntrySchema = Type.Composite([
+const PackDiffRemovedEntrySchema = Type.Intersect([
   PackDiffEntryBaseSchema,
   Type.Object({ rank: Type.Integer() }),
 ]);
 
-const PackDiffReorderedEntrySchema = Type.Composite([
+const PackDiffReorderedEntrySchema = Type.Intersect([
   PackDiffEntryBaseSchema,
   Type.Object({
     oldRank: Type.Integer(),
@@ -252,10 +246,7 @@ const PackDiffPackMetaSchema = Type.Object({
   packCid: Type.String(),
   totalTokens: Type.Union([Type.Integer(), Type.Null()]),
   packType: PackTypeSchema,
-  createdAt: Type.Unsafe<Date | string>({
-    type: 'string',
-    format: 'date-time',
-  }),
+  createdAt: Type.Unsafe<Date | string>(Type.String({ format: 'date-time' })),
 });
 
 export const PackDiffResultSchema = Type.Object(
@@ -443,7 +434,7 @@ export const RenderedPackSchema = Type.Object(
 
 export const RenderedPackListSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(RenderedPackSchema)),
+    items: Type.Array(Type.Ref(RenderedPackSchema.$id)),
     total: Type.Number({
       description: 'Total number of matching rendered packs.',
     }),
@@ -503,11 +494,13 @@ export const RenderedPackWithContentSchema = Type.Object(
   { $id: 'RenderedPackWithContent' },
 );
 
-export const ContextPackResponseListWithRenderedSchema = Type.Composite(
+export const ContextPackResponseListWithRenderedSchema = Type.Intersect(
   [
     ContextPackResponseListSchema,
     Type.Object({
-      renderedPacks: Type.Optional(Type.Array(Type.Ref(RenderedPackSchema))),
+      renderedPacks: Type.Optional(
+        Type.Array(Type.Ref(RenderedPackSchema.$id)),
+      ),
     }),
   ],
   { $id: 'ContextPackResponseListWithRendered' },

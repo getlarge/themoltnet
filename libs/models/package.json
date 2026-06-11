@@ -12,7 +12,7 @@
   },
   "scripts": {},
   "dependencies": {
-    "@sinclair/typebox": "catalog:"
+    "typebox": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:"

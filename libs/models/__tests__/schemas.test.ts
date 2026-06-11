@@ -1,6 +1,6 @@
-import { FormatRegistry } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
+import { Type } from 'typebox';
+import * as Format from 'typebox/format';
+import { Value } from 'typebox/value';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -21,11 +21,11 @@ const UUID_RE =
 const DATE_TIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 
 beforeAll(() => {
-  if (!FormatRegistry.Has('uuid')) {
-    FormatRegistry.Set('uuid', (v) => UUID_RE.test(v));
+  if (!Format.Has('uuid')) {
+    Format.Set('uuid', (v) => UUID_RE.test(v));
   }
-  if (!FormatRegistry.Has('date-time')) {
-    FormatRegistry.Set('date-time', (v) => DATE_TIME_RE.test(v));
+  if (!Format.Has('date-time')) {
+    Format.Set('date-time', (v) => DATE_TIME_RE.test(v));
   }
 });
 

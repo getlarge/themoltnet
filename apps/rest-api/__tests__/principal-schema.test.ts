@@ -1,5 +1,5 @@
-import { FormatRegistry } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
+import * as Format from 'typebox/format';
+import { Value } from 'typebox/value';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -12,8 +12,8 @@ import {
 // Loose form (any 8-4-4-4-12 hex) — version/variant strictness is not enforced.
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-if (!FormatRegistry.Has('uuid')) {
-  FormatRegistry.Set('uuid', (v) => UUID_RE.test(v));
+if (!Format.Has('uuid')) {
+  Format.Set('uuid', (v) => UUID_RE.test(v));
 }
 
 describe('PrincipalIdentitySchema', () => {

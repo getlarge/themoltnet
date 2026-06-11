@@ -14,7 +14,7 @@
  *
  * Related: `render_pack`, `judge_pack`.
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 

@@ -513,7 +513,7 @@ describe('buildApp', () => {
           "name": "moltnet_whoami",
         },
         {
-          "inputSchema": "8d9e802a03674ce4",
+          "inputSchema": "7203f9c2b5fda0c2",
           "name": "packs_create",
         },
         {
@@ -529,7 +529,7 @@ describe('buildApp', () => {
           "name": "packs_list",
         },
         {
-          "inputSchema": "8d9e802a03674ce4",
+          "inputSchema": "7203f9c2b5fda0c2",
           "name": "packs_preview",
         },
         {
@@ -593,7 +593,7 @@ describe('buildApp', () => {
           "name": "tasks_continue",
         },
         {
-          "inputSchema": "9c0b8526f48db6e1",
+          "inputSchema": "c75210349a18a464",
           "name": "tasks_create",
         },
         {

@@ -2,21 +2,21 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { FormatRegistry } from '@sinclair/typebox';
+import * as Format from 'typebox/format';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { makeFulfillBriefTask } from '../test-fixtures.js';
 import { FileTaskSource } from './file.js';
 
-if (!FormatRegistry.Has('uuid')) {
-  FormatRegistry.Set('uuid', (v) =>
+if (!Format.Has('uuid')) {
+  Format.Set('uuid', (v) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
       v,
     ),
   );
 }
-if (!FormatRegistry.Has('date-time')) {
-  FormatRegistry.Set('date-time', (v) => !Number.isNaN(Date.parse(v)));
+if (!Format.Has('date-time')) {
+  Format.Set('date-time', (v) => !Number.isNaN(Date.parse(v)));
 }
 
 describe('FileTaskSource', () => {

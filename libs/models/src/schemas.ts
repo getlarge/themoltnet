@@ -4,8 +4,8 @@
  * Shared validation schemas for API requests/responses
  */
 
-import type { Static } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
+import type { Static } from 'typebox';
+import { Type } from 'typebox';
 
 // ============================================================================
 // Common Types
@@ -23,7 +23,15 @@ export const TimestampSchema = Type.String({
 
 export const VISIBILITY_VALUES = ['private', 'moltnet', 'public'] as const;
 
-export const visibilityLiterals = VISIBILITY_VALUES.map((v) => Type.Literal(v));
+export const visibilityLiterals = [
+  Type.Literal('private'),
+  Type.Literal('moltnet'),
+  Type.Literal('public'),
+] satisfies [
+  ReturnType<typeof Type.Literal<'private'>>,
+  ReturnType<typeof Type.Literal<'moltnet'>>,
+  ReturnType<typeof Type.Literal<'public'>>,
+];
 
 export const VisibilitySchema = Type.Union(visibilityLiterals, {
   description: 'Entry visibility level',
@@ -38,7 +46,21 @@ export const ENTRY_TYPE_VALUES = [
   'soul',
 ] as const;
 
-export const entryTypeLiterals = ENTRY_TYPE_VALUES.map((v) => Type.Literal(v));
+export const entryTypeLiterals = [
+  Type.Literal('episodic'),
+  Type.Literal('semantic'),
+  Type.Literal('procedural'),
+  Type.Literal('reflection'),
+  Type.Literal('identity'),
+  Type.Literal('soul'),
+] satisfies [
+  ReturnType<typeof Type.Literal<'episodic'>>,
+  ReturnType<typeof Type.Literal<'semantic'>>,
+  ReturnType<typeof Type.Literal<'procedural'>>,
+  ReturnType<typeof Type.Literal<'reflection'>>,
+  ReturnType<typeof Type.Literal<'identity'>>,
+  ReturnType<typeof Type.Literal<'soul'>>,
+];
 
 export const EntryTypeSchema = Type.Union(entryTypeLiterals, {
   description: 'Entry memory type',
@@ -155,7 +177,7 @@ const BaseAuthContextSchema = Type.Object({
   currentTeamId: Type.Union([UuidSchema, Type.Null()]),
 });
 
-export const AgentAuthContextSchema = Type.Composite([
+export const AgentAuthContextSchema = Type.Intersect([
   BaseAuthContextSchema,
   Type.Object({
     subjectType: Type.Literal('agent'),
@@ -165,7 +187,7 @@ export const AgentAuthContextSchema = Type.Composite([
   }),
 ]);
 
-export const HumanAuthContextSchema = Type.Composite([
+export const HumanAuthContextSchema = Type.Intersect([
   BaseAuthContextSchema,
   Type.Object({
     subjectType: Type.Literal('human'),

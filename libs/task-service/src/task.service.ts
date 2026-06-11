@@ -46,7 +46,7 @@ import {
   validateTaskInputAsync,
   validateTaskOutput,
 } from '@moltnet/tasks';
-import type { TSchema } from '@sinclair/typebox';
+import type { TSchema } from 'typebox';
 
 import {
   collectConditionTaskIds,

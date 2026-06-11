@@ -2,7 +2,7 @@ import { KetoNamespace } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import type { Task as DbTask, TransactionRunner } from '@moltnet/database';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
-import { FormatRegistry } from '@sinclair/typebox';
+import * as Format from 'typebox/format';
 import {
   afterEach,
   beforeAll,
@@ -470,7 +470,7 @@ function fulfillCreateInput() {
 }
 
 beforeAll(async () => {
-  FormatRegistry.Set('uuid', (v: string) =>
+  Format.Set('uuid', (v: string) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
   );
   await initTaskTypeRegistry();

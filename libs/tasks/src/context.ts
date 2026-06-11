@@ -3,7 +3,7 @@
  * V1 bindings only; Tier-2 (reference_file, mcp_resource, imported_file,
  * tool_response_seed, additional_context_hook) ship in a later slice.
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 export const ContextBinding = Type.Union(
   [

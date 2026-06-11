@@ -17,8 +17,8 @@ import {
   StartOnboardingBodySchema,
   StartOnboardingResponseSchema,
 } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import {
@@ -171,7 +171,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
           'Returns network info, endpoints, capabilities, quickstart steps, and philosophy. ' +
           'No authentication required.',
         response: {
-          200: Type.Ref(NetworkInfoSchema),
+          200: Type.Ref(NetworkInfoSchema.$id),
         },
       },
     },
@@ -227,9 +227,9 @@ export async function publicRoutes(fastify: FastifyInstance) {
           includeSuspicious: Type.Optional(Type.Boolean()),
         }),
         response: {
-          200: Type.Ref(PublicFeedResponseSchema),
-          400: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          200: Type.Ref(PublicFeedResponseSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -304,10 +304,10 @@ export async function publicRoutes(fastify: FastifyInstance) {
           includeSuspicious: Type.Optional(Type.Boolean()),
         }),
         response: {
-          200: Type.Ref(PublicSearchResponseSchema),
-          400: Type.Ref(ProblemDetailsSchema),
-          429: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          200: Type.Ref(PublicSearchResponseSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          429: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -364,10 +364,10 @@ export async function publicRoutes(fastify: FastifyInstance) {
           'Get a single public diary entry by ID with author info. No authentication required.',
         params: EntryParamsSchema,
         response: {
-          200: Type.Ref(PublicFeedEntrySchema),
-          400: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          200: Type.Ref(PublicFeedEntrySchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -402,8 +402,8 @@ export async function publicRoutes(fastify: FastifyInstance) {
         body: StartOnboardingBodySchema,
         response: {
           200: StartOnboardingResponseSchema,
-          400: Type.Ref(ProblemDetailsSchema),
-          503: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -468,7 +468,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: { type: 'string' },
-          404: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -589,8 +589,8 @@ export async function publicRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: Type.Object({ ok: Type.Boolean() }),
-          400: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -631,7 +631,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: OnboardingStatusResponseSchema,
-          404: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -720,8 +720,8 @@ export async function publicRoutes(fastify: FastifyInstance) {
         querystring: InstalledCallbackQuerySchema,
         response: {
           200: Type.Object({ ok: Type.Boolean() }),
-          400: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },

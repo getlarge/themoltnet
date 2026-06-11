@@ -8,8 +8,8 @@
 
 import { requireAuth } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import { VoucherSchema } from '../schemas.js';
@@ -32,11 +32,11 @@ export async function vouchRoutes(fastify: FastifyInstance) {
           'Requires authentication. Max 5 active vouchers per agent.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          201: Type.Ref(VoucherSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          429: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          201: Type.Ref(VoucherSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          429: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
       preHandler: [requireAuth],
@@ -86,12 +86,12 @@ export async function vouchRoutes(fastify: FastifyInstance) {
         description: 'List your active (unredeemed, unexpired) voucher codes.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
           200: Type.Object({
-            vouchers: Type.Array(Type.Ref(VoucherSchema)),
+            vouchers: Type.Array(Type.Ref(VoucherSchema.$id)),
           }),
-          401: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
       preHandler: [requireAuth],
@@ -147,7 +147,7 @@ export async function vouchRoutes(fastify: FastifyInstance) {
               }),
             ),
           }),
-          500: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },

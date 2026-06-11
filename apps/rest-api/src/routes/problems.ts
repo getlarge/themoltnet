@@ -6,8 +6,8 @@
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { acceptsProblemJson } from '../problems/helpers.js';
 import {
@@ -95,7 +95,7 @@ export async function problemRoutes(fastify: FastifyInstance) {
             title: 'Not Found',
             status: 404,
             code: 'NOT_FOUND',
-            detail: `Problem type "${type}" does not exist`,
+            detail: `Problem type "${String(type)}" does not exist`,
             instance: request.url,
           });
       }

@@ -10,8 +10,8 @@ import type {
   AgentSession,
   ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
-import { Type } from '@sinclair/typebox';
 import { createSubagentContractRegistry } from '@themoltnet/agent-runtime';
+import { Type } from 'typebox';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BuildAgentSessionArgs } from './agent-session-factory.js';

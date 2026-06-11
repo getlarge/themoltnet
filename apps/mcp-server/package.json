@@ -50,7 +50,7 @@
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@opentelemetry/sdk-trace-node": "catalog:",
     "@opentelemetry/semantic-conventions": "catalog:",
-    "@sinclair/typebox": "catalog:",
+    "typebox": "catalog:",
     "fastify": "catalog:",
     "fastify-plugin": "catalog:",
     "pino": "catalog:",

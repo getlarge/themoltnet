@@ -19,8 +19,8 @@
  *      response because the schema permitted "anything" past `kind`).
  */
 
-import { FormatRegistry } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
+import * as Format from 'typebox/format';
+import { Value } from 'typebox/value';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -32,8 +32,8 @@ import {
 // TypeBox 0.34+ rejects values whose declared `format` is not registered.
 // The principal schemas use `uuid` — register a permissive matcher so
 // `Value.Check` can validate fixtures without pulling the full Ajv stack.
-if (!FormatRegistry.Has('uuid')) {
-  FormatRegistry.Set('uuid', (value: string): boolean =>
+if (!Format.Has('uuid')) {
+  Format.Set('uuid', (value: string): boolean =>
     /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
       value,
     ),

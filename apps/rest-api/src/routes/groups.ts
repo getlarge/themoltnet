@@ -21,8 +21,8 @@ import {
   RemovedResponseSchema,
   TeamParamsSchema,
 } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { createProblem, isUniqueViolation } from '../problems/index.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
@@ -47,11 +47,11 @@ export async function groupRoutes(fastify: FastifyInstance) {
         body: CreateGroupSchema,
         response: {
           201: GroupResponseSchema,
-          400: Type.Ref(ProblemDetailsSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          409: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -136,10 +136,10 @@ export async function groupRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamParamsSchema,
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
           200: Type.Object({ items: Type.Array(GroupResponseSchema) }),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -180,10 +180,10 @@ export async function groupRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupParamsSchema,
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
           200: GroupDetailSchema,
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -230,11 +230,11 @@ export async function groupRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupParamsSchema,
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
           200: DeletedResponseSchema,
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -283,10 +283,10 @@ export async function groupRoutes(fastify: FastifyInstance) {
         body: AddGroupMemberSchema,
         response: {
           201: GroupMemberResponseSchema,
-          400: Type.Ref(ProblemDetailsSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -349,10 +349,10 @@ export async function groupRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: GroupParamsSchema,
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
           200: Type.Object({ items: Type.Array(GroupMemberResponseSchema) }),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -397,9 +397,9 @@ export async function groupRoutes(fastify: FastifyInstance) {
         params: GroupMemberParamsSchema,
         response: {
           200: RemovedResponseSchema,
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },

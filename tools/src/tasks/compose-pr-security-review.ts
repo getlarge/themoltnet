@@ -29,7 +29,7 @@ import { parseArgs } from 'node:util';
 
 import type { ContextRef, Rubric as RubricType } from '@moltnet/tasks';
 import { PR_REVIEW_TYPE, PrReviewInput, Rubric } from '@moltnet/tasks';
-import { Value } from '@sinclair/typebox/value';
+import { Value } from 'typebox/value';
 
 const { values: args } = parseArgs({
   options: {
@@ -190,7 +190,9 @@ function readRubric(repoRoot: string): RubricType {
     const errors = [...Value.Errors(Rubric, parsed)].slice(0, 5);
     throw new Error(
       `Rubric at ${rubricPath} does not match the @moltnet/tasks Rubric schema.\n` +
-        errors.map((e) => `  - ${e.path || '(root)'}: ${e.message}`).join('\n'),
+        errors
+          .map((e) => `  - ${e.instancePath || '(root)'}: ${e.message}`)
+          .join('\n'),
     );
   }
   return parsed;
@@ -254,7 +256,9 @@ function validateInput(input: unknown): void {
     const errors = [...Value.Errors(PrReviewInput, input)].slice(0, 5);
     throw new Error(
       'Composed PrReviewInput failed TypeBox validation:\n' +
-        errors.map((e) => `  - ${e.path || '(root)'}: ${e.message}`).join('\n'),
+        errors
+          .map((e) => `  - ${e.instancePath || '(root)'}: ${e.message}`)
+          .join('\n'),
     );
   }
 }

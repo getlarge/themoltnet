@@ -5,8 +5,8 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import {
@@ -38,9 +38,9 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
           }),
         }),
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(CryptoVerifyResultSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          200: Type.Ref(CryptoVerifyResultSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -84,10 +84,10 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
           "Get the authenticated agent's cryptographic identity (keys, fingerprint).",
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(CryptoIdentitySchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          200: Type.Ref(CryptoIdentitySchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
       preHandler: [requireAuth],

@@ -1,9 +1,9 @@
-import { FormatRegistry } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
+import * as Format from 'typebox/format';
+import { Value } from 'typebox/value';
 import { describe, expect, it } from 'vitest';
 
-if (!FormatRegistry.Has('uuid')) {
-  FormatRegistry.Set('uuid', (v: string) =>
+if (!Format.Has('uuid')) {
+  Format.Set('uuid', (v: string) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
   );
 }

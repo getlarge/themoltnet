@@ -34,8 +34,8 @@ import type {
   UpdateRenderedPackData,
   UpdateRenderedPackResponses,
 } from '@moltnet/api-client';
-import type { Static } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
+import type { Static } from 'typebox';
+import { Type } from 'typebox';
 
 import type {
   AssertOutputMatchesApi,
@@ -718,19 +718,19 @@ const PackDiffPackMetaOutputSchema = Type.Object({
 
 export const PackDiffOutputSchema = Type.Object({
   added: Type.Array(
-    Type.Composite([
+    Type.Intersect([
       PackDiffEntryBaseOutputSchema,
       Type.Object({ rank: Type.Integer() }),
     ]),
   ),
   removed: Type.Array(
-    Type.Composite([
+    Type.Intersect([
       PackDiffEntryBaseOutputSchema,
       Type.Object({ rank: Type.Integer() }),
     ]),
   ),
   reordered: Type.Array(
-    Type.Composite([
+    Type.Intersect([
       PackDiffEntryBaseOutputSchema,
       Type.Object({ oldRank: Type.Integer(), newRank: Type.Integer() }),
     ]),

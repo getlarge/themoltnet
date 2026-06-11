@@ -41,7 +41,7 @@
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
     "@opentelemetry/api": "catalog:",
-    "@sinclair/typebox": "catalog:",
+    "typebox": "catalog:",
     "@themoltnet/agent-runtime": "workspace:*",
     "@themoltnet/sdk": "workspace:*"
   },

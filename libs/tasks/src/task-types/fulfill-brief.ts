@@ -5,7 +5,7 @@
  * criteria: optional (assessment happens as a separate `assess_brief` task)
  * references: optional (external GitHub issue/PR is the typical seed)
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 

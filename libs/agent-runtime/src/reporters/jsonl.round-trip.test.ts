@@ -14,23 +14,23 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { TaskMessage } from '@moltnet/tasks';
-import { FormatRegistry } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
+import * as Format from 'typebox/format';
+import { Value } from 'typebox/value';
 import { describe, expect, it } from 'vitest';
 
 // PR 1's Drizzle `task_messages.task_id` is a uuid column and
 // `task_messages.timestamp` is a timestamptz. TypeBox doesn't validate
 // string formats by default; register enough here to make the
 // round-trip check meaningful.
-if (!FormatRegistry.Has('uuid')) {
-  FormatRegistry.Set('uuid', (v) =>
+if (!Format.Has('uuid')) {
+  Format.Set('uuid', (v) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
       v,
     ),
   );
 }
-if (!FormatRegistry.Has('date-time')) {
-  FormatRegistry.Set('date-time', (v) => !Number.isNaN(Date.parse(v)));
+if (!Format.Has('date-time')) {
+  Format.Set('date-time', (v) => !Number.isNaN(Date.parse(v)));
 }
 
 import { JsonlReporter } from './jsonl.js';
@@ -96,7 +96,7 @@ describe('JsonlReporter round-trip', () => {
       for (const row of records) {
         if (!Value.Check(TaskMessage, row)) {
           const errors = [...Value.Errors(TaskMessage, row)].map(
-            (e) => `${e.path}: ${e.message}`,
+            (e) => `${e.instancePath}: ${e.message}`,
           );
           throw new Error(
             `TaskMessage validation failed:\n${errors.join('\n')}\nrow: ${JSON.stringify(row)}`,

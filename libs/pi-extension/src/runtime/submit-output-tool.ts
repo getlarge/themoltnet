@@ -30,11 +30,11 @@
  */
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
-import type { TObject } from '@sinclair/typebox';
 import {
   getSubmitOutputContract,
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
+import type { TObject } from 'typebox';
 
 import { recordTaskOutputParseResult } from './task-output.js';
 

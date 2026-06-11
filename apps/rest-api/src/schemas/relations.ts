@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import { DateTime } from './atoms.js';
 
@@ -15,6 +15,7 @@ export const RelationTypeSchema = Type.Union(
   ],
   { $id: 'RelationType' },
 );
+export type RelationType = Static<typeof RelationTypeSchema>;
 
 export const RelationStatusSchema = Type.Union(
   [
@@ -24,14 +25,15 @@ export const RelationStatusSchema = Type.Union(
   ],
   { $id: 'RelationStatus' },
 );
+export type RelationStatus = Static<typeof RelationStatusSchema>;
 
 export const EntryRelationSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     sourceId: Type.String({ format: 'uuid' }),
     targetId: Type.String({ format: 'uuid' }),
-    relation: Type.Ref(RelationTypeSchema),
-    status: Type.Ref(RelationStatusSchema),
+    relation: Type.Unsafe<RelationType>(Type.Ref(RelationTypeSchema.$id)),
+    status: Type.Unsafe<RelationStatus>(Type.Ref(RelationStatusSchema.$id)),
     sourceCidSnapshot: Type.Union([Type.String(), Type.Null()]),
     targetCidSnapshot: Type.Union([Type.String(), Type.Null()]),
     workflowId: Type.Union([Type.String(), Type.Null()]),
@@ -45,7 +47,7 @@ export const EntryRelationSchema = Type.Object(
 
 export const EntryRelationListSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(EntryRelationSchema)),
+    items: Type.Array(Type.Ref(EntryRelationSchema.$id)),
     total: Type.Number({
       description: 'Total number of matching items in the database.',
     }),
@@ -61,7 +63,7 @@ export const EntryRelationListSchema = Type.Object(
 
 // ── Expanded Relations (depth traversal) ───────────────────
 
-export const EntryRelationWithDepthSchema = Type.Composite(
+export const EntryRelationWithDepthSchema = Type.Intersect(
   [
     EntryRelationSchema,
     Type.Object({
@@ -86,7 +88,7 @@ export const ExpandedRelationsSchema = Type.Object(
       maximum: 3,
       description: 'Server-side depth cap.',
     }),
-    items: Type.Array(Type.Ref(EntryRelationWithDepthSchema)),
+    items: Type.Array(Type.Ref(EntryRelationWithDepthSchema.$id)),
   },
   { $id: 'ExpandedRelations' },
 );
