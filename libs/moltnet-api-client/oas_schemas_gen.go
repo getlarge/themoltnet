@@ -1155,7 +1155,7 @@ func (*CompleteTaskNotFound) completeTaskRes() {}
 
 type CompleteTaskReq struct {
 	ContentSignature    OptString                          `json:"contentSignature"`
-	DaemonState         OptDaemonState                     `json:"daemonState"`
+	DaemonState         OptNilDaemonState                  `json:"daemonState"`
 	ExecutorFingerprint OptString                          `json:"executorFingerprint"`
 	ExecutorManifest    OptCompleteTaskReqExecutorManifest `json:"executorManifest"`
 	ExecutorSignature   OptString                          `json:"executorSignature"`
@@ -1170,7 +1170,7 @@ func (s *CompleteTaskReq) GetContentSignature() OptString {
 }
 
 // GetDaemonState returns the value of DaemonState.
-func (s *CompleteTaskReq) GetDaemonState() OptDaemonState {
+func (s *CompleteTaskReq) GetDaemonState() OptNilDaemonState {
 	return s.DaemonState
 }
 
@@ -1210,7 +1210,7 @@ func (s *CompleteTaskReq) SetContentSignature(val OptString) {
 }
 
 // SetDaemonState sets the value of DaemonState.
-func (s *CompleteTaskReq) SetDaemonState(val OptDaemonState) {
+func (s *CompleteTaskReq) SetDaemonState(val OptNilDaemonState) {
 	s.DaemonState = val
 }
 
@@ -1270,12 +1270,12 @@ type CompleteTaskUnauthorized ProblemDetails
 
 func (*CompleteTaskUnauthorized) completeTaskRes() {}
 
+// Merged schema.
 // Ref: #/components/schemas/ContextPackResponse
 type ContextPackResponse struct {
 	CreatedAt        time.Time                   `json:"createdAt"`
 	Creator          ContextPackResponseCreator  `json:"creator"`
 	DiaryId          uuid.UUID                   `json:"diaryId"`
-	Entries          []ExpandedPackEntry         `json:"entries"`
 	ExpiresAt        NilDateTime                 `json:"expiresAt"`
 	ID               uuid.UUID                   `json:"id"`
 	PackCid          string                      `json:"packCid"`
@@ -1285,6 +1285,7 @@ type ContextPackResponse struct {
 	Payload          jx.Raw                      `json:"payload"`
 	Pinned           bool                        `json:"pinned"`
 	SupersedesPackId NilUUID                     `json:"supersedesPackId"`
+	Entries          []ExpandedPackEntry         `json:"entries"`
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -1300,11 +1301,6 @@ func (s *ContextPackResponse) GetCreator() ContextPackResponseCreator {
 // GetDiaryId returns the value of DiaryId.
 func (s *ContextPackResponse) GetDiaryId() uuid.UUID {
 	return s.DiaryId
-}
-
-// GetEntries returns the value of Entries.
-func (s *ContextPackResponse) GetEntries() []ExpandedPackEntry {
-	return s.Entries
 }
 
 // GetExpiresAt returns the value of ExpiresAt.
@@ -1352,6 +1348,11 @@ func (s *ContextPackResponse) GetSupersedesPackId() NilUUID {
 	return s.SupersedesPackId
 }
 
+// GetEntries returns the value of Entries.
+func (s *ContextPackResponse) GetEntries() []ExpandedPackEntry {
+	return s.Entries
+}
+
 // SetCreatedAt sets the value of CreatedAt.
 func (s *ContextPackResponse) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
@@ -1365,11 +1366,6 @@ func (s *ContextPackResponse) SetCreator(val ContextPackResponseCreator) {
 // SetDiaryId sets the value of DiaryId.
 func (s *ContextPackResponse) SetDiaryId(val uuid.UUID) {
 	s.DiaryId = val
-}
-
-// SetEntries sets the value of Entries.
-func (s *ContextPackResponse) SetEntries(val []ExpandedPackEntry) {
-	s.Entries = val
 }
 
 // SetExpiresAt sets the value of ExpiresAt.
@@ -1415,6 +1411,11 @@ func (s *ContextPackResponse) SetPinned(val bool) {
 // SetSupersedesPackId sets the value of SupersedesPackId.
 func (s *ContextPackResponse) SetSupersedesPackId(val NilUUID) {
 	s.SupersedesPackId = val
+}
+
+// SetEntries sets the value of Entries.
+func (s *ContextPackResponse) SetEntries(val []ExpandedPackEntry) {
+	s.Entries = val
 }
 
 func (*ContextPackResponse) getContextPackByIdRes() {}
@@ -1541,16 +1542,17 @@ func (s *ContextPackResponseList) SetTotal(val float64) {
 
 func (*ContextPackResponseList) listDiaryPacksRes() {}
 
+// Merged schema.
 // Ref: #/components/schemas/ContextPackResponseListWithRendered
 type ContextPackResponseListWithRendered struct {
 	Items []ContextPackResponse `json:"items"`
 	// Maximum number of items requested for this response.
 	Limit float64 `json:"limit"`
 	// Number of items skipped before this page.
-	Offset        float64        `json:"offset"`
-	RenderedPacks []RenderedPack `json:"renderedPacks"`
+	Offset float64 `json:"offset"`
 	// Total number of matching items in the database.
-	Total float64 `json:"total"`
+	Total         float64        `json:"total"`
+	RenderedPacks []RenderedPack `json:"renderedPacks"`
 }
 
 // GetItems returns the value of Items.
@@ -1568,14 +1570,14 @@ func (s *ContextPackResponseListWithRendered) GetOffset() float64 {
 	return s.Offset
 }
 
-// GetRenderedPacks returns the value of RenderedPacks.
-func (s *ContextPackResponseListWithRendered) GetRenderedPacks() []RenderedPack {
-	return s.RenderedPacks
-}
-
 // GetTotal returns the value of Total.
 func (s *ContextPackResponseListWithRendered) GetTotal() float64 {
 	return s.Total
+}
+
+// GetRenderedPacks returns the value of RenderedPacks.
+func (s *ContextPackResponseListWithRendered) GetRenderedPacks() []RenderedPack {
+	return s.RenderedPacks
 }
 
 // SetItems sets the value of Items.
@@ -1593,14 +1595,14 @@ func (s *ContextPackResponseListWithRendered) SetOffset(val float64) {
 	s.Offset = val
 }
 
-// SetRenderedPacks sets the value of RenderedPacks.
-func (s *ContextPackResponseListWithRendered) SetRenderedPacks(val []RenderedPack) {
-	s.RenderedPacks = val
-}
-
 // SetTotal sets the value of Total.
 func (s *ContextPackResponseListWithRendered) SetTotal(val float64) {
 	s.Total = val
+}
+
+// SetRenderedPacks sets the value of RenderedPacks.
+func (s *ContextPackResponseListWithRendered) SetRenderedPacks(val []RenderedPack) {
+	s.RenderedPacks = val
 }
 
 func (*ContextPackResponseListWithRendered) listContextPacksRes() {}
@@ -4537,6 +4539,7 @@ func (s *DiaryEntryWithCreatorEntryType) UnmarshalText(data []byte) error {
 	}
 }
 
+// Merged schema.
 // Ref: #/components/schemas/DiaryEntryWithRelations
 type DiaryEntryWithRelations struct {
 	AccessCount      float64                          `json:"accessCount"`
@@ -4551,10 +4554,10 @@ type DiaryEntryWithRelations struct {
 	Importance       float64                          `json:"importance"`
 	InjectionRisk    bool                             `json:"injectionRisk"`
 	LastAccessedAt   NilDateTime                      `json:"lastAccessedAt"`
-	Relations        OptExpandedRelations             `json:"relations"`
 	Tags             []string                         `json:"tags"`
 	Title            NilString                        `json:"title"`
 	UpdatedAt        time.Time                        `json:"updatedAt"`
+	Relations        OptExpandedRelations             `json:"relations"`
 }
 
 // GetAccessCount returns the value of AccessCount.
@@ -4617,11 +4620,6 @@ func (s *DiaryEntryWithRelations) GetLastAccessedAt() NilDateTime {
 	return s.LastAccessedAt
 }
 
-// GetRelations returns the value of Relations.
-func (s *DiaryEntryWithRelations) GetRelations() OptExpandedRelations {
-	return s.Relations
-}
-
 // GetTags returns the value of Tags.
 func (s *DiaryEntryWithRelations) GetTags() []string {
 	return s.Tags
@@ -4635,6 +4633,11 @@ func (s *DiaryEntryWithRelations) GetTitle() NilString {
 // GetUpdatedAt returns the value of UpdatedAt.
 func (s *DiaryEntryWithRelations) GetUpdatedAt() time.Time {
 	return s.UpdatedAt
+}
+
+// GetRelations returns the value of Relations.
+func (s *DiaryEntryWithRelations) GetRelations() OptExpandedRelations {
+	return s.Relations
 }
 
 // SetAccessCount sets the value of AccessCount.
@@ -4697,11 +4700,6 @@ func (s *DiaryEntryWithRelations) SetLastAccessedAt(val NilDateTime) {
 	s.LastAccessedAt = val
 }
 
-// SetRelations sets the value of Relations.
-func (s *DiaryEntryWithRelations) SetRelations(val OptExpandedRelations) {
-	s.Relations = val
-}
-
 // SetTags sets the value of Tags.
 func (s *DiaryEntryWithRelations) SetTags(val []string) {
 	s.Tags = val
@@ -4715,6 +4713,11 @@ func (s *DiaryEntryWithRelations) SetTitle(val NilString) {
 // SetUpdatedAt sets the value of UpdatedAt.
 func (s *DiaryEntryWithRelations) SetUpdatedAt(val time.Time) {
 	s.UpdatedAt = val
+}
+
+// SetRelations sets the value of Relations.
+func (s *DiaryEntryWithRelations) SetRelations(val OptExpandedRelations) {
+	s.Relations = val
 }
 
 func (*DiaryEntryWithRelations) getDiaryEntryByIdRes() {}
@@ -5064,13 +5067,14 @@ func (s *DiffContextPacksByCidOK) SetStats(val DiffContextPacksByCidOKStats) {
 
 func (*DiffContextPacksByCidOK) diffContextPacksByCidRes() {}
 
+// Merged schema.
 type DiffContextPacksByCidOKAddedItem struct {
 	CompressionLevel DiffContextPacksByCidOKAddedItemCompressionLevel `json:"compressionLevel"`
 	EntryCidSnapshot string                                           `json:"entryCidSnapshot"`
 	EntryId          uuid.UUID                                        `json:"entryId"`
 	PackedTokens     NilInt                                           `json:"packedTokens"`
-	Rank             int                                              `json:"rank"`
 	Title            NilString                                        `json:"title"`
+	Rank             int                                              `json:"rank"`
 }
 
 // GetCompressionLevel returns the value of CompressionLevel.
@@ -5093,14 +5097,14 @@ func (s *DiffContextPacksByCidOKAddedItem) GetPackedTokens() NilInt {
 	return s.PackedTokens
 }
 
-// GetRank returns the value of Rank.
-func (s *DiffContextPacksByCidOKAddedItem) GetRank() int {
-	return s.Rank
-}
-
 // GetTitle returns the value of Title.
 func (s *DiffContextPacksByCidOKAddedItem) GetTitle() NilString {
 	return s.Title
+}
+
+// GetRank returns the value of Rank.
+func (s *DiffContextPacksByCidOKAddedItem) GetRank() int {
+	return s.Rank
 }
 
 // SetCompressionLevel sets the value of CompressionLevel.
@@ -5123,14 +5127,14 @@ func (s *DiffContextPacksByCidOKAddedItem) SetPackedTokens(val NilInt) {
 	s.PackedTokens = val
 }
 
-// SetRank sets the value of Rank.
-func (s *DiffContextPacksByCidOKAddedItem) SetRank(val int) {
-	s.Rank = val
-}
-
 // SetTitle sets the value of Title.
 func (s *DiffContextPacksByCidOKAddedItem) SetTitle(val NilString) {
 	s.Title = val
+}
+
+// SetRank sets the value of Rank.
+func (s *DiffContextPacksByCidOKAddedItem) SetRank(val int) {
+	s.Rank = val
 }
 
 type DiffContextPacksByCidOKAddedItemCompressionLevel string
@@ -5391,13 +5395,14 @@ func (s *DiffContextPacksByCidOKChangedItemOldCompressionLevel) UnmarshalText(da
 	}
 }
 
+// Merged schema.
 type DiffContextPacksByCidOKRemovedItem struct {
 	CompressionLevel DiffContextPacksByCidOKRemovedItemCompressionLevel `json:"compressionLevel"`
 	EntryCidSnapshot string                                             `json:"entryCidSnapshot"`
 	EntryId          uuid.UUID                                          `json:"entryId"`
 	PackedTokens     NilInt                                             `json:"packedTokens"`
-	Rank             int                                                `json:"rank"`
 	Title            NilString                                          `json:"title"`
+	Rank             int                                                `json:"rank"`
 }
 
 // GetCompressionLevel returns the value of CompressionLevel.
@@ -5420,14 +5425,14 @@ func (s *DiffContextPacksByCidOKRemovedItem) GetPackedTokens() NilInt {
 	return s.PackedTokens
 }
 
-// GetRank returns the value of Rank.
-func (s *DiffContextPacksByCidOKRemovedItem) GetRank() int {
-	return s.Rank
-}
-
 // GetTitle returns the value of Title.
 func (s *DiffContextPacksByCidOKRemovedItem) GetTitle() NilString {
 	return s.Title
+}
+
+// GetRank returns the value of Rank.
+func (s *DiffContextPacksByCidOKRemovedItem) GetRank() int {
+	return s.Rank
 }
 
 // SetCompressionLevel sets the value of CompressionLevel.
@@ -5450,14 +5455,14 @@ func (s *DiffContextPacksByCidOKRemovedItem) SetPackedTokens(val NilInt) {
 	s.PackedTokens = val
 }
 
-// SetRank sets the value of Rank.
-func (s *DiffContextPacksByCidOKRemovedItem) SetRank(val int) {
-	s.Rank = val
-}
-
 // SetTitle sets the value of Title.
 func (s *DiffContextPacksByCidOKRemovedItem) SetTitle(val NilString) {
 	s.Title = val
+}
+
+// SetRank sets the value of Rank.
+func (s *DiffContextPacksByCidOKRemovedItem) SetRank(val int) {
+	s.Rank = val
 }
 
 type DiffContextPacksByCidOKRemovedItemCompressionLevel string
@@ -5508,14 +5513,15 @@ func (s *DiffContextPacksByCidOKRemovedItemCompressionLevel) UnmarshalText(data 
 	}
 }
 
+// Merged schema.
 type DiffContextPacksByCidOKReorderedItem struct {
 	CompressionLevel DiffContextPacksByCidOKReorderedItemCompressionLevel `json:"compressionLevel"`
 	EntryCidSnapshot string                                               `json:"entryCidSnapshot"`
 	EntryId          uuid.UUID                                            `json:"entryId"`
-	NewRank          int                                                  `json:"newRank"`
-	OldRank          int                                                  `json:"oldRank"`
 	PackedTokens     NilInt                                               `json:"packedTokens"`
 	Title            NilString                                            `json:"title"`
+	NewRank          int                                                  `json:"newRank"`
+	OldRank          int                                                  `json:"oldRank"`
 }
 
 // GetCompressionLevel returns the value of CompressionLevel.
@@ -5533,16 +5539,6 @@ func (s *DiffContextPacksByCidOKReorderedItem) GetEntryId() uuid.UUID {
 	return s.EntryId
 }
 
-// GetNewRank returns the value of NewRank.
-func (s *DiffContextPacksByCidOKReorderedItem) GetNewRank() int {
-	return s.NewRank
-}
-
-// GetOldRank returns the value of OldRank.
-func (s *DiffContextPacksByCidOKReorderedItem) GetOldRank() int {
-	return s.OldRank
-}
-
 // GetPackedTokens returns the value of PackedTokens.
 func (s *DiffContextPacksByCidOKReorderedItem) GetPackedTokens() NilInt {
 	return s.PackedTokens
@@ -5551,6 +5547,16 @@ func (s *DiffContextPacksByCidOKReorderedItem) GetPackedTokens() NilInt {
 // GetTitle returns the value of Title.
 func (s *DiffContextPacksByCidOKReorderedItem) GetTitle() NilString {
 	return s.Title
+}
+
+// GetNewRank returns the value of NewRank.
+func (s *DiffContextPacksByCidOKReorderedItem) GetNewRank() int {
+	return s.NewRank
+}
+
+// GetOldRank returns the value of OldRank.
+func (s *DiffContextPacksByCidOKReorderedItem) GetOldRank() int {
+	return s.OldRank
 }
 
 // SetCompressionLevel sets the value of CompressionLevel.
@@ -5568,16 +5574,6 @@ func (s *DiffContextPacksByCidOKReorderedItem) SetEntryId(val uuid.UUID) {
 	s.EntryId = val
 }
 
-// SetNewRank sets the value of NewRank.
-func (s *DiffContextPacksByCidOKReorderedItem) SetNewRank(val int) {
-	s.NewRank = val
-}
-
-// SetOldRank sets the value of OldRank.
-func (s *DiffContextPacksByCidOKReorderedItem) SetOldRank(val int) {
-	s.OldRank = val
-}
-
 // SetPackedTokens sets the value of PackedTokens.
 func (s *DiffContextPacksByCidOKReorderedItem) SetPackedTokens(val NilInt) {
 	s.PackedTokens = val
@@ -5586,6 +5582,16 @@ func (s *DiffContextPacksByCidOKReorderedItem) SetPackedTokens(val NilInt) {
 // SetTitle sets the value of Title.
 func (s *DiffContextPacksByCidOKReorderedItem) SetTitle(val NilString) {
 	s.Title = val
+}
+
+// SetNewRank sets the value of NewRank.
+func (s *DiffContextPacksByCidOKReorderedItem) SetNewRank(val int) {
+	s.NewRank = val
+}
+
+// SetOldRank sets the value of OldRank.
+func (s *DiffContextPacksByCidOKReorderedItem) SetOldRank(val int) {
+	s.OldRank = val
 }
 
 type DiffContextPacksByCidOKReorderedItemCompressionLevel string
@@ -5994,13 +6000,14 @@ func (s *DiffContextPacksByIdOK) SetStats(val DiffContextPacksByIdOKStats) {
 
 func (*DiffContextPacksByIdOK) diffContextPacksByIdRes() {}
 
+// Merged schema.
 type DiffContextPacksByIdOKAddedItem struct {
 	CompressionLevel DiffContextPacksByIdOKAddedItemCompressionLevel `json:"compressionLevel"`
 	EntryCidSnapshot string                                          `json:"entryCidSnapshot"`
 	EntryId          uuid.UUID                                       `json:"entryId"`
 	PackedTokens     NilInt                                          `json:"packedTokens"`
-	Rank             int                                             `json:"rank"`
 	Title            NilString                                       `json:"title"`
+	Rank             int                                             `json:"rank"`
 }
 
 // GetCompressionLevel returns the value of CompressionLevel.
@@ -6023,14 +6030,14 @@ func (s *DiffContextPacksByIdOKAddedItem) GetPackedTokens() NilInt {
 	return s.PackedTokens
 }
 
-// GetRank returns the value of Rank.
-func (s *DiffContextPacksByIdOKAddedItem) GetRank() int {
-	return s.Rank
-}
-
 // GetTitle returns the value of Title.
 func (s *DiffContextPacksByIdOKAddedItem) GetTitle() NilString {
 	return s.Title
+}
+
+// GetRank returns the value of Rank.
+func (s *DiffContextPacksByIdOKAddedItem) GetRank() int {
+	return s.Rank
 }
 
 // SetCompressionLevel sets the value of CompressionLevel.
@@ -6053,14 +6060,14 @@ func (s *DiffContextPacksByIdOKAddedItem) SetPackedTokens(val NilInt) {
 	s.PackedTokens = val
 }
 
-// SetRank sets the value of Rank.
-func (s *DiffContextPacksByIdOKAddedItem) SetRank(val int) {
-	s.Rank = val
-}
-
 // SetTitle sets the value of Title.
 func (s *DiffContextPacksByIdOKAddedItem) SetTitle(val NilString) {
 	s.Title = val
+}
+
+// SetRank sets the value of Rank.
+func (s *DiffContextPacksByIdOKAddedItem) SetRank(val int) {
+	s.Rank = val
 }
 
 type DiffContextPacksByIdOKAddedItemCompressionLevel string
@@ -6321,13 +6328,14 @@ func (s *DiffContextPacksByIdOKChangedItemOldCompressionLevel) UnmarshalText(dat
 	}
 }
 
+// Merged schema.
 type DiffContextPacksByIdOKRemovedItem struct {
 	CompressionLevel DiffContextPacksByIdOKRemovedItemCompressionLevel `json:"compressionLevel"`
 	EntryCidSnapshot string                                            `json:"entryCidSnapshot"`
 	EntryId          uuid.UUID                                         `json:"entryId"`
 	PackedTokens     NilInt                                            `json:"packedTokens"`
-	Rank             int                                               `json:"rank"`
 	Title            NilString                                         `json:"title"`
+	Rank             int                                               `json:"rank"`
 }
 
 // GetCompressionLevel returns the value of CompressionLevel.
@@ -6350,14 +6358,14 @@ func (s *DiffContextPacksByIdOKRemovedItem) GetPackedTokens() NilInt {
 	return s.PackedTokens
 }
 
-// GetRank returns the value of Rank.
-func (s *DiffContextPacksByIdOKRemovedItem) GetRank() int {
-	return s.Rank
-}
-
 // GetTitle returns the value of Title.
 func (s *DiffContextPacksByIdOKRemovedItem) GetTitle() NilString {
 	return s.Title
+}
+
+// GetRank returns the value of Rank.
+func (s *DiffContextPacksByIdOKRemovedItem) GetRank() int {
+	return s.Rank
 }
 
 // SetCompressionLevel sets the value of CompressionLevel.
@@ -6380,14 +6388,14 @@ func (s *DiffContextPacksByIdOKRemovedItem) SetPackedTokens(val NilInt) {
 	s.PackedTokens = val
 }
 
-// SetRank sets the value of Rank.
-func (s *DiffContextPacksByIdOKRemovedItem) SetRank(val int) {
-	s.Rank = val
-}
-
 // SetTitle sets the value of Title.
 func (s *DiffContextPacksByIdOKRemovedItem) SetTitle(val NilString) {
 	s.Title = val
+}
+
+// SetRank sets the value of Rank.
+func (s *DiffContextPacksByIdOKRemovedItem) SetRank(val int) {
+	s.Rank = val
 }
 
 type DiffContextPacksByIdOKRemovedItemCompressionLevel string
@@ -6438,14 +6446,15 @@ func (s *DiffContextPacksByIdOKRemovedItemCompressionLevel) UnmarshalText(data [
 	}
 }
 
+// Merged schema.
 type DiffContextPacksByIdOKReorderedItem struct {
 	CompressionLevel DiffContextPacksByIdOKReorderedItemCompressionLevel `json:"compressionLevel"`
 	EntryCidSnapshot string                                              `json:"entryCidSnapshot"`
 	EntryId          uuid.UUID                                           `json:"entryId"`
-	NewRank          int                                                 `json:"newRank"`
-	OldRank          int                                                 `json:"oldRank"`
 	PackedTokens     NilInt                                              `json:"packedTokens"`
 	Title            NilString                                           `json:"title"`
+	NewRank          int                                                 `json:"newRank"`
+	OldRank          int                                                 `json:"oldRank"`
 }
 
 // GetCompressionLevel returns the value of CompressionLevel.
@@ -6463,16 +6472,6 @@ func (s *DiffContextPacksByIdOKReorderedItem) GetEntryId() uuid.UUID {
 	return s.EntryId
 }
 
-// GetNewRank returns the value of NewRank.
-func (s *DiffContextPacksByIdOKReorderedItem) GetNewRank() int {
-	return s.NewRank
-}
-
-// GetOldRank returns the value of OldRank.
-func (s *DiffContextPacksByIdOKReorderedItem) GetOldRank() int {
-	return s.OldRank
-}
-
 // GetPackedTokens returns the value of PackedTokens.
 func (s *DiffContextPacksByIdOKReorderedItem) GetPackedTokens() NilInt {
 	return s.PackedTokens
@@ -6481,6 +6480,16 @@ func (s *DiffContextPacksByIdOKReorderedItem) GetPackedTokens() NilInt {
 // GetTitle returns the value of Title.
 func (s *DiffContextPacksByIdOKReorderedItem) GetTitle() NilString {
 	return s.Title
+}
+
+// GetNewRank returns the value of NewRank.
+func (s *DiffContextPacksByIdOKReorderedItem) GetNewRank() int {
+	return s.NewRank
+}
+
+// GetOldRank returns the value of OldRank.
+func (s *DiffContextPacksByIdOKReorderedItem) GetOldRank() int {
+	return s.OldRank
 }
 
 // SetCompressionLevel sets the value of CompressionLevel.
@@ -6498,16 +6507,6 @@ func (s *DiffContextPacksByIdOKReorderedItem) SetEntryId(val uuid.UUID) {
 	s.EntryId = val
 }
 
-// SetNewRank sets the value of NewRank.
-func (s *DiffContextPacksByIdOKReorderedItem) SetNewRank(val int) {
-	s.NewRank = val
-}
-
-// SetOldRank sets the value of OldRank.
-func (s *DiffContextPacksByIdOKReorderedItem) SetOldRank(val int) {
-	s.OldRank = val
-}
-
 // SetPackedTokens sets the value of PackedTokens.
 func (s *DiffContextPacksByIdOKReorderedItem) SetPackedTokens(val NilInt) {
 	s.PackedTokens = val
@@ -6516,6 +6515,16 @@ func (s *DiffContextPacksByIdOKReorderedItem) SetPackedTokens(val NilInt) {
 // SetTitle sets the value of Title.
 func (s *DiffContextPacksByIdOKReorderedItem) SetTitle(val NilString) {
 	s.Title = val
+}
+
+// SetNewRank sets the value of NewRank.
+func (s *DiffContextPacksByIdOKReorderedItem) SetNewRank(val int) {
+	s.NewRank = val
+}
+
+// SetOldRank sets the value of OldRank.
+func (s *DiffContextPacksByIdOKReorderedItem) SetOldRank(val int) {
+	s.OldRank = val
 }
 
 type DiffContextPacksByIdOKReorderedItemCompressionLevel string
@@ -7039,14 +7048,12 @@ func (s *EntryRelationList) SetTotal(val float64) {
 
 func (*EntryRelationList) listEntryRelationsRes() {}
 
+// Merged schema.
 // Ref: #/components/schemas/EntryRelationWithDepth
 type EntryRelationWithDepth struct {
-	Confidence NilFloat64 `json:"confidence"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	// BFS depth from the origin entry (1 = direct).
-	Depth             int            `json:"depth"`
+	Confidence        NilFloat64     `json:"confidence"`
+	CreatedAt         time.Time      `json:"createdAt"`
 	ID                uuid.UUID      `json:"id"`
-	ParentRelationId  NilUUID        `json:"parentRelationId"`
 	Relation          RelationType   `json:"relation"`
 	Similarity        NilFloat64     `json:"similarity"`
 	SourceCidSnapshot NilString      `json:"sourceCidSnapshot"`
@@ -7056,6 +7063,9 @@ type EntryRelationWithDepth struct {
 	TargetId          uuid.UUID      `json:"targetId"`
 	UpdatedAt         time.Time      `json:"updatedAt"`
 	WorkflowId        NilString      `json:"workflowId"`
+	// BFS depth from the origin entry (1 = direct).
+	Depth            int     `json:"depth"`
+	ParentRelationId NilUUID `json:"parentRelationId"`
 }
 
 // GetConfidence returns the value of Confidence.
@@ -7068,19 +7078,9 @@ func (s *EntryRelationWithDepth) GetCreatedAt() time.Time {
 	return s.CreatedAt
 }
 
-// GetDepth returns the value of Depth.
-func (s *EntryRelationWithDepth) GetDepth() int {
-	return s.Depth
-}
-
 // GetID returns the value of ID.
 func (s *EntryRelationWithDepth) GetID() uuid.UUID {
 	return s.ID
-}
-
-// GetParentRelationId returns the value of ParentRelationId.
-func (s *EntryRelationWithDepth) GetParentRelationId() NilUUID {
-	return s.ParentRelationId
 }
 
 // GetRelation returns the value of Relation.
@@ -7128,6 +7128,16 @@ func (s *EntryRelationWithDepth) GetWorkflowId() NilString {
 	return s.WorkflowId
 }
 
+// GetDepth returns the value of Depth.
+func (s *EntryRelationWithDepth) GetDepth() int {
+	return s.Depth
+}
+
+// GetParentRelationId returns the value of ParentRelationId.
+func (s *EntryRelationWithDepth) GetParentRelationId() NilUUID {
+	return s.ParentRelationId
+}
+
 // SetConfidence sets the value of Confidence.
 func (s *EntryRelationWithDepth) SetConfidence(val NilFloat64) {
 	s.Confidence = val
@@ -7138,19 +7148,9 @@ func (s *EntryRelationWithDepth) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
-// SetDepth sets the value of Depth.
-func (s *EntryRelationWithDepth) SetDepth(val int) {
-	s.Depth = val
-}
-
 // SetID sets the value of ID.
 func (s *EntryRelationWithDepth) SetID(val uuid.UUID) {
 	s.ID = val
-}
-
-// SetParentRelationId sets the value of ParentRelationId.
-func (s *EntryRelationWithDepth) SetParentRelationId(val NilUUID) {
-	s.ParentRelationId = val
 }
 
 // SetRelation sets the value of Relation.
@@ -7196,6 +7196,16 @@ func (s *EntryRelationWithDepth) SetUpdatedAt(val time.Time) {
 // SetWorkflowId sets the value of WorkflowId.
 func (s *EntryRelationWithDepth) SetWorkflowId(val NilString) {
 	s.WorkflowId = val
+}
+
+// SetDepth sets the value of Depth.
+func (s *EntryRelationWithDepth) SetDepth(val int) {
+	s.Depth = val
+}
+
+// SetParentRelationId sets the value of ParentRelationId.
+func (s *EntryRelationWithDepth) SetParentRelationId(val NilUUID) {
+	s.ParentRelationId = val
 }
 
 // Ref: #/components/schemas/EntryVerifyResult
@@ -7352,11 +7362,11 @@ func (s *ExecutorTrustLevel) UnmarshalText(data []byte) error {
 	}
 }
 
+// Merged schema.
 // Ref: #/components/schemas/ExpandedPackEntry
 type ExpandedPackEntry struct {
 	CompressionLevel ExpandedPackEntryCompressionLevel `json:"compressionLevel"`
 	CreatedAt        time.Time                         `json:"createdAt"`
-	Entry            DiaryEntryWithCreator             `json:"entry"`
 	EntryCidSnapshot string                            `json:"entryCidSnapshot"`
 	EntryId          uuid.UUID                         `json:"entryId"`
 	ID               uuid.UUID                         `json:"id"`
@@ -7364,6 +7374,7 @@ type ExpandedPackEntry struct {
 	PackId           uuid.UUID                         `json:"packId"`
 	PackedTokens     NilFloat64                        `json:"packedTokens"`
 	Rank             NilInt                            `json:"rank"`
+	Entry            DiaryEntryWithCreator             `json:"entry"`
 }
 
 // GetCompressionLevel returns the value of CompressionLevel.
@@ -7374,11 +7385,6 @@ func (s *ExpandedPackEntry) GetCompressionLevel() ExpandedPackEntryCompressionLe
 // GetCreatedAt returns the value of CreatedAt.
 func (s *ExpandedPackEntry) GetCreatedAt() time.Time {
 	return s.CreatedAt
-}
-
-// GetEntry returns the value of Entry.
-func (s *ExpandedPackEntry) GetEntry() DiaryEntryWithCreator {
-	return s.Entry
 }
 
 // GetEntryCidSnapshot returns the value of EntryCidSnapshot.
@@ -7416,6 +7422,11 @@ func (s *ExpandedPackEntry) GetRank() NilInt {
 	return s.Rank
 }
 
+// GetEntry returns the value of Entry.
+func (s *ExpandedPackEntry) GetEntry() DiaryEntryWithCreator {
+	return s.Entry
+}
+
 // SetCompressionLevel sets the value of CompressionLevel.
 func (s *ExpandedPackEntry) SetCompressionLevel(val ExpandedPackEntryCompressionLevel) {
 	s.CompressionLevel = val
@@ -7424,11 +7435,6 @@ func (s *ExpandedPackEntry) SetCompressionLevel(val ExpandedPackEntryCompression
 // SetCreatedAt sets the value of CreatedAt.
 func (s *ExpandedPackEntry) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
-}
-
-// SetEntry sets the value of Entry.
-func (s *ExpandedPackEntry) SetEntry(val DiaryEntryWithCreator) {
-	s.Entry = val
 }
 
 // SetEntryCidSnapshot sets the value of EntryCidSnapshot.
@@ -7464,6 +7470,11 @@ func (s *ExpandedPackEntry) SetPackedTokens(val NilFloat64) {
 // SetRank sets the value of Rank.
 func (s *ExpandedPackEntry) SetRank(val NilInt) {
 	s.Rank = val
+}
+
+// SetEntry sets the value of Entry.
+func (s *ExpandedPackEntry) SetEntry(val DiaryEntryWithCreator) {
+	s.Entry = val
 }
 
 type ExpandedPackEntryCompressionLevel string
@@ -12437,6 +12448,51 @@ func (o NilBool) Or(d bool) bool {
 	return d
 }
 
+// NewNilClaimCondition returns new NilClaimCondition with value set to v.
+func NewNilClaimCondition(v ClaimCondition) NilClaimCondition {
+	return NilClaimCondition{
+		Value: v,
+	}
+}
+
+// NilClaimCondition is nullable ClaimCondition.
+type NilClaimCondition struct {
+	Value ClaimCondition
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilClaimCondition) SetTo(v ClaimCondition) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilClaimCondition) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilClaimCondition) SetToNull() {
+	o.Null = true
+	var v ClaimCondition
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilClaimCondition) Get() (v ClaimCondition, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilClaimCondition) Or(d ClaimCondition) ClaimCondition {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilDateTime returns new NilDateTime with value set to v.
 func NewNilDateTime(v time.Time) NilDateTime {
 	return NilDateTime{
@@ -12881,51 +12937,6 @@ func (o NilTaskAttemptUsage) Get() (v TaskAttemptUsage, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o NilTaskAttemptUsage) Or(d TaskAttemptUsage) TaskAttemptUsage {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewNilTaskClaimCondition returns new NilTaskClaimCondition with value set to v.
-func NewNilTaskClaimCondition(v TaskClaimCondition) NilTaskClaimCondition {
-	return NilTaskClaimCondition{
-		Value: v,
-	}
-}
-
-// NilTaskClaimCondition is nullable TaskClaimCondition.
-type NilTaskClaimCondition struct {
-	Value TaskClaimCondition
-	Null  bool
-}
-
-// SetTo sets value to v.
-func (o *NilTaskClaimCondition) SetTo(v TaskClaimCondition) {
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o NilTaskClaimCondition) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *NilTaskClaimCondition) SetToNull() {
-	o.Null = true
-	var v TaskClaimCondition
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o NilTaskClaimCondition) Get() (v TaskClaimCondition, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o NilTaskClaimCondition) Or(d TaskClaimCondition) TaskClaimCondition {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -13483,52 +13494,6 @@ func (o OptCreateTeamInviteReqRole) Or(d CreateTeamInviteReqRole) CreateTeamInvi
 	return d
 }
 
-// NewOptDaemonState returns new OptDaemonState with value set to v.
-func NewOptDaemonState(v DaemonState) OptDaemonState {
-	return OptDaemonState{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonState is optional DaemonState.
-type OptDaemonState struct {
-	Value DaemonState
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonState was set.
-func (o OptDaemonState) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonState) Reset() {
-	var v DaemonState
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonState) SetTo(v DaemonState) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonState) Get() (v DaemonState, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonState) Or(d DaemonState) DaemonState {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptDateTime returns new OptDateTime with value set to v.
 func NewOptDateTime(v time.Time) OptDateTime {
 	return OptDateTime{
@@ -14029,6 +13994,69 @@ func (o OptListEntryRelationsDirection) Get() (v ListEntryRelationsDirection, ok
 
 // Or returns value if set, or given parameter if does not.
 func (o OptListEntryRelationsDirection) Or(d ListEntryRelationsDirection) ListEntryRelationsDirection {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilDaemonState returns new OptNilDaemonState with value set to v.
+func NewOptNilDaemonState(v DaemonState) OptNilDaemonState {
+	return OptNilDaemonState{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilDaemonState is optional nullable DaemonState.
+type OptNilDaemonState struct {
+	Value DaemonState
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilDaemonState was set.
+func (o OptNilDaemonState) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilDaemonState) Reset() {
+	var v DaemonState
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilDaemonState) SetTo(v DaemonState) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilDaemonState) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilDaemonState) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v DaemonState
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilDaemonState) Get() (v DaemonState, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilDaemonState) Or(d DaemonState) DaemonState {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -16499,10 +16527,10 @@ func (s *ProvenanceGraphPackNodeKind) UnmarshalText(data []byte) error {
 	}
 }
 
+// Merged schema.
 type ProvenanceGraphPackNodeMeta struct {
 	// ISO 8601 timestamp.
-	CreatedAt time.Time                             `json:"createdAt"`
-	Creator   OptProvenanceGraphPackNodeMetaCreator `json:"creator"`
+	CreatedAt time.Time `json:"createdAt"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID `json:"diaryId"`
 	// ISO 8601 timestamp.
@@ -16514,17 +16542,13 @@ type ProvenanceGraphPackNodeMeta struct {
 	PackType string    `json:"packType"`
 	Pinned   bool      `json:"pinned"`
 	// UUID v4 identifier.
-	SupersedesPackId NilUUID `json:"supersedesPackId"`
+	SupersedesPackId NilUUID                               `json:"supersedesPackId"`
+	Creator          OptProvenanceGraphPackNodeMetaCreator `json:"creator"`
 }
 
 // GetCreatedAt returns the value of CreatedAt.
 func (s *ProvenanceGraphPackNodeMeta) GetCreatedAt() time.Time {
 	return s.CreatedAt
-}
-
-// GetCreator returns the value of Creator.
-func (s *ProvenanceGraphPackNodeMeta) GetCreator() OptProvenanceGraphPackNodeMetaCreator {
-	return s.Creator
 }
 
 // GetDiaryId returns the value of DiaryId.
@@ -16567,14 +16591,14 @@ func (s *ProvenanceGraphPackNodeMeta) GetSupersedesPackId() NilUUID {
 	return s.SupersedesPackId
 }
 
+// GetCreator returns the value of Creator.
+func (s *ProvenanceGraphPackNodeMeta) GetCreator() OptProvenanceGraphPackNodeMetaCreator {
+	return s.Creator
+}
+
 // SetCreatedAt sets the value of CreatedAt.
 func (s *ProvenanceGraphPackNodeMeta) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
-}
-
-// SetCreator sets the value of Creator.
-func (s *ProvenanceGraphPackNodeMeta) SetCreator(val OptProvenanceGraphPackNodeMetaCreator) {
-	s.Creator = val
 }
 
 // SetDiaryId sets the value of DiaryId.
@@ -16615,6 +16639,11 @@ func (s *ProvenanceGraphPackNodeMeta) SetPinned(val bool) {
 // SetSupersedesPackId sets the value of SupersedesPackId.
 func (s *ProvenanceGraphPackNodeMeta) SetSupersedesPackId(val NilUUID) {
 	s.SupersedesPackId = val
+}
+
+// SetCreator sets the value of Creator.
+func (s *ProvenanceGraphPackNodeMeta) SetCreator(val OptProvenanceGraphPackNodeMetaCreator) {
+	s.Creator = val
 }
 
 // ProvenanceGraphPackNodeMetaCreator represents sum type.
@@ -19639,7 +19668,7 @@ type Task struct {
 	CancelReason               NilString                      `json:"cancelReason"`
 	CancelledByAgentId         NilUUID                        `json:"cancelledByAgentId"`
 	CancelledByHumanId         NilUUID                        `json:"cancelledByHumanId"`
-	ClaimCondition             NilTaskClaimCondition          `json:"claimCondition"`
+	ClaimCondition             NilClaimCondition              `json:"claimCondition"`
 	CompletedAt                NilDateTime                    `json:"completedAt"`
 	CorrelationId              NilUUID                        `json:"correlationId"`
 	DiaryId                    NilUUID                        `json:"diaryId"`
@@ -19690,7 +19719,7 @@ func (s *Task) GetCancelledByHumanId() NilUUID {
 }
 
 // GetClaimCondition returns the value of ClaimCondition.
-func (s *Task) GetClaimCondition() NilTaskClaimCondition {
+func (s *Task) GetClaimCondition() NilClaimCondition {
 	return s.ClaimCondition
 }
 
@@ -19830,7 +19859,7 @@ func (s *Task) SetCancelledByHumanId(val NilUUID) {
 }
 
 // SetClaimCondition sets the value of ClaimCondition.
-func (s *Task) SetClaimCondition(val NilTaskClaimCondition) {
+func (s *Task) SetClaimCondition(val NilClaimCondition) {
 	s.ClaimCondition = val
 }
 
@@ -20442,130 +20471,6 @@ func (s *TaskAttemptUsage) SetProvider(val OptString) {
 // SetToolCalls sets the value of ToolCalls.
 func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
 	s.ToolCalls = val
-}
-
-// TaskClaimCondition represents sum type.
-type TaskClaimCondition struct {
-	Type                       TaskClaimConditionType // switch on this field
-	ClaimConditionAll          ClaimConditionAll
-	ClaimConditionAny          ClaimConditionAny
-	ClaimConditionTaskStatus   ClaimConditionTaskStatus
-	ClaimConditionTaskAccepted ClaimConditionTaskAccepted
-}
-
-// TaskClaimConditionType is oneOf type of TaskClaimCondition.
-type TaskClaimConditionType string
-
-// Possible values for TaskClaimConditionType.
-const (
-	ClaimConditionAllTaskClaimCondition          TaskClaimConditionType = "all"
-	ClaimConditionAnyTaskClaimCondition          TaskClaimConditionType = "any"
-	ClaimConditionTaskStatusTaskClaimCondition   TaskClaimConditionType = "task_status"
-	ClaimConditionTaskAcceptedTaskClaimCondition TaskClaimConditionType = "task_accepted"
-)
-
-// IsClaimConditionAll reports whether TaskClaimCondition is ClaimConditionAll.
-func (s TaskClaimCondition) IsClaimConditionAll() bool {
-	return s.Type == ClaimConditionAllTaskClaimCondition
-}
-
-// IsClaimConditionAny reports whether TaskClaimCondition is ClaimConditionAny.
-func (s TaskClaimCondition) IsClaimConditionAny() bool {
-	return s.Type == ClaimConditionAnyTaskClaimCondition
-}
-
-// IsClaimConditionTaskStatus reports whether TaskClaimCondition is ClaimConditionTaskStatus.
-func (s TaskClaimCondition) IsClaimConditionTaskStatus() bool {
-	return s.Type == ClaimConditionTaskStatusTaskClaimCondition
-}
-
-// IsClaimConditionTaskAccepted reports whether TaskClaimCondition is ClaimConditionTaskAccepted.
-func (s TaskClaimCondition) IsClaimConditionTaskAccepted() bool {
-	return s.Type == ClaimConditionTaskAcceptedTaskClaimCondition
-}
-
-// SetClaimConditionAll sets TaskClaimCondition to ClaimConditionAll.
-func (s *TaskClaimCondition) SetClaimConditionAll(v ClaimConditionAll) {
-	s.Type = ClaimConditionAllTaskClaimCondition
-	s.ClaimConditionAll = v
-}
-
-// GetClaimConditionAll returns ClaimConditionAll and true boolean if TaskClaimCondition is ClaimConditionAll.
-func (s TaskClaimCondition) GetClaimConditionAll() (v ClaimConditionAll, ok bool) {
-	if !s.IsClaimConditionAll() {
-		return v, false
-	}
-	return s.ClaimConditionAll, true
-}
-
-// NewClaimConditionAllTaskClaimCondition returns new TaskClaimCondition from ClaimConditionAll.
-func NewClaimConditionAllTaskClaimCondition(v ClaimConditionAll) TaskClaimCondition {
-	var s TaskClaimCondition
-	s.SetClaimConditionAll(v)
-	return s
-}
-
-// SetClaimConditionAny sets TaskClaimCondition to ClaimConditionAny.
-func (s *TaskClaimCondition) SetClaimConditionAny(v ClaimConditionAny) {
-	s.Type = ClaimConditionAnyTaskClaimCondition
-	s.ClaimConditionAny = v
-}
-
-// GetClaimConditionAny returns ClaimConditionAny and true boolean if TaskClaimCondition is ClaimConditionAny.
-func (s TaskClaimCondition) GetClaimConditionAny() (v ClaimConditionAny, ok bool) {
-	if !s.IsClaimConditionAny() {
-		return v, false
-	}
-	return s.ClaimConditionAny, true
-}
-
-// NewClaimConditionAnyTaskClaimCondition returns new TaskClaimCondition from ClaimConditionAny.
-func NewClaimConditionAnyTaskClaimCondition(v ClaimConditionAny) TaskClaimCondition {
-	var s TaskClaimCondition
-	s.SetClaimConditionAny(v)
-	return s
-}
-
-// SetClaimConditionTaskStatus sets TaskClaimCondition to ClaimConditionTaskStatus.
-func (s *TaskClaimCondition) SetClaimConditionTaskStatus(v ClaimConditionTaskStatus) {
-	s.Type = ClaimConditionTaskStatusTaskClaimCondition
-	s.ClaimConditionTaskStatus = v
-}
-
-// GetClaimConditionTaskStatus returns ClaimConditionTaskStatus and true boolean if TaskClaimCondition is ClaimConditionTaskStatus.
-func (s TaskClaimCondition) GetClaimConditionTaskStatus() (v ClaimConditionTaskStatus, ok bool) {
-	if !s.IsClaimConditionTaskStatus() {
-		return v, false
-	}
-	return s.ClaimConditionTaskStatus, true
-}
-
-// NewClaimConditionTaskStatusTaskClaimCondition returns new TaskClaimCondition from ClaimConditionTaskStatus.
-func NewClaimConditionTaskStatusTaskClaimCondition(v ClaimConditionTaskStatus) TaskClaimCondition {
-	var s TaskClaimCondition
-	s.SetClaimConditionTaskStatus(v)
-	return s
-}
-
-// SetClaimConditionTaskAccepted sets TaskClaimCondition to ClaimConditionTaskAccepted.
-func (s *TaskClaimCondition) SetClaimConditionTaskAccepted(v ClaimConditionTaskAccepted) {
-	s.Type = ClaimConditionTaskAcceptedTaskClaimCondition
-	s.ClaimConditionTaskAccepted = v
-}
-
-// GetClaimConditionTaskAccepted returns ClaimConditionTaskAccepted and true boolean if TaskClaimCondition is ClaimConditionTaskAccepted.
-func (s TaskClaimCondition) GetClaimConditionTaskAccepted() (v ClaimConditionTaskAccepted, ok bool) {
-	if !s.IsClaimConditionTaskAccepted() {
-		return v, false
-	}
-	return s.ClaimConditionTaskAccepted, true
-}
-
-// NewClaimConditionTaskAcceptedTaskClaimCondition returns new TaskClaimCondition from ClaimConditionTaskAccepted.
-func NewClaimConditionTaskAcceptedTaskClaimCondition(v ClaimConditionTaskAccepted) TaskClaimCondition {
-	var s TaskClaimCondition
-	s.SetClaimConditionTaskAccepted(v)
-	return s
 }
 
 // Ref: #/components/schemas/TaskError

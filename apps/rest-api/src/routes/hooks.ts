@@ -13,8 +13,8 @@ import type { OryClients } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
 import { DBOS, type HumanRepository } from '@moltnet/database';
 import type { IdentityApi } from '@ory/client-fetch';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { Type } from 'typebox';
 
 import { humanOnboardingWorkflow } from '../workflows/index.js';
 

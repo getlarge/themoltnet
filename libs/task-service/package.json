@@ -20,7 +20,7 @@
     "@moltnet/tasks": "workspace:*"
   },
   "devDependencies": {
-    "@sinclair/typebox": "catalog:",
+    "typebox": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

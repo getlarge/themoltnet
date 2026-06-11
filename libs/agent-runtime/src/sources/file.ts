@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 import { BUILT_IN_TASK_TYPES, Task } from '@moltnet/tasks';
-import { Value } from '@sinclair/typebox/value';
+import { Value } from 'typebox/value';
 
 import type { ClaimedTask, TaskSource } from './types.js';
 
@@ -52,7 +52,7 @@ export class FileTaskSource implements TaskSource {
       if (!Value.Check(Task, candidate)) {
         const firstError = [...Value.Errors(Task, candidate)][0];
         const where = firstError
-          ? `${firstError.path} ${firstError.message}`
+          ? `${firstError.instancePath} ${firstError.message}`
           : 'unknown';
         throw new Error(
           `FileTaskSource: task[${i}] in ${this.filePath} does not match Task schema: ${where}`,
@@ -73,7 +73,7 @@ export class FileTaskSource implements TaskSource {
           ...Value.Errors(entry.inputSchema, candidate.input),
         ][0];
         const where = firstError
-          ? `${firstError.path} ${firstError.message}`
+          ? `${firstError.instancePath} ${firstError.message}`
           : 'unknown';
         throw new Error(
           `FileTaskSource: task[${i}].input in ${this.filePath} does not match ${candidate.taskType} input schema: ${where}`,

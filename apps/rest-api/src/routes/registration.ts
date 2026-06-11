@@ -9,8 +9,8 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { DBOS } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import {
@@ -58,11 +58,11 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           'from an existing member. No authentication needed.',
         body: RegisterBodySchema,
         response: {
-          200: Type.Ref(RegisterResponseSchema),
-          400: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-          502: Type.Ref(ProblemDetailsSchema),
+          200: Type.Ref(RegisterResponseSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
+          502: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -127,11 +127,11 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           'The old secret is invalidated immediately.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(RotateSecretResponseSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-          502: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          200: Type.Ref(RotateSecretResponseSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
+          502: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
       preHandler: [requireAuth],

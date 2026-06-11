@@ -66,8 +66,8 @@ import {
   type AssessBriefInput,
   Rubric,
 } from '@moltnet/tasks';
-import { Value } from '@sinclair/typebox/value';
 import { connect } from '@themoltnet/sdk';
+import { Value } from 'typebox/value';
 
 const { values: args } = parseArgs({
   options: {
@@ -163,7 +163,9 @@ async function main() {
     throw new Error(
       `Rubric at ${rubricPath} does not match the @moltnet/tasks Rubric schema. ` +
         `First ${errors.length} validation error(s):\n` +
-        errors.map((e) => `  - ${e.path || '(root)'}: ${e.message}`).join('\n'),
+        errors
+          .map((e) => `  - ${e.instancePath || '(root)'}: ${e.message}`)
+          .join('\n'),
     );
   }
   const rubric = rubricJson;

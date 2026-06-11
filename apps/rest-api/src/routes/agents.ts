@@ -5,8 +5,8 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import {
@@ -31,10 +31,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
           "Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).",
         params: AgentParamsSchema,
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(AgentProfileSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          200: Type.Ref(AgentProfileSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -77,10 +77,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
           }),
         }),
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(VerifyResultSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          200: Type.Ref(VerifyResultSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -134,10 +134,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
           'Get the authenticated agent identity (requires bearer token).',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
-          200: Type.Ref(WhoamiSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          200: Type.Ref(WhoamiSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
       preHandler: [requireAuth],

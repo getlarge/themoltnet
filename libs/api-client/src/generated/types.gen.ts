@@ -177,7 +177,6 @@ export type ContextPackExpanded = {
         kind: 'human';
       };
   diaryId: string;
-  entries: Array<ExpandedPackEntry>;
   expiresAt: string | null;
   id: string;
   packCid: string;
@@ -187,6 +186,8 @@ export type ContextPackExpanded = {
   payload: unknown;
   pinned: boolean;
   supersedesPackId: string | null;
+} & {
+  entries: Array<ExpandedPackEntry>;
 };
 
 export type ContextPackList = {
@@ -232,7 +233,6 @@ export type ContextPackResponse = {
         kind: 'human';
       };
   diaryId: string;
-  entries?: Array<ExpandedPackEntry>;
   expiresAt: string | null;
   id: string;
   packCid: string;
@@ -242,6 +242,8 @@ export type ContextPackResponse = {
   payload: unknown;
   pinned: boolean;
   supersedesPackId: string | null;
+} & {
+  entries?: Array<ExpandedPackEntry>;
 };
 
 export type ContextPackResponseList = {
@@ -270,11 +272,12 @@ export type ContextPackResponseListWithRendered = {
    * Number of items skipped before this page.
    */
   offset: number;
-  renderedPacks?: Array<RenderedPack>;
   /**
    * Total number of matching items in the database.
    */
   total: number;
+} & {
+  renderedPacks?: Array<RenderedPack>;
 };
 
 export type CreateTaskBody = {
@@ -506,10 +509,11 @@ export type DiaryEntryWithRelations = {
   importance: number;
   injectionRisk: boolean;
   lastAccessedAt: string | null;
-  relations?: ExpandedRelations;
   tags: Array<string> | null;
   title: string | null;
   updatedAt: string;
+} & {
+  relations?: ExpandedRelations;
 };
 
 export type DiaryList = {
@@ -569,12 +573,7 @@ export type EntryRelationList = {
 export type EntryRelationWithDepth = {
   confidence: number | null;
   createdAt: string;
-  /**
-   * BFS depth from the origin entry (1 = direct).
-   */
-  depth: number;
   id: string;
-  parentRelationId: string | null;
   relation: RelationType;
   similarity: number | null;
   sourceCidSnapshot: string | null;
@@ -584,6 +583,12 @@ export type EntryRelationWithDepth = {
   targetId: string;
   updatedAt: string;
   workflowId: string | null;
+} & {
+  /**
+   * BFS depth from the origin entry (1 = direct).
+   */
+  depth: number;
+  parentRelationId: string | null;
 };
 
 export type EntryType =
@@ -617,7 +622,6 @@ export type ExecutorTrustLevel =
 export type ExpandedPackEntry = {
   compressionLevel: 'full' | 'summary' | 'keywords';
   createdAt: string;
-  entry: DiaryEntryWithCreator;
   entryCidSnapshot: string;
   entryId: string;
   id: string;
@@ -625,6 +629,8 @@ export type ExpandedPackEntry = {
   packId: string;
   packedTokens: number | null;
   rank: number | null;
+} & {
+  entry: DiaryEntryWithCreator;
 };
 
 export type ExpandedRelations = {
@@ -984,6 +990,21 @@ export type ProvenanceGraph = {
            * ISO 8601 timestamp
            */
           createdAt: string;
+          /**
+           * UUID v4 identifier
+           */
+          diaryId: string;
+          expiresAt: string | null;
+          packCid: string;
+          packCodec: string;
+          /**
+           * UUID v4 identifier
+           */
+          packId: string;
+          packType: string;
+          pinned: boolean;
+          supersedesPackId: string | null;
+        } & {
           creator?:
             | {
                 /**
@@ -1008,20 +1029,6 @@ export type ProvenanceGraph = {
                 identityId: string | null;
                 kind: 'human';
               };
-          /**
-           * UUID v4 identifier
-           */
-          diaryId: string;
-          expiresAt: string | null;
-          packCid: string;
-          packCodec: string;
-          /**
-           * UUID v4 identifier
-           */
-          packId: string;
-          packType: string;
-          pinned: boolean;
-          supersedesPackId: string | null;
         };
       }
     | {
@@ -1404,25 +1411,7 @@ export type Task = {
   cancelReason: string | null;
   cancelledByAgentId: string | null;
   cancelledByHumanId: string | null;
-  claimCondition:
-    | {
-        conditions: Array<ClaimCondition>;
-        op: 'all';
-      }
-    | {
-        conditions: Array<ClaimCondition>;
-        op: 'any';
-      }
-    | {
-        op: 'task_status';
-        statuses: Array<TaskStatus>;
-        taskId: string;
-      }
-    | {
-        op: 'task_accepted';
-        taskId: string;
-      }
-    | null;
+  claimCondition: ClaimCondition | null;
   completedAt: string | null;
   correlationId: string | null;
   diaryId: string | null;
@@ -3946,14 +3935,17 @@ export type DiffContextPacksByCidResponses = {
    * Default Response
    */
   200: {
-    added: Array<{
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      entryCidSnapshot: string;
-      entryId: string;
-      packedTokens: number | null;
-      rank: number;
-      title: string | null;
-    }>;
+    added: Array<
+      {
+        compressionLevel: 'full' | 'summary' | 'keywords';
+        entryCidSnapshot: string;
+        entryId: string;
+        packedTokens: number | null;
+        title: string | null;
+      } & {
+        rank: number;
+      }
+    >;
     changed: Array<{
       entryId: string;
       newCompressionLevel: 'full' | 'summary' | 'keywords';
@@ -3969,23 +3961,29 @@ export type DiffContextPacksByCidResponses = {
       title: string | null;
       tokenDelta: number;
     }>;
-    removed: Array<{
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      entryCidSnapshot: string;
-      entryId: string;
-      packedTokens: number | null;
-      rank: number;
-      title: string | null;
-    }>;
-    reordered: Array<{
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      entryCidSnapshot: string;
-      entryId: string;
-      newRank: number;
-      oldRank: number;
-      packedTokens: number | null;
-      title: string | null;
-    }>;
+    removed: Array<
+      {
+        compressionLevel: 'full' | 'summary' | 'keywords';
+        entryCidSnapshot: string;
+        entryId: string;
+        packedTokens: number | null;
+        title: string | null;
+      } & {
+        rank: number;
+      }
+    >;
+    reordered: Array<
+      {
+        compressionLevel: 'full' | 'summary' | 'keywords';
+        entryCidSnapshot: string;
+        entryId: string;
+        packedTokens: number | null;
+        title: string | null;
+      } & {
+        newRank: number;
+        oldRank: number;
+      }
+    >;
     stats: {
       addedCount: number;
       changedCount: number;
@@ -4089,6 +4087,21 @@ export type GetContextPackProvenanceByCidResponses = {
              * ISO 8601 timestamp
              */
             createdAt: string;
+            /**
+             * UUID v4 identifier
+             */
+            diaryId: string;
+            expiresAt: string | null;
+            packCid: string;
+            packCodec: string;
+            /**
+             * UUID v4 identifier
+             */
+            packId: string;
+            packType: string;
+            pinned: boolean;
+            supersedesPackId: string | null;
+          } & {
             creator?:
               | {
                   /**
@@ -4113,20 +4126,6 @@ export type GetContextPackProvenanceByCidResponses = {
                   identityId: string | null;
                   kind: 'human';
                 };
-            /**
-             * UUID v4 identifier
-             */
-            diaryId: string;
-            expiresAt: string | null;
-            packCid: string;
-            packCodec: string;
-            /**
-             * UUID v4 identifier
-             */
-            packId: string;
-            packType: string;
-            pinned: boolean;
-            supersedesPackId: string | null;
           };
         }
       | {
@@ -4400,14 +4399,17 @@ export type DiffContextPacksByIdResponses = {
    * Default Response
    */
   200: {
-    added: Array<{
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      entryCidSnapshot: string;
-      entryId: string;
-      packedTokens: number | null;
-      rank: number;
-      title: string | null;
-    }>;
+    added: Array<
+      {
+        compressionLevel: 'full' | 'summary' | 'keywords';
+        entryCidSnapshot: string;
+        entryId: string;
+        packedTokens: number | null;
+        title: string | null;
+      } & {
+        rank: number;
+      }
+    >;
     changed: Array<{
       entryId: string;
       newCompressionLevel: 'full' | 'summary' | 'keywords';
@@ -4423,23 +4425,29 @@ export type DiffContextPacksByIdResponses = {
       title: string | null;
       tokenDelta: number;
     }>;
-    removed: Array<{
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      entryCidSnapshot: string;
-      entryId: string;
-      packedTokens: number | null;
-      rank: number;
-      title: string | null;
-    }>;
-    reordered: Array<{
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      entryCidSnapshot: string;
-      entryId: string;
-      newRank: number;
-      oldRank: number;
-      packedTokens: number | null;
-      title: string | null;
-    }>;
+    removed: Array<
+      {
+        compressionLevel: 'full' | 'summary' | 'keywords';
+        entryCidSnapshot: string;
+        entryId: string;
+        packedTokens: number | null;
+        title: string | null;
+      } & {
+        rank: number;
+      }
+    >;
+    reordered: Array<
+      {
+        compressionLevel: 'full' | 'summary' | 'keywords';
+        entryCidSnapshot: string;
+        entryId: string;
+        packedTokens: number | null;
+        title: string | null;
+      } & {
+        newRank: number;
+        oldRank: number;
+      }
+    >;
     stats: {
       addedCount: number;
       changedCount: number;

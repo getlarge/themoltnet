@@ -1145,6 +1145,17 @@ func (s *ContextPackResponse) Validate() error {
 		})
 	}
 	if err := func() error {
+		if err := s.PackType.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "packType",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		var failures []validate.FieldError
 		for i, elem := range s.Entries {
 			if err := func() error {
@@ -1166,17 +1177,6 @@ func (s *ContextPackResponse) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "entries",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.PackType.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "packType",
 			Error: err,
 		})
 	}
@@ -1333,6 +1333,17 @@ func (s *ContextPackResponseListWithRendered) Validate() error {
 		})
 	}
 	if err := func() error {
+		if err := (validate.Float{}).Validate(float64(s.Total)); err != nil {
+			return errors.Wrap(err, "float")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "total",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		var failures []validate.FieldError
 		for i, elem := range s.RenderedPacks {
 			if err := func() error {
@@ -1354,17 +1365,6 @@ func (s *ContextPackResponseListWithRendered) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "renderedPacks",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Float{}).Validate(float64(s.Total)); err != nil {
-			return errors.Wrap(err, "float")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "total",
 			Error: err,
 		})
 	}
@@ -5022,27 +5022,6 @@ func (s *EntryRelationWithDepth) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        false,
-			Max:           0,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.Depth)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "depth",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if err := s.Relation.Validate(); err != nil {
 			return err
 		}
@@ -5079,6 +5058,27 @@ func (s *EntryRelationWithDepth) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "status",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Depth)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "depth",
 			Error: err,
 		})
 	}
@@ -5179,17 +5179,6 @@ func (s *ExpandedPackEntry) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := s.Entry.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "entry",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.OriginalTokens.Get(); ok {
 			if err := func() error {
 				if err := (validate.Float{}).Validate(float64(value)); err != nil {
@@ -5222,6 +5211,17 @@ func (s *ExpandedPackEntry) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "packedTokens",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Entry.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "entry",
 			Error: err,
 		})
 	}
@@ -11505,33 +11505,6 @@ func (s *TaskAttemptUsage) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
-}
-
-func (s TaskClaimCondition) Validate() error {
-	switch s.Type {
-	case ClaimConditionAllTaskClaimCondition:
-		if err := s.ClaimConditionAll.Validate(); err != nil {
-			return err
-		}
-		return nil
-	case ClaimConditionAnyTaskClaimCondition:
-		if err := s.ClaimConditionAny.Validate(); err != nil {
-			return err
-		}
-		return nil
-	case ClaimConditionTaskStatusTaskClaimCondition:
-		if err := s.ClaimConditionTaskStatus.Validate(); err != nil {
-			return err
-		}
-		return nil
-	case ClaimConditionTaskAcceptedTaskClaimCondition:
-		if err := s.ClaimConditionTaskAccepted.Validate(); err != nil {
-			return err
-		}
-		return nil
-	default:
-		return errors.Errorf("invalid type %q", s.Type)
-	}
 }
 
 func (s *TaskHeartbeatForbidden) Validate() error {

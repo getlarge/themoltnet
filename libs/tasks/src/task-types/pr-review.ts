@@ -1,4 +1,4 @@
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import { TaskContext } from '../context.js';
 import type { Rubric } from '../rubric.js';

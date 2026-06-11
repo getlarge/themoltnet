@@ -500,165 +500,176 @@
         "type": "object"
       },
       "ContextPackExpanded": {
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "creator": {
-            "anyOf": [
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "fingerprint": {
-                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                    "type": "string"
-                  },
-                  "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "kind": {
-                    "enum": [
-                      "agent"
-                    ],
-                    "type": "string"
-                  },
-                  "publicKey": {
-                    "description": "Ed25519 public key with prefix",
-                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
-                "type": "object"
+        "allOf": [
+          {
+            "properties": {
+              "createdAt": {
+                "format": "date-time",
+                "type": "string"
               },
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "humanId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "identityId": {
-                    "anyOf": [
-                      {
+              "creator": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "fingerprint": {
+                        "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                        "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                        "type": "string"
+                      },
+                      "identityId": {
                         "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
-                      {
-                        "type": "null"
+                      "kind": {
+                        "enum": [
+                          "agent"
+                        ],
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "description": "Ed25519 public key with prefix",
+                        "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                        "type": "string"
                       }
-                    ]
-                  },
-                  "kind": {
-                    "enum": [
-                      "human"
+                    },
+                    "required": [
+                      "kind",
+                      "identityId",
+                      "fingerprint",
+                      "publicKey"
                     ],
-                    "type": "string"
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "humanId": {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "identityId": {
+                        "anyOf": [
+                          {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "kind": {
+                        "enum": [
+                          "human"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "humanId",
+                      "identityId"
+                    ],
+                    "type": "object"
                   }
-                },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
                 ],
-                "type": "object"
-              }
-            ],
-            "discriminator": {
-              "propertyName": "kind"
-            }
-          },
-          "diaryId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "entries": {
-            "items": {
-              "$ref": "#/components/schemas/ExpandedPackEntry"
-            },
-            "type": "array"
-          },
-          "expiresAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
+                "discriminator": {
+                  "propertyName": "kind"
+                }
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "packCid": {
-            "type": "string"
-          },
-          "packCodec": {
-            "type": "string"
-          },
-          "packType": {
-            "anyOf": [
-              {
-                "enum": [
-                  "optimized"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "custom"
-                ],
-                "type": "string"
-              }
-            ]
-          },
-          "params": {},
-          "payload": {},
-          "pinned": {
-            "type": "boolean"
-          },
-          "supersedesPackId": {
-            "anyOf": [
-              {
+              "diaryId": {
                 "format": "uuid",
                 "type": "string"
               },
-              {
-                "type": "null"
+              "expiresAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "packCid": {
+                "type": "string"
+              },
+              "packCodec": {
+                "type": "string"
+              },
+              "packType": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "optimized"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "custom"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "params": {},
+              "payload": {},
+              "pinned": {
+                "type": "boolean"
+              },
+              "supersedesPackId": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
-            ]
+            },
+            "required": [
+              "id",
+              "diaryId",
+              "packCid",
+              "packCodec",
+              "packType",
+              "params",
+              "payload",
+              "creator",
+              "supersedesPackId",
+              "pinned",
+              "expiresAt",
+              "createdAt"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "entries": {
+                "items": {
+                  "$ref": "#/components/schemas/ExpandedPackEntry"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "entries"
+            ],
+            "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "diaryId",
-          "packCid",
-          "packCodec",
-          "packType",
-          "params",
-          "payload",
-          "creator",
-          "supersedesPackId",
-          "pinned",
-          "expiresAt",
-          "createdAt",
-          "entries"
-        ],
-        "type": "object"
+        ]
       },
       "ContextPackList": {
         "properties": {
@@ -690,164 +701,173 @@
         "type": "object"
       },
       "ContextPackResponse": {
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "creator": {
-            "anyOf": [
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "fingerprint": {
-                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                    "type": "string"
-                  },
-                  "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "kind": {
-                    "enum": [
-                      "agent"
-                    ],
-                    "type": "string"
-                  },
-                  "publicKey": {
-                    "description": "Ed25519 public key with prefix",
-                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
-                "type": "object"
+        "allOf": [
+          {
+            "properties": {
+              "createdAt": {
+                "format": "date-time",
+                "type": "string"
               },
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "humanId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "identityId": {
-                    "anyOf": [
-                      {
+              "creator": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "fingerprint": {
+                        "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                        "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                        "type": "string"
+                      },
+                      "identityId": {
                         "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
-                      {
-                        "type": "null"
+                      "kind": {
+                        "enum": [
+                          "agent"
+                        ],
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "description": "Ed25519 public key with prefix",
+                        "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                        "type": "string"
                       }
-                    ]
-                  },
-                  "kind": {
-                    "enum": [
-                      "human"
+                    },
+                    "required": [
+                      "kind",
+                      "identityId",
+                      "fingerprint",
+                      "publicKey"
                     ],
-                    "type": "string"
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "humanId": {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "identityId": {
+                        "anyOf": [
+                          {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "kind": {
+                        "enum": [
+                          "human"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "humanId",
+                      "identityId"
+                    ],
+                    "type": "object"
                   }
-                },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
                 ],
-                "type": "object"
-              }
-            ],
-            "discriminator": {
-              "propertyName": "kind"
-            }
-          },
-          "diaryId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "entries": {
-            "items": {
-              "$ref": "#/components/schemas/ExpandedPackEntry"
-            },
-            "type": "array"
-          },
-          "expiresAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
+                "discriminator": {
+                  "propertyName": "kind"
+                }
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "packCid": {
-            "type": "string"
-          },
-          "packCodec": {
-            "type": "string"
-          },
-          "packType": {
-            "anyOf": [
-              {
-                "enum": [
-                  "optimized"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "custom"
-                ],
-                "type": "string"
-              }
-            ]
-          },
-          "params": {},
-          "payload": {},
-          "pinned": {
-            "type": "boolean"
-          },
-          "supersedesPackId": {
-            "anyOf": [
-              {
+              "diaryId": {
                 "format": "uuid",
                 "type": "string"
               },
-              {
-                "type": "null"
+              "expiresAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "packCid": {
+                "type": "string"
+              },
+              "packCodec": {
+                "type": "string"
+              },
+              "packType": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "optimized"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "custom"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "params": {},
+              "payload": {},
+              "pinned": {
+                "type": "boolean"
+              },
+              "supersedesPackId": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
-            ]
+            },
+            "required": [
+              "id",
+              "diaryId",
+              "packCid",
+              "packCodec",
+              "packType",
+              "params",
+              "payload",
+              "creator",
+              "supersedesPackId",
+              "pinned",
+              "expiresAt",
+              "createdAt"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "entries": {
+                "items": {
+                  "$ref": "#/components/schemas/ExpandedPackEntry"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "diaryId",
-          "packCid",
-          "packCodec",
-          "packType",
-          "params",
-          "payload",
-          "creator",
-          "supersedesPackId",
-          "pinned",
-          "expiresAt",
-          "createdAt"
-        ],
-        "type": "object"
+        ]
       },
       "ContextPackResponseList": {
         "properties": {
@@ -879,39 +899,48 @@
         "type": "object"
       },
       "ContextPackResponseListWithRendered": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/ContextPackResponse"
+        "allOf": [
+          {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/components/schemas/ContextPackResponse"
+                },
+                "type": "array"
+              },
+              "limit": {
+                "description": "Maximum number of items requested for this response.",
+                "type": "number"
+              },
+              "offset": {
+                "description": "Number of items skipped before this page.",
+                "type": "number"
+              },
+              "total": {
+                "description": "Total number of matching items in the database.",
+                "type": "number"
+              }
             },
-            "type": "array"
+            "required": [
+              "items",
+              "total",
+              "limit",
+              "offset"
+            ],
+            "type": "object"
           },
-          "limit": {
-            "description": "Maximum number of items requested for this response.",
-            "type": "number"
-          },
-          "offset": {
-            "description": "Number of items skipped before this page.",
-            "type": "number"
-          },
-          "renderedPacks": {
-            "items": {
-              "$ref": "#/components/schemas/RenderedPack"
+          {
+            "properties": {
+              "renderedPacks": {
+                "items": {
+                  "$ref": "#/components/schemas/RenderedPack"
+                },
+                "type": "array"
+              }
             },
-            "type": "array"
-          },
-          "total": {
-            "description": "Total number of matching items in the database.",
-            "type": "number"
+            "type": "object"
           }
-        },
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "type": "object"
+        ]
       },
       "CreateTaskBody": {
         "properties": {
@@ -1730,227 +1759,236 @@
         "type": "object"
       },
       "DiaryEntryWithRelations": {
-        "properties": {
-          "accessCount": {
-            "type": "number"
-          },
-          "content": {
-            "type": "string"
-          },
-          "contentHash": {
-            "anyOf": [
-              {
+        "allOf": [
+          {
+            "properties": {
+              "accessCount": {
+                "type": "number"
+              },
+              "content": {
                 "type": "string"
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "contentSignature": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "creator": {
-            "anyOf": [
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "fingerprint": {
-                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+              "contentHash": {
+                "anyOf": [
+                  {
                     "type": "string"
                   },
-                  "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "kind": {
-                    "enum": [
-                      "agent"
-                    ],
-                    "type": "string"
-                  },
-                  "publicKey": {
-                    "description": "Ed25519 public key with prefix",
-                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                    "type": "string"
+                  {
+                    "type": "null"
                   }
-                },
-                "required": [
-                  "kind",
-                  "identityId",
-                  "fingerprint",
-                  "publicKey"
-                ],
-                "type": "object"
+                ]
               },
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "humanId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
+              "contentSignature": {
+                "anyOf": [
+                  {
                     "type": "string"
                   },
-                  "identityId": {
-                    "anyOf": [
-                      {
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "createdAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "creator": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "fingerprint": {
+                        "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                        "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                        "type": "string"
+                      },
+                      "identityId": {
                         "description": "UUID v4 identifier",
                         "format": "uuid",
                         "type": "string"
                       },
-                      {
-                        "type": "null"
+                      "kind": {
+                        "enum": [
+                          "agent"
+                        ],
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "description": "Ed25519 public key with prefix",
+                        "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                        "type": "string"
                       }
-                    ]
+                    },
+                    "required": [
+                      "kind",
+                      "identityId",
+                      "fingerprint",
+                      "publicKey"
+                    ],
+                    "type": "object"
                   },
-                  "kind": {
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "humanId": {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "identityId": {
+                        "anyOf": [
+                          {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "kind": {
+                        "enum": [
+                          "human"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "humanId",
+                      "identityId"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind"
+                }
+              },
+              "diaryId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "entryType": {
+                "anyOf": [
+                  {
                     "enum": [
-                      "human"
+                      "episodic"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "semantic"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "procedural"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "reflection"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "identity"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "soul"
                     ],
                     "type": "string"
                   }
-                },
-                "required": [
-                  "kind",
-                  "humanId",
-                  "identityId"
-                ],
-                "type": "object"
-              }
-            ],
-            "discriminator": {
-              "propertyName": "kind"
-            }
-          },
-          "diaryId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "entryType": {
-            "anyOf": [
-              {
-                "enum": [
-                  "episodic"
-                ],
+                ]
+              },
+              "id": {
+                "format": "uuid",
                 "type": "string"
               },
-              {
-                "enum": [
-                  "semantic"
-                ],
-                "type": "string"
+              "importance": {
+                "maximum": 10,
+                "minimum": 1,
+                "type": "number"
               },
-              {
-                "enum": [
-                  "procedural"
-                ],
-                "type": "string"
+              "injectionRisk": {
+                "type": "boolean"
               },
-              {
-                "enum": [
-                  "reflection"
-                ],
-                "type": "string"
+              "lastAccessedAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
-              {
-                "enum": [
-                  "identity"
-                ],
-                "type": "string"
+              "tags": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
-              {
-                "enum": [
-                  "soul"
-                ],
-                "type": "string"
-              }
-            ]
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "importance": {
-            "maximum": 10,
-            "minimum": 1,
-            "type": "number"
-          },
-          "injectionRisk": {
-            "type": "boolean"
-          },
-          "lastAccessedAt": {
-            "anyOf": [
-              {
+              "title": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "updatedAt": {
                 "format": "date-time",
                 "type": "string"
-              },
-              {
-                "type": "null"
               }
-            ]
+            },
+            "required": [
+              "id",
+              "diaryId",
+              "creator",
+              "title",
+              "content",
+              "tags",
+              "injectionRisk",
+              "importance",
+              "accessCount",
+              "lastAccessedAt",
+              "entryType",
+              "contentHash",
+              "contentSignature",
+              "createdAt",
+              "updatedAt"
+            ],
+            "type": "object"
           },
-          "relations": {
-            "$ref": "#/components/schemas/ExpandedRelations"
-          },
-          "tags": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
+          {
+            "properties": {
+              "relations": {
+                "$ref": "#/components/schemas/ExpandedRelations"
               }
-            ]
-          },
-          "title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
+            },
+            "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "diaryId",
-          "creator",
-          "title",
-          "content",
-          "tags",
-          "injectionRisk",
-          "importance",
-          "accessCount",
-          "lastAccessedAt",
-          "entryType",
-          "contentHash",
-          "contentSignature",
-          "createdAt",
-          "updatedAt"
-        ],
-        "type": "object"
+        ]
       },
       "DiaryList": {
         "properties": {
@@ -2154,117 +2192,128 @@
         "type": "object"
       },
       "EntryRelationWithDepth": {
-        "properties": {
-          "confidence": {
-            "anyOf": [
-              {
-                "type": "number"
+        "allOf": [
+          {
+            "properties": {
+              "confidence": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "depth": {
-            "description": "BFS depth from the origin entry (1 = direct).",
-            "minimum": 1,
-            "type": "integer"
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "parentRelationId": {
-            "anyOf": [
-              {
+              "createdAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "id": {
                 "format": "uuid",
                 "type": "string"
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "relation": {
-            "$ref": "#/components/schemas/RelationType"
-          },
-          "similarity": {
-            "anyOf": [
-              {
-                "type": "number"
+              "relation": {
+                "$ref": "#/components/schemas/RelationType"
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "sourceCidSnapshot": {
-            "anyOf": [
-              {
+              "similarity": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sourceCidSnapshot": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sourceId": {
+                "format": "uuid",
                 "type": "string"
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "sourceId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/RelationStatus"
-          },
-          "targetCidSnapshot": {
-            "anyOf": [
-              {
+              "status": {
+                "$ref": "#/components/schemas/RelationStatus"
+              },
+              "targetCidSnapshot": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "targetId": {
+                "format": "uuid",
                 "type": "string"
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "targetId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "workflowId": {
-            "anyOf": [
-              {
+              "updatedAt": {
+                "format": "date-time",
                 "type": "string"
               },
-              {
-                "type": "null"
+              "workflowId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
-            ]
+            },
+            "required": [
+              "id",
+              "sourceId",
+              "targetId",
+              "relation",
+              "status",
+              "sourceCidSnapshot",
+              "targetCidSnapshot",
+              "workflowId",
+              "confidence",
+              "similarity",
+              "createdAt",
+              "updatedAt"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "depth": {
+                "description": "BFS depth from the origin entry (1 = direct).",
+                "minimum": 1,
+                "type": "integer"
+              },
+              "parentRelationId": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "depth",
+              "parentRelationId"
+            ],
+            "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "sourceId",
-          "targetId",
-          "relation",
-          "status",
-          "sourceCidSnapshot",
-          "targetCidSnapshot",
-          "workflowId",
-          "confidence",
-          "similarity",
-          "createdAt",
-          "updatedAt",
-          "depth",
-          "parentRelationId"
-        ],
-        "type": "object"
+        ]
       },
       "EntryType": {
         "anyOf": [
@@ -2398,95 +2447,106 @@
         ]
       },
       "ExpandedPackEntry": {
-        "properties": {
-          "compressionLevel": {
-            "anyOf": [
-              {
-                "enum": [
-                  "full"
-                ],
+        "allOf": [
+          {
+            "properties": {
+              "compressionLevel": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "full"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "summary"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "keywords"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "createdAt": {
+                "format": "date-time",
                 "type": "string"
               },
-              {
-                "enum": [
-                  "summary"
-                ],
+              "entryCidSnapshot": {
                 "type": "string"
               },
-              {
-                "enum": [
-                  "keywords"
-                ],
+              "entryId": {
+                "format": "uuid",
                 "type": "string"
-              }
-            ]
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "entry": {
-            "$ref": "#/components/schemas/DiaryEntryWithCreator"
-          },
-          "entryCidSnapshot": {
-            "type": "string"
-          },
-          "entryId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "originalTokens": {
-            "anyOf": [
-              {
-                "type": "number"
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "packId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "packedTokens": {
-            "anyOf": [
-              {
-                "type": "number"
+              "id": {
+                "format": "uuid",
+                "type": "string"
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "rank": {
-            "anyOf": [
-              {
-                "type": "integer"
+              "originalTokens": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
-              {
-                "type": "null"
+              "packId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "packedTokens": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rank": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
-            ]
+            },
+            "required": [
+              "id",
+              "packId",
+              "entryId",
+              "entryCidSnapshot",
+              "compressionLevel",
+              "originalTokens",
+              "packedTokens",
+              "rank",
+              "createdAt"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "entry": {
+                "$ref": "#/components/schemas/DiaryEntryWithCreator"
+              }
+            },
+            "required": [
+              "entry"
+            ],
+            "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "packId",
-          "entryId",
-          "entryCidSnapshot",
-          "compressionLevel",
-          "originalTokens",
-          "packedTokens",
-          "rank",
-          "createdAt",
-          "entry"
-        ],
-        "type": "object"
+        ]
       },
       "ExpandedRelations": {
         "properties": {
@@ -3795,145 +3855,154 @@
                       "type": "string"
                     },
                     "meta": {
-                      "properties": {
-                        "createdAt": {
-                          "description": "ISO 8601 timestamp",
-                          "format": "date-time",
-                          "type": "string"
-                        },
-                        "creator": {
-                          "anyOf": [
-                            {
-                              "additionalProperties": false,
-                              "properties": {
-                                "fingerprint": {
-                                  "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                                  "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                                  "type": "string"
-                                },
-                                "identityId": {
-                                  "description": "UUID v4 identifier",
-                                  "format": "uuid",
-                                  "type": "string"
-                                },
-                                "kind": {
-                                  "enum": [
-                                    "agent"
-                                  ],
-                                  "type": "string"
-                                },
-                                "publicKey": {
-                                  "description": "Ed25519 public key with prefix",
-                                  "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "kind",
-                                "identityId",
-                                "fingerprint",
-                                "publicKey"
-                              ],
-                              "type": "object"
-                            },
-                            {
-                              "additionalProperties": false,
-                              "properties": {
-                                "humanId": {
-                                  "description": "UUID v4 identifier",
-                                  "format": "uuid",
-                                  "type": "string"
-                                },
-                                "identityId": {
-                                  "anyOf": [
-                                    {
-                                      "description": "UUID v4 identifier",
-                                      "format": "uuid",
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "kind": {
-                                  "enum": [
-                                    "human"
-                                  ],
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "kind",
-                                "humanId",
-                                "identityId"
-                              ],
-                              "type": "object"
-                            }
-                          ],
-                          "discriminator": {
-                            "propertyName": "kind"
-                          }
-                        },
-                        "diaryId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        "expiresAt": {
-                          "anyOf": [
-                            {
+                      "allOf": [
+                        {
+                          "properties": {
+                            "createdAt": {
                               "description": "ISO 8601 timestamp",
                               "format": "date-time",
                               "type": "string"
                             },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
-                        "packCid": {
-                          "type": "string"
-                        },
-                        "packCodec": {
-                          "type": "string"
-                        },
-                        "packId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        "packType": {
-                          "type": "string"
-                        },
-                        "pinned": {
-                          "type": "boolean"
-                        },
-                        "supersedesPackId": {
-                          "anyOf": [
-                            {
+                            "diaryId": {
                               "description": "UUID v4 identifier",
                               "format": "uuid",
                               "type": "string"
                             },
-                            {
-                              "type": "null"
+                            "expiresAt": {
+                              "anyOf": [
+                                {
+                                  "description": "ISO 8601 timestamp",
+                                  "format": "date-time",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "packCid": {
+                              "type": "string"
+                            },
+                            "packCodec": {
+                              "type": "string"
+                            },
+                            "packId": {
+                              "description": "UUID v4 identifier",
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "packType": {
+                              "type": "string"
+                            },
+                            "pinned": {
+                              "type": "boolean"
+                            },
+                            "supersedesPackId": {
+                              "anyOf": [
+                                {
+                                  "description": "UUID v4 identifier",
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             }
-                          ]
+                          },
+                          "required": [
+                            "packId",
+                            "diaryId",
+                            "packCid",
+                            "packType",
+                            "packCodec",
+                            "pinned",
+                            "createdAt",
+                            "expiresAt",
+                            "supersedesPackId"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "properties": {
+                            "creator": {
+                              "anyOf": [
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "fingerprint": {
+                                      "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                                      "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                                      "type": "string"
+                                    },
+                                    "identityId": {
+                                      "description": "UUID v4 identifier",
+                                      "format": "uuid",
+                                      "type": "string"
+                                    },
+                                    "kind": {
+                                      "enum": [
+                                        "agent"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "publicKey": {
+                                      "description": "Ed25519 public key with prefix",
+                                      "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "identityId",
+                                    "fingerprint",
+                                    "publicKey"
+                                  ],
+                                  "type": "object"
+                                },
+                                {
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "humanId": {
+                                      "description": "UUID v4 identifier",
+                                      "format": "uuid",
+                                      "type": "string"
+                                    },
+                                    "identityId": {
+                                      "anyOf": [
+                                        {
+                                          "description": "UUID v4 identifier",
+                                          "format": "uuid",
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "kind": {
+                                      "enum": [
+                                        "human"
+                                      ],
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "humanId",
+                                    "identityId"
+                                  ],
+                                  "type": "object"
+                                }
+                              ],
+                              "discriminator": {
+                                "propertyName": "kind"
+                              }
+                            }
+                          },
+                          "type": "object"
                         }
-                      },
-                      "required": [
-                        "packId",
-                        "diaryId",
-                        "packCid",
-                        "packType",
-                        "packCodec",
-                        "pinned",
-                        "createdAt",
-                        "expiresAt",
-                        "supersedesPackId"
-                      ],
-                      "type": "object"
+                      ]
                     }
                   },
                   "required": [
@@ -5420,105 +5489,7 @@
           "claimCondition": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "conditions": {
-                        "items": {
-                          "$ref": "#/components/schemas/ClaimCondition"
-                        },
-                        "maxItems": 8,
-                        "minItems": 1,
-                        "type": "array"
-                      },
-                      "op": {
-                        "enum": [
-                          "all"
-                        ],
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "op",
-                      "conditions"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "conditions": {
-                        "items": {
-                          "$ref": "#/components/schemas/ClaimCondition"
-                        },
-                        "maxItems": 8,
-                        "minItems": 1,
-                        "type": "array"
-                      },
-                      "op": {
-                        "enum": [
-                          "any"
-                        ],
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "op",
-                      "conditions"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "op": {
-                        "enum": [
-                          "task_status"
-                        ],
-                        "type": "string"
-                      },
-                      "statuses": {
-                        "items": {
-                          "$ref": "#/components/schemas/TaskStatus"
-                        },
-                        "maxItems": 8,
-                        "minItems": 1,
-                        "type": "array"
-                      },
-                      "taskId": {
-                        "format": "uuid",
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "op",
-                      "taskId",
-                      "statuses"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "op": {
-                        "enum": [
-                          "task_accepted"
-                        ],
-                        "type": "string"
-                      },
-                      "taskId": {
-                        "format": "uuid",
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "op",
-                      "taskId"
-                    ],
-                    "type": "object"
-                  }
-                ]
+                "$ref": "#/components/schemas/ClaimCondition"
               },
               {
                 "type": "null"
@@ -6930,8 +6901,7 @@
             ],
             "type": "object"
           }
-        ],
-        "type": "object"
+        ]
       },
       "VerifyResult": {
         "properties": {
@@ -12092,69 +12062,80 @@
                   "properties": {
                     "added": {
                       "items": {
-                        "properties": {
-                          "compressionLevel": {
-                            "anyOf": [
-                              {
-                                "enum": [
-                                  "full"
-                                ],
+                        "allOf": [
+                          {
+                            "properties": {
+                              "compressionLevel": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "full"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "summary"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "keywords"
+                                    ],
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "entryCidSnapshot": {
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "summary"
-                                ],
+                              "entryId": {
+                                "format": "uuid",
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "keywords"
-                                ],
-                                "type": "string"
+                              "packedTokens": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "title": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               }
-                            ]
+                            },
+                            "required": [
+                              "entryId",
+                              "title",
+                              "entryCidSnapshot",
+                              "compressionLevel",
+                              "packedTokens"
+                            ],
+                            "type": "object"
                           },
-                          "entryCidSnapshot": {
-                            "type": "string"
-                          },
-                          "entryId": {
-                            "format": "uuid",
-                            "type": "string"
-                          },
-                          "packedTokens": {
-                            "anyOf": [
-                              {
+                          {
+                            "properties": {
+                              "rank": {
                                 "type": "integer"
-                              },
-                              {
-                                "type": "null"
                               }
-                            ]
-                          },
-                          "rank": {
-                            "type": "integer"
-                          },
-                          "title": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
+                            },
+                            "required": [
+                              "rank"
+                            ],
+                            "type": "object"
                           }
-                        },
-                        "required": [
-                          "entryId",
-                          "title",
-                          "entryCidSnapshot",
-                          "compressionLevel",
-                          "packedTokens",
-                          "rank"
-                        ],
-                        "type": "object"
+                        ]
                       },
                       "type": "array"
                     },
@@ -12271,141 +12252,163 @@
                     },
                     "removed": {
                       "items": {
-                        "properties": {
-                          "compressionLevel": {
-                            "anyOf": [
-                              {
-                                "enum": [
-                                  "full"
-                                ],
+                        "allOf": [
+                          {
+                            "properties": {
+                              "compressionLevel": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "full"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "summary"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "keywords"
+                                    ],
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "entryCidSnapshot": {
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "summary"
-                                ],
+                              "entryId": {
+                                "format": "uuid",
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "keywords"
-                                ],
-                                "type": "string"
+                              "packedTokens": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "title": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               }
-                            ]
+                            },
+                            "required": [
+                              "entryId",
+                              "title",
+                              "entryCidSnapshot",
+                              "compressionLevel",
+                              "packedTokens"
+                            ],
+                            "type": "object"
                           },
-                          "entryCidSnapshot": {
-                            "type": "string"
-                          },
-                          "entryId": {
-                            "format": "uuid",
-                            "type": "string"
-                          },
-                          "packedTokens": {
-                            "anyOf": [
-                              {
+                          {
+                            "properties": {
+                              "rank": {
                                 "type": "integer"
-                              },
-                              {
-                                "type": "null"
                               }
-                            ]
-                          },
-                          "rank": {
-                            "type": "integer"
-                          },
-                          "title": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
+                            },
+                            "required": [
+                              "rank"
+                            ],
+                            "type": "object"
                           }
-                        },
-                        "required": [
-                          "entryId",
-                          "title",
-                          "entryCidSnapshot",
-                          "compressionLevel",
-                          "packedTokens",
-                          "rank"
-                        ],
-                        "type": "object"
+                        ]
                       },
                       "type": "array"
                     },
                     "reordered": {
                       "items": {
-                        "properties": {
-                          "compressionLevel": {
-                            "anyOf": [
-                              {
-                                "enum": [
-                                  "full"
-                                ],
+                        "allOf": [
+                          {
+                            "properties": {
+                              "compressionLevel": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "full"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "summary"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "keywords"
+                                    ],
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "entryCidSnapshot": {
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "summary"
-                                ],
+                              "entryId": {
+                                "format": "uuid",
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "keywords"
-                                ],
-                                "type": "string"
+                              "packedTokens": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "title": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               }
-                            ]
+                            },
+                            "required": [
+                              "entryId",
+                              "title",
+                              "entryCidSnapshot",
+                              "compressionLevel",
+                              "packedTokens"
+                            ],
+                            "type": "object"
                           },
-                          "entryCidSnapshot": {
-                            "type": "string"
-                          },
-                          "entryId": {
-                            "format": "uuid",
-                            "type": "string"
-                          },
-                          "newRank": {
-                            "type": "integer"
-                          },
-                          "oldRank": {
-                            "type": "integer"
-                          },
-                          "packedTokens": {
-                            "anyOf": [
-                              {
+                          {
+                            "properties": {
+                              "newRank": {
                                 "type": "integer"
                               },
-                              {
-                                "type": "null"
+                              "oldRank": {
+                                "type": "integer"
                               }
-                            ]
-                          },
-                          "title": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
+                            },
+                            "required": [
+                              "oldRank",
+                              "newRank"
+                            ],
+                            "type": "object"
                           }
-                        },
-                        "required": [
-                          "entryId",
-                          "title",
-                          "entryCidSnapshot",
-                          "compressionLevel",
-                          "packedTokens",
-                          "oldRank",
-                          "newRank"
-                        ],
-                        "type": "object"
+                        ]
                       },
                       "type": "array"
                     },
@@ -12777,145 +12780,154 @@
                                 "type": "string"
                               },
                               "meta": {
-                                "properties": {
-                                  "createdAt": {
-                                    "description": "ISO 8601 timestamp",
-                                    "format": "date-time",
-                                    "type": "string"
-                                  },
-                                  "creator": {
-                                    "anyOf": [
-                                      {
-                                        "additionalProperties": false,
-                                        "properties": {
-                                          "fingerprint": {
-                                            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                                            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                                            "type": "string"
-                                          },
-                                          "identityId": {
-                                            "description": "UUID v4 identifier",
-                                            "format": "uuid",
-                                            "type": "string"
-                                          },
-                                          "kind": {
-                                            "enum": [
-                                              "agent"
-                                            ],
-                                            "type": "string"
-                                          },
-                                          "publicKey": {
-                                            "description": "Ed25519 public key with prefix",
-                                            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "kind",
-                                          "identityId",
-                                          "fingerprint",
-                                          "publicKey"
-                                        ],
-                                        "type": "object"
-                                      },
-                                      {
-                                        "additionalProperties": false,
-                                        "properties": {
-                                          "humanId": {
-                                            "description": "UUID v4 identifier",
-                                            "format": "uuid",
-                                            "type": "string"
-                                          },
-                                          "identityId": {
-                                            "anyOf": [
-                                              {
-                                                "description": "UUID v4 identifier",
-                                                "format": "uuid",
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "null"
-                                              }
-                                            ]
-                                          },
-                                          "kind": {
-                                            "enum": [
-                                              "human"
-                                            ],
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "kind",
-                                          "humanId",
-                                          "identityId"
-                                        ],
-                                        "type": "object"
-                                      }
-                                    ],
-                                    "discriminator": {
-                                      "propertyName": "kind"
-                                    }
-                                  },
-                                  "diaryId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "expiresAt": {
-                                    "anyOf": [
-                                      {
+                                "allOf": [
+                                  {
+                                    "properties": {
+                                      "createdAt": {
                                         "description": "ISO 8601 timestamp",
                                         "format": "date-time",
                                         "type": "string"
                                       },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "packCid": {
-                                    "type": "string"
-                                  },
-                                  "packCodec": {
-                                    "type": "string"
-                                  },
-                                  "packId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "packType": {
-                                    "type": "string"
-                                  },
-                                  "pinned": {
-                                    "type": "boolean"
-                                  },
-                                  "supersedesPackId": {
-                                    "anyOf": [
-                                      {
+                                      "diaryId": {
                                         "description": "UUID v4 identifier",
                                         "format": "uuid",
                                         "type": "string"
                                       },
-                                      {
-                                        "type": "null"
+                                      "expiresAt": {
+                                        "anyOf": [
+                                          {
+                                            "description": "ISO 8601 timestamp",
+                                            "format": "date-time",
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "packCid": {
+                                        "type": "string"
+                                      },
+                                      "packCodec": {
+                                        "type": "string"
+                                      },
+                                      "packId": {
+                                        "description": "UUID v4 identifier",
+                                        "format": "uuid",
+                                        "type": "string"
+                                      },
+                                      "packType": {
+                                        "type": "string"
+                                      },
+                                      "pinned": {
+                                        "type": "boolean"
+                                      },
+                                      "supersedesPackId": {
+                                        "anyOf": [
+                                          {
+                                            "description": "UUID v4 identifier",
+                                            "format": "uuid",
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
                                       }
-                                    ]
+                                    },
+                                    "required": [
+                                      "packId",
+                                      "diaryId",
+                                      "packCid",
+                                      "packType",
+                                      "packCodec",
+                                      "pinned",
+                                      "createdAt",
+                                      "expiresAt",
+                                      "supersedesPackId"
+                                    ],
+                                    "type": "object"
+                                  },
+                                  {
+                                    "properties": {
+                                      "creator": {
+                                        "anyOf": [
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "fingerprint": {
+                                                "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                                                "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                                                "type": "string"
+                                              },
+                                              "identityId": {
+                                                "description": "UUID v4 identifier",
+                                                "format": "uuid",
+                                                "type": "string"
+                                              },
+                                              "kind": {
+                                                "enum": [
+                                                  "agent"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "publicKey": {
+                                                "description": "Ed25519 public key with prefix",
+                                                "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "kind",
+                                              "identityId",
+                                              "fingerprint",
+                                              "publicKey"
+                                            ],
+                                            "type": "object"
+                                          },
+                                          {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "humanId": {
+                                                "description": "UUID v4 identifier",
+                                                "format": "uuid",
+                                                "type": "string"
+                                              },
+                                              "identityId": {
+                                                "anyOf": [
+                                                  {
+                                                    "description": "UUID v4 identifier",
+                                                    "format": "uuid",
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "kind": {
+                                                "enum": [
+                                                  "human"
+                                                ],
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "kind",
+                                              "humanId",
+                                              "identityId"
+                                            ],
+                                            "type": "object"
+                                          }
+                                        ],
+                                        "discriminator": {
+                                          "propertyName": "kind"
+                                        }
+                                      }
+                                    },
+                                    "type": "object"
                                   }
-                                },
-                                "required": [
-                                  "packId",
-                                  "diaryId",
-                                  "packCid",
-                                  "packType",
-                                  "packCodec",
-                                  "pinned",
-                                  "createdAt",
-                                  "expiresAt",
-                                  "supersedesPackId"
-                                ],
-                                "type": "object"
+                                ]
                               }
                             },
                             "required": [
@@ -13653,69 +13665,80 @@
                   "properties": {
                     "added": {
                       "items": {
-                        "properties": {
-                          "compressionLevel": {
-                            "anyOf": [
-                              {
-                                "enum": [
-                                  "full"
-                                ],
+                        "allOf": [
+                          {
+                            "properties": {
+                              "compressionLevel": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "full"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "summary"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "keywords"
+                                    ],
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "entryCidSnapshot": {
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "summary"
-                                ],
+                              "entryId": {
+                                "format": "uuid",
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "keywords"
-                                ],
-                                "type": "string"
+                              "packedTokens": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "title": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               }
-                            ]
+                            },
+                            "required": [
+                              "entryId",
+                              "title",
+                              "entryCidSnapshot",
+                              "compressionLevel",
+                              "packedTokens"
+                            ],
+                            "type": "object"
                           },
-                          "entryCidSnapshot": {
-                            "type": "string"
-                          },
-                          "entryId": {
-                            "format": "uuid",
-                            "type": "string"
-                          },
-                          "packedTokens": {
-                            "anyOf": [
-                              {
+                          {
+                            "properties": {
+                              "rank": {
                                 "type": "integer"
-                              },
-                              {
-                                "type": "null"
                               }
-                            ]
-                          },
-                          "rank": {
-                            "type": "integer"
-                          },
-                          "title": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
+                            },
+                            "required": [
+                              "rank"
+                            ],
+                            "type": "object"
                           }
-                        },
-                        "required": [
-                          "entryId",
-                          "title",
-                          "entryCidSnapshot",
-                          "compressionLevel",
-                          "packedTokens",
-                          "rank"
-                        ],
-                        "type": "object"
+                        ]
                       },
                       "type": "array"
                     },
@@ -13832,141 +13855,163 @@
                     },
                     "removed": {
                       "items": {
-                        "properties": {
-                          "compressionLevel": {
-                            "anyOf": [
-                              {
-                                "enum": [
-                                  "full"
-                                ],
+                        "allOf": [
+                          {
+                            "properties": {
+                              "compressionLevel": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "full"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "summary"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "keywords"
+                                    ],
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "entryCidSnapshot": {
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "summary"
-                                ],
+                              "entryId": {
+                                "format": "uuid",
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "keywords"
-                                ],
-                                "type": "string"
+                              "packedTokens": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "title": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               }
-                            ]
+                            },
+                            "required": [
+                              "entryId",
+                              "title",
+                              "entryCidSnapshot",
+                              "compressionLevel",
+                              "packedTokens"
+                            ],
+                            "type": "object"
                           },
-                          "entryCidSnapshot": {
-                            "type": "string"
-                          },
-                          "entryId": {
-                            "format": "uuid",
-                            "type": "string"
-                          },
-                          "packedTokens": {
-                            "anyOf": [
-                              {
+                          {
+                            "properties": {
+                              "rank": {
                                 "type": "integer"
-                              },
-                              {
-                                "type": "null"
                               }
-                            ]
-                          },
-                          "rank": {
-                            "type": "integer"
-                          },
-                          "title": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
+                            },
+                            "required": [
+                              "rank"
+                            ],
+                            "type": "object"
                           }
-                        },
-                        "required": [
-                          "entryId",
-                          "title",
-                          "entryCidSnapshot",
-                          "compressionLevel",
-                          "packedTokens",
-                          "rank"
-                        ],
-                        "type": "object"
+                        ]
                       },
                       "type": "array"
                     },
                     "reordered": {
                       "items": {
-                        "properties": {
-                          "compressionLevel": {
-                            "anyOf": [
-                              {
-                                "enum": [
-                                  "full"
-                                ],
+                        "allOf": [
+                          {
+                            "properties": {
+                              "compressionLevel": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "full"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "summary"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "keywords"
+                                    ],
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "entryCidSnapshot": {
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "summary"
-                                ],
+                              "entryId": {
+                                "format": "uuid",
                                 "type": "string"
                               },
-                              {
-                                "enum": [
-                                  "keywords"
-                                ],
-                                "type": "string"
+                              "packedTokens": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "title": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               }
-                            ]
+                            },
+                            "required": [
+                              "entryId",
+                              "title",
+                              "entryCidSnapshot",
+                              "compressionLevel",
+                              "packedTokens"
+                            ],
+                            "type": "object"
                           },
-                          "entryCidSnapshot": {
-                            "type": "string"
-                          },
-                          "entryId": {
-                            "format": "uuid",
-                            "type": "string"
-                          },
-                          "newRank": {
-                            "type": "integer"
-                          },
-                          "oldRank": {
-                            "type": "integer"
-                          },
-                          "packedTokens": {
-                            "anyOf": [
-                              {
+                          {
+                            "properties": {
+                              "newRank": {
                                 "type": "integer"
                               },
-                              {
-                                "type": "null"
+                              "oldRank": {
+                                "type": "integer"
                               }
-                            ]
-                          },
-                          "title": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
+                            },
+                            "required": [
+                              "oldRank",
+                              "newRank"
+                            ],
+                            "type": "object"
                           }
-                        },
-                        "required": [
-                          "entryId",
-                          "title",
-                          "entryCidSnapshot",
-                          "compressionLevel",
-                          "packedTokens",
-                          "oldRank",
-                          "newRank"
-                        ],
-                        "type": "object"
+                        ]
                       },
                       "type": "array"
                     },

@@ -13,8 +13,8 @@
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 

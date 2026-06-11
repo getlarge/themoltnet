@@ -11,14 +11,16 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import type { EntryRelation } from '@moltnet/database';
 import { EntryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import {
   EntryRelationListSchema,
   EntryRelationSchema,
+  type RelationStatus,
   RelationStatusSchema,
+  type RelationType,
   RelationTypeSchema,
 } from '../schemas.js';
 
@@ -51,15 +53,19 @@ const RelationIdParamsSchema = Type.Object({
 
 const CreateRelationBodySchema = Type.Object({
   targetId: Type.String({ format: 'uuid' }),
-  relation: Type.Ref(RelationTypeSchema),
+  relation: Type.Unsafe<RelationType>(Type.Ref(RelationTypeSchema.$id)),
   status: Type.Optional(
     Type.Union([Type.Literal('proposed'), Type.Literal('accepted')]),
   ),
 });
 
 const ListRelationsQuerySchema = Type.Object({
-  relation: Type.Optional(Type.Ref(RelationTypeSchema)),
-  status: Type.Optional(Type.Ref(RelationStatusSchema)),
+  relation: Type.Optional(
+    Type.Unsafe<RelationType>(Type.Ref(RelationTypeSchema.$id)),
+  ),
+  status: Type.Optional(
+    Type.Unsafe<RelationStatus>(Type.Ref(RelationStatusSchema.$id)),
+  ),
   direction: Type.Optional(
     Type.Union([
       Type.Literal('as_source'),
@@ -81,7 +87,7 @@ const ListRelationsQuerySchema = Type.Object({
 });
 
 const UpdateRelationStatusBodySchema = Type.Object({
-  status: Type.Ref(RelationStatusSchema),
+  status: Type.Unsafe<RelationStatus>(Type.Ref(RelationStatusSchema.$id)),
 });
 
 export async function entryRelationRoutes(fastify: FastifyInstance) {
@@ -101,13 +107,13 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         params: EntryParamsSchema,
         body: CreateRelationBodySchema,
         response: {
-          201: Type.Ref(EntryRelationSchema),
-          200: Type.Ref(EntryRelationSchema),
-          400: Type.Ref(ProblemDetailsSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          201: Type.Ref(EntryRelationSchema.$id),
+          200: Type.Ref(EntryRelationSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -189,12 +195,12 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         params: EntryParamsSchema,
         querystring: ListRelationsQuerySchema,
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(EntryRelationListSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          200: Type.Ref(EntryRelationListSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -272,12 +278,12 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         params: RelationIdParamsSchema,
         body: UpdateRelationStatusBodySchema,
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(EntryRelationSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          200: Type.Ref(EntryRelationSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -328,12 +334,12 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: RelationIdParamsSchema,
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
           204: Type.Null(),
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },

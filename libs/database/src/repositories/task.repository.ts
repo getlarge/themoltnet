@@ -397,7 +397,7 @@ export function createTaskRepository(db: Database) {
         .where(
           and(
             eq(tasks.status, 'waiting'),
-            sql`jsonb_path_exists(${tasks.claimCondition}, '$.** ? (@.taskId == $taskId)', jsonb_build_object('taskId', ${taskId}))`,
+            sql`jsonb_path_exists(${tasks.claimCondition}, '$.** ? (@.taskId == $taskId)', jsonb_build_object('taskId', ${taskId}::text))`,
           ),
         );
     },

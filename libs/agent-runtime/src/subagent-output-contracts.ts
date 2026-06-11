@@ -29,7 +29,7 @@
  * process-global Map and the accompanying reset hatch that exposed
  * test asymmetry (see #1106).
  */
-import type { TSchema } from '@sinclair/typebox';
+import type { TSchema } from 'typebox';
 
 export interface SubagentOutputContract {
   /** Stable identifier the parent uses to reference this contract.

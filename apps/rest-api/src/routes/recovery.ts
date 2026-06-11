@@ -17,8 +17,8 @@ import {
 } from '@moltnet/crypto-service';
 import type { NonceRepository } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import {
@@ -64,9 +64,9 @@ export async function recoveryRoutes(
           }),
         }),
         response: {
-          200: Type.Ref(RecoveryChallengeResponseSchema),
-          400: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          200: Type.Ref(RecoveryChallengeResponseSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -123,10 +123,10 @@ export async function recoveryRoutes(
           }),
         }),
         response: {
-          200: Type.Ref(RecoveryVerifyResponseSchema),
-          400: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-          502: Type.Ref(ProblemDetailsSchema),
+          200: Type.Ref(RecoveryVerifyResponseSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
+          502: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },

@@ -216,6 +216,33 @@ func TestTryConvertNullable_ObjectWithNull(t *testing.T) {
 	}
 }
 
+func TestTryConvertNullable_RefWithNull(t *testing.T) {
+	input := map[string]any{
+		"anyOf": []any{
+			map[string]any{"$ref": "#/components/schemas/ClaimCondition"},
+			map[string]any{"type": "null"},
+		},
+	}
+	result, ok := tryConvertNullable(input)
+	if !ok {
+		t.Fatal("expected conversion")
+	}
+	if _, hasRef := result["$ref"]; hasRef {
+		t.Fatal("nullable $ref should be wrapped, not emitted as a sibling")
+	}
+	if result["nullable"] != true {
+		t.Errorf("expected nullable true")
+	}
+	allOf, ok := result["allOf"].([]any)
+	if !ok || len(allOf) != 1 {
+		t.Fatalf("expected single allOf ref wrapper, got %v", result["allOf"])
+	}
+	ref := allOf[0].(map[string]any)["$ref"]
+	if ref != "#/components/schemas/ClaimCondition" {
+		t.Errorf("expected ClaimCondition ref preserved, got %v", ref)
+	}
+}
+
 func TestTryConvertNullable_RejectsThreeVariants(t *testing.T) {
 	input := map[string]any{
 		"anyOf": []any{

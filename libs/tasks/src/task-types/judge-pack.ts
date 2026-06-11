@@ -18,7 +18,7 @@
  * The judge MUST be a different agent from the renderer. Enforced at
  * claim time by the runtime, not in the wire schema.
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import type {
   AsyncTaskValidationContext,

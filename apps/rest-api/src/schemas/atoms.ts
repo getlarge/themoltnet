@@ -1,5 +1,5 @@
 import { entryTypeLiterals, visibilityLiterals } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 
 // ── Validation Constants ────────────────────────────────────
 // Ed25519 signatures: 64 bytes → ~88 base64 characters

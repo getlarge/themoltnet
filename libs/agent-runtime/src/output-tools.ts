@@ -28,7 +28,7 @@
  *     advertised purpose is identical regardless of who registers it.
  */
 import { getTaskOutputSchema } from '@moltnet/tasks';
-import type { TSchema } from '@sinclair/typebox';
+import type { TSchema } from 'typebox';
 
 export interface SubmitOutputContract {
   /** Concrete tool name the executor must register — e.g.

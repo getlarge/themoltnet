@@ -14,7 +14,7 @@
  * `contentHash` is optional in Phase 1 because the *task*'s input_cid
  * is the authoritative commitment.
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 /**
  * How a judge must score a single criterion.

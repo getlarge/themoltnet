@@ -52,7 +52,7 @@
  * without changing this envelope, and producer + judge tasks can pin
  * the SAME rubric across the chain for end-to-end auditability.
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import { Rubric } from './rubric.js';
 

@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import { FingerprintSchema, PublicKeySchema, UuidSchema } from './schemas.js';
 
@@ -40,24 +40,31 @@ export const HumanPrincipalSchema = Type.Object(
   },
 );
 
+const AgentPrincipalInlineSchema = Type.Object(
+  {
+    kind: Type.Literal('agent'),
+    identityId: UuidSchema,
+    fingerprint: FingerprintSchema,
+    publicKey: PublicKeySchema,
+  },
+  { additionalProperties: false },
+);
+
+const HumanPrincipalInlineSchema = Type.Object(
+  {
+    kind: Type.Literal('human'),
+    humanId: UuidSchema,
+    identityId: Type.Union([UuidSchema, Type.Null()]),
+  },
+  { additionalProperties: false },
+);
+
 const principalUnionVariants = [
-  Type.Object(
-    {
-      kind: Type.Literal('agent'),
-      identityId: UuidSchema,
-      fingerprint: FingerprintSchema,
-      publicKey: PublicKeySchema,
-    },
-    { additionalProperties: false },
-  ),
-  Type.Object(
-    {
-      kind: Type.Literal('human'),
-      humanId: UuidSchema,
-      identityId: Type.Union([UuidSchema, Type.Null()]),
-    },
-    { additionalProperties: false },
-  ),
+  AgentPrincipalInlineSchema,
+  HumanPrincipalInlineSchema,
+] satisfies [
+  typeof AgentPrincipalInlineSchema,
+  typeof HumanPrincipalInlineSchema,
 ];
 
 /**
@@ -95,6 +102,6 @@ export const PrincipalIdentitySchemaInline = Type.Union(
   { discriminator: { propertyName: 'kind' } },
 );
 
-export type AgentPrincipal = (typeof AgentPrincipalSchema)['static'];
-export type HumanPrincipal = (typeof HumanPrincipalSchema)['static'];
+export type AgentPrincipal = Static<typeof AgentPrincipalSchema>;
+export type HumanPrincipal = Static<typeof HumanPrincipalSchema>;
 export type PrincipalIdentity = AgentPrincipal | HumanPrincipal;

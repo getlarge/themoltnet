@@ -2,8 +2,8 @@ import './formats.js';
 
 import { randomUUID } from 'node:crypto';
 
-import type { TSchema } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
+import type { TSchema } from 'typebox';
+import { Value } from 'typebox/value';
 
 import {
   type AsyncTaskValidationContext,
@@ -76,6 +76,16 @@ function formatField(prefix: string, path: string): string {
   return path ? `${prefix}${path}` : prefix;
 }
 
+type ValidationErrorWithParams = {
+  readonly keyword?: string;
+  readonly instancePath: string;
+  readonly message: string;
+  readonly params?: {
+    readonly additionalProperties?: readonly string[];
+    readonly requiredProperties?: readonly string[];
+  };
+};
+
 /**
  * Server-side normalisation of a task create request. Generates a
  * correlationId when the caller omits it so every task is correlation-
@@ -142,13 +152,37 @@ export function normalizeTaskInputForCreate(
 
 function schemaErrors(
   prefix: string,
-  schema: Parameters<typeof Value.Errors>[0],
+  schema: TSchema,
   value: unknown,
 ): TaskValidationError[] {
-  return [...Value.Errors(schema, value)].map((error) => ({
-    field: formatField(prefix, error.path),
-    message: error.message,
-  }));
+  return [...Value.Errors(schema, value)].flatMap((rawError) => {
+    const error = rawError as ValidationErrorWithParams;
+    const baseField = formatField(prefix, error.instancePath);
+
+    if (
+      error.keyword === 'additionalProperties' &&
+      error.params?.additionalProperties
+    ) {
+      return error.params.additionalProperties.map((property) => ({
+        field: `${baseField}/${property}`,
+        message: error.message,
+      }));
+    }
+
+    if (error.keyword === 'required' && error.params?.requiredProperties) {
+      return error.params.requiredProperties.map((property) => ({
+        field: `${baseField}/${property}`,
+        message: `must have required property ${property}`,
+      }));
+    }
+
+    return [
+      {
+        field: baseField,
+        message: error.message,
+      },
+    ];
+  });
 }
 
 export function validateTaskInput(

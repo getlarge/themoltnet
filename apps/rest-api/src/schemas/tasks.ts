@@ -1,18 +1,28 @@
 import {
   ClaimCondition,
+  type ClaimCondition as ClaimConditionType,
+  ClaimConditionDefinition,
   DaemonState,
+  type DaemonState as DaemonStateType,
   ExecutorRef,
+  type ExecutorRef as ExecutorRefType,
   ExecutorTrustLevel,
+  type ExecutorTrustLevel as ExecutorTrustLevelType,
   Task,
   TaskAttempt,
   TaskError,
+  type TaskError as TaskErrorType,
   TaskMessage,
   TaskMessageKind,
+  type TaskMessageKind as TaskMessageKindType,
   TaskRef,
+  type TaskRef as TaskRefType,
   TaskStatus,
+  type TaskStatus as TaskStatusType,
   TaskUsage,
+  type TaskUsage as TaskUsageType,
 } from '@moltnet/tasks';
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 
 // ── Params ───────────────────────────────────────────────────────────────────
 
@@ -43,18 +53,26 @@ export const CreateTaskBodySchema = Type.Object(
     teamId: Type.String({ format: 'uuid' }),
     diaryId: Type.String({ format: 'uuid' }),
     input: Type.Record(Type.String(), Type.Unknown()),
-    references: Type.Optional(Type.Array(Type.Ref(TaskRef))),
+    references: Type.Optional(
+      Type.Array(Type.Unsafe<TaskRefType>(Type.Ref(TaskRef.$id))),
+    ),
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),
-    claimCondition: Type.Optional(Type.Ref(ClaimCondition)),
+    claimCondition: Type.Optional(
+      Type.Unsafe<ClaimConditionType>(Type.Ref(ClaimCondition.$id)),
+    ),
     maxAttempts: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
     expiresInSec: Type.Optional(Type.Integer({ minimum: 1 })),
-    requiredExecutorTrustLevel: Type.Optional(Type.Ref(ExecutorTrustLevel)),
+    requiredExecutorTrustLevel: Type.Optional(
+      Type.Unsafe<ExecutorTrustLevelType>(Type.Ref(ExecutorTrustLevel.$id)),
+    ),
     // Proposer-set executor allowlist. Empty/unset = no restriction.
     // Lowercased server-side before persistence. maxItems matches the
     // bound on Task.allowedExecutors so create-time and read-time
     // contracts agree.
     allowedExecutors: Type.Optional(
-      Type.Array(Type.Ref(ExecutorRef), { maxItems: 16 }),
+      Type.Array(Type.Unsafe<ExecutorRefType>(Type.Ref(ExecutorRef.$id)), {
+        maxItems: 16,
+      }),
     ),
     // Proposer-set timeout overrides (in seconds). Null/unset → server
     // defaults (300s / 7200s). Bounds chosen to span e2e tests (≥1s) up
@@ -91,11 +109,17 @@ export const ListTasksQuerySchema = Type.Object(
   {
     teamId: Type.String({ format: 'uuid' }),
     query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
-    status: Type.Optional(Type.Ref(TaskStatus)),
+    status: Type.Optional(
+      Type.Unsafe<TaskStatusType>(Type.Ref(TaskStatus.$id)),
+    ),
     // OR filter over multiple statuses (e.g. a board lane covering
     // waiting+queued). Combined with `status` it's the union of both. Lets a
     // multi-status board lane fetch one accurately-counted page.
-    statuses: Type.Optional(Type.Array(Type.Ref(TaskStatus), { maxItems: 8 })),
+    statuses: Type.Optional(
+      Type.Array(Type.Unsafe<TaskStatusType>(Type.Ref(TaskStatus.$id)), {
+        maxItems: 8,
+      }),
+    ),
     taskTypes: Type.Optional(
       Type.Array(Type.String({ minLength: 1 }), {
         maxItems: 20,
@@ -163,7 +187,7 @@ export const CompleteTaskBodySchema = Type.Object(
   {
     output: Type.Record(Type.String(), Type.Unknown()),
     outputCid: Type.String({ minLength: 1 }),
-    usage: Type.Ref(TaskUsage),
+    usage: Type.Unsafe<TaskUsageType>(Type.Ref(TaskUsage.$id)),
     contentSignature: Type.Optional(Type.String()),
     executorManifest: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
     executorFingerprint: Type.Optional(Type.String({ minLength: 1 })),
@@ -172,7 +196,10 @@ export const CompleteTaskBodySchema = Type.Object(
     // completion time. Optional so older daemons that don't know about
     // warm-slot resumability keep working — they persist null.
     daemonState: Type.Optional(
-      Type.Union([Type.Ref(DaemonState), Type.Null()]),
+      Type.Union([
+        Type.Unsafe<DaemonStateType>(Type.Ref(DaemonState.$id)),
+        Type.Null(),
+      ]),
     ),
   },
   { $id: 'CompleteTaskBody' },
@@ -180,7 +207,7 @@ export const CompleteTaskBodySchema = Type.Object(
 
 export const FailTaskBodySchema = Type.Object(
   {
-    error: Type.Ref(TaskError),
+    error: Type.Unsafe<TaskErrorType>(Type.Ref(TaskError.$id)),
   },
   { $id: 'FailTaskBody' },
 );
@@ -212,7 +239,7 @@ export const AppendMessagesBodySchema = Type.Object(
   {
     messages: Type.Array(
       Type.Object({
-        kind: Type.Ref(TaskMessageKind),
+        kind: Type.Unsafe<TaskMessageKindType>(Type.Ref(TaskMessageKind.$id)),
         payload: Type.Record(Type.String(), Type.Unknown()),
         timestamp: Type.Optional(Type.String({ format: 'date-time' })),
       }),
@@ -226,7 +253,7 @@ export const AppendMessagesBodySchema = Type.Object(
 
 export const TaskListResponseSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(Task)),
+    items: Type.Array(Type.Ref(Task.$id)),
     total: Type.Integer({ minimum: 0 }),
     nextCursor: Type.Optional(Type.String()),
   },
@@ -235,8 +262,8 @@ export const TaskListResponseSchema = Type.Object(
 
 export const ClaimTaskResponseSchema = Type.Object(
   {
-    task: Type.Ref(Task),
-    attempt: Type.Ref(TaskAttempt),
+    task: Type.Ref(Task.$id),
+    attempt: Type.Ref(TaskAttempt.$id),
   },
   { $id: 'ClaimTaskResponse' },
 );
@@ -278,7 +305,7 @@ export const TaskTypeDescriptorSchema = Type.Object(
 
 export const ListTaskSchemasResponseSchema = Type.Object(
   {
-    items: Type.Array(Type.Ref(TaskTypeDescriptorSchema)),
+    items: Type.Array(Type.Ref(TaskTypeDescriptorSchema.$id)),
   },
   { $id: 'ListTaskSchemasResponse' },
 );
@@ -286,7 +313,7 @@ export const ListTaskSchemasResponseSchema = Type.Object(
 export const taskSchemas = [
   // Primitive enums first (no dependencies)
   TaskStatus,
-  ClaimCondition,
+  ClaimConditionDefinition,
   ExecutorTrustLevel,
   ExecutorRef,
   TaskMessageKind,

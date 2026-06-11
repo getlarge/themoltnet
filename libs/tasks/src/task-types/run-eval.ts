@@ -8,7 +8,7 @@
  *   on downstream `judge_eval_attempt` tasks)
  * references: not required (scenario lives entirely in input)
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import { TaskContext } from '../context.js';
 import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';

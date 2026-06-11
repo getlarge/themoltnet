@@ -18,6 +18,7 @@ import type {
   ListTasksResponses,
 } from '@moltnet/api-client';
 import {
+  ClaimConditionDefinition,
   ExecutorRef,
   ExecutorTrustLevel,
   SuccessCriteria,
@@ -26,8 +27,8 @@ import {
   TaskMessage,
   TaskRef,
 } from '@moltnet/tasks';
-import type { Static } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
+import type { Static } from 'typebox';
+import { Type } from 'typebox';
 
 import type {
   AssertOutputMatchesApi,
@@ -350,7 +351,12 @@ const TaskWithConsoleUrlSchema = Type.Object(
     ...Task.properties,
     consoleUrl: Type.Optional(Type.String()),
   },
-  { additionalProperties: false },
+  {
+    $defs: {
+      ClaimCondition: ClaimConditionDefinition,
+    },
+    additionalProperties: false,
+  },
 );
 
 export const TaskOutputSchema = TaskWithConsoleUrlSchema;

@@ -17,7 +17,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@sinclair/typebox": "catalog:",
+    "typebox": "catalog:",
     "multiformats": "catalog:"
   },
   "devDependencies": {

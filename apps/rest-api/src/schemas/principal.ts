@@ -10,7 +10,7 @@
  * cross-schema $ref resolution is documented for REST contributors.
  *
  * The inlined-not-$ref'd union form was discovered the hard way:
- * `Type.Union([Type.Ref(AgentPrincipalSchema), Type.Ref(HumanPrincipalSchema)])`
+ * `Type.Union([Type.Ref(AgentPrincipalSchema.$id), Type.Ref(HumanPrincipalSchema.$id)])`
  * compiles, but both fastify-fast-json-stringify (the response
  * serializer) and Ajv 8 (used by @fastify/swagger to compile the OpenAPI
  * spec) refuse to resolve cross-schema $refs from inside an `anyOf` when
@@ -31,7 +31,7 @@
  * named variants.
  */
 
-import { Type } from '@sinclair/typebox';
+import { Type } from 'typebox';
 
 export {
   type AgentPrincipal,

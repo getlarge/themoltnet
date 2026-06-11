@@ -1,5 +1,5 @@
-import type { Static } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
+import type { Static } from 'typebox';
+import { Type } from 'typebox';
 
 /**
  * One search that contributed entries to a zone — recorded for reproducibility

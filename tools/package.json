@@ -47,7 +47,7 @@
     "@moltnet/rest-api": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@ory/client-fetch": "catalog:",
-    "@sinclair/typebox": "catalog:",
+    "typebox": "catalog:",
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/pi-extension": "workspace:*",
     "@themoltnet/sdk": "workspace:*",

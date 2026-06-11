@@ -533,6 +533,7 @@ func inferDiscriminatorProperty(members []any) (string, bool) {
 //
 //	{anyOf: [{type: "string"}, {type: "null"}]}
 //	{anyOf: [{type: "object", ...}, {type: "null"}]}
+//	{anyOf: [{$ref: "#/components/schemas/Foo"}, {type: "null"}]}
 //
 // and converts them to the non-null schema with nullable: true.
 // This is the OpenAPI 3.0 nullable style that ogen handles natively.
@@ -570,6 +571,13 @@ func tryConvertNullable(obj map[string]any) (map[string]any, bool) {
 	}
 	for k, v := range nonNull {
 		out[k] = v
+	}
+	if ref, ok := nonNull["$ref"]; ok && len(nonNull) == 1 {
+		// OpenAPI tooling can ignore sibling keywords on $ref. Wrap nullable
+		// references in allOf so the target schema stays referenced while
+		// nullability remains visible to ogen.
+		delete(out, "$ref")
+		out["allOf"] = []any{map[string]any{"$ref": ref}}
 	}
 	out["nullable"] = true
 	return out, true

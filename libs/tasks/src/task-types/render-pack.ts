@@ -13,7 +13,7 @@
  *
  * Related: `curate_pack`, `judge_pack`.
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import type {
   AsyncTaskValidationContext,

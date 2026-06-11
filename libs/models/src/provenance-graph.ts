@@ -1,5 +1,5 @@
-import type { Static } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
+import type { Static } from 'typebox';
+import { Type } from 'typebox';
 
 import { PrincipalIdentitySchemaInline } from './principal.js';
 import { EntryTypeSchema, TimestampSchema, UuidSchema } from './schemas.js';
@@ -55,7 +55,7 @@ export const ProvenanceGraphPackNodeSchema = Type.Object({
   kind: Type.Literal('pack'),
   label: Type.String(),
   cid: Type.Union([Type.String(), Type.Null()]),
-  meta: Type.Composite([
+  meta: Type.Intersect([
     ProvenanceGraphPackMetaSchema,
     Type.Object({
       creator: Type.Optional(ProvenanceGraphCreatorSchema),

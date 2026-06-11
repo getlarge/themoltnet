@@ -14,7 +14,7 @@
  * sections (`assertions`, `gates`, `sideEffects`) MAY be present and are
  * evaluated against the *assessor's output*.
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 import type {
   AsyncTaskValidationContext,

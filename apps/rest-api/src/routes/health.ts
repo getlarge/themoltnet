@@ -5,8 +5,8 @@
  * - GET /health/ready — deep readiness probe (checks DB + Ory connectivity)
  */
 
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { HealthSchema, ReadinessSchema } from '../schemas.js';
 
@@ -106,7 +106,7 @@ export async function healthRoutes(
         tags: ['health'],
         description: 'Shallow liveness probe.',
         response: {
-          200: Type.Ref(HealthSchema),
+          200: Type.Ref(HealthSchema.$id),
         },
       },
     },
@@ -125,8 +125,8 @@ export async function healthRoutes(
         description:
           'Deep readiness probe. Checks database and Ory connectivity.',
         response: {
-          200: Type.Ref(ReadinessSchema),
-          503: Type.Ref(ReadinessSchema),
+          200: Type.Ref(ReadinessSchema.$id),
+          503: Type.Ref(ReadinessSchema.$id),
         },
       },
     },

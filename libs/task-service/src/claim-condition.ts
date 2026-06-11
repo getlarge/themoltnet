@@ -2,10 +2,11 @@ import type { Task as DbTask } from '@moltnet/database';
 import {
   type ClaimCondition,
   ClaimCondition as ClaimConditionSchema,
+  ClaimConditionDefinition,
   TaskStatus as TaskStatusSchema,
   type TaskValidationError,
 } from '@moltnet/tasks';
-import { Value } from '@sinclair/typebox/value';
+import { Value } from 'typebox/value';
 
 function formatField(prefix: string, path: string): string {
   return path ? `${prefix}${path}` : prefix;
@@ -17,13 +18,20 @@ export function validateClaimConditionShape(
   condition: unknown,
 ): TaskValidationError[] {
   // ClaimCondition's `task_status` leaf references the TaskStatus schema by
-  // $id (Type.Ref(TaskStatus)). Value.Errors must be given that referenced
-  // schema, otherwise it throws TypeDereferenceError ("Unable to dereference
-  // schema with $id 'TaskStatus'") and the whole create request 500s.
+  // $id (Type.Ref('TaskStatus')). Value.Errors must be given that referenced
+  // schema in its context map, otherwise it throws TypeDereferenceError and
+  // the whole create request 500s.
   const schemaErrors = [
-    ...Value.Errors(ClaimConditionSchema, [TaskStatusSchema], condition),
+    ...Value.Errors(
+      {
+        ClaimCondition: ClaimConditionDefinition,
+        TaskStatus: TaskStatusSchema,
+      },
+      ClaimConditionSchema,
+      condition,
+    ),
   ].map((error) => ({
-    field: formatField('claimCondition', error.path),
+    field: formatField('claimCondition', error.instancePath),
     message: error.message,
   }));
   return [

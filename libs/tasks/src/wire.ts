@@ -17,7 +17,7 @@
  *
  * See GH issue #852 for the full design snapshot.
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, Type } from 'typebox';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -147,49 +147,57 @@ export type ClaimCondition =
       taskId: string;
     };
 
-export const ClaimCondition = Type.Recursive(
-  (Self) =>
-    Type.Union([
-      Type.Object(
-        {
-          op: Type.Literal('all'),
-          conditions: Type.Array(Self, {
-            minItems: 1,
-            maxItems: MAX_CLAIM_CONDITION_BRANCHES,
-          }),
-        },
-        { additionalProperties: false },
-      ),
-      Type.Object(
-        {
-          op: Type.Literal('any'),
-          conditions: Type.Array(Self, {
-            minItems: 1,
-            maxItems: MAX_CLAIM_CONDITION_BRANCHES,
-          }),
-        },
-        { additionalProperties: false },
-      ),
-      Type.Object(
-        {
-          op: Type.Literal('task_status'),
-          taskId: Uuid,
-          statuses: Type.Array(Type.Ref(TaskStatus), {
-            minItems: 1,
-            maxItems: MAX_CLAIM_CONDITION_STATUSES,
-          }),
-        },
-        { additionalProperties: false },
-      ),
-      Type.Object(
-        {
-          op: Type.Literal('task_accepted'),
-          taskId: Uuid,
-        },
-        { additionalProperties: false },
-      ),
-    ]),
+const ClaimConditionSchema = Type.Union(
+  [
+    Type.Object(
+      {
+        op: Type.Literal('all'),
+        conditions: Type.Array(Type.Ref('ClaimCondition'), {
+          minItems: 1,
+          maxItems: MAX_CLAIM_CONDITION_BRANCHES,
+        }),
+      },
+      { additionalProperties: false },
+    ),
+    Type.Object(
+      {
+        op: Type.Literal('any'),
+        conditions: Type.Array(Type.Ref('ClaimCondition'), {
+          minItems: 1,
+          maxItems: MAX_CLAIM_CONDITION_BRANCHES,
+        }),
+      },
+      { additionalProperties: false },
+    ),
+    Type.Object(
+      {
+        op: Type.Literal('task_status'),
+        taskId: Uuid,
+        statuses: Type.Array(Type.Ref('TaskStatus'), {
+          minItems: 1,
+          maxItems: MAX_CLAIM_CONDITION_STATUSES,
+        }),
+      },
+      { additionalProperties: false },
+    ),
+    Type.Object(
+      {
+        op: Type.Literal('task_accepted'),
+        taskId: Uuid,
+      },
+      { additionalProperties: false },
+    ),
+  ],
   { $id: 'ClaimCondition' },
+);
+
+export const ClaimConditionDefinition =
+  Type.Unsafe<ClaimCondition>(ClaimConditionSchema);
+
+export const ClaimCondition = Type.Unsafe<ClaimCondition>(
+  Type.Cyclic({ ClaimCondition: ClaimConditionDefinition }, 'ClaimCondition', {
+    $id: 'ClaimCondition',
+  }),
 );
 
 /**
@@ -313,7 +321,10 @@ export const Task = Type.Object(
     proposedByAgentId: Type.Union([Uuid, Type.Null()]),
     proposedByHumanId: Type.Union([Uuid, Type.Null()]),
     acceptedAttemptN: Type.Union([Type.Number(), Type.Null()]),
-    claimCondition: Type.Union([ClaimCondition, Type.Null()]),
+    claimCondition: Type.Union([
+      Type.Unsafe<ClaimCondition>(Type.Ref('ClaimCondition')),
+      Type.Null(),
+    ]),
     requiredExecutorTrustLevel: ExecutorTrustLevel,
 
     // Proposer-set executor allowlist. Empty = no restriction. Advisory

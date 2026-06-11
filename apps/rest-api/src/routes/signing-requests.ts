@@ -23,8 +23,8 @@ import { buildSigningBytes } from '@moltnet/crypto-service';
 import type { SigningRequest } from '@moltnet/database';
 import { DBOS, parseStatusFilter, signingWorkflows } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
-import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import {
@@ -76,10 +76,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           message: Type.String({ minLength: 1, maxLength: 100000 }),
         }),
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          201: Type.Ref(SigningRequestSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          201: Type.Ref(SigningRequestSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -144,10 +144,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           ),
         }),
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(SigningRequestListSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          200: Type.Ref(SigningRequestListSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -184,11 +184,11 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: SigningRequestParamsSchema,
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(SigningRequestSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          200: Type.Ref(SigningRequestSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -226,12 +226,12 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           }),
         }),
         response: {
-          400: Type.Ref(ProblemDetailsSchema),
-          200: Type.Ref(SigningRequestSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          409: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          200: Type.Ref(SigningRequestSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
