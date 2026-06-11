@@ -1,5 +1,5 @@
 {
-  "apps/agent-daemon": "0.14.5",
+  "apps/agent-daemon": "0.14.6",
   "apps/mcp-server": "0.4.3",
   "apps/moltnet-cli": "1.45.2",
   "apps/rest-api": "0.8.1",
@@ -8,7 +8,7 @@
   "libs/design-system": "0.9.0",
   "libs/dspy-adapters": "0.9.2",
   "libs/moltnet-api-client": "1.30.5",
-  "libs/pi-extension": "0.22.4",
+  "libs/pi-extension": "0.22.5",
   "libs/sdk": "0.106.0",
   "packages/cli": "1.45.2",
   "packages/cli/npm/darwin-arm64": "1.45.2",
