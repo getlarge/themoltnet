@@ -41,7 +41,9 @@
     ]
   },
   "scripts": {
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+    "check:loader-bundle": "node scripts/check-loader-bundle.mjs",
+    "smoke:pi-loader": "node scripts/smoke-pi-loader.mjs",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run check:loader-bundle && pnpm run smoke:pi-loader"
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",

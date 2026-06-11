@@ -763,7 +763,14 @@ jobs:
 
       - run: pnpm exec nx run @themoltnet/pi-extension:test
 
+      - name: Install Pi for extension loader smoke
+        run: |
+          npm install -g @earendil-works/pi-coding-agent
+          echo "MOLTNET_PI_BIN=$(npm prefix -g)/bin/pi" >> "$GITHUB_ENV"
+
       - run: pnpm exec nx run @themoltnet/pi-extension:check:pack
+        env:
+          MOLTNET_PI_LOADER_SMOKE: required
 
       - name: Publish @themoltnet/pi-extension
         uses: nick-fields/retry@v4.0.0
