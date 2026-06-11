@@ -9,6 +9,10 @@ runs them, a `TaskReporter` streams progress + delivers the final
 This package is dependency-free of any specific LLM, sandbox, or REST
 client. The daemon (`@moltnet/agent-daemon`) wires it up.
 
+The runtime re-exports task schemas from the private `@moltnet/tasks`
+workspace package so published consumers receive the bundled task format
+definitions through `@themoltnet/agent-runtime`.
+
 **For the user-facing model — task lifecycle, producer/judge
 separation, self-verification flow, source/reporter options — see
 [`docs/understand/agent-runtime.md`](../../docs/understand/agent-runtime.md)
