@@ -14,8 +14,19 @@ export type LifecyclePhase =
   | 'pr_open'
   | 'pr_failed'
   | 'pr_review'
+  | 'lifecycle_recommendation'
   | 'notify'
   | 'done';
+
+export type SupervisorAction =
+  | 'continue'
+  | 'retry_step'
+  | 'spawn_replacement_step'
+  | 'revise_plan'
+  | 'resolve_review_findings'
+  | 'wait_for_human'
+  | 'stop_blocked'
+  | 'abort';
 
 export interface IssueLifecycleInput {
   repo: string;
@@ -90,6 +101,17 @@ export interface TaskClient {
   createTask(body: Parameters<Agent['tasks']['create']>[0]): Promise<SdkTask>;
   getTask(id: string): Promise<SdkTask>;
   listAttempts(id: string): Promise<SdkTaskAttempt[]>;
+  listMessages?(
+    id: string,
+    attemptN: number,
+  ): Promise<
+    Array<{
+      seq: number;
+      kind: string;
+      payload: unknown;
+      timestamp?: string;
+    }>
+  >;
 }
 
 export interface WorkflowContext {
@@ -123,6 +145,13 @@ export interface LifecycleStateArtifact {
   prReviewCommentBody?: string;
   resolvedFindings?: string[];
   ignoredFindings?: string[];
+  classification?: string;
+  confidence?: string;
+  allowedNextAction?: SupervisorAction;
+  targetStep?: string;
+  humanMessage?: string;
+  risk?: string;
+  evidence?: Array<Record<string, unknown>>;
 }
 
 export interface AcceptedTaskResult {

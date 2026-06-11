@@ -456,6 +456,93 @@ describe('runGithubIssueLifecycle', () => {
     ]);
   });
 
+  it('asks a supervisor task to classify terminal daemon failures', async () => {
+    const { deps: d, tasks } = fakeDeps([
+      {
+        __taskStatus: 'failed',
+        error: {
+          code: 'llm_api_error',
+          message: '401 "Unauthorized"',
+          retryable: false,
+        },
+        messages: [
+          {
+            seq: 1,
+            kind: 'provider',
+            payload: {
+              provider: 'ollama-cloud',
+              model: 'glm-5.1:cloud',
+            },
+          },
+          {
+            seq: 2,
+            kind: 'turn_end',
+            payload: {
+              stop_reason: 'error',
+              error: 'llm_api_error',
+            },
+          },
+        ],
+      },
+      {
+        phase: 'lifecycle_recommendation',
+        decision: 'stop_blocked',
+        summary: 'provider auth failed',
+        classification: 'provider_auth',
+        confidence: 'high',
+        allowedNextAction: 'stop_blocked',
+        targetStep: 'triage',
+        evidence: [
+          {
+            kind: 'task_attempt_error',
+            taskId: '00000000-0000-4000-8000-000000000001',
+            attemptN: 1,
+            value: 'llm_api_error: 401 Unauthorized',
+          },
+        ],
+        humanMessage:
+          'Fix the daemon provider credentials before retrying the lifecycle.',
+        risk: 'low',
+      },
+    ]);
+
+    await expect(
+      runGithubIssueLifecycle(
+        {
+          repo: 'getlarge/themoltnet',
+          issueNumber: 1327,
+          teamId: 'team',
+          diaryId: 'diary',
+          correlationId: '00000000-0000-4000-8000-000000000999',
+          pollIntervalSec: 1,
+        },
+        d,
+      ),
+    ).rejects.toThrow(
+      'lifecycle supervisor recommended stop_blocked for triage',
+    );
+
+    expect(tasks.created.map((task) => task.title)).toEqual([
+      'Triage issue #1327',
+      'Recommend recovery for triage',
+    ]);
+    const supervisorInput = tasks.created[1]?.input as
+      | { brief?: string; successCriteria?: SuccessCriteria }
+      | undefined;
+    expect(supervisorInput?.brief).toContain('ollama-cloud');
+    expect(supervisorInput?.brief).toContain('llm_api_error');
+    expect(supervisorInput?.brief).toContain('401 \\"Unauthorized\\"');
+    expect(supervisorInput?.brief).toContain('"allowedActions"');
+    expect(assertionIds(supervisorInput)).toEqual(
+      expect.arrayContaining([
+        'supervisor-recommendation-classification',
+        'supervisor-recommendation-allowedNextAction',
+        'supervisor-recommendation-evidence',
+        'supervisor-recommendation-humanMessage',
+      ]),
+    );
+  });
+
   it('creates a plan revision when review returns findings', async () => {
     const {
       deps: d,

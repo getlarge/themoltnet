@@ -1,4 +1,5 @@
 import type { LifecyclePhase, LifecycleStateArtifact } from './types.js';
+import type { SupervisorAction } from './types.js';
 
 const PHASES = new Set<LifecyclePhase>([
   'triaging',
@@ -9,8 +10,20 @@ const PHASES = new Set<LifecyclePhase>([
   'pr_open',
   'pr_failed',
   'pr_review',
+  'lifecycle_recommendation',
   'notify',
   'done',
+]);
+
+const SUPERVISOR_ACTIONS = new Set([
+  'continue',
+  'retry_step',
+  'spawn_replacement_step',
+  'revise_plan',
+  'resolve_review_findings',
+  'wait_for_human',
+  'stop_blocked',
+  'abort',
 ]);
 
 interface FreeformArtifact {
@@ -118,6 +131,34 @@ export function parseLifecycleStateArtifact(
   if (typeof body.prUrl === 'string') state.prUrl = body.prUrl;
   if (typeof body.notifySkipped === 'boolean') {
     state.notifySkipped = body.notifySkipped;
+  }
+  if (typeof body.classification === 'string') {
+    state.classification = body.classification;
+  }
+  if (typeof body.confidence === 'string') {
+    state.confidence = body.confidence;
+  }
+  if (
+    typeof body.allowedNextAction === 'string' &&
+    SUPERVISOR_ACTIONS.has(body.allowedNextAction)
+  ) {
+    state.allowedNextAction = body.allowedNextAction as SupervisorAction;
+  }
+  if (typeof body.targetStep === 'string') {
+    state.targetStep = body.targetStep;
+  }
+  if (typeof body.humanMessage === 'string') {
+    state.humanMessage = body.humanMessage;
+  }
+  if (typeof body.risk === 'string') {
+    state.risk = body.risk;
+  }
+  if (Array.isArray(body.evidence)) {
+    state.evidence = body.evidence.flatMap((item) =>
+      typeof item === 'object' && item !== null && !Array.isArray(item)
+        ? [item as Record<string, unknown>]
+        : [],
+    );
   }
 
   return state;

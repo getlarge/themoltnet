@@ -139,6 +139,30 @@ new continuation tasks when the workflow calls for another agent loop:
 - post-review CI failures create an implementation-retry task
 - missing human approval is a durable wait, not a failure
 
+When a lifecycle task reaches a terminal failure or returns an invalid lifecycle
+artifact, the runner creates a correlated supervisor recommendation task instead
+of immediately losing context in an orchestration error. That supervisor task is
+freeform, but decision-only: it receives a structured snapshot with the issue,
+correlation id, failed task, attempts, daemon messages when available, retry
+budgets, and allowed actions. It must emit a `lifecycle_recommendation` artifact
+with one allowed next action and a human-readable explanation.
+
+Current allowed supervisor actions are:
+
+- `stop_blocked`: stop because an operator must fix credentials, permissions,
+  missing services, or other non-code preconditions
+- `abort`: stop because the lifecycle should not continue for this issue
+- `wait_for_human`: stop at a human gate that the runner cannot observe yet
+- `retry_step`: advisory only in v1; the runner records the recommendation but
+  does not yet replay the failed task automatically
+- `spawn_replacement_step`: advisory only in v1; the runner records the
+  recommendation but does not yet build a replacement task automatically
+
+The workflow validates the supervisor artifact before applying it. In v1 all
+supervisor recommendations stop the workflow with a clear error that includes
+the action, classification, confidence, and message. This keeps recovery
+decisions durable and inspectable while avoiding hidden blind retries.
+
 `src/absurd.ts` currently registers the workflow with `defaultMaxAttempts: 3`.
 That protects the lifecycle worker from short-lived process, network, or API
 failures. If the workflow fails because the accepted task artifact is malformed,

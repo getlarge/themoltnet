@@ -7,6 +7,28 @@ import type {
   TaskClient,
 } from './types.js';
 
+type FakeTaskOutput =
+  | Record<string, unknown>
+  | {
+      __taskStatus: 'failed' | 'cancelled';
+      error?: unknown;
+      messages?: Array<{
+        seq: number;
+        kind: string;
+        payload: unknown;
+        timestamp?: string;
+      }>;
+    };
+
+function isTerminalFakeOutput(
+  output: FakeTaskOutput,
+): output is Extract<FakeTaskOutput, { __taskStatus: 'failed' | 'cancelled' }> {
+  return (
+    '__taskStatus' in output &&
+    (output.__taskStatus === 'failed' || output.__taskStatus === 'cancelled')
+  );
+}
+
 export function outputState(body: Record<string, unknown>) {
   const summary = typeof body.summary === 'string' ? body.summary : 'summary';
   return {
@@ -24,16 +46,27 @@ export function outputState(body: Record<string, unknown>) {
 export class FakeTasks implements TaskClient {
   readonly created: Array<Parameters<TaskClient['createTask']>[0]> = [];
   private readonly tasks = new Map<string, SdkTask>();
-  private readonly attempts = new Map<string, SdkTaskAttempt>();
+  private readonly attempts = new Map<string, SdkTaskAttempt[]>();
+  private readonly messages = new Map<
+    string,
+    Array<{
+      seq: number;
+      kind: string;
+      payload: unknown;
+      timestamp?: string;
+    }>
+  >();
   private next = 1;
 
-  constructor(private readonly outputs: Array<Record<string, unknown>>) {}
+  constructor(private readonly outputs: FakeTaskOutput[]) {}
 
   createTask(body: Parameters<TaskClient['createTask']>[0]): Promise<SdkTask> {
     const id = `00000000-0000-4000-8000-${String(this.next).padStart(12, '0')}`;
     this.next += 1;
     const output = this.outputs.shift();
     if (!output) throw new Error('test exhausted fake outputs');
+    const terminalOutput = isTerminalFakeOutput(output) ? output : null;
+    const failedStatus = terminalOutput?.__taskStatus ?? null;
     const task = {
       id,
       taskType: body.taskType,
@@ -49,12 +82,12 @@ export class FakeTasks implements TaskClient {
       correlationId: body.correlationId ?? null,
       proposedByAgentId: 'agent',
       proposedByHumanId: null,
-      acceptedAttemptN: 1,
+      acceptedAttemptN: failedStatus ? null : 1,
       claimCondition: body.claimCondition ?? null,
       requiredExecutorTrustLevel:
         body.requiredExecutorTrustLevel ?? 'selfDeclared',
       allowedExecutors: body.allowedExecutors ?? [],
-      status: 'completed',
+      status: failedStatus ?? 'completed',
       queuedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
       expiresAt: null,
@@ -73,14 +106,14 @@ export class FakeTasks implements TaskClient {
       claimedAt: new Date().toISOString(),
       startedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
-      status: 'completed',
-      output: outputState(output),
-      outputCid: `cid-${id}`,
+      status: failedStatus ?? 'completed',
+      output: failedStatus ? null : outputState(output),
+      outputCid: failedStatus ? null : `cid-${id}`,
       claimedExecutorFingerprint: null,
       claimedExecutorManifest: null,
       completedExecutorFingerprint: null,
       completedExecutorManifest: null,
-      error: null,
+      error: terminalOutput ? (terminalOutput.error ?? null) : null,
       usage: null,
       contentSignature: null,
       signedAt: null,
@@ -91,7 +124,10 @@ export class FakeTasks implements TaskClient {
     } as SdkTaskAttempt;
     this.created.push(body);
     this.tasks.set(id, task);
-    this.attempts.set(id, attempt);
+    this.attempts.set(id, [attempt]);
+    if (terminalOutput?.messages) {
+      this.messages.set(`${id}:1`, terminalOutput.messages);
+    }
     return Promise.resolve(task);
   }
 
@@ -102,9 +138,23 @@ export class FakeTasks implements TaskClient {
   }
 
   listAttempts(id: string): Promise<SdkTaskAttempt[]> {
-    const attempt = this.attempts.get(id);
-    if (!attempt) throw new Error(`missing attempt ${id}`);
-    return Promise.resolve([attempt]);
+    const attempts = this.attempts.get(id);
+    if (!attempts) throw new Error(`missing attempt ${id}`);
+    return Promise.resolve(attempts);
+  }
+
+  listMessages(
+    id: string,
+    attemptN: number,
+  ): Promise<
+    Array<{
+      seq: number;
+      kind: string;
+      payload: unknown;
+      timestamp?: string;
+    }>
+  > {
+    return Promise.resolve(this.messages.get(`${id}:${attemptN}`) ?? []);
   }
 }
 
@@ -174,7 +224,7 @@ export class FakeGithub implements GithubClient {
   }
 }
 
-export function fakeDeps(outputs: Array<Record<string, unknown>>): {
+export function fakeDeps(outputs: FakeTaskOutput[]): {
   deps: IssueLifecycleDeps;
   tasks: FakeTasks;
   github: FakeGithub;

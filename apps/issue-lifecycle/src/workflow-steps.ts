@@ -12,11 +12,31 @@ import type { normalizeLifecycleInput } from './task-factory.js';
 import type {
   AcceptedTaskResult,
   IssueLifecycleDeps,
+  SdkTask,
+  SdkTaskAttempt,
   TaskClient,
   WorkflowContext,
 } from './types.js';
 
 type NormalizedLifecycleInput = ReturnType<typeof normalizeLifecycleInput>;
+
+export type TaskOutcome =
+  | {
+      kind: 'accepted';
+      result: AcceptedTaskResult;
+    }
+  | {
+      kind: 'failed';
+      task: SdkTask;
+      attempts: SdkTaskAttempt[];
+      reason: string;
+    }
+  | {
+      kind: 'invalid_output';
+      task: SdkTask;
+      attempt: SdkTaskAttempt;
+      reason: string;
+    };
 
 function isTimeoutError(error: unknown): boolean {
   return (
@@ -67,14 +87,14 @@ async function waitForSignalOrSleep(args: {
   }
 }
 
-export async function waitForAcceptedTask(
+export async function waitForTaskOutcome(
   taskId: string,
   tasks: TaskClient,
   ctx: WorkflowContext,
   pollIntervalSec: number,
   logger: IssueLifecycleDeps['logger'],
   description: string,
-): Promise<AcceptedTaskResult> {
+): Promise<TaskOutcome> {
   logger?.info(
     { taskId, description, pollIntervalSec },
     'issue_lifecycle.task.wait.start',
@@ -91,11 +111,17 @@ export async function waitForAcceptedTask(
       'issue_lifecycle.task.wait.poll',
     );
     if (task.status === 'failed' || task.status === 'cancelled') {
+      const attempts = await tasks.listAttempts(taskId);
       logger?.error(
         { taskId, description, status: task.status },
         'issue_lifecycle.task.wait.terminal_failure',
       );
-      throw new Error(`task ${taskId} ended with status ${task.status}`);
+      return {
+        kind: 'failed',
+        task,
+        attempts,
+        reason: `task ${taskId} ended with status ${task.status}`,
+      };
     }
     if (task.status === 'completed' && task.acceptedAttemptN !== null) {
       const attempts = await tasks.listAttempts(taskId);
@@ -103,7 +129,12 @@ export async function waitForAcceptedTask(
         (candidate) => candidate.attemptN === task.acceptedAttemptN,
       );
       if (!attempt || attempt.status !== 'completed') {
-        throw new Error(`task ${taskId} accepted attempt is not completed`);
+        return {
+          kind: 'failed',
+          task,
+          attempts,
+          reason: `task ${taskId} accepted attempt is not completed`,
+        };
       }
       logger?.info(
         {
@@ -114,11 +145,31 @@ export async function waitForAcceptedTask(
         },
         'issue_lifecycle.task.wait.accepted',
       );
-      return {
-        task,
-        attempt,
-        state: parseLifecycleStateArtifact(attempt.output),
-      };
+      try {
+        return {
+          kind: 'accepted',
+          result: {
+            task,
+            attempt,
+            state: parseLifecycleStateArtifact(attempt.output),
+          },
+        };
+      } catch (error) {
+        const reason =
+          error instanceof Error
+            ? error.message
+            : `invalid lifecycle output: ${String(error)}`;
+        logger?.error(
+          {
+            taskId,
+            description,
+            acceptedAttemptN: task.acceptedAttemptN,
+            reason,
+          },
+          'issue_lifecycle.task.wait.invalid_output',
+        );
+        return { kind: 'invalid_output', task, attempt, reason };
+      }
     }
     await waitForSignalOrSleep({
       ctx,
@@ -129,6 +180,26 @@ export async function waitForAcceptedTask(
       description,
     });
   }
+}
+
+export async function waitForAcceptedTask(
+  taskId: string,
+  tasks: TaskClient,
+  ctx: WorkflowContext,
+  pollIntervalSec: number,
+  logger: IssueLifecycleDeps['logger'],
+  description: string,
+): Promise<AcceptedTaskResult> {
+  const outcome = await waitForTaskOutcome(
+    taskId,
+    tasks,
+    ctx,
+    pollIntervalSec,
+    logger,
+    description,
+  );
+  if (outcome.kind === 'accepted') return outcome.result;
+  throw new Error(outcome.reason);
 }
 
 export function logCreatedTask(

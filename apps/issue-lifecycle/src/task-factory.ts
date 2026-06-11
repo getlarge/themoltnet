@@ -7,6 +7,7 @@ import type {
   GithubIssue,
   IssueLifecycleInput,
   SdkTaskAttempt,
+  SupervisorAction,
   TaskClient,
 } from './types.js';
 
@@ -417,6 +418,61 @@ export async function buildPrReviewResolutionTask(args: {
       statuses: ['completed'],
     },
   };
+}
+
+export async function buildSupervisorRecommendationTask(args: {
+  input: IssueLifecycleInput & LifecycleDefaults;
+  issue: GithubIssue;
+  step: string;
+  reason: string;
+  snapshot: Record<string, unknown>;
+  allowedActions: SupervisorAction[];
+}): Promise<Parameters<TaskClient['createTask']>[0]> {
+  const brief = [
+    `Recommend the next issue-lifecycle action for ${args.input.repo}#${args.issue.number}.`,
+    '',
+    `Current lifecycle step: ${args.step}`,
+    `Reason recommendation is needed: ${args.reason}`,
+    '',
+    'You are the lifecycle supervisor. Interpret the snapshot, classify the situation, and recommend exactly one allowed next action.',
+    'Do not modify repository files, GitHub state, or MoltNet tasks. This is a decision-only task.',
+    'Prefer stop_blocked for provider/auth/permission/config failures that a retry cannot fix.',
+    'Prefer retry_step only for clearly transient failures with retry budget available.',
+    'Prefer abort only when the lifecycle request is invalid or unsafe to continue.',
+    'Allowed actions:',
+    ...args.allowedActions.map((action) => `- ${action}`),
+    '',
+    'Lifecycle snapshot JSON:',
+    JSON.stringify(args.snapshot, null, 2),
+    '',
+    'Required artifact body shape:',
+    '{"phase":"lifecycle_recommendation","decision":"stop_blocked","summary":"...","classification":"provider_auth|transient_infra|task_contract|agent_output_invalid|ci_failure|review_feedback|human_gate|unknown","confidence":"high|medium|low","allowedNextAction":"stop_blocked","targetStep":"triage","evidence":[{"kind":"task_attempt_error","taskId":"...","attemptN":1,"value":"..."}],"humanMessage":"...","risk":"low|medium|high"}',
+  ].join('\n');
+  return baseBody(
+    args.input,
+    `Recommend recovery for ${args.step}`,
+    brief,
+    args.issue,
+    lifecycleSuccessCriteria({
+      step: 'supervisor-recommendation',
+      expectedPhase: 'lifecycle_recommendation',
+      expectedDecisionPattern: args.allowedActions
+        .map((action) => escapeRegex(action))
+        .join('|'),
+      requiredFields: [
+        'summary',
+        'classification',
+        'confidence',
+        'allowedNextAction',
+        'targetStep',
+        'evidence',
+        'humanMessage',
+        'risk',
+      ],
+      dependency:
+        'Decision-only lifecycle supervisor task. Use the provided snapshot and choose one allowed next action.',
+    }),
+  );
 }
 
 function lifecycleSuccessCriteria(args: {
