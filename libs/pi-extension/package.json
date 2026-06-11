@@ -3,6 +3,11 @@
   "version": "0.22.2",
   "type": "module",
   "description": "MoltNet pi extension — sandboxed tool execution in Gondolin VMs with MoltNet identity and persistent memory",
+  "keywords": [
+    "moltnet",
+    "pi-extension",
+    "task-execution"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

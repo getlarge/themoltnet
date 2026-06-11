@@ -4,6 +4,11 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "description": "MoltNet agent runtime — coding-agent-agnostic Task execution loop",
+  "keywords": [
+    "moltnet",
+    "agent-runtime",
+    "task-schemas"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/getlarge/themoltnet.git",
