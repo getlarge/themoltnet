@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.22.4](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.22.3...pi-extension-v0.22.4) (2026-06-11)
+
+
+### Bug Fixes
+
+* migrate schemas to typebox v1 ([615ffa7](https://github.com/getlarge/themoltnet/commit/615ffa7927cf60f730840e3e07c92f756413449b))
+* migrate schemas to TypeBox v1 ([565d3e5](https://github.com/getlarge/themoltnet/commit/565d3e5f93c19dff75dbcf76dce4a36d37a42f2c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.22.4
+
 ## [0.22.3](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.22.2...pi-extension-v0.22.3) (2026-06-11)
 
 
