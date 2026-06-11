@@ -55,7 +55,7 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
       'skip-notify-label': { type: 'string' },
       'github-auth': { type: 'string' },
       'poll-interval-sec': { type: 'string' },
-      'dry-run': { type: 'boolean', default: false },
+      'max-pr-pending-polls': { type: 'string' },
     },
   });
 
@@ -72,6 +72,24 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
   }
   if (values['correlation-id'] && !UUID_RE.test(values['correlation-id'])) {
     throw new Error('--correlation-id must be a UUID');
+  }
+  const pollIntervalSec = values['poll-interval-sec']
+    ? Number(values['poll-interval-sec'])
+    : undefined;
+  if (
+    pollIntervalSec !== undefined &&
+    (!Number.isFinite(pollIntervalSec) || pollIntervalSec < 1)
+  ) {
+    throw new Error('--poll-interval-sec must be a positive number');
+  }
+  const maxPrPendingPolls = values['max-pr-pending-polls']
+    ? Number(values['max-pr-pending-polls'])
+    : undefined;
+  if (
+    maxPrPendingPolls !== undefined &&
+    (!Number.isInteger(maxPrPendingPolls) || maxPrPendingPolls < 1)
+  ) {
+    throw new Error('--max-pr-pending-polls must be a positive integer');
   }
 
   const databaseUrl =
@@ -122,9 +140,8 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
       ...(values['skip-notify-label']
         ? { skipNotifyLabel: values['skip-notify-label'] }
         : {}),
-      ...(values['poll-interval-sec']
-        ? { pollIntervalSec: Number(values['poll-interval-sec']) }
-        : {}),
+      ...(pollIntervalSec !== undefined ? { pollIntervalSec } : {}),
+      ...(maxPrPendingPolls !== undefined ? { maxPrPendingPolls } : {}),
     },
   };
 }

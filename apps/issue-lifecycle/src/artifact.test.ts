@@ -60,9 +60,38 @@ describe('parseLifecycleStateArtifact', () => {
     expect(isReviewPassed(state)).toBe(false);
   });
 
+  it('reads PR review comment metadata', () => {
+    const state = parseLifecycleStateArtifact({
+      artifacts: [
+        {
+          kind: 'issue_lifecycle_state',
+          title: 'state',
+          body: JSON.stringify({
+            phase: 'pr_review',
+            decision: 'review_passed',
+            summary: 'security review passed',
+            prReviewKind: 'security',
+            prReviewCommentUrl:
+              'https://github.com/getlarge/themoltnet/pull/42#issuecomment-3',
+            prReviewCommentBody: 'security ok',
+          }),
+        },
+      ],
+    });
+
+    expect(state).toMatchObject({
+      phase: 'pr_review',
+      decision: 'review_passed',
+      prReviewKind: 'security',
+      prReviewCommentUrl:
+        'https://github.com/getlarge/themoltnet/pull/42#issuecomment-3',
+      prReviewCommentBody: 'security ok',
+    });
+  });
+
   it('rejects output without a lifecycle artifact', () => {
     expect(() => parseLifecycleStateArtifact({ artifacts: [] })).toThrow(
-      /missing an issue_lifecycle_state/,
+      /missing artifacts\[0\]\.body/,
     );
   });
 });

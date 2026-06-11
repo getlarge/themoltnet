@@ -84,15 +84,13 @@ export function parseLifecycleStateArtifact(
     throw new Error('freeform output does not contain artifacts[]');
   }
 
-  const artifact = artifacts.find(
-    (candidate): candidate is FreeformArtifact =>
-      typeof candidate === 'object' &&
-      candidate !== null &&
-      (candidate as FreeformArtifact).kind === 'issue_lifecycle_state',
-  );
+  const artifact = artifacts[0] as FreeformArtifact | undefined;
   if (!artifact || typeof artifact.body !== 'string') {
+    throw new Error('freeform output is missing artifacts[0].body');
+  }
+  if (artifact.kind !== 'issue_lifecycle_state') {
     throw new Error(
-      'freeform output is missing an issue_lifecycle_state artifact body',
+      'freeform output artifacts[0].kind must be issue_lifecycle_state',
     );
   }
 
@@ -131,6 +129,26 @@ export function parseLifecycleStateArtifact(
   if (typeof body.prUrl === 'string') state.prUrl = body.prUrl;
   if (typeof body.notifySkipped === 'boolean') {
     state.notifySkipped = body.notifySkipped;
+  }
+  if (typeof body.prReviewKind === 'string') {
+    state.prReviewKind = body.prReviewKind;
+  }
+  if (typeof body.prReviewCommentUrl === 'string') {
+    state.prReviewCommentUrl = body.prReviewCommentUrl;
+  }
+  if (typeof body.prReviewCommentBody === 'string') {
+    state.prReviewCommentBody = body.prReviewCommentBody;
+  }
+  if (typeof body.reflectionEntryId === 'string') {
+    state.reflectionEntryId = body.reflectionEntryId;
+  }
+  if (Array.isArray(body.linkedEntryIds)) {
+    state.linkedEntryIds = body.linkedEntryIds.flatMap((item) =>
+      typeof item === 'string' ? [item] : [],
+    );
+  }
+  if (typeof body.prReflectionUrl === 'string') {
+    state.prReflectionUrl = body.prReflectionUrl;
   }
   if (typeof body.classification === 'string') {
     state.classification = body.classification;

@@ -45,6 +45,7 @@ export interface IssueLifecycleInput {
     | 'releaseVerifiedTool'
     | 'sandboxAttested';
   pollIntervalSec?: number;
+  maxPrPendingPolls?: number;
   maxReviewRounds?: number;
   maxImplementationRetries?: number;
 }
@@ -145,6 +146,9 @@ export interface LifecycleStateArtifact {
   prReviewCommentBody?: string;
   resolvedFindings?: string[];
   ignoredFindings?: string[];
+  reflectionEntryId?: string;
+  linkedEntryIds?: string[];
+  prReflectionUrl?: string;
   classification?: string;
   confidence?: string;
   allowedNextAction?: SupervisorAction;

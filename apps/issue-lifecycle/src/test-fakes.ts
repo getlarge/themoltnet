@@ -18,6 +18,9 @@ type FakeTaskOutput =
         payload: unknown;
         timestamp?: string;
       }>;
+    }
+  | {
+      __rawOutput: unknown;
     };
 
 function isTerminalFakeOutput(
@@ -27,6 +30,12 @@ function isTerminalFakeOutput(
     '__taskStatus' in output &&
     (output.__taskStatus === 'failed' || output.__taskStatus === 'cancelled')
   );
+}
+
+function isRawFakeOutput(
+  output: FakeTaskOutput,
+): output is Extract<FakeTaskOutput, { __rawOutput: unknown }> {
+  return '__rawOutput' in output;
 }
 
 export function outputState(body: Record<string, unknown>) {
@@ -66,6 +75,7 @@ export class FakeTasks implements TaskClient {
     const output = this.outputs.shift();
     if (!output) throw new Error('test exhausted fake outputs');
     const terminalOutput = isTerminalFakeOutput(output) ? output : null;
+    const rawOutput = isRawFakeOutput(output) ? output.__rawOutput : null;
     const failedStatus = terminalOutput?.__taskStatus ?? null;
     const task = {
       id,
@@ -107,7 +117,7 @@ export class FakeTasks implements TaskClient {
       startedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
       status: failedStatus ?? 'completed',
-      output: failedStatus ? null : outputState(output),
+      output: failedStatus ? null : (rawOutput ?? outputState(output)),
       outputCid: failedStatus ? null : `cid-${id}`,
       claimedExecutorFingerprint: null,
       claimedExecutorManifest: null,

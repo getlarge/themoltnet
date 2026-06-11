@@ -36,7 +36,10 @@ import {
   waitForGreenPrChecks,
   waitForPrMergeOrFailure,
 } from './workflow-steps.js';
-import { waitForLifecycleTask } from './workflow-supervisor.js';
+import {
+  SupervisorRecommendationError,
+  waitForLifecycleTask,
+} from './workflow-supervisor.js';
 
 const inlineContext: WorkflowContext = {
   step(_name, fn) {
@@ -62,6 +65,7 @@ export async function runGithubIssueLifecycle(
       approvalLabel: input.approvalLabel,
       skipNotifyLabel: input.skipNotifyLabel,
       pollIntervalSec: input.pollIntervalSec,
+      maxPrPendingPolls: input.maxPrPendingPolls,
       maxReviewRounds: input.maxReviewRounds,
       maxImplementationRetries: input.maxImplementationRetries,
     },
@@ -88,6 +92,119 @@ export async function runGithubIssueLifecycle(
       deps,
       ctx,
     });
+  const waitForTrackedLifecycleTask = async (args: {
+    taskId: string;
+    step: string;
+    description: string;
+    statusKey: string;
+    statusLabel: string;
+    validate?: (result: AcceptedTaskResult) => string | null;
+  }) => {
+    try {
+      return await waitForLifecycleTask({
+        taskId: args.taskId,
+        step: args.step,
+        description: args.description,
+        input,
+        issue,
+        deps,
+        ctx,
+        validate: args.validate,
+      });
+    } catch (error) {
+      const summary =
+        error instanceof SupervisorRecommendationError
+          ? `${error.details.action}: ${error.details.message}`
+          : error instanceof Error
+            ? error.message
+            : String(error);
+      if (error instanceof SupervisorRecommendationError) {
+        setStatusLine(statusLines, {
+          key: args.statusKey,
+          label: args.statusLabel,
+          status: 'failed',
+          taskId: error.details.taskId,
+          attemptN: error.details.attemptN,
+          summary,
+        });
+      } else {
+        setStatusLine(statusLines, {
+          key: args.statusKey,
+          label: args.statusLabel,
+          status: 'failed',
+          summary,
+        });
+      }
+      await updateStatus();
+      throw error;
+    }
+  };
+  const waitForTrackedPrGate = async (args: {
+    prNumber: number;
+    prUrl: string | undefined;
+    attempt: number;
+    statusKey: string;
+    statusLabel: string;
+    waitingSummary: string;
+  }) => {
+    try {
+      return await waitForGreenPrChecks(
+        input,
+        args.prNumber,
+        deps,
+        ctx,
+        args.attempt,
+      );
+    } catch (error) {
+      setStatusLine(statusLines, {
+        key: args.statusKey,
+        label: args.statusLabel,
+        status: 'failed',
+        prNumber: args.prNumber,
+        prUrl: args.prUrl,
+        summary:
+          error instanceof Error
+            ? error.message
+            : `Failed while ${args.waitingSummary}`,
+      });
+      await updateStatus();
+      throw error;
+    }
+  };
+  const expectedPhase =
+    (phase: AcceptedTaskResult['state']['phase']) =>
+    (result: AcceptedTaskResult) =>
+      result.state.phase === phase
+        ? null
+        : `expected phase ${phase}, got ${result.state.phase}`;
+  const requireLinkedPr = (result: AcceptedTaskResult) =>
+    result.state.phase === 'pr_open' && result.state.prNumber
+      ? null
+      : 'expected pr_open artifact with numeric prNumber';
+  const requirePrReview = (kind: string) => (result: AcceptedTaskResult) => {
+    if (result.state.phase !== 'pr_review') {
+      return `expected phase pr_review, got ${result.state.phase}`;
+    }
+    if (result.state.prReviewKind !== kind) {
+      return `expected prReviewKind ${kind}, got ${String(result.state.prReviewKind)}`;
+    }
+    if (!result.state.prReviewCommentUrl) {
+      return 'expected prReviewCommentUrl';
+    }
+    if (!result.state.prReviewCommentBody) {
+      return 'expected prReviewCommentBody';
+    }
+    return null;
+  };
+  const requireNotifyDone = (result: AcceptedTaskResult) => {
+    if (result.state.phase !== 'done') {
+      return `expected phase done, got ${result.state.phase}`;
+    }
+    if (!result.state.reflectionEntryId) return 'expected reflectionEntryId';
+    if (!result.state.linkedEntryIds?.length) return 'expected linkedEntryIds';
+    if (!result.state.prReflectionUrl) return 'expected prReflectionUrl';
+    return null;
+  };
 
   const triageTask = await ctx.step('task.triage.create', async () => {
     const body = await buildTriageTask(input, issue);
@@ -100,14 +217,13 @@ export async function runGithubIssueLifecycle(
     taskStatusLine('triage', 'Triage', 'running', triageTask, 'Task created'),
   );
   await updateStatus();
-  const triage = await waitForLifecycleTask({
+  const triage = await waitForTrackedLifecycleTask({
     taskId: triageTask.id,
     step: 'triage',
     description: 'triage',
-    input,
-    issue,
-    deps,
-    ctx,
+    statusKey: 'triage',
+    statusLabel: 'Triage',
+    validate: expectedPhase('classified'),
   });
   deps.logger?.info(
     {
@@ -170,14 +286,13 @@ export async function runGithubIssueLifecycle(
     taskStatusLine('plan', 'Plan', 'running', planTask, 'Task created'),
   );
   await updateStatus();
-  let latestPlan = await waitForLifecycleTask({
+  let latestPlan = await waitForTrackedLifecycleTask({
     taskId: planTask.id,
     step: 'plan',
     description: 'plan',
-    input,
-    issue,
-    deps,
-    ctx,
+    statusKey: 'plan',
+    statusLabel: 'Plan',
+    validate: expectedPhase('plan_generated'),
   });
   deps.logger?.info(
     {
@@ -226,14 +341,13 @@ export async function runGithubIssueLifecycle(
       ),
     );
     await updateStatus();
-    const review = await waitForLifecycleTask({
+    const review = await waitForTrackedLifecycleTask({
       taskId: reviewTask.id,
       step: `plan-review.${round}`,
       description: `plan-review.${round}`,
-      input,
-      issue,
-      deps,
-      ctx,
+      statusKey: 'plan-review',
+      statusLabel: `Plan review round ${round}`,
+      validate: expectedPhase('plan_generated'),
     });
     deps.logger?.info(
       {
@@ -302,14 +416,13 @@ export async function runGithubIssueLifecycle(
       ),
     );
     await updateStatus();
-    latestPlan = await waitForLifecycleTask({
+    latestPlan = await waitForTrackedLifecycleTask({
       taskId: revisionTask.id,
       step: `plan-revision.${round}`,
       description: `plan-revision.${round}`,
-      input,
-      issue,
-      deps,
-      ctx,
+      statusKey: 'plan',
+      statusLabel: `Plan revision round ${round}`,
+      validate: expectedPhase('plan_generated'),
     });
     deps.logger?.info(
       {
@@ -423,14 +536,14 @@ export async function runGithubIssueLifecycle(
       ),
     );
     await updateStatus();
-    const impl = await waitForLifecycleTask({
+    const impl = await waitForTrackedLifecycleTask({
       taskId: implTask.id,
       step: `implement.${attempt}`,
       description: `implement.${attempt}`,
-      input,
-      issue,
-      deps,
-      ctx,
+      statusKey: 'implementation',
+      statusLabel:
+        attempt === 0 ? 'Implementation' : `Implementation retry ${attempt}`,
+      validate: requireLinkedPr,
     });
     deps.logger?.info(
       {
@@ -477,13 +590,14 @@ export async function runGithubIssueLifecycle(
     });
     await updateStatus();
 
-    const initialGate = await waitForGreenPrChecks(
-      input,
-      linkedPrNumber,
-      deps,
-      ctx,
+    const initialGate = await waitForTrackedPrGate({
+      prNumber: linkedPrNumber,
+      prUrl: impl.state.prUrl,
       attempt,
-    );
+      statusKey: 'pr',
+      statusLabel: 'Pull request',
+      waitingSummary: 'waiting for green CI before agent reviews',
+    });
     if (initialGate === 'merged') break;
     if (initialGate === 'failure') {
       if (attempt === input.maxImplementationRetries) {
@@ -542,14 +656,13 @@ export async function runGithubIssueLifecycle(
     await updateStatus();
     reviewResults = await Promise.all(
       reviewTasks.map(async ({ kind, task }) => {
-        const result = await waitForLifecycleTask({
+        const result = await waitForTrackedLifecycleTask({
           taskId: task.id,
           step: `pr-review.${kind}.${attempt}`,
           description: `pr-review.${kind}.${attempt}`,
-          input,
-          issue,
-          deps,
-          ctx,
+          statusKey: 'pr-review',
+          statusLabel: `PR ${kind} review`,
+          validate: requirePrReview(kind),
         });
         deps.logger?.info(
           {
@@ -605,14 +718,13 @@ export async function runGithubIssueLifecycle(
       ),
     );
     await updateStatus();
-    const resolution = await waitForLifecycleTask({
+    const resolution = await waitForTrackedLifecycleTask({
       taskId: resolutionTask.id,
       step: `pr-review-resolution.${attempt}`,
       description: `pr-review-resolution.${attempt}`,
-      input,
-      issue,
-      deps,
-      ctx,
+      statusKey: 'review-resolution',
+      statusLabel: 'Review resolution',
+      validate: requireLinkedPr,
     });
     if (resolution.state.phase !== 'pr_open' || !resolution.state.prNumber) {
       throw new Error('review resolution did not preserve a linked PR');
@@ -626,13 +738,14 @@ export async function runGithubIssueLifecycle(
     );
     await updateStatus();
 
-    const postReviewGate = await waitForGreenPrChecks(
-      input,
-      reviewedPrNumber,
-      deps,
-      ctx,
+    const postReviewGate = await waitForTrackedPrGate({
+      prNumber: reviewedPrNumber,
+      prUrl: resolution.state.prUrl,
       attempt,
-    );
+      statusKey: 'pr',
+      statusLabel: 'Pull request',
+      waitingSummary: 'waiting for green CI after review fixes',
+    });
     if (postReviewGate === 'merged') break;
     if (postReviewGate === 'failure') {
       if (attempt === input.maxImplementationRetries) {
@@ -675,13 +788,31 @@ export async function runGithubIssueLifecycle(
     });
     await updateStatus();
 
-    const humanReview = await waitForPrMergeOrFailure({
-      input,
-      prNumber: reviewedPrNumber,
-      deps,
-      ctx,
-      attempt,
-    });
+    const humanReview = await (async () => {
+      try {
+        return await waitForPrMergeOrFailure({
+          input,
+          prNumber: reviewedPrNumber,
+          deps,
+          ctx,
+          attempt,
+        });
+      } catch (error) {
+        setStatusLine(statusLines, {
+          key: 'human-review',
+          label: 'Human PR review',
+          status: 'failed',
+          prNumber: reviewedPrNumber,
+          prUrl: resolution.state.prUrl,
+          summary:
+            error instanceof Error
+              ? error.message
+              : 'Failed while waiting for human review',
+        });
+        await updateStatus();
+        throw error;
+      }
+    })();
     if (humanReview.status === 'merged') {
       setStatusLine(statusLines, {
         key: 'human-review',
@@ -693,6 +824,33 @@ export async function runGithubIssueLifecycle(
       });
       await updateStatus();
       break;
+    }
+    if (humanReview.status === 'checks_failed') {
+      if (attempt === input.maxImplementationRetries) {
+        setStatusLine(statusLines, {
+          key: 'human-review',
+          label: 'Human PR review',
+          status: 'failed',
+          prNumber: reviewedPrNumber,
+          prUrl: humanReview.url,
+          summary: 'Checks failed during human review; retry budget exhausted',
+        });
+        await updateStatus();
+        throw new Error(
+          `PR #${reviewedPrNumber} checks failed during human review after retry budget`,
+        );
+      }
+      setStatusLine(statusLines, {
+        key: 'human-review',
+        label: 'Human PR review',
+        status: 'failed',
+        prNumber: reviewedPrNumber,
+        prUrl: humanReview.url,
+        summary:
+          'Checks failed during human review; creating implementation retry',
+      });
+      await updateStatus();
+      continue;
     }
   }
 
@@ -734,14 +892,13 @@ export async function runGithubIssueLifecycle(
     ),
   );
   await updateStatus();
-  const notify = await waitForLifecycleTask({
+  const notify = await waitForTrackedLifecycleTask({
     taskId: notifyTask.id,
     step: 'notify',
     description: 'notify',
-    input,
-    issue,
-    deps,
-    ctx,
+    statusKey: 'notify',
+    statusLabel: 'Notify/reflection',
+    validate: requireNotifyDone,
   });
   setStatusLine(
     statusLines,

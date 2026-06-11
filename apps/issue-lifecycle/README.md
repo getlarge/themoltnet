@@ -156,15 +156,13 @@ Current allowed supervisor actions are:
   missing services, or other non-code preconditions
 - `abort`: stop because the lifecycle should not continue for this issue
 - `wait_for_human`: stop at a human gate that the runner cannot observe yet
-- `retry_step`: advisory only in v1; the runner records the recommendation but
-  does not yet replay the failed task automatically
-- `spawn_replacement_step`: advisory only in v1; the runner records the
-  recommendation but does not yet build a replacement task automatically
 
 The workflow validates the supervisor artifact before applying it. In v1 all
 supervisor recommendations stop the workflow with a clear error that includes
 the action, classification, confidence, and message. This keeps recovery
-decisions durable and inspectable while avoiding hidden blind retries.
+decisions durable and inspectable while avoiding hidden blind retries. Future
+versions can add executable retry actions after the workflow has explicit
+budgets and step builders for them.
 
 `src/absurd.ts` currently registers the workflow with `defaultMaxAttempts: 3`.
 That protects the lifecycle worker from short-lived process, network, or API
@@ -307,6 +305,8 @@ Useful options:
 - `--github-auth gh-cli`: local-only escape hatch that lets `gh` use its
   configured auth instead of minting a MoltNet GitHub token
 - `--poll-interval-sec <n>`: wait interval for labels/tasks/PR status
+- `--max-pr-pending-polls <n>`: maximum pending PR-check or merge polls before
+  the workflow fails with an operator-actionable error
 
 GitHub auth is resolved from `GH_TOKEN`, `GITHUB_TOKEN`, or a token minted with
 the released MoltNet CLI from `.moltnet/<agent>/moltnet.json`.
@@ -498,7 +498,10 @@ Current coverage:
 - plan review findings and plan revision
 - human approval polling
 - lifecycle status comment creation/update
+- terminal daemon failure supervisor recommendation
+- invalid accepted output routed into supervisor recommendation
 - PR failed-check retry
+- human-review check failure retry/budget exhaustion
 - parallel PR review task creation and ready-for-review labeling
 - review budget exhaustion
 - package build and published-file shape

@@ -353,6 +353,7 @@ export async function waitForGreenPrChecks(
   ctx: WorkflowContext,
   attempt: number,
 ): Promise<'green' | 'merged' | 'failure'> {
+  let pendingPolls = 0;
   for (;;) {
     const pr = await deps.github.getPullRequest(input.repo, prNumber);
     deps.logger?.info(
@@ -361,12 +362,20 @@ export async function waitForGreenPrChecks(
         merged: pr.merged,
         checks: pr.checks,
         attempt,
+        pendingPolls,
+        maxPrPendingPolls: input.maxPrPendingPolls,
       },
       'issue_lifecycle.pr.poll',
     );
     if (pr.merged) return 'merged';
     if (pr.checks === 'success') return 'green';
     if (pr.checks === 'failure') return 'failure';
+    pendingPolls += 1;
+    if (pendingPolls >= input.maxPrPendingPolls) {
+      throw new Error(
+        `PR #${prNumber} checks stayed pending for ${pendingPolls} polls`,
+      );
+    }
     await waitForSignalOrSleep({
       ctx,
       eventName: `github.pr.updated:${input.repo}:${prNumber}`,
@@ -388,6 +397,7 @@ export async function waitForPrMergeOrFailure(args: {
   | { status: 'merged'; url: string }
   | { status: 'checks_failed'; url: string | undefined }
 > {
+  let pendingPolls = 0;
   for (;;) {
     const pr = await args.ctx.step(
       `github.pr.human_review.${args.prNumber}.get`,
@@ -400,6 +410,8 @@ export async function waitForPrMergeOrFailure(args: {
         merged: pr.merged,
         checks: pr.checks,
         attempt: args.attempt,
+        pendingPolls,
+        maxPrPendingPolls: args.input.maxPrPendingPolls,
       },
       'issue_lifecycle.pr.human_review_poll',
     );
@@ -412,6 +424,12 @@ export async function waitForPrMergeOrFailure(args: {
     }
     if (pr.checks === 'failure') {
       return { status: 'checks_failed', url: pr.url };
+    }
+    pendingPolls += 1;
+    if (pendingPolls >= args.input.maxPrPendingPolls) {
+      throw new Error(
+        `PR #${args.prNumber} merge wait stayed pending for ${pendingPolls} polls`,
+      );
     }
     await waitForSignalOrSleep({
       ctx: args.ctx,

@@ -13,5 +13,8 @@ export function createSdkTaskClient(agent: Agent): TaskClient {
     listAttempts(id) {
       return agent.tasks.listAttempts(id);
     },
+    listMessages(id, attemptN) {
+      return agent.tasks.listMessages(id, attemptN, { limit: 100 });
+    },
   };
 }

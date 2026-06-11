@@ -24,6 +24,7 @@ export interface LifecycleDefaults {
   readyForReviewLabel: string;
   skipNotifyLabel: string;
   pollIntervalSec: number;
+  maxPrPendingPolls: number;
   maxReviewRounds: number;
   maxImplementationRetries: number;
 }
@@ -40,6 +41,7 @@ export function normalizeLifecycleInput(
       input.readyForReviewLabel ?? DEFAULT_READY_FOR_REVIEW_LABEL,
     skipNotifyLabel: input.skipNotifyLabel ?? DEFAULT_SKIP_NOTIFY_LABEL,
     pollIntervalSec: input.pollIntervalSec ?? 30,
+    maxPrPendingPolls: input.maxPrPendingPolls ?? 120,
     maxReviewRounds: input.maxReviewRounds ?? 5,
     maxImplementationRetries: input.maxImplementationRetries ?? 3,
   };

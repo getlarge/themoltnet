@@ -19,11 +19,80 @@ const RECOVERY_ACTIONS: SupervisorAction[] = [
   'stop_blocked',
   'abort',
   'wait_for_human',
-  'retry_step',
-  'spawn_replacement_step',
 ];
 
 type NormalizedLifecycleInput = ReturnType<typeof normalizeLifecycleInput>;
+
+const MAX_SNAPSHOT_STRING_LENGTH = 2_000;
+const MAX_SNAPSHOT_ARRAY_LENGTH = 20;
+const REDACTED = '[redacted]';
+
+export class SupervisorRecommendationError extends Error {
+  constructor(
+    readonly details: {
+      step: string;
+      reason: string;
+      action: SupervisorAction;
+      classification: string;
+      confidence: string;
+      message: string;
+      taskId: string;
+      attemptN: number;
+    },
+  ) {
+    super(
+      [
+        `lifecycle supervisor recommended ${details.action} for ${details.step}`,
+        `reason: ${details.reason}`,
+        `classification: ${details.classification}`,
+        `confidence: ${details.confidence}`,
+        `message: ${details.message}`,
+      ].join('; '),
+    );
+    this.name = 'SupervisorRecommendationError';
+  }
+}
+
+function shouldRedactKey(key: string): boolean {
+  return /(api[_-]?key|auth|credential|password|secret|token)/i.test(key);
+}
+
+function sanitizeSnapshotValue(value: unknown, key = ''): unknown {
+  if (shouldRedactKey(key)) return REDACTED;
+  if (typeof value === 'string') {
+    return value.length > MAX_SNAPSHOT_STRING_LENGTH
+      ? `${value.slice(0, MAX_SNAPSHOT_STRING_LENGTH)}...[truncated ${value.length - MAX_SNAPSHOT_STRING_LENGTH} chars]`
+      : value;
+  }
+  if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    value === null ||
+    value === undefined
+  ) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    const visible = value
+      .slice(0, MAX_SNAPSHOT_ARRAY_LENGTH)
+      .map((item) => sanitizeSnapshotValue(item));
+    return value.length > MAX_SNAPSHOT_ARRAY_LENGTH
+      ? [
+          ...visible,
+          `[truncated ${value.length - MAX_SNAPSHOT_ARRAY_LENGTH} items]`,
+        ]
+      : visible;
+  }
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([entryKey, entryValue]) => [
+        entryKey,
+        sanitizeSnapshotValue(entryValue, entryKey),
+      ]),
+    );
+  }
+  return `[${typeof value}]`;
+}
 
 async function taskSnapshot(args: {
   tasks: IssueLifecycleDeps['tasks'];
@@ -39,11 +108,14 @@ async function taskSnapshot(args: {
       args.attempts.map(async (attempt) => ({
         attemptN: attempt.attemptN,
         status: attempt.status,
-        error: attempt.error,
+        error: sanitizeSnapshotValue(attempt.error, 'error'),
         outputCid: attempt.outputCid,
-        output: attempt.output,
+        output: sanitizeSnapshotValue(attempt.output, 'output'),
         messages: args.tasks.listMessages
-          ? await args.tasks.listMessages(args.task.id, attempt.attemptN)
+          ? sanitizeSnapshotValue(
+              await args.tasks.listMessages(args.task.id, attempt.attemptN),
+              'messages',
+            )
           : [],
       })),
     ),
@@ -126,14 +198,21 @@ async function requestSupervisorRecommendation(args: {
       return task;
     },
   );
-  return waitForAcceptedTask(
-    supervisorTask.id,
-    args.deps.tasks,
-    args.ctx,
-    args.input.pollIntervalSec,
-    args.deps.logger,
-    `supervisor.${args.step}`,
-  );
+  try {
+    return await waitForAcceptedTask(
+      supervisorTask.id,
+      args.deps.tasks,
+      args.ctx,
+      args.input.pollIntervalSec,
+      args.deps.logger,
+      `supervisor.${args.step}`,
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `supervisor task for ${args.step} failed after original failure "${args.reason}": ${message}`,
+    );
+  }
 }
 
 function applySupervisorRecommendation(args: {
@@ -144,21 +223,37 @@ function applySupervisorRecommendation(args: {
 }): never {
   const state = args.recommendation.state;
   const action = state.allowedNextAction;
+  if (state.phase !== 'lifecycle_recommendation') {
+    throw new Error(
+      `lifecycle supervisor produced unexpected phase ${state.phase} for ${args.step}`,
+    );
+  }
   if (!action || !args.allowedActions.includes(action)) {
     throw new Error(
       `lifecycle supervisor produced unsupported action ${String(action)} for ${args.step}`,
     );
   }
+  if (state.decision !== action) {
+    throw new Error(
+      `lifecycle supervisor decision ${state.decision} does not match allowedNextAction ${action} for ${args.step}`,
+    );
+  }
+  if (state.targetStep !== args.step) {
+    throw new Error(
+      `lifecycle supervisor targetStep ${String(state.targetStep)} does not match ${args.step}`,
+    );
+  }
   const message = state.humanMessage ?? state.summary;
-  throw new Error(
-    [
-      `lifecycle supervisor recommended ${action} for ${args.step}`,
-      `reason: ${args.reason}`,
-      `classification: ${state.classification ?? 'unknown'}`,
-      `confidence: ${state.confidence ?? 'unknown'}`,
-      `message: ${message}`,
-    ].join('; '),
-  );
+  throw new SupervisorRecommendationError({
+    step: args.step,
+    reason: args.reason,
+    action,
+    classification: state.classification ?? 'unknown',
+    confidence: state.confidence ?? 'unknown',
+    message,
+    taskId: args.recommendation.task.id,
+    attemptN: args.recommendation.attempt.attemptN,
+  });
 }
 
 export async function waitForLifecycleTask(args: {
@@ -169,6 +264,7 @@ export async function waitForLifecycleTask(args: {
   issue: Awaited<ReturnType<IssueLifecycleDeps['github']['getIssue']>>;
   deps: IssueLifecycleDeps;
   ctx: WorkflowContext;
+  validate?: (result: AcceptedTaskResult) => string | null;
 }): Promise<AcceptedTaskResult> {
   const outcome = await waitForTaskOutcome(
     args.taskId,
@@ -178,7 +274,30 @@ export async function waitForLifecycleTask(args: {
     args.deps.logger,
     args.description,
   );
-  if (outcome.kind === 'accepted') return outcome.result;
+  if (outcome.kind === 'accepted') {
+    const invalidReason = args.validate?.(outcome.result);
+    if (!invalidReason) return outcome.result;
+    const recommendation = await requestSupervisorRecommendation({
+      input: args.input,
+      issue: args.issue,
+      step: args.step,
+      reason: invalidReason,
+      outcome: {
+        kind: 'invalid_output',
+        task: outcome.result.task,
+        attempt: outcome.result.attempt,
+        reason: invalidReason,
+      },
+      deps: args.deps,
+      ctx: args.ctx,
+    });
+    return applySupervisorRecommendation({
+      step: args.step,
+      reason: invalidReason,
+      recommendation,
+      allowedActions: RECOVERY_ACTIONS,
+    });
+  }
   const recommendation = await requestSupervisorRecommendation({
     input: args.input,
     issue: args.issue,
