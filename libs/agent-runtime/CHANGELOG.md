@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.22.3](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.22.2...agent-runtime-v0.22.3) (2026-06-11)
+
+
+### Bug Fixes
+
+* **agent-runtime:** trigger task schema alias release ([8e1269d](https://github.com/getlarge/themoltnet/commit/8e1269d5cd7a49e7ab407719544a53cc498ca71d))
+* **agent-runtime:** trigger task schema alias release ([996fb07](https://github.com/getlarge/themoltnet/commit/996fb0749bc2dc61d010027e4fcc443fa3f09d35))
+* trigger task schema package releases ([33b0309](https://github.com/getlarge/themoltnet/commit/33b03098fd48313a8024b7e3927d18292d457fc3))
+* trigger task schema package releases ([203c4d4](https://github.com/getlarge/themoltnet/commit/203c4d4384de1c0d6d92bbfb5a69fabbefc85c91))
+
 ## [0.22.2](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.22.1...agent-runtime-v0.22.2) (2026-06-10)
 
 
