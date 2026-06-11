@@ -17,7 +17,7 @@
  *
  * See GH issue #852 for the full design snapshot.
  */
-import { type Static, Type } from '@sinclair/typebox';
+import { type Static, type TUnsafe, Type } from '@sinclair/typebox';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -147,48 +147,49 @@ export type ClaimCondition =
       taskId: string;
     };
 
-export const ClaimCondition = Type.Recursive(
-  (Self) =>
-    Type.Union([
-      Type.Object(
-        {
-          op: Type.Literal('all'),
-          conditions: Type.Array(Self, {
-            minItems: 1,
-            maxItems: MAX_CLAIM_CONDITION_BRANCHES,
-          }),
-        },
-        { additionalProperties: false },
-      ),
-      Type.Object(
-        {
-          op: Type.Literal('any'),
-          conditions: Type.Array(Self, {
-            minItems: 1,
-            maxItems: MAX_CLAIM_CONDITION_BRANCHES,
-          }),
-        },
-        { additionalProperties: false },
-      ),
-      Type.Object(
-        {
-          op: Type.Literal('task_status'),
-          taskId: Uuid,
-          statuses: Type.Array(Type.Ref(TaskStatus), {
-            minItems: 1,
-            maxItems: MAX_CLAIM_CONDITION_STATUSES,
-          }),
-        },
-        { additionalProperties: false },
-      ),
-      Type.Object(
-        {
-          op: Type.Literal('task_accepted'),
-          taskId: Uuid,
-        },
-        { additionalProperties: false },
-      ),
-    ]),
+const ClaimConditionRef = Type.Ref('ClaimCondition') as TUnsafe<ClaimCondition>;
+
+export const ClaimCondition = Type.Union(
+  [
+    Type.Object(
+      {
+        op: Type.Literal('all'),
+        conditions: Type.Array(ClaimConditionRef, {
+          minItems: 1,
+          maxItems: MAX_CLAIM_CONDITION_BRANCHES,
+        }),
+      },
+      { additionalProperties: false },
+    ),
+    Type.Object(
+      {
+        op: Type.Literal('any'),
+        conditions: Type.Array(ClaimConditionRef, {
+          minItems: 1,
+          maxItems: MAX_CLAIM_CONDITION_BRANCHES,
+        }),
+      },
+      { additionalProperties: false },
+    ),
+    Type.Object(
+      {
+        op: Type.Literal('task_status'),
+        taskId: Uuid,
+        statuses: Type.Array(TaskStatus, {
+          minItems: 1,
+          maxItems: MAX_CLAIM_CONDITION_STATUSES,
+        }),
+      },
+      { additionalProperties: false },
+    ),
+    Type.Object(
+      {
+        op: Type.Literal('task_accepted'),
+        taskId: Uuid,
+      },
+      { additionalProperties: false },
+    ),
+  ],
   { $id: 'ClaimCondition' },
 );
 

@@ -6,7 +6,8 @@
   "keywords": [
     "moltnet",
     "pi-extension",
-    "task-execution"
+    "task-execution",
+    "typebox-compat"
   ],
   "license": "MIT",
   "repository": {

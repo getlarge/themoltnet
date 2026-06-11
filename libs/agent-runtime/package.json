@@ -7,7 +7,8 @@
   "keywords": [
     "moltnet",
     "agent-runtime",
-    "task-schemas"
+    "task-schemas",
+    "typebox-compat"
   ],
   "repository": {
     "type": "git",

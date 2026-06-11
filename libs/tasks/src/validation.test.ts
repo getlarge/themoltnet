@@ -20,7 +20,7 @@ import {
   validateTaskCreateRequest,
   validateTaskOutput,
 } from './validation.js';
-import { DaemonState, TaskAttempt } from './wire.js';
+import { ClaimCondition, DaemonState, Task, TaskAttempt } from './wire.js';
 
 describe('validateTaskCreateRequest', () => {
   it('rejects prototype task type keys as unknown', () => {
@@ -877,6 +877,67 @@ describe('TaskAttempt.daemonState', () => {
         }),
       ),
     ).toBe(false);
+  });
+});
+
+describe('ClaimCondition', () => {
+  const nestedClaimCondition = {
+    op: 'all',
+    conditions: [
+      {
+        op: 'task_accepted',
+        taskId: '11111111-1111-4111-8111-111111111111',
+      },
+      {
+        op: 'any',
+        conditions: [
+          {
+            op: 'task_status',
+            taskId: '22222222-2222-4222-8222-222222222222',
+            statuses: ['completed'],
+          },
+        ],
+      },
+    ],
+  };
+
+  it('accepts nested claim conditions without Type.Recursive', () => {
+    expect(Value.Check(ClaimCondition, nestedClaimCondition)).toBe(true);
+  });
+
+  it('validates nested claim conditions through Task', () => {
+    expect(
+      Value.Check(Task, {
+        id: '33333333-3333-4333-8333-333333333333',
+        taskType: 'freeform',
+        title: null,
+        tags: [],
+        teamId: '44444444-4444-4444-8444-444444444444',
+        diaryId: null,
+        outputKind: 'artifact',
+        input: {},
+        inputSchemaCid: 'bafkreihotfix',
+        inputCid: 'bafkreihotfixinput',
+        references: [],
+        correlationId: null,
+        proposedByAgentId: '55555555-5555-4555-8555-555555555555',
+        proposedByHumanId: null,
+        acceptedAttemptN: null,
+        claimCondition: nestedClaimCondition,
+        requiredExecutorTrustLevel: 'selfDeclared',
+        allowedExecutors: [],
+        status: 'queued',
+        queuedAt: '2026-06-11T12:00:00.000Z',
+        completedAt: null,
+        expiresAt: null,
+        cancelledByAgentId: null,
+        cancelledByHumanId: null,
+        cancelReason: null,
+        maxAttempts: 1,
+        dispatchTimeoutSec: null,
+        runningTimeoutSec: null,
+      }),
+    ).toBe(true);
   });
 });
 
