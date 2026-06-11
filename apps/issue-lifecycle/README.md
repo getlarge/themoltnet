@@ -20,6 +20,13 @@ flowchart TD
   K -->|ci_green| L[ready_for_human_review]
   L -->|human merge| M[notify]
   M -->|notify / skip_notify| J[done]
+  A -.->|task failed / malformed output| R[lifecycle_recommendation]
+  C -.->|task failed / malformed output| R
+  E -.->|task failed / malformed output| R
+  H -.->|task failed / malformed output| R
+  I -.->|task failed / malformed output| R
+  M -.->|task failed / malformed output| R
+  R -->|stop_blocked / abort / wait_for_human| S[operator action required]
 ```
 
 The app is intentionally separate from `apps/agent-daemon`: the daemon remains a
