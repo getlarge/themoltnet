@@ -47,6 +47,9 @@ The agents that claim the generated `freeform` tasks still own their local loop:
 reading repo instructions, planning, reviewing, implementing, and reporting the
 required lifecycle artifact.
 
+For the general task-system pattern behind this app, see
+[Tasks § Durable freeform orchestration](../../docs/use/tasks.md#durable-freeform-orchestration).
+
 ## Durable Layer
 
 The durable layer is Absurd (`absurd-sdk`). The app registers one task:
