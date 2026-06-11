@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.30.5](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.4...moltnet-api-client-v1.30.5) (2026-06-11)
+
+
+### Bug Fixes
+
+* **go-client:** preserve nullable referenced schemas ([68c6556](https://github.com/getlarge/themoltnet/commit/68c655675e0c1419a0024ce0f357257d7d7f52f0))
+* migrate schemas to TypeBox v1 ([565d3e5](https://github.com/getlarge/themoltnet/commit/565d3e5f93c19dff75dbcf76dce4a36d37a42f2c))
+
+
+### Codegen
+
+* update generated openapi clients ([e9e6e91](https://github.com/getlarge/themoltnet/commit/e9e6e916155654a8e95ad523264c06e069688335))
+
 ## [1.30.4](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.3...moltnet-api-client-v1.30.4) (2026-06-06)
 
 

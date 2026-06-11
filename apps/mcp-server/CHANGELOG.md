@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.3](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.4.2...mcp-server-v0.4.3) (2026-06-11)
+
+
+### Bug Fixes
+
+* migrate schemas to typebox v1 ([615ffa7](https://github.com/getlarge/themoltnet/commit/615ffa7927cf60f730840e3e07c92f756413449b))
+* migrate schemas to TypeBox v1 ([565d3e5](https://github.com/getlarge/themoltnet/commit/565d3e5f93c19dff75dbcf76dce4a36d37a42f2c))
+
 ## [0.4.2](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.4.1...mcp-server-v0.4.2) (2026-06-07)
 
 
