@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.14.4](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.14.3...agent-daemon-v0.14.4) (2026-06-11)
+
+
+### Bug Fixes
+
+* trigger task schema package releases ([33b0309](https://github.com/getlarge/themoltnet/commit/33b03098fd48313a8024b7e3927d18292d457fc3))
+* trigger task schema package releases ([203c4d4](https://github.com/getlarge/themoltnet/commit/203c4d4384de1c0d6d92bbfb5a69fabbefc85c91))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.22.3
+    * @themoltnet/pi-extension bumped to 0.22.3
+
 ## [0.14.3](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.14.2...agent-daemon-v0.14.3) (2026-06-10)
 
 
