@@ -7,15 +7,49 @@
  *
  * Idempotent: registration is guarded by `FormatRegistry.Has(...)`.
  */
-import { FormatRegistry } from '@sinclair/typebox';
+import * as TypeBox from '@sinclair/typebox';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-if (!FormatRegistry.Has('uuid')) {
-  FormatRegistry.Set('uuid', (v) => UUID_RE.test(v));
+type FormatRegistryApi = {
+  Has(format: string): boolean;
+  Set(format: string, check: (value: string) => boolean): void;
+};
+
+function isFormatRegistryApi(registry: unknown): registry is FormatRegistryApi {
+  return (
+    typeof registry === 'object' &&
+    registry !== null &&
+    'Has' in registry &&
+    'Set' in registry &&
+    typeof registry.Has === 'function' &&
+    typeof registry.Set === 'function'
+  );
 }
 
-if (!FormatRegistry.Has('date-time')) {
-  FormatRegistry.Set('date-time', (v) => !Number.isNaN(Date.parse(v)));
+function getFormatRegistry(): FormatRegistryApi | undefined {
+  const registry: unknown = TypeBox.FormatRegistry;
+
+  if (registry === undefined) {
+    return undefined;
+  }
+
+  if (!isFormatRegistryApi(registry)) {
+    throw new TypeError('Invalid TypeBox FormatRegistry export');
+  }
+
+  return registry;
+}
+
+const FormatRegistry = getFormatRegistry();
+
+if (FormatRegistry) {
+  if (!FormatRegistry.Has('uuid')) {
+    FormatRegistry.Set('uuid', (v) => UUID_RE.test(v));
+  }
+
+  if (!FormatRegistry.Has('date-time')) {
+    FormatRegistry.Set('date-time', (v) => !Number.isNaN(Date.parse(v)));
+  }
 }
