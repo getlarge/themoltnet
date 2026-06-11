@@ -1155,7 +1155,7 @@ func (*CompleteTaskNotFound) completeTaskRes() {}
 
 type CompleteTaskReq struct {
 	ContentSignature    OptString                          `json:"contentSignature"`
-	DaemonState         OptDaemonState                     `json:"daemonState"`
+	DaemonState         OptNilDaemonState                  `json:"daemonState"`
 	ExecutorFingerprint OptString                          `json:"executorFingerprint"`
 	ExecutorManifest    OptCompleteTaskReqExecutorManifest `json:"executorManifest"`
 	ExecutorSignature   OptString                          `json:"executorSignature"`
@@ -1170,7 +1170,7 @@ func (s *CompleteTaskReq) GetContentSignature() OptString {
 }
 
 // GetDaemonState returns the value of DaemonState.
-func (s *CompleteTaskReq) GetDaemonState() OptDaemonState {
+func (s *CompleteTaskReq) GetDaemonState() OptNilDaemonState {
 	return s.DaemonState
 }
 
@@ -1210,7 +1210,7 @@ func (s *CompleteTaskReq) SetContentSignature(val OptString) {
 }
 
 // SetDaemonState sets the value of DaemonState.
-func (s *CompleteTaskReq) SetDaemonState(val OptDaemonState) {
+func (s *CompleteTaskReq) SetDaemonState(val OptNilDaemonState) {
 	s.DaemonState = val
 }
 
@@ -12448,6 +12448,51 @@ func (o NilBool) Or(d bool) bool {
 	return d
 }
 
+// NewNilClaimCondition returns new NilClaimCondition with value set to v.
+func NewNilClaimCondition(v ClaimCondition) NilClaimCondition {
+	return NilClaimCondition{
+		Value: v,
+	}
+}
+
+// NilClaimCondition is nullable ClaimCondition.
+type NilClaimCondition struct {
+	Value ClaimCondition
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilClaimCondition) SetTo(v ClaimCondition) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilClaimCondition) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilClaimCondition) SetToNull() {
+	o.Null = true
+	var v ClaimCondition
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilClaimCondition) Get() (v ClaimCondition, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilClaimCondition) Or(d ClaimCondition) ClaimCondition {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilDateTime returns new NilDateTime with value set to v.
 func NewNilDateTime(v time.Time) NilDateTime {
 	return NilDateTime{
@@ -13449,52 +13494,6 @@ func (o OptCreateTeamInviteReqRole) Or(d CreateTeamInviteReqRole) CreateTeamInvi
 	return d
 }
 
-// NewOptDaemonState returns new OptDaemonState with value set to v.
-func NewOptDaemonState(v DaemonState) OptDaemonState {
-	return OptDaemonState{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonState is optional DaemonState.
-type OptDaemonState struct {
-	Value DaemonState
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonState was set.
-func (o OptDaemonState) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonState) Reset() {
-	var v DaemonState
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonState) SetTo(v DaemonState) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonState) Get() (v DaemonState, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonState) Or(d DaemonState) DaemonState {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptDateTime returns new OptDateTime with value set to v.
 func NewOptDateTime(v time.Time) OptDateTime {
 	return OptDateTime{
@@ -13995,6 +13994,69 @@ func (o OptListEntryRelationsDirection) Get() (v ListEntryRelationsDirection, ok
 
 // Or returns value if set, or given parameter if does not.
 func (o OptListEntryRelationsDirection) Or(d ListEntryRelationsDirection) ListEntryRelationsDirection {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilDaemonState returns new OptNilDaemonState with value set to v.
+func NewOptNilDaemonState(v DaemonState) OptNilDaemonState {
+	return OptNilDaemonState{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilDaemonState is optional nullable DaemonState.
+type OptNilDaemonState struct {
+	Value DaemonState
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilDaemonState was set.
+func (o OptNilDaemonState) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilDaemonState) Reset() {
+	var v DaemonState
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilDaemonState) SetTo(v DaemonState) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilDaemonState) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilDaemonState) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v DaemonState
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilDaemonState) Get() (v DaemonState, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilDaemonState) Or(d DaemonState) DaemonState {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -19606,7 +19668,7 @@ type Task struct {
 	CancelReason               NilString                      `json:"cancelReason"`
 	CancelledByAgentId         NilUUID                        `json:"cancelledByAgentId"`
 	CancelledByHumanId         NilUUID                        `json:"cancelledByHumanId"`
-	ClaimCondition             ClaimCondition                 `json:"claimCondition"`
+	ClaimCondition             NilClaimCondition              `json:"claimCondition"`
 	CompletedAt                NilDateTime                    `json:"completedAt"`
 	CorrelationId              NilUUID                        `json:"correlationId"`
 	DiaryId                    NilUUID                        `json:"diaryId"`
@@ -19657,7 +19719,7 @@ func (s *Task) GetCancelledByHumanId() NilUUID {
 }
 
 // GetClaimCondition returns the value of ClaimCondition.
-func (s *Task) GetClaimCondition() ClaimCondition {
+func (s *Task) GetClaimCondition() NilClaimCondition {
 	return s.ClaimCondition
 }
 
@@ -19797,7 +19859,7 @@ func (s *Task) SetCancelledByHumanId(val NilUUID) {
 }
 
 // SetClaimCondition sets the value of ClaimCondition.
-func (s *Task) SetClaimCondition(val ClaimCondition) {
+func (s *Task) SetClaimCondition(val NilClaimCondition) {
 	s.ClaimCondition = val
 }
 

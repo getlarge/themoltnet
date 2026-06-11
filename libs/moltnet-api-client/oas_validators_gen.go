@@ -10899,8 +10899,15 @@ func (s *Task) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := s.ClaimCondition.Validate(); err != nil {
-			return err
+		if value, ok := s.ClaimCondition.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
 		}
 		return nil
 	}(); err != nil {
