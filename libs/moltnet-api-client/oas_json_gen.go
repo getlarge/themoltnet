@@ -4253,16 +4253,6 @@ func (s *ContextPackResponse) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.DiaryId)
 	}
 	{
-		if s.Entries != nil {
-			e.FieldStart("entries")
-			e.ArrStart()
-			for _, elem := range s.Entries {
-				elem.Encode(e)
-			}
-			e.ArrEnd()
-		}
-	}
-	{
 		e.FieldStart("expiresAt")
 		s.ExpiresAt.Encode(e, json.EncodeDateTime)
 	}
@@ -4302,22 +4292,32 @@ func (s *ContextPackResponse) encodeFields(e *jx.Encoder) {
 		e.FieldStart("supersedesPackId")
 		s.SupersedesPackId.Encode(e)
 	}
+	{
+		if s.Entries != nil {
+			e.FieldStart("entries")
+			e.ArrStart()
+			for _, elem := range s.Entries {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
 var jsonFieldsNameOfContextPackResponse = [13]string{
 	0:  "createdAt",
 	1:  "creator",
 	2:  "diaryId",
-	3:  "entries",
-	4:  "expiresAt",
-	5:  "id",
-	6:  "packCid",
-	7:  "packCodec",
-	8:  "packType",
-	9:  "params",
-	10: "payload",
-	11: "pinned",
-	12: "supersedesPackId",
+	3:  "expiresAt",
+	4:  "id",
+	5:  "packCid",
+	6:  "packCodec",
+	7:  "packType",
+	8:  "params",
+	9:  "payload",
+	10: "pinned",
+	11: "supersedesPackId",
+	12: "entries",
 }
 
 // Decode decodes ContextPackResponse from json.
@@ -4363,6 +4363,108 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
+		case "expiresAt":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"expiresAt\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "packCid":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.PackCid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packCid\"")
+			}
+		case "packCodec":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Str()
+				s.PackCodec = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packCodec\"")
+			}
+		case "packType":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				if err := s.PackType.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packType\"")
+			}
+		case "params":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				s.Params = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"params\"")
+			}
+		case "payload":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				s.Payload = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"payload\"")
+			}
+		case "pinned":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.Pinned = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"pinned\"")
+			}
+		case "supersedesPackId":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				if err := s.SupersedesPackId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"supersedesPackId\"")
+			}
 		case "entries":
 			if err := func() error {
 				s.Entries = make([]ExpandedPackEntry, 0)
@@ -4380,108 +4482,6 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"entries\"")
 			}
-		case "expiresAt":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"expiresAt\"")
-			}
-		case "id":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.ID = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"id\"")
-			}
-		case "packCid":
-			requiredBitSet[0] |= 1 << 6
-			if err := func() error {
-				v, err := d.Str()
-				s.PackCid = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"packCid\"")
-			}
-		case "packCodec":
-			requiredBitSet[0] |= 1 << 7
-			if err := func() error {
-				v, err := d.Str()
-				s.PackCodec = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"packCodec\"")
-			}
-		case "packType":
-			requiredBitSet[1] |= 1 << 0
-			if err := func() error {
-				if err := s.PackType.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"packType\"")
-			}
-		case "params":
-			requiredBitSet[1] |= 1 << 1
-			if err := func() error {
-				v, err := d.RawAppend(nil)
-				s.Params = jx.Raw(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"params\"")
-			}
-		case "payload":
-			requiredBitSet[1] |= 1 << 2
-			if err := func() error {
-				v, err := d.RawAppend(nil)
-				s.Payload = jx.Raw(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"payload\"")
-			}
-		case "pinned":
-			requiredBitSet[1] |= 1 << 3
-			if err := func() error {
-				v, err := d.Bool()
-				s.Pinned = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"pinned\"")
-			}
-		case "supersedesPackId":
-			requiredBitSet[1] |= 1 << 4
-			if err := func() error {
-				if err := s.SupersedesPackId.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"supersedesPackId\"")
-			}
 		default:
 			return d.Skip()
 		}
@@ -4492,8 +4492,8 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b11110111,
-		0b00011111,
+		0b11111111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -4836,6 +4836,10 @@ func (s *ContextPackResponseListWithRendered) encodeFields(e *jx.Encoder) {
 		e.Float64(s.Offset)
 	}
 	{
+		e.FieldStart("total")
+		e.Float64(s.Total)
+	}
+	{
 		if s.RenderedPacks != nil {
 			e.FieldStart("renderedPacks")
 			e.ArrStart()
@@ -4845,18 +4849,14 @@ func (s *ContextPackResponseListWithRendered) encodeFields(e *jx.Encoder) {
 			e.ArrEnd()
 		}
 	}
-	{
-		e.FieldStart("total")
-		e.Float64(s.Total)
-	}
 }
 
 var jsonFieldsNameOfContextPackResponseListWithRendered = [5]string{
 	0: "items",
 	1: "limit",
 	2: "offset",
-	3: "renderedPacks",
-	4: "total",
+	3: "total",
+	4: "renderedPacks",
 }
 
 // Decode decodes ContextPackResponseListWithRendered from json.
@@ -4910,6 +4910,18 @@ func (s *ContextPackResponseListWithRendered) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"offset\"")
 			}
+		case "total":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Float64()
+				s.Total = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"total\"")
+			}
 		case "renderedPacks":
 			if err := func() error {
 				s.RenderedPacks = make([]RenderedPack, 0)
@@ -4927,18 +4939,6 @@ func (s *ContextPackResponseListWithRendered) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"renderedPacks\"")
 			}
-		case "total":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				v, err := d.Float64()
-				s.Total = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"total\"")
-			}
 		default:
 			return d.Skip()
 		}
@@ -4949,7 +4949,7 @@ func (s *ContextPackResponseListWithRendered) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00010111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -13478,12 +13478,6 @@ func (s *DiaryEntryWithRelations) encodeFields(e *jx.Encoder) {
 		s.LastAccessedAt.Encode(e, json.EncodeDateTime)
 	}
 	{
-		if s.Relations.Set {
-			e.FieldStart("relations")
-			s.Relations.Encode(e)
-		}
-	}
-	{
 		e.FieldStart("tags")
 		if s.Tags == nil {
 			e.Null()
@@ -13503,6 +13497,12 @@ func (s *DiaryEntryWithRelations) encodeFields(e *jx.Encoder) {
 		e.FieldStart("updatedAt")
 		json.EncodeDateTime(e, s.UpdatedAt)
 	}
+	{
+		if s.Relations.Set {
+			e.FieldStart("relations")
+			s.Relations.Encode(e)
+		}
+	}
 }
 
 var jsonFieldsNameOfDiaryEntryWithRelations = [16]string{
@@ -13518,10 +13518,10 @@ var jsonFieldsNameOfDiaryEntryWithRelations = [16]string{
 	9:  "importance",
 	10: "injectionRisk",
 	11: "lastAccessedAt",
-	12: "relations",
-	13: "tags",
-	14: "title",
-	15: "updatedAt",
+	12: "tags",
+	13: "title",
+	14: "updatedAt",
+	15: "relations",
 }
 
 // Decode decodes DiaryEntryWithRelations from json.
@@ -13667,18 +13667,8 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"lastAccessedAt\"")
 			}
-		case "relations":
-			if err := func() error {
-				s.Relations.Reset()
-				if err := s.Relations.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"relations\"")
-			}
 		case "tags":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				switch tt := d.Next(); tt {
 				case jx.Null:
@@ -13705,7 +13695,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "title":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				if err := s.Title.Decode(d); err != nil {
 					return err
@@ -13715,7 +13705,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "updatedAt":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -13725,6 +13715,16 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		case "relations":
+			if err := func() error {
+				s.Relations.Reset()
+				if err := s.Relations.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"relations\"")
 			}
 		default:
 			return d.Skip()
@@ -13737,7 +13737,7 @@ func (s *DiaryEntryWithRelations) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b11101111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -14841,12 +14841,12 @@ func (s *DiffContextPacksByCidOKAddedItem) encodeFields(e *jx.Encoder) {
 		s.PackedTokens.Encode(e)
 	}
 	{
-		e.FieldStart("rank")
-		e.Int(s.Rank)
-	}
-	{
 		e.FieldStart("title")
 		s.Title.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		e.Int(s.Rank)
 	}
 }
 
@@ -14855,8 +14855,8 @@ var jsonFieldsNameOfDiffContextPacksByCidOKAddedItem = [6]string{
 	1: "entryCidSnapshot",
 	2: "entryId",
 	3: "packedTokens",
-	4: "rank",
-	5: "title",
+	4: "title",
+	5: "rank",
 }
 
 // Decode decodes DiffContextPacksByCidOKAddedItem from json.
@@ -14912,8 +14912,18 @@ func (s *DiffContextPacksByCidOKAddedItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"packedTokens\"")
 			}
-		case "rank":
+		case "title":
 			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "rank":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.Rank = int(v)
@@ -14923,16 +14933,6 @@ func (s *DiffContextPacksByCidOKAddedItem) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"rank\"")
-			}
-		case "title":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				if err := s.Title.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"title\"")
 			}
 		default:
 			return d.Skip()
@@ -15382,12 +15382,12 @@ func (s *DiffContextPacksByCidOKRemovedItem) encodeFields(e *jx.Encoder) {
 		s.PackedTokens.Encode(e)
 	}
 	{
-		e.FieldStart("rank")
-		e.Int(s.Rank)
-	}
-	{
 		e.FieldStart("title")
 		s.Title.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		e.Int(s.Rank)
 	}
 }
 
@@ -15396,8 +15396,8 @@ var jsonFieldsNameOfDiffContextPacksByCidOKRemovedItem = [6]string{
 	1: "entryCidSnapshot",
 	2: "entryId",
 	3: "packedTokens",
-	4: "rank",
-	5: "title",
+	4: "title",
+	5: "rank",
 }
 
 // Decode decodes DiffContextPacksByCidOKRemovedItem from json.
@@ -15453,8 +15453,18 @@ func (s *DiffContextPacksByCidOKRemovedItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"packedTokens\"")
 			}
-		case "rank":
+		case "title":
 			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "rank":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.Rank = int(v)
@@ -15464,16 +15474,6 @@ func (s *DiffContextPacksByCidOKRemovedItem) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"rank\"")
-			}
-		case "title":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				if err := s.Title.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"title\"")
 			}
 		default:
 			return d.Skip()
@@ -15595,14 +15595,6 @@ func (s *DiffContextPacksByCidOKReorderedItem) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.EntryId)
 	}
 	{
-		e.FieldStart("newRank")
-		e.Int(s.NewRank)
-	}
-	{
-		e.FieldStart("oldRank")
-		e.Int(s.OldRank)
-	}
-	{
 		e.FieldStart("packedTokens")
 		s.PackedTokens.Encode(e)
 	}
@@ -15610,16 +15602,24 @@ func (s *DiffContextPacksByCidOKReorderedItem) encodeFields(e *jx.Encoder) {
 		e.FieldStart("title")
 		s.Title.Encode(e)
 	}
+	{
+		e.FieldStart("newRank")
+		e.Int(s.NewRank)
+	}
+	{
+		e.FieldStart("oldRank")
+		e.Int(s.OldRank)
+	}
 }
 
 var jsonFieldsNameOfDiffContextPacksByCidOKReorderedItem = [7]string{
 	0: "compressionLevel",
 	1: "entryCidSnapshot",
 	2: "entryId",
-	3: "newRank",
-	4: "oldRank",
-	5: "packedTokens",
-	6: "title",
+	3: "packedTokens",
+	4: "title",
+	5: "newRank",
+	6: "oldRank",
 }
 
 // Decode decodes DiffContextPacksByCidOKReorderedItem from json.
@@ -15665,8 +15665,28 @@ func (s *DiffContextPacksByCidOKReorderedItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"entryId\"")
 			}
-		case "newRank":
+		case "packedTokens":
 			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packedTokens\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "newRank":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.NewRank = int(v)
@@ -15678,7 +15698,7 @@ func (s *DiffContextPacksByCidOKReorderedItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"newRank\"")
 			}
 		case "oldRank":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.OldRank = int(v)
@@ -15688,26 +15708,6 @@ func (s *DiffContextPacksByCidOKReorderedItem) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"oldRank\"")
-			}
-		case "packedTokens":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				if err := s.PackedTokens.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"packedTokens\"")
-			}
-		case "title":
-			requiredBitSet[0] |= 1 << 6
-			if err := func() error {
-				if err := s.Title.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"title\"")
 			}
 		default:
 			return d.Skip()
@@ -16819,12 +16819,12 @@ func (s *DiffContextPacksByIdOKAddedItem) encodeFields(e *jx.Encoder) {
 		s.PackedTokens.Encode(e)
 	}
 	{
-		e.FieldStart("rank")
-		e.Int(s.Rank)
-	}
-	{
 		e.FieldStart("title")
 		s.Title.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		e.Int(s.Rank)
 	}
 }
 
@@ -16833,8 +16833,8 @@ var jsonFieldsNameOfDiffContextPacksByIdOKAddedItem = [6]string{
 	1: "entryCidSnapshot",
 	2: "entryId",
 	3: "packedTokens",
-	4: "rank",
-	5: "title",
+	4: "title",
+	5: "rank",
 }
 
 // Decode decodes DiffContextPacksByIdOKAddedItem from json.
@@ -16890,8 +16890,18 @@ func (s *DiffContextPacksByIdOKAddedItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"packedTokens\"")
 			}
-		case "rank":
+		case "title":
 			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "rank":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.Rank = int(v)
@@ -16901,16 +16911,6 @@ func (s *DiffContextPacksByIdOKAddedItem) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"rank\"")
-			}
-		case "title":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				if err := s.Title.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"title\"")
 			}
 		default:
 			return d.Skip()
@@ -17360,12 +17360,12 @@ func (s *DiffContextPacksByIdOKRemovedItem) encodeFields(e *jx.Encoder) {
 		s.PackedTokens.Encode(e)
 	}
 	{
-		e.FieldStart("rank")
-		e.Int(s.Rank)
-	}
-	{
 		e.FieldStart("title")
 		s.Title.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		e.Int(s.Rank)
 	}
 }
 
@@ -17374,8 +17374,8 @@ var jsonFieldsNameOfDiffContextPacksByIdOKRemovedItem = [6]string{
 	1: "entryCidSnapshot",
 	2: "entryId",
 	3: "packedTokens",
-	4: "rank",
-	5: "title",
+	4: "title",
+	5: "rank",
 }
 
 // Decode decodes DiffContextPacksByIdOKRemovedItem from json.
@@ -17431,8 +17431,18 @@ func (s *DiffContextPacksByIdOKRemovedItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"packedTokens\"")
 			}
-		case "rank":
+		case "title":
 			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "rank":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.Rank = int(v)
@@ -17442,16 +17452,6 @@ func (s *DiffContextPacksByIdOKRemovedItem) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"rank\"")
-			}
-		case "title":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				if err := s.Title.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"title\"")
 			}
 		default:
 			return d.Skip()
@@ -17573,14 +17573,6 @@ func (s *DiffContextPacksByIdOKReorderedItem) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.EntryId)
 	}
 	{
-		e.FieldStart("newRank")
-		e.Int(s.NewRank)
-	}
-	{
-		e.FieldStart("oldRank")
-		e.Int(s.OldRank)
-	}
-	{
 		e.FieldStart("packedTokens")
 		s.PackedTokens.Encode(e)
 	}
@@ -17588,16 +17580,24 @@ func (s *DiffContextPacksByIdOKReorderedItem) encodeFields(e *jx.Encoder) {
 		e.FieldStart("title")
 		s.Title.Encode(e)
 	}
+	{
+		e.FieldStart("newRank")
+		e.Int(s.NewRank)
+	}
+	{
+		e.FieldStart("oldRank")
+		e.Int(s.OldRank)
+	}
 }
 
 var jsonFieldsNameOfDiffContextPacksByIdOKReorderedItem = [7]string{
 	0: "compressionLevel",
 	1: "entryCidSnapshot",
 	2: "entryId",
-	3: "newRank",
-	4: "oldRank",
-	5: "packedTokens",
-	6: "title",
+	3: "packedTokens",
+	4: "title",
+	5: "newRank",
+	6: "oldRank",
 }
 
 // Decode decodes DiffContextPacksByIdOKReorderedItem from json.
@@ -17643,8 +17643,28 @@ func (s *DiffContextPacksByIdOKReorderedItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"entryId\"")
 			}
-		case "newRank":
+		case "packedTokens":
 			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.PackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packedTokens\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "newRank":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.NewRank = int(v)
@@ -17656,7 +17676,7 @@ func (s *DiffContextPacksByIdOKReorderedItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"newRank\"")
 			}
 		case "oldRank":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.OldRank = int(v)
@@ -17666,26 +17686,6 @@ func (s *DiffContextPacksByIdOKReorderedItem) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"oldRank\"")
-			}
-		case "packedTokens":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				if err := s.PackedTokens.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"packedTokens\"")
-			}
-		case "title":
-			requiredBitSet[0] |= 1 << 6
-			if err := func() error {
-				if err := s.Title.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"title\"")
 			}
 		default:
 			return d.Skip()
@@ -18862,16 +18862,8 @@ func (s *EntryRelationWithDepth) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		e.FieldStart("depth")
-		e.Int(s.Depth)
-	}
-	{
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
-	}
-	{
-		e.FieldStart("parentRelationId")
-		s.ParentRelationId.Encode(e)
 	}
 	{
 		e.FieldStart("relation")
@@ -18909,23 +18901,31 @@ func (s *EntryRelationWithDepth) encodeFields(e *jx.Encoder) {
 		e.FieldStart("workflowId")
 		s.WorkflowId.Encode(e)
 	}
+	{
+		e.FieldStart("depth")
+		e.Int(s.Depth)
+	}
+	{
+		e.FieldStart("parentRelationId")
+		s.ParentRelationId.Encode(e)
+	}
 }
 
 var jsonFieldsNameOfEntryRelationWithDepth = [14]string{
 	0:  "confidence",
 	1:  "createdAt",
-	2:  "depth",
-	3:  "id",
-	4:  "parentRelationId",
-	5:  "relation",
-	6:  "similarity",
-	7:  "sourceCidSnapshot",
-	8:  "sourceId",
-	9:  "status",
-	10: "targetCidSnapshot",
-	11: "targetId",
-	12: "updatedAt",
-	13: "workflowId",
+	2:  "id",
+	3:  "relation",
+	4:  "similarity",
+	5:  "sourceCidSnapshot",
+	6:  "sourceId",
+	7:  "status",
+	8:  "targetCidSnapshot",
+	9:  "targetId",
+	10: "updatedAt",
+	11: "workflowId",
+	12: "depth",
+	13: "parentRelationId",
 }
 
 // Decode decodes EntryRelationWithDepth from json.
@@ -18959,20 +18959,8 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "depth":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := d.Int()
-				s.Depth = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"depth\"")
-			}
 		case "id":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -18983,18 +18971,8 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
-		case "parentRelationId":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				if err := s.ParentRelationId.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"parentRelationId\"")
-			}
 		case "relation":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.Relation.Decode(d); err != nil {
 					return err
@@ -19004,7 +18982,7 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"relation\"")
 			}
 		case "similarity":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.Similarity.Decode(d); err != nil {
 					return err
@@ -19014,7 +18992,7 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"similarity\"")
 			}
 		case "sourceCidSnapshot":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.SourceCidSnapshot.Decode(d); err != nil {
 					return err
@@ -19024,7 +19002,7 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sourceCidSnapshot\"")
 			}
 		case "sourceId":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.SourceId = v
@@ -19036,7 +19014,7 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sourceId\"")
 			}
 		case "status":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -19046,7 +19024,7 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "targetCidSnapshot":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.TargetCidSnapshot.Decode(d); err != nil {
 					return err
@@ -19056,7 +19034,7 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"targetCidSnapshot\"")
 			}
 		case "targetId":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TargetId = v
@@ -19068,7 +19046,7 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"targetId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -19080,7 +19058,7 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
 			}
 		case "workflowId":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				if err := s.WorkflowId.Decode(d); err != nil {
 					return err
@@ -19088,6 +19066,28 @@ func (s *EntryRelationWithDepth) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"workflowId\"")
+			}
+		case "depth":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.Depth = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"depth\"")
+			}
+		case "parentRelationId":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				if err := s.ParentRelationId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"parentRelationId\"")
 			}
 		default:
 			return d.Skip()
@@ -19498,10 +19498,6 @@ func (s *ExpandedPackEntry) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		e.FieldStart("entry")
-		s.Entry.Encode(e)
-	}
-	{
 		e.FieldStart("entryCidSnapshot")
 		e.Str(s.EntryCidSnapshot)
 	}
@@ -19529,19 +19525,23 @@ func (s *ExpandedPackEntry) encodeFields(e *jx.Encoder) {
 		e.FieldStart("rank")
 		s.Rank.Encode(e)
 	}
+	{
+		e.FieldStart("entry")
+		s.Entry.Encode(e)
+	}
 }
 
 var jsonFieldsNameOfExpandedPackEntry = [10]string{
 	0: "compressionLevel",
 	1: "createdAt",
-	2: "entry",
-	3: "entryCidSnapshot",
-	4: "entryId",
-	5: "id",
-	6: "originalTokens",
-	7: "packId",
-	8: "packedTokens",
-	9: "rank",
+	2: "entryCidSnapshot",
+	3: "entryId",
+	4: "id",
+	5: "originalTokens",
+	6: "packId",
+	7: "packedTokens",
+	8: "rank",
+	9: "entry",
 }
 
 // Decode decodes ExpandedPackEntry from json.
@@ -19575,18 +19575,8 @@ func (s *ExpandedPackEntry) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "entry":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				if err := s.Entry.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"entry\"")
-			}
 		case "entryCidSnapshot":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.EntryCidSnapshot = string(v)
@@ -19598,7 +19588,7 @@ func (s *ExpandedPackEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"entryCidSnapshot\"")
 			}
 		case "entryId":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.EntryId = v
@@ -19610,7 +19600,7 @@ func (s *ExpandedPackEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"entryId\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -19622,7 +19612,7 @@ func (s *ExpandedPackEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "originalTokens":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.OriginalTokens.Decode(d); err != nil {
 					return err
@@ -19632,7 +19622,7 @@ func (s *ExpandedPackEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"originalTokens\"")
 			}
 		case "packId":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.PackId = v
@@ -19644,7 +19634,7 @@ func (s *ExpandedPackEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packId\"")
 			}
 		case "packedTokens":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.PackedTokens.Decode(d); err != nil {
 					return err
@@ -19654,7 +19644,7 @@ func (s *ExpandedPackEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packedTokens\"")
 			}
 		case "rank":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.Rank.Decode(d); err != nil {
 					return err
@@ -19662,6 +19652,16 @@ func (s *ExpandedPackEntry) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"rank\"")
+			}
+		case "entry":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				if err := s.Entry.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entry\"")
 			}
 		default:
 			return d.Skip()
@@ -36727,50 +36727,6 @@ func (s *NilTaskAttemptUsage) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes TaskClaimCondition as json.
-func (o NilTaskClaimCondition) Encode(e *jx.Encoder) {
-	if o.Null {
-		e.Null()
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes TaskClaimCondition from json.
-func (o *NilTaskClaimCondition) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode NilTaskClaimCondition to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v TaskClaimCondition
-		o.Value = v
-		o.Null = true
-		return nil
-	}
-	o.Null = false
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s NilTaskClaimCondition) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilTaskClaimCondition) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes uuid.UUID as json.
 func (o NilUUID) Encode(e *jx.Encoder) {
 	if o.Null {
@@ -41103,12 +41059,6 @@ func (s *ProvenanceGraphPackNodeMeta) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
-		if s.Creator.Set {
-			e.FieldStart("creator")
-			s.Creator.Encode(e)
-		}
-	}
-	{
 		e.FieldStart("diaryId")
 		json.EncodeUUID(e, s.DiaryId)
 	}
@@ -41140,19 +41090,25 @@ func (s *ProvenanceGraphPackNodeMeta) encodeFields(e *jx.Encoder) {
 		e.FieldStart("supersedesPackId")
 		s.SupersedesPackId.Encode(e)
 	}
+	{
+		if s.Creator.Set {
+			e.FieldStart("creator")
+			s.Creator.Encode(e)
+		}
+	}
 }
 
 var jsonFieldsNameOfProvenanceGraphPackNodeMeta = [10]string{
 	0: "createdAt",
-	1: "creator",
-	2: "diaryId",
-	3: "expiresAt",
-	4: "packCid",
-	5: "packCodec",
-	6: "packId",
-	7: "packType",
-	8: "pinned",
-	9: "supersedesPackId",
+	1: "diaryId",
+	2: "expiresAt",
+	3: "packCid",
+	4: "packCodec",
+	5: "packId",
+	6: "packType",
+	7: "pinned",
+	8: "supersedesPackId",
+	9: "creator",
 }
 
 // Decode decodes ProvenanceGraphPackNodeMeta from json.
@@ -41176,18 +41132,8 @@ func (s *ProvenanceGraphPackNodeMeta) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "creator":
-			if err := func() error {
-				s.Creator.Reset()
-				if err := s.Creator.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"creator\"")
-			}
 		case "diaryId":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.DiaryId = v
@@ -41199,7 +41145,7 @@ func (s *ProvenanceGraphPackNodeMeta) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
 		case "expiresAt":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -41209,7 +41155,7 @@ func (s *ProvenanceGraphPackNodeMeta) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
 		case "packCid":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.PackCid = string(v)
@@ -41221,7 +41167,7 @@ func (s *ProvenanceGraphPackNodeMeta) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packCid\"")
 			}
 		case "packCodec":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.PackCodec = string(v)
@@ -41233,7 +41179,7 @@ func (s *ProvenanceGraphPackNodeMeta) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packCodec\"")
 			}
 		case "packId":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.PackId = v
@@ -41245,7 +41191,7 @@ func (s *ProvenanceGraphPackNodeMeta) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packId\"")
 			}
 		case "packType":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.PackType = string(v)
@@ -41257,7 +41203,7 @@ func (s *ProvenanceGraphPackNodeMeta) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"packType\"")
 			}
 		case "pinned":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Bool()
 				s.Pinned = bool(v)
@@ -41269,7 +41215,7 @@ func (s *ProvenanceGraphPackNodeMeta) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"pinned\"")
 			}
 		case "supersedesPackId":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.SupersedesPackId.Decode(d); err != nil {
 					return err
@@ -41277,6 +41223,16 @@ func (s *ProvenanceGraphPackNodeMeta) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"supersedesPackId\"")
+			}
+		case "creator":
+			if err := func() error {
+				s.Creator.Reset()
+				if err := s.Creator.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creator\"")
 			}
 		default:
 			return d.Skip()
@@ -41288,8 +41244,8 @@ func (s *ProvenanceGraphPackNodeMeta) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b11111101,
-		0b00000011,
+		0b11111111,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -51031,158 +50987,6 @@ func (s *TaskAttemptUsage) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *TaskAttemptUsage) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes TaskClaimCondition as json.
-func (s TaskClaimCondition) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-func (s TaskClaimCondition) encodeFields(e *jx.Encoder) {
-	switch s.Type {
-	case ClaimConditionAllTaskClaimCondition:
-		e.FieldStart("op")
-		e.Str("all")
-		{
-			s := s.ClaimConditionAll
-			{
-				e.FieldStart("conditions")
-				e.ArrStart()
-				for _, elem := range s.Conditions {
-					elem.Encode(e)
-				}
-				e.ArrEnd()
-			}
-		}
-	case ClaimConditionAnyTaskClaimCondition:
-		e.FieldStart("op")
-		e.Str("any")
-		{
-			s := s.ClaimConditionAny
-			{
-				e.FieldStart("conditions")
-				e.ArrStart()
-				for _, elem := range s.Conditions {
-					elem.Encode(e)
-				}
-				e.ArrEnd()
-			}
-		}
-	case ClaimConditionTaskStatusTaskClaimCondition:
-		e.FieldStart("op")
-		e.Str("task_status")
-		{
-			s := s.ClaimConditionTaskStatus
-			{
-				e.FieldStart("statuses")
-				e.ArrStart()
-				for _, elem := range s.Statuses {
-					elem.Encode(e)
-				}
-				e.ArrEnd()
-			}
-			{
-				e.FieldStart("taskId")
-				json.EncodeUUID(e, s.TaskId)
-			}
-		}
-	case ClaimConditionTaskAcceptedTaskClaimCondition:
-		e.FieldStart("op")
-		e.Str("task_accepted")
-		{
-			s := s.ClaimConditionTaskAccepted
-			{
-				e.FieldStart("taskId")
-				json.EncodeUUID(e, s.TaskId)
-			}
-		}
-	}
-}
-
-// Decode decodes TaskClaimCondition from json.
-func (s *TaskClaimCondition) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode TaskClaimCondition to nil")
-	}
-	// Sum type discriminator.
-	if typ := d.Next(); typ != jx.Object {
-		return errors.Errorf("unexpected json type %q", typ)
-	}
-
-	var found bool
-	if err := d.Capture(func(d *jx.Decoder) error {
-		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
-			if found {
-				return d.Skip()
-			}
-			switch string(key) {
-			case "op":
-				typ, err := d.Str()
-				if err != nil {
-					return err
-				}
-				switch typ {
-				case "all":
-					s.Type = ClaimConditionAllTaskClaimCondition
-					found = true
-				case "any":
-					s.Type = ClaimConditionAnyTaskClaimCondition
-					found = true
-				case "task_status":
-					s.Type = ClaimConditionTaskStatusTaskClaimCondition
-					found = true
-				case "task_accepted":
-					s.Type = ClaimConditionTaskAcceptedTaskClaimCondition
-					found = true
-				default:
-					return errors.Errorf("unknown type %s", typ)
-				}
-				return nil
-			}
-			return d.Skip()
-		})
-	}); err != nil {
-		return errors.Wrap(err, "capture")
-	}
-	if !found {
-		return errors.New("unable to detect sum type variant")
-	}
-	switch s.Type {
-	case ClaimConditionAllTaskClaimCondition:
-		if err := s.ClaimConditionAll.Decode(d); err != nil {
-			return err
-		}
-	case ClaimConditionAnyTaskClaimCondition:
-		if err := s.ClaimConditionAny.Decode(d); err != nil {
-			return err
-		}
-	case ClaimConditionTaskStatusTaskClaimCondition:
-		if err := s.ClaimConditionTaskStatus.Decode(d); err != nil {
-			return err
-		}
-	case ClaimConditionTaskAcceptedTaskClaimCondition:
-		if err := s.ClaimConditionTaskAccepted.Decode(d); err != nil {
-			return err
-		}
-	default:
-		return errors.Errorf("inferred invalid type: %s", s.Type)
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s TaskClaimCondition) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *TaskClaimCondition) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
