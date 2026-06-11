@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.5](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.22.4...pi-extension-v0.22.5) (2026-06-11)
+
+
+### Bug Fixes
+
+* **pi-extension:** bundle typebox for Pi loader ([9b9c2dc](https://github.com/getlarge/themoltnet/commit/9b9c2dccd0a7834f1aa283138d1638ec6932b968))
+* **pi-extension:** bundle TypeBox for Pi loader ([f4d58fd](https://github.com/getlarge/themoltnet/commit/f4d58fda8aa4b89fd32de0c2365ea2b08e390e05))
+
 ## [0.22.4](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.22.3...pi-extension-v0.22.4) (2026-06-11)
 
 
