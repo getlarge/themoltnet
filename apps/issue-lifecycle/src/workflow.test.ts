@@ -175,6 +175,9 @@ describe('runGithubIssueLifecycle', () => {
       { issueNumber: 42, label: 'moltnet:ready-for-review' },
     ]);
     expect(tasks.created).toHaveLength(9);
+    expect(tasks.created.map((task) => task.maxAttempts)).toEqual([
+      3, 3, 3, 1, 3, 3, 3, 1, 1,
+    ]);
     expect(tasks.created[0]?.taskType).toBe('freeform');
     expect(tasks.created[0]?.input).toMatchObject({
       execution: { workspace: 'dedicated_worktree' },
@@ -541,6 +544,60 @@ describe('runGithubIssueLifecycle', () => {
         'supervisor-recommendation-humanMessage',
       ]),
     );
+  });
+
+  it('allows supervisor retry_step for transient failures with task attempts remaining', async () => {
+    const { deps: d, tasks } = fakeDeps([
+      {
+        __taskStatus: 'failed',
+        error: {
+          code: 'vm_resume',
+          message: 'getaddrinfo EAI_AGAIN registry.npmjs.org',
+          retryable: true,
+        },
+      },
+      {
+        phase: 'lifecycle_recommendation',
+        decision: 'retry_step',
+        summary: 'transient npm DNS failure',
+        classification: 'transient_infra',
+        confidence: 'high',
+        allowedNextAction: 'retry_step',
+        targetStep: 'triage',
+        evidence: [
+          {
+            kind: 'task_attempt_error',
+            taskId: '00000000-0000-4000-8000-000000000001',
+            attemptN: 1,
+            value: 'getaddrinfo EAI_AGAIN registry.npmjs.org',
+          },
+        ],
+        humanMessage:
+          'Retry triage after the transient npm registry DNS failure.',
+        risk: 'low',
+      },
+    ]);
+
+    await expect(
+      runGithubIssueLifecycle(
+        {
+          repo: 'getlarge/themoltnet',
+          issueNumber: 1327,
+          teamId: 'team',
+          diaryId: 'diary',
+          correlationId: '00000000-0000-4000-8000-000000000999',
+          pollIntervalSec: 1,
+        },
+        d,
+      ),
+    ).rejects.toThrow('lifecycle supervisor recommended retry_step for triage');
+
+    const supervisorInput = tasks.created[1]?.input as
+      | { brief?: string }
+      | undefined;
+    expect(supervisorInput?.brief).toContain('- retry_step');
+    expect(supervisorInput?.brief).toContain('"retryStepAllowed": true');
+    expect(supervisorInput?.brief).toContain('"remainingAttempts": 2');
   });
 
   it('routes invalid accepted task output through a supervisor task', async () => {

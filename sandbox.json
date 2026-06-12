@@ -47,7 +47,7 @@
       }
     },
     {
-      "retries": 2,
+      "retries": 3,
       "retryBackoffMs": 5000,
       "run": "cd \"${MOLTNET_GUEST_WORKSPACE}\" && pnpm install --frozen-lockfile --fetch-retries=8 --fetch-retry-mintimeout=2000 --fetch-retry-maxtimeout=30000 --network-concurrency=8",
       "when": {

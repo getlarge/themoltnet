@@ -16,6 +16,8 @@ const DEFAULT_READY_FOR_REVIEW_LABEL = 'moltnet:ready-for-review';
 const DEFAULT_SKIP_NOTIFY_LABEL = 'moltnet:skip-notify';
 const DEFAULT_CONSOLE_URL = 'https://console.themolt.net';
 const ARTIFACT_BODY_PATH = 'artifacts.0.body';
+const RETRYABLE_AGENT_TASK_ATTEMPTS = 3;
+const SINGLE_MUTATION_TASK_ATTEMPTS = 1;
 
 export interface LifecycleDefaults {
   correlationId: string;
@@ -172,12 +174,14 @@ async function baseBody(
   brief: string,
   issue: GithubIssue,
   successCriteria: SuccessCriteria,
+  maxAttempts = RETRYABLE_AGENT_TASK_ATTEMPTS,
 ) {
   return {
     taskType: 'freeform',
     title,
     teamId: input.teamId,
     diaryId: input.diaryId,
+    maxAttempts,
     correlationId: input.correlationId,
     input: {
       brief,
@@ -252,6 +256,7 @@ export async function buildContinuationTask(args: {
   title: string;
   brief: string;
   successCriteria: SuccessCriteria;
+  maxAttempts?: number;
 }): Promise<Parameters<TaskClient['createTask']>[0]> {
   const successCriteria = withParentDependency(
     args.successCriteria,
@@ -270,6 +275,7 @@ export async function buildContinuationTask(args: {
     continuationBrief,
     args.issue,
     successCriteria,
+    args.maxAttempts,
   );
   return {
     ...body,
@@ -322,6 +328,7 @@ export async function buildFreshImplementationTask(args: {
     freshBrief,
     args.issue,
     successCriteria,
+    SINGLE_MUTATION_TASK_ATTEMPTS,
   );
   return {
     ...body,
@@ -396,6 +403,7 @@ export async function buildPrReviewResolutionTask(args: {
     brief,
     args.issue,
     lifecycleCriteria.reviewResolution(),
+    SINGLE_MUTATION_TASK_ATTEMPTS,
   );
   return {
     ...body,
@@ -430,6 +438,7 @@ export async function buildSupervisorRecommendationTask(args: {
   snapshot: Record<string, unknown>;
   allowedActions: SupervisorAction[];
 }): Promise<Parameters<TaskClient['createTask']>[0]> {
+  const exampleAction = args.allowedActions[0] ?? 'stop_blocked';
   const brief = [
     `Recommend the next issue-lifecycle action for ${args.input.repo}#${args.issue.number}.`,
     '',
@@ -439,8 +448,9 @@ export async function buildSupervisorRecommendationTask(args: {
     'You are the lifecycle supervisor. Interpret the snapshot, classify the situation, and recommend exactly one allowed next action.',
     'Do not modify repository files, GitHub state, or MoltNet tasks. This is a decision-only task.',
     'Prefer stop_blocked for provider/auth/permission/config failures that a retry cannot fix.',
-    'Prefer retry_step only for clearly transient failures with retry budget available.',
+    'Prefer retry_step only when retryPolicy.retryStepAllowed is true.',
     'Prefer abort only when the lifecycle request is invalid or unsafe to continue.',
+    'Use retryPolicy.reason and retryPolicy.remainingAttempts to explain retry decisions.',
     'Allowed actions:',
     ...args.allowedActions.map((action) => `- ${action}`),
     '',
@@ -448,7 +458,7 @@ export async function buildSupervisorRecommendationTask(args: {
     JSON.stringify(args.snapshot, null, 2),
     '',
     'Required artifact body shape:',
-    '{"phase":"lifecycle_recommendation","decision":"stop_blocked","summary":"...","classification":"provider_auth|transient_infra|task_contract|agent_output_invalid|ci_failure|review_feedback|human_gate|unknown","confidence":"high|medium|low","allowedNextAction":"stop_blocked","targetStep":"triage","evidence":[{"kind":"task_attempt_error","taskId":"...","attemptN":1,"value":"..."}],"humanMessage":"...","risk":"low|medium|high"}',
+    `{"phase":"lifecycle_recommendation","decision":"${exampleAction}","summary":"...","classification":"provider_auth|transient_infra|task_contract|agent_output_invalid|ci_failure|review_feedback|human_gate|unknown","confidence":"high|medium|low","allowedNextAction":"${exampleAction}","targetStep":"triage","evidence":[{"kind":"task_attempt_error","taskId":"...","attemptN":1,"value":"..."}],"humanMessage":"...","risk":"low|medium|high"}`,
   ].join('\n');
   return baseBody(
     args.input,

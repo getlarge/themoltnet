@@ -519,6 +519,7 @@ export async function runGithubIssueLifecycle(
                 title: `Implement issue #${issue.number}`,
                 brief: implementationRetryBrief(),
                 successCriteria: lifecycleCriteria.implement(),
+                maxAttempts: 1,
               });
         const task = await deps.tasks.createTask(body);
         logCreatedTask(deps.logger, `implement.${attempt}`, task);
@@ -905,6 +906,7 @@ export async function runGithubIssueLifecycle(
       title: `Notify issue #${issue.number}`,
       brief: notifyBrief(issue, prNumber, skipNotify),
       successCriteria: lifecycleCriteria.notify(),
+      maxAttempts: 1,
     });
     const task = await deps.tasks.createTask(body);
     logCreatedTask(deps.logger, 'notify', task);

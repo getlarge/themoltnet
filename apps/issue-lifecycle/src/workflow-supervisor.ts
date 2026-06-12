@@ -21,6 +21,9 @@ const RECOVERY_ACTIONS: SupervisorAction[] = [
   'wait_for_human',
 ];
 
+const TRANSIENT_ERROR_RE =
+  /\b(EAI_AGAIN|ENOTFOUND|ECONNRESET|ETIMEDOUT|ECONNREFUSED|timeout|timed out|orphaned|lease_expired|network|DNS|registry\.npmjs\.org)\b/i;
+
 type NormalizedLifecycleInput = ReturnType<typeof normalizeLifecycleInput>;
 
 const MAX_SNAPSHOT_STRING_LENGTH = 2_000;
@@ -122,6 +125,79 @@ async function taskSnapshot(args: {
   };
 }
 
+function hasRetryableValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return false;
+  if (typeof value === 'string') return TRANSIENT_ERROR_RE.test(value);
+  if (Array.isArray(value))
+    return value.some((item) => hasRetryableValue(item));
+  if (typeof value === 'object') {
+    return Object.entries(value).some(([key, entryValue]) => {
+      if (key === 'retryable' && entryValue === true) return true;
+      return hasRetryableValue(entryValue);
+    });
+  }
+  return false;
+}
+
+function retryPolicy(args: {
+  outcome: Exclude<TaskOutcome, { kind: 'accepted' }>;
+}): {
+  maxAttempts: number;
+  usedAttempts: number;
+  remainingAttempts: number;
+  transientFailure: boolean;
+  retryStepAllowed: boolean;
+  reason: string;
+} {
+  if (args.outcome.kind === 'invalid_output') {
+    return {
+      maxAttempts: args.outcome.task.maxAttempts,
+      usedAttempts: args.outcome.attempt.attemptN,
+      remainingAttempts: Math.max(
+        0,
+        args.outcome.task.maxAttempts - args.outcome.attempt.attemptN,
+      ),
+      transientFailure: false,
+      retryStepAllowed: false,
+      reason:
+        'accepted output was invalid; retry requires human/domain judgment',
+    };
+  }
+  const usedAttempts = args.outcome.attempts.length;
+  const maxAttempts = args.outcome.task.maxAttempts;
+  const remainingAttempts = Math.max(0, maxAttempts - usedAttempts);
+  const transientFailure =
+    hasRetryableValue(args.outcome.reason) ||
+    args.outcome.attempts.some((attempt) => hasRetryableValue(attempt.error));
+  const retryStepAllowed = remainingAttempts > 0 && transientFailure;
+  return {
+    maxAttempts,
+    usedAttempts,
+    remainingAttempts,
+    transientFailure,
+    retryStepAllowed,
+    reason: retryStepAllowed
+      ? 'transient failure evidence found and task attempt budget remains'
+      : remainingAttempts <= 0
+        ? 'task attempt budget exhausted'
+        : transientFailure
+          ? 'transient failure evidence found but no automatic retry action is available'
+          : 'failure does not look transient or retryable',
+  };
+}
+
+function recoveryActionsForOutcome(
+  outcome: Exclude<TaskOutcome, { kind: 'accepted' }>,
+): SupervisorAction[] {
+  const actions = [...RECOVERY_ACTIONS];
+  if (retryPolicy({ outcome }).retryStepAllowed) {
+    actions.unshift('retry_step');
+  }
+  return actions;
+}
+
 async function recommendationSnapshot(args: {
   input: NormalizedLifecycleInput;
   issue: Awaited<ReturnType<IssueLifecycleDeps['github']['getIssue']>>;
@@ -135,6 +211,7 @@ async function recommendationSnapshot(args: {
     args.outcome.kind === 'failed'
       ? args.outcome.attempts
       : [args.outcome.attempt];
+  const retry = retryPolicy({ outcome: args.outcome });
   return {
     correlationId: args.input.correlationId,
     step: args.step,
@@ -154,6 +231,7 @@ async function recommendationSnapshot(args: {
       maxReviewRounds: args.input.maxReviewRounds,
       maxImplementationRetries: args.input.maxImplementationRetries,
     },
+    retryPolicy: retry,
     allowedActions: args.allowedActions,
   };
 }
@@ -168,7 +246,8 @@ async function requestSupervisorRecommendation(args: {
   ctx: WorkflowContext;
   allowedActions?: SupervisorAction[];
 }): Promise<AcceptedTaskResult> {
-  const allowedActions = args.allowedActions ?? RECOVERY_ACTIONS;
+  const allowedActions =
+    args.allowedActions ?? recoveryActionsForOutcome(args.outcome);
   const snapshot = await args.ctx.step(
     `supervisor.${args.step}.snapshot`,
     async () =>
@@ -290,6 +369,7 @@ export async function waitForLifecycleTask(args: {
       },
       deps: args.deps,
       ctx: args.ctx,
+      allowedActions: RECOVERY_ACTIONS,
     });
     return applySupervisorRecommendation({
       step: args.step,
@@ -298,6 +378,7 @@ export async function waitForLifecycleTask(args: {
       allowedActions: RECOVERY_ACTIONS,
     });
   }
+  const allowedActions = recoveryActionsForOutcome(outcome);
   const recommendation = await requestSupervisorRecommendation({
     input: args.input,
     issue: args.issue,
@@ -306,11 +387,12 @@ export async function waitForLifecycleTask(args: {
     outcome,
     deps: args.deps,
     ctx: args.ctx,
+    allowedActions,
   });
   return applySupervisorRecommendation({
     step: args.step,
     reason: outcome.reason,
     recommendation,
-    allowedActions: RECOVERY_ACTIONS,
+    allowedActions,
   });
 }
