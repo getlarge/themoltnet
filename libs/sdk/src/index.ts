@@ -3,6 +3,7 @@ export type {
   AgentsNamespace,
   AuthNamespace,
   CryptoNamespace,
+  DaemonProfilesNamespace,
   DiariesNamespace,
   DiaryGrantsNamespace,
   EntriesNamespace,

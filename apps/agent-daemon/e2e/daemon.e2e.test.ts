@@ -22,7 +22,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-import { createDaemonProfile, deleteDaemonProfile } from '@moltnet/api-client';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
   type DaemonSlotIdentity,
@@ -954,34 +953,17 @@ describe('Agent daemon (e2e)', () => {
     // level. No claim-time rejection.
 
     async function createProfile(name: string) {
-      const profile = await createDaemonProfile({
-        client: agent.client,
-        auth: () => agent.getToken(),
-        path: { id: teamId },
-        body: {
-          name,
-          runtimeKind: 'gondolin_pi',
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
-          sandbox: {
-            image: 'ghcr.io/getlarge/themoltnet/agent-runtime:e2e',
-          },
-        },
+      return agent.daemonProfiles.create(teamId, {
+        name,
+        runtimeKind: 'gondolin_pi',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        sandbox: {},
       });
-      if (profile.error) {
-        throw new Error(
-          `create daemon profile failed: ${profile.error.detail}`,
-        );
-      }
-      return profile.data;
     }
 
     function deleteProfile(profileId: string) {
-      return deleteDaemonProfile({
-        client: agent.client,
-        auth: () => agent.getToken(),
-        path: { profileId },
-      });
+      return agent.daemonProfiles.delete(profileId);
     }
 
     function proposePinnedCuratePackTask(

@@ -3,6 +3,7 @@ import { createClient } from '@moltnet/api-client';
 
 import type {
   DiariesNamespace,
+  DaemonProfilesNamespace,
   DiaryGrantsNamespace,
   EntriesNamespace,
   LegreffierNamespace,
@@ -13,6 +14,7 @@ import type {
   TeamsNamespace,
 } from './agent.js';
 import type { AgentContext } from './agent-context.js';
+import { createDaemonProfilesNamespace } from './namespaces/daemon-profiles.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
 import { createEntriesNamespace } from './namespaces/entries.js';
@@ -29,6 +31,7 @@ export interface HumanClient {
   readonly kind: 'human';
   diaries: DiariesNamespace;
   diaryGrants: DiaryGrantsNamespace;
+  daemonProfiles: DaemonProfilesNamespace;
   packs: PacksNamespace;
   entries: EntriesNamespace;
   public: PublicNamespace;
@@ -92,6 +95,7 @@ export function connectHuman(options: ConnectHumanOptions = {}): HumanClient {
     kind: 'human',
     diaries: createDiariesNamespace(context),
     diaryGrants: createDiaryGrantsNamespace(context),
+    daemonProfiles: createDaemonProfilesNamespace(context),
     packs: createPacksNamespace(context),
     entries: createEntriesNamespace(context),
     public: createPublicNamespace(context),
