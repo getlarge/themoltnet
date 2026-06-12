@@ -14,6 +14,7 @@ import {
   type AgentRepository,
   type ContextPackRepository,
   type CorrelationSealRepository,
+  type DaemonProfileRepository,
   DBOS,
   type DiaryRepository,
   type NewTask,
@@ -173,6 +174,7 @@ interface ExecutorAttestationInput {
   executorManifest?: Record<string, unknown>;
   executorFingerprint?: string;
   executorSignature?: string;
+  profileId?: string;
 }
 
 interface VerifiedExecutorAttestation {
@@ -187,6 +189,7 @@ interface TaskServiceDeps {
   taskRepository: TaskRepository;
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
+  daemonProfileRepository: DaemonProfileRepository;
   /** Used to resolve `context_packs` in async validators (#1096). */
   contextPackRepository: ContextPackRepository;
   /** Used to resolve `rendered_packs` in async validators (#1096). */
@@ -231,6 +234,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     taskRepository,
     diaryRepository,
     agentRepository,
+    daemonProfileRepository,
     contextPackRepository,
     renderedPackRepository,
     correlationSealRepository,
@@ -1056,6 +1060,31 @@ export function createTaskService(deps: TaskServiceDeps) {
           'forbidden',
           'Not authorized to claim this task',
         );
+
+      const allowedProfiles = (row.allowedProfiles ?? []) as {
+        profileId: string;
+      }[];
+      if (allowedProfiles.length > 0) {
+        const selectedProfileId = executorAttestation.profileId;
+        if (
+          !selectedProfileId ||
+          !allowedProfiles.some((p) => p.profileId === selectedProfileId)
+        ) {
+          throw new TaskServiceError(
+            'forbidden',
+            'Task requires an allowed daemon profile',
+          );
+        }
+
+        const selectedProfile =
+          await daemonProfileRepository.findById(selectedProfileId);
+        if (!selectedProfile || selectedProfile.teamId !== row.teamId) {
+          throw new TaskServiceError(
+            'forbidden',
+            'Task requires an allowed daemon profile',
+          );
+        }
+      }
 
       const attemptN = attemptCount + 1;
       const workflowId = taskWorkflowId(taskId, attemptN);

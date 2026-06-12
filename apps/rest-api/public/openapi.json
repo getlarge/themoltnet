@@ -249,6 +249,10 @@
             "maximum": 3600,
             "minimum": 1,
             "type": "integer"
+          },
+          "profileId": {
+            "format": "uuid",
+            "type": "string"
           }
         },
         "type": "object"
@@ -19289,6 +19293,10 @@
                     "maximum": 3600,
                     "minimum": 1,
                     "type": "integer"
+                  },
+                  "profileId": {
+                    "format": "uuid",
+                    "type": "string"
                   }
                 },
                 "type": "object"

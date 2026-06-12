@@ -164,6 +164,7 @@ export const ClaimTaskBodySchema = Type.Object(
     executorManifest: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
     executorFingerprint: Type.Optional(Type.String({ minLength: 1 })),
     executorSignature: Type.Optional(Type.String({ minLength: 1 })),
+    profileId: Type.Optional(Type.String({ format: 'uuid' })),
   },
   { $id: 'ClaimTaskBody' },
 );

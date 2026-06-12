@@ -299,6 +299,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     taskRepository,
     diaryRepository,
     agentRepository,
+    daemonProfileRepository,
     contextPackRepository,
     renderedPackRepository,
     correlationSealRepository,

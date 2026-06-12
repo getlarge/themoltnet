@@ -146,14 +146,24 @@ describe('PollingApiTaskSource', () => {
     expect(list).toHaveBeenCalledTimes(2);
   });
 
-  it('forwards profileId to the list call when set', async () => {
+  it('forwards profileId to list and claim when set', async () => {
+    const profileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const task = makeFulfillBriefTask({
+      id: '33333333-3333-4333-8333-333333333333',
+      status: 'queued',
+      allowedProfiles: [{ profileId }],
+    });
     const list = vi
       .fn<TasksNamespace['list']>()
-      .mockResolvedValue({ items: [], total: 0 });
-    const profileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+      .mockResolvedValue({ items: [task], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
 
     const src = new PollingApiTaskSource({
-      agent: makeAgent(list, vi.fn()),
+      agent: makeAgent(list, claim),
       teamId: 't',
       profileId,
       leaseTtlSec: 60,
@@ -163,6 +173,13 @@ describe('PollingApiTaskSource', () => {
     await src.claim();
     expect(list).toHaveBeenCalledWith(
       expect.objectContaining({
+        profileId,
+      }),
+    );
+    expect(claim).toHaveBeenCalledWith(
+      task.id,
+      expect.objectContaining({
+        leaseTtlSec: 60,
         profileId,
       }),
     );
@@ -261,7 +278,10 @@ describe('PollingApiTaskSource', () => {
     expect(result?.task.id).toBe(unrestricted.id);
     // The pinned-for-other-profile task must never have been claimed.
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith(unrestricted.id, { leaseTtlSec: 60 });
+    expect(claim).toHaveBeenCalledWith(unrestricted.id, {
+      leaseTtlSec: 60,
+      profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    });
   });
 
   it('keeps pinned candidates whose allowedProfiles includes the selected profile', async () => {

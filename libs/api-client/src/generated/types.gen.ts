@@ -81,6 +81,7 @@ export type ClaimTaskBody = {
   };
   executorSignature?: string;
   leaseTtlSec?: number;
+  profileId?: string;
 };
 
 export type ClaimTaskResponse = {
@@ -6178,6 +6179,7 @@ export type ClaimTaskData = {
     };
     executorSignature?: string;
     leaseTtlSec?: number;
+    profileId?: string;
   };
   path: {
     id: string;

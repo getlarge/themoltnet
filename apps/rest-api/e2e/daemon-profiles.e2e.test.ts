@@ -6,6 +6,7 @@
  */
 
 import {
+  claimTask,
   type Client,
   createClient,
   createDaemonProfile,
@@ -256,6 +257,49 @@ describe('Daemon Profiles API', () => {
       [{ profileId: '00000000-0000-0000-0000-000000000000' }],
     );
     expect(unknownProfileResponse.status).toBe(400);
+  });
+
+  it('enforces allowedProfiles when claiming tasks', async () => {
+    const { data: allowedProfile } = await createProfile(
+      `claim-allowed-${Date.now()}`,
+    );
+    const { data: otherProfile } = await createProfile(
+      `claim-other-${Date.now()}`,
+    );
+    expect(allowedProfile).toBeDefined();
+    expect(otherProfile).toBeDefined();
+
+    const { data: task } = await createFulfillBriefTask(
+      `profile claim enforcement ${Date.now()}`,
+      [{ profileId: allowedProfile!.id }],
+    );
+    expect(task).toBeDefined();
+
+    const missingProfileClaim = await claimTask({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: task!.id },
+      body: { leaseTtlSec: 30 },
+    });
+    expect(missingProfileClaim.response.status).toBe(403);
+
+    const wrongProfileClaim = await claimTask({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: task!.id },
+      body: { leaseTtlSec: 30, profileId: otherProfile!.id },
+    });
+    expect(wrongProfileClaim.response.status).toBe(403);
+
+    const allowedProfileClaim = await claimTask({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: task!.id },
+      body: { leaseTtlSec: 30, profileId: allowedProfile!.id },
+    });
+    expect(allowedProfileClaim.error).toBeUndefined();
+    expect(allowedProfileClaim.response.status).toBe(200);
+    expect(allowedProfileClaim.data!.task.id).toBe(task!.id);
   });
 
   it('rejects sandbox configs that request host exec auto-approval', async () => {

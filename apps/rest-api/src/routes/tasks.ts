@@ -374,6 +374,7 @@ export function taskRoutes(fastify: FastifyInstance) {
             executorManifest: request.body.executorManifest,
             executorFingerprint: request.body.executorFingerprint,
             executorSignature: request.body.executorSignature,
+            profileId: request.body.profileId,
           },
         );
         if (typeof request.opentelemetry === 'function') {

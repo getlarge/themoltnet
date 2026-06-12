@@ -294,6 +294,7 @@ export class PollingApiTaskSource implements TaskSource {
       try {
         const result = await this.opts.agent.tasks.claim(task.id, {
           leaseTtlSec: this.opts.leaseTtlSec,
+          ...(this.opts.profileId ? { profileId: this.opts.profileId } : {}),
         });
         if (this.opts.debug) {
           this.logger.debug(
