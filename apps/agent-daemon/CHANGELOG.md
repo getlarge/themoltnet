@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.14.6...agent-daemon-v0.15.0) (2026-06-12)
+
+
+### Features
+
+* **agent-daemon:** add OTel auto-instrumentation for distributed tracing ([fa417ee](https://github.com/getlarge/themoltnet/commit/fa417ee1139167f903681a34b273a66d379355d8))
+* **agent-daemon:** adopt @moltnet/observability auto-instrumentation for distributed tracing ([b0a4150](https://github.com/getlarge/themoltnet/commit/b0a4150d5b949b2cbc62b771eb7daabe2f2e336a))
+
 ## [0.14.6](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.14.5...agent-daemon-v0.14.6) (2026-06-11)
 
 
