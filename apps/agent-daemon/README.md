@@ -55,9 +55,12 @@ default. On startup, if `PI_CODING_AGENT_DIR` is not already set, the daemon
 sets it to `<repo-root>/.pi` before creating Pi sessions. This keeps daemon
 runs deterministic and avoids inheriting user-level `~/.pi/agent` state.
 
-Repo-local `.pi/settings.json` is intended to be committed. Repo-local
-`.pi/auth.json` may exist for local subscription auth, but is gitignored.
-Without `.pi/auth.json`, Pi falls back to environment-variable provider keys:
+Repo-local `.pi/settings.json` and `.pi/models.json` are intended to be
+committed. `models.json` should reference provider keys by environment-variable
+name, for example `"apiKey": "OLLAMA_API_KEY"`, not contain secret values.
+Repo-local `.pi/auth.json` may exist for local subscription auth, but is
+gitignored. Without `.pi/auth.json`, Pi falls back to environment-variable
+provider keys:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
