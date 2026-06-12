@@ -41,6 +41,8 @@ export interface SeedCompletedFreeformOptions {
    * set this so the asserts have a concrete pin to compare against.
    */
   allowedProfiles?: { profileId: string }[];
+  /** Profile attestation to send when claiming a profile-pinned task. */
+  claimProfileId?: string;
   requiredExecutorTrustLevel?:
     | 'selfDeclared'
     | 'agentSigned'
@@ -79,6 +81,7 @@ export async function seedCompletedFreeformAttempt(
     title,
     correlationId,
     allowedProfiles,
+    claimProfileId,
     requiredExecutorTrustLevel,
     slotTtlMs = 60 * 60 * 1000,
   } = options;
@@ -96,7 +99,10 @@ export async function seedCompletedFreeformAttempt(
     },
   });
 
-  const claimed = await agent.tasks.claim(created.id, { leaseTtlSec: 120 });
+  const claimed = await agent.tasks.claim(created.id, {
+    leaseTtlSec: 120,
+    ...(claimProfileId ? { profileId: claimProfileId } : {}),
+  });
   const attemptN = claimed.attempt.attemptN;
   // Heartbeat flips claimed → running. /complete returns 409 otherwise.
   await agent.tasks.heartbeat(created.id, attemptN, {

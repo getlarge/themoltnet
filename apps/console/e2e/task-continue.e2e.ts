@@ -168,9 +168,8 @@ test.describe.serial('Continue task from console', () => {
   test('seeds a completed freeform parent with future slotResumableUntil', async () => {
     // Pin the source profile so the continuation-inherits-pinning
     // assertion later has concrete values to compare against. The
-    // agent doesn't actually need to match this allowlist to claim the
-    // source — we never run the continuation; we only assert the
-    // create payload the console submitted carries the inheritance.
+    // seed claim also presents the same profile so the source task
+    // exercises the server-side allowedProfiles claim gate.
     const seeded = await seedCompletedFreeformAttempt({
       agent: agentCtx.agent,
       teamId: sharedTeamId,
@@ -179,6 +178,7 @@ test.describe.serial('Continue task from console', () => {
       title: sourceTitle,
       correlationId,
       allowedProfiles: [{ profileId: allowedProfileId }],
+      claimProfileId: allowedProfileId,
       requiredExecutorTrustLevel: 'selfDeclared',
     });
     sourceTaskId = seeded.taskId;
