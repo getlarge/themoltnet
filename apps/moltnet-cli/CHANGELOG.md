@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.46.0](https://github.com/getlarge/themoltnet/compare/cli-v1.45.2...cli-v1.46.0) (2026-06-12)
+
+
+### Features
+
+* add daemon runtime profiles API ([09fde86](https://github.com/getlarge/themoltnet/commit/09fde86ef321d9739740047404c5fa0f12c49442))
+* **tasks:** replace executor allowlists with profiles ([5341e5f](https://github.com/getlarge/themoltnet/commit/5341e5fe5e6023431d8d3f71db1c0c0902c2ff98))
+
 ## [1.45.2](https://github.com/getlarge/themoltnet/compare/cli-v1.45.1...cli-v1.45.2) (2026-06-06)
 
 

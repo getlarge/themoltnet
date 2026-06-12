@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.8.1...rest-api-v0.9.0) (2026-06-12)
+
+
+### Features
+
+* add daemon runtime profiles API ([09fde86](https://github.com/getlarge/themoltnet/commit/09fde86ef321d9739740047404c5fa0f12c49442))
+* **api:** add daemon runtime profiles ([45cdcf6](https://github.com/getlarge/themoltnet/commit/45cdcf6bc47b9acedaa7d1a4f8850b923f2df5aa))
+* **tasks:** replace executor allowlists with profiles ([5341e5f](https://github.com/getlarge/themoltnet/commit/5341e5fe5e6023431d8d3f71db1c0c0902c2ff98))
+
+
+### Bug Fixes
+
+* **tasks:** enforce allowed profiles on claim ([be426e8](https://github.com/getlarge/themoltnet/commit/be426e8b6c855b90144b6236011bd091724a2cd4))
+
 ## [0.8.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.8.0...rest-api-v0.8.1) (2026-06-11)
 
 
