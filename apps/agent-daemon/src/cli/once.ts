@@ -38,6 +38,7 @@ import {
   parseCommonOptions,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
+import { resolveDaemonProfile } from '../lib/daemon-profile.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
@@ -54,6 +55,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       ...commonOptionDefs(),
       'task-id': { type: 'string', short: 't' },
       sandbox: { type: 'string' },
+      profile: { type: 'string' },
     },
   });
 
@@ -66,7 +68,9 @@ export async function runOnce(argv: string[]): Promise<number> {
   const taskId = values['task-id'];
   let opts: CommonOptions;
   try {
-    opts = parseCommonOptions(values);
+    opts = parseCommonOptions(values, {
+      requireProviderModel: !values.profile,
+    });
   } catch (err) {
     if (err instanceof MissingRequiredOptionError) {
       console.error(`${err.message}\n`);
@@ -75,8 +79,34 @@ export async function runOnce(argv: string[]): Promise<number> {
     }
     throw err;
   }
-  const sandbox = resolveSandbox(process.cwd(), values.sandbox);
+  if (values.profile && values.sandbox) {
+    console.error(
+      'Cannot use --sandbox with --profile. ' +
+        'Remote daemon profiles define sandbox policy.',
+    );
+    return 1;
+  }
   const cfg = loadConfig();
+  const ctx = await resolveAgentContext(opts.agent);
+  const profile = values.profile
+    ? await resolveDaemonProfile({
+        agent: ctx.agent,
+        profile: values.profile,
+        cwd: process.cwd(),
+      })
+    : null;
+  const provider = profile?.provider ?? opts.provider;
+  const model = profile?.model ?? opts.model;
+  if (!provider || !model) {
+    throw new Error('provider/model missing after daemon profile resolution');
+  }
+  const sandbox = profile
+    ? {
+        config: profile.sandboxConfig,
+        rootDir: profile.mountPath,
+        path: profile.source,
+      }
+    : resolveSandbox(process.cwd(), values.sandbox);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
   const slotRegistry = new DaemonSlotRegistry(
     resolveDaemonStateStorageConfig(
@@ -86,8 +116,8 @@ export async function runOnce(argv: string[]): Promise<number> {
   );
   const slotIdentity: DaemonSlotIdentity = {
     agentName: opts.agent,
-    provider: opts.provider,
-    model: opts.model,
+    provider,
+    model,
   };
   const mainRepo = findMainWorktree();
   const executionPlans = createExecutionPlanCache({
@@ -96,8 +126,6 @@ export async function runOnce(argv: string[]): Promise<number> {
     warmSessionTtlSec: opts.warmSessionTtlSec,
     slotRegistry,
   });
-  const ctx = await resolveAgentContext(opts.agent);
-
   const otelShutdown = await initWorkerOtel({
     serviceName: 'moltnet.agent-daemon.once',
     agentDir: ctx.agentDir,
@@ -105,8 +133,9 @@ export async function runOnce(argv: string[]): Promise<number> {
     resourceAttributes: {
       'moltnet.task.id': taskId,
       'moltnet.agent.name': opts.agent,
-      'moltnet.llm.provider': opts.provider,
-      'moltnet.llm.model': opts.model,
+      'moltnet.llm.provider': provider,
+      'moltnet.llm.model': model,
+      ...(profile ? { 'moltnet.daemon_profile.id': profile.id } : {}),
     },
   });
 
@@ -117,8 +146,11 @@ export async function runOnce(argv: string[]): Promise<number> {
   const rootLogger = logger.child({
     mode: 'once',
     agent: opts.agent,
-    provider: opts.provider,
-    model: opts.model,
+    provider,
+    model,
+    ...(profile
+      ? { daemonProfileId: profile.id, daemonProfileName: profile.name }
+      : {}),
   });
 
   rootLogger.info({ sandbox: sandbox.path, taskId }, 'agent-daemon.starting');
@@ -161,8 +193,8 @@ export async function runOnce(argv: string[]): Promise<number> {
     const rawExecuteTask = createPiTaskExecutor({
       agentName: opts.agent,
       mountPath: sandbox.rootDir,
-      provider: opts.provider,
-      model: opts.model,
+      provider,
+      model,
       sandboxConfig: sandbox.config,
       makeExecutionPlan: (claimedTask) =>
         executionPlans.getOrCreate(claimedTask),
@@ -273,6 +305,7 @@ export async function runOnce(argv: string[]): Promise<number> {
         agent: ctx.agent,
         taskId,
         leaseTtlSec: opts.leaseTtlSec,
+        ...(profile ? { profileId: profile.id } : {}),
       }),
       makeReporter: () =>
         new ApiTaskReporter({

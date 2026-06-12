@@ -45,6 +45,17 @@ describe('parseCommonOptions', () => {
     }
   });
 
+  it('allows provider/model to be omitted when profile mode supplies them', () => {
+    const result = parseCommonOptions(
+      { agent: 'legreffier' },
+      { requireProviderModel: false },
+    );
+
+    expect(result.agent).toBe('legreffier');
+    expect(result.provider).toBeUndefined();
+    expect(result.model).toBeUndefined();
+  });
+
   it('rejects --agent with traversal-unsafe characters', () => {
     expect(() =>
       parseCommonOptions({ ...valid, agent: '../etc/passwd' }),

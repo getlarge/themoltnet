@@ -64,6 +64,7 @@ describe('help strings', () => {
     expect(POLL_HELP).toContain('--agent');
     expect(POLL_HELP).toContain('--provider');
     expect(POLL_HELP).toContain('--model');
+    expect(POLL_HELP).toContain('--profile');
   });
 
   it('ONCE_HELP names --task-id as required', () => {

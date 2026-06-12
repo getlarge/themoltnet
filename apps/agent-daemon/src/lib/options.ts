@@ -6,8 +6,8 @@ import { knownTaskTypesList } from './help.js';
 
 export interface CommonOptions {
   agent: string;
-  provider: string;
-  model: string;
+  provider?: string;
+  model?: string;
   leaseTtlSec: number;
   heartbeatIntervalMs: number;
   maxBatchSize: number;
@@ -46,6 +46,10 @@ export interface CommonRawArgs {
   debug?: boolean;
 }
 
+export interface ParseCommonOptionsOptions {
+  requireProviderModel?: boolean;
+}
+
 const DEFAULTS = {
   leaseTtlSec: 300,
   heartbeatIntervalMs: 60_000,
@@ -69,10 +73,18 @@ export class MissingRequiredOptionError extends Error {
   }
 }
 
-export function parseCommonOptions(args: CommonRawArgs): CommonOptions {
+export function parseCommonOptions(
+  args: CommonRawArgs,
+  options: ParseCommonOptionsOptions = {},
+): CommonOptions {
+  const requireProviderModel = options.requireProviderModel ?? true;
   if (!args.agent) throw new MissingRequiredOptionError('agent');
-  if (!args.provider) throw new MissingRequiredOptionError('provider');
-  if (!args.model) throw new MissingRequiredOptionError('model');
+  if (requireProviderModel && !args.provider) {
+    throw new MissingRequiredOptionError('provider');
+  }
+  if (requireProviderModel && !args.model) {
+    throw new MissingRequiredOptionError('model');
+  }
 
   if (!/^[a-zA-Z0-9_-]+$/.test(args.agent)) {
     throw new Error(
@@ -81,8 +93,8 @@ export function parseCommonOptions(args: CommonRawArgs): CommonOptions {
   }
   const opts: CommonOptions = {
     agent: args.agent,
-    provider: args.provider,
-    model: args.model,
+    ...(args.provider ? { provider: args.provider } : {}),
+    ...(args.model ? { model: args.model } : {}),
     leaseTtlSec: parsePositiveInt(
       args['lease-ttl-sec'],
       'lease-ttl-sec',

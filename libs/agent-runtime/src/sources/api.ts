@@ -6,6 +6,7 @@ export interface ApiTaskSourceOptions {
   agent: Agent;
   taskId: string;
   leaseTtlSec?: number;
+  profileId?: string;
 }
 
 export class ApiTaskSource implements TaskSource {
@@ -16,11 +17,11 @@ export class ApiTaskSource implements TaskSource {
   async claim(): Promise<ClaimedTask | null> {
     if (this.claimed) return null;
 
-    const { agent, taskId, leaseTtlSec } = this.opts;
-    const result = await agent.tasks.claim(
-      taskId,
-      leaseTtlSec ? { leaseTtlSec } : {},
-    );
+    const { agent, taskId, leaseTtlSec, profileId } = this.opts;
+    const result = await agent.tasks.claim(taskId, {
+      ...(leaseTtlSec ? { leaseTtlSec } : {}),
+      ...(profileId ? { profileId } : {}),
+    });
 
     this.claimed = true;
 
