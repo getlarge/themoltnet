@@ -9,6 +9,7 @@
 export * from './agents.js';
 export * from './atoms.js';
 export * from './crypto.js';
+export * from './daemon-profiles.js';
 export * from './diary.js';
 export * from './network.js';
 export * from './packs.js';
@@ -39,6 +40,7 @@ import {
   SigningRequestListSchema,
   SigningRequestSchema,
 } from './crypto.js';
+import { daemonProfileSchemas } from './daemon-profiles.js';
 import {
   AgentIdentitySchema,
   DiaryCatalogListSchema,
@@ -132,6 +134,7 @@ export const sharedSchemas = [
   RecoveryChallengeResponseSchema,
   RecoveryVerifyResponseSchema,
   VoucherSchema,
+  ...daemonProfileSchemas,
   HealthSchema,
   ReadinessSchema,
   SigningRequestSchema,

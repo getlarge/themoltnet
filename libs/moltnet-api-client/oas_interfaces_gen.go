@@ -29,6 +29,10 @@ type CompleteTaskRes interface {
 	completeTaskRes()
 }
 
+type CreateDaemonProfileRes interface {
+	createDaemonProfileRes()
+}
+
 type CreateDiaryCustomPackRes interface {
 	createDiaryCustomPackRes()
 }
@@ -67,6 +71,10 @@ type CreateTeamInviteRes interface {
 
 type CreateTeamRes interface {
 	createTeamRes()
+}
+
+type DeleteDaemonProfileRes interface {
+	deleteDaemonProfileRes()
 }
 
 type DeleteDiaryEntryByIdRes interface {
@@ -123,6 +131,10 @@ type GetContextPackProvenanceByIdRes interface {
 
 type GetCryptoIdentityRes interface {
 	getCryptoIdentityRes()
+}
+
+type GetDaemonProfileRes interface {
+	getDaemonProfileRes()
 }
 
 type GetDiaryEntryByIdRes interface {
@@ -203,6 +215,10 @@ type ListActiveVouchersRes interface {
 
 type ListContextPacksRes interface {
 	listContextPacksRes()
+}
+
+type ListDaemonProfilesRes interface {
+	listDaemonProfilesRes()
 }
 
 type ListDiariesRes interface {
@@ -339,6 +355,10 @@ type TaskHeartbeatRes interface {
 
 type UpdateContextPackRes interface {
 	updateContextPackRes()
+}
+
+type UpdateDaemonProfileRes interface {
+	updateDaemonProfileRes()
 }
 
 type UpdateDiaryEntryByIdRes interface {

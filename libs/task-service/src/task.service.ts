@@ -151,6 +151,8 @@ export interface CreateTaskInput {
   // Proposer-set executor pinning. Empty/undefined = no restriction.
   // Provider/model are normalized (lowercased) before persistence.
   allowedExecutors?: { provider: string; model: string }[];
+  // Proposer-set daemon profile routing. Empty/undefined = no restriction.
+  allowedProfiles?: { profileId: string }[];
   // Proposer-set timeout overrides (seconds). Undefined → server
   // defaults (DEFAULT_DISPATCH_TIMEOUT_SECONDS /
   // DEFAULT_RUNNING_TIMEOUT_SECONDS in
@@ -708,6 +710,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           provider: e.provider.toLowerCase(),
           model: e.model.toLowerCase(),
         })),
+        allowedProfiles: input.allowedProfiles ?? [],
         maxAttempts: input.maxAttempts ?? 1,
         dispatchTimeoutSec: input.dispatchTimeoutSec ?? null,
         runningTimeoutSec: input.runningTimeoutSec ?? null,
@@ -884,6 +887,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       // no executor filter is applied.
       executorProvider?: string;
       executorModel?: string;
+      profileId?: string;
       correlationId?: string;
       diaryId?: string;
       proposedByAgentId?: string;
@@ -922,6 +926,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         excludeTags: opts.excludeTags,
         executorProvider: opts.executorProvider,
         executorModel: opts.executorModel,
+        profileId: opts.profileId,
         correlationId: opts.correlationId,
         diaryId: opts.diaryId,
         proposedByAgentId: opts.proposedByAgentId,

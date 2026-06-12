@@ -20,6 +20,7 @@ import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
   AgentRepository,
   CryptoService,
+  DaemonProfileRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryService,
@@ -238,6 +239,9 @@ export interface MockServices {
     findPendingByDiary: ReturnType<typeof vi.fn>;
     updateStatus: ReturnType<typeof vi.fn>;
     listPendingByDestinationTeam: ReturnType<typeof vi.fn>;
+  };
+  daemonProfileRepository: {
+    [K in keyof DaemonProfileRepository]: ReturnType<typeof vi.fn>;
   };
   relationshipReader: {
     [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
@@ -515,6 +519,14 @@ export function createMockServices(): MockServices {
       updateStatus: vi.fn(),
       listPendingByDestinationTeam: vi.fn().mockResolvedValue([]),
     },
+    daemonProfileRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      findByTeamAndName: vi.fn(),
+      listByTeamId: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
     relationshipReader: {
       listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
       listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
@@ -695,6 +707,8 @@ export async function createTestApp(
     taskService: mocks.taskService as unknown as TaskService,
     diaryTransferRepository:
       mocks.diaryTransferRepository as unknown as DiaryTransferRepository,
+    daemonProfileRepository:
+      mocks.daemonProfileRepository as unknown as DaemonProfileRepository,
     groupRepository: mocks.groupRepository as never,
     relationshipReader: mocks.relationshipReader as never,
     hydraPublicUrl: 'http://hydra-mock:4444',

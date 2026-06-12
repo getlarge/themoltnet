@@ -154,6 +154,16 @@ export const taskMessageKindEnum = pgEnum('task_message_kind', [
 
 export const outputKindEnum = pgEnum('output_kind', ['artifact', 'judgment']);
 
+export const daemonProfileRuntimeKindEnum = pgEnum(
+  'daemon_profile_runtime_kind',
+  ['gondolin_pi'],
+);
+
+export const daemonProfileStorageModeEnum = pgEnum(
+  'daemon_profile_storage_mode',
+  ['local'],
+);
+
 /**
  * Diaries Table
  *
@@ -1045,6 +1055,13 @@ export const tasks = pgTable(
       .notNull()
       .default(sql`'[]'::jsonb`)
       .$type<{ provider: string; model: string }[]>(),
+    // Proposer-set daemon profile routing. Empty array = no restriction.
+    // Element shape: { profileId: uuid }. Compared as a JSONB containment
+    // query against a daemon's selected profile id on list-tasks.
+    allowedProfiles: jsonb('allowed_profiles')
+      .notNull()
+      .default(sql`'[]'::jsonb`)
+      .$type<{ profileId: string }[]>(),
     queuedAt: timestamp('queued_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -1092,6 +1109,10 @@ export const tasks = pgTable(
     index('tasks_allowed_executors_gin_idx').using(
       'gin',
       sql`${table.allowedExecutors} jsonb_path_ops`,
+    ),
+    index('tasks_allowed_profiles_gin_idx').using(
+      'gin',
+      sql`${table.allowedProfiles} jsonb_path_ops`,
     ),
     check(
       'tasks_proposer_xor',
@@ -1169,6 +1190,73 @@ export const correlationSeals = pgTable(
 
 export type CorrelationSeal = typeof correlationSeals.$inferSelect;
 export type NewCorrelationSeal = typeof correlationSeals.$inferInsert;
+
+// ── Daemon Profiles ───────────────────────────────────────────
+
+export const daemonProfiles = pgTable(
+  'daemon_profiles',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    name: varchar('name', { length: 100 }).notNull(),
+    description: text('description'),
+    provider: varchar('provider', { length: 100 }).notNull(),
+    model: varchar('model', { length: 200 }).notNull(),
+    runtimeKind: daemonProfileRuntimeKindEnum('runtime_kind')
+      .notNull()
+      .default('gondolin_pi'),
+    sandbox: jsonb('sandbox').notNull(),
+    sessionStorageMode: daemonProfileStorageModeEnum('session_storage_mode')
+      .notNull()
+      .default('local'),
+    workspaceStorageMode: daemonProfileStorageModeEnum('workspace_storage_mode')
+      .notNull()
+      .default('local'),
+    sessionTtlSec: integer('session_ttl_sec').notNull().default(1800),
+    workspaceTtlSec: integer('workspace_ttl_sec').notNull().default(1800),
+    requiredEnv: text('required_env')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    requiredTools: text('required_tools')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    context: jsonb('context')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    revision: integer('revision').notNull().default(1),
+    definitionCid: varchar('definition_cid', { length: 100 }).notNull(),
+    createdByAgentId: uuid('created_by_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    createdByHumanId: uuid('created_by_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('daemon_profiles_team_name_idx').on(table.teamId, table.name),
+    index('daemon_profiles_team_idx').on(table.teamId),
+    check(
+      'daemon_profiles_creator_xor',
+      sql`(created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL)`,
+    ),
+    check('daemon_profiles_session_ttl_positive', sql`session_ttl_sec > 0`),
+    check('daemon_profiles_workspace_ttl_positive', sql`workspace_ttl_sec > 0`),
+  ],
+);
+
+export type DaemonProfile = typeof daemonProfiles.$inferSelect;
+export type NewDaemonProfile = typeof daemonProfiles.$inferInsert;
 
 // ── Executor Manifests ─────────────────────────────────────
 

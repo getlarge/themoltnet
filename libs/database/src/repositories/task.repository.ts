@@ -51,6 +51,7 @@ export interface TaskListFilterOpts {
   excludeTags?: string[];
   executorProvider?: string;
   executorModel?: string;
+  profileId?: string;
   correlationId?: string;
   diaryId?: string;
   proposedByAgentId?: string;
@@ -133,6 +134,13 @@ export function createTaskRepository(db: Database) {
       filters.push(sql`(
         ${tasks.allowedExecutors} = '[]'::jsonb
         OR ${tasks.allowedExecutors} @> ${pairJson}::jsonb
+      )`);
+    }
+    if (opts.profileId) {
+      const profileJson = JSON.stringify([{ profileId: opts.profileId }]);
+      filters.push(sql`(
+        ${tasks.allowedProfiles} = '[]'::jsonb
+        OR ${tasks.allowedProfiles} @> ${profileJson}::jsonb
       )`);
     }
     if (opts.correlationId)

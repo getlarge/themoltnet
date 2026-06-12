@@ -13,6 +13,7 @@ import {
 const TASK_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
 const TEAM_ID = 'bbbbbbbb-0000-0000-0000-000000000002';
 const DIARY_ID = 'cccccccc-0000-0000-0000-000000000003';
+const PROFILE_ID = 'dddddddd-0000-0000-0000-000000000004';
 const ATTEMPT_N = 1;
 
 const MOCK_TASK = {
@@ -34,6 +35,7 @@ const MOCK_TASK = {
   claimCondition: null,
   requiredExecutorTrustLevel: 'selfDeclared' as const,
   allowedExecutors: [],
+  allowedProfiles: [],
   status: 'queued' as const,
   queuedAt: new Date().toISOString(),
   completedAt: null,
@@ -233,6 +235,66 @@ describe('POST /tasks', () => {
       errors: [{ field: 'taskType', message: 'Unknown task type: nope' }],
     });
   });
+
+  it('validates allowed profiles before creating the task', async () => {
+    mocks.daemonProfileRepository.findById.mockResolvedValue({
+      id: PROFILE_ID,
+      teamId: TEAM_ID,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { authorization: 'Bearer test-token' },
+      payload: {
+        taskType: 'fulfill_brief',
+        teamId: TEAM_ID,
+        diaryId: DIARY_ID,
+        allowedProfiles: [{ profileId: PROFILE_ID }],
+        input: { brief: 'Ship a task worker.' },
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(mocks.daemonProfileRepository.findById).toHaveBeenCalledWith(
+      PROFILE_ID,
+    );
+    expect(mocks.taskService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        allowedProfiles: [{ profileId: PROFILE_ID }],
+      }),
+    );
+  });
+
+  it('rejects allowed profiles outside the task team', async () => {
+    mocks.daemonProfileRepository.findById.mockResolvedValue({
+      id: PROFILE_ID,
+      teamId: 'eeeeeeee-0000-0000-0000-000000000005',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: {
+        authorization: 'Bearer test-token',
+        accept: 'application/problem+json',
+      },
+      payload: {
+        taskType: 'fulfill_brief',
+        teamId: TEAM_ID,
+        diaryId: DIARY_ID,
+        allowedProfiles: [{ profileId: PROFILE_ID }],
+        input: { brief: 'Ship a task worker.' },
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      code: 'VALIDATION_FAILED',
+      errors: [{ field: 'allowedProfiles' }],
+    });
+    expect(mocks.taskService.create).not.toHaveBeenCalled();
+  });
 });
 
 describe('GET /tasks', () => {
@@ -268,6 +330,7 @@ describe('GET /tasks', () => {
         '&tags=observability' +
         '&excludeTags=legacy' +
         `&diaryId=${DIARY_ID}` +
+        `&profileId=${PROFILE_ID}` +
         `&proposedByAgentId=${OWNER_ID}` +
         `&proposedByHumanId=550e8400-e29b-41d4-a716-446655440099` +
         `&claimedByAgentId=${OWNER_ID}` +
@@ -288,6 +351,7 @@ describe('GET /tasks', () => {
         tags: ['observability'],
         excludeTags: ['legacy'],
         diaryId: DIARY_ID,
+        profileId: PROFILE_ID,
         proposedByAgentId: OWNER_ID,
         proposedByHumanId: '550e8400-e29b-41d4-a716-446655440099',
         claimedByAgentId: OWNER_ID,

@@ -44,6 +44,7 @@ export function dbTaskToWire(row: DbTask): Task {
     requiredExecutorTrustLevel:
       TRUST_LEVEL_TO_WIRE[row.requiredExecutorTrustLevel],
     allowedExecutors: row.allowedExecutors as Task['allowedExecutors'],
+    allowedProfiles: row.allowedProfiles as Task['allowedProfiles'],
     status: row.status,
     queuedAt: row.queuedAt.toISOString(),
     completedAt: row.completedAt?.toISOString() ?? null,

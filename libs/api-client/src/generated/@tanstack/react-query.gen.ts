@@ -17,6 +17,7 @@ import {
   cancelTask,
   claimTask,
   completeTask,
+  createDaemonProfile,
   createDiary,
   createDiaryCustomPack,
   createDiaryEntry,
@@ -27,6 +28,7 @@ import {
   createTask,
   createTeam,
   createTeamInvite,
+  deleteDaemonProfile,
   deleteDiary,
   deleteDiaryEntryById,
   deleteEntryRelation,
@@ -41,6 +43,7 @@ import {
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
   getCryptoIdentity,
+  getDaemonProfile,
   getDiary,
   getDiaryEntryById,
   getGroup,
@@ -65,6 +68,7 @@ import {
   joinTeam,
   listActiveVouchers,
   listContextPacks,
+  listDaemonProfiles,
   listDiaries,
   listDiaryEntries,
   listDiaryGrants,
@@ -101,6 +105,7 @@ import {
   submitSignature,
   taskHeartbeat,
   updateContextPack,
+  updateDaemonProfile,
   updateDiary,
   updateDiaryEntryById,
   updateEntryRelationStatus,
@@ -134,6 +139,9 @@ import type {
   CompleteTaskData,
   CompleteTaskError,
   CompleteTaskResponse,
+  CreateDaemonProfileData,
+  CreateDaemonProfileError,
+  CreateDaemonProfileResponse,
   CreateDiaryCustomPackData,
   CreateDiaryCustomPackError,
   CreateDiaryCustomPackResponse,
@@ -164,6 +172,9 @@ import type {
   CreateTeamInviteError,
   CreateTeamInviteResponse,
   CreateTeamResponse,
+  DeleteDaemonProfileData,
+  DeleteDaemonProfileError,
+  DeleteDaemonProfileResponse,
   DeleteDiaryData,
   DeleteDiaryEntryByIdData,
   DeleteDiaryEntryByIdError,
@@ -206,6 +217,9 @@ import type {
   GetCryptoIdentityData,
   GetCryptoIdentityError,
   GetCryptoIdentityResponse,
+  GetDaemonProfileData,
+  GetDaemonProfileError,
+  GetDaemonProfileResponse,
   GetDiaryData,
   GetDiaryEntryByIdData,
   GetDiaryEntryByIdError,
@@ -273,6 +287,9 @@ import type {
   ListContextPacksData,
   ListContextPacksError,
   ListContextPacksResponse,
+  ListDaemonProfilesData,
+  ListDaemonProfilesError,
+  ListDaemonProfilesResponse,
   ListDiariesData,
   ListDiariesError,
   ListDiariesResponse,
@@ -377,6 +394,9 @@ import type {
   UpdateContextPackData,
   UpdateContextPackError,
   UpdateContextPackResponse,
+  UpdateDaemonProfileData,
+  UpdateDaemonProfileError,
+  UpdateDaemonProfileResponse,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateDiaryEntryByIdError,
@@ -845,6 +865,88 @@ export const verifyCryptoSignatureMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await verifyCryptoSignature({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Delete one daemon runtime profile.
+ */
+export const deleteDaemonProfileMutation = (
+  options?: Partial<Options<DeleteDaemonProfileData>>,
+): UseMutationOptions<
+  DeleteDaemonProfileResponse,
+  DeleteDaemonProfileError,
+  Options<DeleteDaemonProfileData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteDaemonProfileResponse,
+    DeleteDaemonProfileError,
+    Options<DeleteDaemonProfileData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteDaemonProfile({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getDaemonProfileQueryKey = (
+  options: Options<GetDaemonProfileData>,
+) => createQueryKey('getDaemonProfile', options);
+
+/**
+ * Get one daemon runtime profile.
+ */
+export const getDaemonProfileOptions = (
+  options: Options<GetDaemonProfileData>,
+) =>
+  queryOptions<
+    GetDaemonProfileResponse,
+    GetDaemonProfileError,
+    GetDaemonProfileResponse,
+    ReturnType<typeof getDaemonProfileQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getDaemonProfile({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getDaemonProfileQueryKey(options),
+  });
+
+/**
+ * Update one daemon runtime profile.
+ */
+export const updateDaemonProfileMutation = (
+  options?: Partial<Options<UpdateDaemonProfileData>>,
+): UseMutationOptions<
+  UpdateDaemonProfileResponse,
+  UpdateDaemonProfileError,
+  Options<UpdateDaemonProfileData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateDaemonProfileResponse,
+    UpdateDaemonProfileError,
+    Options<UpdateDaemonProfileData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateDaemonProfile({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -3180,6 +3282,61 @@ export const acceptTeamFoundingMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await acceptTeamFounding({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listDaemonProfilesQueryKey = (
+  options: Options<ListDaemonProfilesData>,
+) => createQueryKey('listDaemonProfiles', options);
+
+/**
+ * List daemon runtime profiles for a team.
+ */
+export const listDaemonProfilesOptions = (
+  options: Options<ListDaemonProfilesData>,
+) =>
+  queryOptions<
+    ListDaemonProfilesResponse,
+    ListDaemonProfilesError,
+    ListDaemonProfilesResponse,
+    ReturnType<typeof listDaemonProfilesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listDaemonProfiles({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listDaemonProfilesQueryKey(options),
+  });
+
+/**
+ * Create a daemon runtime profile for a team.
+ */
+export const createDaemonProfileMutation = (
+  options?: Partial<Options<CreateDaemonProfileData>>,
+): UseMutationOptions<
+  CreateDaemonProfileResponse,
+  CreateDaemonProfileError,
+  Options<CreateDaemonProfileData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateDaemonProfileResponse,
+    CreateDaemonProfileError,
+    Options<CreateDaemonProfileData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createDaemonProfile({
         ...options,
         ...fnOptions,
         throwOnError: true,

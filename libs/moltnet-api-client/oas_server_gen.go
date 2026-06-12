@@ -50,6 +50,12 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/complete
 	CompleteTask(ctx context.Context, req *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error)
+	// CreateDaemonProfile implements createDaemonProfile operation.
+	//
+	// Create a daemon runtime profile for a team.
+	//
+	// POST /teams/{id}/daemon-profiles
+	CreateDaemonProfile(ctx context.Context, req OptCreateDaemonProfileBody, params CreateDaemonProfileParams) (CreateDaemonProfileRes, error)
 	// CreateDiary implements createDiary operation.
 	//
 	// Create a new diary.
@@ -113,6 +119,12 @@ type Handler interface {
 	//
 	// POST /teams/{id}/invites
 	CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) (CreateTeamInviteRes, error)
+	// DeleteDaemonProfile implements deleteDaemonProfile operation.
+	//
+	// Delete one daemon runtime profile.
+	//
+	// DELETE /daemon-profiles/{profileId}
+	DeleteDaemonProfile(ctx context.Context, params DeleteDaemonProfileParams) (DeleteDaemonProfileRes, error)
 	// DeleteDiary implements deleteDiary operation.
 	//
 	// Delete a diary and cascade-delete its entries.
@@ -197,6 +209,12 @@ type Handler interface {
 	//
 	// GET /crypto/identity
 	GetCryptoIdentity(ctx context.Context) (GetCryptoIdentityRes, error)
+	// GetDaemonProfile implements getDaemonProfile operation.
+	//
+	// Get one daemon runtime profile.
+	//
+	// GET /daemon-profiles/{profileId}
+	GetDaemonProfile(ctx context.Context, params GetDaemonProfileParams) (GetDaemonProfileRes, error)
 	// GetDiary implements getDiary operation.
 	//
 	// Get a diary by ID.
@@ -348,6 +366,12 @@ type Handler interface {
 	//
 	// GET /packs
 	ListContextPacks(ctx context.Context, params ListContextPacksParams) (ListContextPacksRes, error)
+	// ListDaemonProfiles implements listDaemonProfiles operation.
+	//
+	// List daemon runtime profiles for a team.
+	//
+	// GET /teams/{id}/daemon-profiles
+	ListDaemonProfiles(ctx context.Context, params ListDaemonProfilesParams) (ListDaemonProfilesRes, error)
 	// ListDiaries implements listDiaries operation.
 	//
 	// List the authenticated agent's diaries.
@@ -567,6 +591,12 @@ type Handler interface {
 	//
 	// PATCH /packs/{id}
 	UpdateContextPack(ctx context.Context, req OptUpdateContextPackReq, params UpdateContextPackParams) (UpdateContextPackRes, error)
+	// UpdateDaemonProfile implements updateDaemonProfile operation.
+	//
+	// Update one daemon runtime profile.
+	//
+	// PATCH /daemon-profiles/{profileId}
+	UpdateDaemonProfile(ctx context.Context, req OptUpdateDaemonProfileBody, params UpdateDaemonProfileParams) (UpdateDaemonProfileRes, error)
 	// UpdateDiary implements updateDiary operation.
 	//
 	// Update diary name or visibility.

@@ -2,6 +2,8 @@ import {
   ClaimCondition,
   type ClaimCondition as ClaimConditionType,
   ClaimConditionDefinition,
+  DaemonProfileRef,
+  type DaemonProfileRef as DaemonProfileRefType,
   DaemonState,
   type DaemonState as DaemonStateType,
   ExecutorRef,
@@ -73,6 +75,14 @@ export const CreateTaskBodySchema = Type.Object(
       Type.Array(Type.Unsafe<ExecutorRefType>(Type.Ref(ExecutorRef.$id)), {
         maxItems: 16,
       }),
+    ),
+    // Proposer-set daemon profile allowlist. Empty/unset = no restriction.
+    // Each profile id must resolve to a profile in the task's team.
+    allowedProfiles: Type.Optional(
+      Type.Array(
+        Type.Unsafe<DaemonProfileRefType>(Type.Ref(DaemonProfileRef.$id)),
+        { maxItems: 16 },
+      ),
     ),
     // Proposer-set timeout overrides (in seconds). Null/unset → server
     // defaults (300s / 7200s). Bounds chosen to span e2e tests (≥1s) up
@@ -146,6 +156,7 @@ export const ListTasksQuerySchema = Type.Object(
     // contains a matching pair.
     provider: Type.Optional(Type.String({ minLength: 1 })),
     model: Type.Optional(Type.String({ minLength: 1 })),
+    profileId: Type.Optional(Type.String({ format: 'uuid' })),
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),
     diaryId: Type.Optional(Type.String({ format: 'uuid' })),
     proposedByAgentId: Type.Optional(Type.String({ format: 'uuid' })),
@@ -316,6 +327,7 @@ export const taskSchemas = [
   ClaimConditionDefinition,
   ExecutorTrustLevel,
   ExecutorRef,
+  DaemonProfileRef,
   TaskMessageKind,
   TaskRef,
   TaskUsage,

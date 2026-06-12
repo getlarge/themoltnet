@@ -72,6 +72,15 @@ export const ExecutorRef = Type.Object(
 );
 export type ExecutorRef = Static<typeof ExecutorRef>;
 
+/** Identifies a daemon profile allowed to claim a task. */
+export const DaemonProfileRef = Type.Object(
+  {
+    profileId: Type.String({ format: 'uuid' }),
+  },
+  { $id: 'DaemonProfileRef', additionalProperties: false },
+);
+export type DaemonProfileRef = Static<typeof DaemonProfileRef>;
+
 export const OutputKind = Type.Union(
   [Type.Literal('artifact'), Type.Literal('judgment')],
   { $id: 'OutputKind' },
@@ -330,6 +339,10 @@ export const Task = Type.Object(
     // Proposer-set executor allowlist. Empty = no restriction. Advisory
     // routing (mirrors `--task-types`); the daemon filters at list time.
     allowedExecutors: Type.Array(ExecutorRef, { maxItems: 16 }),
+    // Proposer-set daemon profile allowlist. Empty = no restriction.
+    // Advisory routing (mirrors `allowedExecutors`); the daemon filters
+    // at list time with its selected profile id.
+    allowedProfiles: Type.Array(DaemonProfileRef, { maxItems: 16 }),
 
     // Lifecycle
     status: TaskStatus,

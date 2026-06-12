@@ -75,6 +75,30 @@ function getAuthContext(request: {
   return authContext;
 }
 
+async function validateAllowedProfiles(
+  fastify: FastifyInstance,
+  teamId: string,
+  allowedProfiles: readonly { profileId: string }[] | undefined,
+): Promise<void> {
+  const profileIds = [
+    ...new Set((allowedProfiles ?? []).map((p) => p.profileId)),
+  ];
+  for (const profileId of profileIds) {
+    const profile = await fastify.daemonProfileRepository.findById(profileId);
+    if (!profile || profile.teamId !== teamId) {
+      throw createValidationProblem(
+        [
+          {
+            field: 'allowedProfiles',
+            message: `Daemon profile ${profileId} does not resolve in team ${teamId}`,
+          },
+        ],
+        'allowedProfiles contains an unknown profile',
+      );
+    }
+  }
+}
+
 export function taskRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
@@ -135,6 +159,11 @@ export function taskRoutes(fastify: FastifyInstance) {
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
         const normalised = normalizeTaskCreateRequest(request.body);
+        await validateAllowedProfiles(
+          fastify,
+          request.body.teamId,
+          request.body.allowedProfiles,
+        );
         const task = await fastify.taskService.create({
           taskType: request.body.taskType,
           title: request.body.title,
@@ -149,6 +178,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           expiresInSec: request.body.expiresInSec,
           requiredExecutorTrustLevel: request.body.requiredExecutorTrustLevel,
           allowedExecutors: request.body.allowedExecutors,
+          allowedProfiles: request.body.allowedProfiles,
           dispatchTimeoutSec: request.body.dispatchTimeoutSec,
           runningTimeoutSec: request.body.runningTimeoutSec,
           callerId: identityId,
@@ -216,6 +246,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           excludeTags: request.query.excludeTags,
           executorProvider: provider?.toLowerCase(),
           executorModel: model?.toLowerCase(),
+          profileId: request.query.profileId,
           correlationId: request.query.correlationId,
           diaryId: request.query.diaryId,
           proposedByAgentId: request.query.proposedByAgentId,
