@@ -108,6 +108,42 @@ export type TurnEventHandlerFactory = (
 
 const noopTurnEventHandler: TurnEventHandler = () => {};
 
+const COMMON_PROVIDER_ENV_KEYS = [
+  'ANTHROPIC_API_KEY',
+  'OPENAI_API_KEY',
+  'OLLAMA_API_KEY',
+] as const;
+
+function providerEnvKeys(provider: string): string[] {
+  const normalized = provider.toLowerCase();
+  if (normalized.includes('ollama')) return ['OLLAMA_API_KEY'];
+  if (normalized.includes('anthropic')) return ['ANTHROPIC_API_KEY'];
+  if (normalized.includes('openai') || normalized.includes('codex')) {
+    return ['OPENAI_API_KEY'];
+  }
+  return [...COMMON_PROVIDER_ENV_KEYS];
+}
+
+export function piAuthDiagnostics(args: {
+  provider: string;
+  piAuthDir: string;
+  piAuthJsonPresent: boolean;
+  agentEnv: Record<string, string | undefined>;
+}): Record<string, unknown> {
+  const envKeys = providerEnvKeys(args.provider);
+  return {
+    piCodingAgentDirSet: Boolean(process.env.PI_CODING_AGENT_DIR),
+    piAuthDir: args.piAuthDir,
+    piAuthJsonPresent: args.piAuthJsonPresent,
+    authSource: args.piAuthJsonPresent ? 'auth_json' : 'environment',
+    providerEnv: envKeys.map((key) => ({
+      key,
+      processPresent: Boolean(process.env[key]),
+      agentEnvPresent: Boolean(args.agentEnv[key]),
+    })),
+  };
+}
+
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
   agentName: string;
@@ -676,6 +712,15 @@ export async function executePiTask(
       // continue to work unchanged.
       const piAuthDir =
         process.env.PI_CODING_AGENT_DIR ?? join(homedir(), '.pi', 'agent');
+      await emit('info', {
+        event: 'pi_auth_resolved',
+        ...piAuthDiagnostics({
+          provider: opts.provider,
+          piAuthDir,
+          piAuthJsonPresent: managed.credentials.piAuthJson !== null,
+          agentEnv: managed.credentials.agentEnv,
+        }),
+      });
       const getModelLoose = getModel as unknown as (
         provider: string,
         modelId: string,
