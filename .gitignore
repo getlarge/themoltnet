@@ -1,6 +1,7 @@
 # Eval environment
 .eval-env.json
 .moltnet/eval-agent/
+.pi/auth.json
 
 # Logs
 logs

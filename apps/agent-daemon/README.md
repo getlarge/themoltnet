@@ -50,8 +50,14 @@ The agent's `moltnet.json` and gitconfig live next to each other in
 
 ### Pi provider auth
 
-Pi resolves provider credentials in this order: `~/.pi/agent/auth.json` (if
-present) wins, else environment variables. For CI prefer env vars:
+The daemon resolves Pi config from the repository-local `.pi` directory by
+default. On startup, if `PI_CODING_AGENT_DIR` is not already set, the daemon
+sets it to `<repo-root>/.pi` before creating Pi sessions. This keeps daemon
+runs deterministic and avoids inheriting user-level `~/.pi/agent` state.
+
+Repo-local `.pi/settings.json` is intended to be committed. Repo-local
+`.pi/auth.json` may exist for local subscription auth, but is gitignored.
+Without `.pi/auth.json`, Pi falls back to environment-variable provider keys:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -59,7 +65,8 @@ export ANTHROPIC_API_KEY=sk-ant-...
 # https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts
 ```
 
-To use a non-default auth directory: `PI_CODING_AGENT_DIR=/abs/path/to/.pi/agent`.
+To force a non-repo Pi directory, set
+`PI_CODING_AGENT_DIR=/abs/path/to/.pi-or-agent-dir` before starting the daemon.
 
 ### Observability
 
