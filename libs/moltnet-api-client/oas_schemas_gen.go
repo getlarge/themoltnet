@@ -949,6 +949,7 @@ type ClaimTaskReq struct {
 	ExecutorManifest    OptClaimTaskReqExecutorManifest `json:"executorManifest"`
 	ExecutorSignature   OptString                       `json:"executorSignature"`
 	LeaseTtlSec         OptInt                          `json:"leaseTtlSec"`
+	ProfileId           OptUUID                         `json:"profileId"`
 }
 
 // GetExecutorFingerprint returns the value of ExecutorFingerprint.
@@ -971,6 +972,11 @@ func (s *ClaimTaskReq) GetLeaseTtlSec() OptInt {
 	return s.LeaseTtlSec
 }
 
+// GetProfileId returns the value of ProfileId.
+func (s *ClaimTaskReq) GetProfileId() OptUUID {
+	return s.ProfileId
+}
+
 // SetExecutorFingerprint sets the value of ExecutorFingerprint.
 func (s *ClaimTaskReq) SetExecutorFingerprint(val OptString) {
 	s.ExecutorFingerprint = val
@@ -989,6 +995,11 @@ func (s *ClaimTaskReq) SetExecutorSignature(val OptString) {
 // SetLeaseTtlSec sets the value of LeaseTtlSec.
 func (s *ClaimTaskReq) SetLeaseTtlSec(val OptInt) {
 	s.LeaseTtlSec = val
+}
+
+// SetProfileId sets the value of ProfileId.
+func (s *ClaimTaskReq) SetProfileId(val OptUUID) {
+	s.ProfileId = val
 }
 
 type ClaimTaskReqExecutorManifest map[string]jx.Raw

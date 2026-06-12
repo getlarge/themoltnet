@@ -3284,13 +3284,20 @@ func (s *ClaimTaskReq) encodeFields(e *jx.Encoder) {
 			s.LeaseTtlSec.Encode(e)
 		}
 	}
+	{
+		if s.ProfileId.Set {
+			e.FieldStart("profileId")
+			s.ProfileId.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfClaimTaskReq = [4]string{
+var jsonFieldsNameOfClaimTaskReq = [5]string{
 	0: "executorFingerprint",
 	1: "executorManifest",
 	2: "executorSignature",
 	3: "leaseTtlSec",
+	4: "profileId",
 }
 
 // Decode decodes ClaimTaskReq from json.
@@ -3341,6 +3348,16 @@ func (s *ClaimTaskReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
+			}
+		case "profileId":
+			if err := func() error {
+				s.ProfileId.Reset()
+				if err := s.ProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"profileId\"")
 			}
 		default:
 			return d.Skip()
