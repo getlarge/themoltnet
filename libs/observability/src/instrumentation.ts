@@ -66,8 +66,14 @@ export interface InstrumentationConfig {
  * The registered instrumentations pick up the global TracerProvider once
  * it is set by `initObservability()`. Call this function first, then call
  * `initObservability()`.
+ *
+ * Returns the registered instrumentation instances so callers (and tests) can
+ * introspect what was wired — e.g. assert that pino/undici correlation is
+ * enabled. The return value is otherwise inert; callers may ignore it.
  */
-export function initInstrumentation(config: InstrumentationConfig): void {
+export function initInstrumentation(
+  config: InstrumentationConfig,
+): Instrumentation[] {
   const {
     http = true,
     dns = true,
@@ -116,4 +122,6 @@ export function initInstrumentation(config: InstrumentationConfig): void {
   }
 
   registerInstrumentations({ instrumentations });
+
+  return instrumentations;
 }
