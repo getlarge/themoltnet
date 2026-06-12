@@ -6,8 +6,6 @@ import {
   type DaemonProfileRef as DaemonProfileRefType,
   DaemonState,
   type DaemonState as DaemonStateType,
-  ExecutorRef,
-  type ExecutorRef as ExecutorRefType,
   ExecutorTrustLevel,
   type ExecutorTrustLevel as ExecutorTrustLevelType,
   Task,
@@ -66,15 +64,6 @@ export const CreateTaskBodySchema = Type.Object(
     expiresInSec: Type.Optional(Type.Integer({ minimum: 1 })),
     requiredExecutorTrustLevel: Type.Optional(
       Type.Unsafe<ExecutorTrustLevelType>(Type.Ref(ExecutorTrustLevel.$id)),
-    ),
-    // Proposer-set executor allowlist. Empty/unset = no restriction.
-    // Lowercased server-side before persistence. maxItems matches the
-    // bound on Task.allowedExecutors so create-time and read-time
-    // contracts agree.
-    allowedExecutors: Type.Optional(
-      Type.Array(Type.Unsafe<ExecutorRefType>(Type.Ref(ExecutorRef.$id)), {
-        maxItems: 16,
-      }),
     ),
     // Proposer-set daemon profile allowlist. Empty/unset = no restriction.
     // Each profile id must resolve to a profile in the task's team.
@@ -148,14 +137,6 @@ export const ListTasksQuerySchema = Type.Object(
         description: 'Repeated excluded tags filter.',
       }),
     ),
-    // Daemon advertises its `(provider, model)` to scope the result to
-    // tasks it can actually run. Both must be provided together (XOR
-    // checked in the handler — Fastify's Ajv is draft-07 strict and
-    // rejects `dependentRequired`). When both are present, the SQL
-    // filter returns rows where `allowed_executors` is empty OR
-    // contains a matching pair.
-    provider: Type.Optional(Type.String({ minLength: 1 })),
-    model: Type.Optional(Type.String({ minLength: 1 })),
     profileId: Type.Optional(Type.String({ format: 'uuid' })),
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),
     diaryId: Type.Optional(Type.String({ format: 'uuid' })),
@@ -326,7 +307,6 @@ export const taskSchemas = [
   TaskStatus,
   ClaimConditionDefinition,
   ExecutorTrustLevel,
-  ExecutorRef,
   DaemonProfileRef,
   TaskMessageKind,
   TaskRef,

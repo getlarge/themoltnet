@@ -1251,13 +1251,6 @@
       },
       "CreateTaskBody": {
         "properties": {
-          "allowedExecutors": {
-            "items": {
-              "$ref": "#/components/schemas/ExecutorRef"
-            },
-            "maxItems": 16,
-            "type": "array"
-          },
           "allowedProfiles": {
             "items": {
               "$ref": "#/components/schemas/DaemonProfileRef"
@@ -3717,24 +3710,6 @@
         ],
         "type": "object"
       },
-      "ExecutorRef": {
-        "additionalProperties": false,
-        "properties": {
-          "model": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "provider": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "provider",
-          "model"
-        ],
-        "type": "object"
-      },
       "ExecutorTrustLevel": {
         "anyOf": [
           {
@@ -4064,10 +4039,6 @@
             "minimum": 1,
             "type": "integer"
           },
-          "model": {
-            "minLength": 1,
-            "type": "string"
-          },
           "profileId": {
             "format": "uuid",
             "type": "string"
@@ -4078,10 +4049,6 @@
           },
           "proposedByHumanId": {
             "format": "uuid",
-            "type": "string"
-          },
-          "provider": {
-            "minLength": 1,
             "type": "string"
           },
           "query": {
@@ -6753,28 +6720,6 @@
               }
             ]
           },
-          "allowedExecutors": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "model": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "provider": {
-                  "minLength": 1,
-                  "type": "string"
-                }
-              },
-              "required": [
-                "provider",
-                "model"
-              ],
-              "type": "object"
-            },
-            "maxItems": 16,
-            "type": "array"
-          },
           "allowedProfiles": {
             "items": {
               "additionalProperties": false,
@@ -7190,7 +7135,6 @@
           "acceptedAttemptN",
           "claimCondition",
           "requiredExecutorTrustLevel",
-          "allowedExecutors",
           "allowedProfiles",
           "status",
           "queuedAt",
@@ -17958,24 +17902,6 @@
           },
           {
             "in": "query",
-            "name": "provider",
-            "required": false,
-            "schema": {
-              "minLength": 1,
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "model",
-            "required": false,
-            "schema": {
-              "minLength": 1,
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
             "name": "profileId",
             "required": false,
             "schema": {
@@ -18157,13 +18083,6 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "allowedExecutors": {
-                    "items": {
-                      "$ref": "#/components/schemas/ExecutorRef"
-                    },
-                    "maxItems": 16,
-                    "type": "array"
-                  },
                   "allowedProfiles": {
                     "items": {
                       "$ref": "#/components/schemas/DaemonProfileRef"

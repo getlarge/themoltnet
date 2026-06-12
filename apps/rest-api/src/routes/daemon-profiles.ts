@@ -3,6 +3,7 @@ import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import type { DaemonProfile } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
+import { DaemonProfile as DaemonProfileSchema } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
@@ -10,7 +11,6 @@ import { createProblem, isUniqueViolation } from '../problems/index.js';
 import {
   CreateDaemonProfileBodySchema,
   DaemonProfileListResponseSchema,
-  DaemonProfileSchema,
   UpdateDaemonProfileBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
@@ -45,7 +45,9 @@ function normalizeList(values: readonly string[] | undefined): string[] {
   return [...new Set((values ?? []).map((v) => v.trim()).filter(Boolean))];
 }
 
-function serializeProfile(row: DaemonProfile) {
+function serializeProfile(
+  row: DaemonProfile,
+): Static<typeof DaemonProfileSchema> {
   return {
     id: row.id,
     teamId: row.teamId,
@@ -53,15 +55,15 @@ function serializeProfile(row: DaemonProfile) {
     description: row.description ?? null,
     provider: row.provider,
     model: row.model,
-    runtimeKind: row.runtimeKind,
+    runtimeKind: 'gondolin_pi',
     sandbox: row.sandbox as Record<string, unknown>,
-    sessionStorageMode: row.sessionStorageMode,
-    workspaceStorageMode: row.workspaceStorageMode,
+    sessionStorageMode: 'local',
+    workspaceStorageMode: 'local',
     sessionTtlSec: row.sessionTtlSec,
     workspaceTtlSec: row.workspaceTtlSec,
     requiredEnv: row.requiredEnv,
     requiredTools: row.requiredTools,
-    context: row.context as unknown[],
+    context: row.context as Static<typeof DaemonProfileSchema>['context'],
     revision: row.revision,
     definitionCid: row.definitionCid,
     createdByAgentId: row.createdByAgentId ?? null,
@@ -285,12 +287,10 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
             : existing.description,
         provider: (body.provider ?? existing.provider).toLowerCase(),
         model: (body.model ?? existing.model).toLowerCase(),
-        runtimeKind: body.runtimeKind ?? existing.runtimeKind,
+        runtimeKind: body.runtimeKind ?? 'gondolin_pi',
         sandbox: body.sandbox ?? existing.sandbox,
-        sessionStorageMode:
-          body.sessionStorageMode ?? existing.sessionStorageMode,
-        workspaceStorageMode:
-          body.workspaceStorageMode ?? existing.workspaceStorageMode,
+        sessionStorageMode: body.sessionStorageMode ?? 'local',
+        workspaceStorageMode: body.workspaceStorageMode ?? 'local',
         sessionTtlSec: body.sessionTtlSec ?? existing.sessionTtlSec,
         workspaceTtlSec: body.workspaceTtlSec ?? existing.workspaceTtlSec,
         requiredEnv: normalizeList(body.requiredEnv ?? existing.requiredEnv),

@@ -36,11 +36,11 @@ export interface SeedCompletedFreeformOptions {
   /** Optional correlationId — required for cross-attempt slot affinity. */
   correlationId?: string;
   /**
-   * Optional executor pinning on the source task. Tests that exercise
-   * the continuation's executor-allowlist inheritance contract should
+   * Optional profile pinning on the source task. Tests that exercise
+   * the continuation's profile-allowlist inheritance contract should
    * set this so the asserts have a concrete pin to compare against.
    */
-  allowedExecutors?: { provider: string; model: string }[];
+  allowedProfiles?: { profileId: string }[];
   requiredExecutorTrustLevel?:
     | 'selfDeclared'
     | 'agentSigned'
@@ -78,7 +78,7 @@ export async function seedCompletedFreeformAttempt(
     brief,
     title,
     correlationId,
-    allowedExecutors,
+    allowedProfiles,
     requiredExecutorTrustLevel,
     slotTtlMs = 60 * 60 * 1000,
   } = options;
@@ -89,7 +89,7 @@ export async function seedCompletedFreeformAttempt(
     diaryId,
     ...(title ? { title } : {}),
     ...(correlationId ? { correlationId } : {}),
-    ...(allowedExecutors?.length ? { allowedExecutors } : {}),
+    ...(allowedProfiles?.length ? { allowedProfiles } : {}),
     ...(requiredExecutorTrustLevel ? { requiredExecutorTrustLevel } : {}),
     input: {
       brief,

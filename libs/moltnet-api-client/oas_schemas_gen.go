@@ -3351,7 +3351,6 @@ type CreateTaskForbidden ProblemDetails
 func (*CreateTaskForbidden) createTaskRes() {}
 
 type CreateTaskReq struct {
-	AllowedExecutors           []ExecutorRef         `json:"allowedExecutors"`
 	AllowedProfiles            []DaemonProfileRef    `json:"allowedProfiles"`
 	ClaimCondition             OptClaimCondition     `json:"claimCondition"`
 	CorrelationId              OptUUID               `json:"correlationId"`
@@ -3367,11 +3366,6 @@ type CreateTaskReq struct {
 	TaskType                   string                `json:"taskType"`
 	TeamId                     uuid.UUID             `json:"teamId"`
 	Title                      OptString             `json:"title"`
-}
-
-// GetAllowedExecutors returns the value of AllowedExecutors.
-func (s *CreateTaskReq) GetAllowedExecutors() []ExecutorRef {
-	return s.AllowedExecutors
 }
 
 // GetAllowedProfiles returns the value of AllowedProfiles.
@@ -3447,11 +3441,6 @@ func (s *CreateTaskReq) GetTeamId() uuid.UUID {
 // GetTitle returns the value of Title.
 func (s *CreateTaskReq) GetTitle() OptString {
 	return s.Title
-}
-
-// SetAllowedExecutors sets the value of AllowedExecutors.
-func (s *CreateTaskReq) SetAllowedExecutors(val []ExecutorRef) {
-	s.AllowedExecutors = val
 }
 
 // SetAllowedProfiles sets the value of AllowedProfiles.
@@ -9792,32 +9781,6 @@ func (s *EntryVerifyResult) SetValid(val bool) {
 }
 
 func (*EntryVerifyResult) verifyDiaryEntryByIdRes() {}
-
-// Ref: #/components/schemas/ExecutorRef
-type ExecutorRef struct {
-	Model    string `json:"model"`
-	Provider string `json:"provider"`
-}
-
-// GetModel returns the value of Model.
-func (s *ExecutorRef) GetModel() string {
-	return s.Model
-}
-
-// GetProvider returns the value of Provider.
-func (s *ExecutorRef) GetProvider() string {
-	return s.Provider
-}
-
-// SetModel sets the value of Model.
-func (s *ExecutorRef) SetModel(val string) {
-	s.Model = val
-}
-
-// SetProvider sets the value of Provider.
-func (s *ExecutorRef) SetProvider(val string) {
-	s.Provider = val
-}
 
 // Ref: #/components/schemas/ExecutorTrustLevel
 type ExecutorTrustLevel string
@@ -24085,7 +24048,6 @@ func (*Success) deleteDiaryRes()          {}
 // Ref: #/components/schemas/Task
 type Task struct {
 	AcceptedAttemptN           NilFloat64                     `json:"acceptedAttemptN"`
-	AllowedExecutors           []TaskAllowedExecutorsItem     `json:"allowedExecutors"`
 	AllowedProfiles            []TaskAllowedProfilesItem      `json:"allowedProfiles"`
 	CancelReason               NilString                      `json:"cancelReason"`
 	CancelledByAgentId         NilUUID                        `json:"cancelledByAgentId"`
@@ -24118,11 +24080,6 @@ type Task struct {
 // GetAcceptedAttemptN returns the value of AcceptedAttemptN.
 func (s *Task) GetAcceptedAttemptN() NilFloat64 {
 	return s.AcceptedAttemptN
-}
-
-// GetAllowedExecutors returns the value of AllowedExecutors.
-func (s *Task) GetAllowedExecutors() []TaskAllowedExecutorsItem {
-	return s.AllowedExecutors
 }
 
 // GetAllowedProfiles returns the value of AllowedProfiles.
@@ -24263,11 +24220,6 @@ func (s *Task) GetTitle() NilString {
 // SetAcceptedAttemptN sets the value of AcceptedAttemptN.
 func (s *Task) SetAcceptedAttemptN(val NilFloat64) {
 	s.AcceptedAttemptN = val
-}
-
-// SetAllowedExecutors sets the value of AllowedExecutors.
-func (s *Task) SetAllowedExecutors(val []TaskAllowedExecutorsItem) {
-	s.AllowedExecutors = val
 }
 
 // SetAllowedProfiles sets the value of AllowedProfiles.
@@ -24411,31 +24363,6 @@ func (*Task) createTaskRes()         {}
 func (*Task) failTaskRes()           {}
 func (*Task) getTaskRes()            {}
 func (*Task) updateTaskMetadataRes() {}
-
-type TaskAllowedExecutorsItem struct {
-	Model    string `json:"model"`
-	Provider string `json:"provider"`
-}
-
-// GetModel returns the value of Model.
-func (s *TaskAllowedExecutorsItem) GetModel() string {
-	return s.Model
-}
-
-// GetProvider returns the value of Provider.
-func (s *TaskAllowedExecutorsItem) GetProvider() string {
-	return s.Provider
-}
-
-// SetModel sets the value of Model.
-func (s *TaskAllowedExecutorsItem) SetModel(val string) {
-	s.Model = val
-}
-
-// SetProvider sets the value of Provider.
-func (s *TaskAllowedExecutorsItem) SetProvider(val string) {
-	s.Provider = val
-}
 
 type TaskAllowedProfilesItem struct {
 	ProfileId uuid.UUID `json:"profileId"`

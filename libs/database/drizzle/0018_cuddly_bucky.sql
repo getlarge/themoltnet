@@ -28,6 +28,8 @@ CREATE TABLE "daemon_profiles" (
 );
 --> statement-breakpoint
 ALTER TABLE "tasks" ADD COLUMN "allowed_profiles" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+DROP INDEX IF EXISTS "tasks_allowed_executors_gin_idx";--> statement-breakpoint
+ALTER TABLE "tasks" DROP COLUMN IF EXISTS "allowed_executors";--> statement-breakpoint
 ALTER TABLE "daemon_profiles" ADD CONSTRAINT "daemon_profiles_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "daemon_profiles" ADD CONSTRAINT "daemon_profiles_created_by_agent_id_agents_identity_id_fk" FOREIGN KEY ("created_by_agent_id") REFERENCES "public"."agents"("identity_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "daemon_profiles" ADD CONSTRAINT "daemon_profiles_created_by_human_id_humans_id_fk" FOREIGN KEY ("created_by_human_id") REFERENCES "public"."humans"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint

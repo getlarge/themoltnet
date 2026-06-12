@@ -66,14 +66,11 @@ export interface PollingApiTaskSourceOptions {
    */
   taskTypes?: string[];
   /**
-   * Daemon's `(provider, model)` pair. When set, forwarded to the list
-   * endpoint so the server returns only tasks whose `allowedExecutors`
-   * is empty or includes this exact pair. Both must be set together;
-   * otherwise no executor filtering is applied. Mirrors the advisory
-   * routing of `taskTypes`.
+   * Selected daemon profile id. When set, forwarded to the list endpoint
+   * so the server returns unrestricted tasks plus tasks allowing this
+   * profile.
    */
-  provider?: string;
-  model?: string;
+  profileId?: string;
   /**
    * Optional further filter applied client-side after listing. Useful when
    * an agent should only act on tasks tied to specific diaries. Server has
@@ -154,11 +151,6 @@ export class PollingApiTaskSource implements TaskSource {
           `must be >= pollIntervalMs (${this.minBackoffMs})`,
       );
     }
-    if (Boolean(opts.provider) !== Boolean(opts.model)) {
-      throw new Error(
-        'PollingApiTaskSource: provider and model must be set together',
-      );
-    }
     this.listLimit = opts.listLimit ?? DEFAULT_LIST_LIMIT;
     this.currentBackoffMs = this.minBackoffMs;
     // Bind teamId once so every log line from this source carries it.
@@ -218,9 +210,7 @@ export class PollingApiTaskSource implements TaskSource {
         teamId: this.opts.teamId,
         status: 'queued' satisfies TaskStatus,
         ...(taskTypes ? { taskTypes } : {}),
-        ...(this.opts.provider && this.opts.model
-          ? { provider: this.opts.provider, model: this.opts.model }
-          : {}),
+        ...(this.opts.profileId ? { profileId: this.opts.profileId } : {}),
         ...(cursor ? { cursor } : {}),
         limit: this.listLimit,
       });
@@ -261,21 +251,14 @@ export class PollingApiTaskSource implements TaskSource {
         ) {
           continue;
         }
-        // Belt-and-braces executor filter — silently skip pinned tasks
-        // whose `allowedExecutors` doesn't include this daemon's pair
-        // (e.g. server filter race, daemon connecting to an old server,
-        // or a buggy server that ignored the filter). Empty array =
-        // no restriction. Skipping at this layer means we NEVER claim
-        // such a task, so no attempt is recorded against it.
-        if (this.opts.provider && this.opts.model) {
-          const allowed = item.allowedExecutors ?? [];
+        // Belt-and-braces profile filter — silently skip profile-pinned
+        // tasks whose allowedProfiles does not include this daemon's
+        // selected profile. Empty array = no restriction.
+        if (this.opts.profileId) {
+          const allowed = item.allowedProfiles ?? [];
           if (
             allowed.length > 0 &&
-            !allowed.some(
-              (e) =>
-                e.provider === this.opts.provider &&
-                e.model === this.opts.model,
-            )
+            !allowed.some((p) => p.profileId === this.opts.profileId)
           ) {
             continue;
           }

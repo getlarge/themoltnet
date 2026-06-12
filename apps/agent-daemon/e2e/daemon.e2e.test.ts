@@ -22,6 +22,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
+import { createDaemonProfile, deleteDaemonProfile } from '@moltnet/api-client';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
   type DaemonSlotIdentity,
@@ -945,85 +946,117 @@ describe('Agent daemon (e2e)', () => {
     }, 60_000);
   });
 
-  describe('Task.allowedExecutors filter', () => {
+  describe('Task.allowedProfiles filter', () => {
     // Empty allowlist tasks remain visible to every daemon. A pinned
-    // task is only listed for daemons whose `(provider, model)` is in
-    // its `allowedExecutors`. Mirrors the advisory routing of
-    // `--task-types`: server filters at SQL level, daemon also pre-
-    // filters at the source level. No claim-time rejection.
+    // task is only listed when the daemon asks for one of the task's
+    // allowed profiles. Mirrors the advisory routing of `--task-types`:
+    // server filters at SQL level, daemon also pre-filters at the source
+    // level. No claim-time rejection.
+
+    async function createProfile(name: string) {
+      const profile = await createDaemonProfile({
+        client: agent.client,
+        auth: () => agent.getToken(),
+        path: { id: teamId },
+        body: {
+          name,
+          runtimeKind: 'gondolin_pi',
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          sandbox: {
+            image: 'ghcr.io/getlarge/themoltnet/agent-runtime:e2e',
+          },
+        },
+      });
+      if (profile.error) {
+        throw new Error(
+          `create daemon profile failed: ${profile.error.detail}`,
+        );
+      }
+      return profile.data;
+    }
+
+    function deleteProfile(profileId: string) {
+      return deleteDaemonProfile({
+        client: agent.client,
+        auth: () => agent.getToken(),
+        path: { profileId },
+      });
+    }
 
     function proposePinnedCuratePackTask(
-      allowed: {
-        provider: string;
-        model: string;
-      }[],
+      allowedProfiles: { profileId: string }[],
     ) {
       return agent.tasks.create({
         taskType: 'curate_pack',
         teamId,
         diaryId,
-        input: { diaryId, taskPrompt: 'e2e allowedExecutors smoke' },
-        allowedExecutors: allowed,
+        input: { diaryId, taskPrompt: 'e2e allowedProfiles smoke' },
+        allowedProfiles,
       });
     }
 
-    it('persists allowedExecutors with lowercased provider/model', async () => {
+    it('persists allowedProfiles profile refs', async () => {
+      const profile = await createProfile(`daemon-e2e-${randomUUID()}`);
       const created = await proposePinnedCuratePackTask([
-        { provider: 'Anthropic', model: 'Claude-Sonnet-4-5' },
+        { profileId: profile.id },
       ]);
       try {
-        expect(created.allowedExecutors).toEqual([
-          { provider: 'anthropic', model: 'claude-sonnet-4-5' },
-        ]);
+        expect(created.allowedProfiles).toEqual([{ profileId: profile.id }]);
       } finally {
         await agent.tasks.cancel(created.id, { reason: 'cleanup' });
+        await deleteProfile(profile.id);
       }
     });
 
-    it('filters out pinned tasks for a non-matching daemon', async () => {
+    it('filters out pinned tasks for a non-matching profile', async () => {
+      const allowedProfile = await createProfile(`daemon-e2e-${randomUUID()}`);
+      const otherProfile = await createProfile(`daemon-e2e-${randomUUID()}`);
       const pinned = await proposePinnedCuratePackTask([
-        { provider: 'anthropic', model: 'claude-opus-4-7' },
+        { profileId: allowedProfile.id },
       ]);
       try {
         const result = await agent.tasks.list({
           teamId,
           status: 'queued',
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
+          profileId: otherProfile.id,
           limit: 50,
         });
         expect(result.items.find((t) => t.id === pinned.id)).toBeUndefined();
       } finally {
         await agent.tasks.cancel(pinned.id, { reason: 'cleanup' });
+        await deleteProfile(allowedProfile.id);
+        await deleteProfile(otherProfile.id);
       }
     });
 
-    it('returns pinned tasks to a matching daemon', async () => {
+    it('returns pinned tasks to a matching profile', async () => {
+      const profile = await createProfile(`daemon-e2e-${randomUUID()}`);
       const pinned = await proposePinnedCuratePackTask([
-        { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        { profileId: profile.id },
       ]);
       try {
         const result = await agent.tasks.list({
           teamId,
           status: 'queued',
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
+          profileId: profile.id,
           limit: 50,
         });
         expect(result.items.find((t) => t.id === pinned.id)).toBeDefined();
       } finally {
         await agent.tasks.cancel(pinned.id, { reason: 'cleanup' });
+        await deleteProfile(profile.id);
       }
     });
 
-    it('returns unrestricted tasks regardless of daemon executor', async () => {
+    it('returns unrestricted tasks regardless of daemon profile', async () => {
+      const profile = await createProfile(`daemon-e2e-${randomUUID()}`);
       const unrestricted = await proposeCuratePackTask();
       try {
         const result = await agent.tasks.list({
           teamId,
           status: 'queued',
-          provider: 'openai',
-          model: 'gpt-99',
+          profileId: profile.id,
           limit: 50,
         });
         expect(
@@ -1031,33 +1064,8 @@ describe('Agent daemon (e2e)', () => {
         ).toBeDefined();
       } finally {
         await agent.tasks.cancel(unrestricted.id, { reason: 'cleanup' });
+        await deleteProfile(profile.id);
       }
-    });
-
-    it('rejects provider without model with HTTP 400', async () => {
-      // SDK list signature requires both or neither; cast through to
-      // exercise the server-side both-or-neither validation directly.
-      await expect(
-        agent.tasks.list({
-          teamId,
-          status: 'queued',
-          provider: 'anthropic',
-        } as Parameters<typeof agent.tasks.list>[0]),
-      ).rejects.toSatisfy((err: unknown) => {
-        const candidate = err as {
-          statusCode?: unknown;
-          detail?: unknown;
-          message?: unknown;
-        };
-        return (
-          (candidate.statusCode === undefined ||
-            candidate.statusCode === 400) &&
-          (candidate.detail ===
-            'provider and model must be provided together' ||
-            candidate.message ===
-              'Validation failed: provider and model must be provided together')
-        );
-      });
     });
   });
 });

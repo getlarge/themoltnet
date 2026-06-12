@@ -7430,8 +7430,6 @@ type ListTasksParams struct {
 	Tags []string `json:",omitempty"`
 	// Repeated excluded tags filter.
 	ExcludeTags       []string    `json:",omitempty"`
-	Provider          OptString   `json:",omitempty,omitzero"`
-	Model             OptString   `json:",omitempty,omitzero"`
 	ProfileId         OptUUID     `json:",omitempty,omitzero"`
 	CorrelationId     OptUUID     `json:",omitempty,omitzero"`
 	DiaryId           OptUUID     `json:",omitempty,omitzero"`
@@ -7507,24 +7505,6 @@ func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams
 		}
 		if v, ok := packed[key]; ok {
 			params.ExcludeTags = v.([]string)
-		}
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "provider",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.Provider = v.(OptString)
-		}
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "model",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.Model = v.(OptString)
 		}
 	}
 	{
@@ -8145,142 +8125,6 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "excludeTags",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	// Decode query: provider.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "provider",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotProviderVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotProviderVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Provider.SetTo(paramsDotProviderVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Provider.Get(); ok {
-					if err := func() error {
-						if err := (validate.String{
-							MinLength:     1,
-							MinLengthSet:  true,
-							MaxLength:     0,
-							MaxLengthSet:  false,
-							Email:         false,
-							Hostname:      false,
-							Regex:         nil,
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
-						}
-						return nil
-					}(); err != nil {
-						return err
-					}
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "provider",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	// Decode query: model.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "model",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotModelVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotModelVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Model.SetTo(paramsDotModelVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Model.Get(); ok {
-					if err := func() error {
-						if err := (validate.String{
-							MinLength:     1,
-							MinLengthSet:  true,
-							MaxLength:     0,
-							MaxLengthSet:  false,
-							Email:         false,
-							Hostname:      false,
-							Regex:         nil,
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
-						}
-						return nil
-					}(); err != nil {
-						return err
-					}
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "model",
 			In:   "query",
 			Err:  err,
 		}

@@ -56,7 +56,7 @@ func (h *stubContinueHandler) CreateTask(_ context.Context, req *moltnetapi.Crea
 }
 
 // freeformSourceFixture is a completed freeform Task suitable for use as
-// a continuation source. Inherits correlation, allowed-executors, trust
+// a continuation source. Inherits correlation, allowed profiles, trust
 // level, and team/diary from a shared set of constants so tests can assert
 // that the continuation copied them correctly.
 func freeformSourceFixture(id, teamID, diaryID, correlationID uuid.UUID) *moltnetapi.Task {
@@ -65,8 +65,8 @@ func freeformSourceFixture(id, teamID, diaryID, correlationID uuid.UUID) *moltne
 	src.Status = moltnetapi.TaskStatusCompleted
 	src.DiaryId.SetTo(diaryID)
 	src.CorrelationId.SetTo(correlationID)
-	src.AllowedExecutors = []moltnetapi.TaskAllowedExecutorsItem{
-		{Provider: "anthropic", Model: "claude-opus-4-7"},
+	src.AllowedProfiles = []moltnetapi.TaskAllowedProfilesItem{
+		{ProfileId: uuid.MustParse("55555555-5555-4555-8555-555555555555")},
 	}
 	src.RequiredExecutorTrustLevel = moltnetapi.TaskRequiredExecutorTrustLevelAgentSigned
 	return src
@@ -116,11 +116,10 @@ func TestRunTaskContinue_HappyPath(t *testing.T) {
 		t.Errorf("correlationId = %v, want %s", got.CorrelationId, corrID)
 	}
 
-	// Inherited executor pinning.
-	if len(got.AllowedExecutors) != 1 ||
-		got.AllowedExecutors[0].Provider != "anthropic" ||
-		got.AllowedExecutors[0].Model != "claude-opus-4-7" {
-		t.Errorf("allowedExecutors = %+v, want anthropic/claude-opus-4-7", got.AllowedExecutors)
+	// Inherited profile pinning.
+	if len(got.AllowedProfiles) != 1 ||
+		got.AllowedProfiles[0].ProfileId.String() != "55555555-5555-4555-8555-555555555555" {
+		t.Errorf("allowedProfiles = %+v, want profile 55555555-5555-4555-8555-555555555555", got.AllowedProfiles)
 	}
 	if !got.RequiredExecutorTrustLevel.IsSet() ||
 		got.RequiredExecutorTrustLevel.Value != moltnetapi.ExecutorTrustLevelAgentSigned {

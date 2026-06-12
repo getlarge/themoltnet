@@ -142,7 +142,7 @@ export async function handleTasksCreate(
       diaryId: args.diary_id,
       input: args.input,
       references: args.references,
-      allowedExecutors: args.allowed_executors,
+      allowedProfiles: args.allowed_profiles,
       correlationId: args.correlation_id,
       maxAttempts: args.max_attempts,
       expiresInSec: args.expires_in_sec,
@@ -170,7 +170,7 @@ export async function handleTasksContinue(
   if (!token) return errorResult('Not authenticated');
 
   // 1. Read source via existing api-client. We need teamId / diaryId /
-  //    correlationId / allowedExecutors / requiredExecutorTrustLevel to
+  //    correlationId / allowedProfiles / requiredExecutorTrustLevel to
   //    construct a coherent CreateTaskRequest; the server-side async
   //    validator handles the deeper preconditions (source taskType,
   //    attempt status, slotResumableUntil) on the POST /tasks call.
@@ -242,8 +242,8 @@ export async function handleTasksContinue(
       diaryId: source.diaryId,
       input: freeformInput,
       ...(source.correlationId ? { correlationId: source.correlationId } : {}),
-      ...(source.allowedExecutors?.length
-        ? { allowedExecutors: source.allowedExecutors }
+      ...(source.allowedProfiles?.length
+        ? { allowedProfiles: source.allowedProfiles }
         : {}),
       ...(source.requiredExecutorTrustLevel
         ? { requiredExecutorTrustLevel: source.requiredExecutorTrustLevel }

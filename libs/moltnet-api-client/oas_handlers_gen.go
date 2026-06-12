@@ -16029,14 +16029,6 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 					In:   "query",
 				}: params.ExcludeTags,
 				{
-					Name: "provider",
-					In:   "query",
-				}: params.Provider,
-				{
-					Name: "model",
-					In:   "query",
-				}: params.Model,
-				{
 					Name: "profileId",
 					In:   "query",
 				}: params.ProfileId,

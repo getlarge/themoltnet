@@ -28,6 +28,8 @@ import {
 // Drizzle doesn't have native vector support, so we use customType
 import { customType } from 'drizzle-orm/pg-core';
 
+import { defineDaemonProfilesTable } from './schema/daemon-profiles.js';
+
 const vector = customType<{ data: number[]; driverData: string }>({
   dataType() {
     return 'vector(384)';
@@ -1047,14 +1049,6 @@ export const tasks = pgTable(
     )
       .notNull()
       .default('self_declared'),
-    // Proposer-set executor pinning. Empty array = no restriction.
-    // Element shape: { provider: string, model: string }, both
-    // lowercased on the create-task path. Compared as a JSONB containment
-    // query against a daemon's advertised pair on list-tasks.
-    allowedExecutors: jsonb('allowed_executors')
-      .notNull()
-      .default(sql`'[]'::jsonb`)
-      .$type<{ provider: string; model: string }[]>(),
     // Proposer-set daemon profile routing. Empty array = no restriction.
     // Element shape: { profileId: uuid }. Compared as a JSONB containment
     // query against a daemon's selected profile id on list-tasks.
@@ -1104,12 +1098,6 @@ export const tasks = pgTable(
     index('tasks_claim_expires_idx')
       .on(table.claimExpiresAt)
       .where(sql`claim_expires_at IS NOT NULL`),
-    // GIN(jsonb_path_ops) supports the @> filter on `allowed_executors`
-    // used by the GET /tasks executor scope.
-    index('tasks_allowed_executors_gin_idx').using(
-      'gin',
-      sql`${table.allowedExecutors} jsonb_path_ops`,
-    ),
     index('tasks_allowed_profiles_gin_idx').using(
       'gin',
       sql`${table.allowedProfiles} jsonb_path_ops`,
@@ -1193,67 +1181,13 @@ export type NewCorrelationSeal = typeof correlationSeals.$inferInsert;
 
 // ── Daemon Profiles ───────────────────────────────────────────
 
-export const daemonProfiles = pgTable(
-  'daemon_profiles',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    teamId: uuid('team_id')
-      .notNull()
-      .references(() => teams.id, { onDelete: 'restrict' }),
-    name: varchar('name', { length: 100 }).notNull(),
-    description: text('description'),
-    provider: varchar('provider', { length: 100 }).notNull(),
-    model: varchar('model', { length: 200 }).notNull(),
-    runtimeKind: daemonProfileRuntimeKindEnum('runtime_kind')
-      .notNull()
-      .default('gondolin_pi'),
-    sandbox: jsonb('sandbox').notNull(),
-    sessionStorageMode: daemonProfileStorageModeEnum('session_storage_mode')
-      .notNull()
-      .default('local'),
-    workspaceStorageMode: daemonProfileStorageModeEnum('workspace_storage_mode')
-      .notNull()
-      .default('local'),
-    sessionTtlSec: integer('session_ttl_sec').notNull().default(1800),
-    workspaceTtlSec: integer('workspace_ttl_sec').notNull().default(1800),
-    requiredEnv: text('required_env')
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
-    requiredTools: text('required_tools')
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
-    context: jsonb('context')
-      .notNull()
-      .default(sql`'[]'::jsonb`),
-    revision: integer('revision').notNull().default(1),
-    definitionCid: varchar('definition_cid', { length: 100 }).notNull(),
-    createdByAgentId: uuid('created_by_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
-    createdByHumanId: uuid('created_by_human_id').references(() => humans.id, {
-      onDelete: 'restrict',
-    }),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    uniqueIndex('daemon_profiles_team_name_idx').on(table.teamId, table.name),
-    index('daemon_profiles_team_idx').on(table.teamId),
-    check(
-      'daemon_profiles_creator_xor',
-      sql`(created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL)`,
-    ),
-    check('daemon_profiles_session_ttl_positive', sql`session_ttl_sec > 0`),
-    check('daemon_profiles_workspace_ttl_positive', sql`workspace_ttl_sec > 0`),
-  ],
-);
+export const daemonProfiles = defineDaemonProfilesTable({
+  agents,
+  humans,
+  teams,
+  runtimeKindEnum: daemonProfileRuntimeKindEnum,
+  storageModeEnum: daemonProfileStorageModeEnum,
+});
 
 export type DaemonProfile = typeof daemonProfiles.$inferSelect;
 export type NewDaemonProfile = typeof daemonProfiles.$inferInsert;

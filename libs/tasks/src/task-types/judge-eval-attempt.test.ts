@@ -74,7 +74,6 @@ function targetTask(overrides: Partial<Task> = {}): Task {
     proposedByHumanId: null,
     acceptedAttemptN: 1,
     requiredExecutorTrustLevel: 'untrusted',
-    allowedExecutors: [],
     status: 'completed',
     queuedAt: '2026-05-11T00:00:00Z',
     completedAt: '2026-05-11T00:01:00Z',

@@ -23,7 +23,6 @@ export function makeFulfillBriefTask(overrides: Partial<Task> = {}): Task {
     acceptedAttemptN: null,
     claimCondition: null,
     requiredExecutorTrustLevel: 'selfDeclared',
-    allowedExecutors: [],
     allowedProfiles: [],
     status: 'running',
     queuedAt: new Date('2026-04-01T00:00:00Z').toISOString(),

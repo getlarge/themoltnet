@@ -19,7 +19,7 @@ import type {
 } from '@moltnet/api-client';
 import {
   ClaimConditionDefinition,
-  ExecutorRef,
+  DaemonProfileRef,
   ExecutorTrustLevel,
   SuccessCriteria,
   Task,
@@ -77,13 +77,11 @@ export const TaskCreateSchema = Type.Object({
       description: 'References to prior tasks or external artifacts.',
     }),
   ),
-  allowed_executors: Type.Optional(
-    Type.Array(ExecutorRef, {
+  allowed_profiles: Type.Optional(
+    Type.Array(DaemonProfileRef, {
       description:
-        'Restrict claim eligibility to these (provider, model) pairs. ' +
-        'Daemons whose executor identity does not match any entry will be ' +
-        'refused at claim time. Omit to allow any daemon meeting the trust ' +
-        'level.',
+        'Restrict claim eligibility to these daemon profile IDs. ' +
+        'Daemons using another profile will not receive or claim the task.',
     }),
   ),
   correlation_id: Type.Optional(
@@ -127,7 +125,7 @@ export type TaskCreateInput = {
   diary_id: CreateTaskBody['diaryId'];
   input: CreateTaskBody['input'];
   references?: CreateTaskBody['references'];
-  allowed_executors?: CreateTaskBody['allowedExecutors'];
+  allowed_profiles?: CreateTaskBody['allowedProfiles'];
   correlation_id?: CreateTaskBody['correlationId'];
   max_attempts?: CreateTaskBody['maxAttempts'];
   expires_in_sec?: CreateTaskBody['expiresInSec'];

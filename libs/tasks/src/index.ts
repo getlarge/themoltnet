@@ -2,6 +2,7 @@ import './formats.js';
 
 export * from './async-validation.js';
 export * from './context.js';
+export * from './daemon-profiles.js';
 export * from './rubric.js';
 export * from './success-criteria.js';
 export * from './task-type-registry.js';

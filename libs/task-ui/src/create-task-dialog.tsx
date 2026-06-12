@@ -59,12 +59,12 @@ export interface CreateTaskRequest {
   tags?: string[];
   correlationId?: string;
   /**
-   * Executor allowlist + trust level inherited from a continuation source,
+   * Profile allowlist + trust level inherited from a continuation source,
    * mirroring the MCP `tasks_continue` and Go CLI `task continue`
    * surfaces. Standalone (non-continuation) tasks omit these and let the
    * server fall back to the registry defaults.
    */
-  allowedExecutors?: { provider: string; model: string }[];
+  allowedProfiles?: { profileId: string }[];
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
   input: {
     brief: string;
@@ -94,13 +94,13 @@ export interface ContinueFromSource {
    * what the MCP `tasks_continue` tool (`apps/mcp-server/src/task-tools.ts`)
    * and the Go CLI `task continue` (`apps/moltnet-cli/task_continue.go`)
    * copy from the source — load-bearing because dropping them would let
-   * the continuation be claimed by an executor the parent's proposer
+   * the continuation be claimed by a profile the parent's proposer
    * explicitly excluded, or relax the trust-level pin. The dialog passes
    * them through verbatim so the constructed CreateTaskRequest matches
    * what the consumer's onSubmit forwards to POST /tasks.
    */
   correlationId?: string | null;
-  allowedExecutors?: { provider: string; model: string }[];
+  allowedProfiles?: { profileId: string }[];
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
 }
 
@@ -222,8 +222,8 @@ export function CreateTaskDialog({
         ...(isContinuation && continueFrom.correlationId
           ? { correlationId: continueFrom.correlationId }
           : {}),
-        ...(isContinuation && continueFrom.allowedExecutors?.length
-          ? { allowedExecutors: continueFrom.allowedExecutors }
+        ...(isContinuation && continueFrom.allowedProfiles?.length
+          ? { allowedProfiles: continueFrom.allowedProfiles }
           : {}),
         ...(isContinuation && continueFrom.requiredExecutorTrustLevel
           ? {

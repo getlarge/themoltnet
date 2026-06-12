@@ -3023,13 +3023,6 @@
           "primaryKey": false,
           "type": "integer"
         },
-        "allowed_executors": {
-          "default": "'[]'::jsonb",
-          "name": "allowed_executors",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "jsonb"
-        },
         "allowed_profiles": {
           "default": "'[]'::jsonb",
           "name": "allowed_profiles",
@@ -3297,21 +3290,6 @@
         }
       },
       "indexes": {
-        "tasks_allowed_executors_gin_idx": {
-          "columns": [
-            {
-              "asc": true,
-              "expression": "\"allowed_executors\" jsonb_path_ops",
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "concurrently": false,
-          "isUnique": false,
-          "method": "gin",
-          "name": "tasks_allowed_executors_gin_idx",
-          "with": {}
-        },
         "tasks_allowed_profiles_gin_idx": {
           "columns": [
             {

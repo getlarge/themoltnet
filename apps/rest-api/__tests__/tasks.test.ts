@@ -34,7 +34,6 @@ const MOCK_TASK = {
   acceptedAttemptN: null,
   claimCondition: null,
   requiredExecutorTrustLevel: 'selfDeclared' as const,
-  allowedExecutors: [],
   allowedProfiles: [],
   status: 'queued' as const,
   queuedAt: new Date().toISOString(),
@@ -373,49 +372,22 @@ describe('GET /tasks', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('forwards lowercased provider/model to taskService.list when both are set', async () => {
+  it('forwards profileId to taskService.list when set', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/tasks?teamId=${TEAM_ID}&provider=Anthropic&model=Claude-Sonnet-4-5`,
+      url: `/tasks?teamId=${TEAM_ID}&profileId=${PROFILE_ID}`,
       headers: { authorization: 'Bearer test-token' },
     });
 
     expect(response.statusCode).toBe(200);
     expect(mocks.taskService.list).toHaveBeenCalledWith(
       expect.objectContaining({
-        executorProvider: 'anthropic',
-        executorModel: 'claude-sonnet-4-5',
+        profileId: PROFILE_ID,
       }),
     );
   });
 
-  it('returns 400 when provider is set without model', async () => {
-    const response = await app.inject({
-      method: 'GET',
-      url: `/tasks?teamId=${TEAM_ID}&provider=anthropic`,
-      headers: { authorization: 'Bearer test-token' },
-    });
-
-    expect(response.statusCode).toBe(400);
-    expect(response.json()).toMatchObject({
-      errors: [{ field: 'model' }],
-    });
-  });
-
-  it('returns 400 when model is set without provider', async () => {
-    const response = await app.inject({
-      method: 'GET',
-      url: `/tasks?teamId=${TEAM_ID}&model=claude-sonnet-4-5`,
-      headers: { authorization: 'Bearer test-token' },
-    });
-
-    expect(response.statusCode).toBe(400);
-    expect(response.json()).toMatchObject({
-      errors: [{ field: 'provider' }],
-    });
-  });
-
-  it('omits executor filter when neither provider nor model is set', async () => {
+  it('omits profile filter when profileId is unset', async () => {
     const response = await app.inject({
       method: 'GET',
       url: `/tasks?teamId=${TEAM_ID}`,
@@ -424,8 +396,7 @@ describe('GET /tasks', () => {
 
     expect(response.statusCode).toBe(200);
     const call = mocks.taskService.list.mock.calls[0][0];
-    expect(call.executorProvider).toBeUndefined();
-    expect(call.executorModel).toBeUndefined();
+    expect(call.profileId).toBeUndefined();
   });
 });
 

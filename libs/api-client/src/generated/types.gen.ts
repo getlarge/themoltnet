@@ -334,7 +334,6 @@ export type CreateDaemonProfileBody = {
 };
 
 export type CreateTaskBody = {
-  allowedExecutors?: Array<ExecutorRef>;
   allowedProfiles?: Array<DaemonProfileRef>;
   claimCondition?: ClaimCondition;
   correlationId?: string;
@@ -831,11 +830,6 @@ export type EntryVerifyResult = {
   valid: boolean;
 };
 
-export type ExecutorRef = {
-  model: string;
-  provider: string;
-};
-
 export type ExecutorTrustLevel =
   | 'selfDeclared'
   | 'agentSigned'
@@ -918,11 +912,9 @@ export type ListTasksQuery = {
   excludeTags?: Array<string>;
   hasAttempts?: boolean;
   limit?: number;
-  model?: string;
   profileId?: string;
   proposedByAgentId?: string;
   proposedByHumanId?: string;
-  provider?: string;
   query?: string;
   queuedAfter?: string;
   queuedBefore?: string;
@@ -1628,10 +1620,6 @@ export type Success = {
 
 export type Task = {
   acceptedAttemptN: number | null;
-  allowedExecutors: Array<{
-    model: string;
-    provider: string;
-  }>;
   allowedProfiles: Array<{
     profileId: string;
   }>;
@@ -5663,8 +5651,6 @@ export type ListTasksData = {
      * Repeated excluded tags filter.
      */
     excludeTags?: Array<string>;
-    provider?: string;
-    model?: string;
     profileId?: string;
     correlationId?: string;
     diaryId?: string;
@@ -5710,7 +5696,6 @@ export type ListTasksResponse = ListTasksResponses[keyof ListTasksResponses];
 
 export type CreateTaskData = {
   body: {
-    allowedExecutors?: Array<ExecutorRef>;
     allowedProfiles?: Array<DaemonProfileRef>;
     claimCondition?: ClaimCondition;
     correlationId?: string;
