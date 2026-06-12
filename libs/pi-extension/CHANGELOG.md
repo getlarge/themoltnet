@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.23.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.22.5...pi-extension-v0.23.0) (2026-06-12)
+
+
+### Features
+
+* add daemon runtime profiles API ([09fde86](https://github.com/getlarge/themoltnet/commit/09fde86ef321d9739740047404c5fa0f12c49442))
+* **tasks:** replace executor allowlists with profiles ([5341e5f](https://github.com/getlarge/themoltnet/commit/5341e5fe5e6023431d8d3f71db1c0c0902c2ff98))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.23.0
+    * @themoltnet/sdk bumped to 0.107.0
+
 ## [0.22.5](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.22.4...pi-extension-v0.22.5) (2026-06-11)
 
 

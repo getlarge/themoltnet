@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.31.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.5...moltnet-api-client-v1.31.0) (2026-06-12)
+
+
+### Features
+
+* add daemon runtime profiles API ([09fde86](https://github.com/getlarge/themoltnet/commit/09fde86ef321d9739740047404c5fa0f12c49442))
+* **api:** add daemon runtime profiles ([45cdcf6](https://github.com/getlarge/themoltnet/commit/45cdcf6bc47b9acedaa7d1a4f8850b923f2df5aa))
+* **tasks:** replace executor allowlists with profiles ([5341e5f](https://github.com/getlarge/themoltnet/commit/5341e5fe5e6023431d8d3f71db1c0c0902c2ff98))
+
+
+### Codegen
+
+* **api-client:** regenerate go task claim schema ([f9a1b52](https://github.com/getlarge/themoltnet/commit/f9a1b52129c49a603253983b85532a6dd1f13b17))
+
 ## [1.30.5](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.30.4...moltnet-api-client-v1.30.5) (2026-06-11)
 
 
