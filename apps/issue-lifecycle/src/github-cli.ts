@@ -1,3 +1,4 @@
+import type { ExecFileSyncOptionsWithStringEncoding } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
 
 import type {
@@ -31,23 +32,71 @@ function runGh(
   args: string[],
   options: { token?: string; cwd?: string; env?: NodeJS.ProcessEnv },
 ): string {
+  const env = { ...(options.env ?? {}) };
+  if (options.token) {
+    env.GH_TOKEN = options.token;
+    env.GITHUB_TOKEN = options.token;
+  }
   return execFileSync('gh', args, {
     encoding: 'utf8',
     cwd: options.cwd,
-    env: {
-      ...(options.env ?? {}),
-      ...(options.token ? { GH_TOKEN: options.token } : {}),
-    },
+    env,
     stdio: ['pipe', 'pipe', 'pipe'],
-  });
+  } satisfies ExecFileSyncOptionsWithStringEncoding);
+}
+
+function errorText(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const maybeOutput = error as Error & {
+    stderr?: Buffer | string;
+    stdout?: Buffer | string;
+  };
+  return [
+    error.message,
+    maybeOutput.stderr?.toString() ?? '',
+    maybeOutput.stdout?.toString() ?? '',
+  ].join('\n');
+}
+
+function isGhAuthError(error: unknown): boolean {
+  const text = errorText(error);
+  return (
+    text.includes('HTTP 401') ||
+    text.includes('Bad credentials') ||
+    text.includes('Try authenticating with:  gh auth login')
+  );
 }
 
 function runGhJson<T>(
   args: string[],
-  options: { token?: string; cwd?: string; env?: NodeJS.ProcessEnv },
+  options: {
+    token?: string;
+    tokenProvider?: () => string;
+    cwd?: string;
+    env?: NodeJS.ProcessEnv;
+  },
 ): T {
-  const raw = runGh(args, options);
+  const raw = runGhWithAuth(args, options);
   return JSON.parse(raw) as T;
+}
+
+function runGhWithAuth(
+  args: string[],
+  options: {
+    token?: string;
+    tokenProvider?: () => string;
+    cwd?: string;
+    env?: NodeJS.ProcessEnv;
+  },
+): string {
+  const token = options.token ?? options.tokenProvider?.();
+  try {
+    return runGh(args, { ...options, token });
+  } catch (error) {
+    if (!options.tokenProvider || !isGhAuthError(error)) throw error;
+    const refreshedToken = options.tokenProvider();
+    return runGh(args, { ...options, token: refreshedToken });
+  }
 }
 
 function checksConclusion(pr: GhPrJson): PullRequestStatus['checks'] {
@@ -81,6 +130,7 @@ export class GhCliGithubClient implements GithubClient {
   constructor(
     private readonly options: {
       token?: string;
+      tokenProvider?: () => string;
       cwd?: string;
       env?: NodeJS.ProcessEnv;
     } = {},
@@ -128,7 +178,7 @@ export class GhCliGithubClient implements GithubClient {
     issueNumber: number,
     body: string,
   ): Promise<void> {
-    runGh(
+    runGhWithAuth(
       [
         'api',
         `repos/${repo}/issues/${issueNumber}/comments`,
@@ -145,7 +195,7 @@ export class GhCliGithubClient implements GithubClient {
     commentId: number,
     body: string,
   ): Promise<void> {
-    runGh(
+    runGhWithAuth(
       [
         'api',
         `repos/${repo}/issues/comments/${commentId}`,
@@ -164,7 +214,7 @@ export class GhCliGithubClient implements GithubClient {
     issueNumber: number,
     label: string,
   ): Promise<void> {
-    runGh(
+    runGhWithAuth(
       [
         'api',
         `repos/${repo}/issues/${issueNumber}/labels`,

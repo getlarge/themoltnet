@@ -15,7 +15,9 @@ export interface CliConfig {
   agentDir: string;
   databaseUrl: string;
   queueName: string;
+  githubAuth: 'moltnet-token' | 'env-token' | 'gh-cli';
   githubToken?: string;
+  githubTokenProvider?: () => string;
   githubEnv: NodeJS.ProcessEnv;
   input: IssueLifecycleInput;
 }
@@ -35,6 +37,33 @@ function getGithubToken(agentDir: string): string {
     ['github', 'token', '--credentials', join(agentDir, 'moltnet.json')],
     { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
   ).trim();
+}
+
+export function resolveGithubAuth(args: {
+  mode?: string;
+  envToken?: string;
+  tokenProvider: () => string;
+}): Pick<CliConfig, 'githubAuth' | 'githubToken' | 'githubTokenProvider'> {
+  switch (args.mode) {
+    case undefined:
+    case '':
+    case 'moltnet':
+      return {
+        githubAuth: 'moltnet-token',
+        githubTokenProvider: args.tokenProvider,
+      };
+    case 'env':
+      if (!args.envToken) {
+        throw new Error(
+          '--github-auth env requires GH_TOKEN or GITHUB_TOKEN to be set',
+        );
+      }
+      return { githubAuth: 'env-token', githubToken: args.envToken };
+    case 'gh-cli':
+      return { githubAuth: 'gh-cli' };
+    default:
+      throw new Error('--github-auth must be one of: moltnet, env, gh-cli');
+  }
 }
 
 export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
@@ -100,12 +129,11 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
     process.env.CONSOLE_BASE_URL;
   const githubAuth =
     values['github-auth'] ?? process.env.ISSUE_LIFECYCLE_GITHUB_AUTH;
-  const githubToken =
-    githubAuth === 'gh-cli'
-      ? undefined
-      : process.env.GH_TOKEN ||
-        process.env.GITHUB_TOKEN ||
-        getGithubToken(agentDir);
+  const github = resolveGithubAuth({
+    mode: githubAuth,
+    envToken: process.env.GH_TOKEN || process.env.GITHUB_TOKEN,
+    tokenProvider: () => getGithubToken(agentDir),
+  });
 
   const correlationId = values['correlation-id'] ?? randomUUID();
 
@@ -118,8 +146,8 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
       '--database-url or ISSUE_LIFECYCLE_DATABASE_URL',
     ),
     queueName: values['queue-name'],
-    githubToken,
-    githubEnv: { ...process.env, GH_TOKEN: githubToken },
+    ...github,
+    githubEnv: { ...process.env },
     input: {
       repo: requireString(values.repo, '--repo'),
       issueNumber,

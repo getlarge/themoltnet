@@ -20,7 +20,7 @@ async function main(): Promise<number> {
       queueName: cfg.queueName,
       correlationId: cfg.input.correlationId,
       consoleUrl: cfg.input.consoleUrl,
-      githubAuth: cfg.githubToken ? 'moltnet-token' : 'gh-cli',
+      githubAuth: cfg.githubAuth,
       databaseUrlConfigured: Boolean(cfg.databaseUrl),
     },
     'issue_lifecycle.cli.start',
@@ -33,6 +33,7 @@ async function main(): Promise<number> {
       tasks: createSdkTaskClient(agent),
       github: new GhCliGithubClient({
         token: cfg.githubToken,
+        tokenProvider: cfg.githubTokenProvider,
         cwd: cfg.repoRoot,
         env: cfg.githubEnv,
       }),

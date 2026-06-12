@@ -309,14 +309,21 @@ Useful options:
 - `--ready-for-review-label <label>`: PR label applied after green CI and
   agent reviews
 - `--skip-notify-label <label>`: notification skip gate
+- `--github-auth moltnet`: default; mint GitHub tokens from
+  `.moltnet/<agent>/moltnet.json`
+- `--github-auth env`: use `GH_TOKEN` or `GITHUB_TOKEN`
 - `--github-auth gh-cli`: local-only escape hatch that lets `gh` use its
-  configured auth instead of minting a MoltNet GitHub token
+  configured auth
 - `--poll-interval-sec <n>`: wait interval for labels/tasks/PR status
 - `--max-pr-pending-polls <n>`: maximum pending PR-check or merge polls before
   the workflow fails with an operator-actionable error
 
-GitHub auth is resolved from `GH_TOKEN`, `GITHUB_TOKEN`, or a token minted with
-the released MoltNet CLI from `.moltnet/<agent>/moltnet.json`.
+GitHub auth defaults to a token minted with the released MoltNet CLI from
+`.moltnet/<agent>/moltnet.json`. This keeps the lifecycle tied to the selected
+agent instead of whatever `gh auth` or shell token happens to be present. If a
+`gh` command returns `HTTP 401`, the runner mints a fresh MoltNet token and
+retries the command once. Use `--github-auth env` only when you explicitly want
+`GH_TOKEN`/`GITHUB_TOKEN` to win.
 
 ### Local GitHub App Credentials
 
@@ -338,9 +345,10 @@ tokens for that agent. The local check for parity is:
 moltnet github token --credentials ".moltnet/<agent>/moltnet.json"
 ```
 
-Use `--github-auth gh-cli` only for manual simulations where you explicitly
-accept that the runner is using the operator's local GitHub session. Do not use
-that mode for CI-like e2e assertions.
+Use `--github-auth env` only for manual simulations that intentionally provide
+a known-good `GH_TOKEN`/`GITHUB_TOKEN`. Use `--github-auth gh-cli` only when you
+explicitly accept that the runner is using the operator's local GitHub session.
+Do not use either mode for CI-like e2e assertions.
 
 ## Manual E2E-Stack Smoke Test
 
