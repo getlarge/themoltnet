@@ -136,11 +136,12 @@ registered task type; unknown task-type names remain invalid.
 ### Prerequisites
 
 - Docker running.
-- pi authenticated for the model provider you'll drive the daemon with
-  (`~/.pi/agent/auth.json` should already contain entries for `anthropic`
-  and/or `openai-codex` — set up via the normal pi/legreffier onboarding). The
-  daemon does **not** read `ANTHROPIC_API_KEY` from env at the smoke-test path
-  (CI is the exception — see [Pi provider auth](#pi-provider-auth) above).
+- Pi config for the model provider you'll drive the daemon with. Local daemon
+  runs default `PI_CODING_AGENT_DIR` to repo-local `.pi`, so committed
+  `.pi/settings.json` and `.pi/models.json` must list the provider/model. For
+  subscription auth, put your local token blob in `.pi/auth.json`; it is
+  gitignored. For API-key auth, keep `.pi/auth.json` absent and export the
+  provider key referenced by `.pi/models.json`, for example `OLLAMA_API_KEY`.
 - `ssh-keygen` on `PATH`.
 - A `sandbox.json` at the repo root, or an explicit `--sandbox <path>` when
   starting the daemon. The daemon searches up for this file and uses its
