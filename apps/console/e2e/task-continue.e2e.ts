@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 
 import {
+  createDaemonProfile,
   createDiary,
   createDiaryGrant,
   createTeam,
@@ -50,6 +51,7 @@ test.describe.serial('Continue task from console', () => {
   let agentCtx: ConnectedAgent;
   let sourceTaskId: string;
   let sourceAttemptN: number;
+  let allowedProfileId: string;
 
   test.afterAll(async () => {
     await agentCtx?.teardown();
@@ -109,6 +111,26 @@ test.describe.serial('Continue task from console', () => {
     }
     sharedTeamId = created.data.id;
 
+    const profile = await createDaemonProfile({
+      client: humanClient,
+      path: { id: sharedTeamId },
+      body: {
+        name: `task-continue-profile-${nonce}`,
+        runtimeKind: 'gondolin_pi',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        sandbox: {
+          image: 'ghcr.io/getlarge/themoltnet/agent-runtime:e2e',
+        },
+      },
+    });
+    if (!profile.data?.id) {
+      throw new Error(
+        `createDaemonProfile failed: ${JSON.stringify(profile.error)}`,
+      );
+    }
+    allowedProfileId = profile.data.id;
+
     // Create a diary inside the shared team so both the human (owner)
     // and the agent (member) can read tasks against it. The agent's
     // bootstrap-time private diary belongs to the agent's personal team
@@ -156,7 +178,7 @@ test.describe.serial('Continue task from console', () => {
       brief: `Parent investigation ${nonce}`,
       title: sourceTitle,
       correlationId,
-      allowedProfiles: [{ profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }],
+      allowedProfiles: [{ profileId: allowedProfileId }],
       requiredExecutorTrustLevel: 'selfDeclared',
     });
     sourceTaskId = seeded.taskId;
@@ -242,9 +264,7 @@ test.describe.serial('Continue task from console', () => {
     // continuation be claimed by a profile the parent's proposer
     // explicitly excluded. Mirrors the MCP tasks_continue + Go CLI
     // task continue wire contracts.
-    expect(newTask?.allowedProfiles).toEqual([
-      { profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
-    ]);
+    expect(newTask?.allowedProfiles).toEqual([{ profileId: allowedProfileId }]);
     expect(newTask?.requiredExecutorTrustLevel).toBe('selfDeclared');
   });
 });
