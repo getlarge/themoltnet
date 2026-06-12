@@ -867,6 +867,24 @@ export async function runGithubIssueLifecycle(
 
   if (prNumber === null) throw new Error('implementation did not open a PR');
 
+  const finalPr = await ctx.step('github.pr.final.get', async () =>
+    deps.github.getPullRequest(input.repo, prNumber),
+  );
+  if (!finalPr.merged) {
+    setStatusLine(statusLines, {
+      key: 'human-review',
+      label: 'Human PR review',
+      status: 'failed',
+      prNumber,
+      prUrl: finalPr.url,
+      summary: `PR #${prNumber} is not merged; refusing to notify completion`,
+    });
+    await updateStatus();
+    throw new Error(
+      `PR #${prNumber} is not merged; refusing to notify completion`,
+    );
+  }
+
   const skipNotify = await ctx.step('github.skip_notify_label.get', async () =>
     deps.github.hasIssueLabel(
       input.repo,

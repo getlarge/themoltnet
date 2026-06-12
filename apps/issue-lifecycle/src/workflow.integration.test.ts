@@ -209,6 +209,12 @@ describe('GitHub issue lifecycle integration', () => {
         merged: true,
         checks: 'success',
       },
+      {
+        number: 42,
+        url: 'https://github.com/getlarge/themoltnet/pull/42',
+        merged: true,
+        checks: 'success',
+      },
     ];
 
     const result = await runGithubIssueLifecycle(BASE_INPUT, deps);

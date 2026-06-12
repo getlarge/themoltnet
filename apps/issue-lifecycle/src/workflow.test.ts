@@ -710,6 +710,87 @@ describe('runGithubIssueLifecycle', () => {
     );
   });
 
+  it('rechecks the PR is merged before notify', async () => {
+    const {
+      deps: d,
+      github,
+      tasks,
+    } = fakeDeps([
+      { phase: 'classified', decision: 'plan', summary: 'classified' },
+      {
+        phase: 'plan_generated',
+        decision: 'ready_for_review',
+        summary: 'planned',
+        plan: 'plan',
+      },
+      {
+        phase: 'plan_generated',
+        decision: 'review_passed',
+        summary: 'reviewed',
+        findings: [],
+      },
+      {
+        phase: 'pr_open',
+        decision: 'link_pr',
+        summary: 'implemented',
+        prNumber: 42,
+        prUrl: 'https://github.com/getlarge/themoltnet/pull/42',
+      },
+      ...prReviewOutputs(),
+    ]);
+    github.approvalResponses = [false, true];
+    github.prResponses = [
+      {
+        number: 42,
+        url: 'https://github.com/getlarge/themoltnet/pull/42',
+        merged: false,
+        checks: 'success',
+      },
+      {
+        number: 42,
+        url: 'https://github.com/getlarge/themoltnet/pull/42',
+        merged: false,
+        checks: 'success',
+      },
+      {
+        number: 42,
+        url: 'https://github.com/getlarge/themoltnet/pull/42',
+        merged: true,
+        checks: 'success',
+      },
+      {
+        number: 42,
+        url: 'https://github.com/getlarge/themoltnet/pull/42',
+        merged: false,
+        checks: 'failure',
+      },
+    ];
+
+    await expect(
+      runGithubIssueLifecycle(
+        {
+          repo: 'getlarge/themoltnet',
+          issueNumber: 1327,
+          teamId: 'team',
+          diaryId: 'diary',
+          correlationId: '00000000-0000-4000-8000-000000000999',
+          pollIntervalSec: 1,
+        },
+        d,
+      ),
+    ).rejects.toThrow('PR #42 is not merged; refusing to notify completion');
+
+    expect(tasks.created.map((task) => task.title)).not.toContain(
+      'Notify issue #1327',
+    );
+    const statusComment = github.comments.find((comment) =>
+      comment.body.includes('moltnet-issue-lifecycle:status'),
+    );
+    expect(statusComment?.body).toContain(
+      'PR #42 is not merged; refusing to notify completion',
+    );
+  });
+
   it('creates a plan revision when review returns findings', async () => {
     const {
       deps: d,
