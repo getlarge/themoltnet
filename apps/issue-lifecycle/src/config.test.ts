@@ -4,7 +4,7 @@ import { resolveGithubAuth } from './config.js';
 
 describe('resolveGithubAuth', () => {
   it('prefers MoltNet GitHub tokens by default even when env tokens exist', () => {
-    const provider = () => 'moltnet-token';
+    const provider = () => Promise.resolve('moltnet-token');
 
     expect(
       resolveGithubAuth({
@@ -22,7 +22,7 @@ describe('resolveGithubAuth', () => {
       resolveGithubAuth({
         mode: 'env',
         envToken: 'env-token',
-        tokenProvider: () => 'moltnet-token',
+        tokenProvider: () => Promise.resolve('moltnet-token'),
       }),
     ).toEqual({ githubAuth: 'env-token', githubToken: 'env-token' });
   });
@@ -32,7 +32,7 @@ describe('resolveGithubAuth', () => {
       resolveGithubAuth({
         mode: 'gh-cli',
         envToken: 'env-token',
-        tokenProvider: () => 'moltnet-token',
+        tokenProvider: () => Promise.resolve('moltnet-token'),
       }),
     ).toEqual({ githubAuth: 'gh-cli' });
   });

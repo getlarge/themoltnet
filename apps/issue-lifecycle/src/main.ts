@@ -7,7 +7,24 @@ import {
 } from './absurd.js';
 import { parseCliConfig } from './config.js';
 import { GhCliGithubClient } from './github-cli.js';
+import { FetchGithubClient } from './github-fetch.js';
 import { createSdkTaskClient } from './sdk-task-client.js';
+import type { GithubClient } from './types.js';
+
+function createGithubClient(
+  cfg: ReturnType<typeof parseCliConfig>,
+): GithubClient {
+  if (cfg.githubAuth === 'gh-cli') {
+    return new GhCliGithubClient({
+      cwd: cfg.repoRoot,
+      env: cfg.githubEnv,
+    });
+  }
+  return new FetchGithubClient({
+    token: cfg.githubToken,
+    tokenProvider: cfg.githubTokenProvider,
+  });
+}
 
 async function main(): Promise<number> {
   const cfg = parseCliConfig();
@@ -31,12 +48,7 @@ async function main(): Promise<number> {
     queueName: cfg.queueName,
     deps: {
       tasks: createSdkTaskClient(agent),
-      github: new GhCliGithubClient({
-        token: cfg.githubToken,
-        tokenProvider: cfg.githubTokenProvider,
-        cwd: cfg.repoRoot,
-        env: cfg.githubEnv,
-      }),
+      github: createGithubClient(cfg),
       logger,
     },
   });

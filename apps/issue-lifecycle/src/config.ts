@@ -4,6 +4,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs, parseEnv } from 'node:util';
 
+import { getInstallationToken } from '@themoltnet/github-agent';
+import type { MoltNetConfig } from '@themoltnet/sdk';
+
+import type { GithubTokenProvider } from './github-fetch.js';
 import type { IssueLifecycleInput } from './types.js';
 
 const UUID_RE =
@@ -17,7 +21,7 @@ export interface CliConfig {
   queueName: string;
   githubAuth: 'moltnet-token' | 'env-token' | 'gh-cli';
   githubToken?: string;
-  githubTokenProvider?: () => string;
+  githubTokenProvider?: GithubTokenProvider;
   githubEnv: NodeJS.ProcessEnv;
   input: IssueLifecycleInput;
 }
@@ -31,18 +35,38 @@ function readAgentEnv(agentDir: string): Record<string, string | undefined> {
   return parseEnv(readFileSync(join(agentDir, 'env'), 'utf8'));
 }
 
-function getGithubToken(agentDir: string): string {
-  return execFileSync(
-    'moltnet',
-    ['github', 'token', '--credentials', join(agentDir, 'moltnet.json')],
-    { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-  ).trim();
+function createGithubTokenProvider(agentDir: string): GithubTokenProvider {
+  const raw = readFileSync(join(agentDir, 'moltnet.json'), 'utf8');
+  const config = JSON.parse(raw) as MoltNetConfig;
+  const github = config.github;
+  if (!github?.app_id || !github.installation_id || !github.private_key_path) {
+    throw new Error(
+      'MoltNet GitHub auth requires github.app_id, github.installation_id, and github.private_key_path in .moltnet/<agent>/moltnet.json',
+    );
+  }
+  return async (options) => {
+    const token = await getInstallationToken({
+      appId: github.app_id,
+      installationId: github.installation_id,
+      privateKeyPath: github.private_key_path,
+      forceRefresh: options?.forceRefresh,
+    });
+    return token.token;
+  };
+}
+
+function createLazyGithubTokenProvider(agentDir: string): GithubTokenProvider {
+  let provider: GithubTokenProvider | undefined;
+  return (options) => {
+    provider ??= createGithubTokenProvider(agentDir);
+    return provider(options);
+  };
 }
 
 export function resolveGithubAuth(args: {
   mode?: string;
   envToken?: string;
-  tokenProvider: () => string;
+  tokenProvider: GithubTokenProvider;
 }): Pick<CliConfig, 'githubAuth' | 'githubToken' | 'githubTokenProvider'> {
   switch (args.mode) {
     case undefined:
@@ -132,7 +156,7 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
   const github = resolveGithubAuth({
     mode: githubAuth,
     envToken: process.env.GH_TOKEN || process.env.GITHUB_TOKEN,
-    tokenProvider: () => getGithubToken(agentDir),
+    tokenProvider: createLazyGithubTokenProvider(agentDir),
   });
 
   const correlationId = values['correlation-id'] ?? randomUUID();

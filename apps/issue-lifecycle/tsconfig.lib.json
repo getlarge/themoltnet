@@ -10,13 +10,16 @@
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "references": [
     {
-      "path": "../../libs/crypto-service/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/sdk/tsconfig.lib.json"
     },
     {
+      "path": "../../packages/github-agent/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/tasks/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/crypto-service/tsconfig.lib.json"
     }
   ]
 }

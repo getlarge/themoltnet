@@ -147,6 +147,40 @@ describe('getInstallationToken', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('should bypass cached token when forceRefresh is set', async () => {
+    // Arrange
+    const privateKeyPath = createTempRsaKeyFile();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    fs.writeFileSync(
+      cachePath(privateKeyPath),
+      JSON.stringify({ token: 'ghs_cached', expires_at: expiresAt }),
+    );
+    const freshExpiry = new Date(Date.now() + 90 * 60 * 1000).toISOString();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          token: 'ghs_refreshed',
+          expires_at: freshExpiry,
+        }),
+      })),
+    );
+
+    // Act
+    const result = await getInstallationToken({
+      appId: '12345',
+      privateKeyPath,
+      installationId: '67890',
+      forceRefresh: true,
+    });
+
+    // Assert
+    expect(result.token).toBe('ghs_refreshed');
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('should fetch fresh token when cache is expired', async () => {
     // Arrange
     const privateKeyPath = createTempRsaKeyFile();

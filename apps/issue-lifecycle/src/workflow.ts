@@ -764,13 +764,24 @@ export async function runGithubIssueLifecycle(
       continue;
     }
 
-    await ctx.step(`github.ready_for_review_label.${attempt}.add`, async () =>
-      deps.github.addIssueLabel(
-        input.repo,
-        reviewedPrNumber,
-        input.readyForReviewLabel,
-      ),
-    );
+    try {
+      await ctx.step(`github.ready_for_review_label.${attempt}.add`, async () =>
+        deps.github.addIssueLabel(
+          input.repo,
+          reviewedPrNumber,
+          input.readyForReviewLabel,
+        ),
+      );
+    } catch (error) {
+      deps.logger?.warn(
+        {
+          prNumber: reviewedPrNumber,
+          label: input.readyForReviewLabel,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'issue_lifecycle.ready_for_review_label.skipped',
+      );
+    }
     await ensureReadyForReviewComment(
       input,
       reviewedPrNumber,

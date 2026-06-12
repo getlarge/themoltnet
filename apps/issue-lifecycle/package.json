@@ -31,6 +31,7 @@
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
+    "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "absurd-sdk": "catalog:",
     "pino": "catalog:"

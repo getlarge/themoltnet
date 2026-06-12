@@ -38,7 +38,7 @@ for the actual agent work.
 
 The runner owns orchestration, not implementation details. It:
 
-- reads the target GitHub issue through `gh`
+- reads the target GitHub issue through the GitHub API
 - creates MoltNet `freeform` tasks through `@themoltnet/sdk`
 - correlates all tasks with one `correlationId`
 - passes prior work forward with `continueFrom`
@@ -47,7 +47,9 @@ The runner owns orchestration, not implementation details. It:
 - waits for green CI before PR review tasks
 - creates independent complexity, functional, and security PR review tasks
 - creates a review-resolution task that applies only truly relevant findings
-- labels/comments the PR as ready for human review after post-fix CI is green
+- comments the PR as ready for human review after post-fix CI is green, and
+  best-effort applies the ready-for-review label when the GitHub App has label
+  mutation permission
 - creates the final notification/reflection continuation after merge
 
 The agents that claim the generated `freeform` tasks still own their local loop:
@@ -309,21 +311,22 @@ Useful options:
 - `--ready-for-review-label <label>`: PR label applied after green CI and
   agent reviews
 - `--skip-notify-label <label>`: notification skip gate
-- `--github-auth moltnet`: default; mint GitHub tokens from
+- `--github-auth moltnet`: default; mint GitHub App installation tokens from
   `.moltnet/<agent>/moltnet.json`
 - `--github-auth env`: use `GH_TOKEN` or `GITHUB_TOKEN`
-- `--github-auth gh-cli`: local-only escape hatch that lets `gh` use its
-  configured auth
+- `--github-auth gh-cli`: local-only escape hatch that runs `gh` with its
+  configured auth instead of the fetch client
 - `--poll-interval-sec <n>`: wait interval for labels/tasks/PR status
 - `--max-pr-pending-polls <n>`: maximum pending PR-check or merge polls before
   the workflow fails with an operator-actionable error
 
-GitHub auth defaults to a token minted with the released MoltNet CLI from
-`.moltnet/<agent>/moltnet.json`. This keeps the lifecycle tied to the selected
-agent instead of whatever `gh auth` or shell token happens to be present. If a
-`gh` command returns `HTTP 401`, the runner mints a fresh MoltNet token and
-retries the command once. Use `--github-auth env` only when you explicitly want
-`GH_TOKEN`/`GITHUB_TOKEN` to win.
+GitHub auth defaults to a token minted from `.moltnet/<agent>/moltnet.json`
+using `@themoltnet/github-agent`. This keeps the lifecycle tied to the selected
+agent instead of whatever `gh auth` or shell token happens to be present. The
+default client calls the GitHub API directly with `fetch`, retries transient
+network/5xx failures, and forces one token refresh on `HTTP 401`. Use
+`--github-auth env` only when you explicitly want `GH_TOKEN`/`GITHUB_TOKEN` to
+win.
 
 ### Local GitHub App Credentials
 
@@ -336,10 +339,22 @@ agent's MoltNet credentials in the existing local agent directory:
 .moltnet/<agent>/env
 ```
 
-`moltnet.json` must remain uncommitted. It should contain only the local
-agent's MoltNet credential material; the GitHub App private key or installation
-secret should stay in the MoltNet/Ory credential backend that mints GitHub
-tokens for that agent. The local check for parity is:
+`moltnet.json` must remain uncommitted. It contains the selected agent's
+MoltNet credential material plus the GitHub App fields used by the lifecycle
+fetch client:
+
+```json
+{
+  "github": {
+    "app_id": "...",
+    "installation_id": "...",
+    "private_key_path": "/absolute/path/to/github-app.private-key.pem"
+  }
+}
+```
+
+The private key file must also remain uncommitted. The local check for parity
+is:
 
 ```bash
 moltnet github token --credentials ".moltnet/<agent>/moltnet.json"
@@ -419,9 +434,14 @@ Task and diary permissions:
 
 GitHub permissions:
 
-- The lifecycle runner itself reads the GitHub issue, labels, and PR state
-  through `gh`; provide `GH_TOKEN`/`GITHUB_TOKEN`, or run with an activated agent
-  whose `.moltnet/<agent>/moltnet.json` can mint a GitHub token.
+- The lifecycle runner itself reads the GitHub issue, labels, comments, and PR
+  state with the selected `--agent` GitHub App token by default. The GitHub App
+  needs read access to issues, pull requests, metadata, and checks/statuses.
+- The runner posts issue and PR comments, so the GitHub App needs write access
+  to issues and pull requests for full lifecycle runs.
+- The ready-for-review label is best-effort. If the GitHub App cannot mutate
+  labels, the runner logs the skipped label write and still posts the human
+  review comment.
 - The plan approval label defaults to `moltnet:plan-approved`; the issue must be
   in a repository where a human can add that label when the plan is ready.
 - Stop before implementation unless the issue, branch, and repository are
