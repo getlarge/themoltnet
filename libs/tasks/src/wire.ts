@@ -19,6 +19,8 @@
  */
 import { type Static, Type } from 'typebox';
 
+import { DaemonProfileRef } from './daemon-profiles.js';
+
 // ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
@@ -61,16 +63,6 @@ export const ExecutorTrustLevel = Type.Union(
   { $id: 'ExecutorTrustLevel' },
 );
 export type ExecutorTrustLevel = Static<typeof ExecutorTrustLevel>;
-
-/** Identifies a (provider, model) daemon pair allowed to claim a task. */
-export const ExecutorRef = Type.Object(
-  {
-    provider: Type.String({ minLength: 1 }),
-    model: Type.String({ minLength: 1 }),
-  },
-  { $id: 'ExecutorRef', additionalProperties: false },
-);
-export type ExecutorRef = Static<typeof ExecutorRef>;
 
 export const OutputKind = Type.Union(
   [Type.Literal('artifact'), Type.Literal('judgment')],
@@ -327,9 +319,10 @@ export const Task = Type.Object(
     ]),
     requiredExecutorTrustLevel: ExecutorTrustLevel,
 
-    // Proposer-set executor allowlist. Empty = no restriction. Advisory
-    // routing (mirrors `--task-types`); the daemon filters at list time.
-    allowedExecutors: Type.Array(ExecutorRef, { maxItems: 16 }),
+    // Proposer-set daemon profile allowlist. Empty = no restriction.
+    // Advisory routing; the daemon filters at list time with its
+    // selected profile id.
+    allowedProfiles: Type.Array(DaemonProfileRef, { maxItems: 16 }),
 
     // Lifecycle
     status: TaskStatus,

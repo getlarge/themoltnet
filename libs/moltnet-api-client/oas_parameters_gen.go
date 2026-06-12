@@ -617,6 +617,71 @@ func decodeCompleteTaskParams(args [2]string, argsEscaped bool, r *http.Request)
 	return params, nil
 }
 
+// CreateDaemonProfileParams is parameters of createDaemonProfile operation.
+type CreateDaemonProfileParams struct {
+	ID uuid.UUID
+}
+
+func unpackCreateDaemonProfileParams(packed middleware.Parameters) (params CreateDaemonProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeCreateDaemonProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params CreateDaemonProfileParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CreateDiaryParams is parameters of createDiary operation.
 type CreateDiaryParams struct {
 	// Team ID (UUID) that will own the resource. Required.
@@ -1062,6 +1127,71 @@ func decodeCreateTeamInviteParams(args [1]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteDaemonProfileParams is parameters of deleteDaemonProfile operation.
+type DeleteDaemonProfileParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackDeleteDaemonProfileParams(packed middleware.Parameters) (params DeleteDaemonProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteDaemonProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteDaemonProfileParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
 			In:   "path",
 			Err:  err,
 		}
@@ -2439,6 +2569,71 @@ func decodeGetContextPackProvenanceByIdParams(args [1]string, argsEscaped bool, 
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetDaemonProfileParams is parameters of getDaemonProfile operation.
+type GetDaemonProfileParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackGetDaemonProfileParams(packed middleware.Parameters) (params GetDaemonProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetDaemonProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDaemonProfileParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
 			In:   "path",
 			Err:  err,
 		}
@@ -4285,6 +4480,71 @@ func decodeListContextPacksParams(args [0]string, argsEscaped bool, r *http.Requ
 		return params, &ogenerrors.DecodeParamError{
 			Name: "expand",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ListDaemonProfilesParams is parameters of listDaemonProfiles operation.
+type ListDaemonProfilesParams struct {
+	ID uuid.UUID
+}
+
+func unpackListDaemonProfilesParams(packed middleware.Parameters) (params ListDaemonProfilesParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeListDaemonProfilesParams(args [1]string, argsEscaped bool, r *http.Request) (params ListDaemonProfilesParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
 			Err:  err,
 		}
 	}
@@ -7170,8 +7430,7 @@ type ListTasksParams struct {
 	Tags []string `json:",omitempty"`
 	// Repeated excluded tags filter.
 	ExcludeTags       []string    `json:",omitempty"`
-	Provider          OptString   `json:",omitempty,omitzero"`
-	Model             OptString   `json:",omitempty,omitzero"`
+	ProfileId         OptUUID     `json:",omitempty,omitzero"`
 	CorrelationId     OptUUID     `json:",omitempty,omitzero"`
 	DiaryId           OptUUID     `json:",omitempty,omitzero"`
 	ProposedByAgentId OptUUID     `json:",omitempty,omitzero"`
@@ -7250,20 +7509,11 @@ func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams
 	}
 	{
 		key := middleware.ParameterKey{
-			Name: "provider",
+			Name: "profileId",
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.Provider = v.(OptString)
-		}
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "model",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.Model = v.(OptString)
+			params.ProfileId = v.(OptUUID)
 		}
 	}
 	{
@@ -7879,138 +8129,43 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 			Err:  err,
 		}
 	}
-	// Decode query: provider.
+	// Decode query: profileId.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "provider",
+			Name:    "profileId",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotProviderVal string
+				var paramsDotProfileIdVal uuid.UUID
 				if err := func() error {
 					val, err := d.DecodeValue()
 					if err != nil {
 						return err
 					}
 
-					c, err := conv.ToString(val)
+					c, err := conv.ToUUID(val)
 					if err != nil {
 						return err
 					}
 
-					paramsDotProviderVal = c
+					paramsDotProfileIdVal = c
 					return nil
 				}(); err != nil {
 					return err
 				}
-				params.Provider.SetTo(paramsDotProviderVal)
+				params.ProfileId.SetTo(paramsDotProfileIdVal)
 				return nil
 			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Provider.Get(); ok {
-					if err := func() error {
-						if err := (validate.String{
-							MinLength:     1,
-							MinLengthSet:  true,
-							MaxLength:     0,
-							MaxLengthSet:  false,
-							Email:         false,
-							Hostname:      false,
-							Regex:         nil,
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
-						}
-						return nil
-					}(); err != nil {
-						return err
-					}
-				}
-				return nil
-			}(); err != nil {
 				return err
 			}
 		}
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "provider",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	// Decode query: model.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "model",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotModelVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotModelVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Model.SetTo(paramsDotModelVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Model.Get(); ok {
-					if err := func() error {
-						if err := (validate.String{
-							MinLength:     1,
-							MinLengthSet:  true,
-							MaxLength:     0,
-							MaxLengthSet:  false,
-							Email:         false,
-							Hostname:      false,
-							Regex:         nil,
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
-						}
-						return nil
-					}(); err != nil {
-						return err
-					}
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "model",
+			Name: "profileId",
 			In:   "query",
 			Err:  err,
 		}
@@ -9924,6 +10079,71 @@ func decodeUpdateContextPackParams(args [1]string, argsEscaped bool, r *http.Req
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateDaemonProfileParams is parameters of updateDaemonProfile operation.
+type UpdateDaemonProfileParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackUpdateDaemonProfileParams(packed middleware.Parameters) (params UpdateDaemonProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateDaemonProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateDaemonProfileParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
 			In:   "path",
 			Err:  err,
 		}

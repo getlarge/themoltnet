@@ -200,68 +200,6 @@ func TestRunTaskList_RFC3339Filters(t *testing.T) {
 	assertOptTime("CompletedBefore", h.listParams.CompletedBefore, "2026-05-11T04:05:06Z")
 }
 
-func TestRunTaskList_ProviderRequiresModel(t *testing.T) {
-	h := &stubTasksHandler{}
-	_, _, client := newTestServer(t, h)
-
-	err := runTaskListWithClient(context.Background(), client, taskListOpts{
-		teamID:      "22222222-2222-4222-8222-222222222222",
-		provider:    "openai",
-		providerSet: true,
-	})
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !strings.Contains(err.Error(), "--provider and --model") {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if h.listCalls != 0 {
-		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
-	}
-}
-
-func TestRunTaskList_ModelRequiresProvider(t *testing.T) {
-	h := &stubTasksHandler{}
-	_, _, client := newTestServer(t, h)
-
-	err := runTaskListWithClient(context.Background(), client, taskListOpts{
-		teamID:   "22222222-2222-4222-8222-222222222222",
-		model:    "gpt-5.1",
-		modelSet: true,
-	})
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !strings.Contains(err.Error(), "--provider and --model") {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if h.listCalls != 0 {
-		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
-	}
-}
-
-func TestRunTaskList_ProviderModelMustBeNonEmpty(t *testing.T) {
-	h := &stubTasksHandler{}
-	_, _, client := newTestServer(t, h)
-
-	err := runTaskListWithClient(context.Background(), client, taskListOpts{
-		teamID:      "22222222-2222-4222-8222-222222222222",
-		provider:    " ",
-		providerSet: true,
-		model:       "gpt-5.1",
-		modelSet:    true,
-	})
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !strings.Contains(err.Error(), "must both be non-empty") {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if h.listCalls != 0 {
-		t.Errorf("request should not be made on validation failure, got %d calls", h.listCalls)
-	}
-}
-
 func TestRunTaskList_EmptyTaskTypesRejected(t *testing.T) {
 	h := &stubTasksHandler{}
 	_, _, client := newTestServer(t, h)

@@ -188,7 +188,6 @@ const mockTask = {
   proposedByHumanId: null,
   acceptedAttemptN: null,
   requiredExecutorTrustLevel: 'selfDeclared',
-  allowedExecutors: [],
   status: 'queued',
   queuedAt: '2024-01-01T00:00:00Z',
   completedAt: null,

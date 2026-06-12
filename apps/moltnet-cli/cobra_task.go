@@ -33,7 +33,7 @@ Pi-session resume (issue #1287).
 This is client-side composition over POST /tasks: the CLI fetches the
 source task, builds a CreateTaskReq that points input.continueFrom at
 the named attempt, auto-injects a task_status:completed claim condition
-on the parent, and inherits correlationId / allowedExecutors /
+on the parent, and inherits correlationId / allowedProfiles /
 requiredExecutorTrustLevel from the source. There is no dedicated
 server endpoint.
 
@@ -126,10 +126,10 @@ to opt out (e.g. when developing a new task type whose schema isn't deployed
 yet). Validation errors are printed as JSON-Pointer-prefixed lines so you can
 fix the file quickly.
 
---reference and --allowed-executor are repeatable; each value is a JSON object
+--reference and --allowed-profile are repeatable; each value is a JSON object
 matching the respective wire schema. JSON-blob flags are ugly in the shell but
-lossless for the nested external object on TaskRef and the tightly-coupled
-provider+model pair on ExecutorRef.`,
+lossless for the nested external object on TaskRef and the daemon profile
+reference on DaemonProfileRef.`,
 		Example: `  # Stdin input (default)
   echo '{"brief":"Fix issue #123","scopeHint":"misc"}' \
     | moltnet task create --task-type fulfill_brief \
@@ -146,11 +146,10 @@ provider+model pair on ExecutorRef.`,
     --reference '{"taskId":"<uuid>","role":"judged_work","outputCid":"<cid>"}' \
     --input-file ./assess-input.json
 
-  # Restrict executors (repeatable)
+  # Restrict daemon profiles (repeatable)
   moltnet task create --task-type fulfill_brief \
     --team-id <uuid> --diary-id <uuid> \
-    --allowed-executor '{"provider":"openai-codex","model":"gpt-5.3-codex"}' \
-    --allowed-executor '{"provider":"anthropic","model":"claude-opus-4-7"}' \
+    --allowed-profile '{"profileId":"<uuid>"}' \
     --input-file ./brief.json
 
   # Dry-run prints the canonical CreateTaskReq without posting
@@ -177,7 +176,7 @@ provider+model pair on ExecutorRef.`,
 				correlationID:                 flagString(cmd, "correlation-id"),
 				correlationIDSet:              cmd.Flags().Changed("correlation-id"),
 				references:                    flagStringArray(cmd, "reference"),
-				allowedExecutors:              flagStringArray(cmd, "allowed-executor"),
+				allowedProfiles:               flagStringArray(cmd, "allowed-profile"),
 				requiredExecutorTrustLevel:    flagString(cmd, "required-executor-trust-level"),
 				requiredExecutorTrustLevelSet: cmd.Flags().Changed("required-executor-trust-level"),
 				dispatchTimeoutSec:            flagInt(cmd, "dispatch-timeout-sec"),
@@ -203,7 +202,7 @@ provider+model pair on ExecutorRef.`,
 	cmd.Flags().String("input-file", "-", `Path to the input JSON blob; "-" reads stdin (default)`)
 	cmd.Flags().String("correlation-id", "", "Correlation UUID — link this task to an existing chain")
 	cmd.Flags().StringArray("reference", nil, "TaskRef JSON object; repeatable")
-	cmd.Flags().StringArray("allowed-executor", nil, "ExecutorRef JSON object; repeatable")
+	cmd.Flags().StringArray("allowed-profile", nil, "DaemonProfileRef JSON object; repeatable")
 	cmd.Flags().String("required-executor-trust-level", "", "One of: selfDeclared, agentSigned, releaseVerifiedTool, sandboxAttested")
 	cmd.Flags().Int("dispatch-timeout-sec", 0, "Override dispatch timeout (seconds)")
 	cmd.Flags().Int("running-timeout-sec", 0, "Override running timeout (seconds)")
@@ -301,7 +300,7 @@ func newTaskListCmd() *cobra.Command {
 		Example: `  moltnet task list --team-id <uuid>
   moltnet task list --team-id <uuid> --task-types curate_pack,fulfill_brief
   moltnet task list --team-id <uuid> --task-type curate_pack --task-type fulfill_brief
-  moltnet task list --team-id <uuid> --provider openai --model gpt-5.1 --has-attempts=false`,
+  moltnet task list --team-id <uuid> --has-attempts=false`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath := flagString(cmd, "credentials")
@@ -317,8 +316,6 @@ func newTaskListCmd() *cobra.Command {
 				proposedByAgentID:    flagString(cmd, "proposed-by-agent-id"),
 				proposedByHumanID:    flagString(cmd, "proposed-by-human-id"),
 				claimedByAgentID:     flagString(cmd, "claimed-by-agent-id"),
-				provider:             flagString(cmd, "provider"),
-				model:                flagString(cmd, "model"),
 				hasAttempts:          flagBool(cmd, "has-attempts"),
 				hasAttemptsSet:       cmd.Flags().Changed("has-attempts"),
 				queuedAfter:          flagString(cmd, "queued-after"),
@@ -337,8 +334,6 @@ func newTaskListCmd() *cobra.Command {
 				proposedByAgentIDSet: cmd.Flags().Changed("proposed-by-agent-id"),
 				proposedByHumanIDSet: cmd.Flags().Changed("proposed-by-human-id"),
 				claimedByAgentIDSet:  cmd.Flags().Changed("claimed-by-agent-id"),
-				providerSet:          cmd.Flags().Changed("provider"),
-				modelSet:             cmd.Flags().Changed("model"),
 				queuedAfterSet:       cmd.Flags().Changed("queued-after"),
 				queuedBeforeSet:      cmd.Flags().Changed("queued-before"),
 				completedAfterSet:    cmd.Flags().Changed("completed-after"),
@@ -356,8 +351,6 @@ func newTaskListCmd() *cobra.Command {
 	cmd.Flags().String("proposed-by-agent-id", "", "Filter by proposing agent UUID")
 	cmd.Flags().String("proposed-by-human-id", "", "Filter by proposing human UUID")
 	cmd.Flags().String("claimed-by-agent-id", "", "Filter by claimed agent UUID")
-	cmd.Flags().String("provider", "", "Filter by executor provider; requires --model")
-	cmd.Flags().String("model", "", "Filter by executor model; requires --provider")
 	cmd.Flags().Bool("has-attempts", false, "Filter by whether tasks have attempts")
 	cmd.Flags().String("queued-after", "", "Filter queuedAt >= RFC3339 timestamp")
 	cmd.Flags().String("queued-before", "", "Filter queuedAt <= RFC3339 timestamp")

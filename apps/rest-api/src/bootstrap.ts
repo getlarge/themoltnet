@@ -25,6 +25,7 @@ import {
   createAgentRepository,
   createContextPackRepository,
   createCorrelationSealRepository,
+  createDaemonProfileRepository,
   createDatabase,
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
@@ -240,6 +241,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const diaryTransferRepository = createDiaryTransferRepository(
     dbConnection.db,
   );
+  const daemonProfileRepository = createDaemonProfileRepository(
+    dbConnection.db,
+  );
   const groupRepository = createGroupRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
   const signingRequestRepository = createSigningRequestRepository(
@@ -295,6 +299,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     taskRepository,
     diaryRepository,
     agentRepository,
+    daemonProfileRepository,
     contextPackRepository,
     renderedPackRepository,
     correlationSealRepository,
@@ -496,6 +501,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     groupRepository,
     teamRepository,
     diaryTransferRepository,
+    daemonProfileRepository,
     taskRepository,
     taskService,
     signingRequestRepository,

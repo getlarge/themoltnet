@@ -75,6 +75,30 @@ function getAuthContext(request: {
   return authContext;
 }
 
+async function validateAllowedProfiles(
+  fastify: FastifyInstance,
+  teamId: string,
+  allowedProfiles: readonly { profileId: string }[] | undefined,
+): Promise<void> {
+  const profileIds = [
+    ...new Set((allowedProfiles ?? []).map((p) => p.profileId)),
+  ];
+  for (const profileId of profileIds) {
+    const profile = await fastify.daemonProfileRepository.findById(profileId);
+    if (!profile || profile.teamId !== teamId) {
+      throw createValidationProblem(
+        [
+          {
+            field: 'allowedProfiles',
+            message: `Daemon profile ${profileId} does not resolve in team ${teamId}`,
+          },
+        ],
+        'allowedProfiles contains an unknown profile',
+      );
+    }
+  }
+}
+
 export function taskRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
@@ -135,6 +159,11 @@ export function taskRoutes(fastify: FastifyInstance) {
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
         const normalised = normalizeTaskCreateRequest(request.body);
+        await validateAllowedProfiles(
+          fastify,
+          request.body.teamId,
+          request.body.allowedProfiles,
+        );
         const task = await fastify.taskService.create({
           taskType: request.body.taskType,
           title: request.body.title,
@@ -148,7 +177,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           maxAttempts: request.body.maxAttempts,
           expiresInSec: request.body.expiresInSec,
           requiredExecutorTrustLevel: request.body.requiredExecutorTrustLevel,
-          allowedExecutors: request.body.allowedExecutors,
+          allowedProfiles: request.body.allowedProfiles,
           dispatchTimeoutSec: request.body.dispatchTimeoutSec,
           runningTimeoutSec: request.body.runningTimeoutSec,
           callerId: identityId,
@@ -190,21 +219,6 @@ export function taskRoutes(fastify: FastifyInstance) {
       const { identityId, subjectType } = getAuthContext(request);
       const callerNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
-      const { provider, model } = request.query;
-      // Ajv keyword `dependentRequired` would express this declaratively
-      // but Fastify's strict-mode Ajv rejects 2019-09 keywords. Keep the
-      // check minimal: XOR over presence.
-      if (Boolean(provider) !== Boolean(model)) {
-        throw createValidationProblem(
-          [
-            {
-              field: provider ? 'model' : 'provider',
-              message: 'provider and model must be provided together',
-            },
-          ],
-          'provider and model must be provided together',
-        );
-      }
       try {
         return await fastify.taskService.list({
           teamId: request.query.teamId,
@@ -214,8 +228,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           taskTypes: request.query.taskTypes,
           tags: request.query.tags,
           excludeTags: request.query.excludeTags,
-          executorProvider: provider?.toLowerCase(),
-          executorModel: model?.toLowerCase(),
+          profileId: request.query.profileId,
           correlationId: request.query.correlationId,
           diaryId: request.query.diaryId,
           proposedByAgentId: request.query.proposedByAgentId,
@@ -361,6 +374,7 @@ export function taskRoutes(fastify: FastifyInstance) {
             executorManifest: request.body.executorManifest,
             executorFingerprint: request.body.executorFingerprint,
             executorSignature: request.body.executorSignature,
+            profileId: request.body.profileId,
           },
         );
         if (typeof request.opentelemetry === 'function') {

@@ -51,10 +51,6 @@ type taskListOpts struct {
 	proposedByHumanIDSet bool
 	claimedByAgentID     string
 	claimedByAgentIDSet  bool
-	provider             string
-	providerSet          bool
-	model                string
-	modelSet             bool
 	hasAttempts          bool
 	hasAttemptsSet       bool
 	queuedAfter          string
@@ -147,18 +143,6 @@ func buildListTasksParams(opts taskListOpts) (moltnetapi.ListTasksParams, error)
 		}
 	}
 
-	if opts.providerSet != opts.modelSet {
-		return moltnetapi.ListTasksParams{}, fmt.Errorf("--provider and --model must be set together")
-	}
-	if opts.providerSet {
-		provider := strings.TrimSpace(opts.provider)
-		model := strings.TrimSpace(opts.model)
-		if provider == "" || model == "" {
-			return moltnetapi.ListTasksParams{}, fmt.Errorf("--provider and --model must both be non-empty")
-		}
-		params.Provider = moltnetapi.NewOptString(provider)
-		params.Model = moltnetapi.NewOptString(model)
-	}
 	if opts.hasAttemptsSet {
 		params.HasAttempts = moltnetapi.NewOptBool(opts.hasAttempts)
 	}

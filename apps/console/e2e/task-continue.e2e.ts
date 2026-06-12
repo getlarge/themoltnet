@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 
 import {
+  createDaemonProfile,
   createDiary,
   createDiaryGrant,
   createTeam,
@@ -50,6 +51,7 @@ test.describe.serial('Continue task from console', () => {
   let agentCtx: ConnectedAgent;
   let sourceTaskId: string;
   let sourceAttemptN: number;
+  let allowedProfileId: string;
 
   test.afterAll(async () => {
     await agentCtx?.teardown();
@@ -109,6 +111,26 @@ test.describe.serial('Continue task from console', () => {
     }
     sharedTeamId = created.data.id;
 
+    const profile = await createDaemonProfile({
+      client: humanClient,
+      path: { id: sharedTeamId },
+      body: {
+        name: `task-continue-profile-${nonce}`,
+        runtimeKind: 'gondolin_pi',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        sandbox: {
+          image: 'ghcr.io/getlarge/themoltnet/agent-runtime:e2e',
+        },
+      },
+    });
+    if (!profile.data?.id) {
+      throw new Error(
+        `createDaemonProfile failed: ${JSON.stringify(profile.error)}`,
+      );
+    }
+    allowedProfileId = profile.data.id;
+
     // Create a diary inside the shared team so both the human (owner)
     // and the agent (member) can read tasks against it. The agent's
     // bootstrap-time private diary belongs to the agent's personal team
@@ -144,11 +166,10 @@ test.describe.serial('Continue task from console', () => {
   });
 
   test('seeds a completed freeform parent with future slotResumableUntil', async () => {
-    // Pin the source's executor so the continuation-inherits-pinning
+    // Pin the source profile so the continuation-inherits-pinning
     // assertion later has concrete values to compare against. The
-    // agent doesn't actually need to match this allowlist to claim the
-    // source — we never run the continuation; we only assert the
-    // create payload the console submitted carries the inheritance.
+    // seed claim also presents the same profile so the source task
+    // exercises the server-side allowedProfiles claim gate.
     const seeded = await seedCompletedFreeformAttempt({
       agent: agentCtx.agent,
       teamId: sharedTeamId,
@@ -156,7 +177,8 @@ test.describe.serial('Continue task from console', () => {
       brief: `Parent investigation ${nonce}`,
       title: sourceTitle,
       correlationId,
-      allowedExecutors: [{ provider: 'anthropic', model: 'claude-opus-4-7' }],
+      allowedProfiles: [{ profileId: allowedProfileId }],
+      claimProfileId: allowedProfileId,
       requiredExecutorTrustLevel: 'selfDeclared',
     });
     sourceTaskId = seeded.taskId;
@@ -238,13 +260,11 @@ test.describe.serial('Continue task from console', () => {
     expect(claim?.taskId).toBe(sourceTaskId);
     expect(claim?.statuses).toEqual(['completed']);
 
-    // Executor pinning must flow through — dropping it would let the
-    // continuation be claimed by an executor the parent's proposer
+    // Profile pinning must flow through — dropping it would let the
+    // continuation be claimed by a profile the parent's proposer
     // explicitly excluded. Mirrors the MCP tasks_continue + Go CLI
     // task continue wire contracts.
-    expect(newTask?.allowedExecutors).toEqual([
-      { provider: 'anthropic', model: 'claude-opus-4-7' },
-    ]);
+    expect(newTask?.allowedProfiles).toEqual([{ profileId: allowedProfileId }]);
     expect(newTask?.requiredExecutorTrustLevel).toBe('selfDeclared');
   });
 });

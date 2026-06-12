@@ -57,6 +57,7 @@
     "pino-pretty": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/api-client": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/observability": "workspace:*",

@@ -229,28 +229,28 @@ func TestRunTaskCreate_ReferenceRoundTrip(t *testing.T) {
 	}
 }
 
-func TestRunTaskCreate_AllowedExecutorRoundTrip(t *testing.T) {
+func TestRunTaskCreate_AllowedProfileRoundTrip(t *testing.T) {
 	h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
 	_, _, client := newTestServer(t, h)
 
 	opts := newCreateOpts(`{"brief":"with-execs"}`)
 	opts.out = io.Discard
-	opts.allowedExecutors = []string{
-		`{"provider":"openai-codex","model":"gpt-5.3-codex"}`,
-		`{"provider":"anthropic","model":"claude-opus-4-7"}`,
+	opts.allowedProfiles = []string{
+		`{"profileId":"11111111-1111-4111-8111-111111111111"}`,
+		`{"profileId":"22222222-2222-4222-8222-222222222222"}`,
 	}
 
 	if err := runTaskCreateWithClient(context.Background(), client, opts); err != nil {
 		t.Fatalf("runTaskCreateWithClient: %v", err)
 	}
-	if len(h.lastCreate.AllowedExecutors) != 2 {
-		t.Fatalf("expected 2 AllowedExecutors, got %d", len(h.lastCreate.AllowedExecutors))
+	if len(h.lastCreate.AllowedProfiles) != 2 {
+		t.Fatalf("expected 2 AllowedProfiles, got %d", len(h.lastCreate.AllowedProfiles))
 	}
-	if h.lastCreate.AllowedExecutors[0].Provider != "openai-codex" {
-		t.Errorf("AllowedExecutors[0].Provider = %q", h.lastCreate.AllowedExecutors[0].Provider)
+	if h.lastCreate.AllowedProfiles[0].ProfileId.String() != "11111111-1111-4111-8111-111111111111" {
+		t.Errorf("AllowedProfiles[0].ProfileId = %q", h.lastCreate.AllowedProfiles[0].ProfileId)
 	}
-	if h.lastCreate.AllowedExecutors[1].Model != "claude-opus-4-7" {
-		t.Errorf("AllowedExecutors[1].Model = %q", h.lastCreate.AllowedExecutors[1].Model)
+	if h.lastCreate.AllowedProfiles[1].ProfileId.String() != "22222222-2222-4222-8222-222222222222" {
+		t.Errorf("AllowedProfiles[1].ProfileId = %q", h.lastCreate.AllowedProfiles[1].ProfileId)
 	}
 }
 

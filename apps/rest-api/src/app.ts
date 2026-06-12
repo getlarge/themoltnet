@@ -35,6 +35,7 @@ import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
+import { daemonProfileRoutes } from './routes/daemon-profiles.js';
 import { diaryRoutes } from './routes/diary.js';
 import { diaryEntryRoutes } from './routes/diary-entries.js';
 import { entryRelationRoutes } from './routes/entry-relations.js';
@@ -58,6 +59,7 @@ import type {
   ContextPackRepository,
   ContextPackService,
   CryptoService,
+  DaemonProfileRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryService,
@@ -143,6 +145,7 @@ export interface AppOptions {
   groupRepository: GroupRepository;
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
+  daemonProfileRepository: DaemonProfileRepository;
   taskRepository: TaskRepository;
   taskService: TaskService;
   /** Signing request repository + dataSource are required together (DBOS) */
@@ -342,6 +345,7 @@ export async function registerApiRoutes(
   decorateSafe('groupRepository', options.groupRepository);
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
+  decorateSafe('daemonProfileRepository', options.daemonProfileRepository);
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('packGcConfig', options.packGcConfig);
@@ -384,6 +388,7 @@ export async function registerApiRoutes(
   await app.register(registrationRoutes);
   await app.register(teamRoutes);
   await app.register(groupRoutes);
+  await app.register(daemonProfileRoutes);
   await app.register(vouchRoutes);
   await app.register(publicRoutes);
   await app.register(taskRoutes);

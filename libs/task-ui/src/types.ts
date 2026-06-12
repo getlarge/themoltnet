@@ -102,7 +102,7 @@ export interface TaskSummary {
   acceptedAttemptN: number | null;
   claimCondition: ClaimCondition | null;
   requiredExecutorTrustLevel: ExecutorTrustLevel;
-  allowedExecutors: { provider: string; model: string }[];
+  allowedProfiles: { profileId: string }[];
   status: TaskStatus;
   queuedAt: string;
   completedAt: string | null;

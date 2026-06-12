@@ -146,16 +146,26 @@ describe('PollingApiTaskSource', () => {
     expect(list).toHaveBeenCalledTimes(2);
   });
 
-  it('forwards provider and model to the list call when both are set', async () => {
+  it('forwards profileId to list and claim when set', async () => {
+    const profileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const task = makeFulfillBriefTask({
+      id: '33333333-3333-4333-8333-333333333333',
+      status: 'queued',
+      allowedProfiles: [{ profileId }],
+    });
     const list = vi
       .fn<TasksNamespace['list']>()
-      .mockResolvedValue({ items: [], total: 0 });
+      .mockResolvedValue({ items: [task], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
 
     const src = new PollingApiTaskSource({
-      agent: makeAgent(list, vi.fn()),
+      agent: makeAgent(list, claim),
       teamId: 't',
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
+      profileId,
       leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
@@ -163,23 +173,16 @@ describe('PollingApiTaskSource', () => {
     await src.claim();
     expect(list).toHaveBeenCalledWith(
       expect.objectContaining({
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        profileId,
       }),
     );
-  });
-
-  it('throws when provider is set without model (or vice versa)', () => {
-    expect(
-      () =>
-        new PollingApiTaskSource({
-          agent: makeAgent(vi.fn(), vi.fn()),
-          teamId: 't',
-          provider: 'anthropic',
-          // model intentionally unset
-          leaseTtlSec: 60,
-        }),
-    ).toThrow(/provider and model must be set together/);
+    expect(claim).toHaveBeenCalledWith(
+      task.id,
+      expect.objectContaining({
+        leaseTtlSec: 60,
+        profileId,
+      }),
+    );
   });
 
   it('issues one list call with all task types when multiple are configured', async () => {
@@ -239,22 +242,22 @@ describe('PollingApiTaskSource', () => {
     await expect(src.claim()).rejects.toThrow('boom');
   });
 
-  it('drops pinned candidates whose allowedExecutors does not include the daemon pair — never claimed', async () => {
-    // Pinned to a different model — daemon must skip silently, NOT claim
+  it('drops pinned candidates whose allowedProfiles does not include the selected profile — never claimed', async () => {
+    // Pinned to a different profile — daemon must skip silently, NOT claim
     // and then fail. The diaryIds-style filter at listCandidates is what
     // matters; the post-claim layer is gone.
-    const pinnedForOtherModel = makeFulfillBriefTask({
+    const pinnedForOtherProfile = makeFulfillBriefTask({
       id: '11111111-1111-4111-8111-111111111111',
       status: 'queued',
-      allowedExecutors: [{ provider: 'anthropic', model: 'claude-opus-4-7' }],
+      allowedProfiles: [{ profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }],
     });
     const unrestricted = makeFulfillBriefTask({
       id: '22222222-2222-4222-8222-222222222222',
       status: 'queued',
-      allowedExecutors: [],
+      allowedProfiles: [],
     });
     const list = vi.fn<TasksNamespace['list']>().mockResolvedValue({
-      items: [pinnedForOtherModel, unrestricted],
+      items: [pinnedForOtherProfile, unrestricted],
       total: 2,
     });
     const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
@@ -266,27 +269,27 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
+      profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
     const result = await src.claim();
     expect(result?.task.id).toBe(unrestricted.id);
-    // The pinned-for-other-model task must never have been claimed.
+    // The pinned-for-other-profile task must never have been claimed.
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith(unrestricted.id, { leaseTtlSec: 60 });
+    expect(claim).toHaveBeenCalledWith(unrestricted.id, {
+      leaseTtlSec: 60,
+      profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    });
   });
 
-  it('keeps pinned candidates whose allowedExecutors includes the daemon pair', async () => {
+  it('keeps pinned candidates whose allowedProfiles includes the selected profile', async () => {
+    const profileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
     const pinnedForUs = makeFulfillBriefTask({
       id: '33333333-3333-4333-8333-333333333333',
       status: 'queued',
-      allowedExecutors: [
-        { provider: 'anthropic', model: 'claude-sonnet-4-5' },
-        { provider: 'openai', model: 'gpt-5' },
-      ],
+      allowedProfiles: [{ profileId }],
     });
     const list = vi
       .fn<TasksNamespace['list']>()
@@ -300,8 +303,7 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
+      profileId,
       leaseTtlSec: 60,
       stopWhenEmpty: true,
     });

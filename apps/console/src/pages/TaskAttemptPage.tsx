@@ -194,12 +194,12 @@ export function TaskAttemptPage({
             attemptN,
             sourceTitle: sourceTitle || undefined,
             correlationId: task.correlationId,
-            // Inherit executor pinning from the source — mirrors what
+            // Inherit profile pinning from the source — mirrors what
             // the MCP tasks_continue tool and the Go CLI task continue
             // do. Dropping these would let the continuation be claimed
-            // by an executor the parent's proposer excluded, or relax
+            // by a profile the parent's proposer excluded, or relax
             // the trust-level pin.
-            allowedExecutors: task.allowedExecutors,
+            allowedProfiles: task.allowedProfiles,
             requiredExecutorTrustLevel: task.requiredExecutorTrustLevel,
           }}
           onClose={() => setShowContinue(false)}

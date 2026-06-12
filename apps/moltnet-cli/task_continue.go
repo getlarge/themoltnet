@@ -4,7 +4,7 @@ package main
 // Pi-session continuations. The CLI mirrors the MCP tool's logic
 // (apps/mcp-server/src/task-tools.ts → handleTasksContinue): read the
 // source via GetTask, build a CreateTaskReq with continueFrom +
-// inherited correlation/executor pinning + auto-injected
+// inherited correlation/profile pinning + auto-injected
 // task_status:completed claim condition on the parent, then POST.
 //
 // The shape parallels task_create.go so the two commands feel uniform
@@ -169,7 +169,7 @@ func runTaskContinueWithClient(ctx context.Context, client *moltnetapi.Client, o
 // buildContinuationRequest projects the source task plus caller inputs
 // into the CreateTaskReq the server expects. The composition mirrors the
 // MCP tool's handleTasksContinue verbatim: inherit teamId / diaryId /
-// correlationId / allowedExecutors / requiredExecutorTrustLevel from the
+// correlationId / allowedProfiles / requiredExecutorTrustLevel from the
 // source; auto-inject a `task_status: completed` claim condition; pack
 // the caller's flags + continueFrom into `input`.
 func buildContinuationRequest(opts taskContinueOpts, source *moltnetapi.Task) (*moltnetapi.CreateTaskReq, error) {
@@ -208,13 +208,12 @@ func buildContinuationRequest(opts taskContinueOpts, source *moltnetapi.Task) (*
 		req.CorrelationId = moltnetapi.NewOptUUID(corrID)
 	}
 
-	// Inherit executor pinning. ExecutorRef and TaskAllowedExecutorsItem
+	// Inherit profile pinning. DaemonProfileRef and TaskAllowedProfilesItem
 	// have identical shape but distinct nominal types in the generated
 	// client; copy field-by-field.
-	for _, ex := range source.AllowedExecutors {
-		req.AllowedExecutors = append(req.AllowedExecutors, moltnetapi.ExecutorRef{
-			Provider: ex.Provider,
-			Model:    ex.Model,
+	for _, profile := range source.AllowedProfiles {
+		req.AllowedProfiles = append(req.AllowedProfiles, moltnetapi.DaemonProfileRef{
+			ProfileId: profile.ProfileId,
 		})
 	}
 

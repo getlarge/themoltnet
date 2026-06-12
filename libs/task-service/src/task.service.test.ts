@@ -74,7 +74,6 @@ function makeRunEvalTask(id: string): DbTask {
     acceptedAttemptN: 1,
     claimCondition: null,
     requiredExecutorTrustLevel: 'self_declared',
-    allowedExecutors: [],
     status: 'completed',
     queuedAt: new Date('2026-05-11T00:00:00Z'),
     completedAt: new Date('2026-05-11T00:01:00Z'),

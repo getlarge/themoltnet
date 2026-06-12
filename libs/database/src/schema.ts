@@ -28,6 +28,8 @@ import {
 // Drizzle doesn't have native vector support, so we use customType
 import { customType } from 'drizzle-orm/pg-core';
 
+import { defineDaemonProfilesTable } from './schema/daemon-profiles.js';
+
 const vector = customType<{ data: number[]; driverData: string }>({
   dataType() {
     return 'vector(384)';
@@ -153,6 +155,16 @@ export const taskMessageKindEnum = pgEnum('task_message_kind', [
 ]);
 
 export const outputKindEnum = pgEnum('output_kind', ['artifact', 'judgment']);
+
+export const daemonProfileRuntimeKindEnum = pgEnum(
+  'daemon_profile_runtime_kind',
+  ['gondolin_pi'],
+);
+
+export const daemonProfileStorageModeEnum = pgEnum(
+  'daemon_profile_storage_mode',
+  ['local'],
+);
 
 /**
  * Diaries Table
@@ -1037,14 +1049,13 @@ export const tasks = pgTable(
     )
       .notNull()
       .default('self_declared'),
-    // Proposer-set executor pinning. Empty array = no restriction.
-    // Element shape: { provider: string, model: string }, both
-    // lowercased on the create-task path. Compared as a JSONB containment
-    // query against a daemon's advertised pair on list-tasks.
-    allowedExecutors: jsonb('allowed_executors')
+    // Proposer-set daemon profile routing. Empty array = no restriction.
+    // Element shape: { profileId: uuid }. Compared as a JSONB containment
+    // query against a daemon's selected profile id on list-tasks.
+    allowedProfiles: jsonb('allowed_profiles')
       .notNull()
       .default(sql`'[]'::jsonb`)
-      .$type<{ provider: string; model: string }[]>(),
+      .$type<{ profileId: string }[]>(),
     queuedAt: timestamp('queued_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -1087,11 +1098,9 @@ export const tasks = pgTable(
     index('tasks_claim_expires_idx')
       .on(table.claimExpiresAt)
       .where(sql`claim_expires_at IS NOT NULL`),
-    // GIN(jsonb_path_ops) supports the @> filter on `allowed_executors`
-    // used by the GET /tasks executor scope.
-    index('tasks_allowed_executors_gin_idx').using(
+    index('tasks_allowed_profiles_gin_idx').using(
       'gin',
-      sql`${table.allowedExecutors} jsonb_path_ops`,
+      sql`${table.allowedProfiles} jsonb_path_ops`,
     ),
     check(
       'tasks_proposer_xor',
@@ -1169,6 +1178,19 @@ export const correlationSeals = pgTable(
 
 export type CorrelationSeal = typeof correlationSeals.$inferSelect;
 export type NewCorrelationSeal = typeof correlationSeals.$inferInsert;
+
+// ── Daemon Profiles ───────────────────────────────────────────
+
+export const daemonProfiles = defineDaemonProfilesTable({
+  agents,
+  humans,
+  teams,
+  runtimeKindEnum: daemonProfileRuntimeKindEnum,
+  storageModeEnum: daemonProfileStorageModeEnum,
+});
+
+export type DaemonProfile = typeof daemonProfiles.$inferSelect;
+export type NewDaemonProfile = typeof daemonProfiles.$inferInsert;
 
 // ── Executor Manifests ─────────────────────────────────────
 

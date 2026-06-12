@@ -27,7 +27,7 @@ export const taskFixture: TaskSummary = {
   acceptedAttemptN: null,
   claimCondition: null,
   requiredExecutorTrustLevel: 'selfDeclared',
-  allowedExecutors: [],
+  allowedProfiles: [],
   status: 'running',
   queuedAt: '2026-04-27T10:00:00.000Z',
   completedAt: null,

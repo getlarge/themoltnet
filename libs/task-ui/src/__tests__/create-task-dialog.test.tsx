@@ -239,7 +239,7 @@ describe('CreateTaskDialog continuation mode', () => {
     attemptN: 2,
     sourceTitle: 'Round 1',
     correlationId: 'corr-1',
-    allowedExecutors: [{ provider: 'anthropic', model: 'claude-opus-4-7' }],
+    allowedProfiles: [{ profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }],
     requiredExecutorTrustLevel: 'agentSigned' as const,
   };
 
@@ -294,10 +294,10 @@ describe('CreateTaskDialog continuation mode', () => {
     });
   });
 
-  it('forwards executor allowlist + trust level from the source', async () => {
+  it('forwards profile allowlist + trust level from the source', async () => {
     // Mirrors the MCP tasks_continue and Go CLI task continue wire
     // contracts. Dropping these would let the continuation be claimed
-    // by an executor the parent's proposer explicitly excluded, or
+    // by a profile the parent's proposer explicitly excluded, or
     // silently relax the trust-level pin.
     const onSubmit = vi.fn().mockResolvedValue('continuation-id');
     renderDialog({ continueFrom, onSubmit });
@@ -309,15 +309,15 @@ describe('CreateTaskDialog continuation mode', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
-    expect(request.allowedExecutors).toEqual([
-      { provider: 'anthropic', model: 'claude-opus-4-7' },
+    expect(request.allowedProfiles).toEqual([
+      { profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
     ]);
     expect(request.requiredExecutorTrustLevel).toBe('agentSigned');
   });
 
-  it('omits executor pinning when the source did not pin', async () => {
+  it('omits profile pinning when the source did not pin', async () => {
     // Standalone freeform tasks let the server fall back to the
-    // registry defaults; the dialog must not invent allowedExecutors
+    // registry defaults; the dialog must not invent allowedProfiles
     // entries or pick a trust level on the user's behalf.
     const onSubmit = vi.fn().mockResolvedValue('continuation-id');
     renderDialog({
@@ -337,7 +337,7 @@ describe('CreateTaskDialog continuation mode', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
-    expect(request.allowedExecutors).toBeUndefined();
+    expect(request.allowedProfiles).toBeUndefined();
     expect(request.requiredExecutorTrustLevel).toBeUndefined();
     expect(request.correlationId).toBeUndefined();
   });

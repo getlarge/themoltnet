@@ -249,6 +249,10 @@
             "maximum": 3600,
             "minimum": 1,
             "type": "integer"
+          },
+          "profileId": {
+            "format": "uuid",
+            "type": "string"
           }
         },
         "type": "object"
@@ -942,11 +946,318 @@
           }
         ]
       },
+      "CreateDaemonProfileBody": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "binding": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "skill"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "context_inline"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "prompt_prefix"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "user_inline"
+                      ],
+                      "type": "string"
+                    }
+                  ]
+                },
+                "content": {
+                  "maxLength": 65536,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "slug": {
+                  "maxLength": 64,
+                  "minLength": 1,
+                  "pattern": "^[a-zA-Z0-9_-]+$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "slug",
+                "binding",
+                "content"
+              ],
+              "type": "object"
+            },
+            "maxItems": 5,
+            "type": "array"
+          },
+          "description": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
+            "type": "string"
+          },
+          "provider": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "requiredEnv": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Z_][A-Z0-9_]*$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "requiredTools": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._/-]+$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "runtimeKind": {
+            "enum": [
+              "gondolin_pi"
+            ],
+            "type": "string"
+          },
+          "sandbox": {
+            "additionalProperties": false,
+            "properties": {
+              "env": {
+                "additionalProperties": {
+                  "maxLength": 4096,
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "hostExec": {
+                "additionalProperties": false,
+                "properties": {
+                  "autoApprove": {
+                    "enum": [
+                      false
+                    ],
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              },
+              "resources": {
+                "additionalProperties": false,
+                "properties": {
+                  "cpus": {
+                    "maximum": 32,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "memory": {
+                    "maxLength": 16,
+                    "minLength": 2,
+                    "pattern": "^[0-9]+[KMG]?$",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "resumeCommands": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxLength": 4096,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "retries": {
+                          "maximum": 5,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMs": {
+                          "maximum": 60000,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "run": {
+                          "maxLength": 4096,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "when": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "workspaceMode": {
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "shared_mount"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "dedicated_worktree"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "scratch_mount"
+                                    ],
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "maxItems": 3,
+                              "minItems": 1,
+                              "type": "array"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "run"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "maxItems": 30,
+                "type": "array"
+              },
+              "snapshot": {
+                "additionalProperties": false,
+                "properties": {
+                  "allowedHosts": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "overlaySize": {
+                    "maxLength": 16,
+                    "minLength": 2,
+                    "pattern": "^[0-9]+[KMGTP]?$",
+                    "type": "string"
+                  },
+                  "setupCommands": {
+                    "items": {
+                      "maxLength": 4096,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "vfs": {
+                "additionalProperties": false,
+                "properties": {
+                  "shadow": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "shadowMode": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "deny"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "tmpfs"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "sessionStorageMode": {
+            "enum": [
+              "local"
+            ],
+            "type": "string"
+          },
+          "sessionTtlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workspaceStorageMode": {
+            "enum": [
+              "local"
+            ],
+            "type": "string"
+          },
+          "workspaceTtlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "provider",
+          "model",
+          "sandbox"
+        ],
+        "type": "object"
+      },
       "CreateTaskBody": {
         "properties": {
-          "allowedExecutors": {
+          "allowedProfiles": {
             "items": {
-              "$ref": "#/components/schemas/ExecutorRef"
+              "$ref": "#/components/schemas/DaemonProfileRef"
             },
             "maxItems": 16,
             "type": "array"
@@ -1144,6 +1455,1009 @@
           "entries",
           "compileStats"
         ],
+        "type": "object"
+      },
+      "DaemonProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "binding": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "skill"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "context_inline"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "prompt_prefix"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "user_inline"
+                      ],
+                      "type": "string"
+                    }
+                  ]
+                },
+                "content": {
+                  "maxLength": 65536,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "slug": {
+                  "maxLength": 64,
+                  "minLength": 1,
+                  "pattern": "^[a-zA-Z0-9_-]+$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "slug",
+                "binding",
+                "content"
+              ],
+              "type": "object"
+            },
+            "maxItems": 5,
+            "type": "array"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdByAgentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdByHumanId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "definitionCid": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
+            "type": "string"
+          },
+          "provider": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "requiredEnv": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Z_][A-Z0-9_]*$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "requiredTools": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._/-]+$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "runtimeKind": {
+            "enum": [
+              "gondolin_pi"
+            ],
+            "type": "string"
+          },
+          "sandbox": {
+            "additionalProperties": false,
+            "properties": {
+              "env": {
+                "additionalProperties": {
+                  "maxLength": 4096,
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "hostExec": {
+                "additionalProperties": false,
+                "properties": {
+                  "autoApprove": {
+                    "enum": [
+                      false
+                    ],
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              },
+              "resources": {
+                "additionalProperties": false,
+                "properties": {
+                  "cpus": {
+                    "maximum": 32,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "memory": {
+                    "maxLength": 16,
+                    "minLength": 2,
+                    "pattern": "^[0-9]+[KMG]?$",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "resumeCommands": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxLength": 4096,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "retries": {
+                          "maximum": 5,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMs": {
+                          "maximum": 60000,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "run": {
+                          "maxLength": 4096,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "when": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "workspaceMode": {
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "shared_mount"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "dedicated_worktree"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "scratch_mount"
+                                    ],
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "maxItems": 3,
+                              "minItems": 1,
+                              "type": "array"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "run"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "maxItems": 30,
+                "type": "array"
+              },
+              "snapshot": {
+                "additionalProperties": false,
+                "properties": {
+                  "allowedHosts": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "overlaySize": {
+                    "maxLength": 16,
+                    "minLength": 2,
+                    "pattern": "^[0-9]+[KMGTP]?$",
+                    "type": "string"
+                  },
+                  "setupCommands": {
+                    "items": {
+                      "maxLength": 4096,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "vfs": {
+                "additionalProperties": false,
+                "properties": {
+                  "shadow": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "shadowMode": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "deny"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "tmpfs"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "sessionStorageMode": {
+            "enum": [
+              "local"
+            ],
+            "type": "string"
+          },
+          "sessionTtlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workspaceStorageMode": {
+            "enum": [
+              "local"
+            ],
+            "type": "string"
+          },
+          "workspaceTtlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "teamId",
+          "name",
+          "description",
+          "provider",
+          "model",
+          "runtimeKind",
+          "sandbox",
+          "sessionStorageMode",
+          "workspaceStorageMode",
+          "sessionTtlSec",
+          "workspaceTtlSec",
+          "requiredEnv",
+          "requiredTools",
+          "context",
+          "revision",
+          "definitionCid",
+          "createdByAgentId",
+          "createdByHumanId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "DaemonProfileContext": {
+        "additionalProperties": false,
+        "properties": {
+          "binding": {
+            "anyOf": [
+              {
+                "enum": [
+                  "skill"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "context_inline"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "prompt_prefix"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "user_inline"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "content": {
+            "maxLength": 65536,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slug": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "binding",
+          "content"
+        ],
+        "type": "object"
+      },
+      "DaemonProfileListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "context": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "binding": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "skill"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "context_inline"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "prompt_prefix"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "user_inline"
+                            ],
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "content": {
+                        "maxLength": 65536,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "slug": {
+                        "maxLength": 64,
+                        "minLength": 1,
+                        "pattern": "^[a-zA-Z0-9_-]+$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "slug",
+                      "binding",
+                      "content"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 5,
+                  "type": "array"
+                },
+                "createdAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "createdByAgentId": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "createdByHumanId": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "definitionCid": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "maxLength": 4096,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "model": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "name": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
+                  "type": "string"
+                },
+                "provider": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "requiredEnv": {
+                  "items": {
+                    "maxLength": 128,
+                    "minLength": 1,
+                    "pattern": "^[A-Z_][A-Z0-9_]*$",
+                    "type": "string"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                },
+                "requiredTools": {
+                  "items": {
+                    "maxLength": 128,
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9._/-]+$",
+                    "type": "string"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                },
+                "revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "runtimeKind": {
+                  "enum": [
+                    "gondolin_pi"
+                  ],
+                  "type": "string"
+                },
+                "sandbox": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "env": {
+                      "additionalProperties": {
+                        "maxLength": 4096,
+                        "type": "string"
+                      },
+                      "type": "object"
+                    },
+                    "hostExec": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "autoApprove": {
+                          "enum": [
+                            false
+                          ],
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "resources": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "cpus": {
+                          "maximum": 32,
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "memory": {
+                          "maxLength": 16,
+                          "minLength": 2,
+                          "pattern": "^[0-9]+[KMG]?$",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "resumeCommands": {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "maxLength": 4096,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "retries": {
+                                "maximum": 5,
+                                "minimum": 0,
+                                "type": "integer"
+                              },
+                              "retryBackoffMs": {
+                                "maximum": 60000,
+                                "minimum": 0,
+                                "type": "integer"
+                              },
+                              "run": {
+                                "maxLength": 4096,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "when": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "workspaceMode": {
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "enum": [
+                                            "shared_mount"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        {
+                                          "enum": [
+                                            "dedicated_worktree"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        {
+                                          "enum": [
+                                            "scratch_mount"
+                                          ],
+                                          "type": "string"
+                                        }
+                                      ]
+                                    },
+                                    "maxItems": 3,
+                                    "minItems": 1,
+                                    "type": "array"
+                                  }
+                                },
+                                "type": "object"
+                              }
+                            },
+                            "required": [
+                              "run"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "maxItems": 30,
+                      "type": "array"
+                    },
+                    "snapshot": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "allowedHosts": {
+                          "items": {
+                            "maxLength": 255,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "maxItems": 50,
+                          "type": "array"
+                        },
+                        "overlaySize": {
+                          "maxLength": 16,
+                          "minLength": 2,
+                          "pattern": "^[0-9]+[KMGTP]?$",
+                          "type": "string"
+                        },
+                        "setupCommands": {
+                          "items": {
+                            "maxLength": 4096,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "maxItems": 20,
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "vfs": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "shadow": {
+                          "items": {
+                            "maxLength": 255,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "maxItems": 100,
+                          "type": "array"
+                        },
+                        "shadowMode": {
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "deny"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "tmpfs"
+                              ],
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                },
+                "sessionStorageMode": {
+                  "enum": [
+                    "local"
+                  ],
+                  "type": "string"
+                },
+                "sessionTtlSec": {
+                  "maximum": 86400,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "teamId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "workspaceStorageMode": {
+                  "enum": [
+                    "local"
+                  ],
+                  "type": "string"
+                },
+                "workspaceTtlSec": {
+                  "maximum": 86400,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "teamId",
+                "name",
+                "description",
+                "provider",
+                "model",
+                "runtimeKind",
+                "sandbox",
+                "sessionStorageMode",
+                "workspaceStorageMode",
+                "sessionTtlSec",
+                "workspaceTtlSec",
+                "requiredEnv",
+                "requiredTools",
+                "context",
+                "revision",
+                "definitionCid",
+                "createdByAgentId",
+                "createdByHumanId",
+                "createdAt",
+                "updatedAt"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "DaemonProfileRef": {
+        "additionalProperties": false,
+        "properties": {
+          "profileId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profileId"
+        ],
+        "type": "object"
+      },
+      "DaemonProfileSandbox": {
+        "additionalProperties": false,
+        "properties": {
+          "env": {
+            "additionalProperties": {
+              "maxLength": 4096,
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "hostExec": {
+            "additionalProperties": false,
+            "properties": {
+              "autoApprove": {
+                "enum": [
+                  false
+                ],
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "resources": {
+            "additionalProperties": false,
+            "properties": {
+              "cpus": {
+                "maximum": 32,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "memory": {
+                "maxLength": 16,
+                "minLength": 2,
+                "pattern": "^[0-9]+[KMG]?$",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "resumeCommands": {
+            "items": {
+              "anyOf": [
+                {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "retries": {
+                      "maximum": 5,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "retryBackoffMs": {
+                      "maximum": 60000,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "run": {
+                      "maxLength": 4096,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "when": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "workspaceMode": {
+                          "items": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "shared_mount"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "dedicated_worktree"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "scratch_mount"
+                                ],
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "maxItems": 3,
+                          "minItems": 1,
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "run"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "snapshot": {
+            "additionalProperties": false,
+            "properties": {
+              "allowedHosts": {
+                "items": {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              "overlaySize": {
+                "maxLength": 16,
+                "minLength": 2,
+                "pattern": "^[0-9]+[KMGTP]?$",
+                "type": "string"
+              },
+              "setupCommands": {
+                "items": {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 20,
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "vfs": {
+            "additionalProperties": false,
+            "properties": {
+              "shadow": {
+                "items": {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "type": "array"
+              },
+              "shadowMode": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "deny"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "tmpfs"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            "type": "object"
+          }
+        },
         "type": "object"
       },
       "DaemonState": {
@@ -2400,24 +3714,6 @@
         ],
         "type": "object"
       },
-      "ExecutorRef": {
-        "additionalProperties": false,
-        "properties": {
-          "model": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "provider": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "provider",
-          "model"
-        ],
-        "type": "object"
-      },
       "ExecutorTrustLevel": {
         "anyOf": [
           {
@@ -2747,8 +4043,8 @@
             "minimum": 1,
             "type": "integer"
           },
-          "model": {
-            "minLength": 1,
+          "profileId": {
+            "format": "uuid",
             "type": "string"
           },
           "proposedByAgentId": {
@@ -2757,10 +4053,6 @@
           },
           "proposedByHumanId": {
             "format": "uuid",
-            "type": "string"
-          },
-          "provider": {
-            "minLength": 1,
             "type": "string"
           },
           "query": {
@@ -5432,22 +6724,17 @@
               }
             ]
           },
-          "allowedExecutors": {
+          "allowedProfiles": {
             "items": {
               "additionalProperties": false,
               "properties": {
-                "model": {
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "provider": {
-                  "minLength": 1,
+                "profileId": {
+                  "format": "uuid",
                   "type": "string"
                 }
               },
               "required": [
-                "provider",
-                "model"
+                "profileId"
               ],
               "type": "object"
             },
@@ -5852,7 +7139,7 @@
           "acceptedAttemptN",
           "claimCondition",
           "requiredExecutorTrustLevel",
-          "allowedExecutors",
+          "allowedProfiles",
           "status",
           "queuedAt",
           "completedAt",
@@ -6624,6 +7911,308 @@
           "inputTokens",
           "outputTokens"
         ],
+        "type": "object"
+      },
+      "UpdateDaemonProfileBody": {
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "context": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "binding": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "skill"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "context_inline"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "prompt_prefix"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "user_inline"
+                      ],
+                      "type": "string"
+                    }
+                  ]
+                },
+                "content": {
+                  "maxLength": 65536,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "slug": {
+                  "maxLength": 64,
+                  "minLength": 1,
+                  "pattern": "^[a-zA-Z0-9_-]+$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "slug",
+                "binding",
+                "content"
+              ],
+              "type": "object"
+            },
+            "maxItems": 5,
+            "type": "array"
+          },
+          "description": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
+            "type": "string"
+          },
+          "provider": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "requiredEnv": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[A-Z_][A-Z0-9_]*$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "requiredTools": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._/-]+$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "runtimeKind": {
+            "enum": [
+              "gondolin_pi"
+            ],
+            "type": "string"
+          },
+          "sandbox": {
+            "additionalProperties": false,
+            "properties": {
+              "env": {
+                "additionalProperties": {
+                  "maxLength": 4096,
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              "hostExec": {
+                "additionalProperties": false,
+                "properties": {
+                  "autoApprove": {
+                    "enum": [
+                      false
+                    ],
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              },
+              "resources": {
+                "additionalProperties": false,
+                "properties": {
+                  "cpus": {
+                    "maximum": 32,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "memory": {
+                    "maxLength": 16,
+                    "minLength": 2,
+                    "pattern": "^[0-9]+[KMG]?$",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "resumeCommands": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "maxLength": 4096,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "retries": {
+                          "maximum": 5,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "retryBackoffMs": {
+                          "maximum": 60000,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "run": {
+                          "maxLength": 4096,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "when": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "workspaceMode": {
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "enum": [
+                                      "shared_mount"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "dedicated_worktree"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  {
+                                    "enum": [
+                                      "scratch_mount"
+                                    ],
+                                    "type": "string"
+                                  }
+                                ]
+                              },
+                              "maxItems": 3,
+                              "minItems": 1,
+                              "type": "array"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "run"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "maxItems": 30,
+                "type": "array"
+              },
+              "snapshot": {
+                "additionalProperties": false,
+                "properties": {
+                  "allowedHosts": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "overlaySize": {
+                    "maxLength": 16,
+                    "minLength": 2,
+                    "pattern": "^[0-9]+[KMGTP]?$",
+                    "type": "string"
+                  },
+                  "setupCommands": {
+                    "items": {
+                      "maxLength": 4096,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "vfs": {
+                "additionalProperties": false,
+                "properties": {
+                  "shadow": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "shadowMode": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "deny"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "tmpfs"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "sessionStorageMode": {
+            "enum": [
+              "local"
+            ],
+            "type": "string"
+          },
+          "sessionTtlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workspaceStorageMode": {
+            "enum": [
+              "local"
+            ],
+            "type": "string"
+          },
+          "workspaceTtlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "UpdateTaskMetadataBody": {
@@ -7918,6 +9507,233 @@
         },
         "tags": [
           "crypto"
+        ]
+      }
+    },
+    "/daemon-profiles/{profileId}": {
+      "delete": {
+        "description": "Delete one daemon runtime profile.",
+        "operationId": "deleteDaemonProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profileId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "daemon-profiles"
+        ]
+      },
+      "get": {
+        "description": "Get one daemon runtime profile.",
+        "operationId": "getDaemonProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profileId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DaemonProfile"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "daemon-profiles"
+        ]
+      },
+      "patch": {
+        "description": "Update one daemon runtime profile.",
+        "operationId": "updateDaemonProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profileId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDaemonProfileBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DaemonProfile"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "daemon-profiles"
         ]
       }
     },
@@ -16090,19 +17906,10 @@
           },
           {
             "in": "query",
-            "name": "provider",
+            "name": "profileId",
             "required": false,
             "schema": {
-              "minLength": 1,
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "model",
-            "required": false,
-            "schema": {
-              "minLength": 1,
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -16280,9 +18087,9 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "allowedExecutors": {
+                  "allowedProfiles": {
                     "items": {
-                      "$ref": "#/components/schemas/ExecutorRef"
+                      "$ref": "#/components/schemas/DaemonProfileRef"
                     },
                     "maxItems": 16,
                     "type": "array"
@@ -17486,6 +19293,10 @@
                     "maximum": 3600,
                     "minimum": 1,
                     "type": "integer"
+                  },
+                  "profileId": {
+                    "format": "uuid",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -18379,6 +20190,179 @@
         ],
         "tags": [
           "teams"
+        ]
+      }
+    },
+    "/teams/{id}/daemon-profiles": {
+      "get": {
+        "description": "List daemon runtime profiles for a team.",
+        "operationId": "listDaemonProfiles",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DaemonProfileListResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "daemon-profiles"
+        ]
+      },
+      "post": {
+        "description": "Create a daemon runtime profile for a team.",
+        "operationId": "createDaemonProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDaemonProfileBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DaemonProfile"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "daemon-profiles"
         ]
       }
     },

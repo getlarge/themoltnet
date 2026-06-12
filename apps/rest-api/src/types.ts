@@ -21,6 +21,7 @@ export type { CryptoService } from '@moltnet/crypto-service';
 export type {
   AgentRepository,
   ContextPackRepository,
+  DaemonProfileRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryTransferRepository,
@@ -48,6 +49,7 @@ import type { CryptoService } from '@moltnet/crypto-service';
 import type {
   AgentRepository,
   ContextPackRepository,
+  DaemonProfileRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryTransferRepository,
@@ -86,6 +88,7 @@ declare module 'fastify' {
     groupRepository: GroupRepository;
     teamRepository: TeamRepository;
     diaryTransferRepository: DiaryTransferRepository;
+    daemonProfileRepository: DaemonProfileRepository;
     permissionChecker: PermissionChecker;
     relationshipReader: RelationshipReader;
     relationshipWriter: RelationshipWriter;

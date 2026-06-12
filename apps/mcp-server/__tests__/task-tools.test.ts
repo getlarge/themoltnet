@@ -66,7 +66,6 @@ const mockTask = {
   proposedByHumanId: null,
   acceptedAttemptN: null,
   requiredExecutorTrustLevel: 'selfDeclared',
-  allowedExecutors: [],
   status: 'queued',
   queuedAt: '2026-04-26T10:00:00.000Z',
   completedAt: null,
@@ -227,7 +226,7 @@ describe('Task tools', () => {
         'diary_id',
         'input',
         'references',
-        'allowed_executors',
+        'allowed_profiles',
         'correlation_id',
         'max_attempts',
         'expires_in_sec',
@@ -239,11 +238,11 @@ describe('Task tools', () => {
       expect(new Set(actual)).toEqual(allowed);
     });
 
-    // Positive coverage for the snake_case→camelCase mapping of the new
-    // allowed_executors field. The schema-name lock above catches renames,
+    // Positive coverage for the snake_case→camelCase mapping of the
+    // allowed_profiles field. The schema-name lock above catches renames,
     // but only an end-to-end call confirms that handleTasksCreate actually
     // forwards the value (and forwards it to the right camelCase wire key).
-    it('forwards allowed_executors as allowedExecutors to the REST body', async () => {
+    it('forwards allowed_profiles as allowedProfiles to the REST body', async () => {
       vi.mocked(createTask).mockResolvedValue(sdkOk(mockTask, 201) as never);
 
       const result = await handleTasksCreate(
@@ -252,9 +251,9 @@ describe('Task tools', () => {
           team_id: TEAM_ID,
           diary_id: DIARY_ID,
           input: taskInput,
-          allowed_executors: [
-            { provider: 'openai-codex', model: 'gpt-5.3-codex' },
-            { provider: 'anthropic', model: 'claude-opus-4-7' },
+          allowed_profiles: [
+            { profileId: '11111111-1111-4111-8111-111111111111' },
+            { profileId: '22222222-2222-4222-8222-222222222222' },
           ],
         },
         deps,
@@ -265,9 +264,9 @@ describe('Task tools', () => {
       expect(createTask).toHaveBeenCalledWith(
         expect.objectContaining({
           body: expect.objectContaining({
-            allowedExecutors: [
-              { provider: 'openai-codex', model: 'gpt-5.3-codex' },
-              { provider: 'anthropic', model: 'claude-opus-4-7' },
+            allowedProfiles: [
+              { profileId: '11111111-1111-4111-8111-111111111111' },
+              { profileId: '22222222-2222-4222-8222-222222222222' },
             ],
           }),
         }),

@@ -76,6 +76,15 @@ func (UnimplementedHandler) CompleteTask(ctx context.Context, req *CompleteTaskR
 	return r, ht.ErrNotImplemented
 }
 
+// CreateDaemonProfile implements createDaemonProfile operation.
+//
+// Create a daemon runtime profile for a team.
+//
+// POST /teams/{id}/daemon-profiles
+func (UnimplementedHandler) CreateDaemonProfile(ctx context.Context, req OptCreateDaemonProfileBody, params CreateDaemonProfileParams) (r CreateDaemonProfileRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateDiary implements createDiary operation.
 //
 // Create a new diary.
@@ -166,6 +175,15 @@ func (UnimplementedHandler) CreateTeam(ctx context.Context, req *CreateTeamReq) 
 //
 // POST /teams/{id}/invites
 func (UnimplementedHandler) CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) (r CreateTeamInviteRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteDaemonProfile implements deleteDaemonProfile operation.
+//
+// Delete one daemon runtime profile.
+//
+// DELETE /daemon-profiles/{profileId}
+func (UnimplementedHandler) DeleteDaemonProfile(ctx context.Context, params DeleteDaemonProfileParams) (r DeleteDaemonProfileRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -292,6 +310,15 @@ func (UnimplementedHandler) GetContextPackProvenanceById(ctx context.Context, pa
 //
 // GET /crypto/identity
 func (UnimplementedHandler) GetCryptoIdentity(ctx context.Context) (r GetCryptoIdentityRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetDaemonProfile implements getDaemonProfile operation.
+//
+// Get one daemon runtime profile.
+//
+// GET /daemon-profiles/{profileId}
+func (UnimplementedHandler) GetDaemonProfile(ctx context.Context, params GetDaemonProfileParams) (r GetDaemonProfileRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -516,6 +543,15 @@ func (UnimplementedHandler) ListActiveVouchers(ctx context.Context) (r ListActiv
 //
 // GET /packs
 func (UnimplementedHandler) ListContextPacks(ctx context.Context, params ListContextPacksParams) (r ListContextPacksRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListDaemonProfiles implements listDaemonProfiles operation.
+//
+// List daemon runtime profiles for a team.
+//
+// GET /teams/{id}/daemon-profiles
+func (UnimplementedHandler) ListDaemonProfiles(ctx context.Context, params ListDaemonProfilesParams) (r ListDaemonProfilesRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -840,6 +876,15 @@ func (UnimplementedHandler) TaskHeartbeat(ctx context.Context, req OptTaskHeartb
 //
 // PATCH /packs/{id}
 func (UnimplementedHandler) UpdateContextPack(ctx context.Context, req OptUpdateContextPackReq, params UpdateContextPackParams) (r UpdateContextPackRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateDaemonProfile implements updateDaemonProfile operation.
+//
+// Update one daemon runtime profile.
+//
+// PATCH /daemon-profiles/{profileId}
+func (UnimplementedHandler) UpdateDaemonProfile(ctx context.Context, req OptUpdateDaemonProfileBody, params UpdateDaemonProfileParams) (r UpdateDaemonProfileRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

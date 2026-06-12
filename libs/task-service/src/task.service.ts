@@ -14,6 +14,7 @@ import {
   type AgentRepository,
   type ContextPackRepository,
   type CorrelationSealRepository,
+  type DaemonProfileRepository,
   DBOS,
   type DiaryRepository,
   type NewTask,
@@ -148,9 +149,8 @@ export interface CreateTaskInput {
   maxAttempts?: number;
   expiresInSec?: number;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
-  // Proposer-set executor pinning. Empty/undefined = no restriction.
-  // Provider/model are normalized (lowercased) before persistence.
-  allowedExecutors?: { provider: string; model: string }[];
+  // Proposer-set daemon profile routing. Empty/undefined = no restriction.
+  allowedProfiles?: { profileId: string }[];
   // Proposer-set timeout overrides (seconds). Undefined → server
   // defaults (DEFAULT_DISPATCH_TIMEOUT_SECONDS /
   // DEFAULT_RUNNING_TIMEOUT_SECONDS in
@@ -174,6 +174,7 @@ interface ExecutorAttestationInput {
   executorManifest?: Record<string, unknown>;
   executorFingerprint?: string;
   executorSignature?: string;
+  profileId?: string;
 }
 
 interface VerifiedExecutorAttestation {
@@ -188,6 +189,7 @@ interface TaskServiceDeps {
   taskRepository: TaskRepository;
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
+  daemonProfileRepository: DaemonProfileRepository;
   /** Used to resolve `context_packs` in async validators (#1096). */
   contextPackRepository: ContextPackRepository;
   /** Used to resolve `rendered_packs` in async validators (#1096). */
@@ -232,6 +234,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     taskRepository,
     diaryRepository,
     agentRepository,
+    daemonProfileRepository,
     contextPackRepository,
     renderedPackRepository,
     correlationSealRepository,
@@ -704,10 +707,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         status: conditionSatisfied ? 'queued' : 'waiting',
         requiredExecutorTrustLevel:
           TRUST_LEVEL_TO_DB[input.requiredExecutorTrustLevel ?? 'selfDeclared'],
-        allowedExecutors: (input.allowedExecutors ?? []).map((e) => ({
-          provider: e.provider.toLowerCase(),
-          model: e.model.toLowerCase(),
-        })),
+        allowedProfiles: input.allowedProfiles ?? [],
         maxAttempts: input.maxAttempts ?? 1,
         dispatchTimeoutSec: input.dispatchTimeoutSec ?? null,
         runningTimeoutSec: input.runningTimeoutSec ?? null,
@@ -878,12 +878,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       query?: string;
       tags?: string[];
       excludeTags?: string[];
-      // Daemon advertises its `(provider, model)` to filter the queue
-      // down to tasks it can run. Both lowercased upstream. Both must
-      // be set together; the route handler enforces this. When unset,
-      // no executor filter is applied.
-      executorProvider?: string;
-      executorModel?: string;
+      profileId?: string;
       correlationId?: string;
       diaryId?: string;
       proposedByAgentId?: string;
@@ -920,8 +915,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         taskTypes: opts.taskTypes,
         tags: opts.tags,
         excludeTags: opts.excludeTags,
-        executorProvider: opts.executorProvider,
-        executorModel: opts.executorModel,
+        profileId: opts.profileId,
         correlationId: opts.correlationId,
         diaryId: opts.diaryId,
         proposedByAgentId: opts.proposedByAgentId,
@@ -1066,6 +1060,31 @@ export function createTaskService(deps: TaskServiceDeps) {
           'forbidden',
           'Not authorized to claim this task',
         );
+
+      const allowedProfiles = (row.allowedProfiles ?? []) as {
+        profileId: string;
+      }[];
+      if (allowedProfiles.length > 0) {
+        const selectedProfileId = executorAttestation.profileId;
+        if (
+          !selectedProfileId ||
+          !allowedProfiles.some((p) => p.profileId === selectedProfileId)
+        ) {
+          throw new TaskServiceError(
+            'forbidden',
+            'Task requires an allowed daemon profile',
+          );
+        }
+
+        const selectedProfile =
+          await daemonProfileRepository.findById(selectedProfileId);
+        if (!selectedProfile || selectedProfile.teamId !== row.teamId) {
+          throw new TaskServiceError(
+            'forbidden',
+            'Task requires an allowed daemon profile',
+          );
+        }
+      }
 
       const attemptN = attemptCount + 1;
       const workflowId = taskWorkflowId(taskId, attemptN);

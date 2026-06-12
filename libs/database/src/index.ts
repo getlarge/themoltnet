@@ -59,6 +59,12 @@ export {
   createCorrelationSealRepository,
 } from './repositories/correlation-seal.repository.js';
 export {
+  type CreateDaemonProfileInput,
+  createDaemonProfileRepository,
+  type DaemonProfileRepository,
+  type UpdateDaemonProfileInput,
+} from './repositories/daemon-profile.repository.js';
+export {
   createDiaryRepository,
   type DiaryRepository,
 } from './repositories/diary.repository.js';

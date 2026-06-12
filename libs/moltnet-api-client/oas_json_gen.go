@@ -3284,13 +3284,20 @@ func (s *ClaimTaskReq) encodeFields(e *jx.Encoder) {
 			s.LeaseTtlSec.Encode(e)
 		}
 	}
+	{
+		if s.ProfileId.Set {
+			e.FieldStart("profileId")
+			s.ProfileId.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfClaimTaskReq = [4]string{
+var jsonFieldsNameOfClaimTaskReq = [5]string{
 	0: "executorFingerprint",
 	1: "executorManifest",
 	2: "executorSignature",
 	3: "leaseTtlSec",
+	4: "profileId",
 }
 
 // Decode decodes ClaimTaskReq from json.
@@ -3341,6 +3348,16 @@ func (s *ClaimTaskReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
+			}
+		case "profileId":
+			if err := func() error {
+				s.ProfileId.Reset()
+				if err := s.ProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"profileId\"")
 			}
 		default:
 			return d.Skip()
@@ -5031,6 +5048,1775 @@ func (s ContextPackResponsePackType) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ContextPackResponsePackType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBadRequest as json.
+func (s *CreateDaemonProfileBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileBadRequest from json.
+func (s *CreateDaemonProfileBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateDaemonProfileBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateDaemonProfileBody) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateDaemonProfileBody) encodeFields(e *jx.Encoder) {
+	{
+		if s.Context != nil {
+			e.FieldStart("context")
+			e.ArrStart()
+			for _, elem := range s.Context {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.Description.Set {
+			e.FieldStart("description")
+			s.Description.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		if s.RequiredEnv != nil {
+			e.FieldStart("requiredEnv")
+			e.ArrStart()
+			for _, elem := range s.RequiredEnv {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.RequiredTools != nil {
+			e.FieldStart("requiredTools")
+			e.ArrStart()
+			for _, elem := range s.RequiredTools {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.RuntimeKind.Set {
+			e.FieldStart("runtimeKind")
+			s.RuntimeKind.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("sandbox")
+		s.Sandbox.Encode(e)
+	}
+	{
+		if s.SessionStorageMode.Set {
+			e.FieldStart("sessionStorageMode")
+			s.SessionStorageMode.Encode(e)
+		}
+	}
+	{
+		if s.SessionTtlSec.Set {
+			e.FieldStart("sessionTtlSec")
+			s.SessionTtlSec.Encode(e)
+		}
+	}
+	{
+		if s.WorkspaceStorageMode.Set {
+			e.FieldStart("workspaceStorageMode")
+			s.WorkspaceStorageMode.Encode(e)
+		}
+	}
+	{
+		if s.WorkspaceTtlSec.Set {
+			e.FieldStart("workspaceTtlSec")
+			s.WorkspaceTtlSec.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateDaemonProfileBody = [13]string{
+	0:  "context",
+	1:  "description",
+	2:  "model",
+	3:  "name",
+	4:  "provider",
+	5:  "requiredEnv",
+	6:  "requiredTools",
+	7:  "runtimeKind",
+	8:  "sandbox",
+	9:  "sessionStorageMode",
+	10: "sessionTtlSec",
+	11: "workspaceStorageMode",
+	12: "workspaceTtlSec",
+}
+
+// Decode decodes CreateDaemonProfileBody from json.
+func (s *CreateDaemonProfileBody) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBody to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "context":
+			if err := func() error {
+				s.Context = make([]CreateDaemonProfileBodyContextItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem CreateDaemonProfileBodyContextItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Context = append(s.Context, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"context\"")
+			}
+		case "description":
+			if err := func() error {
+				s.Description.Reset()
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "requiredEnv":
+			if err := func() error {
+				s.RequiredEnv = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.RequiredEnv = append(s.RequiredEnv, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"requiredEnv\"")
+			}
+		case "requiredTools":
+			if err := func() error {
+				s.RequiredTools = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.RequiredTools = append(s.RequiredTools, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"requiredTools\"")
+			}
+		case "runtimeKind":
+			if err := func() error {
+				s.RuntimeKind.Reset()
+				if err := s.RuntimeKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeKind\"")
+			}
+		case "sandbox":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				if err := s.Sandbox.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sandbox\"")
+			}
+		case "sessionStorageMode":
+			if err := func() error {
+				s.SessionStorageMode.Reset()
+				if err := s.SessionStorageMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
+			}
+		case "sessionTtlSec":
+			if err := func() error {
+				s.SessionTtlSec.Reset()
+				if err := s.SessionTtlSec.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
+			}
+		case "workspaceStorageMode":
+			if err := func() error {
+				s.WorkspaceStorageMode.Reset()
+				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
+			}
+		case "workspaceTtlSec":
+			if err := func() error {
+				s.WorkspaceTtlSec.Reset()
+				if err := s.WorkspaceTtlSec.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceTtlSec\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateDaemonProfileBody")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b00011100,
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCreateDaemonProfileBody) {
+					name = jsonFieldsNameOfCreateDaemonProfileBody[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileBody) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBody) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateDaemonProfileBodyContextItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateDaemonProfileBodyContextItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("binding")
+		s.Binding.Encode(e)
+	}
+	{
+		e.FieldStart("content")
+		e.Str(s.Content)
+	}
+	{
+		e.FieldStart("slug")
+		e.Str(s.Slug)
+	}
+}
+
+var jsonFieldsNameOfCreateDaemonProfileBodyContextItem = [3]string{
+	0: "binding",
+	1: "content",
+	2: "slug",
+}
+
+// Decode decodes CreateDaemonProfileBodyContextItem from json.
+func (s *CreateDaemonProfileBodyContextItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodyContextItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "binding":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Binding.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"binding\"")
+			}
+		case "content":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Content = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"content\"")
+			}
+		case "slug":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Slug = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"slug\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateDaemonProfileBodyContextItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCreateDaemonProfileBodyContextItem) {
+					name = jsonFieldsNameOfCreateDaemonProfileBodyContextItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileBodyContextItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodyContextItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodyContextItemBinding as json.
+func (s CreateDaemonProfileBodyContextItemBinding) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateDaemonProfileBodyContextItemBinding from json.
+func (s *CreateDaemonProfileBodyContextItemBinding) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodyContextItemBinding to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateDaemonProfileBodyContextItemBinding(v) {
+	case CreateDaemonProfileBodyContextItemBindingSkill:
+		*s = CreateDaemonProfileBodyContextItemBindingSkill
+	case CreateDaemonProfileBodyContextItemBindingContextInline:
+		*s = CreateDaemonProfileBodyContextItemBindingContextInline
+	case CreateDaemonProfileBodyContextItemBindingPromptPrefix:
+		*s = CreateDaemonProfileBodyContextItemBindingPromptPrefix
+	case CreateDaemonProfileBodyContextItemBindingUserInline:
+		*s = CreateDaemonProfileBodyContextItemBindingUserInline
+	default:
+		*s = CreateDaemonProfileBodyContextItemBinding(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateDaemonProfileBodyContextItemBinding) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodyContextItemBinding) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodyRuntimeKind as json.
+func (s CreateDaemonProfileBodyRuntimeKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateDaemonProfileBodyRuntimeKind from json.
+func (s *CreateDaemonProfileBodyRuntimeKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodyRuntimeKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateDaemonProfileBodyRuntimeKind(v) {
+	case CreateDaemonProfileBodyRuntimeKindGondolinPi:
+		*s = CreateDaemonProfileBodyRuntimeKindGondolinPi
+	default:
+		*s = CreateDaemonProfileBodyRuntimeKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateDaemonProfileBodyRuntimeKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodyRuntimeKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateDaemonProfileBodySandbox) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateDaemonProfileBodySandbox) encodeFields(e *jx.Encoder) {
+	{
+		if s.Env.Set {
+			e.FieldStart("env")
+			s.Env.Encode(e)
+		}
+	}
+	{
+		if s.HostExec.Set {
+			e.FieldStart("hostExec")
+			s.HostExec.Encode(e)
+		}
+	}
+	{
+		if s.Resources.Set {
+			e.FieldStart("resources")
+			s.Resources.Encode(e)
+		}
+	}
+	{
+		if s.ResumeCommands != nil {
+			e.FieldStart("resumeCommands")
+			e.ArrStart()
+			for _, elem := range s.ResumeCommands {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.Snapshot.Set {
+			e.FieldStart("snapshot")
+			s.Snapshot.Encode(e)
+		}
+	}
+	{
+		if s.Vfs.Set {
+			e.FieldStart("vfs")
+			s.Vfs.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateDaemonProfileBodySandbox = [6]string{
+	0: "env",
+	1: "hostExec",
+	2: "resources",
+	3: "resumeCommands",
+	4: "snapshot",
+	5: "vfs",
+}
+
+// Decode decodes CreateDaemonProfileBodySandbox from json.
+func (s *CreateDaemonProfileBodySandbox) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandbox to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "env":
+			if err := func() error {
+				s.Env.Reset()
+				if err := s.Env.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"env\"")
+			}
+		case "hostExec":
+			if err := func() error {
+				s.HostExec.Reset()
+				if err := s.HostExec.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hostExec\"")
+			}
+		case "resources":
+			if err := func() error {
+				s.Resources.Reset()
+				if err := s.Resources.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resources\"")
+			}
+		case "resumeCommands":
+			if err := func() error {
+				s.ResumeCommands = make([]CreateDaemonProfileBodySandboxResumeCommandsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem CreateDaemonProfileBodySandboxResumeCommandsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.ResumeCommands = append(s.ResumeCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resumeCommands\"")
+			}
+		case "snapshot":
+			if err := func() error {
+				s.Snapshot.Reset()
+				if err := s.Snapshot.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"snapshot\"")
+			}
+		case "vfs":
+			if err := func() error {
+				s.Vfs.Reset()
+				if err := s.Vfs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"vfs\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateDaemonProfileBodySandbox")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileBodySandbox) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandbox) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s CreateDaemonProfileBodySandboxEnv) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s CreateDaemonProfileBodySandboxEnv) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		e.Str(elem)
+	}
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxEnv from json.
+func (s *CreateDaemonProfileBodySandboxEnv) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxEnv to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem string
+		if err := func() error {
+			v, err := d.Str()
+			elem = string(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateDaemonProfileBodySandboxEnv")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateDaemonProfileBodySandboxEnv) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxEnv) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateDaemonProfileBodySandboxHostExec) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateDaemonProfileBodySandboxHostExec) encodeFields(e *jx.Encoder) {
+	{
+		if s.AutoApprove.Set {
+			e.FieldStart("autoApprove")
+			s.AutoApprove.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateDaemonProfileBodySandboxHostExec = [1]string{
+	0: "autoApprove",
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxHostExec from json.
+func (s *CreateDaemonProfileBodySandboxHostExec) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxHostExec to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "autoApprove":
+			if err := func() error {
+				s.AutoApprove.Reset()
+				if err := s.AutoApprove.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"autoApprove\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateDaemonProfileBodySandboxHostExec")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileBodySandboxHostExec) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxHostExec) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxHostExecAutoApprove as json.
+func (s CreateDaemonProfileBodySandboxHostExecAutoApprove) Encode(e *jx.Encoder) {
+	e.Bool(bool(s))
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxHostExecAutoApprove from json.
+func (s *CreateDaemonProfileBodySandboxHostExecAutoApprove) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxHostExecAutoApprove to nil")
+	}
+	v, err := d.Bool()
+	if err != nil {
+		return err
+	}
+	*s = CreateDaemonProfileBodySandboxHostExecAutoApprove(v)
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateDaemonProfileBodySandboxHostExecAutoApprove) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateDaemonProfileBodySandboxResources) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateDaemonProfileBodySandboxResources) encodeFields(e *jx.Encoder) {
+	{
+		if s.Cpus.Set {
+			e.FieldStart("cpus")
+			s.Cpus.Encode(e)
+		}
+	}
+	{
+		if s.Memory.Set {
+			e.FieldStart("memory")
+			s.Memory.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateDaemonProfileBodySandboxResources = [2]string{
+	0: "cpus",
+	1: "memory",
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxResources from json.
+func (s *CreateDaemonProfileBodySandboxResources) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxResources to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cpus":
+			if err := func() error {
+				s.Cpus.Reset()
+				if err := s.Cpus.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cpus\"")
+			}
+		case "memory":
+			if err := func() error {
+				s.Memory.Reset()
+				if err := s.Memory.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"memory\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateDaemonProfileBodySandboxResources")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileBodySandboxResources) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxResources) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxResumeCommandsItem as json.
+func (s CreateDaemonProfileBodySandboxResumeCommandsItem) Encode(e *jx.Encoder) {
+	switch s.Type {
+	case StringCreateDaemonProfileBodySandboxResumeCommandsItem:
+		e.Str(s.String)
+	case CreateDaemonProfileBodySandboxResumeCommandsItem1CreateDaemonProfileBodySandboxResumeCommandsItem:
+		s.CreateDaemonProfileBodySandboxResumeCommandsItem1.Encode(e)
+	}
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxResumeCommandsItem from json.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxResumeCommandsItem to nil")
+	}
+	// Sum type type_discriminator.
+	switch t := d.Next(); t {
+	case jx.Object:
+		if err := s.CreateDaemonProfileBodySandboxResumeCommandsItem1.Decode(d); err != nil {
+			return err
+		}
+		s.Type = CreateDaemonProfileBodySandboxResumeCommandsItem1CreateDaemonProfileBodySandboxResumeCommandsItem
+	case jx.String:
+		v, err := d.Str()
+		s.String = string(v)
+		if err != nil {
+			return err
+		}
+		s.Type = StringCreateDaemonProfileBodySandboxResumeCommandsItem
+	default:
+		return errors.Errorf("unexpected json type %q", t)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateDaemonProfileBodySandboxResumeCommandsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) encodeFields(e *jx.Encoder) {
+	{
+		if s.Retries.Set {
+			e.FieldStart("retries")
+			s.Retries.Encode(e)
+		}
+	}
+	{
+		if s.RetryBackoffMs.Set {
+			e.FieldStart("retryBackoffMs")
+			s.RetryBackoffMs.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("run")
+		e.Str(s.Run)
+	}
+	{
+		if s.When.Set {
+			e.FieldStart("when")
+			s.When.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateDaemonProfileBodySandboxResumeCommandsItem1 = [4]string{
+	0: "retries",
+	1: "retryBackoffMs",
+	2: "run",
+	3: "when",
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxResumeCommandsItem1 from json.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxResumeCommandsItem1 to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "retries":
+			if err := func() error {
+				s.Retries.Reset()
+				if err := s.Retries.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retries\"")
+			}
+		case "retryBackoffMs":
+			if err := func() error {
+				s.RetryBackoffMs.Reset()
+				if err := s.RetryBackoffMs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryBackoffMs\"")
+			}
+		case "run":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Run = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"run\"")
+			}
+		case "when":
+			if err := func() error {
+				s.When.Reset()
+				if err := s.When.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"when\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateDaemonProfileBodySandboxResumeCommandsItem1")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCreateDaemonProfileBodySandboxResumeCommandsItem1) {
+					name = jsonFieldsNameOfCreateDaemonProfileBodySandboxResumeCommandsItem1[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1When) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1When) encodeFields(e *jx.Encoder) {
+	{
+		if s.WorkspaceMode != nil {
+			e.FieldStart("workspaceMode")
+			e.ArrStart()
+			for _, elem := range s.WorkspaceMode {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateDaemonProfileBodySandboxResumeCommandsItem1When = [1]string{
+	0: "workspaceMode",
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxResumeCommandsItem1When from json.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1When) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxResumeCommandsItem1When to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "workspaceMode":
+			if err := func() error {
+				s.WorkspaceMode = make([]CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.WorkspaceMode = append(s.WorkspaceMode, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceMode\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateDaemonProfileBodySandboxResumeCommandsItem1When")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1When) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1When) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem as json.
+func (s CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem from json.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem(v) {
+	case CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		*s = CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
+	case CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		*s = CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
+	case CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		*s = CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
+	default:
+		*s = CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateDaemonProfileBodySandboxSnapshot) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateDaemonProfileBodySandboxSnapshot) encodeFields(e *jx.Encoder) {
+	{
+		if s.AllowedHosts != nil {
+			e.FieldStart("allowedHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.OverlaySize.Set {
+			e.FieldStart("overlaySize")
+			s.OverlaySize.Encode(e)
+		}
+	}
+	{
+		if s.SetupCommands != nil {
+			e.FieldStart("setupCommands")
+			e.ArrStart()
+			for _, elem := range s.SetupCommands {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateDaemonProfileBodySandboxSnapshot = [3]string{
+	0: "allowedHosts",
+	1: "overlaySize",
+	2: "setupCommands",
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxSnapshot from json.
+func (s *CreateDaemonProfileBodySandboxSnapshot) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxSnapshot to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "allowedHosts":
+			if err := func() error {
+				s.AllowedHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedHosts = append(s.AllowedHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "overlaySize":
+			if err := func() error {
+				s.OverlaySize.Reset()
+				if err := s.OverlaySize.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"overlaySize\"")
+			}
+		case "setupCommands":
+			if err := func() error {
+				s.SetupCommands = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.SetupCommands = append(s.SetupCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"setupCommands\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateDaemonProfileBodySandboxSnapshot")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileBodySandboxSnapshot) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxSnapshot) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateDaemonProfileBodySandboxVfs) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateDaemonProfileBodySandboxVfs) encodeFields(e *jx.Encoder) {
+	{
+		if s.Shadow != nil {
+			e.FieldStart("shadow")
+			e.ArrStart()
+			for _, elem := range s.Shadow {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.ShadowMode.Set {
+			e.FieldStart("shadowMode")
+			s.ShadowMode.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateDaemonProfileBodySandboxVfs = [2]string{
+	0: "shadow",
+	1: "shadowMode",
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxVfs from json.
+func (s *CreateDaemonProfileBodySandboxVfs) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxVfs to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "shadow":
+			if err := func() error {
+				s.Shadow = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.Shadow = append(s.Shadow, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shadow\"")
+			}
+		case "shadowMode":
+			if err := func() error {
+				s.ShadowMode.Reset()
+				if err := s.ShadowMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shadowMode\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateDaemonProfileBodySandboxVfs")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileBodySandboxVfs) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxVfs) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxVfsShadowMode as json.
+func (s CreateDaemonProfileBodySandboxVfsShadowMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxVfsShadowMode from json.
+func (s *CreateDaemonProfileBodySandboxVfsShadowMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySandboxVfsShadowMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateDaemonProfileBodySandboxVfsShadowMode(v) {
+	case CreateDaemonProfileBodySandboxVfsShadowModeDeny:
+		*s = CreateDaemonProfileBodySandboxVfsShadowModeDeny
+	case CreateDaemonProfileBodySandboxVfsShadowModeTmpfs:
+		*s = CreateDaemonProfileBodySandboxVfsShadowModeTmpfs
+	default:
+		*s = CreateDaemonProfileBodySandboxVfsShadowMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateDaemonProfileBodySandboxVfsShadowMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySessionStorageMode as json.
+func (s CreateDaemonProfileBodySessionStorageMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateDaemonProfileBodySessionStorageMode from json.
+func (s *CreateDaemonProfileBodySessionStorageMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodySessionStorageMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateDaemonProfileBodySessionStorageMode(v) {
+	case CreateDaemonProfileBodySessionStorageModeLocal:
+		*s = CreateDaemonProfileBodySessionStorageModeLocal
+	default:
+		*s = CreateDaemonProfileBodySessionStorageMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateDaemonProfileBodySessionStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodySessionStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodyWorkspaceStorageMode as json.
+func (s CreateDaemonProfileBodyWorkspaceStorageMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateDaemonProfileBodyWorkspaceStorageMode from json.
+func (s *CreateDaemonProfileBodyWorkspaceStorageMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileBodyWorkspaceStorageMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateDaemonProfileBodyWorkspaceStorageMode(v) {
+	case CreateDaemonProfileBodyWorkspaceStorageModeLocal:
+		*s = CreateDaemonProfileBodyWorkspaceStorageModeLocal
+	default:
+		*s = CreateDaemonProfileBodyWorkspaceStorageMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateDaemonProfileBodyWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileConflict as json.
+func (s *CreateDaemonProfileConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileConflict from json.
+func (s *CreateDaemonProfileConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateDaemonProfileConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileForbidden as json.
+func (s *CreateDaemonProfileForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileForbidden from json.
+func (s *CreateDaemonProfileForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateDaemonProfileForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileNotFound as json.
+func (s *CreateDaemonProfileNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileNotFound from json.
+func (s *CreateDaemonProfileNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateDaemonProfileNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileUnauthorized as json.
+func (s *CreateDaemonProfileUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileUnauthorized from json.
+func (s *CreateDaemonProfileUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDaemonProfileUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateDaemonProfileUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDaemonProfileUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDaemonProfileUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -8091,10 +9877,10 @@ func (s *CreateTaskReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 	{
-		if s.AllowedExecutors != nil {
-			e.FieldStart("allowedExecutors")
+		if s.AllowedProfiles != nil {
+			e.FieldStart("allowedProfiles")
 			e.ArrStart()
-			for _, elem := range s.AllowedExecutors {
+			for _, elem := range s.AllowedProfiles {
 				elem.Encode(e)
 			}
 			e.ArrEnd()
@@ -8187,7 +9973,7 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 }
 
 var jsonFieldsNameOfCreateTaskReq = [15]string{
-	0:  "allowedExecutors",
+	0:  "allowedProfiles",
 	1:  "claimCondition",
 	2:  "correlationId",
 	3:  "diaryId",
@@ -8214,22 +10000,22 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "allowedExecutors":
+		case "allowedProfiles":
 			if err := func() error {
-				s.AllowedExecutors = make([]ExecutorRef, 0)
+				s.AllowedProfiles = make([]DaemonProfileRef, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
-					var elem ExecutorRef
+					var elem DaemonProfileRef
 					if err := elem.Decode(d); err != nil {
 						return err
 					}
-					s.AllowedExecutors = append(s.AllowedExecutors, elem)
+					s.AllowedProfiles = append(s.AllowedProfiles, elem)
 					return nil
 				}); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"allowedExecutors\"")
+				return errors.Wrap(err, "decode field \"allowedProfiles\"")
 			}
 		case "claimCondition":
 			if err := func() error {
@@ -10507,6 +12293,3610 @@ func (s *CustomPackResultParams) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *DaemonProfile) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfile) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("context")
+		e.ArrStart()
+		for _, elem := range s.Context {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("createdByAgentId")
+		s.CreatedByAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("createdByHumanId")
+		s.CreatedByHumanId.Encode(e)
+	}
+	{
+		e.FieldStart("definitionCid")
+		e.Str(s.DefinitionCid)
+	}
+	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		e.FieldStart("requiredEnv")
+		e.ArrStart()
+		for _, elem := range s.RequiredEnv {
+			e.Str(elem)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("requiredTools")
+		e.ArrStart()
+		for _, elem := range s.RequiredTools {
+			e.Str(elem)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("revision")
+		e.Int(s.Revision)
+	}
+	{
+		e.FieldStart("runtimeKind")
+		s.RuntimeKind.Encode(e)
+	}
+	{
+		e.FieldStart("sandbox")
+		s.Sandbox.Encode(e)
+	}
+	{
+		e.FieldStart("sessionStorageMode")
+		s.SessionStorageMode.Encode(e)
+	}
+	{
+		e.FieldStart("sessionTtlSec")
+		e.Int(s.SessionTtlSec)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+	{
+		e.FieldStart("workspaceStorageMode")
+		s.WorkspaceStorageMode.Encode(e)
+	}
+	{
+		e.FieldStart("workspaceTtlSec")
+		e.Int(s.WorkspaceTtlSec)
+	}
+}
+
+var jsonFieldsNameOfDaemonProfile = [21]string{
+	0:  "context",
+	1:  "createdAt",
+	2:  "createdByAgentId",
+	3:  "createdByHumanId",
+	4:  "definitionCid",
+	5:  "description",
+	6:  "id",
+	7:  "model",
+	8:  "name",
+	9:  "provider",
+	10: "requiredEnv",
+	11: "requiredTools",
+	12: "revision",
+	13: "runtimeKind",
+	14: "sandbox",
+	15: "sessionStorageMode",
+	16: "sessionTtlSec",
+	17: "teamId",
+	18: "updatedAt",
+	19: "workspaceStorageMode",
+	20: "workspaceTtlSec",
+}
+
+// Decode decodes DaemonProfile from json.
+func (s *DaemonProfile) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfile to nil")
+	}
+	var requiredBitSet [3]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "context":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Context = make([]DaemonProfileContextItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DaemonProfileContextItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Context = append(s.Context, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"context\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "createdByAgentId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.CreatedByAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdByAgentId\"")
+			}
+		case "createdByHumanId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.CreatedByHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdByHumanId\"")
+			}
+		case "definitionCid":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.DefinitionCid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"definitionCid\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "name":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "provider":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "requiredEnv":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				s.RequiredEnv = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.RequiredEnv = append(s.RequiredEnv, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"requiredEnv\"")
+			}
+		case "requiredTools":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				s.RequiredTools = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.RequiredTools = append(s.RequiredTools, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"requiredTools\"")
+			}
+		case "revision":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.Revision = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"revision\"")
+			}
+		case "runtimeKind":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				if err := s.RuntimeKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeKind\"")
+			}
+		case "sandbox":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				if err := s.Sandbox.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sandbox\"")
+			}
+		case "sessionStorageMode":
+			requiredBitSet[1] |= 1 << 7
+			if err := func() error {
+				if err := s.SessionStorageMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
+			}
+		case "sessionTtlSec":
+			requiredBitSet[2] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.SessionTtlSec = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
+			}
+		case "teamId":
+			requiredBitSet[2] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "updatedAt":
+			requiredBitSet[2] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		case "workspaceStorageMode":
+			requiredBitSet[2] |= 1 << 3
+			if err := func() error {
+				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
+			}
+		case "workspaceTtlSec":
+			requiredBitSet[2] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.WorkspaceTtlSec = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceTtlSec\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfile")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [3]uint8{
+		0b11111111,
+		0b11111111,
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDaemonProfile) {
+					name = jsonFieldsNameOfDaemonProfile[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfile) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfile) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileContextItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileContextItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("binding")
+		s.Binding.Encode(e)
+	}
+	{
+		e.FieldStart("content")
+		e.Str(s.Content)
+	}
+	{
+		e.FieldStart("slug")
+		e.Str(s.Slug)
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileContextItem = [3]string{
+	0: "binding",
+	1: "content",
+	2: "slug",
+}
+
+// Decode decodes DaemonProfileContextItem from json.
+func (s *DaemonProfileContextItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileContextItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "binding":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Binding.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"binding\"")
+			}
+		case "content":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Content = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"content\"")
+			}
+		case "slug":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Slug = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"slug\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileContextItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDaemonProfileContextItem) {
+					name = jsonFieldsNameOfDaemonProfileContextItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileContextItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileContextItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileContextItemBinding as json.
+func (s DaemonProfileContextItemBinding) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileContextItemBinding from json.
+func (s *DaemonProfileContextItemBinding) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileContextItemBinding to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileContextItemBinding(v) {
+	case DaemonProfileContextItemBindingSkill:
+		*s = DaemonProfileContextItemBindingSkill
+	case DaemonProfileContextItemBindingContextInline:
+		*s = DaemonProfileContextItemBindingContextInline
+	case DaemonProfileContextItemBindingPromptPrefix:
+		*s = DaemonProfileContextItemBindingPromptPrefix
+	case DaemonProfileContextItemBindingUserInline:
+		*s = DaemonProfileContextItemBindingUserInline
+	default:
+		*s = DaemonProfileContextItemBinding(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileContextItemBinding) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileContextItemBinding) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileListResponse) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileListResponse) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("items")
+		e.ArrStart()
+		for _, elem := range s.Items {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileListResponse = [1]string{
+	0: "items",
+}
+
+// Decode decodes DaemonProfileListResponse from json.
+func (s *DaemonProfileListResponse) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponse to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "items":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Items = make([]DaemonProfileListResponseItemsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DaemonProfileListResponseItemsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Items = append(s.Items, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"items\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponse")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDaemonProfileListResponse) {
+					name = jsonFieldsNameOfDaemonProfileListResponse[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileListResponse) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileListResponseItemsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("context")
+		e.ArrStart()
+		for _, elem := range s.Context {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("createdByAgentId")
+		s.CreatedByAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("createdByHumanId")
+		s.CreatedByHumanId.Encode(e)
+	}
+	{
+		e.FieldStart("definitionCid")
+		e.Str(s.DefinitionCid)
+	}
+	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		e.FieldStart("requiredEnv")
+		e.ArrStart()
+		for _, elem := range s.RequiredEnv {
+			e.Str(elem)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("requiredTools")
+		e.ArrStart()
+		for _, elem := range s.RequiredTools {
+			e.Str(elem)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("revision")
+		e.Int(s.Revision)
+	}
+	{
+		e.FieldStart("runtimeKind")
+		s.RuntimeKind.Encode(e)
+	}
+	{
+		e.FieldStart("sandbox")
+		s.Sandbox.Encode(e)
+	}
+	{
+		e.FieldStart("sessionStorageMode")
+		s.SessionStorageMode.Encode(e)
+	}
+	{
+		e.FieldStart("sessionTtlSec")
+		e.Int(s.SessionTtlSec)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+	{
+		e.FieldStart("workspaceStorageMode")
+		s.WorkspaceStorageMode.Encode(e)
+	}
+	{
+		e.FieldStart("workspaceTtlSec")
+		e.Int(s.WorkspaceTtlSec)
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileListResponseItemsItem = [21]string{
+	0:  "context",
+	1:  "createdAt",
+	2:  "createdByAgentId",
+	3:  "createdByHumanId",
+	4:  "definitionCid",
+	5:  "description",
+	6:  "id",
+	7:  "model",
+	8:  "name",
+	9:  "provider",
+	10: "requiredEnv",
+	11: "requiredTools",
+	12: "revision",
+	13: "runtimeKind",
+	14: "sandbox",
+	15: "sessionStorageMode",
+	16: "sessionTtlSec",
+	17: "teamId",
+	18: "updatedAt",
+	19: "workspaceStorageMode",
+	20: "workspaceTtlSec",
+}
+
+// Decode decodes DaemonProfileListResponseItemsItem from json.
+func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItem to nil")
+	}
+	var requiredBitSet [3]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "context":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Context = make([]DaemonProfileListResponseItemsItemContextItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DaemonProfileListResponseItemsItemContextItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Context = append(s.Context, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"context\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "createdByAgentId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.CreatedByAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdByAgentId\"")
+			}
+		case "createdByHumanId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.CreatedByHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdByHumanId\"")
+			}
+		case "definitionCid":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.DefinitionCid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"definitionCid\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "name":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "provider":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "requiredEnv":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				s.RequiredEnv = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.RequiredEnv = append(s.RequiredEnv, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"requiredEnv\"")
+			}
+		case "requiredTools":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				s.RequiredTools = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.RequiredTools = append(s.RequiredTools, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"requiredTools\"")
+			}
+		case "revision":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.Revision = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"revision\"")
+			}
+		case "runtimeKind":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				if err := s.RuntimeKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeKind\"")
+			}
+		case "sandbox":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				if err := s.Sandbox.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sandbox\"")
+			}
+		case "sessionStorageMode":
+			requiredBitSet[1] |= 1 << 7
+			if err := func() error {
+				if err := s.SessionStorageMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
+			}
+		case "sessionTtlSec":
+			requiredBitSet[2] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.SessionTtlSec = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
+			}
+		case "teamId":
+			requiredBitSet[2] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "updatedAt":
+			requiredBitSet[2] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		case "workspaceStorageMode":
+			requiredBitSet[2] |= 1 << 3
+			if err := func() error {
+				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
+			}
+		case "workspaceTtlSec":
+			requiredBitSet[2] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.WorkspaceTtlSec = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceTtlSec\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponseItemsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [3]uint8{
+		0b11111111,
+		0b11111111,
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDaemonProfileListResponseItemsItem) {
+					name = jsonFieldsNameOfDaemonProfileListResponseItemsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileListResponseItemsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileListResponseItemsItemContextItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileListResponseItemsItemContextItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("binding")
+		s.Binding.Encode(e)
+	}
+	{
+		e.FieldStart("content")
+		e.Str(s.Content)
+	}
+	{
+		e.FieldStart("slug")
+		e.Str(s.Slug)
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileListResponseItemsItemContextItem = [3]string{
+	0: "binding",
+	1: "content",
+	2: "slug",
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemContextItem from json.
+func (s *DaemonProfileListResponseItemsItemContextItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemContextItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "binding":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Binding.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"binding\"")
+			}
+		case "content":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Content = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"content\"")
+			}
+		case "slug":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Slug = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"slug\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponseItemsItemContextItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDaemonProfileListResponseItemsItemContextItem) {
+					name = jsonFieldsNameOfDaemonProfileListResponseItemsItemContextItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileListResponseItemsItemContextItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemContextItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemContextItemBinding as json.
+func (s DaemonProfileListResponseItemsItemContextItemBinding) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemContextItemBinding from json.
+func (s *DaemonProfileListResponseItemsItemContextItemBinding) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemContextItemBinding to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileListResponseItemsItemContextItemBinding(v) {
+	case DaemonProfileListResponseItemsItemContextItemBindingSkill:
+		*s = DaemonProfileListResponseItemsItemContextItemBindingSkill
+	case DaemonProfileListResponseItemsItemContextItemBindingContextInline:
+		*s = DaemonProfileListResponseItemsItemContextItemBindingContextInline
+	case DaemonProfileListResponseItemsItemContextItemBindingPromptPrefix:
+		*s = DaemonProfileListResponseItemsItemContextItemBindingPromptPrefix
+	case DaemonProfileListResponseItemsItemContextItemBindingUserInline:
+		*s = DaemonProfileListResponseItemsItemContextItemBindingUserInline
+	default:
+		*s = DaemonProfileListResponseItemsItemContextItemBinding(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileListResponseItemsItemContextItemBinding) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemContextItemBinding) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemRuntimeKind as json.
+func (s DaemonProfileListResponseItemsItemRuntimeKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemRuntimeKind from json.
+func (s *DaemonProfileListResponseItemsItemRuntimeKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemRuntimeKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileListResponseItemsItemRuntimeKind(v) {
+	case DaemonProfileListResponseItemsItemRuntimeKindGondolinPi:
+		*s = DaemonProfileListResponseItemsItemRuntimeKindGondolinPi
+	default:
+		*s = DaemonProfileListResponseItemsItemRuntimeKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileListResponseItemsItemRuntimeKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemRuntimeKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandbox) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileListResponseItemsItemSandbox) encodeFields(e *jx.Encoder) {
+	{
+		if s.Env.Set {
+			e.FieldStart("env")
+			s.Env.Encode(e)
+		}
+	}
+	{
+		if s.HostExec.Set {
+			e.FieldStart("hostExec")
+			s.HostExec.Encode(e)
+		}
+	}
+	{
+		if s.Resources.Set {
+			e.FieldStart("resources")
+			s.Resources.Encode(e)
+		}
+	}
+	{
+		if s.ResumeCommands != nil {
+			e.FieldStart("resumeCommands")
+			e.ArrStart()
+			for _, elem := range s.ResumeCommands {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.Snapshot.Set {
+			e.FieldStart("snapshot")
+			s.Snapshot.Encode(e)
+		}
+	}
+	{
+		if s.Vfs.Set {
+			e.FieldStart("vfs")
+			s.Vfs.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileListResponseItemsItemSandbox = [6]string{
+	0: "env",
+	1: "hostExec",
+	2: "resources",
+	3: "resumeCommands",
+	4: "snapshot",
+	5: "vfs",
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandbox from json.
+func (s *DaemonProfileListResponseItemsItemSandbox) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandbox to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "env":
+			if err := func() error {
+				s.Env.Reset()
+				if err := s.Env.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"env\"")
+			}
+		case "hostExec":
+			if err := func() error {
+				s.HostExec.Reset()
+				if err := s.HostExec.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hostExec\"")
+			}
+		case "resources":
+			if err := func() error {
+				s.Resources.Reset()
+				if err := s.Resources.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resources\"")
+			}
+		case "resumeCommands":
+			if err := func() error {
+				s.ResumeCommands = make([]DaemonProfileListResponseItemsItemSandboxResumeCommandsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DaemonProfileListResponseItemsItemSandboxResumeCommandsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.ResumeCommands = append(s.ResumeCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resumeCommands\"")
+			}
+		case "snapshot":
+			if err := func() error {
+				s.Snapshot.Reset()
+				if err := s.Snapshot.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"snapshot\"")
+			}
+		case "vfs":
+			if err := func() error {
+				s.Vfs.Reset()
+				if err := s.Vfs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"vfs\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponseItemsItemSandbox")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandbox) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandbox) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DaemonProfileListResponseItemsItemSandboxEnv) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DaemonProfileListResponseItemsItemSandboxEnv) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		e.Str(elem)
+	}
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxEnv from json.
+func (s *DaemonProfileListResponseItemsItemSandboxEnv) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxEnv to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem string
+		if err := func() error {
+			v, err := d.Str()
+			elem = string(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponseItemsItemSandboxEnv")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileListResponseItemsItemSandboxEnv) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxEnv) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxHostExec) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileListResponseItemsItemSandboxHostExec) encodeFields(e *jx.Encoder) {
+	{
+		if s.AutoApprove.Set {
+			e.FieldStart("autoApprove")
+			s.AutoApprove.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileListResponseItemsItemSandboxHostExec = [1]string{
+	0: "autoApprove",
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxHostExec from json.
+func (s *DaemonProfileListResponseItemsItemSandboxHostExec) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxHostExec to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "autoApprove":
+			if err := func() error {
+				s.AutoApprove.Reset()
+				if err := s.AutoApprove.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"autoApprove\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponseItemsItemSandboxHostExec")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxHostExec) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxHostExec) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove as json.
+func (s DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) Encode(e *jx.Encoder) {
+	e.Bool(bool(s))
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove from json.
+func (s *DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove to nil")
+	}
+	v, err := d.Bool()
+	if err != nil {
+		return err
+	}
+	*s = DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove(v)
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResources) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileListResponseItemsItemSandboxResources) encodeFields(e *jx.Encoder) {
+	{
+		if s.Cpus.Set {
+			e.FieldStart("cpus")
+			s.Cpus.Encode(e)
+		}
+	}
+	{
+		if s.Memory.Set {
+			e.FieldStart("memory")
+			s.Memory.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileListResponseItemsItemSandboxResources = [2]string{
+	0: "cpus",
+	1: "memory",
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxResources from json.
+func (s *DaemonProfileListResponseItemsItemSandboxResources) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxResources to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cpus":
+			if err := func() error {
+				s.Cpus.Reset()
+				if err := s.Cpus.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cpus\"")
+			}
+		case "memory":
+			if err := func() error {
+				s.Memory.Reset()
+				if err := s.Memory.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"memory\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponseItemsItemSandboxResources")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResources) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResources) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxResumeCommandsItem as json.
+func (s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) Encode(e *jx.Encoder) {
+	switch s.Type {
+	case StringDaemonProfileListResponseItemsItemSandboxResumeCommandsItem:
+		e.Str(s.String)
+	case DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1DaemonProfileListResponseItemsItemSandboxResumeCommandsItem:
+		s.DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1.Encode(e)
+	}
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxResumeCommandsItem from json.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxResumeCommandsItem to nil")
+	}
+	// Sum type type_discriminator.
+	switch t := d.Next(); t {
+	case jx.Object:
+		if err := s.DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1.Decode(d); err != nil {
+			return err
+		}
+		s.Type = DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1DaemonProfileListResponseItemsItemSandboxResumeCommandsItem
+	case jx.String:
+		v, err := d.Str()
+		s.String = string(v)
+		if err != nil {
+			return err
+		}
+		s.Type = StringDaemonProfileListResponseItemsItemSandboxResumeCommandsItem
+	default:
+		return errors.Errorf("unexpected json type %q", t)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) encodeFields(e *jx.Encoder) {
+	{
+		if s.Retries.Set {
+			e.FieldStart("retries")
+			s.Retries.Encode(e)
+		}
+	}
+	{
+		if s.RetryBackoffMs.Set {
+			e.FieldStart("retryBackoffMs")
+			s.RetryBackoffMs.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("run")
+		e.Str(s.Run)
+	}
+	{
+		if s.When.Set {
+			e.FieldStart("when")
+			s.When.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1 = [4]string{
+	0: "retries",
+	1: "retryBackoffMs",
+	2: "run",
+	3: "when",
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1 from json.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1 to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "retries":
+			if err := func() error {
+				s.Retries.Reset()
+				if err := s.Retries.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retries\"")
+			}
+		case "retryBackoffMs":
+			if err := func() error {
+				s.RetryBackoffMs.Reset()
+				if err := s.RetryBackoffMs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryBackoffMs\"")
+			}
+		case "run":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Run = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"run\"")
+			}
+		case "when":
+			if err := func() error {
+				s.When.Reset()
+				if err := s.When.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"when\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) {
+					name = jsonFieldsNameOfDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) encodeFields(e *jx.Encoder) {
+	{
+		if s.WorkspaceMode != nil {
+			e.FieldStart("workspaceMode")
+			e.ArrStart()
+			for _, elem := range s.WorkspaceMode {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When = [1]string{
+	0: "workspaceMode",
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When from json.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "workspaceMode":
+			if err := func() error {
+				s.WorkspaceMode = make([]DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.WorkspaceMode = append(s.WorkspaceMode, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceMode\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem as json.
+func (s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem from json.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem(v) {
+	case DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		*s = DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
+	case DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		*s = DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
+	case DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		*s = DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
+	default:
+		*s = DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) encodeFields(e *jx.Encoder) {
+	{
+		if s.AllowedHosts != nil {
+			e.FieldStart("allowedHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.OverlaySize.Set {
+			e.FieldStart("overlaySize")
+			s.OverlaySize.Encode(e)
+		}
+	}
+	{
+		if s.SetupCommands != nil {
+			e.FieldStart("setupCommands")
+			e.ArrStart()
+			for _, elem := range s.SetupCommands {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileListResponseItemsItemSandboxSnapshot = [3]string{
+	0: "allowedHosts",
+	1: "overlaySize",
+	2: "setupCommands",
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxSnapshot from json.
+func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxSnapshot to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "allowedHosts":
+			if err := func() error {
+				s.AllowedHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedHosts = append(s.AllowedHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "overlaySize":
+			if err := func() error {
+				s.OverlaySize.Reset()
+				if err := s.OverlaySize.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"overlaySize\"")
+			}
+		case "setupCommands":
+			if err := func() error {
+				s.SetupCommands = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.SetupCommands = append(s.SetupCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"setupCommands\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponseItemsItemSandboxSnapshot")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxVfs) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileListResponseItemsItemSandboxVfs) encodeFields(e *jx.Encoder) {
+	{
+		if s.Shadow != nil {
+			e.FieldStart("shadow")
+			e.ArrStart()
+			for _, elem := range s.Shadow {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.ShadowMode.Set {
+			e.FieldStart("shadowMode")
+			s.ShadowMode.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileListResponseItemsItemSandboxVfs = [2]string{
+	0: "shadow",
+	1: "shadowMode",
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxVfs from json.
+func (s *DaemonProfileListResponseItemsItemSandboxVfs) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxVfs to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "shadow":
+			if err := func() error {
+				s.Shadow = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.Shadow = append(s.Shadow, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shadow\"")
+			}
+		case "shadowMode":
+			if err := func() error {
+				s.ShadowMode.Reset()
+				if err := s.ShadowMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shadowMode\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileListResponseItemsItemSandboxVfs")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxVfs) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxVfs) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxVfsShadowMode as json.
+func (s DaemonProfileListResponseItemsItemSandboxVfsShadowMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxVfsShadowMode from json.
+func (s *DaemonProfileListResponseItemsItemSandboxVfsShadowMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSandboxVfsShadowMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileListResponseItemsItemSandboxVfsShadowMode(v) {
+	case DaemonProfileListResponseItemsItemSandboxVfsShadowModeDeny:
+		*s = DaemonProfileListResponseItemsItemSandboxVfsShadowModeDeny
+	case DaemonProfileListResponseItemsItemSandboxVfsShadowModeTmpfs:
+		*s = DaemonProfileListResponseItemsItemSandboxVfsShadowModeTmpfs
+	default:
+		*s = DaemonProfileListResponseItemsItemSandboxVfsShadowMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileListResponseItemsItemSandboxVfsShadowMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSessionStorageMode as json.
+func (s DaemonProfileListResponseItemsItemSessionStorageMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSessionStorageMode from json.
+func (s *DaemonProfileListResponseItemsItemSessionStorageMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemSessionStorageMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileListResponseItemsItemSessionStorageMode(v) {
+	case DaemonProfileListResponseItemsItemSessionStorageModeLocal:
+		*s = DaemonProfileListResponseItemsItemSessionStorageModeLocal
+	default:
+		*s = DaemonProfileListResponseItemsItemSessionStorageMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileListResponseItemsItemSessionStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemSessionStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemWorkspaceStorageMode as json.
+func (s DaemonProfileListResponseItemsItemWorkspaceStorageMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemWorkspaceStorageMode from json.
+func (s *DaemonProfileListResponseItemsItemWorkspaceStorageMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileListResponseItemsItemWorkspaceStorageMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileListResponseItemsItemWorkspaceStorageMode(v) {
+	case DaemonProfileListResponseItemsItemWorkspaceStorageModeLocal:
+		*s = DaemonProfileListResponseItemsItemWorkspaceStorageModeLocal
+	default:
+		*s = DaemonProfileListResponseItemsItemWorkspaceStorageMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileListResponseItemsItemWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileListResponseItemsItemWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileRef) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileRef) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("profileId")
+		json.EncodeUUID(e, s.ProfileId)
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileRef = [1]string{
+	0: "profileId",
+}
+
+// Decode decodes DaemonProfileRef from json.
+func (s *DaemonProfileRef) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileRef to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "profileId":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ProfileId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"profileId\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileRef")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDaemonProfileRef) {
+					name = jsonFieldsNameOfDaemonProfileRef[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileRef) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileRef) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileRuntimeKind as json.
+func (s DaemonProfileRuntimeKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileRuntimeKind from json.
+func (s *DaemonProfileRuntimeKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileRuntimeKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileRuntimeKind(v) {
+	case DaemonProfileRuntimeKindGondolinPi:
+		*s = DaemonProfileRuntimeKindGondolinPi
+	default:
+		*s = DaemonProfileRuntimeKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileRuntimeKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileRuntimeKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileSandbox) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileSandbox) encodeFields(e *jx.Encoder) {
+	{
+		if s.Env.Set {
+			e.FieldStart("env")
+			s.Env.Encode(e)
+		}
+	}
+	{
+		if s.HostExec.Set {
+			e.FieldStart("hostExec")
+			s.HostExec.Encode(e)
+		}
+	}
+	{
+		if s.Resources.Set {
+			e.FieldStart("resources")
+			s.Resources.Encode(e)
+		}
+	}
+	{
+		if s.ResumeCommands != nil {
+			e.FieldStart("resumeCommands")
+			e.ArrStart()
+			for _, elem := range s.ResumeCommands {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.Snapshot.Set {
+			e.FieldStart("snapshot")
+			s.Snapshot.Encode(e)
+		}
+	}
+	{
+		if s.Vfs.Set {
+			e.FieldStart("vfs")
+			s.Vfs.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileSandbox = [6]string{
+	0: "env",
+	1: "hostExec",
+	2: "resources",
+	3: "resumeCommands",
+	4: "snapshot",
+	5: "vfs",
+}
+
+// Decode decodes DaemonProfileSandbox from json.
+func (s *DaemonProfileSandbox) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandbox to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "env":
+			if err := func() error {
+				s.Env.Reset()
+				if err := s.Env.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"env\"")
+			}
+		case "hostExec":
+			if err := func() error {
+				s.HostExec.Reset()
+				if err := s.HostExec.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hostExec\"")
+			}
+		case "resources":
+			if err := func() error {
+				s.Resources.Reset()
+				if err := s.Resources.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resources\"")
+			}
+		case "resumeCommands":
+			if err := func() error {
+				s.ResumeCommands = make([]DaemonProfileSandboxResumeCommandsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DaemonProfileSandboxResumeCommandsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.ResumeCommands = append(s.ResumeCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resumeCommands\"")
+			}
+		case "snapshot":
+			if err := func() error {
+				s.Snapshot.Reset()
+				if err := s.Snapshot.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"snapshot\"")
+			}
+		case "vfs":
+			if err := func() error {
+				s.Vfs.Reset()
+				if err := s.Vfs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"vfs\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileSandbox")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileSandbox) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandbox) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DaemonProfileSandboxEnv) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DaemonProfileSandboxEnv) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		e.Str(elem)
+	}
+}
+
+// Decode decodes DaemonProfileSandboxEnv from json.
+func (s *DaemonProfileSandboxEnv) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxEnv to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem string
+		if err := func() error {
+			v, err := d.Str()
+			elem = string(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileSandboxEnv")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileSandboxEnv) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxEnv) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileSandboxHostExec) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileSandboxHostExec) encodeFields(e *jx.Encoder) {
+	{
+		if s.AutoApprove.Set {
+			e.FieldStart("autoApprove")
+			s.AutoApprove.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileSandboxHostExec = [1]string{
+	0: "autoApprove",
+}
+
+// Decode decodes DaemonProfileSandboxHostExec from json.
+func (s *DaemonProfileSandboxHostExec) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxHostExec to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "autoApprove":
+			if err := func() error {
+				s.AutoApprove.Reset()
+				if err := s.AutoApprove.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"autoApprove\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileSandboxHostExec")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileSandboxHostExec) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxHostExec) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxHostExecAutoApprove as json.
+func (s DaemonProfileSandboxHostExecAutoApprove) Encode(e *jx.Encoder) {
+	e.Bool(bool(s))
+}
+
+// Decode decodes DaemonProfileSandboxHostExecAutoApprove from json.
+func (s *DaemonProfileSandboxHostExecAutoApprove) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxHostExecAutoApprove to nil")
+	}
+	v, err := d.Bool()
+	if err != nil {
+		return err
+	}
+	*s = DaemonProfileSandboxHostExecAutoApprove(v)
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileSandboxHostExecAutoApprove) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileSandboxResources) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileSandboxResources) encodeFields(e *jx.Encoder) {
+	{
+		if s.Cpus.Set {
+			e.FieldStart("cpus")
+			s.Cpus.Encode(e)
+		}
+	}
+	{
+		if s.Memory.Set {
+			e.FieldStart("memory")
+			s.Memory.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileSandboxResources = [2]string{
+	0: "cpus",
+	1: "memory",
+}
+
+// Decode decodes DaemonProfileSandboxResources from json.
+func (s *DaemonProfileSandboxResources) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxResources to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cpus":
+			if err := func() error {
+				s.Cpus.Reset()
+				if err := s.Cpus.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cpus\"")
+			}
+		case "memory":
+			if err := func() error {
+				s.Memory.Reset()
+				if err := s.Memory.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"memory\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileSandboxResources")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileSandboxResources) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxResources) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxResumeCommandsItem as json.
+func (s DaemonProfileSandboxResumeCommandsItem) Encode(e *jx.Encoder) {
+	switch s.Type {
+	case StringDaemonProfileSandboxResumeCommandsItem:
+		e.Str(s.String)
+	case DaemonProfileSandboxResumeCommandsItem1DaemonProfileSandboxResumeCommandsItem:
+		s.DaemonProfileSandboxResumeCommandsItem1.Encode(e)
+	}
+}
+
+// Decode decodes DaemonProfileSandboxResumeCommandsItem from json.
+func (s *DaemonProfileSandboxResumeCommandsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxResumeCommandsItem to nil")
+	}
+	// Sum type type_discriminator.
+	switch t := d.Next(); t {
+	case jx.Object:
+		if err := s.DaemonProfileSandboxResumeCommandsItem1.Decode(d); err != nil {
+			return err
+		}
+		s.Type = DaemonProfileSandboxResumeCommandsItem1DaemonProfileSandboxResumeCommandsItem
+	case jx.String:
+		v, err := d.Str()
+		s.String = string(v)
+		if err != nil {
+			return err
+		}
+		s.Type = StringDaemonProfileSandboxResumeCommandsItem
+	default:
+		return errors.Errorf("unexpected json type %q", t)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileSandboxResumeCommandsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxResumeCommandsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileSandboxResumeCommandsItem1) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileSandboxResumeCommandsItem1) encodeFields(e *jx.Encoder) {
+	{
+		if s.Retries.Set {
+			e.FieldStart("retries")
+			s.Retries.Encode(e)
+		}
+	}
+	{
+		if s.RetryBackoffMs.Set {
+			e.FieldStart("retryBackoffMs")
+			s.RetryBackoffMs.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("run")
+		e.Str(s.Run)
+	}
+	{
+		if s.When.Set {
+			e.FieldStart("when")
+			s.When.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileSandboxResumeCommandsItem1 = [4]string{
+	0: "retries",
+	1: "retryBackoffMs",
+	2: "run",
+	3: "when",
+}
+
+// Decode decodes DaemonProfileSandboxResumeCommandsItem1 from json.
+func (s *DaemonProfileSandboxResumeCommandsItem1) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxResumeCommandsItem1 to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "retries":
+			if err := func() error {
+				s.Retries.Reset()
+				if err := s.Retries.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retries\"")
+			}
+		case "retryBackoffMs":
+			if err := func() error {
+				s.RetryBackoffMs.Reset()
+				if err := s.RetryBackoffMs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryBackoffMs\"")
+			}
+		case "run":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Run = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"run\"")
+			}
+		case "when":
+			if err := func() error {
+				s.When.Reset()
+				if err := s.When.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"when\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileSandboxResumeCommandsItem1")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDaemonProfileSandboxResumeCommandsItem1) {
+					name = jsonFieldsNameOfDaemonProfileSandboxResumeCommandsItem1[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileSandboxResumeCommandsItem1) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxResumeCommandsItem1) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileSandboxResumeCommandsItem1When) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileSandboxResumeCommandsItem1When) encodeFields(e *jx.Encoder) {
+	{
+		if s.WorkspaceMode != nil {
+			e.FieldStart("workspaceMode")
+			e.ArrStart()
+			for _, elem := range s.WorkspaceMode {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileSandboxResumeCommandsItem1When = [1]string{
+	0: "workspaceMode",
+}
+
+// Decode decodes DaemonProfileSandboxResumeCommandsItem1When from json.
+func (s *DaemonProfileSandboxResumeCommandsItem1When) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxResumeCommandsItem1When to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "workspaceMode":
+			if err := func() error {
+				s.WorkspaceMode = make([]DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.WorkspaceMode = append(s.WorkspaceMode, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceMode\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileSandboxResumeCommandsItem1When")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileSandboxResumeCommandsItem1When) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxResumeCommandsItem1When) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem as json.
+func (s DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem from json.
+func (s *DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem(v) {
+	case DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		*s = DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
+	case DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		*s = DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
+	case DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		*s = DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
+	default:
+		*s = DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileSandboxSnapshot) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileSandboxSnapshot) encodeFields(e *jx.Encoder) {
+	{
+		if s.AllowedHosts != nil {
+			e.FieldStart("allowedHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.OverlaySize.Set {
+			e.FieldStart("overlaySize")
+			s.OverlaySize.Encode(e)
+		}
+	}
+	{
+		if s.SetupCommands != nil {
+			e.FieldStart("setupCommands")
+			e.ArrStart()
+			for _, elem := range s.SetupCommands {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileSandboxSnapshot = [3]string{
+	0: "allowedHosts",
+	1: "overlaySize",
+	2: "setupCommands",
+}
+
+// Decode decodes DaemonProfileSandboxSnapshot from json.
+func (s *DaemonProfileSandboxSnapshot) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxSnapshot to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "allowedHosts":
+			if err := func() error {
+				s.AllowedHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedHosts = append(s.AllowedHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "overlaySize":
+			if err := func() error {
+				s.OverlaySize.Reset()
+				if err := s.OverlaySize.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"overlaySize\"")
+			}
+		case "setupCommands":
+			if err := func() error {
+				s.SetupCommands = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.SetupCommands = append(s.SetupCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"setupCommands\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileSandboxSnapshot")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileSandboxSnapshot) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxSnapshot) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DaemonProfileSandboxVfs) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DaemonProfileSandboxVfs) encodeFields(e *jx.Encoder) {
+	{
+		if s.Shadow != nil {
+			e.FieldStart("shadow")
+			e.ArrStart()
+			for _, elem := range s.Shadow {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.ShadowMode.Set {
+			e.FieldStart("shadowMode")
+			s.ShadowMode.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfDaemonProfileSandboxVfs = [2]string{
+	0: "shadow",
+	1: "shadowMode",
+}
+
+// Decode decodes DaemonProfileSandboxVfs from json.
+func (s *DaemonProfileSandboxVfs) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxVfs to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "shadow":
+			if err := func() error {
+				s.Shadow = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.Shadow = append(s.Shadow, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shadow\"")
+			}
+		case "shadowMode":
+			if err := func() error {
+				s.ShadowMode.Reset()
+				if err := s.ShadowMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shadowMode\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DaemonProfileSandboxVfs")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DaemonProfileSandboxVfs) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxVfs) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxVfsShadowMode as json.
+func (s DaemonProfileSandboxVfsShadowMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileSandboxVfsShadowMode from json.
+func (s *DaemonProfileSandboxVfsShadowMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSandboxVfsShadowMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileSandboxVfsShadowMode(v) {
+	case DaemonProfileSandboxVfsShadowModeDeny:
+		*s = DaemonProfileSandboxVfsShadowModeDeny
+	case DaemonProfileSandboxVfsShadowModeTmpfs:
+		*s = DaemonProfileSandboxVfsShadowModeTmpfs
+	default:
+		*s = DaemonProfileSandboxVfsShadowMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileSandboxVfsShadowMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSessionStorageMode as json.
+func (s DaemonProfileSessionStorageMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileSessionStorageMode from json.
+func (s *DaemonProfileSessionStorageMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileSessionStorageMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileSessionStorageMode(v) {
+	case DaemonProfileSessionStorageModeLocal:
+		*s = DaemonProfileSessionStorageModeLocal
+	default:
+		*s = DaemonProfileSessionStorageMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileSessionStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileSessionStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileWorkspaceStorageMode as json.
+func (s DaemonProfileWorkspaceStorageMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DaemonProfileWorkspaceStorageMode from json.
+func (s *DaemonProfileWorkspaceStorageMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DaemonProfileWorkspaceStorageMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DaemonProfileWorkspaceStorageMode(v) {
+	case DaemonProfileWorkspaceStorageModeLocal:
+		*s = DaemonProfileWorkspaceStorageModeLocal
+	default:
+		*s = DaemonProfileWorkspaceStorageMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DaemonProfileWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DaemonProfileWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *DaemonState) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -10613,6 +16003,120 @@ func (s *DaemonState) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *DaemonState) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DeleteDaemonProfileForbidden as json.
+func (s *DeleteDaemonProfileForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DeleteDaemonProfileForbidden from json.
+func (s *DeleteDaemonProfileForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DeleteDaemonProfileForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DeleteDaemonProfileForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DeleteDaemonProfileForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DeleteDaemonProfileForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DeleteDaemonProfileNotFound as json.
+func (s *DeleteDaemonProfileNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DeleteDaemonProfileNotFound from json.
+func (s *DeleteDaemonProfileNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DeleteDaemonProfileNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DeleteDaemonProfileNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DeleteDaemonProfileNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DeleteDaemonProfileNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DeleteDaemonProfileUnauthorized as json.
+func (s *DeleteDaemonProfileUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes DeleteDaemonProfileUnauthorized from json.
+func (s *DeleteDaemonProfileUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DeleteDaemonProfileUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = DeleteDaemonProfileUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DeleteDaemonProfileUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DeleteDaemonProfileUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -19323,119 +24827,6 @@ func (s *EntryVerifyResult) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode implements json.Marshaler.
-func (s *ExecutorRef) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *ExecutorRef) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("model")
-		e.Str(s.Model)
-	}
-	{
-		e.FieldStart("provider")
-		e.Str(s.Provider)
-	}
-}
-
-var jsonFieldsNameOfExecutorRef = [2]string{
-	0: "model",
-	1: "provider",
-}
-
-// Decode decodes ExecutorRef from json.
-func (s *ExecutorRef) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ExecutorRef to nil")
-	}
-	var requiredBitSet [1]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "model":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Str()
-				s.Model = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"model\"")
-			}
-		case "provider":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Str()
-				s.Provider = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"provider\"")
-			}
-		default:
-			return errors.Errorf("unexpected field %q", k)
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode ExecutorRef")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000011,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfExecutorRef) {
-					name = jsonFieldsNameOfExecutorRef[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *ExecutorRef) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ExecutorRef) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes ExecutorTrustLevel as json.
 func (s ExecutorTrustLevel) Encode(e *jx.Encoder) {
 	e.Str(string(s))
@@ -21762,6 +27153,82 @@ func (s *GetCryptoIdentityUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *GetCryptoIdentityUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetDaemonProfileNotFound as json.
+func (s *GetDaemonProfileNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetDaemonProfileNotFound from json.
+func (s *GetDaemonProfileNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetDaemonProfileNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetDaemonProfileNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetDaemonProfileNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetDaemonProfileNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetDaemonProfileUnauthorized as json.
+func (s *GetDaemonProfileUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetDaemonProfileUnauthorized from json.
+func (s *GetDaemonProfileUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetDaemonProfileUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetDaemonProfileUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetDaemonProfileUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetDaemonProfileUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -27064,6 +32531,120 @@ func (s *ListContextPacksUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ListContextPacksUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListDaemonProfilesForbidden as json.
+func (s *ListDaemonProfilesForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListDaemonProfilesForbidden from json.
+func (s *ListDaemonProfilesForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListDaemonProfilesForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListDaemonProfilesForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListDaemonProfilesForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListDaemonProfilesForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListDaemonProfilesNotFound as json.
+func (s *ListDaemonProfilesNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListDaemonProfilesNotFound from json.
+func (s *ListDaemonProfilesNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListDaemonProfilesNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListDaemonProfilesNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListDaemonProfilesNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListDaemonProfilesNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListDaemonProfilesUnauthorized as json.
+func (s *ListDaemonProfilesUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListDaemonProfilesUnauthorized from json.
+func (s *ListDaemonProfilesUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListDaemonProfilesUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListDaemonProfilesUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListDaemonProfilesUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListDaemonProfilesUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -37019,6 +42600,403 @@ func (s *OptCompleteTaskReqExecutorManifest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes CreateDaemonProfileBody as json.
+func (o OptCreateDaemonProfileBody) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileBody from json.
+func (o *OptCreateDaemonProfileBody) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBody to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBody) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBody) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodyRuntimeKind as json.
+func (o OptCreateDaemonProfileBodyRuntimeKind) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes CreateDaemonProfileBodyRuntimeKind from json.
+func (o *OptCreateDaemonProfileBodyRuntimeKind) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodyRuntimeKind to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodyRuntimeKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodyRuntimeKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxEnv as json.
+func (o OptCreateDaemonProfileBodySandboxEnv) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxEnv from json.
+func (o *OptCreateDaemonProfileBodySandboxEnv) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodySandboxEnv to nil")
+	}
+	o.Set = true
+	o.Value = make(CreateDaemonProfileBodySandboxEnv)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodySandboxEnv) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodySandboxEnv) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxHostExec as json.
+func (o OptCreateDaemonProfileBodySandboxHostExec) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxHostExec from json.
+func (o *OptCreateDaemonProfileBodySandboxHostExec) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodySandboxHostExec to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodySandboxHostExec) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodySandboxHostExec) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxHostExecAutoApprove as json.
+func (o OptCreateDaemonProfileBodySandboxHostExecAutoApprove) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Bool(bool(o.Value))
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxHostExecAutoApprove from json.
+func (o *OptCreateDaemonProfileBodySandboxHostExecAutoApprove) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodySandboxHostExecAutoApprove to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodySandboxHostExecAutoApprove) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodySandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxResources as json.
+func (o OptCreateDaemonProfileBodySandboxResources) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxResources from json.
+func (o *OptCreateDaemonProfileBodySandboxResources) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodySandboxResources to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodySandboxResources) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodySandboxResources) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxResumeCommandsItem1When as json.
+func (o OptCreateDaemonProfileBodySandboxResumeCommandsItem1When) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxResumeCommandsItem1When from json.
+func (o *OptCreateDaemonProfileBodySandboxResumeCommandsItem1When) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodySandboxResumeCommandsItem1When to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodySandboxResumeCommandsItem1When) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodySandboxResumeCommandsItem1When) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxSnapshot as json.
+func (o OptCreateDaemonProfileBodySandboxSnapshot) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxSnapshot from json.
+func (o *OptCreateDaemonProfileBodySandboxSnapshot) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodySandboxSnapshot to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodySandboxSnapshot) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodySandboxSnapshot) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxVfs as json.
+func (o OptCreateDaemonProfileBodySandboxVfs) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxVfs from json.
+func (o *OptCreateDaemonProfileBodySandboxVfs) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodySandboxVfs to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodySandboxVfs) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodySandboxVfs) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySandboxVfsShadowMode as json.
+func (o OptCreateDaemonProfileBodySandboxVfsShadowMode) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes CreateDaemonProfileBodySandboxVfsShadowMode from json.
+func (o *OptCreateDaemonProfileBodySandboxVfsShadowMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodySandboxVfsShadowMode to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodySandboxVfsShadowMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodySandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodySessionStorageMode as json.
+func (o OptCreateDaemonProfileBodySessionStorageMode) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes CreateDaemonProfileBodySessionStorageMode from json.
+func (o *OptCreateDaemonProfileBodySessionStorageMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodySessionStorageMode to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodySessionStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodySessionStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDaemonProfileBodyWorkspaceStorageMode as json.
+func (o OptCreateDaemonProfileBodyWorkspaceStorageMode) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes CreateDaemonProfileBodyWorkspaceStorageMode from json.
+func (o *OptCreateDaemonProfileBodyWorkspaceStorageMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateDaemonProfileBodyWorkspaceStorageMode to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateDaemonProfileBodyWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateDaemonProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes CreateDiaryEntryReqEntryType as json.
 func (o OptCreateDiaryEntryReqEntryType) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -37180,6 +43158,536 @@ func (s OptCreateTeamInviteReqRole) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptCreateTeamInviteReqRole) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxEnv as json.
+func (o OptDaemonProfileListResponseItemsItemSandboxEnv) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxEnv from json.
+func (o *OptDaemonProfileListResponseItemsItemSandboxEnv) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileListResponseItemsItemSandboxEnv to nil")
+	}
+	o.Set = true
+	o.Value = make(DaemonProfileListResponseItemsItemSandboxEnv)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileListResponseItemsItemSandboxEnv) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileListResponseItemsItemSandboxEnv) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxHostExec as json.
+func (o OptDaemonProfileListResponseItemsItemSandboxHostExec) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxHostExec from json.
+func (o *OptDaemonProfileListResponseItemsItemSandboxHostExec) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileListResponseItemsItemSandboxHostExec to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileListResponseItemsItemSandboxHostExec) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileListResponseItemsItemSandboxHostExec) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove as json.
+func (o OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Bool(bool(o.Value))
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove from json.
+func (o *OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxResources as json.
+func (o OptDaemonProfileListResponseItemsItemSandboxResources) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxResources from json.
+func (o *OptDaemonProfileListResponseItemsItemSandboxResources) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileListResponseItemsItemSandboxResources to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileListResponseItemsItemSandboxResources) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileListResponseItemsItemSandboxResources) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When as json.
+func (o OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When from json.
+func (o *OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxSnapshot as json.
+func (o OptDaemonProfileListResponseItemsItemSandboxSnapshot) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxSnapshot from json.
+func (o *OptDaemonProfileListResponseItemsItemSandboxSnapshot) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileListResponseItemsItemSandboxSnapshot to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileListResponseItemsItemSandboxSnapshot) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileListResponseItemsItemSandboxSnapshot) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxVfs as json.
+func (o OptDaemonProfileListResponseItemsItemSandboxVfs) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxVfs from json.
+func (o *OptDaemonProfileListResponseItemsItemSandboxVfs) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileListResponseItemsItemSandboxVfs to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileListResponseItemsItemSandboxVfs) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileListResponseItemsItemSandboxVfs) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileListResponseItemsItemSandboxVfsShadowMode as json.
+func (o OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes DaemonProfileListResponseItemsItemSandboxVfsShadowMode from json.
+func (o *OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxEnv as json.
+func (o OptDaemonProfileSandboxEnv) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileSandboxEnv from json.
+func (o *OptDaemonProfileSandboxEnv) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileSandboxEnv to nil")
+	}
+	o.Set = true
+	o.Value = make(DaemonProfileSandboxEnv)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileSandboxEnv) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileSandboxEnv) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxHostExec as json.
+func (o OptDaemonProfileSandboxHostExec) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileSandboxHostExec from json.
+func (o *OptDaemonProfileSandboxHostExec) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileSandboxHostExec to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileSandboxHostExec) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileSandboxHostExec) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxHostExecAutoApprove as json.
+func (o OptDaemonProfileSandboxHostExecAutoApprove) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Bool(bool(o.Value))
+}
+
+// Decode decodes DaemonProfileSandboxHostExecAutoApprove from json.
+func (o *OptDaemonProfileSandboxHostExecAutoApprove) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileSandboxHostExecAutoApprove to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileSandboxHostExecAutoApprove) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileSandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxResources as json.
+func (o OptDaemonProfileSandboxResources) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileSandboxResources from json.
+func (o *OptDaemonProfileSandboxResources) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileSandboxResources to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileSandboxResources) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileSandboxResources) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxResumeCommandsItem1When as json.
+func (o OptDaemonProfileSandboxResumeCommandsItem1When) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileSandboxResumeCommandsItem1When from json.
+func (o *OptDaemonProfileSandboxResumeCommandsItem1When) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileSandboxResumeCommandsItem1When to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileSandboxResumeCommandsItem1When) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileSandboxResumeCommandsItem1When) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxSnapshot as json.
+func (o OptDaemonProfileSandboxSnapshot) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileSandboxSnapshot from json.
+func (o *OptDaemonProfileSandboxSnapshot) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileSandboxSnapshot to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileSandboxSnapshot) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileSandboxSnapshot) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxVfs as json.
+func (o OptDaemonProfileSandboxVfs) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes DaemonProfileSandboxVfs from json.
+func (o *OptDaemonProfileSandboxVfs) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileSandboxVfs to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileSandboxVfs) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileSandboxVfs) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DaemonProfileSandboxVfsShadowMode as json.
+func (o OptDaemonProfileSandboxVfsShadowMode) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes DaemonProfileSandboxVfsShadowMode from json.
+func (o *OptDaemonProfileSandboxVfsShadowMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDaemonProfileSandboxVfsShadowMode to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDaemonProfileSandboxVfsShadowMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDaemonProfileSandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -38005,6 +44513,436 @@ func (s OptUpdateContextPackReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptUpdateContextPackReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBody as json.
+func (o OptUpdateDaemonProfileBody) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileBody from json.
+func (o *OptUpdateDaemonProfileBody) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBody to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBody) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBody) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodyRuntimeKind as json.
+func (o OptUpdateDaemonProfileBodyRuntimeKind) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes UpdateDaemonProfileBodyRuntimeKind from json.
+func (o *OptUpdateDaemonProfileBodyRuntimeKind) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodyRuntimeKind to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodyRuntimeKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodyRuntimeKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandbox as json.
+func (o OptUpdateDaemonProfileBodySandbox) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileBodySandbox from json.
+func (o *OptUpdateDaemonProfileBodySandbox) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodySandbox to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodySandbox) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodySandbox) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxEnv as json.
+func (o OptUpdateDaemonProfileBodySandboxEnv) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxEnv from json.
+func (o *OptUpdateDaemonProfileBodySandboxEnv) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodySandboxEnv to nil")
+	}
+	o.Set = true
+	o.Value = make(UpdateDaemonProfileBodySandboxEnv)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodySandboxEnv) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodySandboxEnv) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxHostExec as json.
+func (o OptUpdateDaemonProfileBodySandboxHostExec) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxHostExec from json.
+func (o *OptUpdateDaemonProfileBodySandboxHostExec) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodySandboxHostExec to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodySandboxHostExec) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodySandboxHostExec) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxHostExecAutoApprove as json.
+func (o OptUpdateDaemonProfileBodySandboxHostExecAutoApprove) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Bool(bool(o.Value))
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxHostExecAutoApprove from json.
+func (o *OptUpdateDaemonProfileBodySandboxHostExecAutoApprove) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodySandboxHostExecAutoApprove to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodySandboxHostExecAutoApprove) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodySandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxResources as json.
+func (o OptUpdateDaemonProfileBodySandboxResources) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxResources from json.
+func (o *OptUpdateDaemonProfileBodySandboxResources) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodySandboxResources to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodySandboxResources) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodySandboxResources) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxResumeCommandsItem1When as json.
+func (o OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxResumeCommandsItem1When from json.
+func (o *OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxSnapshot as json.
+func (o OptUpdateDaemonProfileBodySandboxSnapshot) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxSnapshot from json.
+func (o *OptUpdateDaemonProfileBodySandboxSnapshot) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodySandboxSnapshot to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodySandboxSnapshot) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodySandboxSnapshot) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxVfs as json.
+func (o OptUpdateDaemonProfileBodySandboxVfs) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxVfs from json.
+func (o *OptUpdateDaemonProfileBodySandboxVfs) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodySandboxVfs to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodySandboxVfs) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodySandboxVfs) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxVfsShadowMode as json.
+func (o OptUpdateDaemonProfileBodySandboxVfsShadowMode) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxVfsShadowMode from json.
+func (o *OptUpdateDaemonProfileBodySandboxVfsShadowMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodySandboxVfsShadowMode to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodySandboxVfsShadowMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodySandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySessionStorageMode as json.
+func (o OptUpdateDaemonProfileBodySessionStorageMode) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes UpdateDaemonProfileBodySessionStorageMode from json.
+func (o *OptUpdateDaemonProfileBodySessionStorageMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodySessionStorageMode to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodySessionStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodySessionStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodyWorkspaceStorageMode as json.
+func (o OptUpdateDaemonProfileBodyWorkspaceStorageMode) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes UpdateDaemonProfileBodyWorkspaceStorageMode from json.
+func (o *OptUpdateDaemonProfileBodyWorkspaceStorageMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateDaemonProfileBodyWorkspaceStorageMode to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateDaemonProfileBodyWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateDaemonProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -49346,9 +56284,9 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 		s.AcceptedAttemptN.Encode(e)
 	}
 	{
-		e.FieldStart("allowedExecutors")
+		e.FieldStart("allowedProfiles")
 		e.ArrStart()
-		for _, elem := range s.AllowedExecutors {
+		for _, elem := range s.AllowedProfiles {
 			elem.Encode(e)
 		}
 		e.ArrEnd()
@@ -49469,7 +56407,7 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 
 var jsonFieldsNameOfTask = [28]string{
 	0:  "acceptedAttemptN",
-	1:  "allowedExecutors",
+	1:  "allowedProfiles",
 	2:  "cancelReason",
 	3:  "cancelledByAgentId",
 	4:  "cancelledByHumanId",
@@ -49517,23 +56455,23 @@ func (s *Task) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"acceptedAttemptN\"")
 			}
-		case "allowedExecutors":
+		case "allowedProfiles":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
-				s.AllowedExecutors = make([]TaskAllowedExecutorsItem, 0)
+				s.AllowedProfiles = make([]TaskAllowedProfilesItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
-					var elem TaskAllowedExecutorsItem
+					var elem TaskAllowedProfilesItem
 					if err := elem.Decode(d); err != nil {
 						return err
 					}
-					s.AllowedExecutors = append(s.AllowedExecutors, elem)
+					s.AllowedProfiles = append(s.AllowedProfiles, elem)
 					return nil
 				}); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"allowedExecutors\"")
+				return errors.Wrap(err, "decode field \"allowedProfiles\"")
 			}
 		case "cancelReason":
 			requiredBitSet[0] |= 1 << 2
@@ -49887,73 +56825,56 @@ func (s *Task) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *TaskAllowedExecutorsItem) Encode(e *jx.Encoder) {
+func (s *TaskAllowedProfilesItem) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *TaskAllowedExecutorsItem) encodeFields(e *jx.Encoder) {
+func (s *TaskAllowedProfilesItem) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("model")
-		e.Str(s.Model)
-	}
-	{
-		e.FieldStart("provider")
-		e.Str(s.Provider)
+		e.FieldStart("profileId")
+		json.EncodeUUID(e, s.ProfileId)
 	}
 }
 
-var jsonFieldsNameOfTaskAllowedExecutorsItem = [2]string{
-	0: "model",
-	1: "provider",
+var jsonFieldsNameOfTaskAllowedProfilesItem = [1]string{
+	0: "profileId",
 }
 
-// Decode decodes TaskAllowedExecutorsItem from json.
-func (s *TaskAllowedExecutorsItem) Decode(d *jx.Decoder) error {
+// Decode decodes TaskAllowedProfilesItem from json.
+func (s *TaskAllowedProfilesItem) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode TaskAllowedExecutorsItem to nil")
+		return errors.New("invalid: unable to decode TaskAllowedProfilesItem to nil")
 	}
 	var requiredBitSet [1]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "model":
+		case "profileId":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.Model = string(v)
+				v, err := json.DecodeUUID(d)
+				s.ProfileId = v
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"model\"")
-			}
-		case "provider":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Str()
-				s.Provider = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"provider\"")
+				return errors.Wrap(err, "decode field \"profileId\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode TaskAllowedExecutorsItem")
+		return errors.Wrap(err, "decode TaskAllowedProfilesItem")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -49965,8 +56886,8 @@ func (s *TaskAllowedExecutorsItem) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfTaskAllowedExecutorsItem) {
-					name = jsonFieldsNameOfTaskAllowedExecutorsItem[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfTaskAllowedProfilesItem) {
+					name = jsonFieldsNameOfTaskAllowedProfilesItem[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -49987,14 +56908,14 @@ func (s *TaskAllowedExecutorsItem) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *TaskAllowedExecutorsItem) MarshalJSON() ([]byte, error) {
+func (s *TaskAllowedProfilesItem) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *TaskAllowedExecutorsItem) UnmarshalJSON(data []byte) error {
+func (s *TaskAllowedProfilesItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -53562,6 +60483,1754 @@ func (s *UpdateContextPackUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateContextPackUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBadRequest as json.
+func (s *UpdateDaemonProfileBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileBadRequest from json.
+func (s *UpdateDaemonProfileBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateDaemonProfileBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateDaemonProfileBody) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateDaemonProfileBody) encodeFields(e *jx.Encoder) {
+	{
+		if s.Context != nil {
+			e.FieldStart("context")
+			e.ArrStart()
+			for _, elem := range s.Context {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.Description.Set {
+			e.FieldStart("description")
+			s.Description.Encode(e)
+		}
+	}
+	{
+		if s.Model.Set {
+			e.FieldStart("model")
+			s.Model.Encode(e)
+		}
+	}
+	{
+		if s.Name.Set {
+			e.FieldStart("name")
+			s.Name.Encode(e)
+		}
+	}
+	{
+		if s.Provider.Set {
+			e.FieldStart("provider")
+			s.Provider.Encode(e)
+		}
+	}
+	{
+		if s.RequiredEnv != nil {
+			e.FieldStart("requiredEnv")
+			e.ArrStart()
+			for _, elem := range s.RequiredEnv {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.RequiredTools != nil {
+			e.FieldStart("requiredTools")
+			e.ArrStart()
+			for _, elem := range s.RequiredTools {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.RuntimeKind.Set {
+			e.FieldStart("runtimeKind")
+			s.RuntimeKind.Encode(e)
+		}
+	}
+	{
+		if s.Sandbox.Set {
+			e.FieldStart("sandbox")
+			s.Sandbox.Encode(e)
+		}
+	}
+	{
+		if s.SessionStorageMode.Set {
+			e.FieldStart("sessionStorageMode")
+			s.SessionStorageMode.Encode(e)
+		}
+	}
+	{
+		if s.SessionTtlSec.Set {
+			e.FieldStart("sessionTtlSec")
+			s.SessionTtlSec.Encode(e)
+		}
+	}
+	{
+		if s.WorkspaceStorageMode.Set {
+			e.FieldStart("workspaceStorageMode")
+			s.WorkspaceStorageMode.Encode(e)
+		}
+	}
+	{
+		if s.WorkspaceTtlSec.Set {
+			e.FieldStart("workspaceTtlSec")
+			s.WorkspaceTtlSec.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateDaemonProfileBody = [13]string{
+	0:  "context",
+	1:  "description",
+	2:  "model",
+	3:  "name",
+	4:  "provider",
+	5:  "requiredEnv",
+	6:  "requiredTools",
+	7:  "runtimeKind",
+	8:  "sandbox",
+	9:  "sessionStorageMode",
+	10: "sessionTtlSec",
+	11: "workspaceStorageMode",
+	12: "workspaceTtlSec",
+}
+
+// Decode decodes UpdateDaemonProfileBody from json.
+func (s *UpdateDaemonProfileBody) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBody to nil")
+	}
+	var propertiesCount int
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		propertiesCount++
+		switch string(k) {
+		case "context":
+			if err := func() error {
+				s.Context = make([]UpdateDaemonProfileBodyContextItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem UpdateDaemonProfileBodyContextItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Context = append(s.Context, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"context\"")
+			}
+		case "description":
+			if err := func() error {
+				s.Description.Reset()
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "model":
+			if err := func() error {
+				s.Model.Reset()
+				if err := s.Model.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "name":
+			if err := func() error {
+				s.Name.Reset()
+				if err := s.Name.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "provider":
+			if err := func() error {
+				s.Provider.Reset()
+				if err := s.Provider.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "requiredEnv":
+			if err := func() error {
+				s.RequiredEnv = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.RequiredEnv = append(s.RequiredEnv, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"requiredEnv\"")
+			}
+		case "requiredTools":
+			if err := func() error {
+				s.RequiredTools = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.RequiredTools = append(s.RequiredTools, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"requiredTools\"")
+			}
+		case "runtimeKind":
+			if err := func() error {
+				s.RuntimeKind.Reset()
+				if err := s.RuntimeKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeKind\"")
+			}
+		case "sandbox":
+			if err := func() error {
+				s.Sandbox.Reset()
+				if err := s.Sandbox.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sandbox\"")
+			}
+		case "sessionStorageMode":
+			if err := func() error {
+				s.SessionStorageMode.Reset()
+				if err := s.SessionStorageMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
+			}
+		case "sessionTtlSec":
+			if err := func() error {
+				s.SessionTtlSec.Reset()
+				if err := s.SessionTtlSec.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
+			}
+		case "workspaceStorageMode":
+			if err := func() error {
+				s.WorkspaceStorageMode.Reset()
+				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
+			}
+		case "workspaceTtlSec":
+			if err := func() error {
+				s.WorkspaceTtlSec.Reset()
+				if err := s.WorkspaceTtlSec.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceTtlSec\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateDaemonProfileBody")
+	}
+	// Validate properties count.
+	if err := (validate.Object{
+		MinProperties:    1,
+		MinPropertiesSet: true,
+		MaxProperties:    0,
+		MaxPropertiesSet: false,
+	}).ValidateProperties(propertiesCount); err != nil {
+		return errors.Wrap(err, "object")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileBody) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBody) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateDaemonProfileBodyContextItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateDaemonProfileBodyContextItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("binding")
+		s.Binding.Encode(e)
+	}
+	{
+		e.FieldStart("content")
+		e.Str(s.Content)
+	}
+	{
+		e.FieldStart("slug")
+		e.Str(s.Slug)
+	}
+}
+
+var jsonFieldsNameOfUpdateDaemonProfileBodyContextItem = [3]string{
+	0: "binding",
+	1: "content",
+	2: "slug",
+}
+
+// Decode decodes UpdateDaemonProfileBodyContextItem from json.
+func (s *UpdateDaemonProfileBodyContextItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodyContextItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "binding":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Binding.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"binding\"")
+			}
+		case "content":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Content = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"content\"")
+			}
+		case "slug":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Slug = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"slug\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateDaemonProfileBodyContextItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUpdateDaemonProfileBodyContextItem) {
+					name = jsonFieldsNameOfUpdateDaemonProfileBodyContextItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileBodyContextItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodyContextItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodyContextItemBinding as json.
+func (s UpdateDaemonProfileBodyContextItemBinding) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateDaemonProfileBodyContextItemBinding from json.
+func (s *UpdateDaemonProfileBodyContextItemBinding) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodyContextItemBinding to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateDaemonProfileBodyContextItemBinding(v) {
+	case UpdateDaemonProfileBodyContextItemBindingSkill:
+		*s = UpdateDaemonProfileBodyContextItemBindingSkill
+	case UpdateDaemonProfileBodyContextItemBindingContextInline:
+		*s = UpdateDaemonProfileBodyContextItemBindingContextInline
+	case UpdateDaemonProfileBodyContextItemBindingPromptPrefix:
+		*s = UpdateDaemonProfileBodyContextItemBindingPromptPrefix
+	case UpdateDaemonProfileBodyContextItemBindingUserInline:
+		*s = UpdateDaemonProfileBodyContextItemBindingUserInline
+	default:
+		*s = UpdateDaemonProfileBodyContextItemBinding(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateDaemonProfileBodyContextItemBinding) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodyContextItemBinding) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodyRuntimeKind as json.
+func (s UpdateDaemonProfileBodyRuntimeKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateDaemonProfileBodyRuntimeKind from json.
+func (s *UpdateDaemonProfileBodyRuntimeKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodyRuntimeKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateDaemonProfileBodyRuntimeKind(v) {
+	case UpdateDaemonProfileBodyRuntimeKindGondolinPi:
+		*s = UpdateDaemonProfileBodyRuntimeKindGondolinPi
+	default:
+		*s = UpdateDaemonProfileBodyRuntimeKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateDaemonProfileBodyRuntimeKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodyRuntimeKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateDaemonProfileBodySandbox) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateDaemonProfileBodySandbox) encodeFields(e *jx.Encoder) {
+	{
+		if s.Env.Set {
+			e.FieldStart("env")
+			s.Env.Encode(e)
+		}
+	}
+	{
+		if s.HostExec.Set {
+			e.FieldStart("hostExec")
+			s.HostExec.Encode(e)
+		}
+	}
+	{
+		if s.Resources.Set {
+			e.FieldStart("resources")
+			s.Resources.Encode(e)
+		}
+	}
+	{
+		if s.ResumeCommands != nil {
+			e.FieldStart("resumeCommands")
+			e.ArrStart()
+			for _, elem := range s.ResumeCommands {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.Snapshot.Set {
+			e.FieldStart("snapshot")
+			s.Snapshot.Encode(e)
+		}
+	}
+	{
+		if s.Vfs.Set {
+			e.FieldStart("vfs")
+			s.Vfs.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateDaemonProfileBodySandbox = [6]string{
+	0: "env",
+	1: "hostExec",
+	2: "resources",
+	3: "resumeCommands",
+	4: "snapshot",
+	5: "vfs",
+}
+
+// Decode decodes UpdateDaemonProfileBodySandbox from json.
+func (s *UpdateDaemonProfileBodySandbox) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandbox to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "env":
+			if err := func() error {
+				s.Env.Reset()
+				if err := s.Env.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"env\"")
+			}
+		case "hostExec":
+			if err := func() error {
+				s.HostExec.Reset()
+				if err := s.HostExec.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hostExec\"")
+			}
+		case "resources":
+			if err := func() error {
+				s.Resources.Reset()
+				if err := s.Resources.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resources\"")
+			}
+		case "resumeCommands":
+			if err := func() error {
+				s.ResumeCommands = make([]UpdateDaemonProfileBodySandboxResumeCommandsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem UpdateDaemonProfileBodySandboxResumeCommandsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.ResumeCommands = append(s.ResumeCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resumeCommands\"")
+			}
+		case "snapshot":
+			if err := func() error {
+				s.Snapshot.Reset()
+				if err := s.Snapshot.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"snapshot\"")
+			}
+		case "vfs":
+			if err := func() error {
+				s.Vfs.Reset()
+				if err := s.Vfs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"vfs\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateDaemonProfileBodySandbox")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileBodySandbox) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandbox) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s UpdateDaemonProfileBodySandboxEnv) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s UpdateDaemonProfileBodySandboxEnv) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		e.Str(elem)
+	}
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxEnv from json.
+func (s *UpdateDaemonProfileBodySandboxEnv) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxEnv to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem string
+		if err := func() error {
+			v, err := d.Str()
+			elem = string(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateDaemonProfileBodySandboxEnv")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateDaemonProfileBodySandboxEnv) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxEnv) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxHostExec) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateDaemonProfileBodySandboxHostExec) encodeFields(e *jx.Encoder) {
+	{
+		if s.AutoApprove.Set {
+			e.FieldStart("autoApprove")
+			s.AutoApprove.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateDaemonProfileBodySandboxHostExec = [1]string{
+	0: "autoApprove",
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxHostExec from json.
+func (s *UpdateDaemonProfileBodySandboxHostExec) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxHostExec to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "autoApprove":
+			if err := func() error {
+				s.AutoApprove.Reset()
+				if err := s.AutoApprove.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"autoApprove\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateDaemonProfileBodySandboxHostExec")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxHostExec) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxHostExec) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxHostExecAutoApprove as json.
+func (s UpdateDaemonProfileBodySandboxHostExecAutoApprove) Encode(e *jx.Encoder) {
+	e.Bool(bool(s))
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxHostExecAutoApprove from json.
+func (s *UpdateDaemonProfileBodySandboxHostExecAutoApprove) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxHostExecAutoApprove to nil")
+	}
+	v, err := d.Bool()
+	if err != nil {
+		return err
+	}
+	*s = UpdateDaemonProfileBodySandboxHostExecAutoApprove(v)
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateDaemonProfileBodySandboxHostExecAutoApprove) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxResources) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateDaemonProfileBodySandboxResources) encodeFields(e *jx.Encoder) {
+	{
+		if s.Cpus.Set {
+			e.FieldStart("cpus")
+			s.Cpus.Encode(e)
+		}
+	}
+	{
+		if s.Memory.Set {
+			e.FieldStart("memory")
+			s.Memory.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateDaemonProfileBodySandboxResources = [2]string{
+	0: "cpus",
+	1: "memory",
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxResources from json.
+func (s *UpdateDaemonProfileBodySandboxResources) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxResources to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cpus":
+			if err := func() error {
+				s.Cpus.Reset()
+				if err := s.Cpus.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cpus\"")
+			}
+		case "memory":
+			if err := func() error {
+				s.Memory.Reset()
+				if err := s.Memory.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"memory\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateDaemonProfileBodySandboxResources")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxResources) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxResources) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxResumeCommandsItem as json.
+func (s UpdateDaemonProfileBodySandboxResumeCommandsItem) Encode(e *jx.Encoder) {
+	switch s.Type {
+	case StringUpdateDaemonProfileBodySandboxResumeCommandsItem:
+		e.Str(s.String)
+	case UpdateDaemonProfileBodySandboxResumeCommandsItem1UpdateDaemonProfileBodySandboxResumeCommandsItem:
+		s.UpdateDaemonProfileBodySandboxResumeCommandsItem1.Encode(e)
+	}
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxResumeCommandsItem from json.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxResumeCommandsItem to nil")
+	}
+	// Sum type type_discriminator.
+	switch t := d.Next(); t {
+	case jx.Object:
+		if err := s.UpdateDaemonProfileBodySandboxResumeCommandsItem1.Decode(d); err != nil {
+			return err
+		}
+		s.Type = UpdateDaemonProfileBodySandboxResumeCommandsItem1UpdateDaemonProfileBodySandboxResumeCommandsItem
+	case jx.String:
+		v, err := d.Str()
+		s.String = string(v)
+		if err != nil {
+			return err
+		}
+		s.Type = StringUpdateDaemonProfileBodySandboxResumeCommandsItem
+	default:
+		return errors.Errorf("unexpected json type %q", t)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateDaemonProfileBodySandboxResumeCommandsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) encodeFields(e *jx.Encoder) {
+	{
+		if s.Retries.Set {
+			e.FieldStart("retries")
+			s.Retries.Encode(e)
+		}
+	}
+	{
+		if s.RetryBackoffMs.Set {
+			e.FieldStart("retryBackoffMs")
+			s.RetryBackoffMs.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("run")
+		e.Str(s.Run)
+	}
+	{
+		if s.When.Set {
+			e.FieldStart("when")
+			s.When.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateDaemonProfileBodySandboxResumeCommandsItem1 = [4]string{
+	0: "retries",
+	1: "retryBackoffMs",
+	2: "run",
+	3: "when",
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxResumeCommandsItem1 from json.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxResumeCommandsItem1 to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "retries":
+			if err := func() error {
+				s.Retries.Reset()
+				if err := s.Retries.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retries\"")
+			}
+		case "retryBackoffMs":
+			if err := func() error {
+				s.RetryBackoffMs.Reset()
+				if err := s.RetryBackoffMs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryBackoffMs\"")
+			}
+		case "run":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Run = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"run\"")
+			}
+		case "when":
+			if err := func() error {
+				s.When.Reset()
+				if err := s.When.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"when\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateDaemonProfileBodySandboxResumeCommandsItem1")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUpdateDaemonProfileBodySandboxResumeCommandsItem1) {
+					name = jsonFieldsNameOfUpdateDaemonProfileBodySandboxResumeCommandsItem1[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1When) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1When) encodeFields(e *jx.Encoder) {
+	{
+		if s.WorkspaceMode != nil {
+			e.FieldStart("workspaceMode")
+			e.ArrStart()
+			for _, elem := range s.WorkspaceMode {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateDaemonProfileBodySandboxResumeCommandsItem1When = [1]string{
+	0: "workspaceMode",
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxResumeCommandsItem1When from json.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1When) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxResumeCommandsItem1When to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "workspaceMode":
+			if err := func() error {
+				s.WorkspaceMode = make([]UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.WorkspaceMode = append(s.WorkspaceMode, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceMode\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateDaemonProfileBodySandboxResumeCommandsItem1When")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1When) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1When) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem as json.
+func (s UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem from json.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem(v) {
+	case UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		*s = UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
+	case UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		*s = UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
+	case UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		*s = UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
+	default:
+		*s = UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxSnapshot) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateDaemonProfileBodySandboxSnapshot) encodeFields(e *jx.Encoder) {
+	{
+		if s.AllowedHosts != nil {
+			e.FieldStart("allowedHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.OverlaySize.Set {
+			e.FieldStart("overlaySize")
+			s.OverlaySize.Encode(e)
+		}
+	}
+	{
+		if s.SetupCommands != nil {
+			e.FieldStart("setupCommands")
+			e.ArrStart()
+			for _, elem := range s.SetupCommands {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateDaemonProfileBodySandboxSnapshot = [3]string{
+	0: "allowedHosts",
+	1: "overlaySize",
+	2: "setupCommands",
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxSnapshot from json.
+func (s *UpdateDaemonProfileBodySandboxSnapshot) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxSnapshot to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "allowedHosts":
+			if err := func() error {
+				s.AllowedHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedHosts = append(s.AllowedHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "overlaySize":
+			if err := func() error {
+				s.OverlaySize.Reset()
+				if err := s.OverlaySize.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"overlaySize\"")
+			}
+		case "setupCommands":
+			if err := func() error {
+				s.SetupCommands = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.SetupCommands = append(s.SetupCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"setupCommands\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateDaemonProfileBodySandboxSnapshot")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxSnapshot) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxSnapshot) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxVfs) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateDaemonProfileBodySandboxVfs) encodeFields(e *jx.Encoder) {
+	{
+		if s.Shadow != nil {
+			e.FieldStart("shadow")
+			e.ArrStart()
+			for _, elem := range s.Shadow {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.ShadowMode.Set {
+			e.FieldStart("shadowMode")
+			s.ShadowMode.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateDaemonProfileBodySandboxVfs = [2]string{
+	0: "shadow",
+	1: "shadowMode",
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxVfs from json.
+func (s *UpdateDaemonProfileBodySandboxVfs) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxVfs to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "shadow":
+			if err := func() error {
+				s.Shadow = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.Shadow = append(s.Shadow, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shadow\"")
+			}
+		case "shadowMode":
+			if err := func() error {
+				s.ShadowMode.Reset()
+				if err := s.ShadowMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shadowMode\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateDaemonProfileBodySandboxVfs")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileBodySandboxVfs) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxVfs) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySandboxVfsShadowMode as json.
+func (s UpdateDaemonProfileBodySandboxVfsShadowMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateDaemonProfileBodySandboxVfsShadowMode from json.
+func (s *UpdateDaemonProfileBodySandboxVfsShadowMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySandboxVfsShadowMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateDaemonProfileBodySandboxVfsShadowMode(v) {
+	case UpdateDaemonProfileBodySandboxVfsShadowModeDeny:
+		*s = UpdateDaemonProfileBodySandboxVfsShadowModeDeny
+	case UpdateDaemonProfileBodySandboxVfsShadowModeTmpfs:
+		*s = UpdateDaemonProfileBodySandboxVfsShadowModeTmpfs
+	default:
+		*s = UpdateDaemonProfileBodySandboxVfsShadowMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateDaemonProfileBodySandboxVfsShadowMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodySessionStorageMode as json.
+func (s UpdateDaemonProfileBodySessionStorageMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateDaemonProfileBodySessionStorageMode from json.
+func (s *UpdateDaemonProfileBodySessionStorageMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodySessionStorageMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateDaemonProfileBodySessionStorageMode(v) {
+	case UpdateDaemonProfileBodySessionStorageModeLocal:
+		*s = UpdateDaemonProfileBodySessionStorageModeLocal
+	default:
+		*s = UpdateDaemonProfileBodySessionStorageMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateDaemonProfileBodySessionStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodySessionStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileBodyWorkspaceStorageMode as json.
+func (s UpdateDaemonProfileBodyWorkspaceStorageMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateDaemonProfileBodyWorkspaceStorageMode from json.
+func (s *UpdateDaemonProfileBodyWorkspaceStorageMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileBodyWorkspaceStorageMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateDaemonProfileBodyWorkspaceStorageMode(v) {
+	case UpdateDaemonProfileBodyWorkspaceStorageModeLocal:
+		*s = UpdateDaemonProfileBodyWorkspaceStorageModeLocal
+	default:
+		*s = UpdateDaemonProfileBodyWorkspaceStorageMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateDaemonProfileBodyWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileConflict as json.
+func (s *UpdateDaemonProfileConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileConflict from json.
+func (s *UpdateDaemonProfileConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateDaemonProfileConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileForbidden as json.
+func (s *UpdateDaemonProfileForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileForbidden from json.
+func (s *UpdateDaemonProfileForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateDaemonProfileForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileNotFound as json.
+func (s *UpdateDaemonProfileNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileNotFound from json.
+func (s *UpdateDaemonProfileNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateDaemonProfileNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateDaemonProfileUnauthorized as json.
+func (s *UpdateDaemonProfileUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateDaemonProfileUnauthorized from json.
+func (s *UpdateDaemonProfileUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDaemonProfileUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateDaemonProfileUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDaemonProfileUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDaemonProfileUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

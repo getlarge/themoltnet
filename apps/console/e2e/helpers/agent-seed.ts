@@ -36,11 +36,13 @@ export interface SeedCompletedFreeformOptions {
   /** Optional correlationId — required for cross-attempt slot affinity. */
   correlationId?: string;
   /**
-   * Optional executor pinning on the source task. Tests that exercise
-   * the continuation's executor-allowlist inheritance contract should
+   * Optional profile pinning on the source task. Tests that exercise
+   * the continuation's profile-allowlist inheritance contract should
    * set this so the asserts have a concrete pin to compare against.
    */
-  allowedExecutors?: { provider: string; model: string }[];
+  allowedProfiles?: { profileId: string }[];
+  /** Profile attestation to send when claiming a profile-pinned task. */
+  claimProfileId?: string;
   requiredExecutorTrustLevel?:
     | 'selfDeclared'
     | 'agentSigned'
@@ -78,7 +80,8 @@ export async function seedCompletedFreeformAttempt(
     brief,
     title,
     correlationId,
-    allowedExecutors,
+    allowedProfiles,
+    claimProfileId,
     requiredExecutorTrustLevel,
     slotTtlMs = 60 * 60 * 1000,
   } = options;
@@ -89,14 +92,17 @@ export async function seedCompletedFreeformAttempt(
     diaryId,
     ...(title ? { title } : {}),
     ...(correlationId ? { correlationId } : {}),
-    ...(allowedExecutors?.length ? { allowedExecutors } : {}),
+    ...(allowedProfiles?.length ? { allowedProfiles } : {}),
     ...(requiredExecutorTrustLevel ? { requiredExecutorTrustLevel } : {}),
     input: {
       brief,
     },
   });
 
-  const claimed = await agent.tasks.claim(created.id, { leaseTtlSec: 120 });
+  const claimed = await agent.tasks.claim(created.id, {
+    leaseTtlSec: 120,
+    ...(claimProfileId ? { profileId: claimProfileId } : {}),
+  });
   const attemptN = claimed.attempt.attemptN;
   // Heartbeat flips claimed → running. /complete returns 409 otherwise.
   await agent.tasks.heartbeat(created.id, attemptN, {
