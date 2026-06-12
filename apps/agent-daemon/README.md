@@ -61,25 +61,6 @@ export ANTHROPIC_API_KEY=sk-ant-...
 
 To use a non-default auth directory: `PI_CODING_AGENT_DIR=/abs/path/to/.pi/agent`.
 
-When a task starts, the daemon records a `pi_auth_resolved` task message and
-mirrors it into daemon logs. It intentionally reports only booleans and paths,
-never secret values:
-
-- `piCodingAgentDirSet`: whether `PI_CODING_AGENT_DIR` was set for the daemon
-  process
-- `piAuthDir`: the Pi auth directory passed to `createAgentSession`
-- `piAuthJsonPresent`: whether an `auth.json` file was loaded and injected into
-  the VM
-- `authSource`: `auth_json` or `environment`
-- `providerEnv`: provider-relevant env vars, with `processPresent` and
-  `agentEnvPresent` booleans
-
-For `401 Unauthorized` where the Pi TUI works but daemon execution fails, first
-compare this event with the shell used to start the daemon. The usual mismatch
-is a different `PI_CODING_AGENT_DIR`, a stale `auth.json` taking precedence over
-env-var auth, or a provider/model pair that does not match the task's allowed
-executor.
-
 ### Observability
 
 | Var                     | Default | Purpose                                 |

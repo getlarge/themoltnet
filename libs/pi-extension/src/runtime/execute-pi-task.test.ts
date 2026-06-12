@@ -17,7 +17,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   describeToolErrorMessage,
   isBashTimeoutResult,
-  piAuthDiagnostics,
   shouldEmitToolCallError,
   wireSessionAbort,
 } from './execute-pi-task.js';
@@ -196,70 +195,6 @@ describe('parseStructuredTaskOutput', () => {
       output,
       outputCid: await computeJsonCid(output),
       error: null,
-    });
-  });
-});
-
-describe('piAuthDiagnostics', () => {
-  const oldPiDir = process.env.PI_CODING_AGENT_DIR;
-  const oldOllamaKey = process.env.OLLAMA_API_KEY;
-
-  afterEach(() => {
-    if (oldPiDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
-    else process.env.PI_CODING_AGENT_DIR = oldPiDir;
-    if (oldOllamaKey === undefined) delete process.env.OLLAMA_API_KEY;
-    else process.env.OLLAMA_API_KEY = oldOllamaKey;
-  });
-
-  it('reports auth-json source without exposing secret values', () => {
-    process.env.PI_CODING_AGENT_DIR = '/tmp/pi-agent';
-    process.env.OLLAMA_API_KEY = 'secret-value';
-
-    expect(
-      piAuthDiagnostics({
-        provider: 'ollama-cloud',
-        piAuthDir: '/tmp/pi-agent',
-        piAuthJsonPresent: true,
-        agentEnv: {},
-      }),
-    ).toEqual({
-      piCodingAgentDirSet: true,
-      piAuthDir: '/tmp/pi-agent',
-      piAuthJsonPresent: true,
-      authSource: 'auth_json',
-      providerEnv: [
-        {
-          key: 'OLLAMA_API_KEY',
-          processPresent: true,
-          agentEnvPresent: false,
-        },
-      ],
-    });
-  });
-
-  it('reports env source and agent env presence', () => {
-    delete process.env.PI_CODING_AGENT_DIR;
-    delete process.env.OLLAMA_API_KEY;
-
-    expect(
-      piAuthDiagnostics({
-        provider: 'ollama',
-        piAuthDir: '/home/me/.pi/agent',
-        piAuthJsonPresent: false,
-        agentEnv: { OLLAMA_API_KEY: 'secret-value' },
-      }),
-    ).toEqual({
-      piCodingAgentDirSet: false,
-      piAuthDir: '/home/me/.pi/agent',
-      piAuthJsonPresent: false,
-      authSource: 'environment',
-      providerEnv: [
-        {
-          key: 'OLLAMA_API_KEY',
-          processPresent: false,
-          agentEnvPresent: true,
-        },
-      ],
     });
   });
 });
