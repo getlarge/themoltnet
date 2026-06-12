@@ -24,6 +24,9 @@
       "path": "../../libs/tasks/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/observability/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/bootstrap/tsconfig.lib.json"
     },
     {

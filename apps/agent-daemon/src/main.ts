@@ -1,3 +1,7 @@
+// MUST be first: registers OTel auto-instrumentation (undici/pino/http/dns/net)
+// before any module that transitively imports those. See instrumentation.ts.
+import './instrumentation.js';
+
 import { runDrain } from './cli/drain.js';
 import { runOnce } from './cli/once.js';
 import { runPoll } from './cli/poll.js';

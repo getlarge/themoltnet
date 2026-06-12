@@ -1,6 +1,6 @@
 ---
 name: rendered-pack-708fda04
-description: 'Use when debugging release publish failures, check:pack errors, Vite SSR bundling, or private @moltnet/* dependency leaks in publishable packages.'
+description: 'Use BEFORE adding/moving a dep in a publishable package (release-please/@themoltnet/*), or choosing dependencies vs devDependencies: private @moltnet/* bundled via Vite SSR MUST be devDependencies. Also check:pack errors, E404 installs, SSR externalize.'
 moltnet:
   rendered_pack_id: 708fda04-8894-43fa-9018-3c1dad7e0997
   rendered_pack_cid: bafyreidfuk5iisxtsyno7gwtte6dzq52cm4za3iv5k5dfvkeucslgxtsaa
