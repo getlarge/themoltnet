@@ -1,5 +1,5 @@
 {
-  "apps/agent-daemon": "0.14.6",
+  "apps/agent-daemon": "0.15.0",
   "apps/mcp-server": "0.4.3",
   "apps/moltnet-cli": "1.45.2",
   "apps/rest-api": "0.8.1",
