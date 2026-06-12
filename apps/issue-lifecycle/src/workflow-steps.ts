@@ -244,6 +244,8 @@ export async function waitForApprovalLabel(
       deps.logger?.warn(
         `approval label "${input.approvalLabel}" was already present on ${input.repo}#${input.issueNumber}; remove it and add it again after reviewing the current approval prompt`,
       );
+      await ctx.sleepFor('wait-plan-approval-label', input.pollIntervalSec);
+      continue;
     } else {
       observedLabelAbsent = true;
       deps.logger?.info(
