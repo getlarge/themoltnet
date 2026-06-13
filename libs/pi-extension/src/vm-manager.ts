@@ -13,12 +13,7 @@ import {
   VmCheckpoint,
 } from '@earendil-works/gondolin';
 
-import {
-  abortable,
-  abortableResource,
-  delay,
-  throwIfAborted,
-} from './abort-utils.js';
+import { abortableResource, delay, throwIfAborted } from './abort-utils.js';
 import type { ResumeCommand, SandboxConfig } from './snapshot.js';
 
 /**
@@ -249,16 +244,22 @@ async function vmRun(
   // ensures pipelines like `foo | tail` propagate foo's non-zero exit
   // instead of masking it behind tail's success.
   const wrapped = `set -eu\nset -o pipefail\n${command}`;
-  const r = await abortable(
-    vm.exec(['sh', '-c', wrapped]),
-    signal,
-    `resume step "${label}"`,
-  );
+  throwIfAborted(signal, `resume step "${label}"`);
+  const r = await vm.exec(['sh', '-c', wrapped], { signal });
   if (r.exitCode !== 0) {
     const tail = [r.stderr, r.stdout].filter(Boolean).join('\n').slice(-800);
     throw new Error(
       `resume step "${label}" failed (exit ${r.exitCode}):\n${tail}`,
     );
+  }
+}
+
+function nonErrorMessage(err: unknown): string {
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err) ?? 'unknown error';
+  } catch {
+    return 'unknown error';
   }
 }
 
@@ -462,7 +463,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         }
       }
       if (lastErr) {
-        throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+        throw lastErr instanceof Error
+          ? lastErr
+          : new Error(nonErrorMessage(lastErr));
       }
     }
 
@@ -470,11 +473,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     //   /home/agent/.moltnet/<agentName>/{moltnet.json,env,gitconfig,ssh/}
     // Mirrors host layout so legreffier skill and CLI work identically.
     const vmSshDir = `${vmAgentDir}/ssh`;
-    await abortable(
-      vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`),
-      config.signal,
-      'VM credential directory setup',
-    );
+    await vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`, {
+      signal: config.signal,
+    });
 
     if (creds.piAuthJson !== null) {
       // See MoltNet diary entry 09336c5e-e45a-475f-b9cd-1e0ab635e093.
@@ -483,6 +484,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         creds.piAuthJson,
         {
           mode: 0o600,
+          signal: config.signal,
         },
       );
     }
@@ -500,10 +502,12 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     );
     await vm.fs.writeFile(`${vmAgentDir}/moltnet.json`, vmMoltnetJson, {
       mode: 0o600,
+      signal: config.signal,
     });
 
     await vm.fs.writeFile(`${vmAgentDir}/env`, creds.agentEnvRaw, {
       mode: 0o600,
+      signal: config.signal,
     });
 
     // Inject gitconfig with VM-side signing key path. The workspace is mounted
@@ -519,6 +523,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       );
       await vm.fs.writeFile(`${vmAgentDir}/gitconfig`, vmGitconfig, {
         mode: 0o644,
+        signal: config.signal,
       });
     }
 
@@ -526,11 +531,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     if (creds.sshPrivateKey) {
       await vm.fs.writeFile(`${vmSshDir}/id_ed25519`, creds.sshPrivateKey, {
         mode: 0o600,
+        signal: config.signal,
       });
     }
     if (creds.sshPublicKey) {
       await vm.fs.writeFile(`${vmSshDir}/id_ed25519.pub`, creds.sshPublicKey, {
         mode: 0o644,
+        signal: config.signal,
       });
     }
     if (creds.allowedSigners) {
@@ -539,6 +546,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         creds.allowedSigners,
         {
           mode: 0o644,
+          signal: config.signal,
         },
       );
     }
@@ -550,15 +558,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       await vm.fs.writeFile(
         `${vmAgentDir}/${creds.githubAppPemFilename}`,
         creds.githubAppPem,
-        { mode: 0o600 },
+        { mode: 0o600, signal: config.signal },
       );
     }
 
-    await abortable(
-      vm.exec('chown -R agent:agent /home/agent/.pi /home/agent/.moltnet'),
-      config.signal,
-      'VM credential ownership setup',
-    );
+    await vm.exec('chown -R agent:agent /home/agent/.pi /home/agent/.moltnet', {
+      signal: config.signal,
+    });
 
     return {
       vm,

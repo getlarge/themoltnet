@@ -19,26 +19,6 @@ export function abortError(label: string, signal: AbortSignal): Error {
   return err;
 }
 
-export async function abortable<T>(
-  promise: PromiseLike<T>,
-  signal: AbortSignal | undefined,
-  label: string,
-): Promise<T> {
-  if (!signal) return promise;
-  throwIfAborted(signal, label);
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      const listener = () => reject(abortError(label, signal));
-      signal.addEventListener('abort', listener, { once: true });
-      promise.then(
-        () => signal.removeEventListener('abort', listener),
-        () => signal.removeEventListener('abort', listener),
-      );
-    }),
-  ]);
-}
-
 export interface AbortableResourceOptions<T> {
   promise: PromiseLike<T>;
   signal: AbortSignal | undefined;
