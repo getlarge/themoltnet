@@ -13,7 +13,12 @@ import {
   VmCheckpoint,
 } from '@earendil-works/gondolin';
 
-import { abortable, delay, throwIfAborted } from './abort-utils.js';
+import {
+  abortable,
+  abortableResource,
+  delay,
+  throwIfAborted,
+} from './abort-utils.js';
 import type { ResumeCommand, SandboxConfig } from './snapshot.js';
 
 /**
@@ -336,8 +341,8 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const resources = config.sandboxConfig?.resources;
   const workspaceMode = config.workspaceMode ?? 'shared_mount';
   const cp = VmCheckpoint.load(config.checkpointPath);
-  const vm = await abortable(
-    cp.resume({
+  const vm = await abortableResource({
+    promise: cp.resume({
       httpHooks,
       env: vmEnv,
       ...(resources?.memory && { memory: resources.memory }),
@@ -351,9 +356,16 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         },
       },
     }),
-    config.signal,
-    'VM resume',
-  );
+    signal: config.signal,
+    label: 'VM resume',
+    cleanup: (resumedVm) => resumedVm.close(),
+    onCleanupError: (err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      process.stderr.write(
+        `[vm] aborted resume late vm.close() failed: ${message}\n`,
+      );
+    },
+  });
 
   // Everything past cp.resume() owns the live VM. Any throw between
   // here and the final `return { vm, ... }` must close the VM, or the

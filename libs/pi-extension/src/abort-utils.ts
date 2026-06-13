@@ -39,6 +39,55 @@ export async function abortable<T>(
   ]);
 }
 
+export interface AbortableResourceOptions<T> {
+  promise: PromiseLike<T>;
+  signal: AbortSignal | undefined;
+  label: string;
+  cleanup: (resource: T) => Promise<void> | void;
+  onCleanupError?: (err: unknown) => void;
+}
+
+export async function abortableResource<T>(
+  opts: AbortableResourceOptions<T>,
+): Promise<T> {
+  const { signal } = opts;
+  if (!signal) return opts.promise;
+  throwIfAborted(signal, opts.label);
+
+  let abortWon = false;
+  const resourcePromise = Promise.resolve(opts.promise);
+  const abortPromise = new Promise<never>((_, reject) => {
+    const listener = () => {
+      abortWon = true;
+      reject(abortError(opts.label, signal));
+    };
+    signal.addEventListener('abort', listener, { once: true });
+    void resourcePromise.finally(() => {
+      signal.removeEventListener('abort', listener);
+    });
+  });
+
+  try {
+    return await Promise.race([resourcePromise, abortPromise]);
+  } catch (err) {
+    if (abortWon) {
+      void resourcePromise.then(
+        async (resource) => {
+          try {
+            await opts.cleanup(resource);
+          } catch (cleanupErr) {
+            opts.onCleanupError?.(cleanupErr);
+          }
+        },
+        () => {
+          // The resource never materialized, so there is nothing to clean up.
+        },
+      );
+    }
+    throw err;
+  }
+}
+
 export async function delay(
   ms: number,
   signal: AbortSignal | undefined,

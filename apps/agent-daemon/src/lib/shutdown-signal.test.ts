@@ -12,7 +12,6 @@ interface FakeProcess {
   stderr: { write: (message: string) => void };
   on: (event: 'SIGINT' | 'SIGTERM', listener: () => void) => void;
   off: (event: 'SIGINT' | 'SIGTERM', listener: () => void) => void;
-  exit: (code?: number) => never;
 }
 
 function makeFakeProcess(): FakeProcess {
@@ -32,9 +31,6 @@ function makeFakeProcess(): FakeProcess {
       if (proc.listeners.get(event) === listener) {
         proc.listeners.delete(event);
       }
-    },
-    exit(code?: number): never {
-      throw new Error(`exit:${code ?? ''}`);
     },
   };
   return proc;
@@ -60,7 +56,7 @@ describe('shutdown-signal', () => {
     expect(proc.writes).toEqual([]);
   });
 
-  it('force exits on a repeated signal', () => {
+  it('keeps draining on a repeated signal', () => {
     const proc = makeFakeProcess();
     installShutdownSignalHandlers({
       logDrain: vi.fn(),
@@ -70,9 +66,11 @@ describe('shutdown-signal', () => {
 
     proc.listeners.get('SIGTERM')?.();
 
-    expect(() => proc.listeners.get('SIGINT')?.()).toThrow('exit:130');
+    proc.listeners.get('SIGINT')?.();
+
+    expect(proc.exitCode).toBe(130);
     expect(proc.writes).toEqual([
-      '[agent-daemon] SIGINT received while already draining from SIGTERM; forcing exit.\n',
+      '[agent-daemon] SIGINT received while already draining from SIGTERM; waiting for cleanup.\n',
     ]);
   });
 

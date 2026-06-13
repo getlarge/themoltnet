@@ -5,7 +5,6 @@ type ShutdownSignalProcess = {
   stderr: { write(message: string): unknown };
   on(event: ShutdownSignal, listener: () => void): unknown;
   off(event: ShutdownSignal, listener: () => void): unknown;
-  exit(code?: number): never;
 };
 
 export interface ShutdownSignalHandlers {
@@ -28,9 +27,10 @@ export function installShutdownSignalHandlers(
     if (drainingSignal) {
       proc.stderr.write(
         `[agent-daemon] ${signal} received while already draining from ` +
-          `${drainingSignal}; forcing exit.\n`,
+          `${drainingSignal}; waiting for cleanup.\n`,
       );
-      proc.exit(signalExitCode(signal));
+      proc.exitCode = signalExitCode(signal);
+      return;
     }
 
     drainingSignal = signal;
