@@ -25,7 +25,11 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
-import { resolveDaemonProfile } from '../lib/daemon-profile.js';
+import {
+  resolveDaemonProfile,
+  resolveProfileWarmSessionTtlSec,
+  validateDaemonProfilePrerequisites,
+} from '../lib/daemon-profile.js';
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
@@ -142,12 +146,18 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       })
     : null;
   if (profile) {
+    validateDaemonProfilePrerequisites(
+      profile,
+      cfg.profilePrerequisiteEnv,
+      cfg.profilePrerequisitePath,
+    );
     common = parseCommonOptions(values, {
       requireProviderModel: false,
       runtimeDefaults: {
         leaseTtlSec: profile.leaseTtlSec,
         heartbeatIntervalMs: profile.heartbeatIntervalMs,
         maxBatchSize: profile.maxBatchSize,
+        warmSessionTtlSec: resolveProfileWarmSessionTtlSec(profile),
       },
     });
   }
@@ -227,9 +237,16 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       diaryIds: diaryIds.length > 0 ? diaryIds : ['*'],
       leaseTtlSec: common.leaseTtlSec,
       heartbeatIntervalMs: common.heartbeatIntervalMs,
+      warmSessionTtlSec: common.warmSessionTtlSec,
       pollIntervalMs,
       maxPollIntervalMs,
-      ...(profile ? { profileId: profile.id } : {}),
+      ...(profile
+        ? {
+            profileId: profile.id,
+            profileSessionTtlSec: profile.sessionTtlSec,
+            profileWorkspaceTtlSec: profile.workspaceTtlSec,
+          }
+        : {}),
     },
     'agent-daemon.starting',
   );

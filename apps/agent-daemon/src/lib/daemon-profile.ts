@@ -1,4 +1,5 @@
-import { resolve } from 'node:path';
+import { accessSync, constants } from 'node:fs';
+import { delimiter, isAbsolute, resolve } from 'node:path';
 
 import type { SandboxConfig } from '@themoltnet/pi-extension';
 import type { Agent } from '@themoltnet/sdk';
@@ -14,9 +15,32 @@ export interface ResolvedDaemonProfile {
   leaseTtlSec: number;
   heartbeatIntervalMs: number;
   maxBatchSize: number;
+  sessionTtlSec: number;
+  workspaceTtlSec: number;
+  requiredEnv: string[];
+  requiredTools: string[];
   sandboxConfig: SandboxConfig;
   mountPath: string;
   source: string;
+}
+
+export class DaemonProfilePrerequisiteError extends Error {
+  constructor(
+    public readonly profileName: string,
+    public readonly missingEnv: readonly string[],
+    public readonly missingTools: readonly string[],
+  ) {
+    const parts = [
+      missingEnv.length > 0 ? `missing env: ${missingEnv.join(', ')}` : null,
+      missingTools.length > 0
+        ? `missing tools: ${missingTools.join(', ')}`
+        : null,
+    ].filter(Boolean);
+    super(
+      `Daemon profile "${profileName}" prerequisites are not satisfied: ${parts.join('; ')}`,
+    );
+    this.name = 'DaemonProfilePrerequisiteError';
+  }
 }
 
 const UUID_RE =
@@ -47,10 +71,41 @@ export async function resolveDaemonProfile(options: {
     leaseTtlSec: profile.leaseTtlSec,
     heartbeatIntervalMs: profile.heartbeatIntervalMs,
     maxBatchSize: profile.maxBatchSize,
+    sessionTtlSec: profile.sessionTtlSec,
+    workspaceTtlSec: profile.workspaceTtlSec,
+    requiredEnv: profile.requiredEnv,
+    requiredTools: profile.requiredTools,
     sandboxConfig: profile.sandbox,
     mountPath: resolve(options.cwd),
     source: `daemon-profile:${profile.id}`,
   };
+}
+
+export function validateDaemonProfilePrerequisites(
+  profile: Pick<
+    ResolvedDaemonProfile,
+    'name' | 'requiredEnv' | 'requiredTools'
+  >,
+  env: NodeJS.ProcessEnv,
+  pathValue: string,
+): void {
+  const missingEnv = profile.requiredEnv.filter((name) => !env[name]);
+  const missingTools = profile.requiredTools.filter(
+    (tool) => !isExecutableOnPath(tool, pathValue),
+  );
+  if (missingEnv.length > 0 || missingTools.length > 0) {
+    throw new DaemonProfilePrerequisiteError(
+      profile.name,
+      missingEnv,
+      missingTools,
+    );
+  }
+}
+
+export function resolveProfileWarmSessionTtlSec(
+  profile: Pick<ResolvedDaemonProfile, 'sessionTtlSec' | 'workspaceTtlSec'>,
+): number {
+  return Math.min(profile.sessionTtlSec, profile.workspaceTtlSec);
 }
 
 async function resolveProfileByName(options: {
@@ -81,4 +136,28 @@ async function resolveProfileByName(options: {
     );
   }
   return matches[0];
+}
+
+function isExecutableOnPath(
+  tool: string,
+  pathValue: string | undefined,
+): boolean {
+  if (tool.includes('/')) {
+    return isExecutable(isAbsolute(tool) ? tool : resolve(process.cwd(), tool));
+  }
+
+  for (const dir of (pathValue ?? '').split(delimiter)) {
+    if (!dir) continue;
+    if (isExecutable(resolve(dir, tool))) return true;
+  }
+  return false;
+}
+
+function isExecutable(path: string): boolean {
+  try {
+    accessSync(path, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }

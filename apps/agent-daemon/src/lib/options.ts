@@ -49,7 +49,13 @@ export interface CommonRawArgs {
 export interface ParseCommonOptionsOptions {
   requireProviderModel?: boolean;
   runtimeDefaults?: Partial<
-    Pick<CommonOptions, 'leaseTtlSec' | 'heartbeatIntervalMs' | 'maxBatchSize'>
+    Pick<
+      CommonOptions,
+      | 'leaseTtlSec'
+      | 'heartbeatIntervalMs'
+      | 'maxBatchSize'
+      | 'warmSessionTtlSec'
+    >
   >;
 }
 
@@ -88,6 +94,8 @@ export function parseCommonOptions(
       DEFAULTS.heartbeatIntervalMs,
     maxBatchSize:
       options.runtimeDefaults?.maxBatchSize ?? DEFAULTS.maxBatchSize,
+    warmSessionTtlSec:
+      options.runtimeDefaults?.warmSessionTtlSec ?? DEFAULTS.warmSessionTtlSec,
   };
   if (!args.agent) throw new MissingRequiredOptionError('agent');
   if (requireProviderModel && !args.provider) {
@@ -139,7 +147,7 @@ export function parseCommonOptions(
     warmSessionTtlSec: parseNonNegativeInt(
       args['warm-session-ttl-sec'],
       'warm-session-ttl-sec',
-      DEFAULTS.warmSessionTtlSec,
+      runtimeDefaults.warmSessionTtlSec,
     ),
     debug: args.debug === true,
   };

@@ -108,12 +108,14 @@ describe('parseCommonOptions', () => {
         leaseTtlSec: 900,
         heartbeatIntervalMs: 15_000,
         maxBatchSize: 7,
+        warmSessionTtlSec: 120,
       },
     });
 
     expect(result.leaseTtlSec).toBe(900);
     expect(result.heartbeatIntervalMs).toBe(15_000);
     expect(result.maxBatchSize).toBe(7);
+    expect(result.warmSessionTtlSec).toBe(120);
   });
 
   it('lets explicit numeric flags override profile runtime defaults', () => {
@@ -123,12 +125,14 @@ describe('parseCommonOptions', () => {
         'lease-ttl-sec': '60',
         'heartbeat-interval-ms': '5000',
         'max-batch-size': '10',
+        'warm-session-ttl-sec': '90',
       },
       {
         runtimeDefaults: {
           leaseTtlSec: 900,
           heartbeatIntervalMs: 15_000,
           maxBatchSize: 7,
+          warmSessionTtlSec: 120,
         },
       },
     );
@@ -136,6 +140,7 @@ describe('parseCommonOptions', () => {
     expect(result.leaseTtlSec).toBe(60);
     expect(result.heartbeatIntervalMs).toBe(5_000);
     expect(result.maxBatchSize).toBe(10);
+    expect(result.warmSessionTtlSec).toBe(90);
   });
 
   it('accepts --max-turns=0 and --max-bash-timeouts=0 as "disabled"', () => {

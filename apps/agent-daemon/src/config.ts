@@ -12,6 +12,10 @@ export interface DaemonConfig {
   logLevel: string;
   /** Optional daemon-state database URL. Empty = per-sandbox SQLite file. */
   agentDaemonStateDatabaseUrl: string;
+  /** Process environment visible to profile prerequisite checks. */
+  profilePrerequisiteEnv: NodeJS.ProcessEnv;
+  /** PATH used when resolving profile requiredTools. */
+  profilePrerequisitePath: string;
 }
 
 export function loadConfig(): DaemonConfig {
@@ -20,5 +24,7 @@ export function loadConfig(): DaemonConfig {
       process.env['MOLTNET_AGENT_DAEMON_STATE_DATABASE_URL'] ?? '',
     otelEndpoint: process.env['MOLTNET_OTEL_ENDPOINT'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
+    profilePrerequisiteEnv: process.env,
+    profilePrerequisitePath: process.env.PATH ?? '',
   };
 }

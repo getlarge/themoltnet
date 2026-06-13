@@ -19,7 +19,8 @@ export const COMMON_OPTIONAL_FLAGS = `\
                               model, and sandbox policy come from the
                               profile; task listing/claiming is restricted
                               to unrestricted tasks plus tasks allowing this
-                              profile. Name lookup is team-scoped.
+                              profile. requiredEnv/requiredTools are checked
+                              before claiming. Name lookup is team-scoped.
   --lease-ttl-sec <n>         Sliding liveness window. Silence longer than
                               this ends the attempt with lease_expired.
                               Default: 300.
@@ -37,7 +38,8 @@ export const COMMON_OPTIONAL_FLAGS = `\
   --warm-session-ttl-sec <n>  Retain resumable daemon slots (Pi sessions +
                               reusable worktrees) in local daemon state for
                               this many seconds after use. 0 = disable reuse.
-                              Default: 1800.
+                              Default: 1800, or min(profile session/workspace
+                              TTL) when --profile is set.
   --debug                     Verbose logging: also log successful list/claim
                               outcomes (candidate counts, claim attempts).`;
 

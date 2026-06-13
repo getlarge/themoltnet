@@ -24,7 +24,11 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
-import { resolveDaemonProfile } from '../lib/daemon-profile.js';
+import {
+  resolveDaemonProfile,
+  resolveProfileWarmSessionTtlSec,
+  validateDaemonProfilePrerequisites,
+} from '../lib/daemon-profile.js';
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
@@ -97,12 +101,18 @@ export async function runOnce(argv: string[]): Promise<number> {
       })
     : null;
   if (profile) {
+    validateDaemonProfilePrerequisites(
+      profile,
+      cfg.profilePrerequisiteEnv,
+      cfg.profilePrerequisitePath,
+    );
     opts = parseCommonOptions(values, {
       requireProviderModel: false,
       runtimeDefaults: {
         leaseTtlSec: profile.leaseTtlSec,
         heartbeatIntervalMs: profile.heartbeatIntervalMs,
         maxBatchSize: profile.maxBatchSize,
+        warmSessionTtlSec: resolveProfileWarmSessionTtlSec(profile),
       },
     });
   }
@@ -164,7 +174,23 @@ export async function runOnce(argv: string[]): Promise<number> {
       : {}),
   });
 
-  rootLogger.info({ sandbox: sandbox.path, taskId }, 'agent-daemon.starting');
+  rootLogger.info(
+    {
+      sandbox: sandbox.path,
+      taskId,
+      leaseTtlSec: opts.leaseTtlSec,
+      heartbeatIntervalMs: opts.heartbeatIntervalMs,
+      warmSessionTtlSec: opts.warmSessionTtlSec,
+      ...(profile
+        ? {
+            profileId: profile.id,
+            profileSessionTtlSec: profile.sessionTtlSec,
+            profileWorkspaceTtlSec: profile.workspaceTtlSec,
+          }
+        : {}),
+    },
+    'agent-daemon.starting',
+  );
 
   // Wire SIGTERM/SIGINT for cooperative shutdown. GitHub-hosted runners
   // send SIGTERM 5 minutes before `timeout-minutes` expires (then
