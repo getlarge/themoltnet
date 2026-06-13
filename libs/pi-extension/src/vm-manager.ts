@@ -50,6 +50,8 @@ export interface VmConfig {
   extraAllowedHosts?: string[];
   /** Full sandbox config (vfs shadows, env overrides). */
   sandboxConfig?: SandboxConfig;
+  /** Abort resume/setup work, closing any live VM owned by resumeVm. */
+  signal?: AbortSignal;
 }
 
 export interface VmCredentials {
@@ -230,13 +232,22 @@ const BASE_ALLOWED_HOSTS = [
  * surface immediately rather than fall through to cryptic agent
  * errors later.
  */
-async function vmRun(vm: VM, label: string, command: string): Promise<void> {
+async function vmRun(
+  vm: VM,
+  label: string,
+  command: string,
+  signal?: AbortSignal,
+): Promise<void> {
   // Wrap with `set -o pipefail` inside the script (not on the sh command
   // line, which busybox ash on Alpine doesn't accept as a flag). This
   // ensures pipelines like `foo | tail` propagate foo's non-zero exit
   // instead of masking it behind tail's success.
   const wrapped = `set -eu\nset -o pipefail\n${command}`;
-  const r = await vm.exec(['sh', '-c', wrapped]);
+  const r = await abortable(
+    vm.exec(['sh', '-c', wrapped]),
+    signal,
+    `resume step "${label}"`,
+  );
   if (r.exitCode !== 0) {
     const tail = [r.stderr, r.stdout].filter(Boolean).join('\n').slice(-800);
     throw new Error(
@@ -250,6 +261,7 @@ async function vmRun(vm: VM, label: string, command: string): Promise<void> {
  * TLS. Returns the managed VM handle.
  */
 export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
+  throwIfAborted(config.signal, 'VM resume');
   const mainRepo = findMainWorktree();
   const agentDir = path.join(mainRepo, '.moltnet', config.agentName);
   const guestWorkspace = path.resolve(config.mountPath);
@@ -323,20 +335,24 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const resources = config.sandboxConfig?.resources;
   const workspaceMode = config.workspaceMode ?? 'shared_mount';
   const cp = VmCheckpoint.load(config.checkpointPath);
-  const vm = await cp.resume({
-    httpHooks,
-    env: vmEnv,
-    ...(resources?.memory && { memory: resources.memory }),
-    ...(resources?.cpus && { cpus: resources.cpus }),
-    vfs: {
-      mounts: {
-        [guestWorkspace]: workspaceProvider,
-        // Memory-backed mount for task-context skill injection (#943).
-        // Per-VM-instance, never persisted, never shared.
-        [GUEST_TASK_SKILLS_MOUNT]: new MemoryProvider(),
+  const vm = await abortable(
+    cp.resume({
+      httpHooks,
+      env: vmEnv,
+      ...(resources?.memory && { memory: resources.memory }),
+      ...(resources?.cpus && { cpus: resources.cpus }),
+      vfs: {
+        mounts: {
+          [guestWorkspace]: workspaceProvider,
+          // Memory-backed mount for task-context skill injection (#943).
+          // Per-VM-instance, never persisted, never shared.
+          [GUEST_TASK_SKILLS_MOUNT]: new MemoryProvider(),
+        },
       },
-    },
-  });
+    }),
+    config.signal,
+    'VM resume',
+  );
 
   // Everything past cp.resume() owns the live VM. Any throw between
   // here and the final `return { vm, ... }` must close the VM, or the
@@ -349,11 +365,16 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     // Fix TLS: append Gondolin MITM CA to system trust store.
     // Unofficial-builds Node ships its own OpenSSL which can't load
     // NODE_EXTRA_CA_CERTS from /etc/gondolin/mitm/ca.crt (error 8000000D).
-    await vm.exec(`sh -c '
+    await vmRun(
+      vm,
+      'TLS certificates',
+      `
     cp /etc/gondolin/mitm/ca.crt /usr/local/share/ca-certificates/gondolin-mitm.crt
     update-ca-certificates 2>/dev/null
     cat /etc/gondolin/mitm/ca.crt >> /etc/ssl/certs/ca-certificates.crt
-  '`);
+  `,
+      config.signal,
+    );
 
     // Fix DNS: ensure working resolvers (VM gateway DNS may not forward
     // correctly) and wait for resolution to actually work before downstream
@@ -373,6 +394,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       vm,
       'DNS resolvers',
       `printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\n' > /etc/resolv.conf`,
+      config.signal,
     );
 
     // Tell git that the workspace mount is trusted regardless of UID. The host
@@ -387,6 +409,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       vm,
       'git safe.directory',
       `git config --system --add safe.directory '*'`,
+      config.signal,
     );
 
     // Consumer-provided per-resume commands. Repo-specific bootstrap
@@ -416,15 +439,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       let lastErr: unknown;
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
-          await vmRun(vm, label, run);
+          await vmRun(vm, label, run, config.signal);
           lastErr = undefined;
           break;
         } catch (err) {
           lastErr = err;
           if (attempt === retries) break;
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, (attempt + 1) * backoffMs);
-          });
+          await delay((attempt + 1) * backoffMs, config.signal, label);
         }
       }
       if (lastErr) {
@@ -436,7 +457,11 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     //   /home/agent/.moltnet/<agentName>/{moltnet.json,env,gitconfig,ssh/}
     // Mirrors host layout so legreffier skill and CLI work identically.
     const vmSshDir = `${vmAgentDir}/ssh`;
-    await vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`);
+    await abortable(
+      vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`),
+      config.signal,
+      'VM credential directory setup',
+    );
 
     if (creds.piAuthJson !== null) {
       // See MoltNet diary entry 09336c5e-e45a-475f-b9cd-1e0ab635e093.
@@ -516,7 +541,11 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       );
     }
 
-    await vm.exec('chown -R agent:agent /home/agent/.pi /home/agent/.moltnet');
+    await abortable(
+      vm.exec('chown -R agent:agent /home/agent/.pi /home/agent/.moltnet'),
+      config.signal,
+      'VM credential ownership setup',
+    );
 
     return {
       vm,
@@ -539,6 +568,69 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     }
     throw err;
   }
+}
+
+function throwIfAborted(signal: AbortSignal | undefined, label: string): void {
+  if (!signal?.aborted) return;
+  throw abortError(label, signal);
+}
+
+function abortError(label: string, signal: AbortSignal): Error {
+  const reason = signal.reason;
+  const suffix =
+    reason instanceof Error
+      ? reason.message
+      : reason === undefined
+        ? 'aborted'
+        : String(reason);
+  const err = new Error(`${label} aborted: ${suffix}`);
+  err.name = 'AbortError';
+  return err;
+}
+
+async function abortable<T>(
+  promise: PromiseLike<T>,
+  signal: AbortSignal | undefined,
+  label: string,
+): Promise<T> {
+  if (!signal) return promise;
+  throwIfAborted(signal, label);
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      const listener = () => reject(abortError(label, signal));
+      signal.addEventListener('abort', listener, { once: true });
+      promise.then(
+        () => signal.removeEventListener('abort', listener),
+        () => signal.removeEventListener('abort', listener),
+      );
+    }),
+  ]);
+}
+
+async function delay(
+  ms: number,
+  signal: AbortSignal | undefined,
+  label: string,
+): Promise<void> {
+  if (!signal) {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, ms);
+    });
+    return;
+  }
+  throwIfAborted(signal, label);
+  await new Promise<void>((resolve, reject) => {
+    const listener = () => {
+      clearTimeout(timeout);
+      reject(abortError(label, signal));
+    };
+    const timeout = setTimeout(() => {
+      signal.removeEventListener('abort', listener);
+      resolve();
+    }, ms);
+    signal.addEventListener('abort', listener, { once: true });
+  });
 }
 
 /**

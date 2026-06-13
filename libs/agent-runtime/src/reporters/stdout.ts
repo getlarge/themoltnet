@@ -18,9 +18,15 @@ export class StdoutReporter implements TaskReporter {
   // round-trip to learn from. The signal exists to satisfy the
   // TaskReporter contract; it never aborts.
   private readonly cancelController = new AbortController();
-  readonly cancelReason: string | null = null;
+  cancelReason: string | null = null;
   get cancelSignal(): AbortSignal {
     return this.cancelController.signal;
+  }
+
+  requestCancel(reason: string): void {
+    if (this.cancelController.signal.aborted) return;
+    this.cancelReason = reason;
+    this.cancelController.abort(new Error(reason));
   }
 
   async open(ctx: { taskId: string; attemptN: number }): Promise<void> {

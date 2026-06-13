@@ -23,14 +23,18 @@ class ArraySource implements TaskSource {
 class RecordingReporter implements TaskReporter {
   readonly events: string[] = [];
   private readonly cancelController = new AbortController();
-  readonly cancelReason: string | null = null;
+  cancelReason: string | null = null;
   get cancelSignal(): AbortSignal {
     return this.cancelController.signal;
   }
   /** Test hook to simulate the API reporter aborting on cancellation. */
   triggerCancel(reason = 'test cancel'): void {
-    (this as { cancelReason: string | null }).cancelReason = reason;
-    this.cancelController.abort();
+    this.requestCancel(reason);
+  }
+  requestCancel(reason: string): void {
+    if (this.cancelController.signal.aborted) return;
+    this.cancelReason = reason;
+    this.cancelController.abort(new Error(reason));
   }
   async open(p: { taskId: string; attemptN: number }): Promise<void> {
     this.events.push(`open:${p.taskId}`);
@@ -117,6 +121,26 @@ describe('AgentRuntime', () => {
     const outputs = await runtime.start();
     expect(outputs).toHaveLength(1);
     expect(source.events).toEqual(['claim', 'close']);
+  });
+
+  it('stop() requests cancellation on the active reporter', async () => {
+    const task = makeFulfillBriefTask();
+    const reporter = new RecordingReporter();
+    const runtime = new AgentRuntime({
+      source: new ArraySource([task]),
+      makeReporter: () => reporter,
+      executeTask: async ({ task }, activeReporter) => {
+        runtime.stop('daemon signal');
+        expect(activeReporter.cancelSignal.aborted).toBe(true);
+        expect(activeReporter.cancelReason).toBe('daemon signal');
+        return makeOutput(task, 'completed');
+      },
+    });
+
+    await runtime.start();
+
+    expect(reporter.cancelSignal.aborted).toBe(true);
+    expect(reporter.cancelReason).toBe('daemon signal');
   });
 
   it('refuses to start twice', async () => {

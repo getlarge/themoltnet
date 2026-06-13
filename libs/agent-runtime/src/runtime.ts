@@ -87,6 +87,7 @@ export class AgentRuntime {
     currentTaskId: null,
   };
   private stopRequested = false;
+  private currentReporter: TaskReporter | null = null;
   private readonly logger: AgentRuntimeLogger;
 
   constructor(private readonly opts: AgentRuntimeOptions) {
@@ -124,6 +125,7 @@ export class AgentRuntime {
         });
         taskLogger.info({}, 'agent-runtime.task_claimed');
         const reporter = this.opts.makeReporter(claimedTask);
+        this.currentReporter = reporter;
         // Restore the W3C trace context from the claim response so every
         // OTel-instrumented call inside the task (heartbeats, messages, tool
         // calls in pi-extension) lands as a child span of the workflow trace.
@@ -222,8 +224,10 @@ export class AgentRuntime {
 
         this.status.tasksProcessed += 1;
         this.status.currentTaskId = null;
+        this.currentReporter = null;
       }
     } finally {
+      this.currentReporter = null;
       await this.opts.source.close();
       this.status.state = 'stopped';
     }
@@ -231,7 +235,10 @@ export class AgentRuntime {
   }
 
   /** Request cooperative shutdown. Safe from signal handlers. */
-  stop(): void {
+  stop(reason?: string): void {
     this.stopRequested = true;
+    if (reason !== undefined) {
+      this.currentReporter?.requestCancel?.(reason);
+    }
   }
 }
