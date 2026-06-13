@@ -135,11 +135,11 @@
       "when": 1781250578343
     },
     {
+      "breakpoints": true,
       "idx": 19,
-      "version": "7",
-      "when": 1781337826266,
       "tag": "0019_nervous_madame_web",
-      "breakpoints": true
+      "version": "7",
+      "when": 1781337826266
     }
   ],
   "version": "7"
