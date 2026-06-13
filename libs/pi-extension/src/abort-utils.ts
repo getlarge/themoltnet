@@ -47,6 +47,24 @@ export interface AbortableResourceOptions<T> {
   onCleanupError?: (err: unknown) => void;
 }
 
+function cleanupLateResource<T>(
+  resourcePromise: Promise<T>,
+  opts: Pick<AbortableResourceOptions<T>, 'cleanup' | 'onCleanupError'>,
+): void {
+  void resourcePromise.then(
+    async (resource) => {
+      try {
+        await opts.cleanup(resource);
+      } catch (err) {
+        opts.onCleanupError?.(err);
+      }
+    },
+    () => {
+      // Allocation failed before a resource existed.
+    },
+  );
+}
+
 export async function abortableResource<T>(
   opts: AbortableResourceOptions<T>,
 ): Promise<T> {
@@ -54,38 +72,20 @@ export async function abortableResource<T>(
   if (!signal) return opts.promise;
   throwIfAborted(signal, opts.label);
 
-  let abortWon = false;
   const resourcePromise = Promise.resolve(opts.promise);
   const abortPromise = new Promise<never>((_, reject) => {
-    const listener = () => {
-      abortWon = true;
+    const abort = () => {
+      cleanupLateResource(resourcePromise, opts);
       reject(abortError(opts.label, signal));
     };
-    signal.addEventListener('abort', listener, { once: true });
-    void resourcePromise.finally(() => {
-      signal.removeEventListener('abort', listener);
-    });
+    signal.addEventListener('abort', abort, { once: true });
+    resourcePromise.then(
+      () => signal.removeEventListener('abort', abort),
+      () => signal.removeEventListener('abort', abort),
+    );
   });
 
-  try {
-    return await Promise.race([resourcePromise, abortPromise]);
-  } catch (err) {
-    if (abortWon) {
-      void resourcePromise.then(
-        async (resource) => {
-          try {
-            await opts.cleanup(resource);
-          } catch (cleanupErr) {
-            opts.onCleanupError?.(cleanupErr);
-          }
-        },
-        () => {
-          // The resource never materialized, so there is nothing to clean up.
-        },
-      );
-    }
-    throw err;
-  }
+  return Promise.race([resourcePromise, abortPromise]);
 }
 
 export async function delay(
