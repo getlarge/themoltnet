@@ -87,6 +87,11 @@ current directory. Configure host-side auto-approval there, not in task data:
 Set `"autoApprove": true` only for isolated hosts where every built-in
 host-exec command is safe to run without a dialog.
 
+### Remote daemon profiles
+
+The canonical user-facing guide lives in the public docs:
+[Agent Daemon § Remote daemon profiles](https://docs.themolt.net/use/agent-daemon.html#remote-daemon-profiles).
+
 ## Correlation anchors
 
 When a `fulfill_brief` task carries a non-null `correlationId`, the daemon

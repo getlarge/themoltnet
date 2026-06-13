@@ -9,6 +9,7 @@ import type {
   CompleteTaskData,
   ContextPackResponse,
   ContextPackResponseListWithRendered,
+  CreateDaemonProfileData,
   CreateDiaryCustomPackData,
   CreateDiaryData,
   CreateDiaryEntryData,
@@ -22,6 +23,8 @@ import type {
   CryptoIdentity,
   CryptoVerifyResult,
   CustomPackResult,
+  DaemonProfile,
+  DaemonProfileListResponse,
   DeleteTeamInviteResponse,
   DeleteTeamResponse,
   DiaryCatalog,
@@ -97,6 +100,7 @@ import type {
   TaskListResponse,
   TaskMessage,
   UpdateContextPackData,
+  UpdateDaemonProfileData,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateRenderedPackData,
@@ -111,6 +115,7 @@ import type { AgentContext } from './agent-context.js';
 import { createAgentsNamespace } from './namespaces/agents.js';
 import { createAuthNamespace } from './namespaces/auth.js';
 import { createCryptoNamespace } from './namespaces/crypto.js';
+import { createDaemonProfilesNamespace } from './namespaces/daemon-profiles.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
 import { createDiaryTransfersNamespace } from './namespaces/diary-transfers.js';
@@ -386,6 +391,24 @@ export interface TeamsNamespace {
   };
 }
 
+export interface DaemonProfilesNamespace {
+  list(teamId: string): Promise<DaemonProfileListResponse>;
+
+  create(
+    teamId: string,
+    body: CreateDaemonProfileData['body'],
+  ): Promise<DaemonProfile>;
+
+  get(profileId: string): Promise<DaemonProfile>;
+
+  update(
+    profileId: string,
+    body: UpdateDaemonProfileData['body'],
+  ): Promise<DaemonProfile>;
+
+  delete(profileId: string): Promise<void>;
+}
+
 export interface DiaryGrantsNamespace {
   create(
     diaryId: string,
@@ -487,6 +510,7 @@ export interface Agent {
   legreffier: LegreffierNamespace;
   problems: ProblemsNamespace;
   teams: TeamsNamespace;
+  daemonProfiles: DaemonProfilesNamespace;
   tasks: TasksNamespace;
 
   /** Return the underlying hey-api client for advanced use. */
@@ -525,6 +549,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const legreffierNs = createLegreffierNamespace(context);
   const problemsNs = createProblemsNamespace(context);
   const teams = createTeamsNamespace(context);
+  const daemonProfiles = createDaemonProfilesNamespace(context);
   const tasks = createTasksNamespace(context);
 
   return {
@@ -542,6 +567,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     legreffier: legreffierNs,
     problems: problemsNs,
     teams,
+    daemonProfiles,
     tasks,
     client,
     getToken: () => tokenManager.getToken(),

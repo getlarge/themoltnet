@@ -2,16 +2,25 @@ import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 
 export const COMMON_REQUIRED_FLAGS = `\
   -a, --agent <name>          MoltNet agent identity. Reads credentials
-                              from <repo-root>/.moltnet/<name>/moltnet.json.
+                              from <repo-root>/.moltnet/<name>/moltnet.json.`;
+
+export const COMMON_MODEL_FLAGS = `\
   -p, --provider <id>         LLM provider id (e.g. anthropic, openai-codex).
   -m, --model <id>            LLM model id for the provider (e.g.
-                              claude-sonnet-4-5, gpt-5.3-codex).`;
+                              claude-sonnet-4-5, gpt-5.3-codex). Required
+                              unless --profile is set.`;
 
 export const COMMON_OPTIONAL_FLAGS = `\
   --sandbox <path>            Path to sandbox.json. Default: search up from
                               the daemon's CWD until found. The directory
                               containing sandbox.json is also used as the
-                              VM mountPath.
+                              VM mountPath. Cannot be used with --profile.
+  --profile <uuid|name>       Remote daemon profile. When set, provider,
+                              model, and sandbox policy come from the
+                              profile; task listing/claiming is restricted
+                              to unrestricted tasks plus tasks allowing this
+                              profile. requiredEnv/requiredTools are checked
+                              before claiming. Name lookup is team-scoped.
   --lease-ttl-sec <n>         Sliding liveness window. Silence longer than
                               this ends the attempt with lease_expired.
                               Default: 300.
@@ -29,7 +38,8 @@ export const COMMON_OPTIONAL_FLAGS = `\
   --warm-session-ttl-sec <n>  Retain resumable daemon slots (Pi sessions +
                               reusable worktrees) in local daemon state for
                               this many seconds after use. 0 = disable reuse.
-                              Default: 1800.
+                              Default: 1800, or min(profile session/workspace
+                              TTL) when --profile is set.
   --debug                     Verbose logging: also log successful list/claim
                               outcomes (candidate counts, claim attempts).`;
 
@@ -55,9 +65,10 @@ Run \`agent-daemon <command> --help\` for command-specific flags.
 
 Prerequisites (all subcommands):
   - <repo-root>/.moltnet/<agent>/moltnet.json — credentials (see --agent)
-  - sandbox.json — Gondolin snapshot config; resolved by searching up
-    from CWD, or pass --sandbox <path>. Its containing directory is the
-    VM mountPath.
+  - sandbox.json or --profile — local sandbox config is resolved by
+    searching up from CWD, or pass --sandbox <path>. With --profile, the
+    remote daemon profile supplies provider/model/sandbox policy and CWD
+    is used as the VM mountPath.
 
 Registered task types: ${knownTaskTypesList()}`;
 
@@ -71,6 +82,7 @@ Required:
   --team <uuid>               Team whose queue to serve. The daemon must be
                               a member of this team (canAccessTeam permit).
 ${COMMON_REQUIRED_FLAGS}
+${COMMON_MODEL_FLAGS}
 
 Optional:
   --task-types <csv>          Whitelist of task types to claim. Default:
@@ -102,6 +114,7 @@ Required:
   -t, --task-id <uuid>        Task to claim and execute. Must already be
                               in 'queued' status.
 ${COMMON_REQUIRED_FLAGS}
+${COMMON_MODEL_FLAGS}
 
 Optional:
 ${COMMON_OPTIONAL_FLAGS}
@@ -128,6 +141,7 @@ sleeps and retries forever).
 Required:
   --team <uuid>               Team whose queue to drain.
 ${COMMON_REQUIRED_FLAGS}
+${COMMON_MODEL_FLAGS}
 
 Optional:
   --task-types <csv>          Whitelist. Known types: ${knownTaskTypesList()}

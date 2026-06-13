@@ -22,7 +22,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-import { createDaemonProfile, deleteDaemonProfile } from '@moltnet/api-client';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
   type DaemonSlotIdentity,
@@ -40,6 +39,10 @@ import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
+import {
+  resolveDaemonProfile,
+  validateDaemonProfilePrerequisites,
+} from '../src/lib/daemon-profile.js';
 import { createExecutionPlanCache } from '../src/lib/execution-plan-cache.js';
 import { finalizeTask } from '../src/lib/finalize.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
@@ -52,6 +55,10 @@ const silentLogger: AgentRuntimeLogger = {
   error: () => {},
   child: () => silentLogger,
 };
+
+type DaemonProfileSandbox = Awaited<
+  ReturnType<Agent['daemonProfiles']['get']>
+>['sandbox'];
 
 function buildProducerVerification(inputCid: string) {
   return {
@@ -953,35 +960,26 @@ describe('Agent daemon (e2e)', () => {
     // server filters at SQL level, daemon also pre-filters at the source
     // level. No claim-time rejection.
 
-    async function createProfile(name: string) {
-      const profile = await createDaemonProfile({
-        client: agent.client,
-        auth: () => agent.getToken(),
-        path: { id: teamId },
-        body: {
-          name,
-          runtimeKind: 'gondolin_pi',
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
-          sandbox: {
-            image: 'ghcr.io/getlarge/themoltnet/agent-runtime:e2e',
-          },
-        },
+    async function createProfile(
+      name: string,
+      sandbox: DaemonProfileSandbox = {},
+      overrides: Partial<Parameters<Agent['daemonProfiles']['create']>[1]> = {},
+    ) {
+      return agent.daemonProfiles.create(teamId, {
+        name,
+        runtimeKind: 'gondolin_pi',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        leaseTtlSec: 900,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 10,
+        sandbox,
+        ...overrides,
       });
-      if (profile.error) {
-        throw new Error(
-          `create daemon profile failed: ${profile.error.detail}`,
-        );
-      }
-      return profile.data;
     }
 
     function deleteProfile(profileId: string) {
-      return deleteDaemonProfile({
-        client: agent.client,
-        auth: () => agent.getToken(),
-        path: { profileId },
-      });
+      return agent.daemonProfiles.delete(profileId);
     }
 
     function proposePinnedCuratePackTask(
@@ -1064,6 +1062,100 @@ describe('Agent daemon (e2e)', () => {
         ).toBeDefined();
       } finally {
         await agent.tasks.cancel(unrestricted.id, { reason: 'cleanup' });
+        await deleteProfile(profile.id);
+      }
+    });
+
+    it('resolves a remote daemon profile and claims only matching pinned tasks', async () => {
+      const profileName = `daemon-e2e-${randomUUID()}`;
+      const allowedProfile = await createProfile(profileName, {
+        snapshot: { allowedHosts: ['api.github.com'] },
+        resources: { cpus: 4, memory: '4G' },
+      });
+      const otherProfile = await createProfile(`daemon-e2e-${randomUUID()}`);
+      const otherPinned = await proposePinnedCuratePackTask([
+        { profileId: otherProfile.id },
+      ]);
+      const matchingPinned = await proposePinnedCuratePackTask([
+        { profileId: allowedProfile.id },
+      ]);
+
+      try {
+        const resolved = await resolveDaemonProfile({
+          agent,
+          profile: profileName,
+          teamId,
+          cwd: process.cwd(),
+        });
+        expect(resolved.id).toBe(allowedProfile.id);
+        expect(resolved.provider).toBe('anthropic');
+        expect(resolved.model).toBe('claude-sonnet-4-5');
+        expect(resolved.leaseTtlSec).toBe(900);
+        expect(resolved.heartbeatIntervalMs).toBe(15_000);
+        expect(resolved.maxBatchSize).toBe(10);
+        expect(resolved.sandboxConfig).toEqual(allowedProfile.sandbox);
+
+        const source = new PollingApiTaskSource({
+          agent,
+          teamId,
+          taskTypes: ['curate_pack'],
+          profileId: resolved.id,
+          leaseTtlSec: resolved.leaseTtlSec,
+          stopWhenEmpty: true,
+          logger: silentLogger,
+        });
+
+        const claimed = await source.claim();
+        expect(claimed?.task.id).toBe(matchingPinned.id);
+        expect(claimed?.task.allowedProfiles).toEqual([
+          { profileId: allowedProfile.id },
+        ]);
+      } finally {
+        await agent.tasks.cancel(matchingPinned.id, {
+          reason: 'cleanup after remote profile daemon claim assertion',
+        });
+        await agent.tasks.cancel(otherPinned.id, {
+          reason: 'cleanup after remote profile daemon claim assertion',
+        });
+        await deleteProfile(allowedProfile.id);
+        await deleteProfile(otherProfile.id);
+      }
+    });
+
+    it('refuses a remote profile with missing prerequisites before claiming', async () => {
+      const profileName = `daemon-e2e-${randomUUID()}`;
+      const profile = await createProfile(
+        profileName,
+        {},
+        {
+          requiredEnv: ['MOLTNET_E2E_REQUIRED_ENV_DOES_NOT_EXIST'],
+          requiredTools: ['moltnet-e2e-required-tool-does-not-exist'],
+        },
+      );
+      const pinned = await proposePinnedCuratePackTask([
+        { profileId: profile.id },
+      ]);
+
+      try {
+        const resolved = await resolveDaemonProfile({
+          agent,
+          profile: profileName,
+          teamId,
+          cwd: process.cwd(),
+        });
+
+        expect(() =>
+          validateDaemonProfilePrerequisites(resolved, {}, ''),
+        ).toThrow(/prerequisites are not satisfied/);
+
+        const taskAfterValidationFailure = await agent.tasks.get(pinned.id);
+        expect(taskAfterValidationFailure.status).toBe('queued');
+        const attempts = await agent.tasks.listAttempts(pinned.id);
+        expect(attempts).toEqual([]);
+      } finally {
+        await agent.tasks.cancel(pinned.id, {
+          reason: 'cleanup after profile prerequisite assertion',
+        });
         await deleteProfile(profile.id);
       }
     });

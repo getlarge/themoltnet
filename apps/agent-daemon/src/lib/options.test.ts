@@ -45,6 +45,17 @@ describe('parseCommonOptions', () => {
     }
   });
 
+  it('allows provider/model to be omitted when profile mode supplies them', () => {
+    const result = parseCommonOptions(
+      { agent: 'legreffier' },
+      { requireProviderModel: false },
+    );
+
+    expect(result.agent).toBe('legreffier');
+    expect(result.provider).toBeUndefined();
+    expect(result.model).toBeUndefined();
+  });
+
   it('rejects --agent with traversal-unsafe characters', () => {
     expect(() =>
       parseCommonOptions({ ...valid, agent: '../etc/passwd' }),
@@ -88,6 +99,47 @@ describe('parseCommonOptions', () => {
     expect(result.flushIntervalMs).toBe(0);
     expect(result.maxTurns).toBe(30);
     expect(result.maxBashTimeouts).toBe(5);
+    expect(result.warmSessionTtlSec).toBe(90);
+  });
+
+  it('uses profile runtime defaults when explicit numeric flags are absent', () => {
+    const result = parseCommonOptions(valid, {
+      runtimeDefaults: {
+        leaseTtlSec: 900,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 7,
+        warmSessionTtlSec: 120,
+      },
+    });
+
+    expect(result.leaseTtlSec).toBe(900);
+    expect(result.heartbeatIntervalMs).toBe(15_000);
+    expect(result.maxBatchSize).toBe(7);
+    expect(result.warmSessionTtlSec).toBe(120);
+  });
+
+  it('lets explicit numeric flags override profile runtime defaults', () => {
+    const result = parseCommonOptions(
+      {
+        ...valid,
+        'lease-ttl-sec': '60',
+        'heartbeat-interval-ms': '5000',
+        'max-batch-size': '10',
+        'warm-session-ttl-sec': '90',
+      },
+      {
+        runtimeDefaults: {
+          leaseTtlSec: 900,
+          heartbeatIntervalMs: 15_000,
+          maxBatchSize: 7,
+          warmSessionTtlSec: 120,
+        },
+      },
+    );
+
+    expect(result.leaseTtlSec).toBe(60);
+    expect(result.heartbeatIntervalMs).toBe(5_000);
+    expect(result.maxBatchSize).toBe(10);
     expect(result.warmSessionTtlSec).toBe(90);
   });
 

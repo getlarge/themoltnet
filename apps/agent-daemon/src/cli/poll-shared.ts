@@ -26,6 +26,11 @@ import {
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
 import {
+  resolveDaemonProfile,
+  resolveProfileWarmSessionTtlSec,
+  validateDaemonProfilePrerequisites,
+} from '../lib/daemon-profile.js';
+import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
 } from '../lib/execution-plan-cache.js';
@@ -69,6 +74,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       'max-poll-interval-ms': { type: 'string' },
       'list-limit': { type: 'string' },
       sandbox: { type: 'string' },
+      profile: { type: 'string' },
     },
   });
 
@@ -90,7 +96,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const diaryIds = parseCsv(values['diary-ids']);
   let common: CommonOptions;
   try {
-    common = parseCommonOptions(values);
+    common = parseCommonOptions(values, {
+      requireProviderModel: !values.profile,
+    });
   } catch (err) {
     if (err instanceof MissingRequiredOptionError) {
       console.error(`${err.message}\n`);
@@ -111,6 +119,14 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   );
   const listLimit = optionalPositiveInt(values['list-limit'], 'list-limit', 10);
 
+  if (values.profile && values.sandbox) {
+    console.error(
+      `[${opts.modeLabel}] Cannot use --sandbox with --profile. ` +
+        'Remote daemon profiles define sandbox policy.',
+    );
+    return 1;
+  }
+
   if (taskTypes.length === 0) {
     console.error(
       `[${opts.modeLabel}] --task-types is empty — daemon will accept any registered type. ` +
@@ -118,8 +134,45 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     );
   }
 
-  const sandbox = resolveSandbox(process.cwd(), values.sandbox);
   const cfg = loadConfig();
+  const initialCommon = common;
+  const ctx = await resolveAgentContext(initialCommon.agent);
+  const profile = values.profile
+    ? await resolveDaemonProfile({
+        agent: ctx.agent,
+        profile: values.profile,
+        teamId,
+        cwd: process.cwd(),
+      })
+    : null;
+  if (profile) {
+    validateDaemonProfilePrerequisites(
+      profile,
+      cfg.profilePrerequisiteEnv,
+      cfg.profilePrerequisitePath,
+    );
+    common = parseCommonOptions(values, {
+      requireProviderModel: false,
+      runtimeDefaults: {
+        leaseTtlSec: profile.leaseTtlSec,
+        heartbeatIntervalMs: profile.heartbeatIntervalMs,
+        maxBatchSize: profile.maxBatchSize,
+        warmSessionTtlSec: resolveProfileWarmSessionTtlSec(profile),
+      },
+    });
+  }
+  const provider = profile?.provider ?? common.provider;
+  const model = profile?.model ?? common.model;
+  if (!provider || !model) {
+    throw new Error('provider/model missing after daemon profile resolution');
+  }
+  const sandbox = profile
+    ? {
+        config: profile.sandboxConfig,
+        rootDir: profile.mountPath,
+        path: profile.source,
+      }
+    : resolveSandbox(process.cwd(), values.sandbox);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
   const slotRegistry = new DaemonSlotRegistry(
     resolveDaemonStateStorageConfig(
@@ -129,8 +182,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   );
   const slotIdentity: DaemonSlotIdentity = {
     agentName: common.agent,
-    provider: common.provider,
-    model: common.model,
+    provider,
+    model,
   };
   const mainRepo = findMainWorktree();
   const executionPlans = createExecutionPlanCache({
@@ -139,8 +192,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     warmSessionTtlSec: common.warmSessionTtlSec,
     slotRegistry,
   });
-  const ctx = await resolveAgentContext(common.agent);
-
   const otelShutdown = await initWorkerOtel({
     serviceName: opts.serviceName,
     agentDir: ctx.agentDir,
@@ -148,8 +199,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     resourceAttributes: {
       'moltnet.team.id': teamId,
       'moltnet.agent.name': common.agent,
-      'moltnet.llm.provider': common.provider,
-      'moltnet.llm.model': common.model,
+      'moltnet.llm.provider': provider,
+      'moltnet.llm.model': model,
+      ...(profile ? { 'moltnet.daemon_profile.id': profile.id } : {}),
     },
   });
 
@@ -161,8 +213,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     mode: opts.modeLabel,
     agent: common.agent,
     teamId,
-    provider: common.provider,
-    model: common.model,
+    provider,
+    model,
+    ...(profile
+      ? { daemonProfileId: profile.id, daemonProfileName: profile.name }
+      : {}),
   });
 
   const abort = new AbortController();
@@ -182,8 +237,16 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       diaryIds: diaryIds.length > 0 ? diaryIds : ['*'],
       leaseTtlSec: common.leaseTtlSec,
       heartbeatIntervalMs: common.heartbeatIntervalMs,
+      warmSessionTtlSec: common.warmSessionTtlSec,
       pollIntervalMs,
       maxPollIntervalMs,
+      ...(profile
+        ? {
+            profileId: profile.id,
+            profileSessionTtlSec: profile.sessionTtlSec,
+            profileWorkspaceTtlSec: profile.workspaceTtlSec,
+          }
+        : {}),
     },
     'agent-daemon.starting',
   );
@@ -193,8 +256,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     const executeTask = createPiTaskExecutor({
       agentName: common.agent,
       mountPath: sandbox.rootDir,
-      provider: common.provider,
-      model: common.model,
+      provider,
+      model,
       sandboxConfig: sandbox.config,
       makeExecutionPlan: (claimedTask) =>
         executionPlans.getOrCreate(claimedTask),
@@ -212,6 +275,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         agent: ctx.agent,
         teamId,
         taskTypes: taskTypes.length > 0 ? taskTypes : undefined,
+        ...(profile ? { profileId: profile.id } : {}),
         diaryIds: diaryIds.length > 0 ? diaryIds : undefined,
         leaseTtlSec: common.leaseTtlSec,
         listLimit,

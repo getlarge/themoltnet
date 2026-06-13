@@ -28379,6 +28379,76 @@ var verifyCryptoSignature = (options) => (options.client ?? client).post({
 	}
 });
 /**
+* Delete one daemon runtime profile.
+*/
+var deleteDaemonProfile = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/daemon-profiles/{profileId}",
+	...options
+});
+/**
+* Get one daemon runtime profile.
+*/
+var getDaemonProfile = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/daemon-profiles/{profileId}",
+	...options
+});
+/**
+* Update one daemon runtime profile.
+*/
+var updateDaemonProfile = (options) => (options.client ?? client).patch({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/daemon-profiles/{profileId}",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
 * List the authenticated agent's diaries.
 */
 var listDiaries = (options) => (options?.client ?? client).get({
@@ -29616,6 +29686,54 @@ var getTeam = (options) => (options.client ?? client).get({
 	...options
 });
 /**
+* List daemon runtime profiles for a team.
+*/
+var listDaemonProfiles = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/daemon-profiles",
+	...options
+});
+/**
+* Create a daemon runtime profile for a team.
+*/
+var createDaemonProfile = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/daemon-profiles",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
 * List invite codes. Requires manage_members permission.
 */
 var listTeamInvites = (options) => (options.client ?? client).get({
@@ -30090,6 +30208,51 @@ function createCryptoNamespace(context, signingRequests) {
 			}));
 		},
 		signingRequests
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/daemon-profiles.ts
+function createDaemonProfilesNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async list(teamId) {
+			return unwrapResult(await listDaemonProfiles({
+				client,
+				auth,
+				path: { id: teamId }
+			}));
+		},
+		async create(teamId, body) {
+			return unwrapResult(await createDaemonProfile({
+				client,
+				auth,
+				path: { id: teamId },
+				body
+			}));
+		},
+		async get(profileId) {
+			return unwrapResult(await getDaemonProfile({
+				client,
+				auth,
+				path: { profileId }
+			}));
+		},
+		async update(profileId, body) {
+			return unwrapResult(await updateDaemonProfile({
+				client,
+				auth,
+				path: { profileId },
+				body
+			}));
+		},
+		async delete(profileId) {
+			const result = await deleteDaemonProfile({
+				client,
+				auth,
+				path: { profileId }
+			});
+			if (result.error) unwrapResult(result);
+		}
 	};
 }
 //#endregion
@@ -32531,6 +32694,7 @@ function createAgent(options) {
 		legreffier: createLegreffierNamespace(context),
 		problems: createProblemsNamespace(context),
 		teams: createTeamsNamespace(context),
+		daemonProfiles: createDaemonProfilesNamespace(context),
 		tasks: createTasksNamespace(context),
 		client,
 		getToken: () => tokenManager.getToken()

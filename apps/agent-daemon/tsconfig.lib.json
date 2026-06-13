@@ -42,9 +42,6 @@
       "path": "../../libs/agent-daemon-state/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/api-client/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/crypto-service/tsconfig.lib.json"
     }
   ]

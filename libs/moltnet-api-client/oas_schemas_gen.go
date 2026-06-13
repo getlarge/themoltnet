@@ -1692,6 +1692,9 @@ func (*CreateDaemonProfileBadRequest) createDaemonProfileRes() {}
 type CreateDaemonProfileBody struct {
 	Context              []CreateDaemonProfileBodyContextItem           `json:"context"`
 	Description          OptString                                      `json:"description"`
+	HeartbeatIntervalMs  OptInt                                         `json:"heartbeatIntervalMs"`
+	LeaseTtlSec          OptInt                                         `json:"leaseTtlSec"`
+	MaxBatchSize         OptInt                                         `json:"maxBatchSize"`
 	Model                string                                         `json:"model"`
 	Name                 string                                         `json:"name"`
 	Provider             string                                         `json:"provider"`
@@ -1713,6 +1716,21 @@ func (s *CreateDaemonProfileBody) GetContext() []CreateDaemonProfileBodyContextI
 // GetDescription returns the value of Description.
 func (s *CreateDaemonProfileBody) GetDescription() OptString {
 	return s.Description
+}
+
+// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
+func (s *CreateDaemonProfileBody) GetHeartbeatIntervalMs() OptInt {
+	return s.HeartbeatIntervalMs
+}
+
+// GetLeaseTtlSec returns the value of LeaseTtlSec.
+func (s *CreateDaemonProfileBody) GetLeaseTtlSec() OptInt {
+	return s.LeaseTtlSec
+}
+
+// GetMaxBatchSize returns the value of MaxBatchSize.
+func (s *CreateDaemonProfileBody) GetMaxBatchSize() OptInt {
+	return s.MaxBatchSize
 }
 
 // GetModel returns the value of Model.
@@ -1778,6 +1796,21 @@ func (s *CreateDaemonProfileBody) SetContext(val []CreateDaemonProfileBodyContex
 // SetDescription sets the value of Description.
 func (s *CreateDaemonProfileBody) SetDescription(val OptString) {
 	s.Description = val
+}
+
+// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
+func (s *CreateDaemonProfileBody) SetHeartbeatIntervalMs(val OptInt) {
+	s.HeartbeatIntervalMs = val
+}
+
+// SetLeaseTtlSec sets the value of LeaseTtlSec.
+func (s *CreateDaemonProfileBody) SetLeaseTtlSec(val OptInt) {
+	s.LeaseTtlSec = val
+}
+
+// SetMaxBatchSize sets the value of MaxBatchSize.
+func (s *CreateDaemonProfileBody) SetMaxBatchSize(val OptInt) {
+	s.MaxBatchSize = val
 }
 
 // SetModel sets the value of Model.
@@ -4302,7 +4335,10 @@ type DaemonProfile struct {
 	CreatedByHumanId     NilUUID                           `json:"createdByHumanId"`
 	DefinitionCid        string                            `json:"definitionCid"`
 	Description          NilString                         `json:"description"`
+	HeartbeatIntervalMs  int                               `json:"heartbeatIntervalMs"`
 	ID                   uuid.UUID                         `json:"id"`
+	LeaseTtlSec          int                               `json:"leaseTtlSec"`
+	MaxBatchSize         int                               `json:"maxBatchSize"`
 	Model                string                            `json:"model"`
 	Name                 string                            `json:"name"`
 	Provider             string                            `json:"provider"`
@@ -4349,9 +4385,24 @@ func (s *DaemonProfile) GetDescription() NilString {
 	return s.Description
 }
 
+// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
+func (s *DaemonProfile) GetHeartbeatIntervalMs() int {
+	return s.HeartbeatIntervalMs
+}
+
 // GetID returns the value of ID.
 func (s *DaemonProfile) GetID() uuid.UUID {
 	return s.ID
+}
+
+// GetLeaseTtlSec returns the value of LeaseTtlSec.
+func (s *DaemonProfile) GetLeaseTtlSec() int {
+	return s.LeaseTtlSec
+}
+
+// GetMaxBatchSize returns the value of MaxBatchSize.
+func (s *DaemonProfile) GetMaxBatchSize() int {
+	return s.MaxBatchSize
 }
 
 // GetModel returns the value of Model.
@@ -4454,9 +4505,24 @@ func (s *DaemonProfile) SetDescription(val NilString) {
 	s.Description = val
 }
 
+// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
+func (s *DaemonProfile) SetHeartbeatIntervalMs(val int) {
+	s.HeartbeatIntervalMs = val
+}
+
 // SetID sets the value of ID.
 func (s *DaemonProfile) SetID(val uuid.UUID) {
 	s.ID = val
+}
+
+// SetLeaseTtlSec sets the value of LeaseTtlSec.
+func (s *DaemonProfile) SetLeaseTtlSec(val int) {
+	s.LeaseTtlSec = val
+}
+
+// SetMaxBatchSize sets the value of MaxBatchSize.
+func (s *DaemonProfile) SetMaxBatchSize(val int) {
+	s.MaxBatchSize = val
 }
 
 // SetModel sets the value of Model.
@@ -4648,7 +4714,10 @@ type DaemonProfileListResponseItemsItem struct {
 	CreatedByHumanId     NilUUID                                                `json:"createdByHumanId"`
 	DefinitionCid        string                                                 `json:"definitionCid"`
 	Description          NilString                                              `json:"description"`
+	HeartbeatIntervalMs  int                                                    `json:"heartbeatIntervalMs"`
 	ID                   uuid.UUID                                              `json:"id"`
+	LeaseTtlSec          int                                                    `json:"leaseTtlSec"`
+	MaxBatchSize         int                                                    `json:"maxBatchSize"`
 	Model                string                                                 `json:"model"`
 	Name                 string                                                 `json:"name"`
 	Provider             string                                                 `json:"provider"`
@@ -4695,9 +4764,24 @@ func (s *DaemonProfileListResponseItemsItem) GetDescription() NilString {
 	return s.Description
 }
 
+// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
+func (s *DaemonProfileListResponseItemsItem) GetHeartbeatIntervalMs() int {
+	return s.HeartbeatIntervalMs
+}
+
 // GetID returns the value of ID.
 func (s *DaemonProfileListResponseItemsItem) GetID() uuid.UUID {
 	return s.ID
+}
+
+// GetLeaseTtlSec returns the value of LeaseTtlSec.
+func (s *DaemonProfileListResponseItemsItem) GetLeaseTtlSec() int {
+	return s.LeaseTtlSec
+}
+
+// GetMaxBatchSize returns the value of MaxBatchSize.
+func (s *DaemonProfileListResponseItemsItem) GetMaxBatchSize() int {
+	return s.MaxBatchSize
 }
 
 // GetModel returns the value of Model.
@@ -4800,9 +4884,24 @@ func (s *DaemonProfileListResponseItemsItem) SetDescription(val NilString) {
 	s.Description = val
 }
 
+// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
+func (s *DaemonProfileListResponseItemsItem) SetHeartbeatIntervalMs(val int) {
+	s.HeartbeatIntervalMs = val
+}
+
 // SetID sets the value of ID.
 func (s *DaemonProfileListResponseItemsItem) SetID(val uuid.UUID) {
 	s.ID = val
+}
+
+// SetLeaseTtlSec sets the value of LeaseTtlSec.
+func (s *DaemonProfileListResponseItemsItem) SetLeaseTtlSec(val int) {
+	s.LeaseTtlSec = val
+}
+
+// SetMaxBatchSize sets the value of MaxBatchSize.
+func (s *DaemonProfileListResponseItemsItem) SetMaxBatchSize(val int) {
+	s.MaxBatchSize = val
 }
 
 // SetModel sets the value of Model.
@@ -25993,6 +26092,9 @@ func (*UpdateDaemonProfileBadRequest) updateDaemonProfileRes() {}
 type UpdateDaemonProfileBody struct {
 	Context              []UpdateDaemonProfileBodyContextItem           `json:"context"`
 	Description          OptString                                      `json:"description"`
+	HeartbeatIntervalMs  OptInt                                         `json:"heartbeatIntervalMs"`
+	LeaseTtlSec          OptInt                                         `json:"leaseTtlSec"`
+	MaxBatchSize         OptInt                                         `json:"maxBatchSize"`
 	Model                OptString                                      `json:"model"`
 	Name                 OptString                                      `json:"name"`
 	Provider             OptString                                      `json:"provider"`
@@ -26014,6 +26116,21 @@ func (s *UpdateDaemonProfileBody) GetContext() []UpdateDaemonProfileBodyContextI
 // GetDescription returns the value of Description.
 func (s *UpdateDaemonProfileBody) GetDescription() OptString {
 	return s.Description
+}
+
+// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
+func (s *UpdateDaemonProfileBody) GetHeartbeatIntervalMs() OptInt {
+	return s.HeartbeatIntervalMs
+}
+
+// GetLeaseTtlSec returns the value of LeaseTtlSec.
+func (s *UpdateDaemonProfileBody) GetLeaseTtlSec() OptInt {
+	return s.LeaseTtlSec
+}
+
+// GetMaxBatchSize returns the value of MaxBatchSize.
+func (s *UpdateDaemonProfileBody) GetMaxBatchSize() OptInt {
+	return s.MaxBatchSize
 }
 
 // GetModel returns the value of Model.
@@ -26079,6 +26196,21 @@ func (s *UpdateDaemonProfileBody) SetContext(val []UpdateDaemonProfileBodyContex
 // SetDescription sets the value of Description.
 func (s *UpdateDaemonProfileBody) SetDescription(val OptString) {
 	s.Description = val
+}
+
+// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
+func (s *UpdateDaemonProfileBody) SetHeartbeatIntervalMs(val OptInt) {
+	s.HeartbeatIntervalMs = val
+}
+
+// SetLeaseTtlSec sets the value of LeaseTtlSec.
+func (s *UpdateDaemonProfileBody) SetLeaseTtlSec(val OptInt) {
+	s.LeaseTtlSec = val
+}
+
+// SetMaxBatchSize sets the value of MaxBatchSize.
+func (s *UpdateDaemonProfileBody) SetMaxBatchSize(val OptInt) {
+	s.MaxBatchSize = val
 }
 
 // SetModel sets the value of Model.

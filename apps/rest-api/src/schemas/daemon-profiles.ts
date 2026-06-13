@@ -2,6 +2,9 @@ import {
   DaemonProfile,
   DaemonProfileContext,
   DaemonProfileEnvName,
+  DaemonProfileHeartbeatIntervalMs,
+  DaemonProfileLeaseTtlSec,
+  DaemonProfileMaxBatchSize,
   DaemonProfileName,
   DaemonProfileSandbox,
   DaemonProfileToolName,
@@ -22,6 +25,9 @@ export const CreateDaemonProfileBodySchema = Type.Object(
     workspaceTtlSec: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 86_400 }),
     ),
+    leaseTtlSec: Type.Optional(DaemonProfileLeaseTtlSec),
+    heartbeatIntervalMs: Type.Optional(DaemonProfileHeartbeatIntervalMs),
+    maxBatchSize: Type.Optional(DaemonProfileMaxBatchSize),
     requiredEnv: Type.Optional(
       Type.Array(DaemonProfileEnvName, { maxItems: 100 }),
     ),

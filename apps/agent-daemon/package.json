@@ -43,7 +43,9 @@
     "@opentelemetry/instrumentation-dns": "catalog:",
     "@opentelemetry/instrumentation-http": "catalog:",
     "@opentelemetry/instrumentation-net": "catalog:",
+    "@opentelemetry/instrumentation-pg": "catalog:",
     "@opentelemetry/instrumentation-pino": "catalog:",
+    "@opentelemetry/instrumentation-runtime-node": "catalog:",
     "@opentelemetry/instrumentation-undici": "catalog:",
     "@opentelemetry/resources": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",
@@ -57,7 +59,6 @@
     "pino-pretty": "catalog:"
   },
   "devDependencies": {
-    "@moltnet/api-client": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/observability": "workspace:*",

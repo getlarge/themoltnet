@@ -1,6 +1,7 @@
 import type { Client } from '@moltnet/api-client';
 import {
   acceptTransfer,
+  createDaemonProfile,
   createDiary,
   createDiaryEntry,
   createDiaryGrant,
@@ -8,12 +9,14 @@ import {
   createTask,
   createTeam,
   createTeamInvite,
+  deleteDaemonProfile,
   deleteDiary,
   deleteDiaryEntryById,
   deleteTeam,
   deleteTeamInvite,
   getAgentProfile,
   getCryptoIdentity,
+  getDaemonProfile,
   getDiary,
   getDiaryEntryById,
   getHealth,
@@ -31,6 +34,7 @@ import {
   issueVoucher,
   joinTeam,
   listActiveVouchers,
+  listDaemonProfiles,
   listDiaries,
   listDiaryEntries,
   listDiaryGrants,
@@ -52,6 +56,7 @@ import {
   startLegreffierOnboarding,
   submitSignature,
   updateContextPack,
+  updateDaemonProfile,
   updateDiary,
   updateDiaryEntryById,
   updateTeamMemberRole,
@@ -118,6 +123,11 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     createTeamInvite: vi.fn(),
     listTeamInvites: vi.fn(),
     deleteTeamInvite: vi.fn(),
+    listDaemonProfiles: vi.fn(),
+    createDaemonProfile: vi.fn(),
+    getDaemonProfile: vi.fn(),
+    updateDaemonProfile: vi.fn(),
+    deleteDaemonProfile: vi.fn(),
     updateContextPack: vi.fn(),
     createDiaryGrant: vi.fn(),
     listDiaryGrants: vi.fn(),
@@ -1269,6 +1279,161 @@ describe('Agent facade', () => {
           path: { id: 'team-1', subjectId: 'subject-1' },
           body: { role: 'manager' },
         }),
+      );
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // daemonProfiles
+  // -----------------------------------------------------------------------
+  describe('daemonProfiles', () => {
+    const mockDaemonProfile = {
+      id: 'profile-1',
+      teamId: 'team-1',
+      name: 'linear-github',
+      description: null,
+      runtimeKind: 'gondolin_pi',
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      sandbox: {
+        snapshot: {
+          allowedHosts: ['api.github.com'],
+        },
+      },
+      context: [],
+      requiredTools: [],
+      requiredEnv: [],
+      sessionStorageMode: 'local',
+      workspaceStorageMode: 'local',
+      sessionTtlSec: 3600,
+      workspaceTtlSec: 86400,
+      revision: 1,
+      definitionCid: 'bafy-profile',
+      createdByAgentId: 'agent-1',
+      createdByHumanId: null,
+      createdAt: '2026-06-12T00:00:00.000Z',
+      updatedAt: '2026-06-12T00:00:00.000Z',
+    };
+
+    it('daemonProfiles.list calls listDaemonProfiles with team path', async () => {
+      const list = { items: [mockDaemonProfile] };
+      vi.mocked(listDaemonProfiles).mockResolvedValueOnce({
+        data: list,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.daemonProfiles.list('team-1');
+
+      expect(result).toEqual(list);
+      expect(listDaemonProfiles).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          path: { id: 'team-1' },
+        }),
+      );
+    });
+
+    it('daemonProfiles.create sends team path and body', async () => {
+      vi.mocked(createDaemonProfile).mockResolvedValueOnce({
+        data: mockDaemonProfile,
+        error: undefined,
+      } as any);
+
+      const body = {
+        name: 'linear-github',
+        runtimeKind: 'gondolin_pi' as const,
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        sandbox: { snapshot: { allowedHosts: ['api.github.com'] } },
+      };
+
+      const agent = makeAgent();
+      const result = await agent.daemonProfiles.create('team-1', body);
+
+      expect(result).toEqual(mockDaemonProfile);
+      expect(createDaemonProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          path: { id: 'team-1' },
+          body,
+        }),
+      );
+    });
+
+    it('daemonProfiles.get calls getDaemonProfile with profile path', async () => {
+      vi.mocked(getDaemonProfile).mockResolvedValueOnce({
+        data: mockDaemonProfile,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.daemonProfiles.get('profile-1');
+
+      expect(result).toEqual(mockDaemonProfile);
+      expect(getDaemonProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          path: { profileId: 'profile-1' },
+        }),
+      );
+    });
+
+    it('daemonProfiles.update sends profile path and body', async () => {
+      const updated = { ...mockDaemonProfile, description: 'Updated' };
+      vi.mocked(updateDaemonProfile).mockResolvedValueOnce({
+        data: updated,
+        error: undefined,
+      } as any);
+
+      const body = { description: 'Updated' };
+
+      const agent = makeAgent();
+      const result = await agent.daemonProfiles.update('profile-1', body);
+
+      expect(result).toEqual(updated);
+      expect(updateDaemonProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          path: { profileId: 'profile-1' },
+          body,
+        }),
+      );
+    });
+
+    it('daemonProfiles.delete accepts a 204 empty response', async () => {
+      vi.mocked(deleteDaemonProfile).mockResolvedValueOnce({
+        data: undefined,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await expect(agent.daemonProfiles.delete('profile-1')).resolves.toBe(
+        undefined,
+      );
+
+      expect(deleteDaemonProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          path: { profileId: 'profile-1' },
+        }),
+      );
+    });
+
+    it('daemonProfiles.delete throws MoltNetError on API problem', async () => {
+      vi.mocked(deleteDaemonProfile).mockResolvedValueOnce({
+        data: undefined,
+        error: problemError,
+      } as any);
+
+      const agent = makeAgent();
+      await expect(agent.daemonProfiles.delete('profile-1')).rejects.toThrow(
+        MoltNetError,
       );
     });
   });

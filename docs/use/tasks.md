@@ -249,15 +249,15 @@ Optional envelope flags (CLI) / fields (SDK + MCP) — they map 1:1 across
 surfaces. See [Task Reference § Create envelope](../reference/tasks.md#create-envelope)
 for the full mapping table.
 
-| Concern                      | CLI flag                                          | MCP arg                                       | SDK property                              |
-| ---------------------------- | ------------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
-| Link to a chain              | `--correlation-id <uuid>`                         | `correlation_id`                              | `correlationId`                           |
-| Reference a producer/issue   | `--reference '<json>'` (repeatable)               | `references: [...]`                           | `references: [...]`                       |
-| Restrict the executor        | `--allowed-executor '<json>'` (repeatable)        | `allowed_executors: [...]`                    | `allowedExecutors: [...]`                 |
-| Require executor trust level | `--required-executor-trust-level`                 | `required_executor_trust_level`               | `requiredExecutorTrustLevel`              |
-| Dispatch / running timeouts  | `--dispatch-timeout-sec`, `--running-timeout-sec` | `dispatch_timeout_sec`, `running_timeout_sec` | `dispatchTimeoutSec`, `runningTimeoutSec` |
-| Expiry from enqueue          | `--expires-in-sec`                                | `expires_in_sec`                              | `expiresInSec`                            |
-| Max attempts                 | `--max-attempts`                                  | `max_attempts`                                | `maxAttempts`                             |
+| Concern                      | CLI flag                                                  | MCP arg                                       | SDK property                              |
+| ---------------------------- | --------------------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
+| Link to a chain              | `--correlation-id <uuid>`                                 | `correlation_id`                              | `correlationId`                           |
+| Reference a producer/issue   | `--reference '<json>'` (repeatable)                       | `references: [...]`                           | `references: [...]`                       |
+| Restrict compatible profiles | `--allowed-profile '{"profileId":"<uuid>"}'` (repeatable) | `allowed_profiles: [...]`                     | `allowedProfiles: [...]`                  |
+| Require executor trust level | `--required-executor-trust-level`                         | `required_executor_trust_level`               | `requiredExecutorTrustLevel`              |
+| Dispatch / running timeouts  | `--dispatch-timeout-sec`, `--running-timeout-sec`         | `dispatch_timeout_sec`, `running_timeout_sec` | `dispatchTimeoutSec`, `runningTimeoutSec` |
+| Expiry from enqueue          | `--expires-in-sec`                                        | `expires_in_sec`                              | `expiresInSec`                            |
+| Max attempts                 | `--max-attempts`                                          | `max_attempts`                                | `maxAttempts`                             |
 
 CLI-only ergonomics: `--dry-run` (print canonical body, no POST),
 `--skip-validation` (bypass the local schema check — useful when developing a

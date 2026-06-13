@@ -157,6 +157,28 @@ export const DaemonProfileRef = Type.Object(
 );
 export type DaemonProfileRef = Static<typeof DaemonProfileRef>;
 
+export const DaemonProfileLeaseTtlSec = Type.Integer({
+  minimum: 1,
+  maximum: 86_400,
+});
+export type DaemonProfileLeaseTtlSec = Static<typeof DaemonProfileLeaseTtlSec>;
+
+export const DaemonProfileHeartbeatIntervalMs = Type.Integer({
+  minimum: 0,
+  maximum: 3_600_000,
+});
+export type DaemonProfileHeartbeatIntervalMs = Static<
+  typeof DaemonProfileHeartbeatIntervalMs
+>;
+
+export const DaemonProfileMaxBatchSize = Type.Integer({
+  minimum: 1,
+  maximum: 1_000,
+});
+export type DaemonProfileMaxBatchSize = Static<
+  typeof DaemonProfileMaxBatchSize
+>;
+
 export const DaemonProfile = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
@@ -171,6 +193,9 @@ export const DaemonProfile = Type.Object(
     workspaceStorageMode: Type.Literal('local'),
     sessionTtlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
     workspaceTtlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
+    leaseTtlSec: DaemonProfileLeaseTtlSec,
+    heartbeatIntervalMs: DaemonProfileHeartbeatIntervalMs,
+    maxBatchSize: DaemonProfileMaxBatchSize,
     requiredEnv: Type.Array(DaemonProfileEnvName, { maxItems: 100 }),
     requiredTools: Type.Array(DaemonProfileToolName, { maxItems: 100 }),
     context: Type.Array(DaemonProfileContext, { maxItems: 5 }),

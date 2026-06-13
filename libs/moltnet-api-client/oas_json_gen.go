@@ -5116,6 +5116,24 @@ func (s *CreateDaemonProfileBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.HeartbeatIntervalMs.Set {
+			e.FieldStart("heartbeatIntervalMs")
+			s.HeartbeatIntervalMs.Encode(e)
+		}
+	}
+	{
+		if s.LeaseTtlSec.Set {
+			e.FieldStart("leaseTtlSec")
+			s.LeaseTtlSec.Encode(e)
+		}
+	}
+	{
+		if s.MaxBatchSize.Set {
+			e.FieldStart("maxBatchSize")
+			s.MaxBatchSize.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("model")
 		e.Str(s.Model)
 	}
@@ -5183,20 +5201,23 @@ func (s *CreateDaemonProfileBody) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateDaemonProfileBody = [13]string{
+var jsonFieldsNameOfCreateDaemonProfileBody = [16]string{
 	0:  "context",
 	1:  "description",
-	2:  "model",
-	3:  "name",
-	4:  "provider",
-	5:  "requiredEnv",
-	6:  "requiredTools",
-	7:  "runtimeKind",
-	8:  "sandbox",
-	9:  "sessionStorageMode",
-	10: "sessionTtlSec",
-	11: "workspaceStorageMode",
-	12: "workspaceTtlSec",
+	2:  "heartbeatIntervalMs",
+	3:  "leaseTtlSec",
+	4:  "maxBatchSize",
+	5:  "model",
+	6:  "name",
+	7:  "provider",
+	8:  "requiredEnv",
+	9:  "requiredTools",
+	10: "runtimeKind",
+	11: "sandbox",
+	12: "sessionStorageMode",
+	13: "sessionTtlSec",
+	14: "workspaceStorageMode",
+	15: "workspaceTtlSec",
 }
 
 // Decode decodes CreateDaemonProfileBody from json.
@@ -5235,8 +5256,38 @@ func (s *CreateDaemonProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
+		case "heartbeatIntervalMs":
+			if err := func() error {
+				s.HeartbeatIntervalMs.Reset()
+				if err := s.HeartbeatIntervalMs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
+			}
+		case "leaseTtlSec":
+			if err := func() error {
+				s.LeaseTtlSec.Reset()
+				if err := s.LeaseTtlSec.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
+			}
+		case "maxBatchSize":
+			if err := func() error {
+				s.MaxBatchSize.Reset()
+				if err := s.MaxBatchSize.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxBatchSize\"")
+			}
 		case "model":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -5248,7 +5299,7 @@ func (s *CreateDaemonProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -5260,7 +5311,7 @@ func (s *CreateDaemonProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -5320,7 +5371,7 @@ func (s *CreateDaemonProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -5379,8 +5430,8 @@ func (s *CreateDaemonProfileBody) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b00011100,
-		0b00000001,
+		0b11100000,
+		0b00001000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -12330,8 +12381,20 @@ func (s *DaemonProfile) encodeFields(e *jx.Encoder) {
 		s.Description.Encode(e)
 	}
 	{
+		e.FieldStart("heartbeatIntervalMs")
+		e.Int(s.HeartbeatIntervalMs)
+	}
+	{
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("leaseTtlSec")
+		e.Int(s.LeaseTtlSec)
+	}
+	{
+		e.FieldStart("maxBatchSize")
+		e.Int(s.MaxBatchSize)
 	}
 	{
 		e.FieldStart("model")
@@ -12399,28 +12462,31 @@ func (s *DaemonProfile) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDaemonProfile = [21]string{
+var jsonFieldsNameOfDaemonProfile = [24]string{
 	0:  "context",
 	1:  "createdAt",
 	2:  "createdByAgentId",
 	3:  "createdByHumanId",
 	4:  "definitionCid",
 	5:  "description",
-	6:  "id",
-	7:  "model",
-	8:  "name",
-	9:  "provider",
-	10: "requiredEnv",
-	11: "requiredTools",
-	12: "revision",
-	13: "runtimeKind",
-	14: "sandbox",
-	15: "sessionStorageMode",
-	16: "sessionTtlSec",
-	17: "teamId",
-	18: "updatedAt",
-	19: "workspaceStorageMode",
-	20: "workspaceTtlSec",
+	6:  "heartbeatIntervalMs",
+	7:  "id",
+	8:  "leaseTtlSec",
+	9:  "maxBatchSize",
+	10: "model",
+	11: "name",
+	12: "provider",
+	13: "requiredEnv",
+	14: "requiredTools",
+	15: "revision",
+	16: "runtimeKind",
+	17: "sandbox",
+	18: "sessionStorageMode",
+	19: "sessionTtlSec",
+	20: "teamId",
+	21: "updatedAt",
+	22: "workspaceStorageMode",
+	23: "workspaceTtlSec",
 }
 
 // Decode decodes DaemonProfile from json.
@@ -12504,8 +12570,20 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
-		case "id":
+		case "heartbeatIntervalMs":
 			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.HeartbeatIntervalMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -12516,8 +12594,32 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
+		case "leaseTtlSec":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.LeaseTtlSec = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
+			}
+		case "maxBatchSize":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.MaxBatchSize = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxBatchSize\"")
+			}
 		case "model":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -12529,7 +12631,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -12541,7 +12643,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -12553,7 +12655,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "requiredEnv":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				s.RequiredEnv = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -12573,7 +12675,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredEnv\"")
 			}
 		case "requiredTools":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				s.RequiredTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -12593,7 +12695,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredTools\"")
 			}
 		case "revision":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.Revision = int(v)
@@ -12605,7 +12707,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revision\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				if err := s.RuntimeKind.Decode(d); err != nil {
 					return err
@@ -12615,7 +12717,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -12625,7 +12727,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
 		case "sessionStorageMode":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				if err := s.SessionStorageMode.Decode(d); err != nil {
 					return err
@@ -12635,7 +12737,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
 			}
 		case "sessionTtlSec":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.SessionTtlSec = int(v)
@@ -12647,7 +12749,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
 			}
 		case "teamId":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -12659,7 +12761,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -12671,7 +12773,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
 			}
 		case "workspaceStorageMode":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
 					return err
@@ -12681,7 +12783,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
 			}
 		case "workspaceTtlSec":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.WorkspaceTtlSec = int(v)
@@ -12704,7 +12806,7 @@ func (s *DaemonProfile) Decode(d *jx.Decoder) error {
 	for i, mask := range [3]uint8{
 		0b11111111,
 		0b11111111,
-		0b00011111,
+		0b11111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -13066,8 +13168,20 @@ func (s *DaemonProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 		s.Description.Encode(e)
 	}
 	{
+		e.FieldStart("heartbeatIntervalMs")
+		e.Int(s.HeartbeatIntervalMs)
+	}
+	{
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("leaseTtlSec")
+		e.Int(s.LeaseTtlSec)
+	}
+	{
+		e.FieldStart("maxBatchSize")
+		e.Int(s.MaxBatchSize)
 	}
 	{
 		e.FieldStart("model")
@@ -13135,28 +13249,31 @@ func (s *DaemonProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDaemonProfileListResponseItemsItem = [21]string{
+var jsonFieldsNameOfDaemonProfileListResponseItemsItem = [24]string{
 	0:  "context",
 	1:  "createdAt",
 	2:  "createdByAgentId",
 	3:  "createdByHumanId",
 	4:  "definitionCid",
 	5:  "description",
-	6:  "id",
-	7:  "model",
-	8:  "name",
-	9:  "provider",
-	10: "requiredEnv",
-	11: "requiredTools",
-	12: "revision",
-	13: "runtimeKind",
-	14: "sandbox",
-	15: "sessionStorageMode",
-	16: "sessionTtlSec",
-	17: "teamId",
-	18: "updatedAt",
-	19: "workspaceStorageMode",
-	20: "workspaceTtlSec",
+	6:  "heartbeatIntervalMs",
+	7:  "id",
+	8:  "leaseTtlSec",
+	9:  "maxBatchSize",
+	10: "model",
+	11: "name",
+	12: "provider",
+	13: "requiredEnv",
+	14: "requiredTools",
+	15: "revision",
+	16: "runtimeKind",
+	17: "sandbox",
+	18: "sessionStorageMode",
+	19: "sessionTtlSec",
+	20: "teamId",
+	21: "updatedAt",
+	22: "workspaceStorageMode",
+	23: "workspaceTtlSec",
 }
 
 // Decode decodes DaemonProfileListResponseItemsItem from json.
@@ -13240,8 +13357,20 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
-		case "id":
+		case "heartbeatIntervalMs":
 			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.HeartbeatIntervalMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -13252,8 +13381,32 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
+		case "leaseTtlSec":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.LeaseTtlSec = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
+			}
+		case "maxBatchSize":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.MaxBatchSize = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxBatchSize\"")
+			}
 		case "model":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -13265,7 +13418,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -13277,7 +13430,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -13289,7 +13442,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "requiredEnv":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				s.RequiredEnv = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -13309,7 +13462,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredEnv\"")
 			}
 		case "requiredTools":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				s.RequiredTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -13329,7 +13482,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredTools\"")
 			}
 		case "revision":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.Revision = int(v)
@@ -13341,7 +13494,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revision\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				if err := s.RuntimeKind.Decode(d); err != nil {
 					return err
@@ -13351,7 +13504,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -13361,7 +13514,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
 		case "sessionStorageMode":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				if err := s.SessionStorageMode.Decode(d); err != nil {
 					return err
@@ -13371,7 +13524,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
 			}
 		case "sessionTtlSec":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.SessionTtlSec = int(v)
@@ -13383,7 +13536,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
 			}
 		case "teamId":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -13395,7 +13548,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -13407,7 +13560,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
 			}
 		case "workspaceStorageMode":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
 					return err
@@ -13417,7 +13570,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
 			}
 		case "workspaceTtlSec":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.WorkspaceTtlSec = int(v)
@@ -13440,7 +13593,7 @@ func (s *DaemonProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 	for i, mask := range [3]uint8{
 		0b11111111,
 		0b11111111,
-		0b00011111,
+		0b11111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -60551,6 +60704,24 @@ func (s *UpdateDaemonProfileBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.HeartbeatIntervalMs.Set {
+			e.FieldStart("heartbeatIntervalMs")
+			s.HeartbeatIntervalMs.Encode(e)
+		}
+	}
+	{
+		if s.LeaseTtlSec.Set {
+			e.FieldStart("leaseTtlSec")
+			s.LeaseTtlSec.Encode(e)
+		}
+	}
+	{
+		if s.MaxBatchSize.Set {
+			e.FieldStart("maxBatchSize")
+			s.MaxBatchSize.Encode(e)
+		}
+	}
+	{
 		if s.Model.Set {
 			e.FieldStart("model")
 			s.Model.Encode(e)
@@ -60626,20 +60797,23 @@ func (s *UpdateDaemonProfileBody) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUpdateDaemonProfileBody = [13]string{
+var jsonFieldsNameOfUpdateDaemonProfileBody = [16]string{
 	0:  "context",
 	1:  "description",
-	2:  "model",
-	3:  "name",
-	4:  "provider",
-	5:  "requiredEnv",
-	6:  "requiredTools",
-	7:  "runtimeKind",
-	8:  "sandbox",
-	9:  "sessionStorageMode",
-	10: "sessionTtlSec",
-	11: "workspaceStorageMode",
-	12: "workspaceTtlSec",
+	2:  "heartbeatIntervalMs",
+	3:  "leaseTtlSec",
+	4:  "maxBatchSize",
+	5:  "model",
+	6:  "name",
+	7:  "provider",
+	8:  "requiredEnv",
+	9:  "requiredTools",
+	10: "runtimeKind",
+	11: "sandbox",
+	12: "sessionStorageMode",
+	13: "sessionTtlSec",
+	14: "workspaceStorageMode",
+	15: "workspaceTtlSec",
 }
 
 // Decode decodes UpdateDaemonProfileBody from json.
@@ -60678,6 +60852,36 @@ func (s *UpdateDaemonProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "heartbeatIntervalMs":
+			if err := func() error {
+				s.HeartbeatIntervalMs.Reset()
+				if err := s.HeartbeatIntervalMs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
+			}
+		case "leaseTtlSec":
+			if err := func() error {
+				s.LeaseTtlSec.Reset()
+				if err := s.LeaseTtlSec.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
+			}
+		case "maxBatchSize":
+			if err := func() error {
+				s.MaxBatchSize.Reset()
+				if err := s.MaxBatchSize.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxBatchSize\"")
 			}
 		case "model":
 			if err := func() error {

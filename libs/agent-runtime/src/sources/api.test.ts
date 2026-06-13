@@ -69,4 +69,48 @@ describe('ApiTaskSource', () => {
 
     await expect(src.claim()).rejects.toThrow(/409 Conflict/);
   });
+
+  it('forwards profileId when claiming a specific task', async () => {
+    const task = makeFulfillBriefTask({ status: 'dispatched' });
+    const profileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const claimMock = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: {
+        taskId: task.id,
+        attemptN: 1,
+        claimedByAgentId: '33333333-3333-4333-8333-333333333333',
+        runtimeId: null,
+        claimedAt: '2026-04-23T10:00:00Z',
+        startedAt: null,
+        completedAt: null,
+        status: 'claimed',
+        output: null,
+        outputCid: null,
+        error: null,
+        usage: null,
+        contentSignature: null,
+        signedAt: null,
+        claimedExecutorFingerprint: null,
+        claimedExecutorManifest: null,
+        completedExecutorFingerprint: null,
+        completedExecutorManifest: null,
+        daemonState: null,
+      },
+      traceHeaders: {},
+    });
+
+    const src = new ApiTaskSource({
+      agent: makeAgent(claimMock),
+      taskId: task.id,
+      leaseTtlSec: 120,
+      profileId,
+    });
+
+    await src.claim();
+
+    expect(claimMock).toHaveBeenCalledWith(task.id, {
+      leaseTtlSec: 120,
+      profileId,
+    });
+  });
 });
