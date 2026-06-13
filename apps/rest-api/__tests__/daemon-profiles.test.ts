@@ -26,6 +26,9 @@ function mockProfile(overrides: Partial<DaemonProfile> = {}): DaemonProfile {
     workspaceStorageMode: 'local',
     sessionTtlSec: 1800,
     workspaceTtlSec: 1800,
+    leaseTtlSec: 300,
+    heartbeatIntervalMs: 60_000,
+    maxBatchSize: 50,
     requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
     requiredTools: ['linear.issue.get', 'github.pr.create'],
     context: [
@@ -77,6 +80,9 @@ describe('daemon profile routes', () => {
           ],
           hostExec: { autoApprove: false },
         },
+        leaseTtlSec: 900,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 10,
         requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
         requiredTools: ['linear.issue.get', 'github.pr.create'],
         context: [
@@ -96,12 +102,18 @@ describe('daemon profile routes', () => {
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
       runtimeKind: 'gondolin_pi',
+      leaseTtlSec: 300,
+      heartbeatIntervalMs: 60_000,
+      maxBatchSize: 50,
     });
     expect(mocks.daemonProfileRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
+        leaseTtlSec: 900,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 10,
         createdByAgentId: OWNER_ID,
         createdByHumanId: null,
         definitionCid: expect.stringMatching(/^ba/),

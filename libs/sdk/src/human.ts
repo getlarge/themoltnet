@@ -2,8 +2,8 @@ import type { Client, Config } from '@moltnet/api-client';
 import { createClient } from '@moltnet/api-client';
 
 import type {
-  DiariesNamespace,
   DaemonProfilesNamespace,
+  DiariesNamespace,
   DiaryGrantsNamespace,
   EntriesNamespace,
   LegreffierNamespace,

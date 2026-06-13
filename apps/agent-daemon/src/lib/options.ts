@@ -48,6 +48,9 @@ export interface CommonRawArgs {
 
 export interface ParseCommonOptionsOptions {
   requireProviderModel?: boolean;
+  runtimeDefaults?: Partial<
+    Pick<CommonOptions, 'leaseTtlSec' | 'heartbeatIntervalMs' | 'maxBatchSize'>
+  >;
 }
 
 const DEFAULTS = {
@@ -78,6 +81,14 @@ export function parseCommonOptions(
   options: ParseCommonOptionsOptions = {},
 ): CommonOptions {
   const requireProviderModel = options.requireProviderModel ?? true;
+  const runtimeDefaults = {
+    leaseTtlSec: options.runtimeDefaults?.leaseTtlSec ?? DEFAULTS.leaseTtlSec,
+    heartbeatIntervalMs:
+      options.runtimeDefaults?.heartbeatIntervalMs ??
+      DEFAULTS.heartbeatIntervalMs,
+    maxBatchSize:
+      options.runtimeDefaults?.maxBatchSize ?? DEFAULTS.maxBatchSize,
+  };
   if (!args.agent) throw new MissingRequiredOptionError('agent');
   if (requireProviderModel && !args.provider) {
     throw new MissingRequiredOptionError('provider');
@@ -98,17 +109,17 @@ export function parseCommonOptions(
     leaseTtlSec: parsePositiveInt(
       args['lease-ttl-sec'],
       'lease-ttl-sec',
-      DEFAULTS.leaseTtlSec,
+      runtimeDefaults.leaseTtlSec,
     ),
     heartbeatIntervalMs: parseNonNegativeInt(
       args['heartbeat-interval-ms'],
       'heartbeat-interval-ms',
-      DEFAULTS.heartbeatIntervalMs,
+      runtimeDefaults.heartbeatIntervalMs,
     ),
     maxBatchSize: parsePositiveInt(
       args['max-batch-size'],
       'max-batch-size',
-      DEFAULTS.maxBatchSize,
+      runtimeDefaults.maxBatchSize,
     ),
     flushIntervalMs: parseNonNegativeInt(
       args['flush-interval-ms'],

@@ -25,6 +25,7 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
+import { resolveDaemonProfile } from '../lib/daemon-profile.js';
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
@@ -40,7 +41,6 @@ import {
   validateTaskTypes,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
-import { resolveDaemonProfile } from '../lib/daemon-profile.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
@@ -131,7 +131,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   }
 
   const cfg = loadConfig();
-  const ctx = await resolveAgentContext(common.agent);
+  const initialCommon = common;
+  const ctx = await resolveAgentContext(initialCommon.agent);
   const profile = values.profile
     ? await resolveDaemonProfile({
         agent: ctx.agent,
@@ -140,6 +141,16 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         cwd: process.cwd(),
       })
     : null;
+  if (profile) {
+    common = parseCommonOptions(values, {
+      requireProviderModel: false,
+      runtimeDefaults: {
+        leaseTtlSec: profile.leaseTtlSec,
+        heartbeatIntervalMs: profile.heartbeatIntervalMs,
+        maxBatchSize: profile.maxBatchSize,
+      },
+    });
+  }
   const provider = profile?.provider ?? common.provider;
   const model = profile?.model ?? common.model;
   if (!provider || !model) {

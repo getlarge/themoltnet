@@ -39,8 +39,8 @@ import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { createExecutionPlanCache } from '../src/lib/execution-plan-cache.js';
 import { resolveDaemonProfile } from '../src/lib/daemon-profile.js';
+import { createExecutionPlanCache } from '../src/lib/execution-plan-cache.js';
 import { finalizeTask } from '../src/lib/finalize.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
@@ -966,6 +966,9 @@ describe('Agent daemon (e2e)', () => {
         runtimeKind: 'gondolin_pi',
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
+        leaseTtlSec: 900,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 10,
         sandbox,
       });
     }
@@ -1082,6 +1085,9 @@ describe('Agent daemon (e2e)', () => {
         expect(resolved.id).toBe(allowedProfile.id);
         expect(resolved.provider).toBe('anthropic');
         expect(resolved.model).toBe('claude-sonnet-4-5');
+        expect(resolved.leaseTtlSec).toBe(900);
+        expect(resolved.heartbeatIntervalMs).toBe(15_000);
+        expect(resolved.maxBatchSize).toBe(10);
         expect(resolved.sandboxConfig).toEqual(allowedProfile.sandbox);
 
         const source = new PollingApiTaskSource({
@@ -1089,7 +1095,7 @@ describe('Agent daemon (e2e)', () => {
           teamId,
           taskTypes: ['curate_pack'],
           profileId: resolved.id,
-          leaseTtlSec: 60,
+          leaseTtlSec: resolved.leaseTtlSec,
           stopWhenEmpty: true,
           logger: silentLogger,
         });

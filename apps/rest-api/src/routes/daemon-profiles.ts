@@ -61,6 +61,9 @@ function serializeProfile(
     workspaceStorageMode: 'local',
     sessionTtlSec: row.sessionTtlSec,
     workspaceTtlSec: row.workspaceTtlSec,
+    leaseTtlSec: row.leaseTtlSec,
+    heartbeatIntervalMs: row.heartbeatIntervalMs,
+    maxBatchSize: row.maxBatchSize,
     requiredEnv: row.requiredEnv,
     requiredTools: row.requiredTools,
     context: row.context as Static<typeof DaemonProfileSchema>['context'],
@@ -84,6 +87,9 @@ type ProfileDefinitionInput = {
   workspaceStorageMode?: 'local';
   sessionTtlSec?: number;
   workspaceTtlSec?: number;
+  leaseTtlSec?: number;
+  heartbeatIntervalMs?: number;
+  maxBatchSize?: number;
   requiredEnv?: string[];
   requiredTools?: string[];
   context?: unknown[];
@@ -104,6 +110,9 @@ async function computeProfileDefinitionCid(
     workspaceStorageMode: input.workspaceStorageMode ?? 'local',
     sessionTtlSec: input.sessionTtlSec ?? 1800,
     workspaceTtlSec: input.workspaceTtlSec ?? 1800,
+    leaseTtlSec: input.leaseTtlSec ?? 300,
+    heartbeatIntervalMs: input.heartbeatIntervalMs ?? 60_000,
+    maxBatchSize: input.maxBatchSize ?? 50,
     requiredEnv: normalizeList(input.requiredEnv).sort(),
     requiredTools: normalizeList(input.requiredTools).sort(),
     context: input.context ?? [],
@@ -193,6 +202,9 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
           workspaceStorageMode: body.workspaceStorageMode ?? 'local',
           sessionTtlSec: body.sessionTtlSec ?? 1800,
           workspaceTtlSec: body.workspaceTtlSec ?? 1800,
+          leaseTtlSec: body.leaseTtlSec ?? 300,
+          heartbeatIntervalMs: body.heartbeatIntervalMs ?? 60_000,
+          maxBatchSize: body.maxBatchSize ?? 50,
           requiredEnv: normalizeList(body.requiredEnv),
           requiredTools: normalizeList(body.requiredTools),
           context: body.context ?? [],
@@ -293,6 +305,10 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
         workspaceStorageMode: body.workspaceStorageMode ?? 'local',
         sessionTtlSec: body.sessionTtlSec ?? existing.sessionTtlSec,
         workspaceTtlSec: body.workspaceTtlSec ?? existing.workspaceTtlSec,
+        leaseTtlSec: body.leaseTtlSec ?? existing.leaseTtlSec,
+        heartbeatIntervalMs:
+          body.heartbeatIntervalMs ?? existing.heartbeatIntervalMs,
+        maxBatchSize: body.maxBatchSize ?? existing.maxBatchSize,
         requiredEnv: normalizeList(body.requiredEnv ?? existing.requiredEnv),
         requiredTools: normalizeList(
           body.requiredTools ?? existing.requiredTools,

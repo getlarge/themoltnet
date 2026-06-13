@@ -11,6 +11,9 @@ export interface ResolvedDaemonProfile {
   teamId: string;
   provider: string;
   model: string;
+  leaseTtlSec: number;
+  heartbeatIntervalMs: number;
+  maxBatchSize: number;
   sandboxConfig: SandboxConfig;
   mountPath: string;
   source: string;
@@ -41,6 +44,9 @@ export async function resolveDaemonProfile(options: {
     teamId: profile.teamId,
     provider: profile.provider,
     model: profile.model,
+    leaseTtlSec: profile.leaseTtlSec,
+    heartbeatIntervalMs: profile.heartbeatIntervalMs,
+    maxBatchSize: profile.maxBatchSize,
     sandboxConfig: profile.sandbox,
     mountPath: resolve(options.cwd),
     source: `daemon-profile:${profile.id}`,

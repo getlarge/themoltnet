@@ -288,6 +288,9 @@ export type CreateDaemonProfileBody = {
     slug: string;
   }>;
   description?: string;
+  heartbeatIntervalMs?: number;
+  leaseTtlSec?: number;
+  maxBatchSize?: number;
   model: string;
   name: string;
   provider: string;
@@ -395,7 +398,10 @@ export type DaemonProfile = {
   createdByHumanId: string | null;
   definitionCid: string;
   description: string | null;
+  heartbeatIntervalMs: number;
   id: string;
+  leaseTtlSec: number;
+  maxBatchSize: number;
   model: string;
   name: string;
   provider: string;
@@ -463,7 +469,10 @@ export type DaemonProfileListResponse = {
     createdByHumanId: string | null;
     definitionCid: string;
     description: string | null;
+    heartbeatIntervalMs: number;
     id: string;
+    leaseTtlSec: number;
+    maxBatchSize: number;
     model: string;
     name: string;
     provider: string;
@@ -1836,6 +1845,9 @@ export type UpdateDaemonProfileBody = {
     slug: string;
   }>;
   description?: string;
+  heartbeatIntervalMs?: number;
+  leaseTtlSec?: number;
+  maxBatchSize?: number;
   model?: string;
   name?: string;
   provider?: string;

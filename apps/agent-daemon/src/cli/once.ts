@@ -24,6 +24,7 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
+import { resolveDaemonProfile } from '../lib/daemon-profile.js';
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
@@ -38,7 +39,6 @@ import {
   parseCommonOptions,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
-import { resolveDaemonProfile } from '../lib/daemon-profile.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
@@ -87,7 +87,8 @@ export async function runOnce(argv: string[]): Promise<number> {
     return 1;
   }
   const cfg = loadConfig();
-  const ctx = await resolveAgentContext(opts.agent);
+  const initialOpts = opts;
+  const ctx = await resolveAgentContext(initialOpts.agent);
   const profile = values.profile
     ? await resolveDaemonProfile({
         agent: ctx.agent,
@@ -95,6 +96,16 @@ export async function runOnce(argv: string[]): Promise<number> {
         cwd: process.cwd(),
       })
     : null;
+  if (profile) {
+    opts = parseCommonOptions(values, {
+      requireProviderModel: false,
+      runtimeDefaults: {
+        leaseTtlSec: profile.leaseTtlSec,
+        heartbeatIntervalMs: profile.heartbeatIntervalMs,
+        maxBatchSize: profile.maxBatchSize,
+      },
+    });
+  }
   const provider = profile?.provider ?? opts.provider;
   const model = profile?.model ?? opts.model;
   if (!provider || !model) {

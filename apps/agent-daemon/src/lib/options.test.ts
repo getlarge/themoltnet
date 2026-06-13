@@ -102,6 +102,42 @@ describe('parseCommonOptions', () => {
     expect(result.warmSessionTtlSec).toBe(90);
   });
 
+  it('uses profile runtime defaults when explicit numeric flags are absent', () => {
+    const result = parseCommonOptions(valid, {
+      runtimeDefaults: {
+        leaseTtlSec: 900,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 7,
+      },
+    });
+
+    expect(result.leaseTtlSec).toBe(900);
+    expect(result.heartbeatIntervalMs).toBe(15_000);
+    expect(result.maxBatchSize).toBe(7);
+  });
+
+  it('lets explicit numeric flags override profile runtime defaults', () => {
+    const result = parseCommonOptions(
+      {
+        ...valid,
+        'lease-ttl-sec': '60',
+        'heartbeat-interval-ms': '5000',
+        'max-batch-size': '10',
+      },
+      {
+        runtimeDefaults: {
+          leaseTtlSec: 900,
+          heartbeatIntervalMs: 15_000,
+          maxBatchSize: 7,
+        },
+      },
+    );
+
+    expect(result.leaseTtlSec).toBe(60);
+    expect(result.heartbeatIntervalMs).toBe(5_000);
+    expect(result.maxBatchSize).toBe(10);
+  });
+
   it('accepts --max-turns=0 and --max-bash-timeouts=0 as "disabled"', () => {
     const result = parseCommonOptions({
       ...valid,

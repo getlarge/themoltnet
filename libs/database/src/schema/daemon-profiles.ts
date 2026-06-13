@@ -52,6 +52,11 @@ export function defineDaemonProfilesTable({
         .default('local'),
       sessionTtlSec: integer('session_ttl_sec').notNull().default(1800),
       workspaceTtlSec: integer('workspace_ttl_sec').notNull().default(1800),
+      leaseTtlSec: integer('lease_ttl_sec').notNull().default(300),
+      heartbeatIntervalMs: integer('heartbeat_interval_ms')
+        .notNull()
+        .default(60000),
+      maxBatchSize: integer('max_batch_size').notNull().default(50),
       requiredEnv: text('required_env')
         .array()
         .notNull()
@@ -94,6 +99,12 @@ export function defineDaemonProfilesTable({
         'daemon_profiles_workspace_ttl_positive',
         sql`workspace_ttl_sec > 0`,
       ),
+      check('daemon_profiles_lease_ttl_positive', sql`lease_ttl_sec > 0`),
+      check(
+        'daemon_profiles_heartbeat_interval_non_negative',
+        sql`heartbeat_interval_ms >= 0`,
+      ),
+      check('daemon_profiles_max_batch_size_positive', sql`max_batch_size > 0`),
     ],
   );
 }

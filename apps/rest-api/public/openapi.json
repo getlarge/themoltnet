@@ -1007,6 +1007,21 @@
             "maxLength": 4096,
             "type": "string"
           },
+          "heartbeatIntervalMs": {
+            "maximum": 3600000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "leaseTtlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxBatchSize": {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          },
           "model": {
             "maxLength": 200,
             "minLength": 1,
@@ -1556,9 +1571,24 @@
               }
             ]
           },
+          "heartbeatIntervalMs": {
+            "maximum": 3600000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "leaseTtlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxBatchSize": {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
           },
           "model": {
             "maxLength": 200,
@@ -1823,6 +1853,9 @@
           "workspaceStorageMode",
           "sessionTtlSec",
           "workspaceTtlSec",
+          "leaseTtlSec",
+          "heartbeatIntervalMs",
+          "maxBatchSize",
           "requiredEnv",
           "requiredTools",
           "context",
@@ -1987,9 +2020,24 @@
                     }
                   ]
                 },
+                "heartbeatIntervalMs": {
+                  "maximum": 3600000,
+                  "minimum": 0,
+                  "type": "integer"
+                },
                 "id": {
                   "format": "uuid",
                   "type": "string"
+                },
+                "leaseTtlSec": {
+                  "maximum": 86400,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "maxBatchSize": {
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "type": "integer"
                 },
                 "model": {
                   "maxLength": 200,
@@ -2254,6 +2302,9 @@
                 "workspaceStorageMode",
                 "sessionTtlSec",
                 "workspaceTtlSec",
+                "leaseTtlSec",
+                "heartbeatIntervalMs",
+                "maxBatchSize",
                 "requiredEnv",
                 "requiredTools",
                 "context",
@@ -7974,6 +8025,21 @@
           "description": {
             "maxLength": 4096,
             "type": "string"
+          },
+          "heartbeatIntervalMs": {
+            "maximum": 3600000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "leaseTtlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxBatchSize": {
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
           },
           "model": {
             "maxLength": 200,
