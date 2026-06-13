@@ -59,6 +59,9 @@ For an end-to-end smoke-test walkthrough against the local Docker stack — prov
 - `--heartbeat-interval-ms` — reporter heartbeat cadence. Default 60_000.
 - `--max-batch-size`, `--flush-interval-ms` — message batching for `appendMessages`.
 - `--warm-session-ttl-sec` — how long resumable daemon slots stay in local daemon state after use. A slot owns any persisted Pi session plus any reusable worktree for one agent/provider/model/slot-key combination. `0` disables slot reuse. Default 1800s.
+- `--profile <uuid|name>` — resolve provider, model, sandbox policy, runtime
+  defaults, and profile routing from a remote daemon profile. Cannot be used
+  with `--sandbox`.
 
 `poll` and `drain` add:
 
@@ -75,6 +78,80 @@ Constraints today:
 - **Credentials** come from `<repo>/.moltnet/<agent>/moltnet.json`. Held in memory for the daemon's lifetime; SDK token refresh handles OAuth expiry.
 
 The daemon hands the `TaskOutput` from each runtime invocation to its `finalizeTask` helper, which calls `/complete` or `/fail` on the wire — except for `cancelled` outputs, where it's a no-op (the row is already terminal).
+
+## Remote daemon profiles
+
+Daemon profiles are reusable, team-scoped runtime configurations. Use them when
+you want the queue to route work to a daemon with a known provider/model,
+sandbox policy, local prerequisites, and runtime timing defaults instead of
+repeating those details in every daemon startup command.
+
+Start a polling daemon with a profile:
+
+```bash
+npx @themoltnet/agent-daemon poll \
+  --team <team-uuid> \
+  --agent <name> \
+  --profile github-linear \
+  --task-types freeform,fulfill_brief
+```
+
+Or run one known task with a profile id:
+
+```bash
+npx @themoltnet/agent-daemon once \
+  --task-id <task-uuid> \
+  --agent <name> \
+  --profile <profile-uuid>
+```
+
+In profile mode:
+
+- `provider` and `model` come from the profile, so `--provider` and `--model`
+  are optional.
+- Sandbox policy comes from the profile, so `--sandbox` is rejected.
+- `poll` and `drain` list unrestricted tasks plus tasks whose
+  `allowedProfiles` contains the selected profile.
+- `once` sends the selected `profileId` on claim, so the server enforces the
+  same profile affinity for direct task claims.
+- `leaseTtlSec`, `heartbeatIntervalMs`, and `maxBatchSize` default from the
+  profile unless the corresponding CLI flag is passed.
+- `requiredEnv` entries must exist and be non-empty in the daemon process env.
+- `requiredTools` entries must resolve to executable files before the daemon
+  claims any task.
+
+Profile name lookup is team-scoped. `poll` and `drain` already require `--team`,
+so `--profile github-linear` resolves inside that team. `once` can run without a
+team id, so use a profile UUID for `once`.
+
+`sessionTtlSec` and `workspaceTtlSec` currently feed the daemon's local
+warm-slot retention default. The daemon has one local reuse timer covering both
+persisted Pi session history and reusable workspaces, so it uses the smaller of
+the two profile TTLs unless `--warm-session-ttl-sec` is passed explicitly.
+
+Profile `context` entries are reserved for a follow-up integration. They are
+stored and returned by the API, but this daemon does not yet inject them as
+skills, prompt prefixes, or task context.
+
+### Task routing with profiles
+
+Tasks can restrict compatible daemons through `allowedProfiles`:
+
+```json
+{
+  "allowedProfiles": [{ "profileId": "<profile-uuid>" }],
+  "diaryId": "<diary-uuid>",
+  "input": { "brief": "Use Linear and GitHub to prepare the issue update" },
+  "taskType": "freeform",
+  "teamId": "<team-uuid>"
+}
+```
+
+An empty `allowedProfiles` list means the task is unrestricted. A non-empty list
+means only daemons claiming with one of those profile ids can take the task.
+This is routing and eligibility, not executor provenance. Executor manifests
+and trust-level attestation are tracked separately in
+[Agent Executors](./agent-executors.md).
 
 ## Task execution policy
 

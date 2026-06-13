@@ -88,20 +88,20 @@ Every surface posts the same `CreateTaskReq` body to `POST /tasks`. The
 field set is identical across CLI, MCP, and SDK; only the naming convention
 and the validator origin differ:
 
-| Field                         | REST / SDK                   | MCP `tasks_create` arg          | Go CLI flag                                  |
-| ----------------------------- | ---------------------------- | ------------------------------- | -------------------------------------------- |
-| Task type                     | `taskType` _(required)_      | `task_type` _(required)_        | `--task-type` _(required)_                   |
-| Team                          | `teamId` _(required)_        | `team_id` _(required)_          | `--team-id` _(required)_                     |
-| Diary                         | `diaryId` _(required)_       | `diary_id` _(required)_         | `--diary-id` _(required)_                    |
-| Input                         | `input` _(required)_         | `input` _(required)_            | `--input-file <path \| ->` _(stdin default)_ |
-| References                    | `references[]`               | `references[]`                  | `--reference '<json>'` (repeatable)          |
-| Allowed executors             | `allowedExecutors[]`         | `allowed_executors[]`           | `--allowed-executor '<json>'` (repeatable)   |
-| Correlation ID                | `correlationId`              | `correlation_id`                | `--correlation-id`                           |
-| Max attempts                  | `maxAttempts`                | `max_attempts`                  | `--max-attempts`                             |
-| Expires in (seconds)          | `expiresInSec`               | `expires_in_sec`                | `--expires-in-sec`                           |
-| Required executor trust level | `requiredExecutorTrustLevel` | `required_executor_trust_level` | `--required-executor-trust-level`            |
-| Dispatch timeout              | `dispatchTimeoutSec`         | `dispatch_timeout_sec`          | `--dispatch-timeout-sec`                     |
-| Running timeout               | `runningTimeoutSec`          | `running_timeout_sec`           | `--running-timeout-sec`                      |
+| Field                         | REST / SDK                   | MCP `tasks_create` arg          | Go CLI flag                                               |
+| ----------------------------- | ---------------------------- | ------------------------------- | --------------------------------------------------------- |
+| Task type                     | `taskType` _(required)_      | `task_type` _(required)_        | `--task-type` _(required)_                                |
+| Team                          | `teamId` _(required)_        | `team_id` _(required)_          | `--team-id` _(required)_                                  |
+| Diary                         | `diaryId` _(required)_       | `diary_id` _(required)_         | `--diary-id` _(required)_                                 |
+| Input                         | `input` _(required)_         | `input` _(required)_            | `--input-file <path \| ->` _(stdin default)_              |
+| References                    | `references[]`               | `references[]`                  | `--reference '<json>'` (repeatable)                       |
+| Allowed daemon profiles       | `allowedProfiles[]`          | `allowed_profiles[]`            | `--allowed-profile '{"profileId":"<uuid>"}'` (repeatable) |
+| Correlation ID                | `correlationId`              | `correlation_id`                | `--correlation-id`                                        |
+| Max attempts                  | `maxAttempts`                | `max_attempts`                  | `--max-attempts`                                          |
+| Expires in (seconds)          | `expiresInSec`               | `expires_in_sec`                | `--expires-in-sec`                                        |
+| Required executor trust level | `requiredExecutorTrustLevel` | `required_executor_trust_level` | `--required-executor-trust-level`                         |
+| Dispatch timeout              | `dispatchTimeoutSec`         | `dispatch_timeout_sec`          | `--dispatch-timeout-sec`                                  |
+| Running timeout               | `runningTimeoutSec`          | `running_timeout_sec`           | `--running-timeout-sec`                                   |
 
 `requiredExecutorTrustLevel` enum values:
 `selfDeclared`, `agentSigned`, `releaseVerifiedTool`, `sandboxAttested`.

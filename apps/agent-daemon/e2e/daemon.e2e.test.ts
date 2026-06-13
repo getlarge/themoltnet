@@ -39,7 +39,10 @@ import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { resolveDaemonProfile } from '../src/lib/daemon-profile.js';
+import {
+  resolveDaemonProfile,
+  validateDaemonProfilePrerequisites,
+} from '../src/lib/daemon-profile.js';
 import { createExecutionPlanCache } from '../src/lib/execution-plan-cache.js';
 import { finalizeTask } from '../src/lib/finalize.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
@@ -960,6 +963,7 @@ describe('Agent daemon (e2e)', () => {
     async function createProfile(
       name: string,
       sandbox: DaemonProfileSandbox = {},
+      overrides: Partial<Parameters<Agent['daemonProfiles']['create']>[1]> = {},
     ) {
       return agent.daemonProfiles.create(teamId, {
         name,
@@ -970,6 +974,7 @@ describe('Agent daemon (e2e)', () => {
         heartbeatIntervalMs: 15_000,
         maxBatchSize: 10,
         sandbox,
+        ...overrides,
       });
     }
 
@@ -1114,6 +1119,44 @@ describe('Agent daemon (e2e)', () => {
         });
         await deleteProfile(allowedProfile.id);
         await deleteProfile(otherProfile.id);
+      }
+    });
+
+    it('refuses a remote profile with missing prerequisites before claiming', async () => {
+      const profileName = `daemon-e2e-${randomUUID()}`;
+      const profile = await createProfile(
+        profileName,
+        {},
+        {
+          requiredEnv: ['MOLTNET_E2E_REQUIRED_ENV_DOES_NOT_EXIST'],
+          requiredTools: ['moltnet-e2e-required-tool-does-not-exist'],
+        },
+      );
+      const pinned = await proposePinnedCuratePackTask([
+        { profileId: profile.id },
+      ]);
+
+      try {
+        const resolved = await resolveDaemonProfile({
+          agent,
+          profile: profileName,
+          teamId,
+          cwd: process.cwd(),
+        });
+
+        expect(() =>
+          validateDaemonProfilePrerequisites(resolved, {}, ''),
+        ).toThrow(/prerequisites are not satisfied/);
+
+        const taskAfterValidationFailure = await agent.tasks.get(pinned.id);
+        expect(taskAfterValidationFailure.status).toBe('queued');
+        const attempts = await agent.tasks.listAttempts(pinned.id);
+        expect(attempts).toEqual([]);
+      } finally {
+        await agent.tasks.cancel(pinned.id, {
+          reason: 'cleanup after profile prerequisite assertion',
+        });
+        await deleteProfile(profile.id);
       }
     });
   });

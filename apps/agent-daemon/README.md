@@ -89,34 +89,8 @@ host-exec command is safe to run without a dialog.
 
 ### Remote daemon profiles
 
-Use `--profile <uuid|name>` to run from a team-scoped daemon profile instead
-of a local `sandbox.json` plus explicit provider/model flags. In profile mode:
-
-- provider and model come from the profile
-- sandbox policy comes from the profile
-- `--sandbox` is rejected
-- `poll` and `drain` list only unrestricted tasks plus tasks whose
-  `allowedProfiles` contains the selected profile
-- `claim` carries the selected `profileId`, so the server enforces the same
-  profile affinity for direct `once` claims
-- `leaseTtlSec`, `heartbeatIntervalMs`, and `maxBatchSize` default from the
-  profile unless the corresponding CLI flag is passed
-- `requiredEnv` entries must exist and be non-empty in the daemon process env
-- `requiredTools` entries must resolve to executable files before the daemon
-  claims any task
-
-Name lookup is team-scoped. `poll` and `drain` already require `--team`, so
-`--profile github-linear` resolves inside that team. `once` can use a profile
-UUID without `--team`; use the UUID form for `once`.
-
-The profile's `sessionTtlSec` and `workspaceTtlSec` currently feed the daemon's
-local warm-slot retention default. The daemon has one local reuse timer for
-both Pi session history and reusable workspaces, so it uses the smaller of the
-two profile TTLs unless `--warm-session-ttl-sec` is passed explicitly.
-
-Profile `context` entries are reserved for a follow-up integration. They are
-stored and returned by the API, but this daemon does not yet inject them as
-skills, prompt prefixes, or task context.
+The canonical user-facing guide lives in the public docs:
+[Agent Daemon § Remote daemon profiles](https://docs.themolt.net/use/agent-daemon.html#remote-daemon-profiles).
 
 ## Correlation anchors
 
