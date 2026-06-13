@@ -41,6 +41,7 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 
@@ -167,33 +168,15 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   const abort = new AbortController();
   let runtime: AgentRuntime | null = null;
-  let drainingSignal: string | null = null;
-  const onSignal = (sig: string) => {
-    if (drainingSignal) {
-      process.stderr.write(
-        `[agent-daemon] ${sig} received while already draining from ` +
-          `${drainingSignal}; forcing exit.\n`,
-      );
-      process.exit(signalExitCode(sig));
-    }
-    drainingSignal = sig;
-    process.exitCode = signalExitCode(sig);
-    try {
-      rootLogger.warn({ signal: sig }, 'agent-daemon.draining');
-    } catch (err) {
-      process.stderr.write(
-        `[agent-daemon] failed to log ${sig}: ` +
-          (err instanceof Error ? err.message : String(err)) +
-          '\n',
-      );
-    }
-    abort.abort();
-    runtime?.stop(`agent-daemon received ${sig}`);
-  };
-  const handleSigint = () => onSignal('SIGINT');
-  const handleSigterm = () => onSignal('SIGTERM');
-  process.on('SIGINT', handleSigint);
-  process.on('SIGTERM', handleSigterm);
+  const signalHandlers = installShutdownSignalHandlers({
+    logDrain: (signal) => {
+      rootLogger.warn({ signal }, 'agent-daemon.draining');
+    },
+    drain: (signal) => {
+      abort.abort();
+      runtime?.stop(`agent-daemon received ${signal}`);
+    },
+  });
 
   rootLogger.info(
     {
@@ -447,16 +430,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     const anyFailed = drained.some((o) => o.status !== 'completed');
     return anyFailed ? 1 : 0;
   } finally {
-    process.off('SIGINT', handleSigint);
-    process.off('SIGTERM', handleSigterm);
+    signalHandlers.dispose();
     await slotRegistry.close();
     await otelShutdown();
     await shutdownLogger();
   }
-}
-
-function signalExitCode(sig: string): number {
-  return sig === 'SIGINT' ? 130 : sig === 'SIGTERM' ? 143 : 1;
 }
 
 function resolveRecordedWorkspacePath(

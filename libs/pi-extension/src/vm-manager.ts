@@ -13,6 +13,9 @@ import {
   VmCheckpoint,
 } from '@earendil-works/gondolin';
 
+import { abortable, delay, throwIfAborted } from './abort-utils.js';
+import type { ResumeCommand, SandboxConfig } from './snapshot.js';
+
 /**
  * Memory-backed VFS mount used by the daemon to inject task-context
  * skills (#943 slice 1.5). This is a separate top-level mount because
@@ -34,8 +37,6 @@ import {
  *     investigation and the alternatives we rejected.
  */
 export const GUEST_TASK_SKILLS_MOUNT = '/moltnet-task-skills';
-
-import type { ResumeCommand, SandboxConfig } from './snapshot.js';
 
 export interface VmConfig {
   /** Absolute path to the qcow2 checkpoint. */
@@ -568,69 +569,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     }
     throw err;
   }
-}
-
-function throwIfAborted(signal: AbortSignal | undefined, label: string): void {
-  if (!signal?.aborted) return;
-  throw abortError(label, signal);
-}
-
-function abortError(label: string, signal: AbortSignal): Error {
-  const reason = signal.reason;
-  const suffix =
-    reason instanceof Error
-      ? reason.message
-      : reason === undefined
-        ? 'aborted'
-        : String(reason);
-  const err = new Error(`${label} aborted: ${suffix}`);
-  err.name = 'AbortError';
-  return err;
-}
-
-async function abortable<T>(
-  promise: PromiseLike<T>,
-  signal: AbortSignal | undefined,
-  label: string,
-): Promise<T> {
-  if (!signal) return promise;
-  throwIfAborted(signal, label);
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      const listener = () => reject(abortError(label, signal));
-      signal.addEventListener('abort', listener, { once: true });
-      promise.then(
-        () => signal.removeEventListener('abort', listener),
-        () => signal.removeEventListener('abort', listener),
-      );
-    }),
-  ]);
-}
-
-async function delay(
-  ms: number,
-  signal: AbortSignal | undefined,
-  label: string,
-): Promise<void> {
-  if (!signal) {
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, ms);
-    });
-    return;
-  }
-  throwIfAborted(signal, label);
-  await new Promise<void>((resolve, reject) => {
-    const listener = () => {
-      clearTimeout(timeout);
-      reject(abortError(label, signal));
-    };
-    const timeout = setTimeout(() => {
-      signal.removeEventListener('abort', listener);
-      resolve();
-    }, ms);
-    signal.addEventListener('abort', listener, { once: true });
-  });
 }
 
 /**
