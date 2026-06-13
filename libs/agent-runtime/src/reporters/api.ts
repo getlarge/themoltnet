@@ -120,6 +120,10 @@ export class ApiTaskReporter implements TaskReporter {
     return this.observedCancelReason;
   }
 
+  requestCancel(reason: string): void {
+    this.abortForCancel(reason);
+  }
+
   async open(ctx: { taskId: string; attemptN: number }): Promise<void> {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
@@ -420,22 +424,29 @@ export class ApiTaskReporter implements TaskReporter {
     // the controller — executors that wired the signal into their loop
     // will tear down; the runtime will convert the output to 'cancelled'
     // post-execute regardless.
-    if (response?.cancelled && !this.cancelController.signal.aborted) {
-      this.observedCancelReason = response.cancelReason ?? null;
-      this.cancelController.abort(
-        new Error(
-          `Task cancelled by proposer${
-            this.observedCancelReason ? `: ${this.observedCancelReason}` : ''
-          }`,
-        ),
-      );
-      // Stop the heartbeat timer once cancellation is observed; further
-      // heartbeats add no value and pile up rejected requests if the
-      // executor takes time to honor the signal.
-      if (this.heartbeatTimer) {
-        clearInterval(this.heartbeatTimer);
-        this.heartbeatTimer = null;
-      }
+    if (response?.cancelled) {
+      this.abortForCancel(response.cancelReason ?? null);
+    }
+  }
+
+  private abortForCancel(reason: string | null): void {
+    if (this.cancelController.signal.aborted) {
+      return;
+    }
+    this.observedCancelReason = reason;
+    this.cancelController.abort(
+      new Error(
+        `Task cancelled${
+          this.observedCancelReason ? `: ${this.observedCancelReason}` : ''
+        }`,
+      ),
+    );
+    // Stop the heartbeat timer once cancellation is observed; further
+    // heartbeats add no value and pile up rejected requests if the
+    // executor takes time to honor the signal.
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
     }
   }
 }

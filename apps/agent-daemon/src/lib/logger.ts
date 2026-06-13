@@ -42,12 +42,35 @@ export function createRootLogger(options: LoggerOptions): RootLoggerHandle {
         options: { colorize: true },
       })
     : null;
+  let transportClosed = prettyTransport === null;
+  let shutdownStarted = false;
+
+  prettyTransport?.on('close', () => {
+    transportClosed = true;
+  });
+  prettyTransport?.on('error', (err: unknown) => {
+    transportClosed = true;
+    process.stderr.write(
+      `[pino] transport error: ` +
+        (err instanceof Error ? err.message : String(err)) +
+        '\n',
+    );
+  });
 
   const logger = pino(options, prettyTransport ?? undefined);
 
   const shutdown = async (): Promise<void> => {
-    if (!prettyTransport) return;
-    logger.flush();
+    if (!prettyTransport || shutdownStarted || transportClosed) return;
+    shutdownStarted = true;
+    try {
+      logger.flush();
+    } catch (err) {
+      process.stderr.write(
+        `[pino] logger flush failed: ` +
+          (err instanceof Error ? err.message : String(err)) +
+          '\n',
+      );
+    }
     // ThreadStream.end() is sync but the worker thread continues to
     // drain in the background; the actual termination is signaled via
     // the 'close' event. Awaiting that lets the Worker (and the
@@ -55,7 +78,9 @@ export function createRootLogger(options: LoggerOptions): RootLoggerHandle {
     // returns, so the daemon actually exits instead of hanging.
     try {
       prettyTransport.end();
-      await once(prettyTransport, 'close');
+      if (!transportClosed) {
+        await once(prettyTransport, 'close');
+      }
     } catch (err) {
       process.stderr.write(
         `[pino] transport teardown failed: ` +

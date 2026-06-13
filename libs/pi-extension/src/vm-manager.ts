@@ -13,6 +13,9 @@ import {
   VmCheckpoint,
 } from '@earendil-works/gondolin';
 
+import { abortableResource, delay, throwIfAborted } from './abort-utils.js';
+import type { ResumeCommand, SandboxConfig } from './snapshot.js';
+
 /**
  * Memory-backed VFS mount used by the daemon to inject task-context
  * skills (#943 slice 1.5). This is a separate top-level mount because
@@ -35,8 +38,6 @@ import {
  */
 export const GUEST_TASK_SKILLS_MOUNT = '/moltnet-task-skills';
 
-import type { ResumeCommand, SandboxConfig } from './snapshot.js';
-
 export interface VmConfig {
   /** Absolute path to the qcow2 checkpoint. */
   checkpointPath: string;
@@ -50,6 +51,8 @@ export interface VmConfig {
   extraAllowedHosts?: string[];
   /** Full sandbox config (vfs shadows, env overrides). */
   sandboxConfig?: SandboxConfig;
+  /** Abort resume/setup work, closing any live VM owned by resumeVm. */
+  signal?: AbortSignal;
 }
 
 export interface VmCredentials {
@@ -230,13 +233,19 @@ const BASE_ALLOWED_HOSTS = [
  * surface immediately rather than fall through to cryptic agent
  * errors later.
  */
-async function vmRun(vm: VM, label: string, command: string): Promise<void> {
+async function vmRun(
+  vm: VM,
+  label: string,
+  command: string,
+  signal?: AbortSignal,
+): Promise<void> {
   // Wrap with `set -o pipefail` inside the script (not on the sh command
   // line, which busybox ash on Alpine doesn't accept as a flag). This
   // ensures pipelines like `foo | tail` propagate foo's non-zero exit
   // instead of masking it behind tail's success.
   const wrapped = `set -eu\nset -o pipefail\n${command}`;
-  const r = await vm.exec(['sh', '-c', wrapped]);
+  throwIfAborted(signal, `resume step "${label}"`);
+  const r = await vm.exec(['sh', '-c', wrapped], { signal });
   if (r.exitCode !== 0) {
     const tail = [r.stderr, r.stdout].filter(Boolean).join('\n').slice(-800);
     throw new Error(
@@ -245,11 +254,21 @@ async function vmRun(vm: VM, label: string, command: string): Promise<void> {
   }
 }
 
+function nonErrorMessage(err: unknown): string {
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err) ?? 'unknown error';
+  } catch {
+    return 'unknown error';
+  }
+}
+
 /**
  * Resume a VM from a checkpoint, inject credentials, configure egress +
  * TLS. Returns the managed VM handle.
  */
 export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
+  throwIfAborted(config.signal, 'VM resume');
   const mainRepo = findMainWorktree();
   const agentDir = path.join(mainRepo, '.moltnet', config.agentName);
   const guestWorkspace = path.resolve(config.mountPath);
@@ -323,18 +342,29 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const resources = config.sandboxConfig?.resources;
   const workspaceMode = config.workspaceMode ?? 'shared_mount';
   const cp = VmCheckpoint.load(config.checkpointPath);
-  const vm = await cp.resume({
-    httpHooks,
-    env: vmEnv,
-    ...(resources?.memory && { memory: resources.memory }),
-    ...(resources?.cpus && { cpus: resources.cpus }),
-    vfs: {
-      mounts: {
-        [guestWorkspace]: workspaceProvider,
-        // Memory-backed mount for task-context skill injection (#943).
-        // Per-VM-instance, never persisted, never shared.
-        [GUEST_TASK_SKILLS_MOUNT]: new MemoryProvider(),
+  const vm = await abortableResource({
+    promise: cp.resume({
+      httpHooks,
+      env: vmEnv,
+      ...(resources?.memory && { memory: resources.memory }),
+      ...(resources?.cpus && { cpus: resources.cpus }),
+      vfs: {
+        mounts: {
+          [guestWorkspace]: workspaceProvider,
+          // Memory-backed mount for task-context skill injection (#943).
+          // Per-VM-instance, never persisted, never shared.
+          [GUEST_TASK_SKILLS_MOUNT]: new MemoryProvider(),
+        },
       },
+    }),
+    signal: config.signal,
+    label: 'VM resume',
+    cleanup: (resumedVm) => resumedVm.close(),
+    onCleanupError: (err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      process.stderr.write(
+        `[vm] aborted resume late vm.close() failed: ${message}\n`,
+      );
     },
   });
 
@@ -349,11 +379,16 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     // Fix TLS: append Gondolin MITM CA to system trust store.
     // Unofficial-builds Node ships its own OpenSSL which can't load
     // NODE_EXTRA_CA_CERTS from /etc/gondolin/mitm/ca.crt (error 8000000D).
-    await vm.exec(`sh -c '
+    await vmRun(
+      vm,
+      'TLS certificates',
+      `
     cp /etc/gondolin/mitm/ca.crt /usr/local/share/ca-certificates/gondolin-mitm.crt
     update-ca-certificates 2>/dev/null
     cat /etc/gondolin/mitm/ca.crt >> /etc/ssl/certs/ca-certificates.crt
-  '`);
+  `,
+      config.signal,
+    );
 
     // Fix DNS: ensure working resolvers (VM gateway DNS may not forward
     // correctly) and wait for resolution to actually work before downstream
@@ -373,6 +408,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       vm,
       'DNS resolvers',
       `printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\n' > /etc/resolv.conf`,
+      config.signal,
     );
 
     // Tell git that the workspace mount is trusted regardless of UID. The host
@@ -387,6 +423,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       vm,
       'git safe.directory',
       `git config --system --add safe.directory '*'`,
+      config.signal,
     );
 
     // Consumer-provided per-resume commands. Repo-specific bootstrap
@@ -416,19 +453,19 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       let lastErr: unknown;
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
-          await vmRun(vm, label, run);
+          await vmRun(vm, label, run, config.signal);
           lastErr = undefined;
           break;
         } catch (err) {
           lastErr = err;
           if (attempt === retries) break;
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, (attempt + 1) * backoffMs);
-          });
+          await delay((attempt + 1) * backoffMs, config.signal, label);
         }
       }
       if (lastErr) {
-        throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+        throw lastErr instanceof Error
+          ? lastErr
+          : new Error(nonErrorMessage(lastErr));
       }
     }
 
@@ -436,7 +473,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     //   /home/agent/.moltnet/<agentName>/{moltnet.json,env,gitconfig,ssh/}
     // Mirrors host layout so legreffier skill and CLI work identically.
     const vmSshDir = `${vmAgentDir}/ssh`;
-    await vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`);
+    await vm.exec(`mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`, {
+      signal: config.signal,
+    });
 
     if (creds.piAuthJson !== null) {
       // See MoltNet diary entry 09336c5e-e45a-475f-b9cd-1e0ab635e093.
@@ -445,6 +484,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         creds.piAuthJson,
         {
           mode: 0o600,
+          signal: config.signal,
         },
       );
     }
@@ -462,10 +502,12 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     );
     await vm.fs.writeFile(`${vmAgentDir}/moltnet.json`, vmMoltnetJson, {
       mode: 0o600,
+      signal: config.signal,
     });
 
     await vm.fs.writeFile(`${vmAgentDir}/env`, creds.agentEnvRaw, {
       mode: 0o600,
+      signal: config.signal,
     });
 
     // Inject gitconfig with VM-side signing key path. The workspace is mounted
@@ -481,6 +523,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       );
       await vm.fs.writeFile(`${vmAgentDir}/gitconfig`, vmGitconfig, {
         mode: 0o644,
+        signal: config.signal,
       });
     }
 
@@ -488,11 +531,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     if (creds.sshPrivateKey) {
       await vm.fs.writeFile(`${vmSshDir}/id_ed25519`, creds.sshPrivateKey, {
         mode: 0o600,
+        signal: config.signal,
       });
     }
     if (creds.sshPublicKey) {
       await vm.fs.writeFile(`${vmSshDir}/id_ed25519.pub`, creds.sshPublicKey, {
         mode: 0o644,
+        signal: config.signal,
       });
     }
     if (creds.allowedSigners) {
@@ -501,6 +546,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         creds.allowedSigners,
         {
           mode: 0o644,
+          signal: config.signal,
         },
       );
     }
@@ -512,11 +558,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       await vm.fs.writeFile(
         `${vmAgentDir}/${creds.githubAppPemFilename}`,
         creds.githubAppPem,
-        { mode: 0o600 },
+        { mode: 0o600, signal: config.signal },
       );
     }
 
-    await vm.exec('chown -R agent:agent /home/agent/.pi /home/agent/.moltnet');
+    await vm.exec('chown -R agent:agent /home/agent/.pi /home/agent/.moltnet', {
+      signal: config.signal,
+    });
 
     return {
       vm,

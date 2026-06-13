@@ -44,6 +44,7 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
@@ -200,30 +201,39 @@ export async function runOnce(argv: string[]): Promise<number> {
   // ~5min lease_expired path. Idempotent: cancel-on-already-terminal
   // is a server-side no-op.
   let runtime: AgentRuntime | null = null;
-  const onSignal = (sig: string): void => {
-    rootLogger.warn({ signal: sig, taskId }, 'agent-daemon.draining');
-    runtime?.stop();
-    // Fire-and-forget: cancel reaches the workflow and surfaces back
-    // through the reporter's `cancelSignal`, which pi-extension uses
-    // to abort the LLM session. We don't await — SIGKILL deadline is
-    // 5 min away and the executor needs every second.
-    void ctx.agent.tasks
-      .cancel(taskId, { reason: `runner_${sig.toLowerCase()}` })
-      .catch((err: unknown) => {
-        // Cancel-on-already-terminal returns a 4xx; ignore. Other
-        // errors are visible in the daemon log but shouldn't block
-        // SIGKILL — the server's lease check is the backstop.
-        rootLogger.warn(
-          { err: err instanceof Error ? err.message : String(err), taskId },
-          'agent-daemon.cancel_on_signal_failed',
-        );
-      });
-  };
-  process.on('SIGINT', () => {
-    onSignal('SIGINT');
-  });
-  process.on('SIGTERM', () => {
-    onSignal('SIGTERM');
+  const signalHandlers = installShutdownSignalHandlers({
+    logDrain: (signal) => {
+      rootLogger.warn({ signal, taskId }, 'agent-daemon.draining');
+    },
+    drain: (signal) => {
+      runtime?.stop(`agent-daemon received ${signal}`);
+      // Fire-and-forget: cancel reaches the workflow and surfaces back
+      // through the reporter's `cancelSignal`, which pi-extension uses
+      // to abort the LLM session. We don't await — SIGKILL deadline is
+      // 5 min away and the executor needs every second.
+      void ctx.agent.tasks
+        .cancel(taskId, { reason: `runner_${signal.toLowerCase()}` })
+        .catch((err: unknown) => {
+          // Cancel-on-already-terminal returns a 4xx; ignore. Other
+          // errors are visible in the daemon log but shouldn't block
+          // SIGKILL — the server's lease check is the backstop.
+          try {
+            rootLogger.warn(
+              {
+                err: err instanceof Error ? err.message : String(err),
+                taskId,
+              },
+              'agent-daemon.cancel_on_signal_failed',
+            );
+          } catch (logErr) {
+            process.stderr.write(
+              `[agent-daemon] failed to log cancel error: ` +
+                (logErr instanceof Error ? logErr.message : String(logErr)) +
+                '\n',
+            );
+          }
+        });
+    },
   });
 
   try {
@@ -385,6 +395,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     console.log(JSON.stringify(output, null, 2));
     return output.status === 'completed' ? 0 : 1;
   } finally {
+    signalHandlers.dispose();
     await slotRegistry.close();
     await otelShutdown();
     await shutdownLogger();

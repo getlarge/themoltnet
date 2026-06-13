@@ -46,6 +46,7 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 
@@ -222,13 +223,15 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   const abort = new AbortController();
   let runtime: AgentRuntime | null = null;
-  const onSignal = (sig: string) => {
-    rootLogger.warn({ signal: sig }, 'agent-daemon.draining');
-    abort.abort();
-    runtime?.stop();
-  };
-  process.on('SIGINT', () => onSignal('SIGINT'));
-  process.on('SIGTERM', () => onSignal('SIGTERM'));
+  const signalHandlers = installShutdownSignalHandlers({
+    logDrain: (signal) => {
+      rootLogger.warn({ signal }, 'agent-daemon.draining');
+    },
+    drain: (signal) => {
+      abort.abort();
+      runtime?.stop(`agent-daemon received ${signal}`);
+    },
+  });
 
   rootLogger.info(
     {
@@ -491,6 +494,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     const anyFailed = drained.some((o) => o.status !== 'completed');
     return anyFailed ? 1 : 0;
   } finally {
+    signalHandlers.dispose();
     await slotRegistry.close();
     await otelShutdown();
     await shutdownLogger();

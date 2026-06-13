@@ -319,6 +319,16 @@ export async function executePiTask(
     durationMs: Date.now() - startTime,
     error: { code, message, retryable: false },
   });
+  const makeCancelledOutput = (message: string): TaskOutput => ({
+    taskId: task.id,
+    attemptN: attemptN,
+    status: 'cancelled',
+    output: null,
+    outputCid: null,
+    usage: finalUsage,
+    durationMs: Date.now() - startTime,
+    error: { code: 'task_cancelled', message, retryable: false },
+  });
 
   // Resolve the handler once per task. The factory wins when set so
   // poll-mode callers can bind per-task context (taskId, attemptN);
@@ -415,9 +425,16 @@ export async function executePiTask(
         workspaceMode: workspace.mode,
         extraAllowedHosts: opts.extraAllowedHosts,
         sandboxConfig,
+        signal: reporter.cancelSignal,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      if (reporter.cancelSignal.aborted) {
+        await emitError('vm_resume', message, { cancelled: true });
+        return makeCancelledOutput(
+          reporter.cancelReason ?? 'Task cancelled during VM resume.',
+        );
+      }
       await emitError('vm_resume', message);
       return makeFailedOutput('vm_resume_failed', message);
     }

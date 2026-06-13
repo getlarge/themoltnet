@@ -21,9 +21,15 @@ export class JsonlReporter implements TaskReporter {
   // Local reporters never observe a remote cancel — see StdoutReporter
   // for rationale.
   private readonly cancelController = new AbortController();
-  readonly cancelReason: string | null = null;
+  cancelReason: string | null = null;
   get cancelSignal(): AbortSignal {
     return this.cancelController.signal;
+  }
+
+  requestCancel(reason: string): void {
+    if (this.cancelController.signal.aborted) return;
+    this.cancelReason = reason;
+    this.cancelController.abort(new Error(reason));
   }
 
   constructor(private readonly filePath: string) {}

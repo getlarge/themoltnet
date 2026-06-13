@@ -60,4 +60,11 @@ export interface TaskReporter {
    * cancellation has been observed. Null until `cancelSignal` aborts.
    */
   readonly cancelReason: string | null;
+
+  /**
+   * Request local cancellation of the in-flight task. Runtime shutdown uses
+   * this to trip the same executor-facing signal as proposer cancellation,
+   * without waiting for the next server heartbeat.
+   */
+  requestCancel?(reason: string): void;
 }
