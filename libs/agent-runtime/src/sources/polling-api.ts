@@ -66,7 +66,7 @@ export interface PollingApiTaskSourceOptions {
    */
   taskTypes?: string[];
   /**
-   * Selected daemon profile id. When set, forwarded to the list endpoint
+   * Selected runtime profile id. When set, forwarded to the list endpoint
    * so the server returns unrestricted tasks plus tasks allowing this
    * profile.
    */

@@ -19,7 +19,7 @@ import type {
 } from '@moltnet/api-client';
 import {
   ClaimConditionDefinition,
-  DaemonProfileRef,
+  RuntimeProfileRef,
   ExecutorTrustLevel,
   SuccessCriteria,
   Task,
@@ -78,9 +78,9 @@ export const TaskCreateSchema = Type.Object({
     }),
   ),
   allowed_profiles: Type.Optional(
-    Type.Array(DaemonProfileRef, {
+    Type.Array(RuntimeProfileRef, {
       description:
-        'Restrict claim eligibility to these daemon profile IDs. ' +
+        'Restrict claim eligibility to these runtime profile IDs. ' +
         'Daemons using another profile will not receive or claim the task.',
     }),
   ),

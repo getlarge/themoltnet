@@ -17,22 +17,22 @@ import {
   cancelTask,
   claimTask,
   completeTask,
-  createDaemonProfile,
   createDiary,
   createDiaryCustomPack,
   createDiaryEntry,
   createDiaryGrant,
   createEntryRelation,
   createGroup,
+  createRuntimeProfile,
   createSigningRequest,
   createTask,
   createTeam,
   createTeamInvite,
-  deleteDaemonProfile,
   deleteDiary,
   deleteDiaryEntryById,
   deleteEntryRelation,
   deleteGroup,
+  deleteRuntimeProfile,
   deleteTeam,
   deleteTeamInvite,
   diffContextPacksByCid,
@@ -43,7 +43,6 @@ import {
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
   getCryptoIdentity,
-  getDaemonProfile,
   getDiary,
   getDiaryEntryById,
   getGroup,
@@ -58,6 +57,7 @@ import {
   getPublicFeed,
   getReadiness,
   getRenderedPackById,
+  getRuntimeProfile,
   getSigningRequest,
   getTask,
   getTeam,
@@ -68,7 +68,6 @@ import {
   joinTeam,
   listActiveVouchers,
   listContextPacks,
-  listDaemonProfiles,
   listDiaries,
   listDiaryEntries,
   listDiaryGrants,
@@ -80,6 +79,7 @@ import {
   listGroups,
   listPendingTransfers,
   listProblemTypes,
+  listRuntimeProfiles,
   listSigningRequests,
   listTaskAttempts,
   listTaskMessages,
@@ -105,11 +105,11 @@ import {
   submitSignature,
   taskHeartbeat,
   updateContextPack,
-  updateDaemonProfile,
   updateDiary,
   updateDiaryEntryById,
   updateEntryRelationStatus,
   updateRenderedPack,
+  updateRuntimeProfile,
   updateTaskMetadata,
   updateTeamMemberRole,
   verifyAgentSignature,
@@ -139,9 +139,6 @@ import type {
   CompleteTaskData,
   CompleteTaskError,
   CompleteTaskResponse,
-  CreateDaemonProfileData,
-  CreateDaemonProfileError,
-  CreateDaemonProfileResponse,
   CreateDiaryCustomPackData,
   CreateDiaryCustomPackError,
   CreateDiaryCustomPackResponse,
@@ -160,6 +157,9 @@ import type {
   CreateGroupData,
   CreateGroupError,
   CreateGroupResponse,
+  CreateRuntimeProfileData,
+  CreateRuntimeProfileError,
+  CreateRuntimeProfileResponse,
   CreateSigningRequestData,
   CreateSigningRequestError,
   CreateSigningRequestResponse,
@@ -172,9 +172,6 @@ import type {
   CreateTeamInviteError,
   CreateTeamInviteResponse,
   CreateTeamResponse,
-  DeleteDaemonProfileData,
-  DeleteDaemonProfileError,
-  DeleteDaemonProfileResponse,
   DeleteDiaryData,
   DeleteDiaryEntryByIdData,
   DeleteDiaryEntryByIdError,
@@ -187,6 +184,9 @@ import type {
   DeleteGroupData,
   DeleteGroupError,
   DeleteGroupResponse,
+  DeleteRuntimeProfileData,
+  DeleteRuntimeProfileError,
+  DeleteRuntimeProfileResponse,
   DeleteTeamData,
   DeleteTeamError,
   DeleteTeamInviteData,
@@ -217,9 +217,6 @@ import type {
   GetCryptoIdentityData,
   GetCryptoIdentityError,
   GetCryptoIdentityResponse,
-  GetDaemonProfileData,
-  GetDaemonProfileError,
-  GetDaemonProfileResponse,
   GetDiaryData,
   GetDiaryEntryByIdData,
   GetDiaryEntryByIdError,
@@ -257,6 +254,9 @@ import type {
   GetRenderedPackByIdData,
   GetRenderedPackByIdError,
   GetRenderedPackByIdResponse,
+  GetRuntimeProfileData,
+  GetRuntimeProfileError,
+  GetRuntimeProfileResponse,
   GetSigningRequestData,
   GetSigningRequestError,
   GetSigningRequestResponse,
@@ -287,9 +287,6 @@ import type {
   ListContextPacksData,
   ListContextPacksError,
   ListContextPacksResponse,
-  ListDaemonProfilesData,
-  ListDaemonProfilesError,
-  ListDaemonProfilesResponse,
   ListDiariesData,
   ListDiariesError,
   ListDiariesResponse,
@@ -322,6 +319,9 @@ import type {
   ListPendingTransfersResponse,
   ListProblemTypesData,
   ListProblemTypesResponse,
+  ListRuntimeProfilesData,
+  ListRuntimeProfilesError,
+  ListRuntimeProfilesResponse,
   ListSigningRequestsData,
   ListSigningRequestsError,
   ListSigningRequestsResponse,
@@ -394,9 +394,6 @@ import type {
   UpdateContextPackData,
   UpdateContextPackError,
   UpdateContextPackResponse,
-  UpdateDaemonProfileData,
-  UpdateDaemonProfileError,
-  UpdateDaemonProfileResponse,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateDiaryEntryByIdError,
@@ -409,6 +406,9 @@ import type {
   UpdateRenderedPackData,
   UpdateRenderedPackError,
   UpdateRenderedPackResponse,
+  UpdateRuntimeProfileData,
+  UpdateRuntimeProfileError,
+  UpdateRuntimeProfileResponse,
   UpdateTaskMetadataData,
   UpdateTaskMetadataError,
   UpdateTaskMetadataResponse,
@@ -865,88 +865,6 @@ export const verifyCryptoSignatureMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await verifyCryptoSignature({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Delete one daemon runtime profile.
- */
-export const deleteDaemonProfileMutation = (
-  options?: Partial<Options<DeleteDaemonProfileData>>,
-): UseMutationOptions<
-  DeleteDaemonProfileResponse,
-  DeleteDaemonProfileError,
-  Options<DeleteDaemonProfileData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    DeleteDaemonProfileResponse,
-    DeleteDaemonProfileError,
-    Options<DeleteDaemonProfileData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await deleteDaemonProfile({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const getDaemonProfileQueryKey = (
-  options: Options<GetDaemonProfileData>,
-) => createQueryKey('getDaemonProfile', options);
-
-/**
- * Get one daemon runtime profile.
- */
-export const getDaemonProfileOptions = (
-  options: Options<GetDaemonProfileData>,
-) =>
-  queryOptions<
-    GetDaemonProfileResponse,
-    GetDaemonProfileError,
-    GetDaemonProfileResponse,
-    ReturnType<typeof getDaemonProfileQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getDaemonProfile({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getDaemonProfileQueryKey(options),
-  });
-
-/**
- * Update one daemon runtime profile.
- */
-export const updateDaemonProfileMutation = (
-  options?: Partial<Options<UpdateDaemonProfileData>>,
-): UseMutationOptions<
-  UpdateDaemonProfileResponse,
-  UpdateDaemonProfileError,
-  Options<UpdateDaemonProfileData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    UpdateDaemonProfileResponse,
-    UpdateDaemonProfileError,
-    Options<UpdateDaemonProfileData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await updateDaemonProfile({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -2736,6 +2654,143 @@ export const updateRenderedPackMutation = (
   return mutationOptions;
 };
 
+export const listRuntimeProfilesQueryKey = (
+  options?: Options<ListRuntimeProfilesData>,
+) => createQueryKey('listRuntimeProfiles', options);
+
+/**
+ * List runtime profiles for the active team context.
+ */
+export const listRuntimeProfilesOptions = (
+  options?: Options<ListRuntimeProfilesData>,
+) =>
+  queryOptions<
+    ListRuntimeProfilesResponse,
+    ListRuntimeProfilesError,
+    ListRuntimeProfilesResponse,
+    ReturnType<typeof listRuntimeProfilesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listRuntimeProfiles({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listRuntimeProfilesQueryKey(options),
+  });
+
+/**
+ * Create a runtime profile for the active team context.
+ */
+export const createRuntimeProfileMutation = (
+  options?: Partial<Options<CreateRuntimeProfileData>>,
+): UseMutationOptions<
+  CreateRuntimeProfileResponse,
+  CreateRuntimeProfileError,
+  Options<CreateRuntimeProfileData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateRuntimeProfileResponse,
+    CreateRuntimeProfileError,
+    Options<CreateRuntimeProfileData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createRuntimeProfile({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Delete one runtime profile.
+ */
+export const deleteRuntimeProfileMutation = (
+  options?: Partial<Options<DeleteRuntimeProfileData>>,
+): UseMutationOptions<
+  DeleteRuntimeProfileResponse,
+  DeleteRuntimeProfileError,
+  Options<DeleteRuntimeProfileData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteRuntimeProfileResponse,
+    DeleteRuntimeProfileError,
+    Options<DeleteRuntimeProfileData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteRuntimeProfile({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getRuntimeProfileQueryKey = (
+  options: Options<GetRuntimeProfileData>,
+) => createQueryKey('getRuntimeProfile', options);
+
+/**
+ * Get one runtime profile.
+ */
+export const getRuntimeProfileOptions = (
+  options: Options<GetRuntimeProfileData>,
+) =>
+  queryOptions<
+    GetRuntimeProfileResponse,
+    GetRuntimeProfileError,
+    GetRuntimeProfileResponse,
+    ReturnType<typeof getRuntimeProfileQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getRuntimeProfile({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getRuntimeProfileQueryKey(options),
+  });
+
+/**
+ * Update one runtime profile.
+ */
+export const updateRuntimeProfileMutation = (
+  options?: Partial<Options<UpdateRuntimeProfileData>>,
+): UseMutationOptions<
+  UpdateRuntimeProfileResponse,
+  UpdateRuntimeProfileError,
+  Options<UpdateRuntimeProfileData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateRuntimeProfileResponse,
+    UpdateRuntimeProfileError,
+    Options<UpdateRuntimeProfileData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateRuntimeProfile({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const listTasksQueryKey = (options: Options<ListTasksData>) =>
   createQueryKey('listTasks', options);
 
@@ -3282,61 +3337,6 @@ export const acceptTeamFoundingMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await acceptTeamFounding({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const listDaemonProfilesQueryKey = (
-  options: Options<ListDaemonProfilesData>,
-) => createQueryKey('listDaemonProfiles', options);
-
-/**
- * List daemon runtime profiles for a team.
- */
-export const listDaemonProfilesOptions = (
-  options: Options<ListDaemonProfilesData>,
-) =>
-  queryOptions<
-    ListDaemonProfilesResponse,
-    ListDaemonProfilesError,
-    ListDaemonProfilesResponse,
-    ReturnType<typeof listDaemonProfilesQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listDaemonProfiles({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: listDaemonProfilesQueryKey(options),
-  });
-
-/**
- * Create a daemon runtime profile for a team.
- */
-export const createDaemonProfileMutation = (
-  options?: Partial<Options<CreateDaemonProfileData>>,
-): UseMutationOptions<
-  CreateDaemonProfileResponse,
-  CreateDaemonProfileError,
-  Options<CreateDaemonProfileData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    CreateDaemonProfileResponse,
-    CreateDaemonProfileError,
-    Options<CreateDaemonProfileData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await createDaemonProfile({
         ...options,
         ...fnOptions,
         throwOnError: true,

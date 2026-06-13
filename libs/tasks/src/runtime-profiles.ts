@@ -1,25 +1,25 @@
 import { type Static, Type } from 'typebox';
 
-export const DaemonProfileName = Type.String({
+export const RuntimeProfileName = Type.String({
   minLength: 1,
   maxLength: 100,
   pattern: '^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$',
 });
-export type DaemonProfileName = Static<typeof DaemonProfileName>;
+export type RuntimeProfileName = Static<typeof RuntimeProfileName>;
 
-export const DaemonProfileEnvName = Type.String({
+export const RuntimeProfileEnvName = Type.String({
   minLength: 1,
   maxLength: 128,
   pattern: '^[A-Z_][A-Z0-9_]*$',
 });
-export type DaemonProfileEnvName = Static<typeof DaemonProfileEnvName>;
+export type RuntimeProfileEnvName = Static<typeof RuntimeProfileEnvName>;
 
-export const DaemonProfileToolName = Type.String({
+export const RuntimeProfileToolName = Type.String({
   minLength: 1,
   maxLength: 128,
   pattern: '^[a-zA-Z0-9._/-]+$',
 });
-export type DaemonProfileToolName = Static<typeof DaemonProfileToolName>;
+export type RuntimeProfileToolName = Static<typeof RuntimeProfileToolName>;
 
 const SandboxResumeCommandWhenSchema = Type.Object(
   {
@@ -37,7 +37,7 @@ const SandboxResumeCommandWhenSchema = Type.Object(
   { additionalProperties: false },
 );
 
-export const DaemonProfileSandboxResumeCommand = Type.Union([
+export const RuntimeProfileSandboxResumeCommand = Type.Union([
   Type.String({ minLength: 1, maxLength: 4096 }),
   Type.Object(
     {
@@ -51,11 +51,11 @@ export const DaemonProfileSandboxResumeCommand = Type.Union([
     { additionalProperties: false },
   ),
 ]);
-export type DaemonProfileSandboxResumeCommand = Static<
-  typeof DaemonProfileSandboxResumeCommand
+export type RuntimeProfileSandboxResumeCommand = Static<
+  typeof RuntimeProfileSandboxResumeCommand
 >;
 
-export const DaemonProfileSandbox = Type.Object(
+export const RuntimeProfileSandbox = Type.Object(
   {
     snapshot: Type.Optional(
       Type.Object(
@@ -82,7 +82,7 @@ export const DaemonProfileSandbox = Type.Object(
       ),
     ),
     resumeCommands: Type.Optional(
-      Type.Array(DaemonProfileSandboxResumeCommand, { maxItems: 30 }),
+      Type.Array(RuntimeProfileSandboxResumeCommand, { maxItems: 30 }),
     ),
     vfs: Type.Optional(
       Type.Object(
@@ -100,7 +100,7 @@ export const DaemonProfileSandbox = Type.Object(
       ),
     ),
     env: Type.Optional(
-      Type.Record(DaemonProfileEnvName, Type.String({ maxLength: 4096 })),
+      Type.Record(RuntimeProfileEnvName, Type.String({ maxLength: 4096 })),
     ),
     hostExec: Type.Optional(
       Type.Object(
@@ -126,11 +126,11 @@ export const DaemonProfileSandbox = Type.Object(
       ),
     ),
   },
-  { $id: 'DaemonProfileSandbox', additionalProperties: false },
+  { $id: 'RuntimeProfileSandbox', additionalProperties: false },
 );
-export type DaemonProfileSandbox = Static<typeof DaemonProfileSandbox>;
+export type RuntimeProfileSandbox = Static<typeof RuntimeProfileSandbox>;
 
-export const DaemonProfileContext = Type.Object(
+export const RuntimeProfileContext = Type.Object(
   {
     slug: Type.String({
       minLength: 1,
@@ -145,60 +145,62 @@ export const DaemonProfileContext = Type.Object(
     ]),
     content: Type.String({ minLength: 1, maxLength: 65_536 }),
   },
-  { $id: 'DaemonProfileContext', additionalProperties: false },
+  { $id: 'RuntimeProfileContext', additionalProperties: false },
 );
-export type DaemonProfileContext = Static<typeof DaemonProfileContext>;
+export type RuntimeProfileContext = Static<typeof RuntimeProfileContext>;
 
-export const DaemonProfileRef = Type.Object(
+export const RuntimeProfileRef = Type.Object(
   {
     profileId: Type.String({ format: 'uuid' }),
   },
-  { $id: 'DaemonProfileRef', additionalProperties: false },
+  { $id: 'RuntimeProfileRef', additionalProperties: false },
 );
-export type DaemonProfileRef = Static<typeof DaemonProfileRef>;
+export type RuntimeProfileRef = Static<typeof RuntimeProfileRef>;
 
-export const DaemonProfileLeaseTtlSec = Type.Integer({
+export const RuntimeProfileLeaseTtlSec = Type.Integer({
   minimum: 1,
   maximum: 86_400,
 });
-export type DaemonProfileLeaseTtlSec = Static<typeof DaemonProfileLeaseTtlSec>;
+export type RuntimeProfileLeaseTtlSec = Static<
+  typeof RuntimeProfileLeaseTtlSec
+>;
 
-export const DaemonProfileHeartbeatIntervalMs = Type.Integer({
+export const RuntimeProfileHeartbeatIntervalMs = Type.Integer({
   minimum: 0,
   maximum: 3_600_000,
 });
-export type DaemonProfileHeartbeatIntervalMs = Static<
-  typeof DaemonProfileHeartbeatIntervalMs
+export type RuntimeProfileHeartbeatIntervalMs = Static<
+  typeof RuntimeProfileHeartbeatIntervalMs
 >;
 
-export const DaemonProfileMaxBatchSize = Type.Integer({
+export const RuntimeProfileMaxBatchSize = Type.Integer({
   minimum: 1,
   maximum: 1_000,
 });
-export type DaemonProfileMaxBatchSize = Static<
-  typeof DaemonProfileMaxBatchSize
+export type RuntimeProfileMaxBatchSize = Static<
+  typeof RuntimeProfileMaxBatchSize
 >;
 
-export const DaemonProfile = Type.Object(
+export const RuntimeProfile = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     teamId: Type.String({ format: 'uuid' }),
-    name: DaemonProfileName,
+    name: RuntimeProfileName,
     description: Type.Union([Type.String({ maxLength: 4096 }), Type.Null()]),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
     runtimeKind: Type.Literal('gondolin_pi'),
-    sandbox: DaemonProfileSandbox,
+    sandbox: RuntimeProfileSandbox,
     sessionStorageMode: Type.Literal('local'),
     workspaceStorageMode: Type.Literal('local'),
     sessionTtlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
     workspaceTtlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
-    leaseTtlSec: DaemonProfileLeaseTtlSec,
-    heartbeatIntervalMs: DaemonProfileHeartbeatIntervalMs,
-    maxBatchSize: DaemonProfileMaxBatchSize,
-    requiredEnv: Type.Array(DaemonProfileEnvName, { maxItems: 100 }),
-    requiredTools: Type.Array(DaemonProfileToolName, { maxItems: 100 }),
-    context: Type.Array(DaemonProfileContext, { maxItems: 5 }),
+    leaseTtlSec: RuntimeProfileLeaseTtlSec,
+    heartbeatIntervalMs: RuntimeProfileHeartbeatIntervalMs,
+    maxBatchSize: RuntimeProfileMaxBatchSize,
+    requiredEnv: Type.Array(RuntimeProfileEnvName, { maxItems: 100 }),
+    requiredTools: Type.Array(RuntimeProfileToolName, { maxItems: 100 }),
+    context: Type.Array(RuntimeProfileContext, { maxItems: 5 }),
     revision: Type.Integer({ minimum: 1 }),
     definitionCid: Type.String({ minLength: 1, maxLength: 100 }),
     createdByAgentId: Type.Union([
@@ -212,6 +214,6 @@ export const DaemonProfile = Type.Object(
     createdAt: Type.String({ format: 'date-time' }),
     updatedAt: Type.String({ format: 'date-time' }),
   },
-  { $id: 'DaemonProfile', additionalProperties: false },
+  { $id: 'RuntimeProfile', additionalProperties: false },
 );
-export type DaemonProfile = Static<typeof DaemonProfile>;
+export type RuntimeProfile = Static<typeof RuntimeProfile>;

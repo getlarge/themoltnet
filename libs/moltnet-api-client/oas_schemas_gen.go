@@ -1684,810 +1684,6 @@ func (s *CookieAuth) SetRoles(val []string) {
 	s.Roles = val
 }
 
-type CreateDaemonProfileBadRequest ProblemDetails
-
-func (*CreateDaemonProfileBadRequest) createDaemonProfileRes() {}
-
-// Ref: #/components/schemas/CreateDaemonProfileBody
-type CreateDaemonProfileBody struct {
-	Context              []CreateDaemonProfileBodyContextItem           `json:"context"`
-	Description          OptString                                      `json:"description"`
-	HeartbeatIntervalMs  OptInt                                         `json:"heartbeatIntervalMs"`
-	LeaseTtlSec          OptInt                                         `json:"leaseTtlSec"`
-	MaxBatchSize         OptInt                                         `json:"maxBatchSize"`
-	Model                string                                         `json:"model"`
-	Name                 string                                         `json:"name"`
-	Provider             string                                         `json:"provider"`
-	RequiredEnv          []string                                       `json:"requiredEnv"`
-	RequiredTools        []string                                       `json:"requiredTools"`
-	RuntimeKind          OptCreateDaemonProfileBodyRuntimeKind          `json:"runtimeKind"`
-	Sandbox              CreateDaemonProfileBodySandbox                 `json:"sandbox"`
-	SessionStorageMode   OptCreateDaemonProfileBodySessionStorageMode   `json:"sessionStorageMode"`
-	SessionTtlSec        OptInt                                         `json:"sessionTtlSec"`
-	WorkspaceStorageMode OptCreateDaemonProfileBodyWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      OptInt                                         `json:"workspaceTtlSec"`
-}
-
-// GetContext returns the value of Context.
-func (s *CreateDaemonProfileBody) GetContext() []CreateDaemonProfileBodyContextItem {
-	return s.Context
-}
-
-// GetDescription returns the value of Description.
-func (s *CreateDaemonProfileBody) GetDescription() OptString {
-	return s.Description
-}
-
-// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
-func (s *CreateDaemonProfileBody) GetHeartbeatIntervalMs() OptInt {
-	return s.HeartbeatIntervalMs
-}
-
-// GetLeaseTtlSec returns the value of LeaseTtlSec.
-func (s *CreateDaemonProfileBody) GetLeaseTtlSec() OptInt {
-	return s.LeaseTtlSec
-}
-
-// GetMaxBatchSize returns the value of MaxBatchSize.
-func (s *CreateDaemonProfileBody) GetMaxBatchSize() OptInt {
-	return s.MaxBatchSize
-}
-
-// GetModel returns the value of Model.
-func (s *CreateDaemonProfileBody) GetModel() string {
-	return s.Model
-}
-
-// GetName returns the value of Name.
-func (s *CreateDaemonProfileBody) GetName() string {
-	return s.Name
-}
-
-// GetProvider returns the value of Provider.
-func (s *CreateDaemonProfileBody) GetProvider() string {
-	return s.Provider
-}
-
-// GetRequiredEnv returns the value of RequiredEnv.
-func (s *CreateDaemonProfileBody) GetRequiredEnv() []string {
-	return s.RequiredEnv
-}
-
-// GetRequiredTools returns the value of RequiredTools.
-func (s *CreateDaemonProfileBody) GetRequiredTools() []string {
-	return s.RequiredTools
-}
-
-// GetRuntimeKind returns the value of RuntimeKind.
-func (s *CreateDaemonProfileBody) GetRuntimeKind() OptCreateDaemonProfileBodyRuntimeKind {
-	return s.RuntimeKind
-}
-
-// GetSandbox returns the value of Sandbox.
-func (s *CreateDaemonProfileBody) GetSandbox() CreateDaemonProfileBodySandbox {
-	return s.Sandbox
-}
-
-// GetSessionStorageMode returns the value of SessionStorageMode.
-func (s *CreateDaemonProfileBody) GetSessionStorageMode() OptCreateDaemonProfileBodySessionStorageMode {
-	return s.SessionStorageMode
-}
-
-// GetSessionTtlSec returns the value of SessionTtlSec.
-func (s *CreateDaemonProfileBody) GetSessionTtlSec() OptInt {
-	return s.SessionTtlSec
-}
-
-// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
-func (s *CreateDaemonProfileBody) GetWorkspaceStorageMode() OptCreateDaemonProfileBodyWorkspaceStorageMode {
-	return s.WorkspaceStorageMode
-}
-
-// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
-func (s *CreateDaemonProfileBody) GetWorkspaceTtlSec() OptInt {
-	return s.WorkspaceTtlSec
-}
-
-// SetContext sets the value of Context.
-func (s *CreateDaemonProfileBody) SetContext(val []CreateDaemonProfileBodyContextItem) {
-	s.Context = val
-}
-
-// SetDescription sets the value of Description.
-func (s *CreateDaemonProfileBody) SetDescription(val OptString) {
-	s.Description = val
-}
-
-// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
-func (s *CreateDaemonProfileBody) SetHeartbeatIntervalMs(val OptInt) {
-	s.HeartbeatIntervalMs = val
-}
-
-// SetLeaseTtlSec sets the value of LeaseTtlSec.
-func (s *CreateDaemonProfileBody) SetLeaseTtlSec(val OptInt) {
-	s.LeaseTtlSec = val
-}
-
-// SetMaxBatchSize sets the value of MaxBatchSize.
-func (s *CreateDaemonProfileBody) SetMaxBatchSize(val OptInt) {
-	s.MaxBatchSize = val
-}
-
-// SetModel sets the value of Model.
-func (s *CreateDaemonProfileBody) SetModel(val string) {
-	s.Model = val
-}
-
-// SetName sets the value of Name.
-func (s *CreateDaemonProfileBody) SetName(val string) {
-	s.Name = val
-}
-
-// SetProvider sets the value of Provider.
-func (s *CreateDaemonProfileBody) SetProvider(val string) {
-	s.Provider = val
-}
-
-// SetRequiredEnv sets the value of RequiredEnv.
-func (s *CreateDaemonProfileBody) SetRequiredEnv(val []string) {
-	s.RequiredEnv = val
-}
-
-// SetRequiredTools sets the value of RequiredTools.
-func (s *CreateDaemonProfileBody) SetRequiredTools(val []string) {
-	s.RequiredTools = val
-}
-
-// SetRuntimeKind sets the value of RuntimeKind.
-func (s *CreateDaemonProfileBody) SetRuntimeKind(val OptCreateDaemonProfileBodyRuntimeKind) {
-	s.RuntimeKind = val
-}
-
-// SetSandbox sets the value of Sandbox.
-func (s *CreateDaemonProfileBody) SetSandbox(val CreateDaemonProfileBodySandbox) {
-	s.Sandbox = val
-}
-
-// SetSessionStorageMode sets the value of SessionStorageMode.
-func (s *CreateDaemonProfileBody) SetSessionStorageMode(val OptCreateDaemonProfileBodySessionStorageMode) {
-	s.SessionStorageMode = val
-}
-
-// SetSessionTtlSec sets the value of SessionTtlSec.
-func (s *CreateDaemonProfileBody) SetSessionTtlSec(val OptInt) {
-	s.SessionTtlSec = val
-}
-
-// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
-func (s *CreateDaemonProfileBody) SetWorkspaceStorageMode(val OptCreateDaemonProfileBodyWorkspaceStorageMode) {
-	s.WorkspaceStorageMode = val
-}
-
-// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
-func (s *CreateDaemonProfileBody) SetWorkspaceTtlSec(val OptInt) {
-	s.WorkspaceTtlSec = val
-}
-
-type CreateDaemonProfileBodyContextItem struct {
-	Binding CreateDaemonProfileBodyContextItemBinding `json:"binding"`
-	Content string                                    `json:"content"`
-	Slug    string                                    `json:"slug"`
-}
-
-// GetBinding returns the value of Binding.
-func (s *CreateDaemonProfileBodyContextItem) GetBinding() CreateDaemonProfileBodyContextItemBinding {
-	return s.Binding
-}
-
-// GetContent returns the value of Content.
-func (s *CreateDaemonProfileBodyContextItem) GetContent() string {
-	return s.Content
-}
-
-// GetSlug returns the value of Slug.
-func (s *CreateDaemonProfileBodyContextItem) GetSlug() string {
-	return s.Slug
-}
-
-// SetBinding sets the value of Binding.
-func (s *CreateDaemonProfileBodyContextItem) SetBinding(val CreateDaemonProfileBodyContextItemBinding) {
-	s.Binding = val
-}
-
-// SetContent sets the value of Content.
-func (s *CreateDaemonProfileBodyContextItem) SetContent(val string) {
-	s.Content = val
-}
-
-// SetSlug sets the value of Slug.
-func (s *CreateDaemonProfileBodyContextItem) SetSlug(val string) {
-	s.Slug = val
-}
-
-type CreateDaemonProfileBodyContextItemBinding string
-
-const (
-	CreateDaemonProfileBodyContextItemBindingSkill         CreateDaemonProfileBodyContextItemBinding = "skill"
-	CreateDaemonProfileBodyContextItemBindingContextInline CreateDaemonProfileBodyContextItemBinding = "context_inline"
-	CreateDaemonProfileBodyContextItemBindingPromptPrefix  CreateDaemonProfileBodyContextItemBinding = "prompt_prefix"
-	CreateDaemonProfileBodyContextItemBindingUserInline    CreateDaemonProfileBodyContextItemBinding = "user_inline"
-)
-
-// AllValues returns all CreateDaemonProfileBodyContextItemBinding values.
-func (CreateDaemonProfileBodyContextItemBinding) AllValues() []CreateDaemonProfileBodyContextItemBinding {
-	return []CreateDaemonProfileBodyContextItemBinding{
-		CreateDaemonProfileBodyContextItemBindingSkill,
-		CreateDaemonProfileBodyContextItemBindingContextInline,
-		CreateDaemonProfileBodyContextItemBindingPromptPrefix,
-		CreateDaemonProfileBodyContextItemBindingUserInline,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateDaemonProfileBodyContextItemBinding) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateDaemonProfileBodyContextItemBindingSkill:
-		return []byte(s), nil
-	case CreateDaemonProfileBodyContextItemBindingContextInline:
-		return []byte(s), nil
-	case CreateDaemonProfileBodyContextItemBindingPromptPrefix:
-		return []byte(s), nil
-	case CreateDaemonProfileBodyContextItemBindingUserInline:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateDaemonProfileBodyContextItemBinding) UnmarshalText(data []byte) error {
-	switch CreateDaemonProfileBodyContextItemBinding(data) {
-	case CreateDaemonProfileBodyContextItemBindingSkill:
-		*s = CreateDaemonProfileBodyContextItemBindingSkill
-		return nil
-	case CreateDaemonProfileBodyContextItemBindingContextInline:
-		*s = CreateDaemonProfileBodyContextItemBindingContextInline
-		return nil
-	case CreateDaemonProfileBodyContextItemBindingPromptPrefix:
-		*s = CreateDaemonProfileBodyContextItemBindingPromptPrefix
-		return nil
-	case CreateDaemonProfileBodyContextItemBindingUserInline:
-		*s = CreateDaemonProfileBodyContextItemBindingUserInline
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CreateDaemonProfileBodyRuntimeKind string
-
-const (
-	CreateDaemonProfileBodyRuntimeKindGondolinPi CreateDaemonProfileBodyRuntimeKind = "gondolin_pi"
-)
-
-// AllValues returns all CreateDaemonProfileBodyRuntimeKind values.
-func (CreateDaemonProfileBodyRuntimeKind) AllValues() []CreateDaemonProfileBodyRuntimeKind {
-	return []CreateDaemonProfileBodyRuntimeKind{
-		CreateDaemonProfileBodyRuntimeKindGondolinPi,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateDaemonProfileBodyRuntimeKind) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateDaemonProfileBodyRuntimeKindGondolinPi:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateDaemonProfileBodyRuntimeKind) UnmarshalText(data []byte) error {
-	switch CreateDaemonProfileBodyRuntimeKind(data) {
-	case CreateDaemonProfileBodyRuntimeKindGondolinPi:
-		*s = CreateDaemonProfileBodyRuntimeKindGondolinPi
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CreateDaemonProfileBodySandbox struct {
-	Env            OptCreateDaemonProfileBodySandboxEnv               `json:"env"`
-	HostExec       OptCreateDaemonProfileBodySandboxHostExec          `json:"hostExec"`
-	Resources      OptCreateDaemonProfileBodySandboxResources         `json:"resources"`
-	ResumeCommands []CreateDaemonProfileBodySandboxResumeCommandsItem `json:"resumeCommands"`
-	Snapshot       OptCreateDaemonProfileBodySandboxSnapshot          `json:"snapshot"`
-	Vfs            OptCreateDaemonProfileBodySandboxVfs               `json:"vfs"`
-}
-
-// GetEnv returns the value of Env.
-func (s *CreateDaemonProfileBodySandbox) GetEnv() OptCreateDaemonProfileBodySandboxEnv {
-	return s.Env
-}
-
-// GetHostExec returns the value of HostExec.
-func (s *CreateDaemonProfileBodySandbox) GetHostExec() OptCreateDaemonProfileBodySandboxHostExec {
-	return s.HostExec
-}
-
-// GetResources returns the value of Resources.
-func (s *CreateDaemonProfileBodySandbox) GetResources() OptCreateDaemonProfileBodySandboxResources {
-	return s.Resources
-}
-
-// GetResumeCommands returns the value of ResumeCommands.
-func (s *CreateDaemonProfileBodySandbox) GetResumeCommands() []CreateDaemonProfileBodySandboxResumeCommandsItem {
-	return s.ResumeCommands
-}
-
-// GetSnapshot returns the value of Snapshot.
-func (s *CreateDaemonProfileBodySandbox) GetSnapshot() OptCreateDaemonProfileBodySandboxSnapshot {
-	return s.Snapshot
-}
-
-// GetVfs returns the value of Vfs.
-func (s *CreateDaemonProfileBodySandbox) GetVfs() OptCreateDaemonProfileBodySandboxVfs {
-	return s.Vfs
-}
-
-// SetEnv sets the value of Env.
-func (s *CreateDaemonProfileBodySandbox) SetEnv(val OptCreateDaemonProfileBodySandboxEnv) {
-	s.Env = val
-}
-
-// SetHostExec sets the value of HostExec.
-func (s *CreateDaemonProfileBodySandbox) SetHostExec(val OptCreateDaemonProfileBodySandboxHostExec) {
-	s.HostExec = val
-}
-
-// SetResources sets the value of Resources.
-func (s *CreateDaemonProfileBodySandbox) SetResources(val OptCreateDaemonProfileBodySandboxResources) {
-	s.Resources = val
-}
-
-// SetResumeCommands sets the value of ResumeCommands.
-func (s *CreateDaemonProfileBodySandbox) SetResumeCommands(val []CreateDaemonProfileBodySandboxResumeCommandsItem) {
-	s.ResumeCommands = val
-}
-
-// SetSnapshot sets the value of Snapshot.
-func (s *CreateDaemonProfileBodySandbox) SetSnapshot(val OptCreateDaemonProfileBodySandboxSnapshot) {
-	s.Snapshot = val
-}
-
-// SetVfs sets the value of Vfs.
-func (s *CreateDaemonProfileBodySandbox) SetVfs(val OptCreateDaemonProfileBodySandboxVfs) {
-	s.Vfs = val
-}
-
-type CreateDaemonProfileBodySandboxEnv map[string]string
-
-func (s *CreateDaemonProfileBodySandboxEnv) init() CreateDaemonProfileBodySandboxEnv {
-	m := *s
-	if m == nil {
-		m = map[string]string{}
-		*s = m
-	}
-	return m
-}
-
-type CreateDaemonProfileBodySandboxHostExec struct {
-	AutoApprove OptCreateDaemonProfileBodySandboxHostExecAutoApprove `json:"autoApprove"`
-}
-
-// GetAutoApprove returns the value of AutoApprove.
-func (s *CreateDaemonProfileBodySandboxHostExec) GetAutoApprove() OptCreateDaemonProfileBodySandboxHostExecAutoApprove {
-	return s.AutoApprove
-}
-
-// SetAutoApprove sets the value of AutoApprove.
-func (s *CreateDaemonProfileBodySandboxHostExec) SetAutoApprove(val OptCreateDaemonProfileBodySandboxHostExecAutoApprove) {
-	s.AutoApprove = val
-}
-
-type CreateDaemonProfileBodySandboxHostExecAutoApprove bool
-
-const (
-	CreateDaemonProfileBodySandboxHostExecAutoApproveFalse CreateDaemonProfileBodySandboxHostExecAutoApprove = false
-)
-
-// AllValues returns all CreateDaemonProfileBodySandboxHostExecAutoApprove values.
-func (CreateDaemonProfileBodySandboxHostExecAutoApprove) AllValues() []CreateDaemonProfileBodySandboxHostExecAutoApprove {
-	return []CreateDaemonProfileBodySandboxHostExecAutoApprove{
-		CreateDaemonProfileBodySandboxHostExecAutoApproveFalse,
-	}
-}
-
-type CreateDaemonProfileBodySandboxResources struct {
-	Cpus   OptInt    `json:"cpus"`
-	Memory OptString `json:"memory"`
-}
-
-// GetCpus returns the value of Cpus.
-func (s *CreateDaemonProfileBodySandboxResources) GetCpus() OptInt {
-	return s.Cpus
-}
-
-// GetMemory returns the value of Memory.
-func (s *CreateDaemonProfileBodySandboxResources) GetMemory() OptString {
-	return s.Memory
-}
-
-// SetCpus sets the value of Cpus.
-func (s *CreateDaemonProfileBodySandboxResources) SetCpus(val OptInt) {
-	s.Cpus = val
-}
-
-// SetMemory sets the value of Memory.
-func (s *CreateDaemonProfileBodySandboxResources) SetMemory(val OptString) {
-	s.Memory = val
-}
-
-// CreateDaemonProfileBodySandboxResumeCommandsItem represents sum type.
-type CreateDaemonProfileBodySandboxResumeCommandsItem struct {
-	Type                                              CreateDaemonProfileBodySandboxResumeCommandsItemType // switch on this field
-	String                                            string
-	CreateDaemonProfileBodySandboxResumeCommandsItem1 CreateDaemonProfileBodySandboxResumeCommandsItem1
-}
-
-// CreateDaemonProfileBodySandboxResumeCommandsItemType is oneOf type of CreateDaemonProfileBodySandboxResumeCommandsItem.
-type CreateDaemonProfileBodySandboxResumeCommandsItemType string
-
-// Possible values for CreateDaemonProfileBodySandboxResumeCommandsItemType.
-const (
-	StringCreateDaemonProfileBodySandboxResumeCommandsItem                                            CreateDaemonProfileBodySandboxResumeCommandsItemType = "string"
-	CreateDaemonProfileBodySandboxResumeCommandsItem1CreateDaemonProfileBodySandboxResumeCommandsItem CreateDaemonProfileBodySandboxResumeCommandsItemType = "CreateDaemonProfileBodySandboxResumeCommandsItem1"
-)
-
-// IsString reports whether CreateDaemonProfileBodySandboxResumeCommandsItem is string.
-func (s CreateDaemonProfileBodySandboxResumeCommandsItem) IsString() bool {
-	return s.Type == StringCreateDaemonProfileBodySandboxResumeCommandsItem
-}
-
-// IsCreateDaemonProfileBodySandboxResumeCommandsItem1 reports whether CreateDaemonProfileBodySandboxResumeCommandsItem is CreateDaemonProfileBodySandboxResumeCommandsItem1.
-func (s CreateDaemonProfileBodySandboxResumeCommandsItem) IsCreateDaemonProfileBodySandboxResumeCommandsItem1() bool {
-	return s.Type == CreateDaemonProfileBodySandboxResumeCommandsItem1CreateDaemonProfileBodySandboxResumeCommandsItem
-}
-
-// SetString sets CreateDaemonProfileBodySandboxResumeCommandsItem to string.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem) SetString(v string) {
-	s.Type = StringCreateDaemonProfileBodySandboxResumeCommandsItem
-	s.String = v
-}
-
-// GetString returns string and true boolean if CreateDaemonProfileBodySandboxResumeCommandsItem is string.
-func (s CreateDaemonProfileBodySandboxResumeCommandsItem) GetString() (v string, ok bool) {
-	if !s.IsString() {
-		return v, false
-	}
-	return s.String, true
-}
-
-// NewStringCreateDaemonProfileBodySandboxResumeCommandsItem returns new CreateDaemonProfileBodySandboxResumeCommandsItem from string.
-func NewStringCreateDaemonProfileBodySandboxResumeCommandsItem(v string) CreateDaemonProfileBodySandboxResumeCommandsItem {
-	var s CreateDaemonProfileBodySandboxResumeCommandsItem
-	s.SetString(v)
-	return s
-}
-
-// SetCreateDaemonProfileBodySandboxResumeCommandsItem1 sets CreateDaemonProfileBodySandboxResumeCommandsItem to CreateDaemonProfileBodySandboxResumeCommandsItem1.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem) SetCreateDaemonProfileBodySandboxResumeCommandsItem1(v CreateDaemonProfileBodySandboxResumeCommandsItem1) {
-	s.Type = CreateDaemonProfileBodySandboxResumeCommandsItem1CreateDaemonProfileBodySandboxResumeCommandsItem
-	s.CreateDaemonProfileBodySandboxResumeCommandsItem1 = v
-}
-
-// GetCreateDaemonProfileBodySandboxResumeCommandsItem1 returns CreateDaemonProfileBodySandboxResumeCommandsItem1 and true boolean if CreateDaemonProfileBodySandboxResumeCommandsItem is CreateDaemonProfileBodySandboxResumeCommandsItem1.
-func (s CreateDaemonProfileBodySandboxResumeCommandsItem) GetCreateDaemonProfileBodySandboxResumeCommandsItem1() (v CreateDaemonProfileBodySandboxResumeCommandsItem1, ok bool) {
-	if !s.IsCreateDaemonProfileBodySandboxResumeCommandsItem1() {
-		return v, false
-	}
-	return s.CreateDaemonProfileBodySandboxResumeCommandsItem1, true
-}
-
-// NewCreateDaemonProfileBodySandboxResumeCommandsItem1CreateDaemonProfileBodySandboxResumeCommandsItem returns new CreateDaemonProfileBodySandboxResumeCommandsItem from CreateDaemonProfileBodySandboxResumeCommandsItem1.
-func NewCreateDaemonProfileBodySandboxResumeCommandsItem1CreateDaemonProfileBodySandboxResumeCommandsItem(v CreateDaemonProfileBodySandboxResumeCommandsItem1) CreateDaemonProfileBodySandboxResumeCommandsItem {
-	var s CreateDaemonProfileBodySandboxResumeCommandsItem
-	s.SetCreateDaemonProfileBodySandboxResumeCommandsItem1(v)
-	return s
-}
-
-type CreateDaemonProfileBodySandboxResumeCommandsItem1 struct {
-	Retries        OptInt                                                   `json:"retries"`
-	RetryBackoffMs OptInt                                                   `json:"retryBackoffMs"`
-	Run            string                                                   `json:"run"`
-	When           OptCreateDaemonProfileBodySandboxResumeCommandsItem1When `json:"when"`
-}
-
-// GetRetries returns the value of Retries.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) GetRetries() OptInt {
-	return s.Retries
-}
-
-// GetRetryBackoffMs returns the value of RetryBackoffMs.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
-	return s.RetryBackoffMs
-}
-
-// GetRun returns the value of Run.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) GetRun() string {
-	return s.Run
-}
-
-// GetWhen returns the value of When.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) GetWhen() OptCreateDaemonProfileBodySandboxResumeCommandsItem1When {
-	return s.When
-}
-
-// SetRetries sets the value of Retries.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) SetRetries(val OptInt) {
-	s.Retries = val
-}
-
-// SetRetryBackoffMs sets the value of RetryBackoffMs.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
-	s.RetryBackoffMs = val
-}
-
-// SetRun sets the value of Run.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) SetRun(val string) {
-	s.Run = val
-}
-
-// SetWhen sets the value of When.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1) SetWhen(val OptCreateDaemonProfileBodySandboxResumeCommandsItem1When) {
-	s.When = val
-}
-
-type CreateDaemonProfileBodySandboxResumeCommandsItem1When struct {
-	WorkspaceMode []CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
-}
-
-// GetWorkspaceMode returns the value of WorkspaceMode.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1When) GetWorkspaceMode() []CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return s.WorkspaceMode
-}
-
-// SetWorkspaceMode sets the value of WorkspaceMode.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1When) SetWorkspaceMode(val []CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) {
-	s.WorkspaceMode = val
-}
-
-type CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem string
-
-const (
-	CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
-	CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
-	CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
-)
-
-// AllValues returns all CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem values.
-func (CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return []CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem{
-		CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
-		CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
-		CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		return []byte(s), nil
-	case CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		return []byte(s), nil
-	case CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
-	switch CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
-	case CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		*s = CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
-		return nil
-	case CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		*s = CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
-		return nil
-	case CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		*s = CreateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CreateDaemonProfileBodySandboxSnapshot struct {
-	AllowedHosts  []string  `json:"allowedHosts"`
-	OverlaySize   OptString `json:"overlaySize"`
-	SetupCommands []string  `json:"setupCommands"`
-}
-
-// GetAllowedHosts returns the value of AllowedHosts.
-func (s *CreateDaemonProfileBodySandboxSnapshot) GetAllowedHosts() []string {
-	return s.AllowedHosts
-}
-
-// GetOverlaySize returns the value of OverlaySize.
-func (s *CreateDaemonProfileBodySandboxSnapshot) GetOverlaySize() OptString {
-	return s.OverlaySize
-}
-
-// GetSetupCommands returns the value of SetupCommands.
-func (s *CreateDaemonProfileBodySandboxSnapshot) GetSetupCommands() []string {
-	return s.SetupCommands
-}
-
-// SetAllowedHosts sets the value of AllowedHosts.
-func (s *CreateDaemonProfileBodySandboxSnapshot) SetAllowedHosts(val []string) {
-	s.AllowedHosts = val
-}
-
-// SetOverlaySize sets the value of OverlaySize.
-func (s *CreateDaemonProfileBodySandboxSnapshot) SetOverlaySize(val OptString) {
-	s.OverlaySize = val
-}
-
-// SetSetupCommands sets the value of SetupCommands.
-func (s *CreateDaemonProfileBodySandboxSnapshot) SetSetupCommands(val []string) {
-	s.SetupCommands = val
-}
-
-type CreateDaemonProfileBodySandboxVfs struct {
-	Shadow     []string                                       `json:"shadow"`
-	ShadowMode OptCreateDaemonProfileBodySandboxVfsShadowMode `json:"shadowMode"`
-}
-
-// GetShadow returns the value of Shadow.
-func (s *CreateDaemonProfileBodySandboxVfs) GetShadow() []string {
-	return s.Shadow
-}
-
-// GetShadowMode returns the value of ShadowMode.
-func (s *CreateDaemonProfileBodySandboxVfs) GetShadowMode() OptCreateDaemonProfileBodySandboxVfsShadowMode {
-	return s.ShadowMode
-}
-
-// SetShadow sets the value of Shadow.
-func (s *CreateDaemonProfileBodySandboxVfs) SetShadow(val []string) {
-	s.Shadow = val
-}
-
-// SetShadowMode sets the value of ShadowMode.
-func (s *CreateDaemonProfileBodySandboxVfs) SetShadowMode(val OptCreateDaemonProfileBodySandboxVfsShadowMode) {
-	s.ShadowMode = val
-}
-
-type CreateDaemonProfileBodySandboxVfsShadowMode string
-
-const (
-	CreateDaemonProfileBodySandboxVfsShadowModeDeny  CreateDaemonProfileBodySandboxVfsShadowMode = "deny"
-	CreateDaemonProfileBodySandboxVfsShadowModeTmpfs CreateDaemonProfileBodySandboxVfsShadowMode = "tmpfs"
-)
-
-// AllValues returns all CreateDaemonProfileBodySandboxVfsShadowMode values.
-func (CreateDaemonProfileBodySandboxVfsShadowMode) AllValues() []CreateDaemonProfileBodySandboxVfsShadowMode {
-	return []CreateDaemonProfileBodySandboxVfsShadowMode{
-		CreateDaemonProfileBodySandboxVfsShadowModeDeny,
-		CreateDaemonProfileBodySandboxVfsShadowModeTmpfs,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateDaemonProfileBodySandboxVfsShadowMode) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateDaemonProfileBodySandboxVfsShadowModeDeny:
-		return []byte(s), nil
-	case CreateDaemonProfileBodySandboxVfsShadowModeTmpfs:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateDaemonProfileBodySandboxVfsShadowMode) UnmarshalText(data []byte) error {
-	switch CreateDaemonProfileBodySandboxVfsShadowMode(data) {
-	case CreateDaemonProfileBodySandboxVfsShadowModeDeny:
-		*s = CreateDaemonProfileBodySandboxVfsShadowModeDeny
-		return nil
-	case CreateDaemonProfileBodySandboxVfsShadowModeTmpfs:
-		*s = CreateDaemonProfileBodySandboxVfsShadowModeTmpfs
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CreateDaemonProfileBodySessionStorageMode string
-
-const (
-	CreateDaemonProfileBodySessionStorageModeLocal CreateDaemonProfileBodySessionStorageMode = "local"
-)
-
-// AllValues returns all CreateDaemonProfileBodySessionStorageMode values.
-func (CreateDaemonProfileBodySessionStorageMode) AllValues() []CreateDaemonProfileBodySessionStorageMode {
-	return []CreateDaemonProfileBodySessionStorageMode{
-		CreateDaemonProfileBodySessionStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateDaemonProfileBodySessionStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateDaemonProfileBodySessionStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateDaemonProfileBodySessionStorageMode) UnmarshalText(data []byte) error {
-	switch CreateDaemonProfileBodySessionStorageMode(data) {
-	case CreateDaemonProfileBodySessionStorageModeLocal:
-		*s = CreateDaemonProfileBodySessionStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CreateDaemonProfileBodyWorkspaceStorageMode string
-
-const (
-	CreateDaemonProfileBodyWorkspaceStorageModeLocal CreateDaemonProfileBodyWorkspaceStorageMode = "local"
-)
-
-// AllValues returns all CreateDaemonProfileBodyWorkspaceStorageMode values.
-func (CreateDaemonProfileBodyWorkspaceStorageMode) AllValues() []CreateDaemonProfileBodyWorkspaceStorageMode {
-	return []CreateDaemonProfileBodyWorkspaceStorageMode{
-		CreateDaemonProfileBodyWorkspaceStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateDaemonProfileBodyWorkspaceStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateDaemonProfileBodyWorkspaceStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateDaemonProfileBodyWorkspaceStorageMode) UnmarshalText(data []byte) error {
-	switch CreateDaemonProfileBodyWorkspaceStorageMode(data) {
-	case CreateDaemonProfileBodyWorkspaceStorageModeLocal:
-		*s = CreateDaemonProfileBodyWorkspaceStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CreateDaemonProfileConflict ProblemDetails
-
-func (*CreateDaemonProfileConflict) createDaemonProfileRes() {}
-
-type CreateDaemonProfileForbidden ProblemDetails
-
-func (*CreateDaemonProfileForbidden) createDaemonProfileRes() {}
-
-type CreateDaemonProfileNotFound ProblemDetails
-
-func (*CreateDaemonProfileNotFound) createDaemonProfileRes() {}
-
-type CreateDaemonProfileUnauthorized ProblemDetails
-
-func (*CreateDaemonProfileUnauthorized) createDaemonProfileRes() {}
-
 type CreateDiaryBadRequest ProblemDetails
 
 func (*CreateDiaryBadRequest) createDiaryRes() {}
@@ -3364,6 +2560,810 @@ type CreateGroupUnauthorized ProblemDetails
 
 func (*CreateGroupUnauthorized) createGroupRes() {}
 
+type CreateRuntimeProfileBadRequest ProblemDetails
+
+func (*CreateRuntimeProfileBadRequest) createRuntimeProfileRes() {}
+
+// Ref: #/components/schemas/CreateRuntimeProfileBody
+type CreateRuntimeProfileBody struct {
+	Context              []CreateRuntimeProfileBodyContextItem           `json:"context"`
+	Description          OptString                                       `json:"description"`
+	HeartbeatIntervalMs  OptInt                                          `json:"heartbeatIntervalMs"`
+	LeaseTtlSec          OptInt                                          `json:"leaseTtlSec"`
+	MaxBatchSize         OptInt                                          `json:"maxBatchSize"`
+	Model                string                                          `json:"model"`
+	Name                 string                                          `json:"name"`
+	Provider             string                                          `json:"provider"`
+	RequiredEnv          []string                                        `json:"requiredEnv"`
+	RequiredTools        []string                                        `json:"requiredTools"`
+	RuntimeKind          OptCreateRuntimeProfileBodyRuntimeKind          `json:"runtimeKind"`
+	Sandbox              CreateRuntimeProfileBodySandbox                 `json:"sandbox"`
+	SessionStorageMode   OptCreateRuntimeProfileBodySessionStorageMode   `json:"sessionStorageMode"`
+	SessionTtlSec        OptInt                                          `json:"sessionTtlSec"`
+	WorkspaceStorageMode OptCreateRuntimeProfileBodyWorkspaceStorageMode `json:"workspaceStorageMode"`
+	WorkspaceTtlSec      OptInt                                          `json:"workspaceTtlSec"`
+}
+
+// GetContext returns the value of Context.
+func (s *CreateRuntimeProfileBody) GetContext() []CreateRuntimeProfileBodyContextItem {
+	return s.Context
+}
+
+// GetDescription returns the value of Description.
+func (s *CreateRuntimeProfileBody) GetDescription() OptString {
+	return s.Description
+}
+
+// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
+func (s *CreateRuntimeProfileBody) GetHeartbeatIntervalMs() OptInt {
+	return s.HeartbeatIntervalMs
+}
+
+// GetLeaseTtlSec returns the value of LeaseTtlSec.
+func (s *CreateRuntimeProfileBody) GetLeaseTtlSec() OptInt {
+	return s.LeaseTtlSec
+}
+
+// GetMaxBatchSize returns the value of MaxBatchSize.
+func (s *CreateRuntimeProfileBody) GetMaxBatchSize() OptInt {
+	return s.MaxBatchSize
+}
+
+// GetModel returns the value of Model.
+func (s *CreateRuntimeProfileBody) GetModel() string {
+	return s.Model
+}
+
+// GetName returns the value of Name.
+func (s *CreateRuntimeProfileBody) GetName() string {
+	return s.Name
+}
+
+// GetProvider returns the value of Provider.
+func (s *CreateRuntimeProfileBody) GetProvider() string {
+	return s.Provider
+}
+
+// GetRequiredEnv returns the value of RequiredEnv.
+func (s *CreateRuntimeProfileBody) GetRequiredEnv() []string {
+	return s.RequiredEnv
+}
+
+// GetRequiredTools returns the value of RequiredTools.
+func (s *CreateRuntimeProfileBody) GetRequiredTools() []string {
+	return s.RequiredTools
+}
+
+// GetRuntimeKind returns the value of RuntimeKind.
+func (s *CreateRuntimeProfileBody) GetRuntimeKind() OptCreateRuntimeProfileBodyRuntimeKind {
+	return s.RuntimeKind
+}
+
+// GetSandbox returns the value of Sandbox.
+func (s *CreateRuntimeProfileBody) GetSandbox() CreateRuntimeProfileBodySandbox {
+	return s.Sandbox
+}
+
+// GetSessionStorageMode returns the value of SessionStorageMode.
+func (s *CreateRuntimeProfileBody) GetSessionStorageMode() OptCreateRuntimeProfileBodySessionStorageMode {
+	return s.SessionStorageMode
+}
+
+// GetSessionTtlSec returns the value of SessionTtlSec.
+func (s *CreateRuntimeProfileBody) GetSessionTtlSec() OptInt {
+	return s.SessionTtlSec
+}
+
+// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
+func (s *CreateRuntimeProfileBody) GetWorkspaceStorageMode() OptCreateRuntimeProfileBodyWorkspaceStorageMode {
+	return s.WorkspaceStorageMode
+}
+
+// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
+func (s *CreateRuntimeProfileBody) GetWorkspaceTtlSec() OptInt {
+	return s.WorkspaceTtlSec
+}
+
+// SetContext sets the value of Context.
+func (s *CreateRuntimeProfileBody) SetContext(val []CreateRuntimeProfileBodyContextItem) {
+	s.Context = val
+}
+
+// SetDescription sets the value of Description.
+func (s *CreateRuntimeProfileBody) SetDescription(val OptString) {
+	s.Description = val
+}
+
+// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
+func (s *CreateRuntimeProfileBody) SetHeartbeatIntervalMs(val OptInt) {
+	s.HeartbeatIntervalMs = val
+}
+
+// SetLeaseTtlSec sets the value of LeaseTtlSec.
+func (s *CreateRuntimeProfileBody) SetLeaseTtlSec(val OptInt) {
+	s.LeaseTtlSec = val
+}
+
+// SetMaxBatchSize sets the value of MaxBatchSize.
+func (s *CreateRuntimeProfileBody) SetMaxBatchSize(val OptInt) {
+	s.MaxBatchSize = val
+}
+
+// SetModel sets the value of Model.
+func (s *CreateRuntimeProfileBody) SetModel(val string) {
+	s.Model = val
+}
+
+// SetName sets the value of Name.
+func (s *CreateRuntimeProfileBody) SetName(val string) {
+	s.Name = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *CreateRuntimeProfileBody) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetRequiredEnv sets the value of RequiredEnv.
+func (s *CreateRuntimeProfileBody) SetRequiredEnv(val []string) {
+	s.RequiredEnv = val
+}
+
+// SetRequiredTools sets the value of RequiredTools.
+func (s *CreateRuntimeProfileBody) SetRequiredTools(val []string) {
+	s.RequiredTools = val
+}
+
+// SetRuntimeKind sets the value of RuntimeKind.
+func (s *CreateRuntimeProfileBody) SetRuntimeKind(val OptCreateRuntimeProfileBodyRuntimeKind) {
+	s.RuntimeKind = val
+}
+
+// SetSandbox sets the value of Sandbox.
+func (s *CreateRuntimeProfileBody) SetSandbox(val CreateRuntimeProfileBodySandbox) {
+	s.Sandbox = val
+}
+
+// SetSessionStorageMode sets the value of SessionStorageMode.
+func (s *CreateRuntimeProfileBody) SetSessionStorageMode(val OptCreateRuntimeProfileBodySessionStorageMode) {
+	s.SessionStorageMode = val
+}
+
+// SetSessionTtlSec sets the value of SessionTtlSec.
+func (s *CreateRuntimeProfileBody) SetSessionTtlSec(val OptInt) {
+	s.SessionTtlSec = val
+}
+
+// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
+func (s *CreateRuntimeProfileBody) SetWorkspaceStorageMode(val OptCreateRuntimeProfileBodyWorkspaceStorageMode) {
+	s.WorkspaceStorageMode = val
+}
+
+// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
+func (s *CreateRuntimeProfileBody) SetWorkspaceTtlSec(val OptInt) {
+	s.WorkspaceTtlSec = val
+}
+
+type CreateRuntimeProfileBodyContextItem struct {
+	Binding CreateRuntimeProfileBodyContextItemBinding `json:"binding"`
+	Content string                                     `json:"content"`
+	Slug    string                                     `json:"slug"`
+}
+
+// GetBinding returns the value of Binding.
+func (s *CreateRuntimeProfileBodyContextItem) GetBinding() CreateRuntimeProfileBodyContextItemBinding {
+	return s.Binding
+}
+
+// GetContent returns the value of Content.
+func (s *CreateRuntimeProfileBodyContextItem) GetContent() string {
+	return s.Content
+}
+
+// GetSlug returns the value of Slug.
+func (s *CreateRuntimeProfileBodyContextItem) GetSlug() string {
+	return s.Slug
+}
+
+// SetBinding sets the value of Binding.
+func (s *CreateRuntimeProfileBodyContextItem) SetBinding(val CreateRuntimeProfileBodyContextItemBinding) {
+	s.Binding = val
+}
+
+// SetContent sets the value of Content.
+func (s *CreateRuntimeProfileBodyContextItem) SetContent(val string) {
+	s.Content = val
+}
+
+// SetSlug sets the value of Slug.
+func (s *CreateRuntimeProfileBodyContextItem) SetSlug(val string) {
+	s.Slug = val
+}
+
+type CreateRuntimeProfileBodyContextItemBinding string
+
+const (
+	CreateRuntimeProfileBodyContextItemBindingSkill         CreateRuntimeProfileBodyContextItemBinding = "skill"
+	CreateRuntimeProfileBodyContextItemBindingContextInline CreateRuntimeProfileBodyContextItemBinding = "context_inline"
+	CreateRuntimeProfileBodyContextItemBindingPromptPrefix  CreateRuntimeProfileBodyContextItemBinding = "prompt_prefix"
+	CreateRuntimeProfileBodyContextItemBindingUserInline    CreateRuntimeProfileBodyContextItemBinding = "user_inline"
+)
+
+// AllValues returns all CreateRuntimeProfileBodyContextItemBinding values.
+func (CreateRuntimeProfileBodyContextItemBinding) AllValues() []CreateRuntimeProfileBodyContextItemBinding {
+	return []CreateRuntimeProfileBodyContextItemBinding{
+		CreateRuntimeProfileBodyContextItemBindingSkill,
+		CreateRuntimeProfileBodyContextItemBindingContextInline,
+		CreateRuntimeProfileBodyContextItemBindingPromptPrefix,
+		CreateRuntimeProfileBodyContextItemBindingUserInline,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodyContextItemBinding) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodyContextItemBindingSkill:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyContextItemBindingContextInline:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyContextItemBindingPromptPrefix:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyContextItemBindingUserInline:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodyContextItemBinding) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodyContextItemBinding(data) {
+	case CreateRuntimeProfileBodyContextItemBindingSkill:
+		*s = CreateRuntimeProfileBodyContextItemBindingSkill
+		return nil
+	case CreateRuntimeProfileBodyContextItemBindingContextInline:
+		*s = CreateRuntimeProfileBodyContextItemBindingContextInline
+		return nil
+	case CreateRuntimeProfileBodyContextItemBindingPromptPrefix:
+		*s = CreateRuntimeProfileBodyContextItemBindingPromptPrefix
+		return nil
+	case CreateRuntimeProfileBodyContextItemBindingUserInline:
+		*s = CreateRuntimeProfileBodyContextItemBindingUserInline
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateRuntimeProfileBodyRuntimeKind string
+
+const (
+	CreateRuntimeProfileBodyRuntimeKindGondolinPi CreateRuntimeProfileBodyRuntimeKind = "gondolin_pi"
+)
+
+// AllValues returns all CreateRuntimeProfileBodyRuntimeKind values.
+func (CreateRuntimeProfileBodyRuntimeKind) AllValues() []CreateRuntimeProfileBodyRuntimeKind {
+	return []CreateRuntimeProfileBodyRuntimeKind{
+		CreateRuntimeProfileBodyRuntimeKindGondolinPi,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodyRuntimeKind) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodyRuntimeKindGondolinPi:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodyRuntimeKind) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodyRuntimeKind(data) {
+	case CreateRuntimeProfileBodyRuntimeKindGondolinPi:
+		*s = CreateRuntimeProfileBodyRuntimeKindGondolinPi
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateRuntimeProfileBodySandbox struct {
+	Env            OptCreateRuntimeProfileBodySandboxEnv               `json:"env"`
+	HostExec       OptCreateRuntimeProfileBodySandboxHostExec          `json:"hostExec"`
+	Resources      OptCreateRuntimeProfileBodySandboxResources         `json:"resources"`
+	ResumeCommands []CreateRuntimeProfileBodySandboxResumeCommandsItem `json:"resumeCommands"`
+	Snapshot       OptCreateRuntimeProfileBodySandboxSnapshot          `json:"snapshot"`
+	Vfs            OptCreateRuntimeProfileBodySandboxVfs               `json:"vfs"`
+}
+
+// GetEnv returns the value of Env.
+func (s *CreateRuntimeProfileBodySandbox) GetEnv() OptCreateRuntimeProfileBodySandboxEnv {
+	return s.Env
+}
+
+// GetHostExec returns the value of HostExec.
+func (s *CreateRuntimeProfileBodySandbox) GetHostExec() OptCreateRuntimeProfileBodySandboxHostExec {
+	return s.HostExec
+}
+
+// GetResources returns the value of Resources.
+func (s *CreateRuntimeProfileBodySandbox) GetResources() OptCreateRuntimeProfileBodySandboxResources {
+	return s.Resources
+}
+
+// GetResumeCommands returns the value of ResumeCommands.
+func (s *CreateRuntimeProfileBodySandbox) GetResumeCommands() []CreateRuntimeProfileBodySandboxResumeCommandsItem {
+	return s.ResumeCommands
+}
+
+// GetSnapshot returns the value of Snapshot.
+func (s *CreateRuntimeProfileBodySandbox) GetSnapshot() OptCreateRuntimeProfileBodySandboxSnapshot {
+	return s.Snapshot
+}
+
+// GetVfs returns the value of Vfs.
+func (s *CreateRuntimeProfileBodySandbox) GetVfs() OptCreateRuntimeProfileBodySandboxVfs {
+	return s.Vfs
+}
+
+// SetEnv sets the value of Env.
+func (s *CreateRuntimeProfileBodySandbox) SetEnv(val OptCreateRuntimeProfileBodySandboxEnv) {
+	s.Env = val
+}
+
+// SetHostExec sets the value of HostExec.
+func (s *CreateRuntimeProfileBodySandbox) SetHostExec(val OptCreateRuntimeProfileBodySandboxHostExec) {
+	s.HostExec = val
+}
+
+// SetResources sets the value of Resources.
+func (s *CreateRuntimeProfileBodySandbox) SetResources(val OptCreateRuntimeProfileBodySandboxResources) {
+	s.Resources = val
+}
+
+// SetResumeCommands sets the value of ResumeCommands.
+func (s *CreateRuntimeProfileBodySandbox) SetResumeCommands(val []CreateRuntimeProfileBodySandboxResumeCommandsItem) {
+	s.ResumeCommands = val
+}
+
+// SetSnapshot sets the value of Snapshot.
+func (s *CreateRuntimeProfileBodySandbox) SetSnapshot(val OptCreateRuntimeProfileBodySandboxSnapshot) {
+	s.Snapshot = val
+}
+
+// SetVfs sets the value of Vfs.
+func (s *CreateRuntimeProfileBodySandbox) SetVfs(val OptCreateRuntimeProfileBodySandboxVfs) {
+	s.Vfs = val
+}
+
+type CreateRuntimeProfileBodySandboxEnv map[string]string
+
+func (s *CreateRuntimeProfileBodySandboxEnv) init() CreateRuntimeProfileBodySandboxEnv {
+	m := *s
+	if m == nil {
+		m = map[string]string{}
+		*s = m
+	}
+	return m
+}
+
+type CreateRuntimeProfileBodySandboxHostExec struct {
+	AutoApprove OptCreateRuntimeProfileBodySandboxHostExecAutoApprove `json:"autoApprove"`
+}
+
+// GetAutoApprove returns the value of AutoApprove.
+func (s *CreateRuntimeProfileBodySandboxHostExec) GetAutoApprove() OptCreateRuntimeProfileBodySandboxHostExecAutoApprove {
+	return s.AutoApprove
+}
+
+// SetAutoApprove sets the value of AutoApprove.
+func (s *CreateRuntimeProfileBodySandboxHostExec) SetAutoApprove(val OptCreateRuntimeProfileBodySandboxHostExecAutoApprove) {
+	s.AutoApprove = val
+}
+
+type CreateRuntimeProfileBodySandboxHostExecAutoApprove bool
+
+const (
+	CreateRuntimeProfileBodySandboxHostExecAutoApproveFalse CreateRuntimeProfileBodySandboxHostExecAutoApprove = false
+)
+
+// AllValues returns all CreateRuntimeProfileBodySandboxHostExecAutoApprove values.
+func (CreateRuntimeProfileBodySandboxHostExecAutoApprove) AllValues() []CreateRuntimeProfileBodySandboxHostExecAutoApprove {
+	return []CreateRuntimeProfileBodySandboxHostExecAutoApprove{
+		CreateRuntimeProfileBodySandboxHostExecAutoApproveFalse,
+	}
+}
+
+type CreateRuntimeProfileBodySandboxResources struct {
+	Cpus   OptInt    `json:"cpus"`
+	Memory OptString `json:"memory"`
+}
+
+// GetCpus returns the value of Cpus.
+func (s *CreateRuntimeProfileBodySandboxResources) GetCpus() OptInt {
+	return s.Cpus
+}
+
+// GetMemory returns the value of Memory.
+func (s *CreateRuntimeProfileBodySandboxResources) GetMemory() OptString {
+	return s.Memory
+}
+
+// SetCpus sets the value of Cpus.
+func (s *CreateRuntimeProfileBodySandboxResources) SetCpus(val OptInt) {
+	s.Cpus = val
+}
+
+// SetMemory sets the value of Memory.
+func (s *CreateRuntimeProfileBodySandboxResources) SetMemory(val OptString) {
+	s.Memory = val
+}
+
+// CreateRuntimeProfileBodySandboxResumeCommandsItem represents sum type.
+type CreateRuntimeProfileBodySandboxResumeCommandsItem struct {
+	Type                                               CreateRuntimeProfileBodySandboxResumeCommandsItemType // switch on this field
+	String                                             string
+	CreateRuntimeProfileBodySandboxResumeCommandsItem1 CreateRuntimeProfileBodySandboxResumeCommandsItem1
+}
+
+// CreateRuntimeProfileBodySandboxResumeCommandsItemType is oneOf type of CreateRuntimeProfileBodySandboxResumeCommandsItem.
+type CreateRuntimeProfileBodySandboxResumeCommandsItemType string
+
+// Possible values for CreateRuntimeProfileBodySandboxResumeCommandsItemType.
+const (
+	StringCreateRuntimeProfileBodySandboxResumeCommandsItem                                             CreateRuntimeProfileBodySandboxResumeCommandsItemType = "string"
+	CreateRuntimeProfileBodySandboxResumeCommandsItem1CreateRuntimeProfileBodySandboxResumeCommandsItem CreateRuntimeProfileBodySandboxResumeCommandsItemType = "CreateRuntimeProfileBodySandboxResumeCommandsItem1"
+)
+
+// IsString reports whether CreateRuntimeProfileBodySandboxResumeCommandsItem is string.
+func (s CreateRuntimeProfileBodySandboxResumeCommandsItem) IsString() bool {
+	return s.Type == StringCreateRuntimeProfileBodySandboxResumeCommandsItem
+}
+
+// IsCreateRuntimeProfileBodySandboxResumeCommandsItem1 reports whether CreateRuntimeProfileBodySandboxResumeCommandsItem is CreateRuntimeProfileBodySandboxResumeCommandsItem1.
+func (s CreateRuntimeProfileBodySandboxResumeCommandsItem) IsCreateRuntimeProfileBodySandboxResumeCommandsItem1() bool {
+	return s.Type == CreateRuntimeProfileBodySandboxResumeCommandsItem1CreateRuntimeProfileBodySandboxResumeCommandsItem
+}
+
+// SetString sets CreateRuntimeProfileBodySandboxResumeCommandsItem to string.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem) SetString(v string) {
+	s.Type = StringCreateRuntimeProfileBodySandboxResumeCommandsItem
+	s.String = v
+}
+
+// GetString returns string and true boolean if CreateRuntimeProfileBodySandboxResumeCommandsItem is string.
+func (s CreateRuntimeProfileBodySandboxResumeCommandsItem) GetString() (v string, ok bool) {
+	if !s.IsString() {
+		return v, false
+	}
+	return s.String, true
+}
+
+// NewStringCreateRuntimeProfileBodySandboxResumeCommandsItem returns new CreateRuntimeProfileBodySandboxResumeCommandsItem from string.
+func NewStringCreateRuntimeProfileBodySandboxResumeCommandsItem(v string) CreateRuntimeProfileBodySandboxResumeCommandsItem {
+	var s CreateRuntimeProfileBodySandboxResumeCommandsItem
+	s.SetString(v)
+	return s
+}
+
+// SetCreateRuntimeProfileBodySandboxResumeCommandsItem1 sets CreateRuntimeProfileBodySandboxResumeCommandsItem to CreateRuntimeProfileBodySandboxResumeCommandsItem1.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem) SetCreateRuntimeProfileBodySandboxResumeCommandsItem1(v CreateRuntimeProfileBodySandboxResumeCommandsItem1) {
+	s.Type = CreateRuntimeProfileBodySandboxResumeCommandsItem1CreateRuntimeProfileBodySandboxResumeCommandsItem
+	s.CreateRuntimeProfileBodySandboxResumeCommandsItem1 = v
+}
+
+// GetCreateRuntimeProfileBodySandboxResumeCommandsItem1 returns CreateRuntimeProfileBodySandboxResumeCommandsItem1 and true boolean if CreateRuntimeProfileBodySandboxResumeCommandsItem is CreateRuntimeProfileBodySandboxResumeCommandsItem1.
+func (s CreateRuntimeProfileBodySandboxResumeCommandsItem) GetCreateRuntimeProfileBodySandboxResumeCommandsItem1() (v CreateRuntimeProfileBodySandboxResumeCommandsItem1, ok bool) {
+	if !s.IsCreateRuntimeProfileBodySandboxResumeCommandsItem1() {
+		return v, false
+	}
+	return s.CreateRuntimeProfileBodySandboxResumeCommandsItem1, true
+}
+
+// NewCreateRuntimeProfileBodySandboxResumeCommandsItem1CreateRuntimeProfileBodySandboxResumeCommandsItem returns new CreateRuntimeProfileBodySandboxResumeCommandsItem from CreateRuntimeProfileBodySandboxResumeCommandsItem1.
+func NewCreateRuntimeProfileBodySandboxResumeCommandsItem1CreateRuntimeProfileBodySandboxResumeCommandsItem(v CreateRuntimeProfileBodySandboxResumeCommandsItem1) CreateRuntimeProfileBodySandboxResumeCommandsItem {
+	var s CreateRuntimeProfileBodySandboxResumeCommandsItem
+	s.SetCreateRuntimeProfileBodySandboxResumeCommandsItem1(v)
+	return s
+}
+
+type CreateRuntimeProfileBodySandboxResumeCommandsItem1 struct {
+	Retries        OptInt                                                    `json:"retries"`
+	RetryBackoffMs OptInt                                                    `json:"retryBackoffMs"`
+	Run            string                                                    `json:"run"`
+	When           OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When `json:"when"`
+}
+
+// GetRetries returns the value of Retries.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) GetRetries() OptInt {
+	return s.Retries
+}
+
+// GetRetryBackoffMs returns the value of RetryBackoffMs.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
+	return s.RetryBackoffMs
+}
+
+// GetRun returns the value of Run.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) GetRun() string {
+	return s.Run
+}
+
+// GetWhen returns the value of When.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) GetWhen() OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When {
+	return s.When
+}
+
+// SetRetries sets the value of Retries.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) SetRetries(val OptInt) {
+	s.Retries = val
+}
+
+// SetRetryBackoffMs sets the value of RetryBackoffMs.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
+	s.RetryBackoffMs = val
+}
+
+// SetRun sets the value of Run.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) SetRun(val string) {
+	s.Run = val
+}
+
+// SetWhen sets the value of When.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) SetWhen(val OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) {
+	s.When = val
+}
+
+type CreateRuntimeProfileBodySandboxResumeCommandsItem1When struct {
+	WorkspaceMode []CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
+}
+
+// GetWorkspaceMode returns the value of WorkspaceMode.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1When) GetWorkspaceMode() []CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
+	return s.WorkspaceMode
+}
+
+// SetWorkspaceMode sets the value of WorkspaceMode.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1When) SetWorkspaceMode(val []CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) {
+	s.WorkspaceMode = val
+}
+
+type CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem string
+
+const (
+	CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
+	CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
+	CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
+)
+
+// AllValues returns all CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem values.
+func (CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
+	return []CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem{
+		CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
+		CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
+		CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
+	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		*s = CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
+		return nil
+	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		*s = CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
+		return nil
+	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		*s = CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateRuntimeProfileBodySandboxSnapshot struct {
+	AllowedHosts  []string  `json:"allowedHosts"`
+	OverlaySize   OptString `json:"overlaySize"`
+	SetupCommands []string  `json:"setupCommands"`
+}
+
+// GetAllowedHosts returns the value of AllowedHosts.
+func (s *CreateRuntimeProfileBodySandboxSnapshot) GetAllowedHosts() []string {
+	return s.AllowedHosts
+}
+
+// GetOverlaySize returns the value of OverlaySize.
+func (s *CreateRuntimeProfileBodySandboxSnapshot) GetOverlaySize() OptString {
+	return s.OverlaySize
+}
+
+// GetSetupCommands returns the value of SetupCommands.
+func (s *CreateRuntimeProfileBodySandboxSnapshot) GetSetupCommands() []string {
+	return s.SetupCommands
+}
+
+// SetAllowedHosts sets the value of AllowedHosts.
+func (s *CreateRuntimeProfileBodySandboxSnapshot) SetAllowedHosts(val []string) {
+	s.AllowedHosts = val
+}
+
+// SetOverlaySize sets the value of OverlaySize.
+func (s *CreateRuntimeProfileBodySandboxSnapshot) SetOverlaySize(val OptString) {
+	s.OverlaySize = val
+}
+
+// SetSetupCommands sets the value of SetupCommands.
+func (s *CreateRuntimeProfileBodySandboxSnapshot) SetSetupCommands(val []string) {
+	s.SetupCommands = val
+}
+
+type CreateRuntimeProfileBodySandboxVfs struct {
+	Shadow     []string                                        `json:"shadow"`
+	ShadowMode OptCreateRuntimeProfileBodySandboxVfsShadowMode `json:"shadowMode"`
+}
+
+// GetShadow returns the value of Shadow.
+func (s *CreateRuntimeProfileBodySandboxVfs) GetShadow() []string {
+	return s.Shadow
+}
+
+// GetShadowMode returns the value of ShadowMode.
+func (s *CreateRuntimeProfileBodySandboxVfs) GetShadowMode() OptCreateRuntimeProfileBodySandboxVfsShadowMode {
+	return s.ShadowMode
+}
+
+// SetShadow sets the value of Shadow.
+func (s *CreateRuntimeProfileBodySandboxVfs) SetShadow(val []string) {
+	s.Shadow = val
+}
+
+// SetShadowMode sets the value of ShadowMode.
+func (s *CreateRuntimeProfileBodySandboxVfs) SetShadowMode(val OptCreateRuntimeProfileBodySandboxVfsShadowMode) {
+	s.ShadowMode = val
+}
+
+type CreateRuntimeProfileBodySandboxVfsShadowMode string
+
+const (
+	CreateRuntimeProfileBodySandboxVfsShadowModeDeny  CreateRuntimeProfileBodySandboxVfsShadowMode = "deny"
+	CreateRuntimeProfileBodySandboxVfsShadowModeTmpfs CreateRuntimeProfileBodySandboxVfsShadowMode = "tmpfs"
+)
+
+// AllValues returns all CreateRuntimeProfileBodySandboxVfsShadowMode values.
+func (CreateRuntimeProfileBodySandboxVfsShadowMode) AllValues() []CreateRuntimeProfileBodySandboxVfsShadowMode {
+	return []CreateRuntimeProfileBodySandboxVfsShadowMode{
+		CreateRuntimeProfileBodySandboxVfsShadowModeDeny,
+		CreateRuntimeProfileBodySandboxVfsShadowModeTmpfs,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodySandboxVfsShadowMode) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodySandboxVfsShadowModeDeny:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodySandboxVfsShadowModeTmpfs:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodySandboxVfsShadowMode(data) {
+	case CreateRuntimeProfileBodySandboxVfsShadowModeDeny:
+		*s = CreateRuntimeProfileBodySandboxVfsShadowModeDeny
+		return nil
+	case CreateRuntimeProfileBodySandboxVfsShadowModeTmpfs:
+		*s = CreateRuntimeProfileBodySandboxVfsShadowModeTmpfs
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateRuntimeProfileBodySessionStorageMode string
+
+const (
+	CreateRuntimeProfileBodySessionStorageModeLocal CreateRuntimeProfileBodySessionStorageMode = "local"
+)
+
+// AllValues returns all CreateRuntimeProfileBodySessionStorageMode values.
+func (CreateRuntimeProfileBodySessionStorageMode) AllValues() []CreateRuntimeProfileBodySessionStorageMode {
+	return []CreateRuntimeProfileBodySessionStorageMode{
+		CreateRuntimeProfileBodySessionStorageModeLocal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodySessionStorageMode) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodySessionStorageModeLocal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodySessionStorageMode) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodySessionStorageMode(data) {
+	case CreateRuntimeProfileBodySessionStorageModeLocal:
+		*s = CreateRuntimeProfileBodySessionStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateRuntimeProfileBodyWorkspaceStorageMode string
+
+const (
+	CreateRuntimeProfileBodyWorkspaceStorageModeLocal CreateRuntimeProfileBodyWorkspaceStorageMode = "local"
+)
+
+// AllValues returns all CreateRuntimeProfileBodyWorkspaceStorageMode values.
+func (CreateRuntimeProfileBodyWorkspaceStorageMode) AllValues() []CreateRuntimeProfileBodyWorkspaceStorageMode {
+	return []CreateRuntimeProfileBodyWorkspaceStorageMode{
+		CreateRuntimeProfileBodyWorkspaceStorageModeLocal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodyWorkspaceStorageMode) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodyWorkspaceStorageModeLocal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodyWorkspaceStorageMode(data) {
+	case CreateRuntimeProfileBodyWorkspaceStorageModeLocal:
+		*s = CreateRuntimeProfileBodyWorkspaceStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateRuntimeProfileConflict ProblemDetails
+
+func (*CreateRuntimeProfileConflict) createRuntimeProfileRes() {}
+
+type CreateRuntimeProfileForbidden ProblemDetails
+
+func (*CreateRuntimeProfileForbidden) createRuntimeProfileRes() {}
+
+type CreateRuntimeProfileNotFound ProblemDetails
+
+func (*CreateRuntimeProfileNotFound) createRuntimeProfileRes() {}
+
+type CreateRuntimeProfileUnauthorized ProblemDetails
+
+func (*CreateRuntimeProfileUnauthorized) createRuntimeProfileRes() {}
+
 type CreateSigningRequestBadRequest ProblemDetails
 
 func (*CreateSigningRequestBadRequest) createSigningRequestRes() {}
@@ -3395,7 +3395,7 @@ type CreateTaskForbidden ProblemDetails
 func (*CreateTaskForbidden) createTaskRes() {}
 
 type CreateTaskReq struct {
-	AllowedProfiles            []DaemonProfileRef    `json:"allowedProfiles"`
+	AllowedProfiles            []RuntimeProfileRef   `json:"allowedProfiles"`
 	ClaimCondition             OptClaimCondition     `json:"claimCondition"`
 	CorrelationId              OptUUID               `json:"correlationId"`
 	DiaryId                    uuid.UUID             `json:"diaryId"`
@@ -3413,7 +3413,7 @@ type CreateTaskReq struct {
 }
 
 // GetAllowedProfiles returns the value of AllowedProfiles.
-func (s *CreateTaskReq) GetAllowedProfiles() []DaemonProfileRef {
+func (s *CreateTaskReq) GetAllowedProfiles() []RuntimeProfileRef {
 	return s.AllowedProfiles
 }
 
@@ -3488,7 +3488,7 @@ func (s *CreateTaskReq) GetTitle() OptString {
 }
 
 // SetAllowedProfiles sets the value of AllowedProfiles.
-func (s *CreateTaskReq) SetAllowedProfiles(val []DaemonProfileRef) {
+func (s *CreateTaskReq) SetAllowedProfiles(val []RuntimeProfileRef) {
 	s.AllowedProfiles = val
 }
 
@@ -4327,1786 +4327,6 @@ func (s *CustomPackResultParams) init() CustomPackResultParams {
 	return m
 }
 
-// Ref: #/components/schemas/DaemonProfile
-type DaemonProfile struct {
-	Context              []DaemonProfileContextItem        `json:"context"`
-	CreatedAt            time.Time                         `json:"createdAt"`
-	CreatedByAgentId     NilUUID                           `json:"createdByAgentId"`
-	CreatedByHumanId     NilUUID                           `json:"createdByHumanId"`
-	DefinitionCid        string                            `json:"definitionCid"`
-	Description          NilString                         `json:"description"`
-	HeartbeatIntervalMs  int                               `json:"heartbeatIntervalMs"`
-	ID                   uuid.UUID                         `json:"id"`
-	LeaseTtlSec          int                               `json:"leaseTtlSec"`
-	MaxBatchSize         int                               `json:"maxBatchSize"`
-	Model                string                            `json:"model"`
-	Name                 string                            `json:"name"`
-	Provider             string                            `json:"provider"`
-	RequiredEnv          []string                          `json:"requiredEnv"`
-	RequiredTools        []string                          `json:"requiredTools"`
-	Revision             int                               `json:"revision"`
-	RuntimeKind          DaemonProfileRuntimeKind          `json:"runtimeKind"`
-	Sandbox              DaemonProfileSandbox              `json:"sandbox"`
-	SessionStorageMode   DaemonProfileSessionStorageMode   `json:"sessionStorageMode"`
-	SessionTtlSec        int                               `json:"sessionTtlSec"`
-	TeamId               uuid.UUID                         `json:"teamId"`
-	UpdatedAt            time.Time                         `json:"updatedAt"`
-	WorkspaceStorageMode DaemonProfileWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      int                               `json:"workspaceTtlSec"`
-}
-
-// GetContext returns the value of Context.
-func (s *DaemonProfile) GetContext() []DaemonProfileContextItem {
-	return s.Context
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *DaemonProfile) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetCreatedByAgentId returns the value of CreatedByAgentId.
-func (s *DaemonProfile) GetCreatedByAgentId() NilUUID {
-	return s.CreatedByAgentId
-}
-
-// GetCreatedByHumanId returns the value of CreatedByHumanId.
-func (s *DaemonProfile) GetCreatedByHumanId() NilUUID {
-	return s.CreatedByHumanId
-}
-
-// GetDefinitionCid returns the value of DefinitionCid.
-func (s *DaemonProfile) GetDefinitionCid() string {
-	return s.DefinitionCid
-}
-
-// GetDescription returns the value of Description.
-func (s *DaemonProfile) GetDescription() NilString {
-	return s.Description
-}
-
-// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
-func (s *DaemonProfile) GetHeartbeatIntervalMs() int {
-	return s.HeartbeatIntervalMs
-}
-
-// GetID returns the value of ID.
-func (s *DaemonProfile) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetLeaseTtlSec returns the value of LeaseTtlSec.
-func (s *DaemonProfile) GetLeaseTtlSec() int {
-	return s.LeaseTtlSec
-}
-
-// GetMaxBatchSize returns the value of MaxBatchSize.
-func (s *DaemonProfile) GetMaxBatchSize() int {
-	return s.MaxBatchSize
-}
-
-// GetModel returns the value of Model.
-func (s *DaemonProfile) GetModel() string {
-	return s.Model
-}
-
-// GetName returns the value of Name.
-func (s *DaemonProfile) GetName() string {
-	return s.Name
-}
-
-// GetProvider returns the value of Provider.
-func (s *DaemonProfile) GetProvider() string {
-	return s.Provider
-}
-
-// GetRequiredEnv returns the value of RequiredEnv.
-func (s *DaemonProfile) GetRequiredEnv() []string {
-	return s.RequiredEnv
-}
-
-// GetRequiredTools returns the value of RequiredTools.
-func (s *DaemonProfile) GetRequiredTools() []string {
-	return s.RequiredTools
-}
-
-// GetRevision returns the value of Revision.
-func (s *DaemonProfile) GetRevision() int {
-	return s.Revision
-}
-
-// GetRuntimeKind returns the value of RuntimeKind.
-func (s *DaemonProfile) GetRuntimeKind() DaemonProfileRuntimeKind {
-	return s.RuntimeKind
-}
-
-// GetSandbox returns the value of Sandbox.
-func (s *DaemonProfile) GetSandbox() DaemonProfileSandbox {
-	return s.Sandbox
-}
-
-// GetSessionStorageMode returns the value of SessionStorageMode.
-func (s *DaemonProfile) GetSessionStorageMode() DaemonProfileSessionStorageMode {
-	return s.SessionStorageMode
-}
-
-// GetSessionTtlSec returns the value of SessionTtlSec.
-func (s *DaemonProfile) GetSessionTtlSec() int {
-	return s.SessionTtlSec
-}
-
-// GetTeamId returns the value of TeamId.
-func (s *DaemonProfile) GetTeamId() uuid.UUID {
-	return s.TeamId
-}
-
-// GetUpdatedAt returns the value of UpdatedAt.
-func (s *DaemonProfile) GetUpdatedAt() time.Time {
-	return s.UpdatedAt
-}
-
-// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
-func (s *DaemonProfile) GetWorkspaceStorageMode() DaemonProfileWorkspaceStorageMode {
-	return s.WorkspaceStorageMode
-}
-
-// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
-func (s *DaemonProfile) GetWorkspaceTtlSec() int {
-	return s.WorkspaceTtlSec
-}
-
-// SetContext sets the value of Context.
-func (s *DaemonProfile) SetContext(val []DaemonProfileContextItem) {
-	s.Context = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *DaemonProfile) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetCreatedByAgentId sets the value of CreatedByAgentId.
-func (s *DaemonProfile) SetCreatedByAgentId(val NilUUID) {
-	s.CreatedByAgentId = val
-}
-
-// SetCreatedByHumanId sets the value of CreatedByHumanId.
-func (s *DaemonProfile) SetCreatedByHumanId(val NilUUID) {
-	s.CreatedByHumanId = val
-}
-
-// SetDefinitionCid sets the value of DefinitionCid.
-func (s *DaemonProfile) SetDefinitionCid(val string) {
-	s.DefinitionCid = val
-}
-
-// SetDescription sets the value of Description.
-func (s *DaemonProfile) SetDescription(val NilString) {
-	s.Description = val
-}
-
-// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
-func (s *DaemonProfile) SetHeartbeatIntervalMs(val int) {
-	s.HeartbeatIntervalMs = val
-}
-
-// SetID sets the value of ID.
-func (s *DaemonProfile) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetLeaseTtlSec sets the value of LeaseTtlSec.
-func (s *DaemonProfile) SetLeaseTtlSec(val int) {
-	s.LeaseTtlSec = val
-}
-
-// SetMaxBatchSize sets the value of MaxBatchSize.
-func (s *DaemonProfile) SetMaxBatchSize(val int) {
-	s.MaxBatchSize = val
-}
-
-// SetModel sets the value of Model.
-func (s *DaemonProfile) SetModel(val string) {
-	s.Model = val
-}
-
-// SetName sets the value of Name.
-func (s *DaemonProfile) SetName(val string) {
-	s.Name = val
-}
-
-// SetProvider sets the value of Provider.
-func (s *DaemonProfile) SetProvider(val string) {
-	s.Provider = val
-}
-
-// SetRequiredEnv sets the value of RequiredEnv.
-func (s *DaemonProfile) SetRequiredEnv(val []string) {
-	s.RequiredEnv = val
-}
-
-// SetRequiredTools sets the value of RequiredTools.
-func (s *DaemonProfile) SetRequiredTools(val []string) {
-	s.RequiredTools = val
-}
-
-// SetRevision sets the value of Revision.
-func (s *DaemonProfile) SetRevision(val int) {
-	s.Revision = val
-}
-
-// SetRuntimeKind sets the value of RuntimeKind.
-func (s *DaemonProfile) SetRuntimeKind(val DaemonProfileRuntimeKind) {
-	s.RuntimeKind = val
-}
-
-// SetSandbox sets the value of Sandbox.
-func (s *DaemonProfile) SetSandbox(val DaemonProfileSandbox) {
-	s.Sandbox = val
-}
-
-// SetSessionStorageMode sets the value of SessionStorageMode.
-func (s *DaemonProfile) SetSessionStorageMode(val DaemonProfileSessionStorageMode) {
-	s.SessionStorageMode = val
-}
-
-// SetSessionTtlSec sets the value of SessionTtlSec.
-func (s *DaemonProfile) SetSessionTtlSec(val int) {
-	s.SessionTtlSec = val
-}
-
-// SetTeamId sets the value of TeamId.
-func (s *DaemonProfile) SetTeamId(val uuid.UUID) {
-	s.TeamId = val
-}
-
-// SetUpdatedAt sets the value of UpdatedAt.
-func (s *DaemonProfile) SetUpdatedAt(val time.Time) {
-	s.UpdatedAt = val
-}
-
-// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
-func (s *DaemonProfile) SetWorkspaceStorageMode(val DaemonProfileWorkspaceStorageMode) {
-	s.WorkspaceStorageMode = val
-}
-
-// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
-func (s *DaemonProfile) SetWorkspaceTtlSec(val int) {
-	s.WorkspaceTtlSec = val
-}
-
-func (*DaemonProfile) createDaemonProfileRes() {}
-func (*DaemonProfile) getDaemonProfileRes()    {}
-func (*DaemonProfile) updateDaemonProfileRes() {}
-
-type DaemonProfileContextItem struct {
-	Binding DaemonProfileContextItemBinding `json:"binding"`
-	Content string                          `json:"content"`
-	Slug    string                          `json:"slug"`
-}
-
-// GetBinding returns the value of Binding.
-func (s *DaemonProfileContextItem) GetBinding() DaemonProfileContextItemBinding {
-	return s.Binding
-}
-
-// GetContent returns the value of Content.
-func (s *DaemonProfileContextItem) GetContent() string {
-	return s.Content
-}
-
-// GetSlug returns the value of Slug.
-func (s *DaemonProfileContextItem) GetSlug() string {
-	return s.Slug
-}
-
-// SetBinding sets the value of Binding.
-func (s *DaemonProfileContextItem) SetBinding(val DaemonProfileContextItemBinding) {
-	s.Binding = val
-}
-
-// SetContent sets the value of Content.
-func (s *DaemonProfileContextItem) SetContent(val string) {
-	s.Content = val
-}
-
-// SetSlug sets the value of Slug.
-func (s *DaemonProfileContextItem) SetSlug(val string) {
-	s.Slug = val
-}
-
-type DaemonProfileContextItemBinding string
-
-const (
-	DaemonProfileContextItemBindingSkill         DaemonProfileContextItemBinding = "skill"
-	DaemonProfileContextItemBindingContextInline DaemonProfileContextItemBinding = "context_inline"
-	DaemonProfileContextItemBindingPromptPrefix  DaemonProfileContextItemBinding = "prompt_prefix"
-	DaemonProfileContextItemBindingUserInline    DaemonProfileContextItemBinding = "user_inline"
-)
-
-// AllValues returns all DaemonProfileContextItemBinding values.
-func (DaemonProfileContextItemBinding) AllValues() []DaemonProfileContextItemBinding {
-	return []DaemonProfileContextItemBinding{
-		DaemonProfileContextItemBindingSkill,
-		DaemonProfileContextItemBindingContextInline,
-		DaemonProfileContextItemBindingPromptPrefix,
-		DaemonProfileContextItemBindingUserInline,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileContextItemBinding) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileContextItemBindingSkill:
-		return []byte(s), nil
-	case DaemonProfileContextItemBindingContextInline:
-		return []byte(s), nil
-	case DaemonProfileContextItemBindingPromptPrefix:
-		return []byte(s), nil
-	case DaemonProfileContextItemBindingUserInline:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileContextItemBinding) UnmarshalText(data []byte) error {
-	switch DaemonProfileContextItemBinding(data) {
-	case DaemonProfileContextItemBindingSkill:
-		*s = DaemonProfileContextItemBindingSkill
-		return nil
-	case DaemonProfileContextItemBindingContextInline:
-		*s = DaemonProfileContextItemBindingContextInline
-		return nil
-	case DaemonProfileContextItemBindingPromptPrefix:
-		*s = DaemonProfileContextItemBindingPromptPrefix
-		return nil
-	case DaemonProfileContextItemBindingUserInline:
-		*s = DaemonProfileContextItemBindingUserInline
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-// Ref: #/components/schemas/DaemonProfileListResponse
-type DaemonProfileListResponse struct {
-	Items []DaemonProfileListResponseItemsItem `json:"items"`
-}
-
-// GetItems returns the value of Items.
-func (s *DaemonProfileListResponse) GetItems() []DaemonProfileListResponseItemsItem {
-	return s.Items
-}
-
-// SetItems sets the value of Items.
-func (s *DaemonProfileListResponse) SetItems(val []DaemonProfileListResponseItemsItem) {
-	s.Items = val
-}
-
-func (*DaemonProfileListResponse) listDaemonProfilesRes() {}
-
-type DaemonProfileListResponseItemsItem struct {
-	Context              []DaemonProfileListResponseItemsItemContextItem        `json:"context"`
-	CreatedAt            time.Time                                              `json:"createdAt"`
-	CreatedByAgentId     NilUUID                                                `json:"createdByAgentId"`
-	CreatedByHumanId     NilUUID                                                `json:"createdByHumanId"`
-	DefinitionCid        string                                                 `json:"definitionCid"`
-	Description          NilString                                              `json:"description"`
-	HeartbeatIntervalMs  int                                                    `json:"heartbeatIntervalMs"`
-	ID                   uuid.UUID                                              `json:"id"`
-	LeaseTtlSec          int                                                    `json:"leaseTtlSec"`
-	MaxBatchSize         int                                                    `json:"maxBatchSize"`
-	Model                string                                                 `json:"model"`
-	Name                 string                                                 `json:"name"`
-	Provider             string                                                 `json:"provider"`
-	RequiredEnv          []string                                               `json:"requiredEnv"`
-	RequiredTools        []string                                               `json:"requiredTools"`
-	Revision             int                                                    `json:"revision"`
-	RuntimeKind          DaemonProfileListResponseItemsItemRuntimeKind          `json:"runtimeKind"`
-	Sandbox              DaemonProfileListResponseItemsItemSandbox              `json:"sandbox"`
-	SessionStorageMode   DaemonProfileListResponseItemsItemSessionStorageMode   `json:"sessionStorageMode"`
-	SessionTtlSec        int                                                    `json:"sessionTtlSec"`
-	TeamId               uuid.UUID                                              `json:"teamId"`
-	UpdatedAt            time.Time                                              `json:"updatedAt"`
-	WorkspaceStorageMode DaemonProfileListResponseItemsItemWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      int                                                    `json:"workspaceTtlSec"`
-}
-
-// GetContext returns the value of Context.
-func (s *DaemonProfileListResponseItemsItem) GetContext() []DaemonProfileListResponseItemsItemContextItem {
-	return s.Context
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *DaemonProfileListResponseItemsItem) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetCreatedByAgentId returns the value of CreatedByAgentId.
-func (s *DaemonProfileListResponseItemsItem) GetCreatedByAgentId() NilUUID {
-	return s.CreatedByAgentId
-}
-
-// GetCreatedByHumanId returns the value of CreatedByHumanId.
-func (s *DaemonProfileListResponseItemsItem) GetCreatedByHumanId() NilUUID {
-	return s.CreatedByHumanId
-}
-
-// GetDefinitionCid returns the value of DefinitionCid.
-func (s *DaemonProfileListResponseItemsItem) GetDefinitionCid() string {
-	return s.DefinitionCid
-}
-
-// GetDescription returns the value of Description.
-func (s *DaemonProfileListResponseItemsItem) GetDescription() NilString {
-	return s.Description
-}
-
-// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
-func (s *DaemonProfileListResponseItemsItem) GetHeartbeatIntervalMs() int {
-	return s.HeartbeatIntervalMs
-}
-
-// GetID returns the value of ID.
-func (s *DaemonProfileListResponseItemsItem) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetLeaseTtlSec returns the value of LeaseTtlSec.
-func (s *DaemonProfileListResponseItemsItem) GetLeaseTtlSec() int {
-	return s.LeaseTtlSec
-}
-
-// GetMaxBatchSize returns the value of MaxBatchSize.
-func (s *DaemonProfileListResponseItemsItem) GetMaxBatchSize() int {
-	return s.MaxBatchSize
-}
-
-// GetModel returns the value of Model.
-func (s *DaemonProfileListResponseItemsItem) GetModel() string {
-	return s.Model
-}
-
-// GetName returns the value of Name.
-func (s *DaemonProfileListResponseItemsItem) GetName() string {
-	return s.Name
-}
-
-// GetProvider returns the value of Provider.
-func (s *DaemonProfileListResponseItemsItem) GetProvider() string {
-	return s.Provider
-}
-
-// GetRequiredEnv returns the value of RequiredEnv.
-func (s *DaemonProfileListResponseItemsItem) GetRequiredEnv() []string {
-	return s.RequiredEnv
-}
-
-// GetRequiredTools returns the value of RequiredTools.
-func (s *DaemonProfileListResponseItemsItem) GetRequiredTools() []string {
-	return s.RequiredTools
-}
-
-// GetRevision returns the value of Revision.
-func (s *DaemonProfileListResponseItemsItem) GetRevision() int {
-	return s.Revision
-}
-
-// GetRuntimeKind returns the value of RuntimeKind.
-func (s *DaemonProfileListResponseItemsItem) GetRuntimeKind() DaemonProfileListResponseItemsItemRuntimeKind {
-	return s.RuntimeKind
-}
-
-// GetSandbox returns the value of Sandbox.
-func (s *DaemonProfileListResponseItemsItem) GetSandbox() DaemonProfileListResponseItemsItemSandbox {
-	return s.Sandbox
-}
-
-// GetSessionStorageMode returns the value of SessionStorageMode.
-func (s *DaemonProfileListResponseItemsItem) GetSessionStorageMode() DaemonProfileListResponseItemsItemSessionStorageMode {
-	return s.SessionStorageMode
-}
-
-// GetSessionTtlSec returns the value of SessionTtlSec.
-func (s *DaemonProfileListResponseItemsItem) GetSessionTtlSec() int {
-	return s.SessionTtlSec
-}
-
-// GetTeamId returns the value of TeamId.
-func (s *DaemonProfileListResponseItemsItem) GetTeamId() uuid.UUID {
-	return s.TeamId
-}
-
-// GetUpdatedAt returns the value of UpdatedAt.
-func (s *DaemonProfileListResponseItemsItem) GetUpdatedAt() time.Time {
-	return s.UpdatedAt
-}
-
-// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
-func (s *DaemonProfileListResponseItemsItem) GetWorkspaceStorageMode() DaemonProfileListResponseItemsItemWorkspaceStorageMode {
-	return s.WorkspaceStorageMode
-}
-
-// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
-func (s *DaemonProfileListResponseItemsItem) GetWorkspaceTtlSec() int {
-	return s.WorkspaceTtlSec
-}
-
-// SetContext sets the value of Context.
-func (s *DaemonProfileListResponseItemsItem) SetContext(val []DaemonProfileListResponseItemsItemContextItem) {
-	s.Context = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *DaemonProfileListResponseItemsItem) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetCreatedByAgentId sets the value of CreatedByAgentId.
-func (s *DaemonProfileListResponseItemsItem) SetCreatedByAgentId(val NilUUID) {
-	s.CreatedByAgentId = val
-}
-
-// SetCreatedByHumanId sets the value of CreatedByHumanId.
-func (s *DaemonProfileListResponseItemsItem) SetCreatedByHumanId(val NilUUID) {
-	s.CreatedByHumanId = val
-}
-
-// SetDefinitionCid sets the value of DefinitionCid.
-func (s *DaemonProfileListResponseItemsItem) SetDefinitionCid(val string) {
-	s.DefinitionCid = val
-}
-
-// SetDescription sets the value of Description.
-func (s *DaemonProfileListResponseItemsItem) SetDescription(val NilString) {
-	s.Description = val
-}
-
-// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
-func (s *DaemonProfileListResponseItemsItem) SetHeartbeatIntervalMs(val int) {
-	s.HeartbeatIntervalMs = val
-}
-
-// SetID sets the value of ID.
-func (s *DaemonProfileListResponseItemsItem) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetLeaseTtlSec sets the value of LeaseTtlSec.
-func (s *DaemonProfileListResponseItemsItem) SetLeaseTtlSec(val int) {
-	s.LeaseTtlSec = val
-}
-
-// SetMaxBatchSize sets the value of MaxBatchSize.
-func (s *DaemonProfileListResponseItemsItem) SetMaxBatchSize(val int) {
-	s.MaxBatchSize = val
-}
-
-// SetModel sets the value of Model.
-func (s *DaemonProfileListResponseItemsItem) SetModel(val string) {
-	s.Model = val
-}
-
-// SetName sets the value of Name.
-func (s *DaemonProfileListResponseItemsItem) SetName(val string) {
-	s.Name = val
-}
-
-// SetProvider sets the value of Provider.
-func (s *DaemonProfileListResponseItemsItem) SetProvider(val string) {
-	s.Provider = val
-}
-
-// SetRequiredEnv sets the value of RequiredEnv.
-func (s *DaemonProfileListResponseItemsItem) SetRequiredEnv(val []string) {
-	s.RequiredEnv = val
-}
-
-// SetRequiredTools sets the value of RequiredTools.
-func (s *DaemonProfileListResponseItemsItem) SetRequiredTools(val []string) {
-	s.RequiredTools = val
-}
-
-// SetRevision sets the value of Revision.
-func (s *DaemonProfileListResponseItemsItem) SetRevision(val int) {
-	s.Revision = val
-}
-
-// SetRuntimeKind sets the value of RuntimeKind.
-func (s *DaemonProfileListResponseItemsItem) SetRuntimeKind(val DaemonProfileListResponseItemsItemRuntimeKind) {
-	s.RuntimeKind = val
-}
-
-// SetSandbox sets the value of Sandbox.
-func (s *DaemonProfileListResponseItemsItem) SetSandbox(val DaemonProfileListResponseItemsItemSandbox) {
-	s.Sandbox = val
-}
-
-// SetSessionStorageMode sets the value of SessionStorageMode.
-func (s *DaemonProfileListResponseItemsItem) SetSessionStorageMode(val DaemonProfileListResponseItemsItemSessionStorageMode) {
-	s.SessionStorageMode = val
-}
-
-// SetSessionTtlSec sets the value of SessionTtlSec.
-func (s *DaemonProfileListResponseItemsItem) SetSessionTtlSec(val int) {
-	s.SessionTtlSec = val
-}
-
-// SetTeamId sets the value of TeamId.
-func (s *DaemonProfileListResponseItemsItem) SetTeamId(val uuid.UUID) {
-	s.TeamId = val
-}
-
-// SetUpdatedAt sets the value of UpdatedAt.
-func (s *DaemonProfileListResponseItemsItem) SetUpdatedAt(val time.Time) {
-	s.UpdatedAt = val
-}
-
-// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
-func (s *DaemonProfileListResponseItemsItem) SetWorkspaceStorageMode(val DaemonProfileListResponseItemsItemWorkspaceStorageMode) {
-	s.WorkspaceStorageMode = val
-}
-
-// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
-func (s *DaemonProfileListResponseItemsItem) SetWorkspaceTtlSec(val int) {
-	s.WorkspaceTtlSec = val
-}
-
-type DaemonProfileListResponseItemsItemContextItem struct {
-	Binding DaemonProfileListResponseItemsItemContextItemBinding `json:"binding"`
-	Content string                                               `json:"content"`
-	Slug    string                                               `json:"slug"`
-}
-
-// GetBinding returns the value of Binding.
-func (s *DaemonProfileListResponseItemsItemContextItem) GetBinding() DaemonProfileListResponseItemsItemContextItemBinding {
-	return s.Binding
-}
-
-// GetContent returns the value of Content.
-func (s *DaemonProfileListResponseItemsItemContextItem) GetContent() string {
-	return s.Content
-}
-
-// GetSlug returns the value of Slug.
-func (s *DaemonProfileListResponseItemsItemContextItem) GetSlug() string {
-	return s.Slug
-}
-
-// SetBinding sets the value of Binding.
-func (s *DaemonProfileListResponseItemsItemContextItem) SetBinding(val DaemonProfileListResponseItemsItemContextItemBinding) {
-	s.Binding = val
-}
-
-// SetContent sets the value of Content.
-func (s *DaemonProfileListResponseItemsItemContextItem) SetContent(val string) {
-	s.Content = val
-}
-
-// SetSlug sets the value of Slug.
-func (s *DaemonProfileListResponseItemsItemContextItem) SetSlug(val string) {
-	s.Slug = val
-}
-
-type DaemonProfileListResponseItemsItemContextItemBinding string
-
-const (
-	DaemonProfileListResponseItemsItemContextItemBindingSkill         DaemonProfileListResponseItemsItemContextItemBinding = "skill"
-	DaemonProfileListResponseItemsItemContextItemBindingContextInline DaemonProfileListResponseItemsItemContextItemBinding = "context_inline"
-	DaemonProfileListResponseItemsItemContextItemBindingPromptPrefix  DaemonProfileListResponseItemsItemContextItemBinding = "prompt_prefix"
-	DaemonProfileListResponseItemsItemContextItemBindingUserInline    DaemonProfileListResponseItemsItemContextItemBinding = "user_inline"
-)
-
-// AllValues returns all DaemonProfileListResponseItemsItemContextItemBinding values.
-func (DaemonProfileListResponseItemsItemContextItemBinding) AllValues() []DaemonProfileListResponseItemsItemContextItemBinding {
-	return []DaemonProfileListResponseItemsItemContextItemBinding{
-		DaemonProfileListResponseItemsItemContextItemBindingSkill,
-		DaemonProfileListResponseItemsItemContextItemBindingContextInline,
-		DaemonProfileListResponseItemsItemContextItemBindingPromptPrefix,
-		DaemonProfileListResponseItemsItemContextItemBindingUserInline,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileListResponseItemsItemContextItemBinding) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileListResponseItemsItemContextItemBindingSkill:
-		return []byte(s), nil
-	case DaemonProfileListResponseItemsItemContextItemBindingContextInline:
-		return []byte(s), nil
-	case DaemonProfileListResponseItemsItemContextItemBindingPromptPrefix:
-		return []byte(s), nil
-	case DaemonProfileListResponseItemsItemContextItemBindingUserInline:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileListResponseItemsItemContextItemBinding) UnmarshalText(data []byte) error {
-	switch DaemonProfileListResponseItemsItemContextItemBinding(data) {
-	case DaemonProfileListResponseItemsItemContextItemBindingSkill:
-		*s = DaemonProfileListResponseItemsItemContextItemBindingSkill
-		return nil
-	case DaemonProfileListResponseItemsItemContextItemBindingContextInline:
-		*s = DaemonProfileListResponseItemsItemContextItemBindingContextInline
-		return nil
-	case DaemonProfileListResponseItemsItemContextItemBindingPromptPrefix:
-		*s = DaemonProfileListResponseItemsItemContextItemBindingPromptPrefix
-		return nil
-	case DaemonProfileListResponseItemsItemContextItemBindingUserInline:
-		*s = DaemonProfileListResponseItemsItemContextItemBindingUserInline
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type DaemonProfileListResponseItemsItemRuntimeKind string
-
-const (
-	DaemonProfileListResponseItemsItemRuntimeKindGondolinPi DaemonProfileListResponseItemsItemRuntimeKind = "gondolin_pi"
-)
-
-// AllValues returns all DaemonProfileListResponseItemsItemRuntimeKind values.
-func (DaemonProfileListResponseItemsItemRuntimeKind) AllValues() []DaemonProfileListResponseItemsItemRuntimeKind {
-	return []DaemonProfileListResponseItemsItemRuntimeKind{
-		DaemonProfileListResponseItemsItemRuntimeKindGondolinPi,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileListResponseItemsItemRuntimeKind) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileListResponseItemsItemRuntimeKindGondolinPi:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileListResponseItemsItemRuntimeKind) UnmarshalText(data []byte) error {
-	switch DaemonProfileListResponseItemsItemRuntimeKind(data) {
-	case DaemonProfileListResponseItemsItemRuntimeKindGondolinPi:
-		*s = DaemonProfileListResponseItemsItemRuntimeKindGondolinPi
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type DaemonProfileListResponseItemsItemSandbox struct {
-	Env            OptDaemonProfileListResponseItemsItemSandboxEnv               `json:"env"`
-	HostExec       OptDaemonProfileListResponseItemsItemSandboxHostExec          `json:"hostExec"`
-	Resources      OptDaemonProfileListResponseItemsItemSandboxResources         `json:"resources"`
-	ResumeCommands []DaemonProfileListResponseItemsItemSandboxResumeCommandsItem `json:"resumeCommands"`
-	Snapshot       OptDaemonProfileListResponseItemsItemSandboxSnapshot          `json:"snapshot"`
-	Vfs            OptDaemonProfileListResponseItemsItemSandboxVfs               `json:"vfs"`
-}
-
-// GetEnv returns the value of Env.
-func (s *DaemonProfileListResponseItemsItemSandbox) GetEnv() OptDaemonProfileListResponseItemsItemSandboxEnv {
-	return s.Env
-}
-
-// GetHostExec returns the value of HostExec.
-func (s *DaemonProfileListResponseItemsItemSandbox) GetHostExec() OptDaemonProfileListResponseItemsItemSandboxHostExec {
-	return s.HostExec
-}
-
-// GetResources returns the value of Resources.
-func (s *DaemonProfileListResponseItemsItemSandbox) GetResources() OptDaemonProfileListResponseItemsItemSandboxResources {
-	return s.Resources
-}
-
-// GetResumeCommands returns the value of ResumeCommands.
-func (s *DaemonProfileListResponseItemsItemSandbox) GetResumeCommands() []DaemonProfileListResponseItemsItemSandboxResumeCommandsItem {
-	return s.ResumeCommands
-}
-
-// GetSnapshot returns the value of Snapshot.
-func (s *DaemonProfileListResponseItemsItemSandbox) GetSnapshot() OptDaemonProfileListResponseItemsItemSandboxSnapshot {
-	return s.Snapshot
-}
-
-// GetVfs returns the value of Vfs.
-func (s *DaemonProfileListResponseItemsItemSandbox) GetVfs() OptDaemonProfileListResponseItemsItemSandboxVfs {
-	return s.Vfs
-}
-
-// SetEnv sets the value of Env.
-func (s *DaemonProfileListResponseItemsItemSandbox) SetEnv(val OptDaemonProfileListResponseItemsItemSandboxEnv) {
-	s.Env = val
-}
-
-// SetHostExec sets the value of HostExec.
-func (s *DaemonProfileListResponseItemsItemSandbox) SetHostExec(val OptDaemonProfileListResponseItemsItemSandboxHostExec) {
-	s.HostExec = val
-}
-
-// SetResources sets the value of Resources.
-func (s *DaemonProfileListResponseItemsItemSandbox) SetResources(val OptDaemonProfileListResponseItemsItemSandboxResources) {
-	s.Resources = val
-}
-
-// SetResumeCommands sets the value of ResumeCommands.
-func (s *DaemonProfileListResponseItemsItemSandbox) SetResumeCommands(val []DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) {
-	s.ResumeCommands = val
-}
-
-// SetSnapshot sets the value of Snapshot.
-func (s *DaemonProfileListResponseItemsItemSandbox) SetSnapshot(val OptDaemonProfileListResponseItemsItemSandboxSnapshot) {
-	s.Snapshot = val
-}
-
-// SetVfs sets the value of Vfs.
-func (s *DaemonProfileListResponseItemsItemSandbox) SetVfs(val OptDaemonProfileListResponseItemsItemSandboxVfs) {
-	s.Vfs = val
-}
-
-type DaemonProfileListResponseItemsItemSandboxEnv map[string]string
-
-func (s *DaemonProfileListResponseItemsItemSandboxEnv) init() DaemonProfileListResponseItemsItemSandboxEnv {
-	m := *s
-	if m == nil {
-		m = map[string]string{}
-		*s = m
-	}
-	return m
-}
-
-type DaemonProfileListResponseItemsItemSandboxHostExec struct {
-	AutoApprove OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove `json:"autoApprove"`
-}
-
-// GetAutoApprove returns the value of AutoApprove.
-func (s *DaemonProfileListResponseItemsItemSandboxHostExec) GetAutoApprove() OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove {
-	return s.AutoApprove
-}
-
-// SetAutoApprove sets the value of AutoApprove.
-func (s *DaemonProfileListResponseItemsItemSandboxHostExec) SetAutoApprove(val OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) {
-	s.AutoApprove = val
-}
-
-type DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove bool
-
-const (
-	DaemonProfileListResponseItemsItemSandboxHostExecAutoApproveFalse DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove = false
-)
-
-// AllValues returns all DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove values.
-func (DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) AllValues() []DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove {
-	return []DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove{
-		DaemonProfileListResponseItemsItemSandboxHostExecAutoApproveFalse,
-	}
-}
-
-type DaemonProfileListResponseItemsItemSandboxResources struct {
-	Cpus   OptInt    `json:"cpus"`
-	Memory OptString `json:"memory"`
-}
-
-// GetCpus returns the value of Cpus.
-func (s *DaemonProfileListResponseItemsItemSandboxResources) GetCpus() OptInt {
-	return s.Cpus
-}
-
-// GetMemory returns the value of Memory.
-func (s *DaemonProfileListResponseItemsItemSandboxResources) GetMemory() OptString {
-	return s.Memory
-}
-
-// SetCpus sets the value of Cpus.
-func (s *DaemonProfileListResponseItemsItemSandboxResources) SetCpus(val OptInt) {
-	s.Cpus = val
-}
-
-// SetMemory sets the value of Memory.
-func (s *DaemonProfileListResponseItemsItemSandboxResources) SetMemory(val OptString) {
-	s.Memory = val
-}
-
-// DaemonProfileListResponseItemsItemSandboxResumeCommandsItem represents sum type.
-type DaemonProfileListResponseItemsItemSandboxResumeCommandsItem struct {
-	Type                                                         DaemonProfileListResponseItemsItemSandboxResumeCommandsItemType // switch on this field
-	String                                                       string
-	DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1 DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1
-}
-
-// DaemonProfileListResponseItemsItemSandboxResumeCommandsItemType is oneOf type of DaemonProfileListResponseItemsItemSandboxResumeCommandsItem.
-type DaemonProfileListResponseItemsItemSandboxResumeCommandsItemType string
-
-// Possible values for DaemonProfileListResponseItemsItemSandboxResumeCommandsItemType.
-const (
-	StringDaemonProfileListResponseItemsItemSandboxResumeCommandsItem                                                       DaemonProfileListResponseItemsItemSandboxResumeCommandsItemType = "string"
-	DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1DaemonProfileListResponseItemsItemSandboxResumeCommandsItem DaemonProfileListResponseItemsItemSandboxResumeCommandsItemType = "DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1"
-)
-
-// IsString reports whether DaemonProfileListResponseItemsItemSandboxResumeCommandsItem is string.
-func (s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) IsString() bool {
-	return s.Type == StringDaemonProfileListResponseItemsItemSandboxResumeCommandsItem
-}
-
-// IsDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1 reports whether DaemonProfileListResponseItemsItemSandboxResumeCommandsItem is DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1.
-func (s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) IsDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1() bool {
-	return s.Type == DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1DaemonProfileListResponseItemsItemSandboxResumeCommandsItem
-}
-
-// SetString sets DaemonProfileListResponseItemsItemSandboxResumeCommandsItem to string.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) SetString(v string) {
-	s.Type = StringDaemonProfileListResponseItemsItemSandboxResumeCommandsItem
-	s.String = v
-}
-
-// GetString returns string and true boolean if DaemonProfileListResponseItemsItemSandboxResumeCommandsItem is string.
-func (s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) GetString() (v string, ok bool) {
-	if !s.IsString() {
-		return v, false
-	}
-	return s.String, true
-}
-
-// NewStringDaemonProfileListResponseItemsItemSandboxResumeCommandsItem returns new DaemonProfileListResponseItemsItemSandboxResumeCommandsItem from string.
-func NewStringDaemonProfileListResponseItemsItemSandboxResumeCommandsItem(v string) DaemonProfileListResponseItemsItemSandboxResumeCommandsItem {
-	var s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem
-	s.SetString(v)
-	return s
-}
-
-// SetDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1 sets DaemonProfileListResponseItemsItemSandboxResumeCommandsItem to DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) SetDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1(v DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) {
-	s.Type = DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1DaemonProfileListResponseItemsItemSandboxResumeCommandsItem
-	s.DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1 = v
-}
-
-// GetDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1 returns DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1 and true boolean if DaemonProfileListResponseItemsItemSandboxResumeCommandsItem is DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1.
-func (s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem) GetDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1() (v DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1, ok bool) {
-	if !s.IsDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1() {
-		return v, false
-	}
-	return s.DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1, true
-}
-
-// NewDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1DaemonProfileListResponseItemsItemSandboxResumeCommandsItem returns new DaemonProfileListResponseItemsItemSandboxResumeCommandsItem from DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1.
-func NewDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1DaemonProfileListResponseItemsItemSandboxResumeCommandsItem(v DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) DaemonProfileListResponseItemsItemSandboxResumeCommandsItem {
-	var s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem
-	s.SetDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1(v)
-	return s
-}
-
-type DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1 struct {
-	Retries        OptInt                                                              `json:"retries"`
-	RetryBackoffMs OptInt                                                              `json:"retryBackoffMs"`
-	Run            string                                                              `json:"run"`
-	When           OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When `json:"when"`
-}
-
-// GetRetries returns the value of Retries.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) GetRetries() OptInt {
-	return s.Retries
-}
-
-// GetRetryBackoffMs returns the value of RetryBackoffMs.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
-	return s.RetryBackoffMs
-}
-
-// GetRun returns the value of Run.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) GetRun() string {
-	return s.Run
-}
-
-// GetWhen returns the value of When.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) GetWhen() OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When {
-	return s.When
-}
-
-// SetRetries sets the value of Retries.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) SetRetries(val OptInt) {
-	s.Retries = val
-}
-
-// SetRetryBackoffMs sets the value of RetryBackoffMs.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
-	s.RetryBackoffMs = val
-}
-
-// SetRun sets the value of Run.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) SetRun(val string) {
-	s.Run = val
-}
-
-// SetWhen sets the value of When.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1) SetWhen(val OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) {
-	s.When = val
-}
-
-type DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When struct {
-	WorkspaceMode []DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
-}
-
-// GetWorkspaceMode returns the value of WorkspaceMode.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) GetWorkspaceMode() []DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return s.WorkspaceMode
-}
-
-// SetWorkspaceMode sets the value of WorkspaceMode.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) SetWorkspaceMode(val []DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) {
-	s.WorkspaceMode = val
-}
-
-type DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem string
-
-const (
-	DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
-	DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
-	DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
-)
-
-// AllValues returns all DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem values.
-func (DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return []DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem{
-		DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
-		DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
-		DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		return []byte(s), nil
-	case DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		return []byte(s), nil
-	case DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
-	switch DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
-	case DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		*s = DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
-		return nil
-	case DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		*s = DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
-		return nil
-	case DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		*s = DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type DaemonProfileListResponseItemsItemSandboxSnapshot struct {
-	AllowedHosts  []string  `json:"allowedHosts"`
-	OverlaySize   OptString `json:"overlaySize"`
-	SetupCommands []string  `json:"setupCommands"`
-}
-
-// GetAllowedHosts returns the value of AllowedHosts.
-func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) GetAllowedHosts() []string {
-	return s.AllowedHosts
-}
-
-// GetOverlaySize returns the value of OverlaySize.
-func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) GetOverlaySize() OptString {
-	return s.OverlaySize
-}
-
-// GetSetupCommands returns the value of SetupCommands.
-func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) GetSetupCommands() []string {
-	return s.SetupCommands
-}
-
-// SetAllowedHosts sets the value of AllowedHosts.
-func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) SetAllowedHosts(val []string) {
-	s.AllowedHosts = val
-}
-
-// SetOverlaySize sets the value of OverlaySize.
-func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) SetOverlaySize(val OptString) {
-	s.OverlaySize = val
-}
-
-// SetSetupCommands sets the value of SetupCommands.
-func (s *DaemonProfileListResponseItemsItemSandboxSnapshot) SetSetupCommands(val []string) {
-	s.SetupCommands = val
-}
-
-type DaemonProfileListResponseItemsItemSandboxVfs struct {
-	Shadow     []string                                                  `json:"shadow"`
-	ShadowMode OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode `json:"shadowMode"`
-}
-
-// GetShadow returns the value of Shadow.
-func (s *DaemonProfileListResponseItemsItemSandboxVfs) GetShadow() []string {
-	return s.Shadow
-}
-
-// GetShadowMode returns the value of ShadowMode.
-func (s *DaemonProfileListResponseItemsItemSandboxVfs) GetShadowMode() OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode {
-	return s.ShadowMode
-}
-
-// SetShadow sets the value of Shadow.
-func (s *DaemonProfileListResponseItemsItemSandboxVfs) SetShadow(val []string) {
-	s.Shadow = val
-}
-
-// SetShadowMode sets the value of ShadowMode.
-func (s *DaemonProfileListResponseItemsItemSandboxVfs) SetShadowMode(val OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode) {
-	s.ShadowMode = val
-}
-
-type DaemonProfileListResponseItemsItemSandboxVfsShadowMode string
-
-const (
-	DaemonProfileListResponseItemsItemSandboxVfsShadowModeDeny  DaemonProfileListResponseItemsItemSandboxVfsShadowMode = "deny"
-	DaemonProfileListResponseItemsItemSandboxVfsShadowModeTmpfs DaemonProfileListResponseItemsItemSandboxVfsShadowMode = "tmpfs"
-)
-
-// AllValues returns all DaemonProfileListResponseItemsItemSandboxVfsShadowMode values.
-func (DaemonProfileListResponseItemsItemSandboxVfsShadowMode) AllValues() []DaemonProfileListResponseItemsItemSandboxVfsShadowMode {
-	return []DaemonProfileListResponseItemsItemSandboxVfsShadowMode{
-		DaemonProfileListResponseItemsItemSandboxVfsShadowModeDeny,
-		DaemonProfileListResponseItemsItemSandboxVfsShadowModeTmpfs,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileListResponseItemsItemSandboxVfsShadowMode) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileListResponseItemsItemSandboxVfsShadowModeDeny:
-		return []byte(s), nil
-	case DaemonProfileListResponseItemsItemSandboxVfsShadowModeTmpfs:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileListResponseItemsItemSandboxVfsShadowMode) UnmarshalText(data []byte) error {
-	switch DaemonProfileListResponseItemsItemSandboxVfsShadowMode(data) {
-	case DaemonProfileListResponseItemsItemSandboxVfsShadowModeDeny:
-		*s = DaemonProfileListResponseItemsItemSandboxVfsShadowModeDeny
-		return nil
-	case DaemonProfileListResponseItemsItemSandboxVfsShadowModeTmpfs:
-		*s = DaemonProfileListResponseItemsItemSandboxVfsShadowModeTmpfs
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type DaemonProfileListResponseItemsItemSessionStorageMode string
-
-const (
-	DaemonProfileListResponseItemsItemSessionStorageModeLocal DaemonProfileListResponseItemsItemSessionStorageMode = "local"
-)
-
-// AllValues returns all DaemonProfileListResponseItemsItemSessionStorageMode values.
-func (DaemonProfileListResponseItemsItemSessionStorageMode) AllValues() []DaemonProfileListResponseItemsItemSessionStorageMode {
-	return []DaemonProfileListResponseItemsItemSessionStorageMode{
-		DaemonProfileListResponseItemsItemSessionStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileListResponseItemsItemSessionStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileListResponseItemsItemSessionStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileListResponseItemsItemSessionStorageMode) UnmarshalText(data []byte) error {
-	switch DaemonProfileListResponseItemsItemSessionStorageMode(data) {
-	case DaemonProfileListResponseItemsItemSessionStorageModeLocal:
-		*s = DaemonProfileListResponseItemsItemSessionStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type DaemonProfileListResponseItemsItemWorkspaceStorageMode string
-
-const (
-	DaemonProfileListResponseItemsItemWorkspaceStorageModeLocal DaemonProfileListResponseItemsItemWorkspaceStorageMode = "local"
-)
-
-// AllValues returns all DaemonProfileListResponseItemsItemWorkspaceStorageMode values.
-func (DaemonProfileListResponseItemsItemWorkspaceStorageMode) AllValues() []DaemonProfileListResponseItemsItemWorkspaceStorageMode {
-	return []DaemonProfileListResponseItemsItemWorkspaceStorageMode{
-		DaemonProfileListResponseItemsItemWorkspaceStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileListResponseItemsItemWorkspaceStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileListResponseItemsItemWorkspaceStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileListResponseItemsItemWorkspaceStorageMode) UnmarshalText(data []byte) error {
-	switch DaemonProfileListResponseItemsItemWorkspaceStorageMode(data) {
-	case DaemonProfileListResponseItemsItemWorkspaceStorageModeLocal:
-		*s = DaemonProfileListResponseItemsItemWorkspaceStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-// Ref: #/components/schemas/DaemonProfileRef
-type DaemonProfileRef struct {
-	ProfileId uuid.UUID `json:"profileId"`
-}
-
-// GetProfileId returns the value of ProfileId.
-func (s *DaemonProfileRef) GetProfileId() uuid.UUID {
-	return s.ProfileId
-}
-
-// SetProfileId sets the value of ProfileId.
-func (s *DaemonProfileRef) SetProfileId(val uuid.UUID) {
-	s.ProfileId = val
-}
-
-type DaemonProfileRuntimeKind string
-
-const (
-	DaemonProfileRuntimeKindGondolinPi DaemonProfileRuntimeKind = "gondolin_pi"
-)
-
-// AllValues returns all DaemonProfileRuntimeKind values.
-func (DaemonProfileRuntimeKind) AllValues() []DaemonProfileRuntimeKind {
-	return []DaemonProfileRuntimeKind{
-		DaemonProfileRuntimeKindGondolinPi,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileRuntimeKind) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileRuntimeKindGondolinPi:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileRuntimeKind) UnmarshalText(data []byte) error {
-	switch DaemonProfileRuntimeKind(data) {
-	case DaemonProfileRuntimeKindGondolinPi:
-		*s = DaemonProfileRuntimeKindGondolinPi
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-// Ref: #/components/schemas/DaemonProfileSandbox
-type DaemonProfileSandbox struct {
-	Env            OptDaemonProfileSandboxEnv               `json:"env"`
-	HostExec       OptDaemonProfileSandboxHostExec          `json:"hostExec"`
-	Resources      OptDaemonProfileSandboxResources         `json:"resources"`
-	ResumeCommands []DaemonProfileSandboxResumeCommandsItem `json:"resumeCommands"`
-	Snapshot       OptDaemonProfileSandboxSnapshot          `json:"snapshot"`
-	Vfs            OptDaemonProfileSandboxVfs               `json:"vfs"`
-}
-
-// GetEnv returns the value of Env.
-func (s *DaemonProfileSandbox) GetEnv() OptDaemonProfileSandboxEnv {
-	return s.Env
-}
-
-// GetHostExec returns the value of HostExec.
-func (s *DaemonProfileSandbox) GetHostExec() OptDaemonProfileSandboxHostExec {
-	return s.HostExec
-}
-
-// GetResources returns the value of Resources.
-func (s *DaemonProfileSandbox) GetResources() OptDaemonProfileSandboxResources {
-	return s.Resources
-}
-
-// GetResumeCommands returns the value of ResumeCommands.
-func (s *DaemonProfileSandbox) GetResumeCommands() []DaemonProfileSandboxResumeCommandsItem {
-	return s.ResumeCommands
-}
-
-// GetSnapshot returns the value of Snapshot.
-func (s *DaemonProfileSandbox) GetSnapshot() OptDaemonProfileSandboxSnapshot {
-	return s.Snapshot
-}
-
-// GetVfs returns the value of Vfs.
-func (s *DaemonProfileSandbox) GetVfs() OptDaemonProfileSandboxVfs {
-	return s.Vfs
-}
-
-// SetEnv sets the value of Env.
-func (s *DaemonProfileSandbox) SetEnv(val OptDaemonProfileSandboxEnv) {
-	s.Env = val
-}
-
-// SetHostExec sets the value of HostExec.
-func (s *DaemonProfileSandbox) SetHostExec(val OptDaemonProfileSandboxHostExec) {
-	s.HostExec = val
-}
-
-// SetResources sets the value of Resources.
-func (s *DaemonProfileSandbox) SetResources(val OptDaemonProfileSandboxResources) {
-	s.Resources = val
-}
-
-// SetResumeCommands sets the value of ResumeCommands.
-func (s *DaemonProfileSandbox) SetResumeCommands(val []DaemonProfileSandboxResumeCommandsItem) {
-	s.ResumeCommands = val
-}
-
-// SetSnapshot sets the value of Snapshot.
-func (s *DaemonProfileSandbox) SetSnapshot(val OptDaemonProfileSandboxSnapshot) {
-	s.Snapshot = val
-}
-
-// SetVfs sets the value of Vfs.
-func (s *DaemonProfileSandbox) SetVfs(val OptDaemonProfileSandboxVfs) {
-	s.Vfs = val
-}
-
-type DaemonProfileSandboxEnv map[string]string
-
-func (s *DaemonProfileSandboxEnv) init() DaemonProfileSandboxEnv {
-	m := *s
-	if m == nil {
-		m = map[string]string{}
-		*s = m
-	}
-	return m
-}
-
-type DaemonProfileSandboxHostExec struct {
-	AutoApprove OptDaemonProfileSandboxHostExecAutoApprove `json:"autoApprove"`
-}
-
-// GetAutoApprove returns the value of AutoApprove.
-func (s *DaemonProfileSandboxHostExec) GetAutoApprove() OptDaemonProfileSandboxHostExecAutoApprove {
-	return s.AutoApprove
-}
-
-// SetAutoApprove sets the value of AutoApprove.
-func (s *DaemonProfileSandboxHostExec) SetAutoApprove(val OptDaemonProfileSandboxHostExecAutoApprove) {
-	s.AutoApprove = val
-}
-
-type DaemonProfileSandboxHostExecAutoApprove bool
-
-const (
-	DaemonProfileSandboxHostExecAutoApproveFalse DaemonProfileSandboxHostExecAutoApprove = false
-)
-
-// AllValues returns all DaemonProfileSandboxHostExecAutoApprove values.
-func (DaemonProfileSandboxHostExecAutoApprove) AllValues() []DaemonProfileSandboxHostExecAutoApprove {
-	return []DaemonProfileSandboxHostExecAutoApprove{
-		DaemonProfileSandboxHostExecAutoApproveFalse,
-	}
-}
-
-type DaemonProfileSandboxResources struct {
-	Cpus   OptInt    `json:"cpus"`
-	Memory OptString `json:"memory"`
-}
-
-// GetCpus returns the value of Cpus.
-func (s *DaemonProfileSandboxResources) GetCpus() OptInt {
-	return s.Cpus
-}
-
-// GetMemory returns the value of Memory.
-func (s *DaemonProfileSandboxResources) GetMemory() OptString {
-	return s.Memory
-}
-
-// SetCpus sets the value of Cpus.
-func (s *DaemonProfileSandboxResources) SetCpus(val OptInt) {
-	s.Cpus = val
-}
-
-// SetMemory sets the value of Memory.
-func (s *DaemonProfileSandboxResources) SetMemory(val OptString) {
-	s.Memory = val
-}
-
-// DaemonProfileSandboxResumeCommandsItem represents sum type.
-type DaemonProfileSandboxResumeCommandsItem struct {
-	Type                                    DaemonProfileSandboxResumeCommandsItemType // switch on this field
-	String                                  string
-	DaemonProfileSandboxResumeCommandsItem1 DaemonProfileSandboxResumeCommandsItem1
-}
-
-// DaemonProfileSandboxResumeCommandsItemType is oneOf type of DaemonProfileSandboxResumeCommandsItem.
-type DaemonProfileSandboxResumeCommandsItemType string
-
-// Possible values for DaemonProfileSandboxResumeCommandsItemType.
-const (
-	StringDaemonProfileSandboxResumeCommandsItem                                  DaemonProfileSandboxResumeCommandsItemType = "string"
-	DaemonProfileSandboxResumeCommandsItem1DaemonProfileSandboxResumeCommandsItem DaemonProfileSandboxResumeCommandsItemType = "DaemonProfileSandboxResumeCommandsItem1"
-)
-
-// IsString reports whether DaemonProfileSandboxResumeCommandsItem is string.
-func (s DaemonProfileSandboxResumeCommandsItem) IsString() bool {
-	return s.Type == StringDaemonProfileSandboxResumeCommandsItem
-}
-
-// IsDaemonProfileSandboxResumeCommandsItem1 reports whether DaemonProfileSandboxResumeCommandsItem is DaemonProfileSandboxResumeCommandsItem1.
-func (s DaemonProfileSandboxResumeCommandsItem) IsDaemonProfileSandboxResumeCommandsItem1() bool {
-	return s.Type == DaemonProfileSandboxResumeCommandsItem1DaemonProfileSandboxResumeCommandsItem
-}
-
-// SetString sets DaemonProfileSandboxResumeCommandsItem to string.
-func (s *DaemonProfileSandboxResumeCommandsItem) SetString(v string) {
-	s.Type = StringDaemonProfileSandboxResumeCommandsItem
-	s.String = v
-}
-
-// GetString returns string and true boolean if DaemonProfileSandboxResumeCommandsItem is string.
-func (s DaemonProfileSandboxResumeCommandsItem) GetString() (v string, ok bool) {
-	if !s.IsString() {
-		return v, false
-	}
-	return s.String, true
-}
-
-// NewStringDaemonProfileSandboxResumeCommandsItem returns new DaemonProfileSandboxResumeCommandsItem from string.
-func NewStringDaemonProfileSandboxResumeCommandsItem(v string) DaemonProfileSandboxResumeCommandsItem {
-	var s DaemonProfileSandboxResumeCommandsItem
-	s.SetString(v)
-	return s
-}
-
-// SetDaemonProfileSandboxResumeCommandsItem1 sets DaemonProfileSandboxResumeCommandsItem to DaemonProfileSandboxResumeCommandsItem1.
-func (s *DaemonProfileSandboxResumeCommandsItem) SetDaemonProfileSandboxResumeCommandsItem1(v DaemonProfileSandboxResumeCommandsItem1) {
-	s.Type = DaemonProfileSandboxResumeCommandsItem1DaemonProfileSandboxResumeCommandsItem
-	s.DaemonProfileSandboxResumeCommandsItem1 = v
-}
-
-// GetDaemonProfileSandboxResumeCommandsItem1 returns DaemonProfileSandboxResumeCommandsItem1 and true boolean if DaemonProfileSandboxResumeCommandsItem is DaemonProfileSandboxResumeCommandsItem1.
-func (s DaemonProfileSandboxResumeCommandsItem) GetDaemonProfileSandboxResumeCommandsItem1() (v DaemonProfileSandboxResumeCommandsItem1, ok bool) {
-	if !s.IsDaemonProfileSandboxResumeCommandsItem1() {
-		return v, false
-	}
-	return s.DaemonProfileSandboxResumeCommandsItem1, true
-}
-
-// NewDaemonProfileSandboxResumeCommandsItem1DaemonProfileSandboxResumeCommandsItem returns new DaemonProfileSandboxResumeCommandsItem from DaemonProfileSandboxResumeCommandsItem1.
-func NewDaemonProfileSandboxResumeCommandsItem1DaemonProfileSandboxResumeCommandsItem(v DaemonProfileSandboxResumeCommandsItem1) DaemonProfileSandboxResumeCommandsItem {
-	var s DaemonProfileSandboxResumeCommandsItem
-	s.SetDaemonProfileSandboxResumeCommandsItem1(v)
-	return s
-}
-
-type DaemonProfileSandboxResumeCommandsItem1 struct {
-	Retries        OptInt                                         `json:"retries"`
-	RetryBackoffMs OptInt                                         `json:"retryBackoffMs"`
-	Run            string                                         `json:"run"`
-	When           OptDaemonProfileSandboxResumeCommandsItem1When `json:"when"`
-}
-
-// GetRetries returns the value of Retries.
-func (s *DaemonProfileSandboxResumeCommandsItem1) GetRetries() OptInt {
-	return s.Retries
-}
-
-// GetRetryBackoffMs returns the value of RetryBackoffMs.
-func (s *DaemonProfileSandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
-	return s.RetryBackoffMs
-}
-
-// GetRun returns the value of Run.
-func (s *DaemonProfileSandboxResumeCommandsItem1) GetRun() string {
-	return s.Run
-}
-
-// GetWhen returns the value of When.
-func (s *DaemonProfileSandboxResumeCommandsItem1) GetWhen() OptDaemonProfileSandboxResumeCommandsItem1When {
-	return s.When
-}
-
-// SetRetries sets the value of Retries.
-func (s *DaemonProfileSandboxResumeCommandsItem1) SetRetries(val OptInt) {
-	s.Retries = val
-}
-
-// SetRetryBackoffMs sets the value of RetryBackoffMs.
-func (s *DaemonProfileSandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
-	s.RetryBackoffMs = val
-}
-
-// SetRun sets the value of Run.
-func (s *DaemonProfileSandboxResumeCommandsItem1) SetRun(val string) {
-	s.Run = val
-}
-
-// SetWhen sets the value of When.
-func (s *DaemonProfileSandboxResumeCommandsItem1) SetWhen(val OptDaemonProfileSandboxResumeCommandsItem1When) {
-	s.When = val
-}
-
-type DaemonProfileSandboxResumeCommandsItem1When struct {
-	WorkspaceMode []DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
-}
-
-// GetWorkspaceMode returns the value of WorkspaceMode.
-func (s *DaemonProfileSandboxResumeCommandsItem1When) GetWorkspaceMode() []DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return s.WorkspaceMode
-}
-
-// SetWorkspaceMode sets the value of WorkspaceMode.
-func (s *DaemonProfileSandboxResumeCommandsItem1When) SetWorkspaceMode(val []DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) {
-	s.WorkspaceMode = val
-}
-
-type DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem string
-
-const (
-	DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
-	DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
-	DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
-)
-
-// AllValues returns all DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem values.
-func (DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return []DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem{
-		DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
-		DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
-		DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		return []byte(s), nil
-	case DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		return []byte(s), nil
-	case DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
-	switch DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
-	case DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		*s = DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
-		return nil
-	case DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		*s = DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
-		return nil
-	case DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		*s = DaemonProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type DaemonProfileSandboxSnapshot struct {
-	AllowedHosts  []string  `json:"allowedHosts"`
-	OverlaySize   OptString `json:"overlaySize"`
-	SetupCommands []string  `json:"setupCommands"`
-}
-
-// GetAllowedHosts returns the value of AllowedHosts.
-func (s *DaemonProfileSandboxSnapshot) GetAllowedHosts() []string {
-	return s.AllowedHosts
-}
-
-// GetOverlaySize returns the value of OverlaySize.
-func (s *DaemonProfileSandboxSnapshot) GetOverlaySize() OptString {
-	return s.OverlaySize
-}
-
-// GetSetupCommands returns the value of SetupCommands.
-func (s *DaemonProfileSandboxSnapshot) GetSetupCommands() []string {
-	return s.SetupCommands
-}
-
-// SetAllowedHosts sets the value of AllowedHosts.
-func (s *DaemonProfileSandboxSnapshot) SetAllowedHosts(val []string) {
-	s.AllowedHosts = val
-}
-
-// SetOverlaySize sets the value of OverlaySize.
-func (s *DaemonProfileSandboxSnapshot) SetOverlaySize(val OptString) {
-	s.OverlaySize = val
-}
-
-// SetSetupCommands sets the value of SetupCommands.
-func (s *DaemonProfileSandboxSnapshot) SetSetupCommands(val []string) {
-	s.SetupCommands = val
-}
-
-type DaemonProfileSandboxVfs struct {
-	Shadow     []string                             `json:"shadow"`
-	ShadowMode OptDaemonProfileSandboxVfsShadowMode `json:"shadowMode"`
-}
-
-// GetShadow returns the value of Shadow.
-func (s *DaemonProfileSandboxVfs) GetShadow() []string {
-	return s.Shadow
-}
-
-// GetShadowMode returns the value of ShadowMode.
-func (s *DaemonProfileSandboxVfs) GetShadowMode() OptDaemonProfileSandboxVfsShadowMode {
-	return s.ShadowMode
-}
-
-// SetShadow sets the value of Shadow.
-func (s *DaemonProfileSandboxVfs) SetShadow(val []string) {
-	s.Shadow = val
-}
-
-// SetShadowMode sets the value of ShadowMode.
-func (s *DaemonProfileSandboxVfs) SetShadowMode(val OptDaemonProfileSandboxVfsShadowMode) {
-	s.ShadowMode = val
-}
-
-type DaemonProfileSandboxVfsShadowMode string
-
-const (
-	DaemonProfileSandboxVfsShadowModeDeny  DaemonProfileSandboxVfsShadowMode = "deny"
-	DaemonProfileSandboxVfsShadowModeTmpfs DaemonProfileSandboxVfsShadowMode = "tmpfs"
-)
-
-// AllValues returns all DaemonProfileSandboxVfsShadowMode values.
-func (DaemonProfileSandboxVfsShadowMode) AllValues() []DaemonProfileSandboxVfsShadowMode {
-	return []DaemonProfileSandboxVfsShadowMode{
-		DaemonProfileSandboxVfsShadowModeDeny,
-		DaemonProfileSandboxVfsShadowModeTmpfs,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileSandboxVfsShadowMode) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileSandboxVfsShadowModeDeny:
-		return []byte(s), nil
-	case DaemonProfileSandboxVfsShadowModeTmpfs:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileSandboxVfsShadowMode) UnmarshalText(data []byte) error {
-	switch DaemonProfileSandboxVfsShadowMode(data) {
-	case DaemonProfileSandboxVfsShadowModeDeny:
-		*s = DaemonProfileSandboxVfsShadowModeDeny
-		return nil
-	case DaemonProfileSandboxVfsShadowModeTmpfs:
-		*s = DaemonProfileSandboxVfsShadowModeTmpfs
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type DaemonProfileSessionStorageMode string
-
-const (
-	DaemonProfileSessionStorageModeLocal DaemonProfileSessionStorageMode = "local"
-)
-
-// AllValues returns all DaemonProfileSessionStorageMode values.
-func (DaemonProfileSessionStorageMode) AllValues() []DaemonProfileSessionStorageMode {
-	return []DaemonProfileSessionStorageMode{
-		DaemonProfileSessionStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileSessionStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileSessionStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileSessionStorageMode) UnmarshalText(data []byte) error {
-	switch DaemonProfileSessionStorageMode(data) {
-	case DaemonProfileSessionStorageModeLocal:
-		*s = DaemonProfileSessionStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type DaemonProfileWorkspaceStorageMode string
-
-const (
-	DaemonProfileWorkspaceStorageModeLocal DaemonProfileWorkspaceStorageMode = "local"
-)
-
-// AllValues returns all DaemonProfileWorkspaceStorageMode values.
-func (DaemonProfileWorkspaceStorageMode) AllValues() []DaemonProfileWorkspaceStorageMode {
-	return []DaemonProfileWorkspaceStorageMode{
-		DaemonProfileWorkspaceStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DaemonProfileWorkspaceStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case DaemonProfileWorkspaceStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DaemonProfileWorkspaceStorageMode) UnmarshalText(data []byte) error {
-	switch DaemonProfileWorkspaceStorageMode(data) {
-	case DaemonProfileWorkspaceStorageModeLocal:
-		*s = DaemonProfileWorkspaceStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/DaemonState
 type DaemonState struct {
 	ReportedAt         time.Time   `json:"reportedAt"`
@@ -6132,23 +4352,6 @@ func (s *DaemonState) SetReportedAt(val time.Time) {
 func (s *DaemonState) SetSlotResumableUntil(val NilDateTime) {
 	s.SlotResumableUntil = val
 }
-
-type DeleteDaemonProfileForbidden ProblemDetails
-
-func (*DeleteDaemonProfileForbidden) deleteDaemonProfileRes() {}
-
-// DeleteDaemonProfileNoContent is response for DeleteDaemonProfile operation.
-type DeleteDaemonProfileNoContent struct{}
-
-func (*DeleteDaemonProfileNoContent) deleteDaemonProfileRes() {}
-
-type DeleteDaemonProfileNotFound ProblemDetails
-
-func (*DeleteDaemonProfileNotFound) deleteDaemonProfileRes() {}
-
-type DeleteDaemonProfileUnauthorized ProblemDetails
-
-func (*DeleteDaemonProfileUnauthorized) deleteDaemonProfileRes() {}
 
 type DeleteDiaryBadRequest ProblemDetails
 
@@ -6246,6 +4449,23 @@ func (*DeleteGroupOK) deleteGroupRes() {}
 type DeleteGroupUnauthorized ProblemDetails
 
 func (*DeleteGroupUnauthorized) deleteGroupRes() {}
+
+type DeleteRuntimeProfileForbidden ProblemDetails
+
+func (*DeleteRuntimeProfileForbidden) deleteRuntimeProfileRes() {}
+
+// DeleteRuntimeProfileNoContent is response for DeleteRuntimeProfile operation.
+type DeleteRuntimeProfileNoContent struct{}
+
+func (*DeleteRuntimeProfileNoContent) deleteRuntimeProfileRes() {}
+
+type DeleteRuntimeProfileNotFound ProblemDetails
+
+func (*DeleteRuntimeProfileNotFound) deleteRuntimeProfileRes() {}
+
+type DeleteRuntimeProfileUnauthorized ProblemDetails
+
+func (*DeleteRuntimeProfileUnauthorized) deleteRuntimeProfileRes() {}
 
 type DeleteTeamBadRequest ProblemDetails
 
@@ -10657,14 +8877,6 @@ type GetCryptoIdentityUnauthorized ProblemDetails
 
 func (*GetCryptoIdentityUnauthorized) getCryptoIdentityRes() {}
 
-type GetDaemonProfileNotFound ProblemDetails
-
-func (*GetDaemonProfileNotFound) getDaemonProfileRes() {}
-
-type GetDaemonProfileUnauthorized ProblemDetails
-
-func (*GetDaemonProfileUnauthorized) getDaemonProfileRes() {}
-
 type GetDiaryBadRequest ProblemDetails
 
 func (*GetDiaryBadRequest) getDiaryRes() {}
@@ -11482,6 +9694,14 @@ func (*GetRenderedPackByIdNotFound) getRenderedPackByIdRes() {}
 type GetRenderedPackByIdUnauthorized ProblemDetails
 
 func (*GetRenderedPackByIdUnauthorized) getRenderedPackByIdRes() {}
+
+type GetRuntimeProfileNotFound ProblemDetails
+
+func (*GetRuntimeProfileNotFound) getRuntimeProfileRes() {}
+
+type GetRuntimeProfileUnauthorized ProblemDetails
+
+func (*GetRuntimeProfileUnauthorized) getRuntimeProfileRes() {}
 
 type GetSigningRequestBadRequest ProblemDetails
 
@@ -12303,18 +10523,6 @@ type ListContextPacksUnauthorized ProblemDetails
 
 func (*ListContextPacksUnauthorized) listContextPacksRes() {}
 
-type ListDaemonProfilesForbidden ProblemDetails
-
-func (*ListDaemonProfilesForbidden) listDaemonProfilesRes() {}
-
-type ListDaemonProfilesNotFound ProblemDetails
-
-func (*ListDaemonProfilesNotFound) listDaemonProfilesRes() {}
-
-type ListDaemonProfilesUnauthorized ProblemDetails
-
-func (*ListDaemonProfilesUnauthorized) listDaemonProfilesRes() {}
-
 type ListDiariesBadRequest ProblemDetails
 
 func (*ListDiariesBadRequest) listDiariesRes() {}
@@ -13105,6 +11313,18 @@ func (s *ListProblemTypesOKItem) SetTitle(val OptString) {
 func (s *ListProblemTypesOKItem) SetType(val OptURI) {
 	s.Type = val
 }
+
+type ListRuntimeProfilesForbidden ProblemDetails
+
+func (*ListRuntimeProfilesForbidden) listRuntimeProfilesRes() {}
+
+type ListRuntimeProfilesNotFound ProblemDetails
+
+func (*ListRuntimeProfilesNotFound) listRuntimeProfilesRes() {}
+
+type ListRuntimeProfilesUnauthorized ProblemDetails
+
+func (*ListRuntimeProfilesUnauthorized) listRuntimeProfilesRes() {}
 
 type ListSigningRequestsBadRequest ProblemDetails
 
@@ -15870,558 +14090,6 @@ func (o OptCompleteTaskReqExecutorManifest) Or(d CompleteTaskReqExecutorManifest
 	return d
 }
 
-// NewOptCreateDaemonProfileBody returns new OptCreateDaemonProfileBody with value set to v.
-func NewOptCreateDaemonProfileBody(v CreateDaemonProfileBody) OptCreateDaemonProfileBody {
-	return OptCreateDaemonProfileBody{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBody is optional CreateDaemonProfileBody.
-type OptCreateDaemonProfileBody struct {
-	Value CreateDaemonProfileBody
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBody was set.
-func (o OptCreateDaemonProfileBody) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBody) Reset() {
-	var v CreateDaemonProfileBody
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBody) SetTo(v CreateDaemonProfileBody) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBody) Get() (v CreateDaemonProfileBody, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBody) Or(d CreateDaemonProfileBody) CreateDaemonProfileBody {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodyRuntimeKind returns new OptCreateDaemonProfileBodyRuntimeKind with value set to v.
-func NewOptCreateDaemonProfileBodyRuntimeKind(v CreateDaemonProfileBodyRuntimeKind) OptCreateDaemonProfileBodyRuntimeKind {
-	return OptCreateDaemonProfileBodyRuntimeKind{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodyRuntimeKind is optional CreateDaemonProfileBodyRuntimeKind.
-type OptCreateDaemonProfileBodyRuntimeKind struct {
-	Value CreateDaemonProfileBodyRuntimeKind
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodyRuntimeKind was set.
-func (o OptCreateDaemonProfileBodyRuntimeKind) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodyRuntimeKind) Reset() {
-	var v CreateDaemonProfileBodyRuntimeKind
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodyRuntimeKind) SetTo(v CreateDaemonProfileBodyRuntimeKind) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodyRuntimeKind) Get() (v CreateDaemonProfileBodyRuntimeKind, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodyRuntimeKind) Or(d CreateDaemonProfileBodyRuntimeKind) CreateDaemonProfileBodyRuntimeKind {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodySandboxEnv returns new OptCreateDaemonProfileBodySandboxEnv with value set to v.
-func NewOptCreateDaemonProfileBodySandboxEnv(v CreateDaemonProfileBodySandboxEnv) OptCreateDaemonProfileBodySandboxEnv {
-	return OptCreateDaemonProfileBodySandboxEnv{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodySandboxEnv is optional CreateDaemonProfileBodySandboxEnv.
-type OptCreateDaemonProfileBodySandboxEnv struct {
-	Value CreateDaemonProfileBodySandboxEnv
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodySandboxEnv was set.
-func (o OptCreateDaemonProfileBodySandboxEnv) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodySandboxEnv) Reset() {
-	var v CreateDaemonProfileBodySandboxEnv
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodySandboxEnv) SetTo(v CreateDaemonProfileBodySandboxEnv) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodySandboxEnv) Get() (v CreateDaemonProfileBodySandboxEnv, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodySandboxEnv) Or(d CreateDaemonProfileBodySandboxEnv) CreateDaemonProfileBodySandboxEnv {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodySandboxHostExec returns new OptCreateDaemonProfileBodySandboxHostExec with value set to v.
-func NewOptCreateDaemonProfileBodySandboxHostExec(v CreateDaemonProfileBodySandboxHostExec) OptCreateDaemonProfileBodySandboxHostExec {
-	return OptCreateDaemonProfileBodySandboxHostExec{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodySandboxHostExec is optional CreateDaemonProfileBodySandboxHostExec.
-type OptCreateDaemonProfileBodySandboxHostExec struct {
-	Value CreateDaemonProfileBodySandboxHostExec
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodySandboxHostExec was set.
-func (o OptCreateDaemonProfileBodySandboxHostExec) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodySandboxHostExec) Reset() {
-	var v CreateDaemonProfileBodySandboxHostExec
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodySandboxHostExec) SetTo(v CreateDaemonProfileBodySandboxHostExec) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodySandboxHostExec) Get() (v CreateDaemonProfileBodySandboxHostExec, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodySandboxHostExec) Or(d CreateDaemonProfileBodySandboxHostExec) CreateDaemonProfileBodySandboxHostExec {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodySandboxHostExecAutoApprove returns new OptCreateDaemonProfileBodySandboxHostExecAutoApprove with value set to v.
-func NewOptCreateDaemonProfileBodySandboxHostExecAutoApprove(v CreateDaemonProfileBodySandboxHostExecAutoApprove) OptCreateDaemonProfileBodySandboxHostExecAutoApprove {
-	return OptCreateDaemonProfileBodySandboxHostExecAutoApprove{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodySandboxHostExecAutoApprove is optional CreateDaemonProfileBodySandboxHostExecAutoApprove.
-type OptCreateDaemonProfileBodySandboxHostExecAutoApprove struct {
-	Value CreateDaemonProfileBodySandboxHostExecAutoApprove
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodySandboxHostExecAutoApprove was set.
-func (o OptCreateDaemonProfileBodySandboxHostExecAutoApprove) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodySandboxHostExecAutoApprove) Reset() {
-	var v CreateDaemonProfileBodySandboxHostExecAutoApprove
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodySandboxHostExecAutoApprove) SetTo(v CreateDaemonProfileBodySandboxHostExecAutoApprove) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodySandboxHostExecAutoApprove) Get() (v CreateDaemonProfileBodySandboxHostExecAutoApprove, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodySandboxHostExecAutoApprove) Or(d CreateDaemonProfileBodySandboxHostExecAutoApprove) CreateDaemonProfileBodySandboxHostExecAutoApprove {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodySandboxResources returns new OptCreateDaemonProfileBodySandboxResources with value set to v.
-func NewOptCreateDaemonProfileBodySandboxResources(v CreateDaemonProfileBodySandboxResources) OptCreateDaemonProfileBodySandboxResources {
-	return OptCreateDaemonProfileBodySandboxResources{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodySandboxResources is optional CreateDaemonProfileBodySandboxResources.
-type OptCreateDaemonProfileBodySandboxResources struct {
-	Value CreateDaemonProfileBodySandboxResources
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodySandboxResources was set.
-func (o OptCreateDaemonProfileBodySandboxResources) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodySandboxResources) Reset() {
-	var v CreateDaemonProfileBodySandboxResources
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodySandboxResources) SetTo(v CreateDaemonProfileBodySandboxResources) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodySandboxResources) Get() (v CreateDaemonProfileBodySandboxResources, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodySandboxResources) Or(d CreateDaemonProfileBodySandboxResources) CreateDaemonProfileBodySandboxResources {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodySandboxResumeCommandsItem1When returns new OptCreateDaemonProfileBodySandboxResumeCommandsItem1When with value set to v.
-func NewOptCreateDaemonProfileBodySandboxResumeCommandsItem1When(v CreateDaemonProfileBodySandboxResumeCommandsItem1When) OptCreateDaemonProfileBodySandboxResumeCommandsItem1When {
-	return OptCreateDaemonProfileBodySandboxResumeCommandsItem1When{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodySandboxResumeCommandsItem1When is optional CreateDaemonProfileBodySandboxResumeCommandsItem1When.
-type OptCreateDaemonProfileBodySandboxResumeCommandsItem1When struct {
-	Value CreateDaemonProfileBodySandboxResumeCommandsItem1When
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodySandboxResumeCommandsItem1When was set.
-func (o OptCreateDaemonProfileBodySandboxResumeCommandsItem1When) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodySandboxResumeCommandsItem1When) Reset() {
-	var v CreateDaemonProfileBodySandboxResumeCommandsItem1When
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodySandboxResumeCommandsItem1When) SetTo(v CreateDaemonProfileBodySandboxResumeCommandsItem1When) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodySandboxResumeCommandsItem1When) Get() (v CreateDaemonProfileBodySandboxResumeCommandsItem1When, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodySandboxResumeCommandsItem1When) Or(d CreateDaemonProfileBodySandboxResumeCommandsItem1When) CreateDaemonProfileBodySandboxResumeCommandsItem1When {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodySandboxSnapshot returns new OptCreateDaemonProfileBodySandboxSnapshot with value set to v.
-func NewOptCreateDaemonProfileBodySandboxSnapshot(v CreateDaemonProfileBodySandboxSnapshot) OptCreateDaemonProfileBodySandboxSnapshot {
-	return OptCreateDaemonProfileBodySandboxSnapshot{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodySandboxSnapshot is optional CreateDaemonProfileBodySandboxSnapshot.
-type OptCreateDaemonProfileBodySandboxSnapshot struct {
-	Value CreateDaemonProfileBodySandboxSnapshot
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodySandboxSnapshot was set.
-func (o OptCreateDaemonProfileBodySandboxSnapshot) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodySandboxSnapshot) Reset() {
-	var v CreateDaemonProfileBodySandboxSnapshot
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodySandboxSnapshot) SetTo(v CreateDaemonProfileBodySandboxSnapshot) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodySandboxSnapshot) Get() (v CreateDaemonProfileBodySandboxSnapshot, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodySandboxSnapshot) Or(d CreateDaemonProfileBodySandboxSnapshot) CreateDaemonProfileBodySandboxSnapshot {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodySandboxVfs returns new OptCreateDaemonProfileBodySandboxVfs with value set to v.
-func NewOptCreateDaemonProfileBodySandboxVfs(v CreateDaemonProfileBodySandboxVfs) OptCreateDaemonProfileBodySandboxVfs {
-	return OptCreateDaemonProfileBodySandboxVfs{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodySandboxVfs is optional CreateDaemonProfileBodySandboxVfs.
-type OptCreateDaemonProfileBodySandboxVfs struct {
-	Value CreateDaemonProfileBodySandboxVfs
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodySandboxVfs was set.
-func (o OptCreateDaemonProfileBodySandboxVfs) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodySandboxVfs) Reset() {
-	var v CreateDaemonProfileBodySandboxVfs
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodySandboxVfs) SetTo(v CreateDaemonProfileBodySandboxVfs) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodySandboxVfs) Get() (v CreateDaemonProfileBodySandboxVfs, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodySandboxVfs) Or(d CreateDaemonProfileBodySandboxVfs) CreateDaemonProfileBodySandboxVfs {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodySandboxVfsShadowMode returns new OptCreateDaemonProfileBodySandboxVfsShadowMode with value set to v.
-func NewOptCreateDaemonProfileBodySandboxVfsShadowMode(v CreateDaemonProfileBodySandboxVfsShadowMode) OptCreateDaemonProfileBodySandboxVfsShadowMode {
-	return OptCreateDaemonProfileBodySandboxVfsShadowMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodySandboxVfsShadowMode is optional CreateDaemonProfileBodySandboxVfsShadowMode.
-type OptCreateDaemonProfileBodySandboxVfsShadowMode struct {
-	Value CreateDaemonProfileBodySandboxVfsShadowMode
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodySandboxVfsShadowMode was set.
-func (o OptCreateDaemonProfileBodySandboxVfsShadowMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodySandboxVfsShadowMode) Reset() {
-	var v CreateDaemonProfileBodySandboxVfsShadowMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodySandboxVfsShadowMode) SetTo(v CreateDaemonProfileBodySandboxVfsShadowMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodySandboxVfsShadowMode) Get() (v CreateDaemonProfileBodySandboxVfsShadowMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodySandboxVfsShadowMode) Or(d CreateDaemonProfileBodySandboxVfsShadowMode) CreateDaemonProfileBodySandboxVfsShadowMode {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodySessionStorageMode returns new OptCreateDaemonProfileBodySessionStorageMode with value set to v.
-func NewOptCreateDaemonProfileBodySessionStorageMode(v CreateDaemonProfileBodySessionStorageMode) OptCreateDaemonProfileBodySessionStorageMode {
-	return OptCreateDaemonProfileBodySessionStorageMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodySessionStorageMode is optional CreateDaemonProfileBodySessionStorageMode.
-type OptCreateDaemonProfileBodySessionStorageMode struct {
-	Value CreateDaemonProfileBodySessionStorageMode
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodySessionStorageMode was set.
-func (o OptCreateDaemonProfileBodySessionStorageMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodySessionStorageMode) Reset() {
-	var v CreateDaemonProfileBodySessionStorageMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodySessionStorageMode) SetTo(v CreateDaemonProfileBodySessionStorageMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodySessionStorageMode) Get() (v CreateDaemonProfileBodySessionStorageMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodySessionStorageMode) Or(d CreateDaemonProfileBodySessionStorageMode) CreateDaemonProfileBodySessionStorageMode {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateDaemonProfileBodyWorkspaceStorageMode returns new OptCreateDaemonProfileBodyWorkspaceStorageMode with value set to v.
-func NewOptCreateDaemonProfileBodyWorkspaceStorageMode(v CreateDaemonProfileBodyWorkspaceStorageMode) OptCreateDaemonProfileBodyWorkspaceStorageMode {
-	return OptCreateDaemonProfileBodyWorkspaceStorageMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateDaemonProfileBodyWorkspaceStorageMode is optional CreateDaemonProfileBodyWorkspaceStorageMode.
-type OptCreateDaemonProfileBodyWorkspaceStorageMode struct {
-	Value CreateDaemonProfileBodyWorkspaceStorageMode
-	Set   bool
-}
-
-// IsSet returns true if OptCreateDaemonProfileBodyWorkspaceStorageMode was set.
-func (o OptCreateDaemonProfileBodyWorkspaceStorageMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateDaemonProfileBodyWorkspaceStorageMode) Reset() {
-	var v CreateDaemonProfileBodyWorkspaceStorageMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateDaemonProfileBodyWorkspaceStorageMode) SetTo(v CreateDaemonProfileBodyWorkspaceStorageMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateDaemonProfileBodyWorkspaceStorageMode) Get() (v CreateDaemonProfileBodyWorkspaceStorageMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateDaemonProfileBodyWorkspaceStorageMode) Or(d CreateDaemonProfileBodyWorkspaceStorageMode) CreateDaemonProfileBodyWorkspaceStorageMode {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptCreateDiaryEntryReqEntryType returns new OptCreateDiaryEntryReqEntryType with value set to v.
 func NewOptCreateDiaryEntryReqEntryType(v CreateDiaryEntryReqEntryType) OptCreateDiaryEntryReqEntryType {
 	return OptCreateDiaryEntryReqEntryType{
@@ -16560,6 +14228,558 @@ func (o OptCreateEntryRelationReqStatus) Or(d CreateEntryRelationReqStatus) Crea
 	return d
 }
 
+// NewOptCreateRuntimeProfileBody returns new OptCreateRuntimeProfileBody with value set to v.
+func NewOptCreateRuntimeProfileBody(v CreateRuntimeProfileBody) OptCreateRuntimeProfileBody {
+	return OptCreateRuntimeProfileBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBody is optional CreateRuntimeProfileBody.
+type OptCreateRuntimeProfileBody struct {
+	Value CreateRuntimeProfileBody
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBody was set.
+func (o OptCreateRuntimeProfileBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBody) Reset() {
+	var v CreateRuntimeProfileBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBody) SetTo(v CreateRuntimeProfileBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBody) Get() (v CreateRuntimeProfileBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBody) Or(d CreateRuntimeProfileBody) CreateRuntimeProfileBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodyRuntimeKind returns new OptCreateRuntimeProfileBodyRuntimeKind with value set to v.
+func NewOptCreateRuntimeProfileBodyRuntimeKind(v CreateRuntimeProfileBodyRuntimeKind) OptCreateRuntimeProfileBodyRuntimeKind {
+	return OptCreateRuntimeProfileBodyRuntimeKind{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodyRuntimeKind is optional CreateRuntimeProfileBodyRuntimeKind.
+type OptCreateRuntimeProfileBodyRuntimeKind struct {
+	Value CreateRuntimeProfileBodyRuntimeKind
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodyRuntimeKind was set.
+func (o OptCreateRuntimeProfileBodyRuntimeKind) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodyRuntimeKind) Reset() {
+	var v CreateRuntimeProfileBodyRuntimeKind
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodyRuntimeKind) SetTo(v CreateRuntimeProfileBodyRuntimeKind) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodyRuntimeKind) Get() (v CreateRuntimeProfileBodyRuntimeKind, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodyRuntimeKind) Or(d CreateRuntimeProfileBodyRuntimeKind) CreateRuntimeProfileBodyRuntimeKind {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodySandboxEnv returns new OptCreateRuntimeProfileBodySandboxEnv with value set to v.
+func NewOptCreateRuntimeProfileBodySandboxEnv(v CreateRuntimeProfileBodySandboxEnv) OptCreateRuntimeProfileBodySandboxEnv {
+	return OptCreateRuntimeProfileBodySandboxEnv{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodySandboxEnv is optional CreateRuntimeProfileBodySandboxEnv.
+type OptCreateRuntimeProfileBodySandboxEnv struct {
+	Value CreateRuntimeProfileBodySandboxEnv
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodySandboxEnv was set.
+func (o OptCreateRuntimeProfileBodySandboxEnv) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodySandboxEnv) Reset() {
+	var v CreateRuntimeProfileBodySandboxEnv
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodySandboxEnv) SetTo(v CreateRuntimeProfileBodySandboxEnv) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodySandboxEnv) Get() (v CreateRuntimeProfileBodySandboxEnv, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodySandboxEnv) Or(d CreateRuntimeProfileBodySandboxEnv) CreateRuntimeProfileBodySandboxEnv {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodySandboxHostExec returns new OptCreateRuntimeProfileBodySandboxHostExec with value set to v.
+func NewOptCreateRuntimeProfileBodySandboxHostExec(v CreateRuntimeProfileBodySandboxHostExec) OptCreateRuntimeProfileBodySandboxHostExec {
+	return OptCreateRuntimeProfileBodySandboxHostExec{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodySandboxHostExec is optional CreateRuntimeProfileBodySandboxHostExec.
+type OptCreateRuntimeProfileBodySandboxHostExec struct {
+	Value CreateRuntimeProfileBodySandboxHostExec
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodySandboxHostExec was set.
+func (o OptCreateRuntimeProfileBodySandboxHostExec) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodySandboxHostExec) Reset() {
+	var v CreateRuntimeProfileBodySandboxHostExec
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodySandboxHostExec) SetTo(v CreateRuntimeProfileBodySandboxHostExec) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodySandboxHostExec) Get() (v CreateRuntimeProfileBodySandboxHostExec, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodySandboxHostExec) Or(d CreateRuntimeProfileBodySandboxHostExec) CreateRuntimeProfileBodySandboxHostExec {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodySandboxHostExecAutoApprove returns new OptCreateRuntimeProfileBodySandboxHostExecAutoApprove with value set to v.
+func NewOptCreateRuntimeProfileBodySandboxHostExecAutoApprove(v CreateRuntimeProfileBodySandboxHostExecAutoApprove) OptCreateRuntimeProfileBodySandboxHostExecAutoApprove {
+	return OptCreateRuntimeProfileBodySandboxHostExecAutoApprove{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodySandboxHostExecAutoApprove is optional CreateRuntimeProfileBodySandboxHostExecAutoApprove.
+type OptCreateRuntimeProfileBodySandboxHostExecAutoApprove struct {
+	Value CreateRuntimeProfileBodySandboxHostExecAutoApprove
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodySandboxHostExecAutoApprove was set.
+func (o OptCreateRuntimeProfileBodySandboxHostExecAutoApprove) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodySandboxHostExecAutoApprove) Reset() {
+	var v CreateRuntimeProfileBodySandboxHostExecAutoApprove
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodySandboxHostExecAutoApprove) SetTo(v CreateRuntimeProfileBodySandboxHostExecAutoApprove) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodySandboxHostExecAutoApprove) Get() (v CreateRuntimeProfileBodySandboxHostExecAutoApprove, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodySandboxHostExecAutoApprove) Or(d CreateRuntimeProfileBodySandboxHostExecAutoApprove) CreateRuntimeProfileBodySandboxHostExecAutoApprove {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodySandboxResources returns new OptCreateRuntimeProfileBodySandboxResources with value set to v.
+func NewOptCreateRuntimeProfileBodySandboxResources(v CreateRuntimeProfileBodySandboxResources) OptCreateRuntimeProfileBodySandboxResources {
+	return OptCreateRuntimeProfileBodySandboxResources{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodySandboxResources is optional CreateRuntimeProfileBodySandboxResources.
+type OptCreateRuntimeProfileBodySandboxResources struct {
+	Value CreateRuntimeProfileBodySandboxResources
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodySandboxResources was set.
+func (o OptCreateRuntimeProfileBodySandboxResources) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodySandboxResources) Reset() {
+	var v CreateRuntimeProfileBodySandboxResources
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodySandboxResources) SetTo(v CreateRuntimeProfileBodySandboxResources) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodySandboxResources) Get() (v CreateRuntimeProfileBodySandboxResources, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodySandboxResources) Or(d CreateRuntimeProfileBodySandboxResources) CreateRuntimeProfileBodySandboxResources {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodySandboxResumeCommandsItem1When returns new OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When with value set to v.
+func NewOptCreateRuntimeProfileBodySandboxResumeCommandsItem1When(v CreateRuntimeProfileBodySandboxResumeCommandsItem1When) OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When {
+	return OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When is optional CreateRuntimeProfileBodySandboxResumeCommandsItem1When.
+type OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When struct {
+	Value CreateRuntimeProfileBodySandboxResumeCommandsItem1When
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When was set.
+func (o OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) Reset() {
+	var v CreateRuntimeProfileBodySandboxResumeCommandsItem1When
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) SetTo(v CreateRuntimeProfileBodySandboxResumeCommandsItem1When) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) Get() (v CreateRuntimeProfileBodySandboxResumeCommandsItem1When, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) Or(d CreateRuntimeProfileBodySandboxResumeCommandsItem1When) CreateRuntimeProfileBodySandboxResumeCommandsItem1When {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodySandboxSnapshot returns new OptCreateRuntimeProfileBodySandboxSnapshot with value set to v.
+func NewOptCreateRuntimeProfileBodySandboxSnapshot(v CreateRuntimeProfileBodySandboxSnapshot) OptCreateRuntimeProfileBodySandboxSnapshot {
+	return OptCreateRuntimeProfileBodySandboxSnapshot{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodySandboxSnapshot is optional CreateRuntimeProfileBodySandboxSnapshot.
+type OptCreateRuntimeProfileBodySandboxSnapshot struct {
+	Value CreateRuntimeProfileBodySandboxSnapshot
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodySandboxSnapshot was set.
+func (o OptCreateRuntimeProfileBodySandboxSnapshot) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodySandboxSnapshot) Reset() {
+	var v CreateRuntimeProfileBodySandboxSnapshot
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodySandboxSnapshot) SetTo(v CreateRuntimeProfileBodySandboxSnapshot) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodySandboxSnapshot) Get() (v CreateRuntimeProfileBodySandboxSnapshot, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodySandboxSnapshot) Or(d CreateRuntimeProfileBodySandboxSnapshot) CreateRuntimeProfileBodySandboxSnapshot {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodySandboxVfs returns new OptCreateRuntimeProfileBodySandboxVfs with value set to v.
+func NewOptCreateRuntimeProfileBodySandboxVfs(v CreateRuntimeProfileBodySandboxVfs) OptCreateRuntimeProfileBodySandboxVfs {
+	return OptCreateRuntimeProfileBodySandboxVfs{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodySandboxVfs is optional CreateRuntimeProfileBodySandboxVfs.
+type OptCreateRuntimeProfileBodySandboxVfs struct {
+	Value CreateRuntimeProfileBodySandboxVfs
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodySandboxVfs was set.
+func (o OptCreateRuntimeProfileBodySandboxVfs) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodySandboxVfs) Reset() {
+	var v CreateRuntimeProfileBodySandboxVfs
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodySandboxVfs) SetTo(v CreateRuntimeProfileBodySandboxVfs) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodySandboxVfs) Get() (v CreateRuntimeProfileBodySandboxVfs, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodySandboxVfs) Or(d CreateRuntimeProfileBodySandboxVfs) CreateRuntimeProfileBodySandboxVfs {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodySandboxVfsShadowMode returns new OptCreateRuntimeProfileBodySandboxVfsShadowMode with value set to v.
+func NewOptCreateRuntimeProfileBodySandboxVfsShadowMode(v CreateRuntimeProfileBodySandboxVfsShadowMode) OptCreateRuntimeProfileBodySandboxVfsShadowMode {
+	return OptCreateRuntimeProfileBodySandboxVfsShadowMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodySandboxVfsShadowMode is optional CreateRuntimeProfileBodySandboxVfsShadowMode.
+type OptCreateRuntimeProfileBodySandboxVfsShadowMode struct {
+	Value CreateRuntimeProfileBodySandboxVfsShadowMode
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodySandboxVfsShadowMode was set.
+func (o OptCreateRuntimeProfileBodySandboxVfsShadowMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodySandboxVfsShadowMode) Reset() {
+	var v CreateRuntimeProfileBodySandboxVfsShadowMode
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodySandboxVfsShadowMode) SetTo(v CreateRuntimeProfileBodySandboxVfsShadowMode) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodySandboxVfsShadowMode) Get() (v CreateRuntimeProfileBodySandboxVfsShadowMode, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodySandboxVfsShadowMode) Or(d CreateRuntimeProfileBodySandboxVfsShadowMode) CreateRuntimeProfileBodySandboxVfsShadowMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodySessionStorageMode returns new OptCreateRuntimeProfileBodySessionStorageMode with value set to v.
+func NewOptCreateRuntimeProfileBodySessionStorageMode(v CreateRuntimeProfileBodySessionStorageMode) OptCreateRuntimeProfileBodySessionStorageMode {
+	return OptCreateRuntimeProfileBodySessionStorageMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodySessionStorageMode is optional CreateRuntimeProfileBodySessionStorageMode.
+type OptCreateRuntimeProfileBodySessionStorageMode struct {
+	Value CreateRuntimeProfileBodySessionStorageMode
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodySessionStorageMode was set.
+func (o OptCreateRuntimeProfileBodySessionStorageMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodySessionStorageMode) Reset() {
+	var v CreateRuntimeProfileBodySessionStorageMode
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodySessionStorageMode) SetTo(v CreateRuntimeProfileBodySessionStorageMode) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodySessionStorageMode) Get() (v CreateRuntimeProfileBodySessionStorageMode, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodySessionStorageMode) Or(d CreateRuntimeProfileBodySessionStorageMode) CreateRuntimeProfileBodySessionStorageMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodyWorkspaceStorageMode returns new OptCreateRuntimeProfileBodyWorkspaceStorageMode with value set to v.
+func NewOptCreateRuntimeProfileBodyWorkspaceStorageMode(v CreateRuntimeProfileBodyWorkspaceStorageMode) OptCreateRuntimeProfileBodyWorkspaceStorageMode {
+	return OptCreateRuntimeProfileBodyWorkspaceStorageMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodyWorkspaceStorageMode is optional CreateRuntimeProfileBodyWorkspaceStorageMode.
+type OptCreateRuntimeProfileBodyWorkspaceStorageMode struct {
+	Value CreateRuntimeProfileBodyWorkspaceStorageMode
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodyWorkspaceStorageMode was set.
+func (o OptCreateRuntimeProfileBodyWorkspaceStorageMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodyWorkspaceStorageMode) Reset() {
+	var v CreateRuntimeProfileBodyWorkspaceStorageMode
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodyWorkspaceStorageMode) SetTo(v CreateRuntimeProfileBodyWorkspaceStorageMode) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodyWorkspaceStorageMode) Get() (v CreateRuntimeProfileBodyWorkspaceStorageMode, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodyWorkspaceStorageMode) Or(d CreateRuntimeProfileBodyWorkspaceStorageMode) CreateRuntimeProfileBodyWorkspaceStorageMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptCreateTeamInviteReq returns new OptCreateTeamInviteReq with value set to v.
 func NewOptCreateTeamInviteReq(v CreateTeamInviteReq) OptCreateTeamInviteReq {
 	return OptCreateTeamInviteReq{
@@ -16646,744 +14866,6 @@ func (o OptCreateTeamInviteReqRole) Get() (v CreateTeamInviteReqRole, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCreateTeamInviteReqRole) Or(d CreateTeamInviteReqRole) CreateTeamInviteReqRole {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileListResponseItemsItemSandboxEnv returns new OptDaemonProfileListResponseItemsItemSandboxEnv with value set to v.
-func NewOptDaemonProfileListResponseItemsItemSandboxEnv(v DaemonProfileListResponseItemsItemSandboxEnv) OptDaemonProfileListResponseItemsItemSandboxEnv {
-	return OptDaemonProfileListResponseItemsItemSandboxEnv{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileListResponseItemsItemSandboxEnv is optional DaemonProfileListResponseItemsItemSandboxEnv.
-type OptDaemonProfileListResponseItemsItemSandboxEnv struct {
-	Value DaemonProfileListResponseItemsItemSandboxEnv
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileListResponseItemsItemSandboxEnv was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxEnv) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileListResponseItemsItemSandboxEnv) Reset() {
-	var v DaemonProfileListResponseItemsItemSandboxEnv
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileListResponseItemsItemSandboxEnv) SetTo(v DaemonProfileListResponseItemsItemSandboxEnv) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxEnv) Get() (v DaemonProfileListResponseItemsItemSandboxEnv, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileListResponseItemsItemSandboxEnv) Or(d DaemonProfileListResponseItemsItemSandboxEnv) DaemonProfileListResponseItemsItemSandboxEnv {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileListResponseItemsItemSandboxHostExec returns new OptDaemonProfileListResponseItemsItemSandboxHostExec with value set to v.
-func NewOptDaemonProfileListResponseItemsItemSandboxHostExec(v DaemonProfileListResponseItemsItemSandboxHostExec) OptDaemonProfileListResponseItemsItemSandboxHostExec {
-	return OptDaemonProfileListResponseItemsItemSandboxHostExec{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileListResponseItemsItemSandboxHostExec is optional DaemonProfileListResponseItemsItemSandboxHostExec.
-type OptDaemonProfileListResponseItemsItemSandboxHostExec struct {
-	Value DaemonProfileListResponseItemsItemSandboxHostExec
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileListResponseItemsItemSandboxHostExec was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxHostExec) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileListResponseItemsItemSandboxHostExec) Reset() {
-	var v DaemonProfileListResponseItemsItemSandboxHostExec
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileListResponseItemsItemSandboxHostExec) SetTo(v DaemonProfileListResponseItemsItemSandboxHostExec) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxHostExec) Get() (v DaemonProfileListResponseItemsItemSandboxHostExec, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileListResponseItemsItemSandboxHostExec) Or(d DaemonProfileListResponseItemsItemSandboxHostExec) DaemonProfileListResponseItemsItemSandboxHostExec {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove returns new OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove with value set to v.
-func NewOptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove(v DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove {
-	return OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove is optional DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove.
-type OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove struct {
-	Value DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) Reset() {
-	var v DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) SetTo(v DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) Get() (v DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) Or(d DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove) DaemonProfileListResponseItemsItemSandboxHostExecAutoApprove {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileListResponseItemsItemSandboxResources returns new OptDaemonProfileListResponseItemsItemSandboxResources with value set to v.
-func NewOptDaemonProfileListResponseItemsItemSandboxResources(v DaemonProfileListResponseItemsItemSandboxResources) OptDaemonProfileListResponseItemsItemSandboxResources {
-	return OptDaemonProfileListResponseItemsItemSandboxResources{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileListResponseItemsItemSandboxResources is optional DaemonProfileListResponseItemsItemSandboxResources.
-type OptDaemonProfileListResponseItemsItemSandboxResources struct {
-	Value DaemonProfileListResponseItemsItemSandboxResources
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileListResponseItemsItemSandboxResources was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxResources) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileListResponseItemsItemSandboxResources) Reset() {
-	var v DaemonProfileListResponseItemsItemSandboxResources
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileListResponseItemsItemSandboxResources) SetTo(v DaemonProfileListResponseItemsItemSandboxResources) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxResources) Get() (v DaemonProfileListResponseItemsItemSandboxResources, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileListResponseItemsItemSandboxResources) Or(d DaemonProfileListResponseItemsItemSandboxResources) DaemonProfileListResponseItemsItemSandboxResources {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When returns new OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When with value set to v.
-func NewOptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When(v DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When {
-	return OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When is optional DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When.
-type OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When struct {
-	Value DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) IsSet() bool {
-	return o.Set
-}
-
-// Reset unsets value.
-func (o *OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) Reset() {
-	var v DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) SetTo(v DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) Get() (v DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) Or(d DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When) DaemonProfileListResponseItemsItemSandboxResumeCommandsItem1When {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileListResponseItemsItemSandboxSnapshot returns new OptDaemonProfileListResponseItemsItemSandboxSnapshot with value set to v.
-func NewOptDaemonProfileListResponseItemsItemSandboxSnapshot(v DaemonProfileListResponseItemsItemSandboxSnapshot) OptDaemonProfileListResponseItemsItemSandboxSnapshot {
-	return OptDaemonProfileListResponseItemsItemSandboxSnapshot{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileListResponseItemsItemSandboxSnapshot is optional DaemonProfileListResponseItemsItemSandboxSnapshot.
-type OptDaemonProfileListResponseItemsItemSandboxSnapshot struct {
-	Value DaemonProfileListResponseItemsItemSandboxSnapshot
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileListResponseItemsItemSandboxSnapshot was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxSnapshot) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileListResponseItemsItemSandboxSnapshot) Reset() {
-	var v DaemonProfileListResponseItemsItemSandboxSnapshot
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileListResponseItemsItemSandboxSnapshot) SetTo(v DaemonProfileListResponseItemsItemSandboxSnapshot) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxSnapshot) Get() (v DaemonProfileListResponseItemsItemSandboxSnapshot, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileListResponseItemsItemSandboxSnapshot) Or(d DaemonProfileListResponseItemsItemSandboxSnapshot) DaemonProfileListResponseItemsItemSandboxSnapshot {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileListResponseItemsItemSandboxVfs returns new OptDaemonProfileListResponseItemsItemSandboxVfs with value set to v.
-func NewOptDaemonProfileListResponseItemsItemSandboxVfs(v DaemonProfileListResponseItemsItemSandboxVfs) OptDaemonProfileListResponseItemsItemSandboxVfs {
-	return OptDaemonProfileListResponseItemsItemSandboxVfs{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileListResponseItemsItemSandboxVfs is optional DaemonProfileListResponseItemsItemSandboxVfs.
-type OptDaemonProfileListResponseItemsItemSandboxVfs struct {
-	Value DaemonProfileListResponseItemsItemSandboxVfs
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileListResponseItemsItemSandboxVfs was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxVfs) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileListResponseItemsItemSandboxVfs) Reset() {
-	var v DaemonProfileListResponseItemsItemSandboxVfs
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileListResponseItemsItemSandboxVfs) SetTo(v DaemonProfileListResponseItemsItemSandboxVfs) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxVfs) Get() (v DaemonProfileListResponseItemsItemSandboxVfs, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileListResponseItemsItemSandboxVfs) Or(d DaemonProfileListResponseItemsItemSandboxVfs) DaemonProfileListResponseItemsItemSandboxVfs {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileListResponseItemsItemSandboxVfsShadowMode returns new OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode with value set to v.
-func NewOptDaemonProfileListResponseItemsItemSandboxVfsShadowMode(v DaemonProfileListResponseItemsItemSandboxVfsShadowMode) OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode {
-	return OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode is optional DaemonProfileListResponseItemsItemSandboxVfsShadowMode.
-type OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode struct {
-	Value DaemonProfileListResponseItemsItemSandboxVfsShadowMode
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode) Reset() {
-	var v DaemonProfileListResponseItemsItemSandboxVfsShadowMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode) SetTo(v DaemonProfileListResponseItemsItemSandboxVfsShadowMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode) Get() (v DaemonProfileListResponseItemsItemSandboxVfsShadowMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileListResponseItemsItemSandboxVfsShadowMode) Or(d DaemonProfileListResponseItemsItemSandboxVfsShadowMode) DaemonProfileListResponseItemsItemSandboxVfsShadowMode {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileSandboxEnv returns new OptDaemonProfileSandboxEnv with value set to v.
-func NewOptDaemonProfileSandboxEnv(v DaemonProfileSandboxEnv) OptDaemonProfileSandboxEnv {
-	return OptDaemonProfileSandboxEnv{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileSandboxEnv is optional DaemonProfileSandboxEnv.
-type OptDaemonProfileSandboxEnv struct {
-	Value DaemonProfileSandboxEnv
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileSandboxEnv was set.
-func (o OptDaemonProfileSandboxEnv) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileSandboxEnv) Reset() {
-	var v DaemonProfileSandboxEnv
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileSandboxEnv) SetTo(v DaemonProfileSandboxEnv) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileSandboxEnv) Get() (v DaemonProfileSandboxEnv, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileSandboxEnv) Or(d DaemonProfileSandboxEnv) DaemonProfileSandboxEnv {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileSandboxHostExec returns new OptDaemonProfileSandboxHostExec with value set to v.
-func NewOptDaemonProfileSandboxHostExec(v DaemonProfileSandboxHostExec) OptDaemonProfileSandboxHostExec {
-	return OptDaemonProfileSandboxHostExec{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileSandboxHostExec is optional DaemonProfileSandboxHostExec.
-type OptDaemonProfileSandboxHostExec struct {
-	Value DaemonProfileSandboxHostExec
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileSandboxHostExec was set.
-func (o OptDaemonProfileSandboxHostExec) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileSandboxHostExec) Reset() {
-	var v DaemonProfileSandboxHostExec
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileSandboxHostExec) SetTo(v DaemonProfileSandboxHostExec) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileSandboxHostExec) Get() (v DaemonProfileSandboxHostExec, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileSandboxHostExec) Or(d DaemonProfileSandboxHostExec) DaemonProfileSandboxHostExec {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileSandboxHostExecAutoApprove returns new OptDaemonProfileSandboxHostExecAutoApprove with value set to v.
-func NewOptDaemonProfileSandboxHostExecAutoApprove(v DaemonProfileSandboxHostExecAutoApprove) OptDaemonProfileSandboxHostExecAutoApprove {
-	return OptDaemonProfileSandboxHostExecAutoApprove{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileSandboxHostExecAutoApprove is optional DaemonProfileSandboxHostExecAutoApprove.
-type OptDaemonProfileSandboxHostExecAutoApprove struct {
-	Value DaemonProfileSandboxHostExecAutoApprove
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileSandboxHostExecAutoApprove was set.
-func (o OptDaemonProfileSandboxHostExecAutoApprove) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileSandboxHostExecAutoApprove) Reset() {
-	var v DaemonProfileSandboxHostExecAutoApprove
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileSandboxHostExecAutoApprove) SetTo(v DaemonProfileSandboxHostExecAutoApprove) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileSandboxHostExecAutoApprove) Get() (v DaemonProfileSandboxHostExecAutoApprove, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileSandboxHostExecAutoApprove) Or(d DaemonProfileSandboxHostExecAutoApprove) DaemonProfileSandboxHostExecAutoApprove {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileSandboxResources returns new OptDaemonProfileSandboxResources with value set to v.
-func NewOptDaemonProfileSandboxResources(v DaemonProfileSandboxResources) OptDaemonProfileSandboxResources {
-	return OptDaemonProfileSandboxResources{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileSandboxResources is optional DaemonProfileSandboxResources.
-type OptDaemonProfileSandboxResources struct {
-	Value DaemonProfileSandboxResources
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileSandboxResources was set.
-func (o OptDaemonProfileSandboxResources) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileSandboxResources) Reset() {
-	var v DaemonProfileSandboxResources
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileSandboxResources) SetTo(v DaemonProfileSandboxResources) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileSandboxResources) Get() (v DaemonProfileSandboxResources, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileSandboxResources) Or(d DaemonProfileSandboxResources) DaemonProfileSandboxResources {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileSandboxResumeCommandsItem1When returns new OptDaemonProfileSandboxResumeCommandsItem1When with value set to v.
-func NewOptDaemonProfileSandboxResumeCommandsItem1When(v DaemonProfileSandboxResumeCommandsItem1When) OptDaemonProfileSandboxResumeCommandsItem1When {
-	return OptDaemonProfileSandboxResumeCommandsItem1When{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileSandboxResumeCommandsItem1When is optional DaemonProfileSandboxResumeCommandsItem1When.
-type OptDaemonProfileSandboxResumeCommandsItem1When struct {
-	Value DaemonProfileSandboxResumeCommandsItem1When
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileSandboxResumeCommandsItem1When was set.
-func (o OptDaemonProfileSandboxResumeCommandsItem1When) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileSandboxResumeCommandsItem1When) Reset() {
-	var v DaemonProfileSandboxResumeCommandsItem1When
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileSandboxResumeCommandsItem1When) SetTo(v DaemonProfileSandboxResumeCommandsItem1When) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileSandboxResumeCommandsItem1When) Get() (v DaemonProfileSandboxResumeCommandsItem1When, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileSandboxResumeCommandsItem1When) Or(d DaemonProfileSandboxResumeCommandsItem1When) DaemonProfileSandboxResumeCommandsItem1When {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileSandboxSnapshot returns new OptDaemonProfileSandboxSnapshot with value set to v.
-func NewOptDaemonProfileSandboxSnapshot(v DaemonProfileSandboxSnapshot) OptDaemonProfileSandboxSnapshot {
-	return OptDaemonProfileSandboxSnapshot{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileSandboxSnapshot is optional DaemonProfileSandboxSnapshot.
-type OptDaemonProfileSandboxSnapshot struct {
-	Value DaemonProfileSandboxSnapshot
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileSandboxSnapshot was set.
-func (o OptDaemonProfileSandboxSnapshot) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileSandboxSnapshot) Reset() {
-	var v DaemonProfileSandboxSnapshot
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileSandboxSnapshot) SetTo(v DaemonProfileSandboxSnapshot) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileSandboxSnapshot) Get() (v DaemonProfileSandboxSnapshot, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileSandboxSnapshot) Or(d DaemonProfileSandboxSnapshot) DaemonProfileSandboxSnapshot {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileSandboxVfs returns new OptDaemonProfileSandboxVfs with value set to v.
-func NewOptDaemonProfileSandboxVfs(v DaemonProfileSandboxVfs) OptDaemonProfileSandboxVfs {
-	return OptDaemonProfileSandboxVfs{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileSandboxVfs is optional DaemonProfileSandboxVfs.
-type OptDaemonProfileSandboxVfs struct {
-	Value DaemonProfileSandboxVfs
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileSandboxVfs was set.
-func (o OptDaemonProfileSandboxVfs) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileSandboxVfs) Reset() {
-	var v DaemonProfileSandboxVfs
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileSandboxVfs) SetTo(v DaemonProfileSandboxVfs) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileSandboxVfs) Get() (v DaemonProfileSandboxVfs, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileSandboxVfs) Or(d DaemonProfileSandboxVfs) DaemonProfileSandboxVfs {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptDaemonProfileSandboxVfsShadowMode returns new OptDaemonProfileSandboxVfsShadowMode with value set to v.
-func NewOptDaemonProfileSandboxVfsShadowMode(v DaemonProfileSandboxVfsShadowMode) OptDaemonProfileSandboxVfsShadowMode {
-	return OptDaemonProfileSandboxVfsShadowMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptDaemonProfileSandboxVfsShadowMode is optional DaemonProfileSandboxVfsShadowMode.
-type OptDaemonProfileSandboxVfsShadowMode struct {
-	Value DaemonProfileSandboxVfsShadowMode
-	Set   bool
-}
-
-// IsSet returns true if OptDaemonProfileSandboxVfsShadowMode was set.
-func (o OptDaemonProfileSandboxVfsShadowMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptDaemonProfileSandboxVfsShadowMode) Reset() {
-	var v DaemonProfileSandboxVfsShadowMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptDaemonProfileSandboxVfsShadowMode) SetTo(v DaemonProfileSandboxVfsShadowMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptDaemonProfileSandboxVfsShadowMode) Get() (v DaemonProfileSandboxVfsShadowMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptDaemonProfileSandboxVfsShadowMode) Or(d DaemonProfileSandboxVfsShadowMode) DaemonProfileSandboxVfsShadowMode {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -18361,6 +15843,744 @@ func (o OptRelationType) Or(d RelationType) RelationType {
 	return d
 }
 
+// NewOptRuntimeProfileListResponseItemsItemSandboxEnv returns new OptRuntimeProfileListResponseItemsItemSandboxEnv with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemSandboxEnv(v RuntimeProfileListResponseItemsItemSandboxEnv) OptRuntimeProfileListResponseItemsItemSandboxEnv {
+	return OptRuntimeProfileListResponseItemsItemSandboxEnv{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemSandboxEnv is optional RuntimeProfileListResponseItemsItemSandboxEnv.
+type OptRuntimeProfileListResponseItemsItemSandboxEnv struct {
+	Value RuntimeProfileListResponseItemsItemSandboxEnv
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxEnv was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxEnv) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxEnv) Reset() {
+	var v RuntimeProfileListResponseItemsItemSandboxEnv
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxEnv) SetTo(v RuntimeProfileListResponseItemsItemSandboxEnv) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxEnv) Get() (v RuntimeProfileListResponseItemsItemSandboxEnv, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemSandboxEnv) Or(d RuntimeProfileListResponseItemsItemSandboxEnv) RuntimeProfileListResponseItemsItemSandboxEnv {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileListResponseItemsItemSandboxHostExec returns new OptRuntimeProfileListResponseItemsItemSandboxHostExec with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemSandboxHostExec(v RuntimeProfileListResponseItemsItemSandboxHostExec) OptRuntimeProfileListResponseItemsItemSandboxHostExec {
+	return OptRuntimeProfileListResponseItemsItemSandboxHostExec{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemSandboxHostExec is optional RuntimeProfileListResponseItemsItemSandboxHostExec.
+type OptRuntimeProfileListResponseItemsItemSandboxHostExec struct {
+	Value RuntimeProfileListResponseItemsItemSandboxHostExec
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxHostExec was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxHostExec) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxHostExec) Reset() {
+	var v RuntimeProfileListResponseItemsItemSandboxHostExec
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxHostExec) SetTo(v RuntimeProfileListResponseItemsItemSandboxHostExec) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxHostExec) Get() (v RuntimeProfileListResponseItemsItemSandboxHostExec, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemSandboxHostExec) Or(d RuntimeProfileListResponseItemsItemSandboxHostExec) RuntimeProfileListResponseItemsItemSandboxHostExec {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove returns new OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove(v RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove {
+	return OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove is optional RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove.
+type OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove struct {
+	Value RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) Reset() {
+	var v RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) SetTo(v RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) Get() (v RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) Or(d RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileListResponseItemsItemSandboxResources returns new OptRuntimeProfileListResponseItemsItemSandboxResources with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemSandboxResources(v RuntimeProfileListResponseItemsItemSandboxResources) OptRuntimeProfileListResponseItemsItemSandboxResources {
+	return OptRuntimeProfileListResponseItemsItemSandboxResources{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemSandboxResources is optional RuntimeProfileListResponseItemsItemSandboxResources.
+type OptRuntimeProfileListResponseItemsItemSandboxResources struct {
+	Value RuntimeProfileListResponseItemsItemSandboxResources
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxResources was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxResources) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxResources) Reset() {
+	var v RuntimeProfileListResponseItemsItemSandboxResources
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxResources) SetTo(v RuntimeProfileListResponseItemsItemSandboxResources) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxResources) Get() (v RuntimeProfileListResponseItemsItemSandboxResources, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemSandboxResources) Or(d RuntimeProfileListResponseItemsItemSandboxResources) RuntimeProfileListResponseItemsItemSandboxResources {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When returns new OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When(v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When {
+	return OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When is optional RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When.
+type OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When struct {
+	Value RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) IsSet() bool {
+	return o.Set
+}
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) Reset() {
+	var v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) SetTo(v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) Get() (v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) Or(d RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileListResponseItemsItemSandboxSnapshot returns new OptRuntimeProfileListResponseItemsItemSandboxSnapshot with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemSandboxSnapshot(v RuntimeProfileListResponseItemsItemSandboxSnapshot) OptRuntimeProfileListResponseItemsItemSandboxSnapshot {
+	return OptRuntimeProfileListResponseItemsItemSandboxSnapshot{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemSandboxSnapshot is optional RuntimeProfileListResponseItemsItemSandboxSnapshot.
+type OptRuntimeProfileListResponseItemsItemSandboxSnapshot struct {
+	Value RuntimeProfileListResponseItemsItemSandboxSnapshot
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxSnapshot was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxSnapshot) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxSnapshot) Reset() {
+	var v RuntimeProfileListResponseItemsItemSandboxSnapshot
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxSnapshot) SetTo(v RuntimeProfileListResponseItemsItemSandboxSnapshot) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxSnapshot) Get() (v RuntimeProfileListResponseItemsItemSandboxSnapshot, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemSandboxSnapshot) Or(d RuntimeProfileListResponseItemsItemSandboxSnapshot) RuntimeProfileListResponseItemsItemSandboxSnapshot {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileListResponseItemsItemSandboxVfs returns new OptRuntimeProfileListResponseItemsItemSandboxVfs with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemSandboxVfs(v RuntimeProfileListResponseItemsItemSandboxVfs) OptRuntimeProfileListResponseItemsItemSandboxVfs {
+	return OptRuntimeProfileListResponseItemsItemSandboxVfs{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemSandboxVfs is optional RuntimeProfileListResponseItemsItemSandboxVfs.
+type OptRuntimeProfileListResponseItemsItemSandboxVfs struct {
+	Value RuntimeProfileListResponseItemsItemSandboxVfs
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxVfs was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxVfs) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxVfs) Reset() {
+	var v RuntimeProfileListResponseItemsItemSandboxVfs
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxVfs) SetTo(v RuntimeProfileListResponseItemsItemSandboxVfs) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxVfs) Get() (v RuntimeProfileListResponseItemsItemSandboxVfs, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemSandboxVfs) Or(d RuntimeProfileListResponseItemsItemSandboxVfs) RuntimeProfileListResponseItemsItemSandboxVfs {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode returns new OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode(v RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode {
+	return OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode is optional RuntimeProfileListResponseItemsItemSandboxVfsShadowMode.
+type OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode struct {
+	Value RuntimeProfileListResponseItemsItemSandboxVfsShadowMode
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode) Reset() {
+	var v RuntimeProfileListResponseItemsItemSandboxVfsShadowMode
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode) SetTo(v RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode) Get() (v RuntimeProfileListResponseItemsItemSandboxVfsShadowMode, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode) Or(d RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) RuntimeProfileListResponseItemsItemSandboxVfsShadowMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileSandboxEnv returns new OptRuntimeProfileSandboxEnv with value set to v.
+func NewOptRuntimeProfileSandboxEnv(v RuntimeProfileSandboxEnv) OptRuntimeProfileSandboxEnv {
+	return OptRuntimeProfileSandboxEnv{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileSandboxEnv is optional RuntimeProfileSandboxEnv.
+type OptRuntimeProfileSandboxEnv struct {
+	Value RuntimeProfileSandboxEnv
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileSandboxEnv was set.
+func (o OptRuntimeProfileSandboxEnv) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileSandboxEnv) Reset() {
+	var v RuntimeProfileSandboxEnv
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileSandboxEnv) SetTo(v RuntimeProfileSandboxEnv) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileSandboxEnv) Get() (v RuntimeProfileSandboxEnv, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileSandboxEnv) Or(d RuntimeProfileSandboxEnv) RuntimeProfileSandboxEnv {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileSandboxHostExec returns new OptRuntimeProfileSandboxHostExec with value set to v.
+func NewOptRuntimeProfileSandboxHostExec(v RuntimeProfileSandboxHostExec) OptRuntimeProfileSandboxHostExec {
+	return OptRuntimeProfileSandboxHostExec{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileSandboxHostExec is optional RuntimeProfileSandboxHostExec.
+type OptRuntimeProfileSandboxHostExec struct {
+	Value RuntimeProfileSandboxHostExec
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileSandboxHostExec was set.
+func (o OptRuntimeProfileSandboxHostExec) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileSandboxHostExec) Reset() {
+	var v RuntimeProfileSandboxHostExec
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileSandboxHostExec) SetTo(v RuntimeProfileSandboxHostExec) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileSandboxHostExec) Get() (v RuntimeProfileSandboxHostExec, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileSandboxHostExec) Or(d RuntimeProfileSandboxHostExec) RuntimeProfileSandboxHostExec {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileSandboxHostExecAutoApprove returns new OptRuntimeProfileSandboxHostExecAutoApprove with value set to v.
+func NewOptRuntimeProfileSandboxHostExecAutoApprove(v RuntimeProfileSandboxHostExecAutoApprove) OptRuntimeProfileSandboxHostExecAutoApprove {
+	return OptRuntimeProfileSandboxHostExecAutoApprove{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileSandboxHostExecAutoApprove is optional RuntimeProfileSandboxHostExecAutoApprove.
+type OptRuntimeProfileSandboxHostExecAutoApprove struct {
+	Value RuntimeProfileSandboxHostExecAutoApprove
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileSandboxHostExecAutoApprove was set.
+func (o OptRuntimeProfileSandboxHostExecAutoApprove) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileSandboxHostExecAutoApprove) Reset() {
+	var v RuntimeProfileSandboxHostExecAutoApprove
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileSandboxHostExecAutoApprove) SetTo(v RuntimeProfileSandboxHostExecAutoApprove) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileSandboxHostExecAutoApprove) Get() (v RuntimeProfileSandboxHostExecAutoApprove, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileSandboxHostExecAutoApprove) Or(d RuntimeProfileSandboxHostExecAutoApprove) RuntimeProfileSandboxHostExecAutoApprove {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileSandboxResources returns new OptRuntimeProfileSandboxResources with value set to v.
+func NewOptRuntimeProfileSandboxResources(v RuntimeProfileSandboxResources) OptRuntimeProfileSandboxResources {
+	return OptRuntimeProfileSandboxResources{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileSandboxResources is optional RuntimeProfileSandboxResources.
+type OptRuntimeProfileSandboxResources struct {
+	Value RuntimeProfileSandboxResources
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileSandboxResources was set.
+func (o OptRuntimeProfileSandboxResources) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileSandboxResources) Reset() {
+	var v RuntimeProfileSandboxResources
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileSandboxResources) SetTo(v RuntimeProfileSandboxResources) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileSandboxResources) Get() (v RuntimeProfileSandboxResources, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileSandboxResources) Or(d RuntimeProfileSandboxResources) RuntimeProfileSandboxResources {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileSandboxResumeCommandsItem1When returns new OptRuntimeProfileSandboxResumeCommandsItem1When with value set to v.
+func NewOptRuntimeProfileSandboxResumeCommandsItem1When(v RuntimeProfileSandboxResumeCommandsItem1When) OptRuntimeProfileSandboxResumeCommandsItem1When {
+	return OptRuntimeProfileSandboxResumeCommandsItem1When{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileSandboxResumeCommandsItem1When is optional RuntimeProfileSandboxResumeCommandsItem1When.
+type OptRuntimeProfileSandboxResumeCommandsItem1When struct {
+	Value RuntimeProfileSandboxResumeCommandsItem1When
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileSandboxResumeCommandsItem1When was set.
+func (o OptRuntimeProfileSandboxResumeCommandsItem1When) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileSandboxResumeCommandsItem1When) Reset() {
+	var v RuntimeProfileSandboxResumeCommandsItem1When
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileSandboxResumeCommandsItem1When) SetTo(v RuntimeProfileSandboxResumeCommandsItem1When) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileSandboxResumeCommandsItem1When) Get() (v RuntimeProfileSandboxResumeCommandsItem1When, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileSandboxResumeCommandsItem1When) Or(d RuntimeProfileSandboxResumeCommandsItem1When) RuntimeProfileSandboxResumeCommandsItem1When {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileSandboxSnapshot returns new OptRuntimeProfileSandboxSnapshot with value set to v.
+func NewOptRuntimeProfileSandboxSnapshot(v RuntimeProfileSandboxSnapshot) OptRuntimeProfileSandboxSnapshot {
+	return OptRuntimeProfileSandboxSnapshot{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileSandboxSnapshot is optional RuntimeProfileSandboxSnapshot.
+type OptRuntimeProfileSandboxSnapshot struct {
+	Value RuntimeProfileSandboxSnapshot
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileSandboxSnapshot was set.
+func (o OptRuntimeProfileSandboxSnapshot) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileSandboxSnapshot) Reset() {
+	var v RuntimeProfileSandboxSnapshot
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileSandboxSnapshot) SetTo(v RuntimeProfileSandboxSnapshot) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileSandboxSnapshot) Get() (v RuntimeProfileSandboxSnapshot, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileSandboxSnapshot) Or(d RuntimeProfileSandboxSnapshot) RuntimeProfileSandboxSnapshot {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileSandboxVfs returns new OptRuntimeProfileSandboxVfs with value set to v.
+func NewOptRuntimeProfileSandboxVfs(v RuntimeProfileSandboxVfs) OptRuntimeProfileSandboxVfs {
+	return OptRuntimeProfileSandboxVfs{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileSandboxVfs is optional RuntimeProfileSandboxVfs.
+type OptRuntimeProfileSandboxVfs struct {
+	Value RuntimeProfileSandboxVfs
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileSandboxVfs was set.
+func (o OptRuntimeProfileSandboxVfs) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileSandboxVfs) Reset() {
+	var v RuntimeProfileSandboxVfs
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileSandboxVfs) SetTo(v RuntimeProfileSandboxVfs) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileSandboxVfs) Get() (v RuntimeProfileSandboxVfs, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileSandboxVfs) Or(d RuntimeProfileSandboxVfs) RuntimeProfileSandboxVfs {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileSandboxVfsShadowMode returns new OptRuntimeProfileSandboxVfsShadowMode with value set to v.
+func NewOptRuntimeProfileSandboxVfsShadowMode(v RuntimeProfileSandboxVfsShadowMode) OptRuntimeProfileSandboxVfsShadowMode {
+	return OptRuntimeProfileSandboxVfsShadowMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileSandboxVfsShadowMode is optional RuntimeProfileSandboxVfsShadowMode.
+type OptRuntimeProfileSandboxVfsShadowMode struct {
+	Value RuntimeProfileSandboxVfsShadowMode
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileSandboxVfsShadowMode was set.
+func (o OptRuntimeProfileSandboxVfsShadowMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileSandboxVfsShadowMode) Reset() {
+	var v RuntimeProfileSandboxVfsShadowMode
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileSandboxVfsShadowMode) SetTo(v RuntimeProfileSandboxVfsShadowMode) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileSandboxVfsShadowMode) Get() (v RuntimeProfileSandboxVfsShadowMode, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileSandboxVfsShadowMode) Or(d RuntimeProfileSandboxVfsShadowMode) RuntimeProfileSandboxVfsShadowMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptSearchDiaryReq returns new OptSearchDiaryReq with value set to v.
 func NewOptSearchDiaryReq(v SearchDiaryReq) OptSearchDiaryReq {
 	return OptSearchDiaryReq{
@@ -18775,604 +16995,6 @@ func (o OptUpdateContextPackReq) Or(d UpdateContextPackReq) UpdateContextPackReq
 	return d
 }
 
-// NewOptUpdateDaemonProfileBody returns new OptUpdateDaemonProfileBody with value set to v.
-func NewOptUpdateDaemonProfileBody(v UpdateDaemonProfileBody) OptUpdateDaemonProfileBody {
-	return OptUpdateDaemonProfileBody{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBody is optional UpdateDaemonProfileBody.
-type OptUpdateDaemonProfileBody struct {
-	Value UpdateDaemonProfileBody
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBody was set.
-func (o OptUpdateDaemonProfileBody) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBody) Reset() {
-	var v UpdateDaemonProfileBody
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBody) SetTo(v UpdateDaemonProfileBody) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBody) Get() (v UpdateDaemonProfileBody, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBody) Or(d UpdateDaemonProfileBody) UpdateDaemonProfileBody {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodyRuntimeKind returns new OptUpdateDaemonProfileBodyRuntimeKind with value set to v.
-func NewOptUpdateDaemonProfileBodyRuntimeKind(v UpdateDaemonProfileBodyRuntimeKind) OptUpdateDaemonProfileBodyRuntimeKind {
-	return OptUpdateDaemonProfileBodyRuntimeKind{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodyRuntimeKind is optional UpdateDaemonProfileBodyRuntimeKind.
-type OptUpdateDaemonProfileBodyRuntimeKind struct {
-	Value UpdateDaemonProfileBodyRuntimeKind
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodyRuntimeKind was set.
-func (o OptUpdateDaemonProfileBodyRuntimeKind) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodyRuntimeKind) Reset() {
-	var v UpdateDaemonProfileBodyRuntimeKind
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodyRuntimeKind) SetTo(v UpdateDaemonProfileBodyRuntimeKind) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodyRuntimeKind) Get() (v UpdateDaemonProfileBodyRuntimeKind, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodyRuntimeKind) Or(d UpdateDaemonProfileBodyRuntimeKind) UpdateDaemonProfileBodyRuntimeKind {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodySandbox returns new OptUpdateDaemonProfileBodySandbox with value set to v.
-func NewOptUpdateDaemonProfileBodySandbox(v UpdateDaemonProfileBodySandbox) OptUpdateDaemonProfileBodySandbox {
-	return OptUpdateDaemonProfileBodySandbox{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodySandbox is optional UpdateDaemonProfileBodySandbox.
-type OptUpdateDaemonProfileBodySandbox struct {
-	Value UpdateDaemonProfileBodySandbox
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodySandbox was set.
-func (o OptUpdateDaemonProfileBodySandbox) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodySandbox) Reset() {
-	var v UpdateDaemonProfileBodySandbox
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodySandbox) SetTo(v UpdateDaemonProfileBodySandbox) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodySandbox) Get() (v UpdateDaemonProfileBodySandbox, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodySandbox) Or(d UpdateDaemonProfileBodySandbox) UpdateDaemonProfileBodySandbox {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodySandboxEnv returns new OptUpdateDaemonProfileBodySandboxEnv with value set to v.
-func NewOptUpdateDaemonProfileBodySandboxEnv(v UpdateDaemonProfileBodySandboxEnv) OptUpdateDaemonProfileBodySandboxEnv {
-	return OptUpdateDaemonProfileBodySandboxEnv{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodySandboxEnv is optional UpdateDaemonProfileBodySandboxEnv.
-type OptUpdateDaemonProfileBodySandboxEnv struct {
-	Value UpdateDaemonProfileBodySandboxEnv
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodySandboxEnv was set.
-func (o OptUpdateDaemonProfileBodySandboxEnv) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodySandboxEnv) Reset() {
-	var v UpdateDaemonProfileBodySandboxEnv
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodySandboxEnv) SetTo(v UpdateDaemonProfileBodySandboxEnv) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodySandboxEnv) Get() (v UpdateDaemonProfileBodySandboxEnv, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodySandboxEnv) Or(d UpdateDaemonProfileBodySandboxEnv) UpdateDaemonProfileBodySandboxEnv {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodySandboxHostExec returns new OptUpdateDaemonProfileBodySandboxHostExec with value set to v.
-func NewOptUpdateDaemonProfileBodySandboxHostExec(v UpdateDaemonProfileBodySandboxHostExec) OptUpdateDaemonProfileBodySandboxHostExec {
-	return OptUpdateDaemonProfileBodySandboxHostExec{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodySandboxHostExec is optional UpdateDaemonProfileBodySandboxHostExec.
-type OptUpdateDaemonProfileBodySandboxHostExec struct {
-	Value UpdateDaemonProfileBodySandboxHostExec
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodySandboxHostExec was set.
-func (o OptUpdateDaemonProfileBodySandboxHostExec) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodySandboxHostExec) Reset() {
-	var v UpdateDaemonProfileBodySandboxHostExec
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodySandboxHostExec) SetTo(v UpdateDaemonProfileBodySandboxHostExec) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodySandboxHostExec) Get() (v UpdateDaemonProfileBodySandboxHostExec, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodySandboxHostExec) Or(d UpdateDaemonProfileBodySandboxHostExec) UpdateDaemonProfileBodySandboxHostExec {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodySandboxHostExecAutoApprove returns new OptUpdateDaemonProfileBodySandboxHostExecAutoApprove with value set to v.
-func NewOptUpdateDaemonProfileBodySandboxHostExecAutoApprove(v UpdateDaemonProfileBodySandboxHostExecAutoApprove) OptUpdateDaemonProfileBodySandboxHostExecAutoApprove {
-	return OptUpdateDaemonProfileBodySandboxHostExecAutoApprove{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodySandboxHostExecAutoApprove is optional UpdateDaemonProfileBodySandboxHostExecAutoApprove.
-type OptUpdateDaemonProfileBodySandboxHostExecAutoApprove struct {
-	Value UpdateDaemonProfileBodySandboxHostExecAutoApprove
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodySandboxHostExecAutoApprove was set.
-func (o OptUpdateDaemonProfileBodySandboxHostExecAutoApprove) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodySandboxHostExecAutoApprove) Reset() {
-	var v UpdateDaemonProfileBodySandboxHostExecAutoApprove
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodySandboxHostExecAutoApprove) SetTo(v UpdateDaemonProfileBodySandboxHostExecAutoApprove) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodySandboxHostExecAutoApprove) Get() (v UpdateDaemonProfileBodySandboxHostExecAutoApprove, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodySandboxHostExecAutoApprove) Or(d UpdateDaemonProfileBodySandboxHostExecAutoApprove) UpdateDaemonProfileBodySandboxHostExecAutoApprove {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodySandboxResources returns new OptUpdateDaemonProfileBodySandboxResources with value set to v.
-func NewOptUpdateDaemonProfileBodySandboxResources(v UpdateDaemonProfileBodySandboxResources) OptUpdateDaemonProfileBodySandboxResources {
-	return OptUpdateDaemonProfileBodySandboxResources{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodySandboxResources is optional UpdateDaemonProfileBodySandboxResources.
-type OptUpdateDaemonProfileBodySandboxResources struct {
-	Value UpdateDaemonProfileBodySandboxResources
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodySandboxResources was set.
-func (o OptUpdateDaemonProfileBodySandboxResources) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodySandboxResources) Reset() {
-	var v UpdateDaemonProfileBodySandboxResources
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodySandboxResources) SetTo(v UpdateDaemonProfileBodySandboxResources) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodySandboxResources) Get() (v UpdateDaemonProfileBodySandboxResources, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodySandboxResources) Or(d UpdateDaemonProfileBodySandboxResources) UpdateDaemonProfileBodySandboxResources {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodySandboxResumeCommandsItem1When returns new OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When with value set to v.
-func NewOptUpdateDaemonProfileBodySandboxResumeCommandsItem1When(v UpdateDaemonProfileBodySandboxResumeCommandsItem1When) OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When {
-	return OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When is optional UpdateDaemonProfileBodySandboxResumeCommandsItem1When.
-type OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When struct {
-	Value UpdateDaemonProfileBodySandboxResumeCommandsItem1When
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When was set.
-func (o OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When) Reset() {
-	var v UpdateDaemonProfileBodySandboxResumeCommandsItem1When
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When) SetTo(v UpdateDaemonProfileBodySandboxResumeCommandsItem1When) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When) Get() (v UpdateDaemonProfileBodySandboxResumeCommandsItem1When, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When) Or(d UpdateDaemonProfileBodySandboxResumeCommandsItem1When) UpdateDaemonProfileBodySandboxResumeCommandsItem1When {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodySandboxSnapshot returns new OptUpdateDaemonProfileBodySandboxSnapshot with value set to v.
-func NewOptUpdateDaemonProfileBodySandboxSnapshot(v UpdateDaemonProfileBodySandboxSnapshot) OptUpdateDaemonProfileBodySandboxSnapshot {
-	return OptUpdateDaemonProfileBodySandboxSnapshot{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodySandboxSnapshot is optional UpdateDaemonProfileBodySandboxSnapshot.
-type OptUpdateDaemonProfileBodySandboxSnapshot struct {
-	Value UpdateDaemonProfileBodySandboxSnapshot
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodySandboxSnapshot was set.
-func (o OptUpdateDaemonProfileBodySandboxSnapshot) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodySandboxSnapshot) Reset() {
-	var v UpdateDaemonProfileBodySandboxSnapshot
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodySandboxSnapshot) SetTo(v UpdateDaemonProfileBodySandboxSnapshot) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodySandboxSnapshot) Get() (v UpdateDaemonProfileBodySandboxSnapshot, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodySandboxSnapshot) Or(d UpdateDaemonProfileBodySandboxSnapshot) UpdateDaemonProfileBodySandboxSnapshot {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodySandboxVfs returns new OptUpdateDaemonProfileBodySandboxVfs with value set to v.
-func NewOptUpdateDaemonProfileBodySandboxVfs(v UpdateDaemonProfileBodySandboxVfs) OptUpdateDaemonProfileBodySandboxVfs {
-	return OptUpdateDaemonProfileBodySandboxVfs{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodySandboxVfs is optional UpdateDaemonProfileBodySandboxVfs.
-type OptUpdateDaemonProfileBodySandboxVfs struct {
-	Value UpdateDaemonProfileBodySandboxVfs
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodySandboxVfs was set.
-func (o OptUpdateDaemonProfileBodySandboxVfs) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodySandboxVfs) Reset() {
-	var v UpdateDaemonProfileBodySandboxVfs
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodySandboxVfs) SetTo(v UpdateDaemonProfileBodySandboxVfs) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodySandboxVfs) Get() (v UpdateDaemonProfileBodySandboxVfs, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodySandboxVfs) Or(d UpdateDaemonProfileBodySandboxVfs) UpdateDaemonProfileBodySandboxVfs {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodySandboxVfsShadowMode returns new OptUpdateDaemonProfileBodySandboxVfsShadowMode with value set to v.
-func NewOptUpdateDaemonProfileBodySandboxVfsShadowMode(v UpdateDaemonProfileBodySandboxVfsShadowMode) OptUpdateDaemonProfileBodySandboxVfsShadowMode {
-	return OptUpdateDaemonProfileBodySandboxVfsShadowMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodySandboxVfsShadowMode is optional UpdateDaemonProfileBodySandboxVfsShadowMode.
-type OptUpdateDaemonProfileBodySandboxVfsShadowMode struct {
-	Value UpdateDaemonProfileBodySandboxVfsShadowMode
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodySandboxVfsShadowMode was set.
-func (o OptUpdateDaemonProfileBodySandboxVfsShadowMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodySandboxVfsShadowMode) Reset() {
-	var v UpdateDaemonProfileBodySandboxVfsShadowMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodySandboxVfsShadowMode) SetTo(v UpdateDaemonProfileBodySandboxVfsShadowMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodySandboxVfsShadowMode) Get() (v UpdateDaemonProfileBodySandboxVfsShadowMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodySandboxVfsShadowMode) Or(d UpdateDaemonProfileBodySandboxVfsShadowMode) UpdateDaemonProfileBodySandboxVfsShadowMode {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodySessionStorageMode returns new OptUpdateDaemonProfileBodySessionStorageMode with value set to v.
-func NewOptUpdateDaemonProfileBodySessionStorageMode(v UpdateDaemonProfileBodySessionStorageMode) OptUpdateDaemonProfileBodySessionStorageMode {
-	return OptUpdateDaemonProfileBodySessionStorageMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodySessionStorageMode is optional UpdateDaemonProfileBodySessionStorageMode.
-type OptUpdateDaemonProfileBodySessionStorageMode struct {
-	Value UpdateDaemonProfileBodySessionStorageMode
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodySessionStorageMode was set.
-func (o OptUpdateDaemonProfileBodySessionStorageMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodySessionStorageMode) Reset() {
-	var v UpdateDaemonProfileBodySessionStorageMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodySessionStorageMode) SetTo(v UpdateDaemonProfileBodySessionStorageMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodySessionStorageMode) Get() (v UpdateDaemonProfileBodySessionStorageMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodySessionStorageMode) Or(d UpdateDaemonProfileBodySessionStorageMode) UpdateDaemonProfileBodySessionStorageMode {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDaemonProfileBodyWorkspaceStorageMode returns new OptUpdateDaemonProfileBodyWorkspaceStorageMode with value set to v.
-func NewOptUpdateDaemonProfileBodyWorkspaceStorageMode(v UpdateDaemonProfileBodyWorkspaceStorageMode) OptUpdateDaemonProfileBodyWorkspaceStorageMode {
-	return OptUpdateDaemonProfileBodyWorkspaceStorageMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDaemonProfileBodyWorkspaceStorageMode is optional UpdateDaemonProfileBodyWorkspaceStorageMode.
-type OptUpdateDaemonProfileBodyWorkspaceStorageMode struct {
-	Value UpdateDaemonProfileBodyWorkspaceStorageMode
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDaemonProfileBodyWorkspaceStorageMode was set.
-func (o OptUpdateDaemonProfileBodyWorkspaceStorageMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDaemonProfileBodyWorkspaceStorageMode) Reset() {
-	var v UpdateDaemonProfileBodyWorkspaceStorageMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDaemonProfileBodyWorkspaceStorageMode) SetTo(v UpdateDaemonProfileBodyWorkspaceStorageMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDaemonProfileBodyWorkspaceStorageMode) Get() (v UpdateDaemonProfileBodyWorkspaceStorageMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDaemonProfileBodyWorkspaceStorageMode) Or(d UpdateDaemonProfileBodyWorkspaceStorageMode) UpdateDaemonProfileBodyWorkspaceStorageMode {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptUpdateDiaryEntryByIdReq returns new OptUpdateDiaryEntryByIdReq with value set to v.
 func NewOptUpdateDiaryEntryByIdReq(v UpdateDiaryEntryByIdReq) OptUpdateDiaryEntryByIdReq {
 	return OptUpdateDiaryEntryByIdReq{
@@ -19597,6 +17219,604 @@ func (o OptUpdateRenderedPackReq) Get() (v UpdateRenderedPackReq, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptUpdateRenderedPackReq) Or(d UpdateRenderedPackReq) UpdateRenderedPackReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBody returns new OptUpdateRuntimeProfileBody with value set to v.
+func NewOptUpdateRuntimeProfileBody(v UpdateRuntimeProfileBody) OptUpdateRuntimeProfileBody {
+	return OptUpdateRuntimeProfileBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBody is optional UpdateRuntimeProfileBody.
+type OptUpdateRuntimeProfileBody struct {
+	Value UpdateRuntimeProfileBody
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBody was set.
+func (o OptUpdateRuntimeProfileBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBody) Reset() {
+	var v UpdateRuntimeProfileBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBody) SetTo(v UpdateRuntimeProfileBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBody) Get() (v UpdateRuntimeProfileBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBody) Or(d UpdateRuntimeProfileBody) UpdateRuntimeProfileBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodyRuntimeKind returns new OptUpdateRuntimeProfileBodyRuntimeKind with value set to v.
+func NewOptUpdateRuntimeProfileBodyRuntimeKind(v UpdateRuntimeProfileBodyRuntimeKind) OptUpdateRuntimeProfileBodyRuntimeKind {
+	return OptUpdateRuntimeProfileBodyRuntimeKind{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodyRuntimeKind is optional UpdateRuntimeProfileBodyRuntimeKind.
+type OptUpdateRuntimeProfileBodyRuntimeKind struct {
+	Value UpdateRuntimeProfileBodyRuntimeKind
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodyRuntimeKind was set.
+func (o OptUpdateRuntimeProfileBodyRuntimeKind) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodyRuntimeKind) Reset() {
+	var v UpdateRuntimeProfileBodyRuntimeKind
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodyRuntimeKind) SetTo(v UpdateRuntimeProfileBodyRuntimeKind) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodyRuntimeKind) Get() (v UpdateRuntimeProfileBodyRuntimeKind, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodyRuntimeKind) Or(d UpdateRuntimeProfileBodyRuntimeKind) UpdateRuntimeProfileBodyRuntimeKind {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySandbox returns new OptUpdateRuntimeProfileBodySandbox with value set to v.
+func NewOptUpdateRuntimeProfileBodySandbox(v UpdateRuntimeProfileBodySandbox) OptUpdateRuntimeProfileBodySandbox {
+	return OptUpdateRuntimeProfileBodySandbox{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySandbox is optional UpdateRuntimeProfileBodySandbox.
+type OptUpdateRuntimeProfileBodySandbox struct {
+	Value UpdateRuntimeProfileBodySandbox
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySandbox was set.
+func (o OptUpdateRuntimeProfileBodySandbox) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySandbox) Reset() {
+	var v UpdateRuntimeProfileBodySandbox
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySandbox) SetTo(v UpdateRuntimeProfileBodySandbox) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySandbox) Get() (v UpdateRuntimeProfileBodySandbox, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySandbox) Or(d UpdateRuntimeProfileBodySandbox) UpdateRuntimeProfileBodySandbox {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySandboxEnv returns new OptUpdateRuntimeProfileBodySandboxEnv with value set to v.
+func NewOptUpdateRuntimeProfileBodySandboxEnv(v UpdateRuntimeProfileBodySandboxEnv) OptUpdateRuntimeProfileBodySandboxEnv {
+	return OptUpdateRuntimeProfileBodySandboxEnv{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySandboxEnv is optional UpdateRuntimeProfileBodySandboxEnv.
+type OptUpdateRuntimeProfileBodySandboxEnv struct {
+	Value UpdateRuntimeProfileBodySandboxEnv
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySandboxEnv was set.
+func (o OptUpdateRuntimeProfileBodySandboxEnv) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySandboxEnv) Reset() {
+	var v UpdateRuntimeProfileBodySandboxEnv
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySandboxEnv) SetTo(v UpdateRuntimeProfileBodySandboxEnv) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySandboxEnv) Get() (v UpdateRuntimeProfileBodySandboxEnv, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySandboxEnv) Or(d UpdateRuntimeProfileBodySandboxEnv) UpdateRuntimeProfileBodySandboxEnv {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySandboxHostExec returns new OptUpdateRuntimeProfileBodySandboxHostExec with value set to v.
+func NewOptUpdateRuntimeProfileBodySandboxHostExec(v UpdateRuntimeProfileBodySandboxHostExec) OptUpdateRuntimeProfileBodySandboxHostExec {
+	return OptUpdateRuntimeProfileBodySandboxHostExec{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySandboxHostExec is optional UpdateRuntimeProfileBodySandboxHostExec.
+type OptUpdateRuntimeProfileBodySandboxHostExec struct {
+	Value UpdateRuntimeProfileBodySandboxHostExec
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySandboxHostExec was set.
+func (o OptUpdateRuntimeProfileBodySandboxHostExec) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySandboxHostExec) Reset() {
+	var v UpdateRuntimeProfileBodySandboxHostExec
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySandboxHostExec) SetTo(v UpdateRuntimeProfileBodySandboxHostExec) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySandboxHostExec) Get() (v UpdateRuntimeProfileBodySandboxHostExec, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySandboxHostExec) Or(d UpdateRuntimeProfileBodySandboxHostExec) UpdateRuntimeProfileBodySandboxHostExec {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySandboxHostExecAutoApprove returns new OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove with value set to v.
+func NewOptUpdateRuntimeProfileBodySandboxHostExecAutoApprove(v UpdateRuntimeProfileBodySandboxHostExecAutoApprove) OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove {
+	return OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove is optional UpdateRuntimeProfileBodySandboxHostExecAutoApprove.
+type OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove struct {
+	Value UpdateRuntimeProfileBodySandboxHostExecAutoApprove
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove was set.
+func (o OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove) Reset() {
+	var v UpdateRuntimeProfileBodySandboxHostExecAutoApprove
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove) SetTo(v UpdateRuntimeProfileBodySandboxHostExecAutoApprove) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove) Get() (v UpdateRuntimeProfileBodySandboxHostExecAutoApprove, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove) Or(d UpdateRuntimeProfileBodySandboxHostExecAutoApprove) UpdateRuntimeProfileBodySandboxHostExecAutoApprove {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySandboxResources returns new OptUpdateRuntimeProfileBodySandboxResources with value set to v.
+func NewOptUpdateRuntimeProfileBodySandboxResources(v UpdateRuntimeProfileBodySandboxResources) OptUpdateRuntimeProfileBodySandboxResources {
+	return OptUpdateRuntimeProfileBodySandboxResources{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySandboxResources is optional UpdateRuntimeProfileBodySandboxResources.
+type OptUpdateRuntimeProfileBodySandboxResources struct {
+	Value UpdateRuntimeProfileBodySandboxResources
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySandboxResources was set.
+func (o OptUpdateRuntimeProfileBodySandboxResources) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySandboxResources) Reset() {
+	var v UpdateRuntimeProfileBodySandboxResources
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySandboxResources) SetTo(v UpdateRuntimeProfileBodySandboxResources) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySandboxResources) Get() (v UpdateRuntimeProfileBodySandboxResources, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySandboxResources) Or(d UpdateRuntimeProfileBodySandboxResources) UpdateRuntimeProfileBodySandboxResources {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When returns new OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When with value set to v.
+func NewOptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When(v UpdateRuntimeProfileBodySandboxResumeCommandsItem1When) OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When {
+	return OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When is optional UpdateRuntimeProfileBodySandboxResumeCommandsItem1When.
+type OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When struct {
+	Value UpdateRuntimeProfileBodySandboxResumeCommandsItem1When
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When was set.
+func (o OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) Reset() {
+	var v UpdateRuntimeProfileBodySandboxResumeCommandsItem1When
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) SetTo(v UpdateRuntimeProfileBodySandboxResumeCommandsItem1When) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) Get() (v UpdateRuntimeProfileBodySandboxResumeCommandsItem1When, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) Or(d UpdateRuntimeProfileBodySandboxResumeCommandsItem1When) UpdateRuntimeProfileBodySandboxResumeCommandsItem1When {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySandboxSnapshot returns new OptUpdateRuntimeProfileBodySandboxSnapshot with value set to v.
+func NewOptUpdateRuntimeProfileBodySandboxSnapshot(v UpdateRuntimeProfileBodySandboxSnapshot) OptUpdateRuntimeProfileBodySandboxSnapshot {
+	return OptUpdateRuntimeProfileBodySandboxSnapshot{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySandboxSnapshot is optional UpdateRuntimeProfileBodySandboxSnapshot.
+type OptUpdateRuntimeProfileBodySandboxSnapshot struct {
+	Value UpdateRuntimeProfileBodySandboxSnapshot
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySandboxSnapshot was set.
+func (o OptUpdateRuntimeProfileBodySandboxSnapshot) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySandboxSnapshot) Reset() {
+	var v UpdateRuntimeProfileBodySandboxSnapshot
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySandboxSnapshot) SetTo(v UpdateRuntimeProfileBodySandboxSnapshot) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySandboxSnapshot) Get() (v UpdateRuntimeProfileBodySandboxSnapshot, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySandboxSnapshot) Or(d UpdateRuntimeProfileBodySandboxSnapshot) UpdateRuntimeProfileBodySandboxSnapshot {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySandboxVfs returns new OptUpdateRuntimeProfileBodySandboxVfs with value set to v.
+func NewOptUpdateRuntimeProfileBodySandboxVfs(v UpdateRuntimeProfileBodySandboxVfs) OptUpdateRuntimeProfileBodySandboxVfs {
+	return OptUpdateRuntimeProfileBodySandboxVfs{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySandboxVfs is optional UpdateRuntimeProfileBodySandboxVfs.
+type OptUpdateRuntimeProfileBodySandboxVfs struct {
+	Value UpdateRuntimeProfileBodySandboxVfs
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySandboxVfs was set.
+func (o OptUpdateRuntimeProfileBodySandboxVfs) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySandboxVfs) Reset() {
+	var v UpdateRuntimeProfileBodySandboxVfs
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySandboxVfs) SetTo(v UpdateRuntimeProfileBodySandboxVfs) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySandboxVfs) Get() (v UpdateRuntimeProfileBodySandboxVfs, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySandboxVfs) Or(d UpdateRuntimeProfileBodySandboxVfs) UpdateRuntimeProfileBodySandboxVfs {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySandboxVfsShadowMode returns new OptUpdateRuntimeProfileBodySandboxVfsShadowMode with value set to v.
+func NewOptUpdateRuntimeProfileBodySandboxVfsShadowMode(v UpdateRuntimeProfileBodySandboxVfsShadowMode) OptUpdateRuntimeProfileBodySandboxVfsShadowMode {
+	return OptUpdateRuntimeProfileBodySandboxVfsShadowMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySandboxVfsShadowMode is optional UpdateRuntimeProfileBodySandboxVfsShadowMode.
+type OptUpdateRuntimeProfileBodySandboxVfsShadowMode struct {
+	Value UpdateRuntimeProfileBodySandboxVfsShadowMode
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySandboxVfsShadowMode was set.
+func (o OptUpdateRuntimeProfileBodySandboxVfsShadowMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySandboxVfsShadowMode) Reset() {
+	var v UpdateRuntimeProfileBodySandboxVfsShadowMode
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySandboxVfsShadowMode) SetTo(v UpdateRuntimeProfileBodySandboxVfsShadowMode) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySandboxVfsShadowMode) Get() (v UpdateRuntimeProfileBodySandboxVfsShadowMode, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySandboxVfsShadowMode) Or(d UpdateRuntimeProfileBodySandboxVfsShadowMode) UpdateRuntimeProfileBodySandboxVfsShadowMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySessionStorageMode returns new OptUpdateRuntimeProfileBodySessionStorageMode with value set to v.
+func NewOptUpdateRuntimeProfileBodySessionStorageMode(v UpdateRuntimeProfileBodySessionStorageMode) OptUpdateRuntimeProfileBodySessionStorageMode {
+	return OptUpdateRuntimeProfileBodySessionStorageMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySessionStorageMode is optional UpdateRuntimeProfileBodySessionStorageMode.
+type OptUpdateRuntimeProfileBodySessionStorageMode struct {
+	Value UpdateRuntimeProfileBodySessionStorageMode
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySessionStorageMode was set.
+func (o OptUpdateRuntimeProfileBodySessionStorageMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySessionStorageMode) Reset() {
+	var v UpdateRuntimeProfileBodySessionStorageMode
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySessionStorageMode) SetTo(v UpdateRuntimeProfileBodySessionStorageMode) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySessionStorageMode) Get() (v UpdateRuntimeProfileBodySessionStorageMode, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySessionStorageMode) Or(d UpdateRuntimeProfileBodySessionStorageMode) UpdateRuntimeProfileBodySessionStorageMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodyWorkspaceStorageMode returns new OptUpdateRuntimeProfileBodyWorkspaceStorageMode with value set to v.
+func NewOptUpdateRuntimeProfileBodyWorkspaceStorageMode(v UpdateRuntimeProfileBodyWorkspaceStorageMode) OptUpdateRuntimeProfileBodyWorkspaceStorageMode {
+	return OptUpdateRuntimeProfileBodyWorkspaceStorageMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodyWorkspaceStorageMode is optional UpdateRuntimeProfileBodyWorkspaceStorageMode.
+type OptUpdateRuntimeProfileBodyWorkspaceStorageMode struct {
+	Value UpdateRuntimeProfileBodyWorkspaceStorageMode
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodyWorkspaceStorageMode was set.
+func (o OptUpdateRuntimeProfileBodyWorkspaceStorageMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodyWorkspaceStorageMode) Reset() {
+	var v UpdateRuntimeProfileBodyWorkspaceStorageMode
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodyWorkspaceStorageMode) SetTo(v UpdateRuntimeProfileBodyWorkspaceStorageMode) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodyWorkspaceStorageMode) Get() (v UpdateRuntimeProfileBodyWorkspaceStorageMode, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodyWorkspaceStorageMode) Or(d UpdateRuntimeProfileBodyWorkspaceStorageMode) UpdateRuntimeProfileBodyWorkspaceStorageMode {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -23477,6 +21697,1786 @@ func (s *RotateSecretResponse) SetClientSecret(val string) {
 
 func (*RotateSecretResponse) rotateClientSecretRes() {}
 
+// Ref: #/components/schemas/RuntimeProfile
+type RuntimeProfile struct {
+	Context              []RuntimeProfileContextItem        `json:"context"`
+	CreatedAt            time.Time                          `json:"createdAt"`
+	CreatedByAgentId     NilUUID                            `json:"createdByAgentId"`
+	CreatedByHumanId     NilUUID                            `json:"createdByHumanId"`
+	DefinitionCid        string                             `json:"definitionCid"`
+	Description          NilString                          `json:"description"`
+	HeartbeatIntervalMs  int                                `json:"heartbeatIntervalMs"`
+	ID                   uuid.UUID                          `json:"id"`
+	LeaseTtlSec          int                                `json:"leaseTtlSec"`
+	MaxBatchSize         int                                `json:"maxBatchSize"`
+	Model                string                             `json:"model"`
+	Name                 string                             `json:"name"`
+	Provider             string                             `json:"provider"`
+	RequiredEnv          []string                           `json:"requiredEnv"`
+	RequiredTools        []string                           `json:"requiredTools"`
+	Revision             int                                `json:"revision"`
+	RuntimeKind          RuntimeProfileRuntimeKind          `json:"runtimeKind"`
+	Sandbox              RuntimeProfileSandbox              `json:"sandbox"`
+	SessionStorageMode   RuntimeProfileSessionStorageMode   `json:"sessionStorageMode"`
+	SessionTtlSec        int                                `json:"sessionTtlSec"`
+	TeamId               uuid.UUID                          `json:"teamId"`
+	UpdatedAt            time.Time                          `json:"updatedAt"`
+	WorkspaceStorageMode RuntimeProfileWorkspaceStorageMode `json:"workspaceStorageMode"`
+	WorkspaceTtlSec      int                                `json:"workspaceTtlSec"`
+}
+
+// GetContext returns the value of Context.
+func (s *RuntimeProfile) GetContext() []RuntimeProfileContextItem {
+	return s.Context
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *RuntimeProfile) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreatedByAgentId returns the value of CreatedByAgentId.
+func (s *RuntimeProfile) GetCreatedByAgentId() NilUUID {
+	return s.CreatedByAgentId
+}
+
+// GetCreatedByHumanId returns the value of CreatedByHumanId.
+func (s *RuntimeProfile) GetCreatedByHumanId() NilUUID {
+	return s.CreatedByHumanId
+}
+
+// GetDefinitionCid returns the value of DefinitionCid.
+func (s *RuntimeProfile) GetDefinitionCid() string {
+	return s.DefinitionCid
+}
+
+// GetDescription returns the value of Description.
+func (s *RuntimeProfile) GetDescription() NilString {
+	return s.Description
+}
+
+// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
+func (s *RuntimeProfile) GetHeartbeatIntervalMs() int {
+	return s.HeartbeatIntervalMs
+}
+
+// GetID returns the value of ID.
+func (s *RuntimeProfile) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetLeaseTtlSec returns the value of LeaseTtlSec.
+func (s *RuntimeProfile) GetLeaseTtlSec() int {
+	return s.LeaseTtlSec
+}
+
+// GetMaxBatchSize returns the value of MaxBatchSize.
+func (s *RuntimeProfile) GetMaxBatchSize() int {
+	return s.MaxBatchSize
+}
+
+// GetModel returns the value of Model.
+func (s *RuntimeProfile) GetModel() string {
+	return s.Model
+}
+
+// GetName returns the value of Name.
+func (s *RuntimeProfile) GetName() string {
+	return s.Name
+}
+
+// GetProvider returns the value of Provider.
+func (s *RuntimeProfile) GetProvider() string {
+	return s.Provider
+}
+
+// GetRequiredEnv returns the value of RequiredEnv.
+func (s *RuntimeProfile) GetRequiredEnv() []string {
+	return s.RequiredEnv
+}
+
+// GetRequiredTools returns the value of RequiredTools.
+func (s *RuntimeProfile) GetRequiredTools() []string {
+	return s.RequiredTools
+}
+
+// GetRevision returns the value of Revision.
+func (s *RuntimeProfile) GetRevision() int {
+	return s.Revision
+}
+
+// GetRuntimeKind returns the value of RuntimeKind.
+func (s *RuntimeProfile) GetRuntimeKind() RuntimeProfileRuntimeKind {
+	return s.RuntimeKind
+}
+
+// GetSandbox returns the value of Sandbox.
+func (s *RuntimeProfile) GetSandbox() RuntimeProfileSandbox {
+	return s.Sandbox
+}
+
+// GetSessionStorageMode returns the value of SessionStorageMode.
+func (s *RuntimeProfile) GetSessionStorageMode() RuntimeProfileSessionStorageMode {
+	return s.SessionStorageMode
+}
+
+// GetSessionTtlSec returns the value of SessionTtlSec.
+func (s *RuntimeProfile) GetSessionTtlSec() int {
+	return s.SessionTtlSec
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *RuntimeProfile) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *RuntimeProfile) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
+func (s *RuntimeProfile) GetWorkspaceStorageMode() RuntimeProfileWorkspaceStorageMode {
+	return s.WorkspaceStorageMode
+}
+
+// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
+func (s *RuntimeProfile) GetWorkspaceTtlSec() int {
+	return s.WorkspaceTtlSec
+}
+
+// SetContext sets the value of Context.
+func (s *RuntimeProfile) SetContext(val []RuntimeProfileContextItem) {
+	s.Context = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *RuntimeProfile) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreatedByAgentId sets the value of CreatedByAgentId.
+func (s *RuntimeProfile) SetCreatedByAgentId(val NilUUID) {
+	s.CreatedByAgentId = val
+}
+
+// SetCreatedByHumanId sets the value of CreatedByHumanId.
+func (s *RuntimeProfile) SetCreatedByHumanId(val NilUUID) {
+	s.CreatedByHumanId = val
+}
+
+// SetDefinitionCid sets the value of DefinitionCid.
+func (s *RuntimeProfile) SetDefinitionCid(val string) {
+	s.DefinitionCid = val
+}
+
+// SetDescription sets the value of Description.
+func (s *RuntimeProfile) SetDescription(val NilString) {
+	s.Description = val
+}
+
+// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
+func (s *RuntimeProfile) SetHeartbeatIntervalMs(val int) {
+	s.HeartbeatIntervalMs = val
+}
+
+// SetID sets the value of ID.
+func (s *RuntimeProfile) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetLeaseTtlSec sets the value of LeaseTtlSec.
+func (s *RuntimeProfile) SetLeaseTtlSec(val int) {
+	s.LeaseTtlSec = val
+}
+
+// SetMaxBatchSize sets the value of MaxBatchSize.
+func (s *RuntimeProfile) SetMaxBatchSize(val int) {
+	s.MaxBatchSize = val
+}
+
+// SetModel sets the value of Model.
+func (s *RuntimeProfile) SetModel(val string) {
+	s.Model = val
+}
+
+// SetName sets the value of Name.
+func (s *RuntimeProfile) SetName(val string) {
+	s.Name = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *RuntimeProfile) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetRequiredEnv sets the value of RequiredEnv.
+func (s *RuntimeProfile) SetRequiredEnv(val []string) {
+	s.RequiredEnv = val
+}
+
+// SetRequiredTools sets the value of RequiredTools.
+func (s *RuntimeProfile) SetRequiredTools(val []string) {
+	s.RequiredTools = val
+}
+
+// SetRevision sets the value of Revision.
+func (s *RuntimeProfile) SetRevision(val int) {
+	s.Revision = val
+}
+
+// SetRuntimeKind sets the value of RuntimeKind.
+func (s *RuntimeProfile) SetRuntimeKind(val RuntimeProfileRuntimeKind) {
+	s.RuntimeKind = val
+}
+
+// SetSandbox sets the value of Sandbox.
+func (s *RuntimeProfile) SetSandbox(val RuntimeProfileSandbox) {
+	s.Sandbox = val
+}
+
+// SetSessionStorageMode sets the value of SessionStorageMode.
+func (s *RuntimeProfile) SetSessionStorageMode(val RuntimeProfileSessionStorageMode) {
+	s.SessionStorageMode = val
+}
+
+// SetSessionTtlSec sets the value of SessionTtlSec.
+func (s *RuntimeProfile) SetSessionTtlSec(val int) {
+	s.SessionTtlSec = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *RuntimeProfile) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *RuntimeProfile) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
+func (s *RuntimeProfile) SetWorkspaceStorageMode(val RuntimeProfileWorkspaceStorageMode) {
+	s.WorkspaceStorageMode = val
+}
+
+// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
+func (s *RuntimeProfile) SetWorkspaceTtlSec(val int) {
+	s.WorkspaceTtlSec = val
+}
+
+func (*RuntimeProfile) createRuntimeProfileRes() {}
+func (*RuntimeProfile) getRuntimeProfileRes()    {}
+func (*RuntimeProfile) updateRuntimeProfileRes() {}
+
+type RuntimeProfileContextItem struct {
+	Binding RuntimeProfileContextItemBinding `json:"binding"`
+	Content string                           `json:"content"`
+	Slug    string                           `json:"slug"`
+}
+
+// GetBinding returns the value of Binding.
+func (s *RuntimeProfileContextItem) GetBinding() RuntimeProfileContextItemBinding {
+	return s.Binding
+}
+
+// GetContent returns the value of Content.
+func (s *RuntimeProfileContextItem) GetContent() string {
+	return s.Content
+}
+
+// GetSlug returns the value of Slug.
+func (s *RuntimeProfileContextItem) GetSlug() string {
+	return s.Slug
+}
+
+// SetBinding sets the value of Binding.
+func (s *RuntimeProfileContextItem) SetBinding(val RuntimeProfileContextItemBinding) {
+	s.Binding = val
+}
+
+// SetContent sets the value of Content.
+func (s *RuntimeProfileContextItem) SetContent(val string) {
+	s.Content = val
+}
+
+// SetSlug sets the value of Slug.
+func (s *RuntimeProfileContextItem) SetSlug(val string) {
+	s.Slug = val
+}
+
+type RuntimeProfileContextItemBinding string
+
+const (
+	RuntimeProfileContextItemBindingSkill         RuntimeProfileContextItemBinding = "skill"
+	RuntimeProfileContextItemBindingContextInline RuntimeProfileContextItemBinding = "context_inline"
+	RuntimeProfileContextItemBindingPromptPrefix  RuntimeProfileContextItemBinding = "prompt_prefix"
+	RuntimeProfileContextItemBindingUserInline    RuntimeProfileContextItemBinding = "user_inline"
+)
+
+// AllValues returns all RuntimeProfileContextItemBinding values.
+func (RuntimeProfileContextItemBinding) AllValues() []RuntimeProfileContextItemBinding {
+	return []RuntimeProfileContextItemBinding{
+		RuntimeProfileContextItemBindingSkill,
+		RuntimeProfileContextItemBindingContextInline,
+		RuntimeProfileContextItemBindingPromptPrefix,
+		RuntimeProfileContextItemBindingUserInline,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileContextItemBinding) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileContextItemBindingSkill:
+		return []byte(s), nil
+	case RuntimeProfileContextItemBindingContextInline:
+		return []byte(s), nil
+	case RuntimeProfileContextItemBindingPromptPrefix:
+		return []byte(s), nil
+	case RuntimeProfileContextItemBindingUserInline:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileContextItemBinding) UnmarshalText(data []byte) error {
+	switch RuntimeProfileContextItemBinding(data) {
+	case RuntimeProfileContextItemBindingSkill:
+		*s = RuntimeProfileContextItemBindingSkill
+		return nil
+	case RuntimeProfileContextItemBindingContextInline:
+		*s = RuntimeProfileContextItemBindingContextInline
+		return nil
+	case RuntimeProfileContextItemBindingPromptPrefix:
+		*s = RuntimeProfileContextItemBindingPromptPrefix
+		return nil
+	case RuntimeProfileContextItemBindingUserInline:
+		*s = RuntimeProfileContextItemBindingUserInline
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/RuntimeProfileListResponse
+type RuntimeProfileListResponse struct {
+	Items []RuntimeProfileListResponseItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *RuntimeProfileListResponse) GetItems() []RuntimeProfileListResponseItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *RuntimeProfileListResponse) SetItems(val []RuntimeProfileListResponseItemsItem) {
+	s.Items = val
+}
+
+func (*RuntimeProfileListResponse) listRuntimeProfilesRes() {}
+
+type RuntimeProfileListResponseItemsItem struct {
+	Context              []RuntimeProfileListResponseItemsItemContextItem        `json:"context"`
+	CreatedAt            time.Time                                               `json:"createdAt"`
+	CreatedByAgentId     NilUUID                                                 `json:"createdByAgentId"`
+	CreatedByHumanId     NilUUID                                                 `json:"createdByHumanId"`
+	DefinitionCid        string                                                  `json:"definitionCid"`
+	Description          NilString                                               `json:"description"`
+	HeartbeatIntervalMs  int                                                     `json:"heartbeatIntervalMs"`
+	ID                   uuid.UUID                                               `json:"id"`
+	LeaseTtlSec          int                                                     `json:"leaseTtlSec"`
+	MaxBatchSize         int                                                     `json:"maxBatchSize"`
+	Model                string                                                  `json:"model"`
+	Name                 string                                                  `json:"name"`
+	Provider             string                                                  `json:"provider"`
+	RequiredEnv          []string                                                `json:"requiredEnv"`
+	RequiredTools        []string                                                `json:"requiredTools"`
+	Revision             int                                                     `json:"revision"`
+	RuntimeKind          RuntimeProfileListResponseItemsItemRuntimeKind          `json:"runtimeKind"`
+	Sandbox              RuntimeProfileListResponseItemsItemSandbox              `json:"sandbox"`
+	SessionStorageMode   RuntimeProfileListResponseItemsItemSessionStorageMode   `json:"sessionStorageMode"`
+	SessionTtlSec        int                                                     `json:"sessionTtlSec"`
+	TeamId               uuid.UUID                                               `json:"teamId"`
+	UpdatedAt            time.Time                                               `json:"updatedAt"`
+	WorkspaceStorageMode RuntimeProfileListResponseItemsItemWorkspaceStorageMode `json:"workspaceStorageMode"`
+	WorkspaceTtlSec      int                                                     `json:"workspaceTtlSec"`
+}
+
+// GetContext returns the value of Context.
+func (s *RuntimeProfileListResponseItemsItem) GetContext() []RuntimeProfileListResponseItemsItemContextItem {
+	return s.Context
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *RuntimeProfileListResponseItemsItem) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreatedByAgentId returns the value of CreatedByAgentId.
+func (s *RuntimeProfileListResponseItemsItem) GetCreatedByAgentId() NilUUID {
+	return s.CreatedByAgentId
+}
+
+// GetCreatedByHumanId returns the value of CreatedByHumanId.
+func (s *RuntimeProfileListResponseItemsItem) GetCreatedByHumanId() NilUUID {
+	return s.CreatedByHumanId
+}
+
+// GetDefinitionCid returns the value of DefinitionCid.
+func (s *RuntimeProfileListResponseItemsItem) GetDefinitionCid() string {
+	return s.DefinitionCid
+}
+
+// GetDescription returns the value of Description.
+func (s *RuntimeProfileListResponseItemsItem) GetDescription() NilString {
+	return s.Description
+}
+
+// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
+func (s *RuntimeProfileListResponseItemsItem) GetHeartbeatIntervalMs() int {
+	return s.HeartbeatIntervalMs
+}
+
+// GetID returns the value of ID.
+func (s *RuntimeProfileListResponseItemsItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetLeaseTtlSec returns the value of LeaseTtlSec.
+func (s *RuntimeProfileListResponseItemsItem) GetLeaseTtlSec() int {
+	return s.LeaseTtlSec
+}
+
+// GetMaxBatchSize returns the value of MaxBatchSize.
+func (s *RuntimeProfileListResponseItemsItem) GetMaxBatchSize() int {
+	return s.MaxBatchSize
+}
+
+// GetModel returns the value of Model.
+func (s *RuntimeProfileListResponseItemsItem) GetModel() string {
+	return s.Model
+}
+
+// GetName returns the value of Name.
+func (s *RuntimeProfileListResponseItemsItem) GetName() string {
+	return s.Name
+}
+
+// GetProvider returns the value of Provider.
+func (s *RuntimeProfileListResponseItemsItem) GetProvider() string {
+	return s.Provider
+}
+
+// GetRequiredEnv returns the value of RequiredEnv.
+func (s *RuntimeProfileListResponseItemsItem) GetRequiredEnv() []string {
+	return s.RequiredEnv
+}
+
+// GetRequiredTools returns the value of RequiredTools.
+func (s *RuntimeProfileListResponseItemsItem) GetRequiredTools() []string {
+	return s.RequiredTools
+}
+
+// GetRevision returns the value of Revision.
+func (s *RuntimeProfileListResponseItemsItem) GetRevision() int {
+	return s.Revision
+}
+
+// GetRuntimeKind returns the value of RuntimeKind.
+func (s *RuntimeProfileListResponseItemsItem) GetRuntimeKind() RuntimeProfileListResponseItemsItemRuntimeKind {
+	return s.RuntimeKind
+}
+
+// GetSandbox returns the value of Sandbox.
+func (s *RuntimeProfileListResponseItemsItem) GetSandbox() RuntimeProfileListResponseItemsItemSandbox {
+	return s.Sandbox
+}
+
+// GetSessionStorageMode returns the value of SessionStorageMode.
+func (s *RuntimeProfileListResponseItemsItem) GetSessionStorageMode() RuntimeProfileListResponseItemsItemSessionStorageMode {
+	return s.SessionStorageMode
+}
+
+// GetSessionTtlSec returns the value of SessionTtlSec.
+func (s *RuntimeProfileListResponseItemsItem) GetSessionTtlSec() int {
+	return s.SessionTtlSec
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *RuntimeProfileListResponseItemsItem) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *RuntimeProfileListResponseItemsItem) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
+func (s *RuntimeProfileListResponseItemsItem) GetWorkspaceStorageMode() RuntimeProfileListResponseItemsItemWorkspaceStorageMode {
+	return s.WorkspaceStorageMode
+}
+
+// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
+func (s *RuntimeProfileListResponseItemsItem) GetWorkspaceTtlSec() int {
+	return s.WorkspaceTtlSec
+}
+
+// SetContext sets the value of Context.
+func (s *RuntimeProfileListResponseItemsItem) SetContext(val []RuntimeProfileListResponseItemsItemContextItem) {
+	s.Context = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *RuntimeProfileListResponseItemsItem) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreatedByAgentId sets the value of CreatedByAgentId.
+func (s *RuntimeProfileListResponseItemsItem) SetCreatedByAgentId(val NilUUID) {
+	s.CreatedByAgentId = val
+}
+
+// SetCreatedByHumanId sets the value of CreatedByHumanId.
+func (s *RuntimeProfileListResponseItemsItem) SetCreatedByHumanId(val NilUUID) {
+	s.CreatedByHumanId = val
+}
+
+// SetDefinitionCid sets the value of DefinitionCid.
+func (s *RuntimeProfileListResponseItemsItem) SetDefinitionCid(val string) {
+	s.DefinitionCid = val
+}
+
+// SetDescription sets the value of Description.
+func (s *RuntimeProfileListResponseItemsItem) SetDescription(val NilString) {
+	s.Description = val
+}
+
+// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
+func (s *RuntimeProfileListResponseItemsItem) SetHeartbeatIntervalMs(val int) {
+	s.HeartbeatIntervalMs = val
+}
+
+// SetID sets the value of ID.
+func (s *RuntimeProfileListResponseItemsItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetLeaseTtlSec sets the value of LeaseTtlSec.
+func (s *RuntimeProfileListResponseItemsItem) SetLeaseTtlSec(val int) {
+	s.LeaseTtlSec = val
+}
+
+// SetMaxBatchSize sets the value of MaxBatchSize.
+func (s *RuntimeProfileListResponseItemsItem) SetMaxBatchSize(val int) {
+	s.MaxBatchSize = val
+}
+
+// SetModel sets the value of Model.
+func (s *RuntimeProfileListResponseItemsItem) SetModel(val string) {
+	s.Model = val
+}
+
+// SetName sets the value of Name.
+func (s *RuntimeProfileListResponseItemsItem) SetName(val string) {
+	s.Name = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *RuntimeProfileListResponseItemsItem) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetRequiredEnv sets the value of RequiredEnv.
+func (s *RuntimeProfileListResponseItemsItem) SetRequiredEnv(val []string) {
+	s.RequiredEnv = val
+}
+
+// SetRequiredTools sets the value of RequiredTools.
+func (s *RuntimeProfileListResponseItemsItem) SetRequiredTools(val []string) {
+	s.RequiredTools = val
+}
+
+// SetRevision sets the value of Revision.
+func (s *RuntimeProfileListResponseItemsItem) SetRevision(val int) {
+	s.Revision = val
+}
+
+// SetRuntimeKind sets the value of RuntimeKind.
+func (s *RuntimeProfileListResponseItemsItem) SetRuntimeKind(val RuntimeProfileListResponseItemsItemRuntimeKind) {
+	s.RuntimeKind = val
+}
+
+// SetSandbox sets the value of Sandbox.
+func (s *RuntimeProfileListResponseItemsItem) SetSandbox(val RuntimeProfileListResponseItemsItemSandbox) {
+	s.Sandbox = val
+}
+
+// SetSessionStorageMode sets the value of SessionStorageMode.
+func (s *RuntimeProfileListResponseItemsItem) SetSessionStorageMode(val RuntimeProfileListResponseItemsItemSessionStorageMode) {
+	s.SessionStorageMode = val
+}
+
+// SetSessionTtlSec sets the value of SessionTtlSec.
+func (s *RuntimeProfileListResponseItemsItem) SetSessionTtlSec(val int) {
+	s.SessionTtlSec = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *RuntimeProfileListResponseItemsItem) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *RuntimeProfileListResponseItemsItem) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
+func (s *RuntimeProfileListResponseItemsItem) SetWorkspaceStorageMode(val RuntimeProfileListResponseItemsItemWorkspaceStorageMode) {
+	s.WorkspaceStorageMode = val
+}
+
+// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
+func (s *RuntimeProfileListResponseItemsItem) SetWorkspaceTtlSec(val int) {
+	s.WorkspaceTtlSec = val
+}
+
+type RuntimeProfileListResponseItemsItemContextItem struct {
+	Binding RuntimeProfileListResponseItemsItemContextItemBinding `json:"binding"`
+	Content string                                                `json:"content"`
+	Slug    string                                                `json:"slug"`
+}
+
+// GetBinding returns the value of Binding.
+func (s *RuntimeProfileListResponseItemsItemContextItem) GetBinding() RuntimeProfileListResponseItemsItemContextItemBinding {
+	return s.Binding
+}
+
+// GetContent returns the value of Content.
+func (s *RuntimeProfileListResponseItemsItemContextItem) GetContent() string {
+	return s.Content
+}
+
+// GetSlug returns the value of Slug.
+func (s *RuntimeProfileListResponseItemsItemContextItem) GetSlug() string {
+	return s.Slug
+}
+
+// SetBinding sets the value of Binding.
+func (s *RuntimeProfileListResponseItemsItemContextItem) SetBinding(val RuntimeProfileListResponseItemsItemContextItemBinding) {
+	s.Binding = val
+}
+
+// SetContent sets the value of Content.
+func (s *RuntimeProfileListResponseItemsItemContextItem) SetContent(val string) {
+	s.Content = val
+}
+
+// SetSlug sets the value of Slug.
+func (s *RuntimeProfileListResponseItemsItemContextItem) SetSlug(val string) {
+	s.Slug = val
+}
+
+type RuntimeProfileListResponseItemsItemContextItemBinding string
+
+const (
+	RuntimeProfileListResponseItemsItemContextItemBindingSkill         RuntimeProfileListResponseItemsItemContextItemBinding = "skill"
+	RuntimeProfileListResponseItemsItemContextItemBindingContextInline RuntimeProfileListResponseItemsItemContextItemBinding = "context_inline"
+	RuntimeProfileListResponseItemsItemContextItemBindingPromptPrefix  RuntimeProfileListResponseItemsItemContextItemBinding = "prompt_prefix"
+	RuntimeProfileListResponseItemsItemContextItemBindingUserInline    RuntimeProfileListResponseItemsItemContextItemBinding = "user_inline"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemContextItemBinding values.
+func (RuntimeProfileListResponseItemsItemContextItemBinding) AllValues() []RuntimeProfileListResponseItemsItemContextItemBinding {
+	return []RuntimeProfileListResponseItemsItemContextItemBinding{
+		RuntimeProfileListResponseItemsItemContextItemBindingSkill,
+		RuntimeProfileListResponseItemsItemContextItemBindingContextInline,
+		RuntimeProfileListResponseItemsItemContextItemBindingPromptPrefix,
+		RuntimeProfileListResponseItemsItemContextItemBindingUserInline,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemContextItemBinding) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemContextItemBindingSkill:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemContextItemBindingContextInline:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemContextItemBindingPromptPrefix:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemContextItemBindingUserInline:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemContextItemBinding) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemContextItemBinding(data) {
+	case RuntimeProfileListResponseItemsItemContextItemBindingSkill:
+		*s = RuntimeProfileListResponseItemsItemContextItemBindingSkill
+		return nil
+	case RuntimeProfileListResponseItemsItemContextItemBindingContextInline:
+		*s = RuntimeProfileListResponseItemsItemContextItemBindingContextInline
+		return nil
+	case RuntimeProfileListResponseItemsItemContextItemBindingPromptPrefix:
+		*s = RuntimeProfileListResponseItemsItemContextItemBindingPromptPrefix
+		return nil
+	case RuntimeProfileListResponseItemsItemContextItemBindingUserInline:
+		*s = RuntimeProfileListResponseItemsItemContextItemBindingUserInline
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileListResponseItemsItemRuntimeKind string
+
+const (
+	RuntimeProfileListResponseItemsItemRuntimeKindGondolinPi RuntimeProfileListResponseItemsItemRuntimeKind = "gondolin_pi"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemRuntimeKind values.
+func (RuntimeProfileListResponseItemsItemRuntimeKind) AllValues() []RuntimeProfileListResponseItemsItemRuntimeKind {
+	return []RuntimeProfileListResponseItemsItemRuntimeKind{
+		RuntimeProfileListResponseItemsItemRuntimeKindGondolinPi,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemRuntimeKind) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemRuntimeKindGondolinPi:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemRuntimeKind) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemRuntimeKind(data) {
+	case RuntimeProfileListResponseItemsItemRuntimeKindGondolinPi:
+		*s = RuntimeProfileListResponseItemsItemRuntimeKindGondolinPi
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileListResponseItemsItemSandbox struct {
+	Env            OptRuntimeProfileListResponseItemsItemSandboxEnv               `json:"env"`
+	HostExec       OptRuntimeProfileListResponseItemsItemSandboxHostExec          `json:"hostExec"`
+	Resources      OptRuntimeProfileListResponseItemsItemSandboxResources         `json:"resources"`
+	ResumeCommands []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem `json:"resumeCommands"`
+	Snapshot       OptRuntimeProfileListResponseItemsItemSandboxSnapshot          `json:"snapshot"`
+	Vfs            OptRuntimeProfileListResponseItemsItemSandboxVfs               `json:"vfs"`
+}
+
+// GetEnv returns the value of Env.
+func (s *RuntimeProfileListResponseItemsItemSandbox) GetEnv() OptRuntimeProfileListResponseItemsItemSandboxEnv {
+	return s.Env
+}
+
+// GetHostExec returns the value of HostExec.
+func (s *RuntimeProfileListResponseItemsItemSandbox) GetHostExec() OptRuntimeProfileListResponseItemsItemSandboxHostExec {
+	return s.HostExec
+}
+
+// GetResources returns the value of Resources.
+func (s *RuntimeProfileListResponseItemsItemSandbox) GetResources() OptRuntimeProfileListResponseItemsItemSandboxResources {
+	return s.Resources
+}
+
+// GetResumeCommands returns the value of ResumeCommands.
+func (s *RuntimeProfileListResponseItemsItemSandbox) GetResumeCommands() []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem {
+	return s.ResumeCommands
+}
+
+// GetSnapshot returns the value of Snapshot.
+func (s *RuntimeProfileListResponseItemsItemSandbox) GetSnapshot() OptRuntimeProfileListResponseItemsItemSandboxSnapshot {
+	return s.Snapshot
+}
+
+// GetVfs returns the value of Vfs.
+func (s *RuntimeProfileListResponseItemsItemSandbox) GetVfs() OptRuntimeProfileListResponseItemsItemSandboxVfs {
+	return s.Vfs
+}
+
+// SetEnv sets the value of Env.
+func (s *RuntimeProfileListResponseItemsItemSandbox) SetEnv(val OptRuntimeProfileListResponseItemsItemSandboxEnv) {
+	s.Env = val
+}
+
+// SetHostExec sets the value of HostExec.
+func (s *RuntimeProfileListResponseItemsItemSandbox) SetHostExec(val OptRuntimeProfileListResponseItemsItemSandboxHostExec) {
+	s.HostExec = val
+}
+
+// SetResources sets the value of Resources.
+func (s *RuntimeProfileListResponseItemsItemSandbox) SetResources(val OptRuntimeProfileListResponseItemsItemSandboxResources) {
+	s.Resources = val
+}
+
+// SetResumeCommands sets the value of ResumeCommands.
+func (s *RuntimeProfileListResponseItemsItemSandbox) SetResumeCommands(val []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) {
+	s.ResumeCommands = val
+}
+
+// SetSnapshot sets the value of Snapshot.
+func (s *RuntimeProfileListResponseItemsItemSandbox) SetSnapshot(val OptRuntimeProfileListResponseItemsItemSandboxSnapshot) {
+	s.Snapshot = val
+}
+
+// SetVfs sets the value of Vfs.
+func (s *RuntimeProfileListResponseItemsItemSandbox) SetVfs(val OptRuntimeProfileListResponseItemsItemSandboxVfs) {
+	s.Vfs = val
+}
+
+type RuntimeProfileListResponseItemsItemSandboxEnv map[string]string
+
+func (s *RuntimeProfileListResponseItemsItemSandboxEnv) init() RuntimeProfileListResponseItemsItemSandboxEnv {
+	m := *s
+	if m == nil {
+		m = map[string]string{}
+		*s = m
+	}
+	return m
+}
+
+type RuntimeProfileListResponseItemsItemSandboxHostExec struct {
+	AutoApprove OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove `json:"autoApprove"`
+}
+
+// GetAutoApprove returns the value of AutoApprove.
+func (s *RuntimeProfileListResponseItemsItemSandboxHostExec) GetAutoApprove() OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove {
+	return s.AutoApprove
+}
+
+// SetAutoApprove sets the value of AutoApprove.
+func (s *RuntimeProfileListResponseItemsItemSandboxHostExec) SetAutoApprove(val OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) {
+	s.AutoApprove = val
+}
+
+type RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove bool
+
+const (
+	RuntimeProfileListResponseItemsItemSandboxHostExecAutoApproveFalse RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove = false
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove values.
+func (RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) AllValues() []RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove {
+	return []RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove{
+		RuntimeProfileListResponseItemsItemSandboxHostExecAutoApproveFalse,
+	}
+}
+
+type RuntimeProfileListResponseItemsItemSandboxResources struct {
+	Cpus   OptInt    `json:"cpus"`
+	Memory OptString `json:"memory"`
+}
+
+// GetCpus returns the value of Cpus.
+func (s *RuntimeProfileListResponseItemsItemSandboxResources) GetCpus() OptInt {
+	return s.Cpus
+}
+
+// GetMemory returns the value of Memory.
+func (s *RuntimeProfileListResponseItemsItemSandboxResources) GetMemory() OptString {
+	return s.Memory
+}
+
+// SetCpus sets the value of Cpus.
+func (s *RuntimeProfileListResponseItemsItemSandboxResources) SetCpus(val OptInt) {
+	s.Cpus = val
+}
+
+// SetMemory sets the value of Memory.
+func (s *RuntimeProfileListResponseItemsItemSandboxResources) SetMemory(val OptString) {
+	s.Memory = val
+}
+
+// RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem represents sum type.
+type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem struct {
+	Type                                                          RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType // switch on this field
+	String                                                        string
+	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1
+}
+
+// RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType is oneOf type of RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem.
+type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType string
+
+// Possible values for RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType.
+const (
+	StringRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem                                                        RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType = "string"
+	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType = "RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1"
+)
+
+// IsString reports whether RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem is string.
+func (s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) IsString() bool {
+	return s.Type == StringRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
+}
+
+// IsRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 reports whether RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem is RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1.
+func (s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) IsRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1() bool {
+	return s.Type == RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
+}
+
+// SetString sets RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem to string.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) SetString(v string) {
+	s.Type = StringRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
+	s.String = v
+}
+
+// GetString returns string and true boolean if RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem is string.
+func (s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) GetString() (v string, ok bool) {
+	if !s.IsString() {
+		return v, false
+	}
+	return s.String, true
+}
+
+// NewStringRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem returns new RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem from string.
+func NewStringRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem(v string) RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem {
+	var s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
+	s.SetString(v)
+	return s
+}
+
+// SetRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 sets RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem to RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) SetRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1(v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) {
+	s.Type = RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
+	s.RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 = v
+}
+
+// GetRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 returns RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 and true boolean if RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem is RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1.
+func (s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) GetRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1() (v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1, ok bool) {
+	if !s.IsRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1() {
+		return v, false
+	}
+	return s.RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1, true
+}
+
+// NewRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem returns new RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem from RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1.
+func NewRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem(v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem {
+	var s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
+	s.SetRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1(v)
+	return s
+}
+
+type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 struct {
+	Retries        OptInt                                                               `json:"retries"`
+	RetryBackoffMs OptInt                                                               `json:"retryBackoffMs"`
+	Run            string                                                               `json:"run"`
+	When           OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When `json:"when"`
+}
+
+// GetRetries returns the value of Retries.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) GetRetries() OptInt {
+	return s.Retries
+}
+
+// GetRetryBackoffMs returns the value of RetryBackoffMs.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
+	return s.RetryBackoffMs
+}
+
+// GetRun returns the value of Run.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) GetRun() string {
+	return s.Run
+}
+
+// GetWhen returns the value of When.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) GetWhen() OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When {
+	return s.When
+}
+
+// SetRetries sets the value of Retries.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) SetRetries(val OptInt) {
+	s.Retries = val
+}
+
+// SetRetryBackoffMs sets the value of RetryBackoffMs.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
+	s.RetryBackoffMs = val
+}
+
+// SetRun sets the value of Run.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) SetRun(val string) {
+	s.Run = val
+}
+
+// SetWhen sets the value of When.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) SetWhen(val OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) {
+	s.When = val
+}
+
+type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When struct {
+	WorkspaceMode []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
+}
+
+// GetWorkspaceMode returns the value of WorkspaceMode.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) GetWorkspaceMode() []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem {
+	return s.WorkspaceMode
+}
+
+// SetWorkspaceMode sets the value of WorkspaceMode.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) SetWorkspaceMode(val []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) {
+	s.WorkspaceMode = val
+}
+
+type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem string
+
+const (
+	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
+	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
+	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem values.
+func (RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem {
+	return []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem{
+		RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
+		RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
+		RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
+	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		*s = RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
+		return nil
+	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		*s = RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
+		return nil
+	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		*s = RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileListResponseItemsItemSandboxSnapshot struct {
+	AllowedHosts  []string  `json:"allowedHosts"`
+	OverlaySize   OptString `json:"overlaySize"`
+	SetupCommands []string  `json:"setupCommands"`
+}
+
+// GetAllowedHosts returns the value of AllowedHosts.
+func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) GetAllowedHosts() []string {
+	return s.AllowedHosts
+}
+
+// GetOverlaySize returns the value of OverlaySize.
+func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) GetOverlaySize() OptString {
+	return s.OverlaySize
+}
+
+// GetSetupCommands returns the value of SetupCommands.
+func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) GetSetupCommands() []string {
+	return s.SetupCommands
+}
+
+// SetAllowedHosts sets the value of AllowedHosts.
+func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) SetAllowedHosts(val []string) {
+	s.AllowedHosts = val
+}
+
+// SetOverlaySize sets the value of OverlaySize.
+func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) SetOverlaySize(val OptString) {
+	s.OverlaySize = val
+}
+
+// SetSetupCommands sets the value of SetupCommands.
+func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) SetSetupCommands(val []string) {
+	s.SetupCommands = val
+}
+
+type RuntimeProfileListResponseItemsItemSandboxVfs struct {
+	Shadow     []string                                                   `json:"shadow"`
+	ShadowMode OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode `json:"shadowMode"`
+}
+
+// GetShadow returns the value of Shadow.
+func (s *RuntimeProfileListResponseItemsItemSandboxVfs) GetShadow() []string {
+	return s.Shadow
+}
+
+// GetShadowMode returns the value of ShadowMode.
+func (s *RuntimeProfileListResponseItemsItemSandboxVfs) GetShadowMode() OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode {
+	return s.ShadowMode
+}
+
+// SetShadow sets the value of Shadow.
+func (s *RuntimeProfileListResponseItemsItemSandboxVfs) SetShadow(val []string) {
+	s.Shadow = val
+}
+
+// SetShadowMode sets the value of ShadowMode.
+func (s *RuntimeProfileListResponseItemsItemSandboxVfs) SetShadowMode(val OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode) {
+	s.ShadowMode = val
+}
+
+type RuntimeProfileListResponseItemsItemSandboxVfsShadowMode string
+
+const (
+	RuntimeProfileListResponseItemsItemSandboxVfsShadowModeDeny  RuntimeProfileListResponseItemsItemSandboxVfsShadowMode = "deny"
+	RuntimeProfileListResponseItemsItemSandboxVfsShadowModeTmpfs RuntimeProfileListResponseItemsItemSandboxVfsShadowMode = "tmpfs"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemSandboxVfsShadowMode values.
+func (RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) AllValues() []RuntimeProfileListResponseItemsItemSandboxVfsShadowMode {
+	return []RuntimeProfileListResponseItemsItemSandboxVfsShadowMode{
+		RuntimeProfileListResponseItemsItemSandboxVfsShadowModeDeny,
+		RuntimeProfileListResponseItemsItemSandboxVfsShadowModeTmpfs,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemSandboxVfsShadowModeDeny:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemSandboxVfsShadowModeTmpfs:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemSandboxVfsShadowMode(data) {
+	case RuntimeProfileListResponseItemsItemSandboxVfsShadowModeDeny:
+		*s = RuntimeProfileListResponseItemsItemSandboxVfsShadowModeDeny
+		return nil
+	case RuntimeProfileListResponseItemsItemSandboxVfsShadowModeTmpfs:
+		*s = RuntimeProfileListResponseItemsItemSandboxVfsShadowModeTmpfs
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileListResponseItemsItemSessionStorageMode string
+
+const (
+	RuntimeProfileListResponseItemsItemSessionStorageModeLocal RuntimeProfileListResponseItemsItemSessionStorageMode = "local"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemSessionStorageMode values.
+func (RuntimeProfileListResponseItemsItemSessionStorageMode) AllValues() []RuntimeProfileListResponseItemsItemSessionStorageMode {
+	return []RuntimeProfileListResponseItemsItemSessionStorageMode{
+		RuntimeProfileListResponseItemsItemSessionStorageModeLocal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemSessionStorageMode) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemSessionStorageModeLocal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemSessionStorageMode) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemSessionStorageMode(data) {
+	case RuntimeProfileListResponseItemsItemSessionStorageModeLocal:
+		*s = RuntimeProfileListResponseItemsItemSessionStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileListResponseItemsItemWorkspaceStorageMode string
+
+const (
+	RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal RuntimeProfileListResponseItemsItemWorkspaceStorageMode = "local"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemWorkspaceStorageMode values.
+func (RuntimeProfileListResponseItemsItemWorkspaceStorageMode) AllValues() []RuntimeProfileListResponseItemsItemWorkspaceStorageMode {
+	return []RuntimeProfileListResponseItemsItemWorkspaceStorageMode{
+		RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemWorkspaceStorageMode) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemWorkspaceStorageMode) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemWorkspaceStorageMode(data) {
+	case RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal:
+		*s = RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/RuntimeProfileRef
+type RuntimeProfileRef struct {
+	ProfileId uuid.UUID `json:"profileId"`
+}
+
+// GetProfileId returns the value of ProfileId.
+func (s *RuntimeProfileRef) GetProfileId() uuid.UUID {
+	return s.ProfileId
+}
+
+// SetProfileId sets the value of ProfileId.
+func (s *RuntimeProfileRef) SetProfileId(val uuid.UUID) {
+	s.ProfileId = val
+}
+
+type RuntimeProfileRuntimeKind string
+
+const (
+	RuntimeProfileRuntimeKindGondolinPi RuntimeProfileRuntimeKind = "gondolin_pi"
+)
+
+// AllValues returns all RuntimeProfileRuntimeKind values.
+func (RuntimeProfileRuntimeKind) AllValues() []RuntimeProfileRuntimeKind {
+	return []RuntimeProfileRuntimeKind{
+		RuntimeProfileRuntimeKindGondolinPi,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileRuntimeKind) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileRuntimeKindGondolinPi:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileRuntimeKind) UnmarshalText(data []byte) error {
+	switch RuntimeProfileRuntimeKind(data) {
+	case RuntimeProfileRuntimeKindGondolinPi:
+		*s = RuntimeProfileRuntimeKindGondolinPi
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/RuntimeProfileSandbox
+type RuntimeProfileSandbox struct {
+	Env            OptRuntimeProfileSandboxEnv               `json:"env"`
+	HostExec       OptRuntimeProfileSandboxHostExec          `json:"hostExec"`
+	Resources      OptRuntimeProfileSandboxResources         `json:"resources"`
+	ResumeCommands []RuntimeProfileSandboxResumeCommandsItem `json:"resumeCommands"`
+	Snapshot       OptRuntimeProfileSandboxSnapshot          `json:"snapshot"`
+	Vfs            OptRuntimeProfileSandboxVfs               `json:"vfs"`
+}
+
+// GetEnv returns the value of Env.
+func (s *RuntimeProfileSandbox) GetEnv() OptRuntimeProfileSandboxEnv {
+	return s.Env
+}
+
+// GetHostExec returns the value of HostExec.
+func (s *RuntimeProfileSandbox) GetHostExec() OptRuntimeProfileSandboxHostExec {
+	return s.HostExec
+}
+
+// GetResources returns the value of Resources.
+func (s *RuntimeProfileSandbox) GetResources() OptRuntimeProfileSandboxResources {
+	return s.Resources
+}
+
+// GetResumeCommands returns the value of ResumeCommands.
+func (s *RuntimeProfileSandbox) GetResumeCommands() []RuntimeProfileSandboxResumeCommandsItem {
+	return s.ResumeCommands
+}
+
+// GetSnapshot returns the value of Snapshot.
+func (s *RuntimeProfileSandbox) GetSnapshot() OptRuntimeProfileSandboxSnapshot {
+	return s.Snapshot
+}
+
+// GetVfs returns the value of Vfs.
+func (s *RuntimeProfileSandbox) GetVfs() OptRuntimeProfileSandboxVfs {
+	return s.Vfs
+}
+
+// SetEnv sets the value of Env.
+func (s *RuntimeProfileSandbox) SetEnv(val OptRuntimeProfileSandboxEnv) {
+	s.Env = val
+}
+
+// SetHostExec sets the value of HostExec.
+func (s *RuntimeProfileSandbox) SetHostExec(val OptRuntimeProfileSandboxHostExec) {
+	s.HostExec = val
+}
+
+// SetResources sets the value of Resources.
+func (s *RuntimeProfileSandbox) SetResources(val OptRuntimeProfileSandboxResources) {
+	s.Resources = val
+}
+
+// SetResumeCommands sets the value of ResumeCommands.
+func (s *RuntimeProfileSandbox) SetResumeCommands(val []RuntimeProfileSandboxResumeCommandsItem) {
+	s.ResumeCommands = val
+}
+
+// SetSnapshot sets the value of Snapshot.
+func (s *RuntimeProfileSandbox) SetSnapshot(val OptRuntimeProfileSandboxSnapshot) {
+	s.Snapshot = val
+}
+
+// SetVfs sets the value of Vfs.
+func (s *RuntimeProfileSandbox) SetVfs(val OptRuntimeProfileSandboxVfs) {
+	s.Vfs = val
+}
+
+type RuntimeProfileSandboxEnv map[string]string
+
+func (s *RuntimeProfileSandboxEnv) init() RuntimeProfileSandboxEnv {
+	m := *s
+	if m == nil {
+		m = map[string]string{}
+		*s = m
+	}
+	return m
+}
+
+type RuntimeProfileSandboxHostExec struct {
+	AutoApprove OptRuntimeProfileSandboxHostExecAutoApprove `json:"autoApprove"`
+}
+
+// GetAutoApprove returns the value of AutoApprove.
+func (s *RuntimeProfileSandboxHostExec) GetAutoApprove() OptRuntimeProfileSandboxHostExecAutoApprove {
+	return s.AutoApprove
+}
+
+// SetAutoApprove sets the value of AutoApprove.
+func (s *RuntimeProfileSandboxHostExec) SetAutoApprove(val OptRuntimeProfileSandboxHostExecAutoApprove) {
+	s.AutoApprove = val
+}
+
+type RuntimeProfileSandboxHostExecAutoApprove bool
+
+const (
+	RuntimeProfileSandboxHostExecAutoApproveFalse RuntimeProfileSandboxHostExecAutoApprove = false
+)
+
+// AllValues returns all RuntimeProfileSandboxHostExecAutoApprove values.
+func (RuntimeProfileSandboxHostExecAutoApprove) AllValues() []RuntimeProfileSandboxHostExecAutoApprove {
+	return []RuntimeProfileSandboxHostExecAutoApprove{
+		RuntimeProfileSandboxHostExecAutoApproveFalse,
+	}
+}
+
+type RuntimeProfileSandboxResources struct {
+	Cpus   OptInt    `json:"cpus"`
+	Memory OptString `json:"memory"`
+}
+
+// GetCpus returns the value of Cpus.
+func (s *RuntimeProfileSandboxResources) GetCpus() OptInt {
+	return s.Cpus
+}
+
+// GetMemory returns the value of Memory.
+func (s *RuntimeProfileSandboxResources) GetMemory() OptString {
+	return s.Memory
+}
+
+// SetCpus sets the value of Cpus.
+func (s *RuntimeProfileSandboxResources) SetCpus(val OptInt) {
+	s.Cpus = val
+}
+
+// SetMemory sets the value of Memory.
+func (s *RuntimeProfileSandboxResources) SetMemory(val OptString) {
+	s.Memory = val
+}
+
+// RuntimeProfileSandboxResumeCommandsItem represents sum type.
+type RuntimeProfileSandboxResumeCommandsItem struct {
+	Type                                     RuntimeProfileSandboxResumeCommandsItemType // switch on this field
+	String                                   string
+	RuntimeProfileSandboxResumeCommandsItem1 RuntimeProfileSandboxResumeCommandsItem1
+}
+
+// RuntimeProfileSandboxResumeCommandsItemType is oneOf type of RuntimeProfileSandboxResumeCommandsItem.
+type RuntimeProfileSandboxResumeCommandsItemType string
+
+// Possible values for RuntimeProfileSandboxResumeCommandsItemType.
+const (
+	StringRuntimeProfileSandboxResumeCommandsItem                                   RuntimeProfileSandboxResumeCommandsItemType = "string"
+	RuntimeProfileSandboxResumeCommandsItem1RuntimeProfileSandboxResumeCommandsItem RuntimeProfileSandboxResumeCommandsItemType = "RuntimeProfileSandboxResumeCommandsItem1"
+)
+
+// IsString reports whether RuntimeProfileSandboxResumeCommandsItem is string.
+func (s RuntimeProfileSandboxResumeCommandsItem) IsString() bool {
+	return s.Type == StringRuntimeProfileSandboxResumeCommandsItem
+}
+
+// IsRuntimeProfileSandboxResumeCommandsItem1 reports whether RuntimeProfileSandboxResumeCommandsItem is RuntimeProfileSandboxResumeCommandsItem1.
+func (s RuntimeProfileSandboxResumeCommandsItem) IsRuntimeProfileSandboxResumeCommandsItem1() bool {
+	return s.Type == RuntimeProfileSandboxResumeCommandsItem1RuntimeProfileSandboxResumeCommandsItem
+}
+
+// SetString sets RuntimeProfileSandboxResumeCommandsItem to string.
+func (s *RuntimeProfileSandboxResumeCommandsItem) SetString(v string) {
+	s.Type = StringRuntimeProfileSandboxResumeCommandsItem
+	s.String = v
+}
+
+// GetString returns string and true boolean if RuntimeProfileSandboxResumeCommandsItem is string.
+func (s RuntimeProfileSandboxResumeCommandsItem) GetString() (v string, ok bool) {
+	if !s.IsString() {
+		return v, false
+	}
+	return s.String, true
+}
+
+// NewStringRuntimeProfileSandboxResumeCommandsItem returns new RuntimeProfileSandboxResumeCommandsItem from string.
+func NewStringRuntimeProfileSandboxResumeCommandsItem(v string) RuntimeProfileSandboxResumeCommandsItem {
+	var s RuntimeProfileSandboxResumeCommandsItem
+	s.SetString(v)
+	return s
+}
+
+// SetRuntimeProfileSandboxResumeCommandsItem1 sets RuntimeProfileSandboxResumeCommandsItem to RuntimeProfileSandboxResumeCommandsItem1.
+func (s *RuntimeProfileSandboxResumeCommandsItem) SetRuntimeProfileSandboxResumeCommandsItem1(v RuntimeProfileSandboxResumeCommandsItem1) {
+	s.Type = RuntimeProfileSandboxResumeCommandsItem1RuntimeProfileSandboxResumeCommandsItem
+	s.RuntimeProfileSandboxResumeCommandsItem1 = v
+}
+
+// GetRuntimeProfileSandboxResumeCommandsItem1 returns RuntimeProfileSandboxResumeCommandsItem1 and true boolean if RuntimeProfileSandboxResumeCommandsItem is RuntimeProfileSandboxResumeCommandsItem1.
+func (s RuntimeProfileSandboxResumeCommandsItem) GetRuntimeProfileSandboxResumeCommandsItem1() (v RuntimeProfileSandboxResumeCommandsItem1, ok bool) {
+	if !s.IsRuntimeProfileSandboxResumeCommandsItem1() {
+		return v, false
+	}
+	return s.RuntimeProfileSandboxResumeCommandsItem1, true
+}
+
+// NewRuntimeProfileSandboxResumeCommandsItem1RuntimeProfileSandboxResumeCommandsItem returns new RuntimeProfileSandboxResumeCommandsItem from RuntimeProfileSandboxResumeCommandsItem1.
+func NewRuntimeProfileSandboxResumeCommandsItem1RuntimeProfileSandboxResumeCommandsItem(v RuntimeProfileSandboxResumeCommandsItem1) RuntimeProfileSandboxResumeCommandsItem {
+	var s RuntimeProfileSandboxResumeCommandsItem
+	s.SetRuntimeProfileSandboxResumeCommandsItem1(v)
+	return s
+}
+
+type RuntimeProfileSandboxResumeCommandsItem1 struct {
+	Retries        OptInt                                          `json:"retries"`
+	RetryBackoffMs OptInt                                          `json:"retryBackoffMs"`
+	Run            string                                          `json:"run"`
+	When           OptRuntimeProfileSandboxResumeCommandsItem1When `json:"when"`
+}
+
+// GetRetries returns the value of Retries.
+func (s *RuntimeProfileSandboxResumeCommandsItem1) GetRetries() OptInt {
+	return s.Retries
+}
+
+// GetRetryBackoffMs returns the value of RetryBackoffMs.
+func (s *RuntimeProfileSandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
+	return s.RetryBackoffMs
+}
+
+// GetRun returns the value of Run.
+func (s *RuntimeProfileSandboxResumeCommandsItem1) GetRun() string {
+	return s.Run
+}
+
+// GetWhen returns the value of When.
+func (s *RuntimeProfileSandboxResumeCommandsItem1) GetWhen() OptRuntimeProfileSandboxResumeCommandsItem1When {
+	return s.When
+}
+
+// SetRetries sets the value of Retries.
+func (s *RuntimeProfileSandboxResumeCommandsItem1) SetRetries(val OptInt) {
+	s.Retries = val
+}
+
+// SetRetryBackoffMs sets the value of RetryBackoffMs.
+func (s *RuntimeProfileSandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
+	s.RetryBackoffMs = val
+}
+
+// SetRun sets the value of Run.
+func (s *RuntimeProfileSandboxResumeCommandsItem1) SetRun(val string) {
+	s.Run = val
+}
+
+// SetWhen sets the value of When.
+func (s *RuntimeProfileSandboxResumeCommandsItem1) SetWhen(val OptRuntimeProfileSandboxResumeCommandsItem1When) {
+	s.When = val
+}
+
+type RuntimeProfileSandboxResumeCommandsItem1When struct {
+	WorkspaceMode []RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
+}
+
+// GetWorkspaceMode returns the value of WorkspaceMode.
+func (s *RuntimeProfileSandboxResumeCommandsItem1When) GetWorkspaceMode() []RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem {
+	return s.WorkspaceMode
+}
+
+// SetWorkspaceMode sets the value of WorkspaceMode.
+func (s *RuntimeProfileSandboxResumeCommandsItem1When) SetWorkspaceMode(val []RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) {
+	s.WorkspaceMode = val
+}
+
+type RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem string
+
+const (
+	RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
+	RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
+	RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
+)
+
+// AllValues returns all RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem values.
+func (RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem {
+	return []RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem{
+		RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
+		RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
+		RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		return []byte(s), nil
+	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		return []byte(s), nil
+	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
+	switch RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
+	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		*s = RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
+		return nil
+	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		*s = RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
+		return nil
+	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		*s = RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileSandboxSnapshot struct {
+	AllowedHosts  []string  `json:"allowedHosts"`
+	OverlaySize   OptString `json:"overlaySize"`
+	SetupCommands []string  `json:"setupCommands"`
+}
+
+// GetAllowedHosts returns the value of AllowedHosts.
+func (s *RuntimeProfileSandboxSnapshot) GetAllowedHosts() []string {
+	return s.AllowedHosts
+}
+
+// GetOverlaySize returns the value of OverlaySize.
+func (s *RuntimeProfileSandboxSnapshot) GetOverlaySize() OptString {
+	return s.OverlaySize
+}
+
+// GetSetupCommands returns the value of SetupCommands.
+func (s *RuntimeProfileSandboxSnapshot) GetSetupCommands() []string {
+	return s.SetupCommands
+}
+
+// SetAllowedHosts sets the value of AllowedHosts.
+func (s *RuntimeProfileSandboxSnapshot) SetAllowedHosts(val []string) {
+	s.AllowedHosts = val
+}
+
+// SetOverlaySize sets the value of OverlaySize.
+func (s *RuntimeProfileSandboxSnapshot) SetOverlaySize(val OptString) {
+	s.OverlaySize = val
+}
+
+// SetSetupCommands sets the value of SetupCommands.
+func (s *RuntimeProfileSandboxSnapshot) SetSetupCommands(val []string) {
+	s.SetupCommands = val
+}
+
+type RuntimeProfileSandboxVfs struct {
+	Shadow     []string                              `json:"shadow"`
+	ShadowMode OptRuntimeProfileSandboxVfsShadowMode `json:"shadowMode"`
+}
+
+// GetShadow returns the value of Shadow.
+func (s *RuntimeProfileSandboxVfs) GetShadow() []string {
+	return s.Shadow
+}
+
+// GetShadowMode returns the value of ShadowMode.
+func (s *RuntimeProfileSandboxVfs) GetShadowMode() OptRuntimeProfileSandboxVfsShadowMode {
+	return s.ShadowMode
+}
+
+// SetShadow sets the value of Shadow.
+func (s *RuntimeProfileSandboxVfs) SetShadow(val []string) {
+	s.Shadow = val
+}
+
+// SetShadowMode sets the value of ShadowMode.
+func (s *RuntimeProfileSandboxVfs) SetShadowMode(val OptRuntimeProfileSandboxVfsShadowMode) {
+	s.ShadowMode = val
+}
+
+type RuntimeProfileSandboxVfsShadowMode string
+
+const (
+	RuntimeProfileSandboxVfsShadowModeDeny  RuntimeProfileSandboxVfsShadowMode = "deny"
+	RuntimeProfileSandboxVfsShadowModeTmpfs RuntimeProfileSandboxVfsShadowMode = "tmpfs"
+)
+
+// AllValues returns all RuntimeProfileSandboxVfsShadowMode values.
+func (RuntimeProfileSandboxVfsShadowMode) AllValues() []RuntimeProfileSandboxVfsShadowMode {
+	return []RuntimeProfileSandboxVfsShadowMode{
+		RuntimeProfileSandboxVfsShadowModeDeny,
+		RuntimeProfileSandboxVfsShadowModeTmpfs,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileSandboxVfsShadowMode) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileSandboxVfsShadowModeDeny:
+		return []byte(s), nil
+	case RuntimeProfileSandboxVfsShadowModeTmpfs:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileSandboxVfsShadowMode) UnmarshalText(data []byte) error {
+	switch RuntimeProfileSandboxVfsShadowMode(data) {
+	case RuntimeProfileSandboxVfsShadowModeDeny:
+		*s = RuntimeProfileSandboxVfsShadowModeDeny
+		return nil
+	case RuntimeProfileSandboxVfsShadowModeTmpfs:
+		*s = RuntimeProfileSandboxVfsShadowModeTmpfs
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileSessionStorageMode string
+
+const (
+	RuntimeProfileSessionStorageModeLocal RuntimeProfileSessionStorageMode = "local"
+)
+
+// AllValues returns all RuntimeProfileSessionStorageMode values.
+func (RuntimeProfileSessionStorageMode) AllValues() []RuntimeProfileSessionStorageMode {
+	return []RuntimeProfileSessionStorageMode{
+		RuntimeProfileSessionStorageModeLocal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileSessionStorageMode) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileSessionStorageModeLocal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileSessionStorageMode) UnmarshalText(data []byte) error {
+	switch RuntimeProfileSessionStorageMode(data) {
+	case RuntimeProfileSessionStorageModeLocal:
+		*s = RuntimeProfileSessionStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileWorkspaceStorageMode string
+
+const (
+	RuntimeProfileWorkspaceStorageModeLocal RuntimeProfileWorkspaceStorageMode = "local"
+)
+
+// AllValues returns all RuntimeProfileWorkspaceStorageMode values.
+func (RuntimeProfileWorkspaceStorageMode) AllValues() []RuntimeProfileWorkspaceStorageMode {
+	return []RuntimeProfileWorkspaceStorageMode{
+		RuntimeProfileWorkspaceStorageModeLocal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileWorkspaceStorageMode) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileWorkspaceStorageModeLocal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileWorkspaceStorageMode) UnmarshalText(data []byte) error {
+	switch RuntimeProfileWorkspaceStorageMode(data) {
+	case RuntimeProfileWorkspaceStorageModeLocal:
+		*s = RuntimeProfileWorkspaceStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type SearchDiaryBadRequest ProblemDetails
 
 func (*SearchDiaryBadRequest) searchDiaryRes() {}
@@ -26084,810 +26084,6 @@ type UpdateContextPackUnauthorized ProblemDetails
 
 func (*UpdateContextPackUnauthorized) updateContextPackRes() {}
 
-type UpdateDaemonProfileBadRequest ProblemDetails
-
-func (*UpdateDaemonProfileBadRequest) updateDaemonProfileRes() {}
-
-// Ref: #/components/schemas/UpdateDaemonProfileBody
-type UpdateDaemonProfileBody struct {
-	Context              []UpdateDaemonProfileBodyContextItem           `json:"context"`
-	Description          OptString                                      `json:"description"`
-	HeartbeatIntervalMs  OptInt                                         `json:"heartbeatIntervalMs"`
-	LeaseTtlSec          OptInt                                         `json:"leaseTtlSec"`
-	MaxBatchSize         OptInt                                         `json:"maxBatchSize"`
-	Model                OptString                                      `json:"model"`
-	Name                 OptString                                      `json:"name"`
-	Provider             OptString                                      `json:"provider"`
-	RequiredEnv          []string                                       `json:"requiredEnv"`
-	RequiredTools        []string                                       `json:"requiredTools"`
-	RuntimeKind          OptUpdateDaemonProfileBodyRuntimeKind          `json:"runtimeKind"`
-	Sandbox              OptUpdateDaemonProfileBodySandbox              `json:"sandbox"`
-	SessionStorageMode   OptUpdateDaemonProfileBodySessionStorageMode   `json:"sessionStorageMode"`
-	SessionTtlSec        OptInt                                         `json:"sessionTtlSec"`
-	WorkspaceStorageMode OptUpdateDaemonProfileBodyWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      OptInt                                         `json:"workspaceTtlSec"`
-}
-
-// GetContext returns the value of Context.
-func (s *UpdateDaemonProfileBody) GetContext() []UpdateDaemonProfileBodyContextItem {
-	return s.Context
-}
-
-// GetDescription returns the value of Description.
-func (s *UpdateDaemonProfileBody) GetDescription() OptString {
-	return s.Description
-}
-
-// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
-func (s *UpdateDaemonProfileBody) GetHeartbeatIntervalMs() OptInt {
-	return s.HeartbeatIntervalMs
-}
-
-// GetLeaseTtlSec returns the value of LeaseTtlSec.
-func (s *UpdateDaemonProfileBody) GetLeaseTtlSec() OptInt {
-	return s.LeaseTtlSec
-}
-
-// GetMaxBatchSize returns the value of MaxBatchSize.
-func (s *UpdateDaemonProfileBody) GetMaxBatchSize() OptInt {
-	return s.MaxBatchSize
-}
-
-// GetModel returns the value of Model.
-func (s *UpdateDaemonProfileBody) GetModel() OptString {
-	return s.Model
-}
-
-// GetName returns the value of Name.
-func (s *UpdateDaemonProfileBody) GetName() OptString {
-	return s.Name
-}
-
-// GetProvider returns the value of Provider.
-func (s *UpdateDaemonProfileBody) GetProvider() OptString {
-	return s.Provider
-}
-
-// GetRequiredEnv returns the value of RequiredEnv.
-func (s *UpdateDaemonProfileBody) GetRequiredEnv() []string {
-	return s.RequiredEnv
-}
-
-// GetRequiredTools returns the value of RequiredTools.
-func (s *UpdateDaemonProfileBody) GetRequiredTools() []string {
-	return s.RequiredTools
-}
-
-// GetRuntimeKind returns the value of RuntimeKind.
-func (s *UpdateDaemonProfileBody) GetRuntimeKind() OptUpdateDaemonProfileBodyRuntimeKind {
-	return s.RuntimeKind
-}
-
-// GetSandbox returns the value of Sandbox.
-func (s *UpdateDaemonProfileBody) GetSandbox() OptUpdateDaemonProfileBodySandbox {
-	return s.Sandbox
-}
-
-// GetSessionStorageMode returns the value of SessionStorageMode.
-func (s *UpdateDaemonProfileBody) GetSessionStorageMode() OptUpdateDaemonProfileBodySessionStorageMode {
-	return s.SessionStorageMode
-}
-
-// GetSessionTtlSec returns the value of SessionTtlSec.
-func (s *UpdateDaemonProfileBody) GetSessionTtlSec() OptInt {
-	return s.SessionTtlSec
-}
-
-// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
-func (s *UpdateDaemonProfileBody) GetWorkspaceStorageMode() OptUpdateDaemonProfileBodyWorkspaceStorageMode {
-	return s.WorkspaceStorageMode
-}
-
-// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
-func (s *UpdateDaemonProfileBody) GetWorkspaceTtlSec() OptInt {
-	return s.WorkspaceTtlSec
-}
-
-// SetContext sets the value of Context.
-func (s *UpdateDaemonProfileBody) SetContext(val []UpdateDaemonProfileBodyContextItem) {
-	s.Context = val
-}
-
-// SetDescription sets the value of Description.
-func (s *UpdateDaemonProfileBody) SetDescription(val OptString) {
-	s.Description = val
-}
-
-// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
-func (s *UpdateDaemonProfileBody) SetHeartbeatIntervalMs(val OptInt) {
-	s.HeartbeatIntervalMs = val
-}
-
-// SetLeaseTtlSec sets the value of LeaseTtlSec.
-func (s *UpdateDaemonProfileBody) SetLeaseTtlSec(val OptInt) {
-	s.LeaseTtlSec = val
-}
-
-// SetMaxBatchSize sets the value of MaxBatchSize.
-func (s *UpdateDaemonProfileBody) SetMaxBatchSize(val OptInt) {
-	s.MaxBatchSize = val
-}
-
-// SetModel sets the value of Model.
-func (s *UpdateDaemonProfileBody) SetModel(val OptString) {
-	s.Model = val
-}
-
-// SetName sets the value of Name.
-func (s *UpdateDaemonProfileBody) SetName(val OptString) {
-	s.Name = val
-}
-
-// SetProvider sets the value of Provider.
-func (s *UpdateDaemonProfileBody) SetProvider(val OptString) {
-	s.Provider = val
-}
-
-// SetRequiredEnv sets the value of RequiredEnv.
-func (s *UpdateDaemonProfileBody) SetRequiredEnv(val []string) {
-	s.RequiredEnv = val
-}
-
-// SetRequiredTools sets the value of RequiredTools.
-func (s *UpdateDaemonProfileBody) SetRequiredTools(val []string) {
-	s.RequiredTools = val
-}
-
-// SetRuntimeKind sets the value of RuntimeKind.
-func (s *UpdateDaemonProfileBody) SetRuntimeKind(val OptUpdateDaemonProfileBodyRuntimeKind) {
-	s.RuntimeKind = val
-}
-
-// SetSandbox sets the value of Sandbox.
-func (s *UpdateDaemonProfileBody) SetSandbox(val OptUpdateDaemonProfileBodySandbox) {
-	s.Sandbox = val
-}
-
-// SetSessionStorageMode sets the value of SessionStorageMode.
-func (s *UpdateDaemonProfileBody) SetSessionStorageMode(val OptUpdateDaemonProfileBodySessionStorageMode) {
-	s.SessionStorageMode = val
-}
-
-// SetSessionTtlSec sets the value of SessionTtlSec.
-func (s *UpdateDaemonProfileBody) SetSessionTtlSec(val OptInt) {
-	s.SessionTtlSec = val
-}
-
-// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
-func (s *UpdateDaemonProfileBody) SetWorkspaceStorageMode(val OptUpdateDaemonProfileBodyWorkspaceStorageMode) {
-	s.WorkspaceStorageMode = val
-}
-
-// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
-func (s *UpdateDaemonProfileBody) SetWorkspaceTtlSec(val OptInt) {
-	s.WorkspaceTtlSec = val
-}
-
-type UpdateDaemonProfileBodyContextItem struct {
-	Binding UpdateDaemonProfileBodyContextItemBinding `json:"binding"`
-	Content string                                    `json:"content"`
-	Slug    string                                    `json:"slug"`
-}
-
-// GetBinding returns the value of Binding.
-func (s *UpdateDaemonProfileBodyContextItem) GetBinding() UpdateDaemonProfileBodyContextItemBinding {
-	return s.Binding
-}
-
-// GetContent returns the value of Content.
-func (s *UpdateDaemonProfileBodyContextItem) GetContent() string {
-	return s.Content
-}
-
-// GetSlug returns the value of Slug.
-func (s *UpdateDaemonProfileBodyContextItem) GetSlug() string {
-	return s.Slug
-}
-
-// SetBinding sets the value of Binding.
-func (s *UpdateDaemonProfileBodyContextItem) SetBinding(val UpdateDaemonProfileBodyContextItemBinding) {
-	s.Binding = val
-}
-
-// SetContent sets the value of Content.
-func (s *UpdateDaemonProfileBodyContextItem) SetContent(val string) {
-	s.Content = val
-}
-
-// SetSlug sets the value of Slug.
-func (s *UpdateDaemonProfileBodyContextItem) SetSlug(val string) {
-	s.Slug = val
-}
-
-type UpdateDaemonProfileBodyContextItemBinding string
-
-const (
-	UpdateDaemonProfileBodyContextItemBindingSkill         UpdateDaemonProfileBodyContextItemBinding = "skill"
-	UpdateDaemonProfileBodyContextItemBindingContextInline UpdateDaemonProfileBodyContextItemBinding = "context_inline"
-	UpdateDaemonProfileBodyContextItemBindingPromptPrefix  UpdateDaemonProfileBodyContextItemBinding = "prompt_prefix"
-	UpdateDaemonProfileBodyContextItemBindingUserInline    UpdateDaemonProfileBodyContextItemBinding = "user_inline"
-)
-
-// AllValues returns all UpdateDaemonProfileBodyContextItemBinding values.
-func (UpdateDaemonProfileBodyContextItemBinding) AllValues() []UpdateDaemonProfileBodyContextItemBinding {
-	return []UpdateDaemonProfileBodyContextItemBinding{
-		UpdateDaemonProfileBodyContextItemBindingSkill,
-		UpdateDaemonProfileBodyContextItemBindingContextInline,
-		UpdateDaemonProfileBodyContextItemBindingPromptPrefix,
-		UpdateDaemonProfileBodyContextItemBindingUserInline,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateDaemonProfileBodyContextItemBinding) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateDaemonProfileBodyContextItemBindingSkill:
-		return []byte(s), nil
-	case UpdateDaemonProfileBodyContextItemBindingContextInline:
-		return []byte(s), nil
-	case UpdateDaemonProfileBodyContextItemBindingPromptPrefix:
-		return []byte(s), nil
-	case UpdateDaemonProfileBodyContextItemBindingUserInline:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateDaemonProfileBodyContextItemBinding) UnmarshalText(data []byte) error {
-	switch UpdateDaemonProfileBodyContextItemBinding(data) {
-	case UpdateDaemonProfileBodyContextItemBindingSkill:
-		*s = UpdateDaemonProfileBodyContextItemBindingSkill
-		return nil
-	case UpdateDaemonProfileBodyContextItemBindingContextInline:
-		*s = UpdateDaemonProfileBodyContextItemBindingContextInline
-		return nil
-	case UpdateDaemonProfileBodyContextItemBindingPromptPrefix:
-		*s = UpdateDaemonProfileBodyContextItemBindingPromptPrefix
-		return nil
-	case UpdateDaemonProfileBodyContextItemBindingUserInline:
-		*s = UpdateDaemonProfileBodyContextItemBindingUserInline
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UpdateDaemonProfileBodyRuntimeKind string
-
-const (
-	UpdateDaemonProfileBodyRuntimeKindGondolinPi UpdateDaemonProfileBodyRuntimeKind = "gondolin_pi"
-)
-
-// AllValues returns all UpdateDaemonProfileBodyRuntimeKind values.
-func (UpdateDaemonProfileBodyRuntimeKind) AllValues() []UpdateDaemonProfileBodyRuntimeKind {
-	return []UpdateDaemonProfileBodyRuntimeKind{
-		UpdateDaemonProfileBodyRuntimeKindGondolinPi,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateDaemonProfileBodyRuntimeKind) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateDaemonProfileBodyRuntimeKindGondolinPi:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateDaemonProfileBodyRuntimeKind) UnmarshalText(data []byte) error {
-	switch UpdateDaemonProfileBodyRuntimeKind(data) {
-	case UpdateDaemonProfileBodyRuntimeKindGondolinPi:
-		*s = UpdateDaemonProfileBodyRuntimeKindGondolinPi
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UpdateDaemonProfileBodySandbox struct {
-	Env            OptUpdateDaemonProfileBodySandboxEnv               `json:"env"`
-	HostExec       OptUpdateDaemonProfileBodySandboxHostExec          `json:"hostExec"`
-	Resources      OptUpdateDaemonProfileBodySandboxResources         `json:"resources"`
-	ResumeCommands []UpdateDaemonProfileBodySandboxResumeCommandsItem `json:"resumeCommands"`
-	Snapshot       OptUpdateDaemonProfileBodySandboxSnapshot          `json:"snapshot"`
-	Vfs            OptUpdateDaemonProfileBodySandboxVfs               `json:"vfs"`
-}
-
-// GetEnv returns the value of Env.
-func (s *UpdateDaemonProfileBodySandbox) GetEnv() OptUpdateDaemonProfileBodySandboxEnv {
-	return s.Env
-}
-
-// GetHostExec returns the value of HostExec.
-func (s *UpdateDaemonProfileBodySandbox) GetHostExec() OptUpdateDaemonProfileBodySandboxHostExec {
-	return s.HostExec
-}
-
-// GetResources returns the value of Resources.
-func (s *UpdateDaemonProfileBodySandbox) GetResources() OptUpdateDaemonProfileBodySandboxResources {
-	return s.Resources
-}
-
-// GetResumeCommands returns the value of ResumeCommands.
-func (s *UpdateDaemonProfileBodySandbox) GetResumeCommands() []UpdateDaemonProfileBodySandboxResumeCommandsItem {
-	return s.ResumeCommands
-}
-
-// GetSnapshot returns the value of Snapshot.
-func (s *UpdateDaemonProfileBodySandbox) GetSnapshot() OptUpdateDaemonProfileBodySandboxSnapshot {
-	return s.Snapshot
-}
-
-// GetVfs returns the value of Vfs.
-func (s *UpdateDaemonProfileBodySandbox) GetVfs() OptUpdateDaemonProfileBodySandboxVfs {
-	return s.Vfs
-}
-
-// SetEnv sets the value of Env.
-func (s *UpdateDaemonProfileBodySandbox) SetEnv(val OptUpdateDaemonProfileBodySandboxEnv) {
-	s.Env = val
-}
-
-// SetHostExec sets the value of HostExec.
-func (s *UpdateDaemonProfileBodySandbox) SetHostExec(val OptUpdateDaemonProfileBodySandboxHostExec) {
-	s.HostExec = val
-}
-
-// SetResources sets the value of Resources.
-func (s *UpdateDaemonProfileBodySandbox) SetResources(val OptUpdateDaemonProfileBodySandboxResources) {
-	s.Resources = val
-}
-
-// SetResumeCommands sets the value of ResumeCommands.
-func (s *UpdateDaemonProfileBodySandbox) SetResumeCommands(val []UpdateDaemonProfileBodySandboxResumeCommandsItem) {
-	s.ResumeCommands = val
-}
-
-// SetSnapshot sets the value of Snapshot.
-func (s *UpdateDaemonProfileBodySandbox) SetSnapshot(val OptUpdateDaemonProfileBodySandboxSnapshot) {
-	s.Snapshot = val
-}
-
-// SetVfs sets the value of Vfs.
-func (s *UpdateDaemonProfileBodySandbox) SetVfs(val OptUpdateDaemonProfileBodySandboxVfs) {
-	s.Vfs = val
-}
-
-type UpdateDaemonProfileBodySandboxEnv map[string]string
-
-func (s *UpdateDaemonProfileBodySandboxEnv) init() UpdateDaemonProfileBodySandboxEnv {
-	m := *s
-	if m == nil {
-		m = map[string]string{}
-		*s = m
-	}
-	return m
-}
-
-type UpdateDaemonProfileBodySandboxHostExec struct {
-	AutoApprove OptUpdateDaemonProfileBodySandboxHostExecAutoApprove `json:"autoApprove"`
-}
-
-// GetAutoApprove returns the value of AutoApprove.
-func (s *UpdateDaemonProfileBodySandboxHostExec) GetAutoApprove() OptUpdateDaemonProfileBodySandboxHostExecAutoApprove {
-	return s.AutoApprove
-}
-
-// SetAutoApprove sets the value of AutoApprove.
-func (s *UpdateDaemonProfileBodySandboxHostExec) SetAutoApprove(val OptUpdateDaemonProfileBodySandboxHostExecAutoApprove) {
-	s.AutoApprove = val
-}
-
-type UpdateDaemonProfileBodySandboxHostExecAutoApprove bool
-
-const (
-	UpdateDaemonProfileBodySandboxHostExecAutoApproveFalse UpdateDaemonProfileBodySandboxHostExecAutoApprove = false
-)
-
-// AllValues returns all UpdateDaemonProfileBodySandboxHostExecAutoApprove values.
-func (UpdateDaemonProfileBodySandboxHostExecAutoApprove) AllValues() []UpdateDaemonProfileBodySandboxHostExecAutoApprove {
-	return []UpdateDaemonProfileBodySandboxHostExecAutoApprove{
-		UpdateDaemonProfileBodySandboxHostExecAutoApproveFalse,
-	}
-}
-
-type UpdateDaemonProfileBodySandboxResources struct {
-	Cpus   OptInt    `json:"cpus"`
-	Memory OptString `json:"memory"`
-}
-
-// GetCpus returns the value of Cpus.
-func (s *UpdateDaemonProfileBodySandboxResources) GetCpus() OptInt {
-	return s.Cpus
-}
-
-// GetMemory returns the value of Memory.
-func (s *UpdateDaemonProfileBodySandboxResources) GetMemory() OptString {
-	return s.Memory
-}
-
-// SetCpus sets the value of Cpus.
-func (s *UpdateDaemonProfileBodySandboxResources) SetCpus(val OptInt) {
-	s.Cpus = val
-}
-
-// SetMemory sets the value of Memory.
-func (s *UpdateDaemonProfileBodySandboxResources) SetMemory(val OptString) {
-	s.Memory = val
-}
-
-// UpdateDaemonProfileBodySandboxResumeCommandsItem represents sum type.
-type UpdateDaemonProfileBodySandboxResumeCommandsItem struct {
-	Type                                              UpdateDaemonProfileBodySandboxResumeCommandsItemType // switch on this field
-	String                                            string
-	UpdateDaemonProfileBodySandboxResumeCommandsItem1 UpdateDaemonProfileBodySandboxResumeCommandsItem1
-}
-
-// UpdateDaemonProfileBodySandboxResumeCommandsItemType is oneOf type of UpdateDaemonProfileBodySandboxResumeCommandsItem.
-type UpdateDaemonProfileBodySandboxResumeCommandsItemType string
-
-// Possible values for UpdateDaemonProfileBodySandboxResumeCommandsItemType.
-const (
-	StringUpdateDaemonProfileBodySandboxResumeCommandsItem                                            UpdateDaemonProfileBodySandboxResumeCommandsItemType = "string"
-	UpdateDaemonProfileBodySandboxResumeCommandsItem1UpdateDaemonProfileBodySandboxResumeCommandsItem UpdateDaemonProfileBodySandboxResumeCommandsItemType = "UpdateDaemonProfileBodySandboxResumeCommandsItem1"
-)
-
-// IsString reports whether UpdateDaemonProfileBodySandboxResumeCommandsItem is string.
-func (s UpdateDaemonProfileBodySandboxResumeCommandsItem) IsString() bool {
-	return s.Type == StringUpdateDaemonProfileBodySandboxResumeCommandsItem
-}
-
-// IsUpdateDaemonProfileBodySandboxResumeCommandsItem1 reports whether UpdateDaemonProfileBodySandboxResumeCommandsItem is UpdateDaemonProfileBodySandboxResumeCommandsItem1.
-func (s UpdateDaemonProfileBodySandboxResumeCommandsItem) IsUpdateDaemonProfileBodySandboxResumeCommandsItem1() bool {
-	return s.Type == UpdateDaemonProfileBodySandboxResumeCommandsItem1UpdateDaemonProfileBodySandboxResumeCommandsItem
-}
-
-// SetString sets UpdateDaemonProfileBodySandboxResumeCommandsItem to string.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem) SetString(v string) {
-	s.Type = StringUpdateDaemonProfileBodySandboxResumeCommandsItem
-	s.String = v
-}
-
-// GetString returns string and true boolean if UpdateDaemonProfileBodySandboxResumeCommandsItem is string.
-func (s UpdateDaemonProfileBodySandboxResumeCommandsItem) GetString() (v string, ok bool) {
-	if !s.IsString() {
-		return v, false
-	}
-	return s.String, true
-}
-
-// NewStringUpdateDaemonProfileBodySandboxResumeCommandsItem returns new UpdateDaemonProfileBodySandboxResumeCommandsItem from string.
-func NewStringUpdateDaemonProfileBodySandboxResumeCommandsItem(v string) UpdateDaemonProfileBodySandboxResumeCommandsItem {
-	var s UpdateDaemonProfileBodySandboxResumeCommandsItem
-	s.SetString(v)
-	return s
-}
-
-// SetUpdateDaemonProfileBodySandboxResumeCommandsItem1 sets UpdateDaemonProfileBodySandboxResumeCommandsItem to UpdateDaemonProfileBodySandboxResumeCommandsItem1.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem) SetUpdateDaemonProfileBodySandboxResumeCommandsItem1(v UpdateDaemonProfileBodySandboxResumeCommandsItem1) {
-	s.Type = UpdateDaemonProfileBodySandboxResumeCommandsItem1UpdateDaemonProfileBodySandboxResumeCommandsItem
-	s.UpdateDaemonProfileBodySandboxResumeCommandsItem1 = v
-}
-
-// GetUpdateDaemonProfileBodySandboxResumeCommandsItem1 returns UpdateDaemonProfileBodySandboxResumeCommandsItem1 and true boolean if UpdateDaemonProfileBodySandboxResumeCommandsItem is UpdateDaemonProfileBodySandboxResumeCommandsItem1.
-func (s UpdateDaemonProfileBodySandboxResumeCommandsItem) GetUpdateDaemonProfileBodySandboxResumeCommandsItem1() (v UpdateDaemonProfileBodySandboxResumeCommandsItem1, ok bool) {
-	if !s.IsUpdateDaemonProfileBodySandboxResumeCommandsItem1() {
-		return v, false
-	}
-	return s.UpdateDaemonProfileBodySandboxResumeCommandsItem1, true
-}
-
-// NewUpdateDaemonProfileBodySandboxResumeCommandsItem1UpdateDaemonProfileBodySandboxResumeCommandsItem returns new UpdateDaemonProfileBodySandboxResumeCommandsItem from UpdateDaemonProfileBodySandboxResumeCommandsItem1.
-func NewUpdateDaemonProfileBodySandboxResumeCommandsItem1UpdateDaemonProfileBodySandboxResumeCommandsItem(v UpdateDaemonProfileBodySandboxResumeCommandsItem1) UpdateDaemonProfileBodySandboxResumeCommandsItem {
-	var s UpdateDaemonProfileBodySandboxResumeCommandsItem
-	s.SetUpdateDaemonProfileBodySandboxResumeCommandsItem1(v)
-	return s
-}
-
-type UpdateDaemonProfileBodySandboxResumeCommandsItem1 struct {
-	Retries        OptInt                                                   `json:"retries"`
-	RetryBackoffMs OptInt                                                   `json:"retryBackoffMs"`
-	Run            string                                                   `json:"run"`
-	When           OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When `json:"when"`
-}
-
-// GetRetries returns the value of Retries.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) GetRetries() OptInt {
-	return s.Retries
-}
-
-// GetRetryBackoffMs returns the value of RetryBackoffMs.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
-	return s.RetryBackoffMs
-}
-
-// GetRun returns the value of Run.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) GetRun() string {
-	return s.Run
-}
-
-// GetWhen returns the value of When.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) GetWhen() OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When {
-	return s.When
-}
-
-// SetRetries sets the value of Retries.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) SetRetries(val OptInt) {
-	s.Retries = val
-}
-
-// SetRetryBackoffMs sets the value of RetryBackoffMs.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
-	s.RetryBackoffMs = val
-}
-
-// SetRun sets the value of Run.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) SetRun(val string) {
-	s.Run = val
-}
-
-// SetWhen sets the value of When.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1) SetWhen(val OptUpdateDaemonProfileBodySandboxResumeCommandsItem1When) {
-	s.When = val
-}
-
-type UpdateDaemonProfileBodySandboxResumeCommandsItem1When struct {
-	WorkspaceMode []UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
-}
-
-// GetWorkspaceMode returns the value of WorkspaceMode.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1When) GetWorkspaceMode() []UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return s.WorkspaceMode
-}
-
-// SetWorkspaceMode sets the value of WorkspaceMode.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1When) SetWorkspaceMode(val []UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) {
-	s.WorkspaceMode = val
-}
-
-type UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem string
-
-const (
-	UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
-	UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
-	UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
-)
-
-// AllValues returns all UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem values.
-func (UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return []UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem{
-		UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
-		UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
-		UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		return []byte(s), nil
-	case UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		return []byte(s), nil
-	case UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
-	switch UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
-	case UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		*s = UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
-		return nil
-	case UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		*s = UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
-		return nil
-	case UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		*s = UpdateDaemonProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UpdateDaemonProfileBodySandboxSnapshot struct {
-	AllowedHosts  []string  `json:"allowedHosts"`
-	OverlaySize   OptString `json:"overlaySize"`
-	SetupCommands []string  `json:"setupCommands"`
-}
-
-// GetAllowedHosts returns the value of AllowedHosts.
-func (s *UpdateDaemonProfileBodySandboxSnapshot) GetAllowedHosts() []string {
-	return s.AllowedHosts
-}
-
-// GetOverlaySize returns the value of OverlaySize.
-func (s *UpdateDaemonProfileBodySandboxSnapshot) GetOverlaySize() OptString {
-	return s.OverlaySize
-}
-
-// GetSetupCommands returns the value of SetupCommands.
-func (s *UpdateDaemonProfileBodySandboxSnapshot) GetSetupCommands() []string {
-	return s.SetupCommands
-}
-
-// SetAllowedHosts sets the value of AllowedHosts.
-func (s *UpdateDaemonProfileBodySandboxSnapshot) SetAllowedHosts(val []string) {
-	s.AllowedHosts = val
-}
-
-// SetOverlaySize sets the value of OverlaySize.
-func (s *UpdateDaemonProfileBodySandboxSnapshot) SetOverlaySize(val OptString) {
-	s.OverlaySize = val
-}
-
-// SetSetupCommands sets the value of SetupCommands.
-func (s *UpdateDaemonProfileBodySandboxSnapshot) SetSetupCommands(val []string) {
-	s.SetupCommands = val
-}
-
-type UpdateDaemonProfileBodySandboxVfs struct {
-	Shadow     []string                                       `json:"shadow"`
-	ShadowMode OptUpdateDaemonProfileBodySandboxVfsShadowMode `json:"shadowMode"`
-}
-
-// GetShadow returns the value of Shadow.
-func (s *UpdateDaemonProfileBodySandboxVfs) GetShadow() []string {
-	return s.Shadow
-}
-
-// GetShadowMode returns the value of ShadowMode.
-func (s *UpdateDaemonProfileBodySandboxVfs) GetShadowMode() OptUpdateDaemonProfileBodySandboxVfsShadowMode {
-	return s.ShadowMode
-}
-
-// SetShadow sets the value of Shadow.
-func (s *UpdateDaemonProfileBodySandboxVfs) SetShadow(val []string) {
-	s.Shadow = val
-}
-
-// SetShadowMode sets the value of ShadowMode.
-func (s *UpdateDaemonProfileBodySandboxVfs) SetShadowMode(val OptUpdateDaemonProfileBodySandboxVfsShadowMode) {
-	s.ShadowMode = val
-}
-
-type UpdateDaemonProfileBodySandboxVfsShadowMode string
-
-const (
-	UpdateDaemonProfileBodySandboxVfsShadowModeDeny  UpdateDaemonProfileBodySandboxVfsShadowMode = "deny"
-	UpdateDaemonProfileBodySandboxVfsShadowModeTmpfs UpdateDaemonProfileBodySandboxVfsShadowMode = "tmpfs"
-)
-
-// AllValues returns all UpdateDaemonProfileBodySandboxVfsShadowMode values.
-func (UpdateDaemonProfileBodySandboxVfsShadowMode) AllValues() []UpdateDaemonProfileBodySandboxVfsShadowMode {
-	return []UpdateDaemonProfileBodySandboxVfsShadowMode{
-		UpdateDaemonProfileBodySandboxVfsShadowModeDeny,
-		UpdateDaemonProfileBodySandboxVfsShadowModeTmpfs,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateDaemonProfileBodySandboxVfsShadowMode) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateDaemonProfileBodySandboxVfsShadowModeDeny:
-		return []byte(s), nil
-	case UpdateDaemonProfileBodySandboxVfsShadowModeTmpfs:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateDaemonProfileBodySandboxVfsShadowMode) UnmarshalText(data []byte) error {
-	switch UpdateDaemonProfileBodySandboxVfsShadowMode(data) {
-	case UpdateDaemonProfileBodySandboxVfsShadowModeDeny:
-		*s = UpdateDaemonProfileBodySandboxVfsShadowModeDeny
-		return nil
-	case UpdateDaemonProfileBodySandboxVfsShadowModeTmpfs:
-		*s = UpdateDaemonProfileBodySandboxVfsShadowModeTmpfs
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UpdateDaemonProfileBodySessionStorageMode string
-
-const (
-	UpdateDaemonProfileBodySessionStorageModeLocal UpdateDaemonProfileBodySessionStorageMode = "local"
-)
-
-// AllValues returns all UpdateDaemonProfileBodySessionStorageMode values.
-func (UpdateDaemonProfileBodySessionStorageMode) AllValues() []UpdateDaemonProfileBodySessionStorageMode {
-	return []UpdateDaemonProfileBodySessionStorageMode{
-		UpdateDaemonProfileBodySessionStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateDaemonProfileBodySessionStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateDaemonProfileBodySessionStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateDaemonProfileBodySessionStorageMode) UnmarshalText(data []byte) error {
-	switch UpdateDaemonProfileBodySessionStorageMode(data) {
-	case UpdateDaemonProfileBodySessionStorageModeLocal:
-		*s = UpdateDaemonProfileBodySessionStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UpdateDaemonProfileBodyWorkspaceStorageMode string
-
-const (
-	UpdateDaemonProfileBodyWorkspaceStorageModeLocal UpdateDaemonProfileBodyWorkspaceStorageMode = "local"
-)
-
-// AllValues returns all UpdateDaemonProfileBodyWorkspaceStorageMode values.
-func (UpdateDaemonProfileBodyWorkspaceStorageMode) AllValues() []UpdateDaemonProfileBodyWorkspaceStorageMode {
-	return []UpdateDaemonProfileBodyWorkspaceStorageMode{
-		UpdateDaemonProfileBodyWorkspaceStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateDaemonProfileBodyWorkspaceStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateDaemonProfileBodyWorkspaceStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateDaemonProfileBodyWorkspaceStorageMode) UnmarshalText(data []byte) error {
-	switch UpdateDaemonProfileBodyWorkspaceStorageMode(data) {
-	case UpdateDaemonProfileBodyWorkspaceStorageModeLocal:
-		*s = UpdateDaemonProfileBodyWorkspaceStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UpdateDaemonProfileConflict ProblemDetails
-
-func (*UpdateDaemonProfileConflict) updateDaemonProfileRes() {}
-
-type UpdateDaemonProfileForbidden ProblemDetails
-
-func (*UpdateDaemonProfileForbidden) updateDaemonProfileRes() {}
-
-type UpdateDaemonProfileNotFound ProblemDetails
-
-func (*UpdateDaemonProfileNotFound) updateDaemonProfileRes() {}
-
-type UpdateDaemonProfileUnauthorized ProblemDetails
-
-func (*UpdateDaemonProfileUnauthorized) updateDaemonProfileRes() {}
-
 type UpdateDiaryBadRequest ProblemDetails
 
 func (*UpdateDiaryBadRequest) updateDiaryRes() {}
@@ -27242,6 +26438,810 @@ func (s *UpdateRenderedPackReq) SetVerifiedTaskId(val OptUUID) {
 type UpdateRenderedPackUnauthorized ProblemDetails
 
 func (*UpdateRenderedPackUnauthorized) updateRenderedPackRes() {}
+
+type UpdateRuntimeProfileBadRequest ProblemDetails
+
+func (*UpdateRuntimeProfileBadRequest) updateRuntimeProfileRes() {}
+
+// Ref: #/components/schemas/UpdateRuntimeProfileBody
+type UpdateRuntimeProfileBody struct {
+	Context              []UpdateRuntimeProfileBodyContextItem           `json:"context"`
+	Description          OptString                                       `json:"description"`
+	HeartbeatIntervalMs  OptInt                                          `json:"heartbeatIntervalMs"`
+	LeaseTtlSec          OptInt                                          `json:"leaseTtlSec"`
+	MaxBatchSize         OptInt                                          `json:"maxBatchSize"`
+	Model                OptString                                       `json:"model"`
+	Name                 OptString                                       `json:"name"`
+	Provider             OptString                                       `json:"provider"`
+	RequiredEnv          []string                                        `json:"requiredEnv"`
+	RequiredTools        []string                                        `json:"requiredTools"`
+	RuntimeKind          OptUpdateRuntimeProfileBodyRuntimeKind          `json:"runtimeKind"`
+	Sandbox              OptUpdateRuntimeProfileBodySandbox              `json:"sandbox"`
+	SessionStorageMode   OptUpdateRuntimeProfileBodySessionStorageMode   `json:"sessionStorageMode"`
+	SessionTtlSec        OptInt                                          `json:"sessionTtlSec"`
+	WorkspaceStorageMode OptUpdateRuntimeProfileBodyWorkspaceStorageMode `json:"workspaceStorageMode"`
+	WorkspaceTtlSec      OptInt                                          `json:"workspaceTtlSec"`
+}
+
+// GetContext returns the value of Context.
+func (s *UpdateRuntimeProfileBody) GetContext() []UpdateRuntimeProfileBodyContextItem {
+	return s.Context
+}
+
+// GetDescription returns the value of Description.
+func (s *UpdateRuntimeProfileBody) GetDescription() OptString {
+	return s.Description
+}
+
+// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
+func (s *UpdateRuntimeProfileBody) GetHeartbeatIntervalMs() OptInt {
+	return s.HeartbeatIntervalMs
+}
+
+// GetLeaseTtlSec returns the value of LeaseTtlSec.
+func (s *UpdateRuntimeProfileBody) GetLeaseTtlSec() OptInt {
+	return s.LeaseTtlSec
+}
+
+// GetMaxBatchSize returns the value of MaxBatchSize.
+func (s *UpdateRuntimeProfileBody) GetMaxBatchSize() OptInt {
+	return s.MaxBatchSize
+}
+
+// GetModel returns the value of Model.
+func (s *UpdateRuntimeProfileBody) GetModel() OptString {
+	return s.Model
+}
+
+// GetName returns the value of Name.
+func (s *UpdateRuntimeProfileBody) GetName() OptString {
+	return s.Name
+}
+
+// GetProvider returns the value of Provider.
+func (s *UpdateRuntimeProfileBody) GetProvider() OptString {
+	return s.Provider
+}
+
+// GetRequiredEnv returns the value of RequiredEnv.
+func (s *UpdateRuntimeProfileBody) GetRequiredEnv() []string {
+	return s.RequiredEnv
+}
+
+// GetRequiredTools returns the value of RequiredTools.
+func (s *UpdateRuntimeProfileBody) GetRequiredTools() []string {
+	return s.RequiredTools
+}
+
+// GetRuntimeKind returns the value of RuntimeKind.
+func (s *UpdateRuntimeProfileBody) GetRuntimeKind() OptUpdateRuntimeProfileBodyRuntimeKind {
+	return s.RuntimeKind
+}
+
+// GetSandbox returns the value of Sandbox.
+func (s *UpdateRuntimeProfileBody) GetSandbox() OptUpdateRuntimeProfileBodySandbox {
+	return s.Sandbox
+}
+
+// GetSessionStorageMode returns the value of SessionStorageMode.
+func (s *UpdateRuntimeProfileBody) GetSessionStorageMode() OptUpdateRuntimeProfileBodySessionStorageMode {
+	return s.SessionStorageMode
+}
+
+// GetSessionTtlSec returns the value of SessionTtlSec.
+func (s *UpdateRuntimeProfileBody) GetSessionTtlSec() OptInt {
+	return s.SessionTtlSec
+}
+
+// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
+func (s *UpdateRuntimeProfileBody) GetWorkspaceStorageMode() OptUpdateRuntimeProfileBodyWorkspaceStorageMode {
+	return s.WorkspaceStorageMode
+}
+
+// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
+func (s *UpdateRuntimeProfileBody) GetWorkspaceTtlSec() OptInt {
+	return s.WorkspaceTtlSec
+}
+
+// SetContext sets the value of Context.
+func (s *UpdateRuntimeProfileBody) SetContext(val []UpdateRuntimeProfileBodyContextItem) {
+	s.Context = val
+}
+
+// SetDescription sets the value of Description.
+func (s *UpdateRuntimeProfileBody) SetDescription(val OptString) {
+	s.Description = val
+}
+
+// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
+func (s *UpdateRuntimeProfileBody) SetHeartbeatIntervalMs(val OptInt) {
+	s.HeartbeatIntervalMs = val
+}
+
+// SetLeaseTtlSec sets the value of LeaseTtlSec.
+func (s *UpdateRuntimeProfileBody) SetLeaseTtlSec(val OptInt) {
+	s.LeaseTtlSec = val
+}
+
+// SetMaxBatchSize sets the value of MaxBatchSize.
+func (s *UpdateRuntimeProfileBody) SetMaxBatchSize(val OptInt) {
+	s.MaxBatchSize = val
+}
+
+// SetModel sets the value of Model.
+func (s *UpdateRuntimeProfileBody) SetModel(val OptString) {
+	s.Model = val
+}
+
+// SetName sets the value of Name.
+func (s *UpdateRuntimeProfileBody) SetName(val OptString) {
+	s.Name = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *UpdateRuntimeProfileBody) SetProvider(val OptString) {
+	s.Provider = val
+}
+
+// SetRequiredEnv sets the value of RequiredEnv.
+func (s *UpdateRuntimeProfileBody) SetRequiredEnv(val []string) {
+	s.RequiredEnv = val
+}
+
+// SetRequiredTools sets the value of RequiredTools.
+func (s *UpdateRuntimeProfileBody) SetRequiredTools(val []string) {
+	s.RequiredTools = val
+}
+
+// SetRuntimeKind sets the value of RuntimeKind.
+func (s *UpdateRuntimeProfileBody) SetRuntimeKind(val OptUpdateRuntimeProfileBodyRuntimeKind) {
+	s.RuntimeKind = val
+}
+
+// SetSandbox sets the value of Sandbox.
+func (s *UpdateRuntimeProfileBody) SetSandbox(val OptUpdateRuntimeProfileBodySandbox) {
+	s.Sandbox = val
+}
+
+// SetSessionStorageMode sets the value of SessionStorageMode.
+func (s *UpdateRuntimeProfileBody) SetSessionStorageMode(val OptUpdateRuntimeProfileBodySessionStorageMode) {
+	s.SessionStorageMode = val
+}
+
+// SetSessionTtlSec sets the value of SessionTtlSec.
+func (s *UpdateRuntimeProfileBody) SetSessionTtlSec(val OptInt) {
+	s.SessionTtlSec = val
+}
+
+// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
+func (s *UpdateRuntimeProfileBody) SetWorkspaceStorageMode(val OptUpdateRuntimeProfileBodyWorkspaceStorageMode) {
+	s.WorkspaceStorageMode = val
+}
+
+// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
+func (s *UpdateRuntimeProfileBody) SetWorkspaceTtlSec(val OptInt) {
+	s.WorkspaceTtlSec = val
+}
+
+type UpdateRuntimeProfileBodyContextItem struct {
+	Binding UpdateRuntimeProfileBodyContextItemBinding `json:"binding"`
+	Content string                                     `json:"content"`
+	Slug    string                                     `json:"slug"`
+}
+
+// GetBinding returns the value of Binding.
+func (s *UpdateRuntimeProfileBodyContextItem) GetBinding() UpdateRuntimeProfileBodyContextItemBinding {
+	return s.Binding
+}
+
+// GetContent returns the value of Content.
+func (s *UpdateRuntimeProfileBodyContextItem) GetContent() string {
+	return s.Content
+}
+
+// GetSlug returns the value of Slug.
+func (s *UpdateRuntimeProfileBodyContextItem) GetSlug() string {
+	return s.Slug
+}
+
+// SetBinding sets the value of Binding.
+func (s *UpdateRuntimeProfileBodyContextItem) SetBinding(val UpdateRuntimeProfileBodyContextItemBinding) {
+	s.Binding = val
+}
+
+// SetContent sets the value of Content.
+func (s *UpdateRuntimeProfileBodyContextItem) SetContent(val string) {
+	s.Content = val
+}
+
+// SetSlug sets the value of Slug.
+func (s *UpdateRuntimeProfileBodyContextItem) SetSlug(val string) {
+	s.Slug = val
+}
+
+type UpdateRuntimeProfileBodyContextItemBinding string
+
+const (
+	UpdateRuntimeProfileBodyContextItemBindingSkill         UpdateRuntimeProfileBodyContextItemBinding = "skill"
+	UpdateRuntimeProfileBodyContextItemBindingContextInline UpdateRuntimeProfileBodyContextItemBinding = "context_inline"
+	UpdateRuntimeProfileBodyContextItemBindingPromptPrefix  UpdateRuntimeProfileBodyContextItemBinding = "prompt_prefix"
+	UpdateRuntimeProfileBodyContextItemBindingUserInline    UpdateRuntimeProfileBodyContextItemBinding = "user_inline"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodyContextItemBinding values.
+func (UpdateRuntimeProfileBodyContextItemBinding) AllValues() []UpdateRuntimeProfileBodyContextItemBinding {
+	return []UpdateRuntimeProfileBodyContextItemBinding{
+		UpdateRuntimeProfileBodyContextItemBindingSkill,
+		UpdateRuntimeProfileBodyContextItemBindingContextInline,
+		UpdateRuntimeProfileBodyContextItemBindingPromptPrefix,
+		UpdateRuntimeProfileBodyContextItemBindingUserInline,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodyContextItemBinding) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodyContextItemBindingSkill:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyContextItemBindingContextInline:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyContextItemBindingPromptPrefix:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyContextItemBindingUserInline:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodyContextItemBinding) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodyContextItemBinding(data) {
+	case UpdateRuntimeProfileBodyContextItemBindingSkill:
+		*s = UpdateRuntimeProfileBodyContextItemBindingSkill
+		return nil
+	case UpdateRuntimeProfileBodyContextItemBindingContextInline:
+		*s = UpdateRuntimeProfileBodyContextItemBindingContextInline
+		return nil
+	case UpdateRuntimeProfileBodyContextItemBindingPromptPrefix:
+		*s = UpdateRuntimeProfileBodyContextItemBindingPromptPrefix
+		return nil
+	case UpdateRuntimeProfileBodyContextItemBindingUserInline:
+		*s = UpdateRuntimeProfileBodyContextItemBindingUserInline
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateRuntimeProfileBodyRuntimeKind string
+
+const (
+	UpdateRuntimeProfileBodyRuntimeKindGondolinPi UpdateRuntimeProfileBodyRuntimeKind = "gondolin_pi"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodyRuntimeKind values.
+func (UpdateRuntimeProfileBodyRuntimeKind) AllValues() []UpdateRuntimeProfileBodyRuntimeKind {
+	return []UpdateRuntimeProfileBodyRuntimeKind{
+		UpdateRuntimeProfileBodyRuntimeKindGondolinPi,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodyRuntimeKind) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodyRuntimeKindGondolinPi:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodyRuntimeKind) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodyRuntimeKind(data) {
+	case UpdateRuntimeProfileBodyRuntimeKindGondolinPi:
+		*s = UpdateRuntimeProfileBodyRuntimeKindGondolinPi
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateRuntimeProfileBodySandbox struct {
+	Env            OptUpdateRuntimeProfileBodySandboxEnv               `json:"env"`
+	HostExec       OptUpdateRuntimeProfileBodySandboxHostExec          `json:"hostExec"`
+	Resources      OptUpdateRuntimeProfileBodySandboxResources         `json:"resources"`
+	ResumeCommands []UpdateRuntimeProfileBodySandboxResumeCommandsItem `json:"resumeCommands"`
+	Snapshot       OptUpdateRuntimeProfileBodySandboxSnapshot          `json:"snapshot"`
+	Vfs            OptUpdateRuntimeProfileBodySandboxVfs               `json:"vfs"`
+}
+
+// GetEnv returns the value of Env.
+func (s *UpdateRuntimeProfileBodySandbox) GetEnv() OptUpdateRuntimeProfileBodySandboxEnv {
+	return s.Env
+}
+
+// GetHostExec returns the value of HostExec.
+func (s *UpdateRuntimeProfileBodySandbox) GetHostExec() OptUpdateRuntimeProfileBodySandboxHostExec {
+	return s.HostExec
+}
+
+// GetResources returns the value of Resources.
+func (s *UpdateRuntimeProfileBodySandbox) GetResources() OptUpdateRuntimeProfileBodySandboxResources {
+	return s.Resources
+}
+
+// GetResumeCommands returns the value of ResumeCommands.
+func (s *UpdateRuntimeProfileBodySandbox) GetResumeCommands() []UpdateRuntimeProfileBodySandboxResumeCommandsItem {
+	return s.ResumeCommands
+}
+
+// GetSnapshot returns the value of Snapshot.
+func (s *UpdateRuntimeProfileBodySandbox) GetSnapshot() OptUpdateRuntimeProfileBodySandboxSnapshot {
+	return s.Snapshot
+}
+
+// GetVfs returns the value of Vfs.
+func (s *UpdateRuntimeProfileBodySandbox) GetVfs() OptUpdateRuntimeProfileBodySandboxVfs {
+	return s.Vfs
+}
+
+// SetEnv sets the value of Env.
+func (s *UpdateRuntimeProfileBodySandbox) SetEnv(val OptUpdateRuntimeProfileBodySandboxEnv) {
+	s.Env = val
+}
+
+// SetHostExec sets the value of HostExec.
+func (s *UpdateRuntimeProfileBodySandbox) SetHostExec(val OptUpdateRuntimeProfileBodySandboxHostExec) {
+	s.HostExec = val
+}
+
+// SetResources sets the value of Resources.
+func (s *UpdateRuntimeProfileBodySandbox) SetResources(val OptUpdateRuntimeProfileBodySandboxResources) {
+	s.Resources = val
+}
+
+// SetResumeCommands sets the value of ResumeCommands.
+func (s *UpdateRuntimeProfileBodySandbox) SetResumeCommands(val []UpdateRuntimeProfileBodySandboxResumeCommandsItem) {
+	s.ResumeCommands = val
+}
+
+// SetSnapshot sets the value of Snapshot.
+func (s *UpdateRuntimeProfileBodySandbox) SetSnapshot(val OptUpdateRuntimeProfileBodySandboxSnapshot) {
+	s.Snapshot = val
+}
+
+// SetVfs sets the value of Vfs.
+func (s *UpdateRuntimeProfileBodySandbox) SetVfs(val OptUpdateRuntimeProfileBodySandboxVfs) {
+	s.Vfs = val
+}
+
+type UpdateRuntimeProfileBodySandboxEnv map[string]string
+
+func (s *UpdateRuntimeProfileBodySandboxEnv) init() UpdateRuntimeProfileBodySandboxEnv {
+	m := *s
+	if m == nil {
+		m = map[string]string{}
+		*s = m
+	}
+	return m
+}
+
+type UpdateRuntimeProfileBodySandboxHostExec struct {
+	AutoApprove OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove `json:"autoApprove"`
+}
+
+// GetAutoApprove returns the value of AutoApprove.
+func (s *UpdateRuntimeProfileBodySandboxHostExec) GetAutoApprove() OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove {
+	return s.AutoApprove
+}
+
+// SetAutoApprove sets the value of AutoApprove.
+func (s *UpdateRuntimeProfileBodySandboxHostExec) SetAutoApprove(val OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove) {
+	s.AutoApprove = val
+}
+
+type UpdateRuntimeProfileBodySandboxHostExecAutoApprove bool
+
+const (
+	UpdateRuntimeProfileBodySandboxHostExecAutoApproveFalse UpdateRuntimeProfileBodySandboxHostExecAutoApprove = false
+)
+
+// AllValues returns all UpdateRuntimeProfileBodySandboxHostExecAutoApprove values.
+func (UpdateRuntimeProfileBodySandboxHostExecAutoApprove) AllValues() []UpdateRuntimeProfileBodySandboxHostExecAutoApprove {
+	return []UpdateRuntimeProfileBodySandboxHostExecAutoApprove{
+		UpdateRuntimeProfileBodySandboxHostExecAutoApproveFalse,
+	}
+}
+
+type UpdateRuntimeProfileBodySandboxResources struct {
+	Cpus   OptInt    `json:"cpus"`
+	Memory OptString `json:"memory"`
+}
+
+// GetCpus returns the value of Cpus.
+func (s *UpdateRuntimeProfileBodySandboxResources) GetCpus() OptInt {
+	return s.Cpus
+}
+
+// GetMemory returns the value of Memory.
+func (s *UpdateRuntimeProfileBodySandboxResources) GetMemory() OptString {
+	return s.Memory
+}
+
+// SetCpus sets the value of Cpus.
+func (s *UpdateRuntimeProfileBodySandboxResources) SetCpus(val OptInt) {
+	s.Cpus = val
+}
+
+// SetMemory sets the value of Memory.
+func (s *UpdateRuntimeProfileBodySandboxResources) SetMemory(val OptString) {
+	s.Memory = val
+}
+
+// UpdateRuntimeProfileBodySandboxResumeCommandsItem represents sum type.
+type UpdateRuntimeProfileBodySandboxResumeCommandsItem struct {
+	Type                                               UpdateRuntimeProfileBodySandboxResumeCommandsItemType // switch on this field
+	String                                             string
+	UpdateRuntimeProfileBodySandboxResumeCommandsItem1 UpdateRuntimeProfileBodySandboxResumeCommandsItem1
+}
+
+// UpdateRuntimeProfileBodySandboxResumeCommandsItemType is oneOf type of UpdateRuntimeProfileBodySandboxResumeCommandsItem.
+type UpdateRuntimeProfileBodySandboxResumeCommandsItemType string
+
+// Possible values for UpdateRuntimeProfileBodySandboxResumeCommandsItemType.
+const (
+	StringUpdateRuntimeProfileBodySandboxResumeCommandsItem                                             UpdateRuntimeProfileBodySandboxResumeCommandsItemType = "string"
+	UpdateRuntimeProfileBodySandboxResumeCommandsItem1UpdateRuntimeProfileBodySandboxResumeCommandsItem UpdateRuntimeProfileBodySandboxResumeCommandsItemType = "UpdateRuntimeProfileBodySandboxResumeCommandsItem1"
+)
+
+// IsString reports whether UpdateRuntimeProfileBodySandboxResumeCommandsItem is string.
+func (s UpdateRuntimeProfileBodySandboxResumeCommandsItem) IsString() bool {
+	return s.Type == StringUpdateRuntimeProfileBodySandboxResumeCommandsItem
+}
+
+// IsUpdateRuntimeProfileBodySandboxResumeCommandsItem1 reports whether UpdateRuntimeProfileBodySandboxResumeCommandsItem is UpdateRuntimeProfileBodySandboxResumeCommandsItem1.
+func (s UpdateRuntimeProfileBodySandboxResumeCommandsItem) IsUpdateRuntimeProfileBodySandboxResumeCommandsItem1() bool {
+	return s.Type == UpdateRuntimeProfileBodySandboxResumeCommandsItem1UpdateRuntimeProfileBodySandboxResumeCommandsItem
+}
+
+// SetString sets UpdateRuntimeProfileBodySandboxResumeCommandsItem to string.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem) SetString(v string) {
+	s.Type = StringUpdateRuntimeProfileBodySandboxResumeCommandsItem
+	s.String = v
+}
+
+// GetString returns string and true boolean if UpdateRuntimeProfileBodySandboxResumeCommandsItem is string.
+func (s UpdateRuntimeProfileBodySandboxResumeCommandsItem) GetString() (v string, ok bool) {
+	if !s.IsString() {
+		return v, false
+	}
+	return s.String, true
+}
+
+// NewStringUpdateRuntimeProfileBodySandboxResumeCommandsItem returns new UpdateRuntimeProfileBodySandboxResumeCommandsItem from string.
+func NewStringUpdateRuntimeProfileBodySandboxResumeCommandsItem(v string) UpdateRuntimeProfileBodySandboxResumeCommandsItem {
+	var s UpdateRuntimeProfileBodySandboxResumeCommandsItem
+	s.SetString(v)
+	return s
+}
+
+// SetUpdateRuntimeProfileBodySandboxResumeCommandsItem1 sets UpdateRuntimeProfileBodySandboxResumeCommandsItem to UpdateRuntimeProfileBodySandboxResumeCommandsItem1.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem) SetUpdateRuntimeProfileBodySandboxResumeCommandsItem1(v UpdateRuntimeProfileBodySandboxResumeCommandsItem1) {
+	s.Type = UpdateRuntimeProfileBodySandboxResumeCommandsItem1UpdateRuntimeProfileBodySandboxResumeCommandsItem
+	s.UpdateRuntimeProfileBodySandboxResumeCommandsItem1 = v
+}
+
+// GetUpdateRuntimeProfileBodySandboxResumeCommandsItem1 returns UpdateRuntimeProfileBodySandboxResumeCommandsItem1 and true boolean if UpdateRuntimeProfileBodySandboxResumeCommandsItem is UpdateRuntimeProfileBodySandboxResumeCommandsItem1.
+func (s UpdateRuntimeProfileBodySandboxResumeCommandsItem) GetUpdateRuntimeProfileBodySandboxResumeCommandsItem1() (v UpdateRuntimeProfileBodySandboxResumeCommandsItem1, ok bool) {
+	if !s.IsUpdateRuntimeProfileBodySandboxResumeCommandsItem1() {
+		return v, false
+	}
+	return s.UpdateRuntimeProfileBodySandboxResumeCommandsItem1, true
+}
+
+// NewUpdateRuntimeProfileBodySandboxResumeCommandsItem1UpdateRuntimeProfileBodySandboxResumeCommandsItem returns new UpdateRuntimeProfileBodySandboxResumeCommandsItem from UpdateRuntimeProfileBodySandboxResumeCommandsItem1.
+func NewUpdateRuntimeProfileBodySandboxResumeCommandsItem1UpdateRuntimeProfileBodySandboxResumeCommandsItem(v UpdateRuntimeProfileBodySandboxResumeCommandsItem1) UpdateRuntimeProfileBodySandboxResumeCommandsItem {
+	var s UpdateRuntimeProfileBodySandboxResumeCommandsItem
+	s.SetUpdateRuntimeProfileBodySandboxResumeCommandsItem1(v)
+	return s
+}
+
+type UpdateRuntimeProfileBodySandboxResumeCommandsItem1 struct {
+	Retries        OptInt                                                    `json:"retries"`
+	RetryBackoffMs OptInt                                                    `json:"retryBackoffMs"`
+	Run            string                                                    `json:"run"`
+	When           OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When `json:"when"`
+}
+
+// GetRetries returns the value of Retries.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) GetRetries() OptInt {
+	return s.Retries
+}
+
+// GetRetryBackoffMs returns the value of RetryBackoffMs.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
+	return s.RetryBackoffMs
+}
+
+// GetRun returns the value of Run.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) GetRun() string {
+	return s.Run
+}
+
+// GetWhen returns the value of When.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) GetWhen() OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When {
+	return s.When
+}
+
+// SetRetries sets the value of Retries.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) SetRetries(val OptInt) {
+	s.Retries = val
+}
+
+// SetRetryBackoffMs sets the value of RetryBackoffMs.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
+	s.RetryBackoffMs = val
+}
+
+// SetRun sets the value of Run.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) SetRun(val string) {
+	s.Run = val
+}
+
+// SetWhen sets the value of When.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) SetWhen(val OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) {
+	s.When = val
+}
+
+type UpdateRuntimeProfileBodySandboxResumeCommandsItem1When struct {
+	WorkspaceMode []UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
+}
+
+// GetWorkspaceMode returns the value of WorkspaceMode.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1When) GetWorkspaceMode() []UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
+	return s.WorkspaceMode
+}
+
+// SetWorkspaceMode sets the value of WorkspaceMode.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1When) SetWorkspaceMode(val []UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) {
+	s.WorkspaceMode = val
+}
+
+type UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem string
+
+const (
+	UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
+	UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
+	UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem values.
+func (UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
+	return []UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem{
+		UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
+		UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
+		UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
+	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
+		*s = UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
+		return nil
+	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
+		*s = UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
+		return nil
+	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
+		*s = UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateRuntimeProfileBodySandboxSnapshot struct {
+	AllowedHosts  []string  `json:"allowedHosts"`
+	OverlaySize   OptString `json:"overlaySize"`
+	SetupCommands []string  `json:"setupCommands"`
+}
+
+// GetAllowedHosts returns the value of AllowedHosts.
+func (s *UpdateRuntimeProfileBodySandboxSnapshot) GetAllowedHosts() []string {
+	return s.AllowedHosts
+}
+
+// GetOverlaySize returns the value of OverlaySize.
+func (s *UpdateRuntimeProfileBodySandboxSnapshot) GetOverlaySize() OptString {
+	return s.OverlaySize
+}
+
+// GetSetupCommands returns the value of SetupCommands.
+func (s *UpdateRuntimeProfileBodySandboxSnapshot) GetSetupCommands() []string {
+	return s.SetupCommands
+}
+
+// SetAllowedHosts sets the value of AllowedHosts.
+func (s *UpdateRuntimeProfileBodySandboxSnapshot) SetAllowedHosts(val []string) {
+	s.AllowedHosts = val
+}
+
+// SetOverlaySize sets the value of OverlaySize.
+func (s *UpdateRuntimeProfileBodySandboxSnapshot) SetOverlaySize(val OptString) {
+	s.OverlaySize = val
+}
+
+// SetSetupCommands sets the value of SetupCommands.
+func (s *UpdateRuntimeProfileBodySandboxSnapshot) SetSetupCommands(val []string) {
+	s.SetupCommands = val
+}
+
+type UpdateRuntimeProfileBodySandboxVfs struct {
+	Shadow     []string                                        `json:"shadow"`
+	ShadowMode OptUpdateRuntimeProfileBodySandboxVfsShadowMode `json:"shadowMode"`
+}
+
+// GetShadow returns the value of Shadow.
+func (s *UpdateRuntimeProfileBodySandboxVfs) GetShadow() []string {
+	return s.Shadow
+}
+
+// GetShadowMode returns the value of ShadowMode.
+func (s *UpdateRuntimeProfileBodySandboxVfs) GetShadowMode() OptUpdateRuntimeProfileBodySandboxVfsShadowMode {
+	return s.ShadowMode
+}
+
+// SetShadow sets the value of Shadow.
+func (s *UpdateRuntimeProfileBodySandboxVfs) SetShadow(val []string) {
+	s.Shadow = val
+}
+
+// SetShadowMode sets the value of ShadowMode.
+func (s *UpdateRuntimeProfileBodySandboxVfs) SetShadowMode(val OptUpdateRuntimeProfileBodySandboxVfsShadowMode) {
+	s.ShadowMode = val
+}
+
+type UpdateRuntimeProfileBodySandboxVfsShadowMode string
+
+const (
+	UpdateRuntimeProfileBodySandboxVfsShadowModeDeny  UpdateRuntimeProfileBodySandboxVfsShadowMode = "deny"
+	UpdateRuntimeProfileBodySandboxVfsShadowModeTmpfs UpdateRuntimeProfileBodySandboxVfsShadowMode = "tmpfs"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodySandboxVfsShadowMode values.
+func (UpdateRuntimeProfileBodySandboxVfsShadowMode) AllValues() []UpdateRuntimeProfileBodySandboxVfsShadowMode {
+	return []UpdateRuntimeProfileBodySandboxVfsShadowMode{
+		UpdateRuntimeProfileBodySandboxVfsShadowModeDeny,
+		UpdateRuntimeProfileBodySandboxVfsShadowModeTmpfs,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodySandboxVfsShadowMode) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodySandboxVfsShadowModeDeny:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodySandboxVfsShadowModeTmpfs:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodySandboxVfsShadowMode(data) {
+	case UpdateRuntimeProfileBodySandboxVfsShadowModeDeny:
+		*s = UpdateRuntimeProfileBodySandboxVfsShadowModeDeny
+		return nil
+	case UpdateRuntimeProfileBodySandboxVfsShadowModeTmpfs:
+		*s = UpdateRuntimeProfileBodySandboxVfsShadowModeTmpfs
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateRuntimeProfileBodySessionStorageMode string
+
+const (
+	UpdateRuntimeProfileBodySessionStorageModeLocal UpdateRuntimeProfileBodySessionStorageMode = "local"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodySessionStorageMode values.
+func (UpdateRuntimeProfileBodySessionStorageMode) AllValues() []UpdateRuntimeProfileBodySessionStorageMode {
+	return []UpdateRuntimeProfileBodySessionStorageMode{
+		UpdateRuntimeProfileBodySessionStorageModeLocal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodySessionStorageMode) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodySessionStorageModeLocal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodySessionStorageMode) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodySessionStorageMode(data) {
+	case UpdateRuntimeProfileBodySessionStorageModeLocal:
+		*s = UpdateRuntimeProfileBodySessionStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateRuntimeProfileBodyWorkspaceStorageMode string
+
+const (
+	UpdateRuntimeProfileBodyWorkspaceStorageModeLocal UpdateRuntimeProfileBodyWorkspaceStorageMode = "local"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodyWorkspaceStorageMode values.
+func (UpdateRuntimeProfileBodyWorkspaceStorageMode) AllValues() []UpdateRuntimeProfileBodyWorkspaceStorageMode {
+	return []UpdateRuntimeProfileBodyWorkspaceStorageMode{
+		UpdateRuntimeProfileBodyWorkspaceStorageModeLocal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodyWorkspaceStorageMode) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodyWorkspaceStorageModeLocal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodyWorkspaceStorageMode(data) {
+	case UpdateRuntimeProfileBodyWorkspaceStorageModeLocal:
+		*s = UpdateRuntimeProfileBodyWorkspaceStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateRuntimeProfileConflict ProblemDetails
+
+func (*UpdateRuntimeProfileConflict) updateRuntimeProfileRes() {}
+
+type UpdateRuntimeProfileForbidden ProblemDetails
+
+func (*UpdateRuntimeProfileForbidden) updateRuntimeProfileRes() {}
+
+type UpdateRuntimeProfileNotFound ProblemDetails
+
+func (*UpdateRuntimeProfileNotFound) updateRuntimeProfileRes() {}
+
+type UpdateRuntimeProfileUnauthorized ProblemDetails
+
+func (*UpdateRuntimeProfileUnauthorized) updateRuntimeProfileRes() {}
 
 type UpdateTaskMetadataForbidden ProblemDetails
 

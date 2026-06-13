@@ -9,7 +9,7 @@ import type {
   CompleteTaskData,
   ContextPackResponse,
   ContextPackResponseListWithRendered,
-  CreateDaemonProfileData,
+  CreateRuntimeProfileData,
   CreateDiaryCustomPackData,
   CreateDiaryData,
   CreateDiaryEntryData,
@@ -23,8 +23,8 @@ import type {
   CryptoIdentity,
   CryptoVerifyResult,
   CustomPackResult,
-  DaemonProfile,
-  DaemonProfileListResponse,
+  RuntimeProfile,
+  RuntimeProfileListResponse,
   DeleteTeamInviteResponse,
   DeleteTeamResponse,
   DiaryCatalog,
@@ -100,7 +100,7 @@ import type {
   TaskListResponse,
   TaskMessage,
   UpdateContextPackData,
-  UpdateDaemonProfileData,
+  UpdateRuntimeProfileData,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateRenderedPackData,
@@ -115,7 +115,7 @@ import type { AgentContext } from './agent-context.js';
 import { createAgentsNamespace } from './namespaces/agents.js';
 import { createAuthNamespace } from './namespaces/auth.js';
 import { createCryptoNamespace } from './namespaces/crypto.js';
-import { createDaemonProfilesNamespace } from './namespaces/daemon-profiles.js';
+import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
 import { createDiaryTransfersNamespace } from './namespaces/diary-transfers.js';
@@ -391,20 +391,27 @@ export interface TeamsNamespace {
   };
 }
 
-export interface DaemonProfilesNamespace {
-  list(teamId: string): Promise<DaemonProfileListResponse>;
+export interface RuntimeProfileRequestOptions {
+  /** Active team context for collection operations. Overrides default client headers when set. */
+  teamId?: string;
+}
+
+export interface RuntimeProfilesNamespace {
+  list(
+    options?: RuntimeProfileRequestOptions,
+  ): Promise<RuntimeProfileListResponse>;
 
   create(
-    teamId: string,
-    body: CreateDaemonProfileData['body'],
-  ): Promise<DaemonProfile>;
+    body: CreateRuntimeProfileData['body'],
+    options?: RuntimeProfileRequestOptions,
+  ): Promise<RuntimeProfile>;
 
-  get(profileId: string): Promise<DaemonProfile>;
+  get(profileId: string): Promise<RuntimeProfile>;
 
   update(
     profileId: string,
-    body: UpdateDaemonProfileData['body'],
-  ): Promise<DaemonProfile>;
+    body: UpdateRuntimeProfileData['body'],
+  ): Promise<RuntimeProfile>;
 
   delete(profileId: string): Promise<void>;
 }
@@ -510,7 +517,7 @@ export interface Agent {
   legreffier: LegreffierNamespace;
   problems: ProblemsNamespace;
   teams: TeamsNamespace;
-  daemonProfiles: DaemonProfilesNamespace;
+  runtimeProfiles: RuntimeProfilesNamespace;
   tasks: TasksNamespace;
 
   /** Return the underlying hey-api client for advanced use. */
@@ -549,7 +556,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const legreffierNs = createLegreffierNamespace(context);
   const problemsNs = createProblemsNamespace(context);
   const teams = createTeamsNamespace(context);
-  const daemonProfiles = createDaemonProfilesNamespace(context);
+  const runtimeProfiles = createRuntimeProfilesNamespace(context);
   const tasks = createTasksNamespace(context);
 
   return {
@@ -567,7 +574,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     legreffier: legreffierNs,
     problems: problemsNs,
     teams,
-    daemonProfiles,
+    runtimeProfiles,
     tasks,
     client,
     getToken: () => tokenManager.getToken(),

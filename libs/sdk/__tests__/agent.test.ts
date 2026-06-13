@@ -1,7 +1,7 @@
 import type { Client } from '@moltnet/api-client';
 import {
   acceptTransfer,
-  createDaemonProfile,
+  createRuntimeProfile,
   createDiary,
   createDiaryEntry,
   createDiaryGrant,
@@ -9,14 +9,14 @@ import {
   createTask,
   createTeam,
   createTeamInvite,
-  deleteDaemonProfile,
+  deleteRuntimeProfile,
   deleteDiary,
   deleteDiaryEntryById,
   deleteTeam,
   deleteTeamInvite,
   getAgentProfile,
   getCryptoIdentity,
-  getDaemonProfile,
+  getRuntimeProfile,
   getDiary,
   getDiaryEntryById,
   getHealth,
@@ -34,7 +34,7 @@ import {
   issueVoucher,
   joinTeam,
   listActiveVouchers,
-  listDaemonProfiles,
+  listRuntimeProfiles,
   listDiaries,
   listDiaryEntries,
   listDiaryGrants,
@@ -56,7 +56,7 @@ import {
   startLegreffierOnboarding,
   submitSignature,
   updateContextPack,
-  updateDaemonProfile,
+  updateRuntimeProfile,
   updateDiary,
   updateDiaryEntryById,
   updateTeamMemberRole,
@@ -123,11 +123,11 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     createTeamInvite: vi.fn(),
     listTeamInvites: vi.fn(),
     deleteTeamInvite: vi.fn(),
-    listDaemonProfiles: vi.fn(),
-    createDaemonProfile: vi.fn(),
-    getDaemonProfile: vi.fn(),
-    updateDaemonProfile: vi.fn(),
-    deleteDaemonProfile: vi.fn(),
+    listRuntimeProfiles: vi.fn(),
+    createRuntimeProfile: vi.fn(),
+    getRuntimeProfile: vi.fn(),
+    updateRuntimeProfile: vi.fn(),
+    deleteRuntimeProfile: vi.fn(),
     updateContextPack: vi.fn(),
     createDiaryGrant: vi.fn(),
     listDiaryGrants: vi.fn(),
@@ -1284,10 +1284,10 @@ describe('Agent facade', () => {
   });
 
   // -----------------------------------------------------------------------
-  // daemonProfiles
+  // runtimeProfiles
   // -----------------------------------------------------------------------
-  describe('daemonProfiles', () => {
-    const mockDaemonProfile = {
+  describe('runtimeProfiles', () => {
+    const mockRuntimeProfile = {
       id: 'profile-1',
       teamId: 'team-1',
       name: 'linear-github',
@@ -1315,29 +1315,49 @@ describe('Agent facade', () => {
       updatedAt: '2026-06-12T00:00:00.000Z',
     };
 
-    it('daemonProfiles.list calls listDaemonProfiles with team path', async () => {
-      const list = { items: [mockDaemonProfile] };
-      vi.mocked(listDaemonProfiles).mockResolvedValueOnce({
+    it('runtimeProfiles.list sends optional team header', async () => {
+      const list = { items: [mockRuntimeProfile] };
+      vi.mocked(listRuntimeProfiles).mockResolvedValueOnce({
         data: list,
         error: undefined,
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.daemonProfiles.list('team-1');
+      const result = await agent.runtimeProfiles.list({ teamId: 'team-1' });
 
       expect(result).toEqual(list);
-      expect(listDaemonProfiles).toHaveBeenCalledWith(
+      expect(listRuntimeProfiles).toHaveBeenCalledWith(
         expect.objectContaining({
           client: mockClient,
           auth: mockAuth,
-          path: { id: 'team-1' },
+          headers: { 'x-moltnet-team-id': 'team-1' },
         }),
       );
     });
 
-    it('daemonProfiles.create sends team path and body', async () => {
-      vi.mocked(createDaemonProfile).mockResolvedValueOnce({
-        data: mockDaemonProfile,
+    it('runtimeProfiles.list omits per-call headers when teamId is omitted', async () => {
+      const list = { items: [mockRuntimeProfile] };
+      vi.mocked(listRuntimeProfiles).mockResolvedValueOnce({
+        data: list,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.runtimeProfiles.list();
+
+      expect(result).toEqual(list);
+      expect(listRuntimeProfiles).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          headers: undefined,
+        }),
+      );
+    });
+
+    it('runtimeProfiles.create sends optional team header and body', async () => {
+      vi.mocked(createRuntimeProfile).mockResolvedValueOnce({
+        data: mockRuntimeProfile,
         error: undefined,
       } as any);
 
@@ -1350,30 +1370,32 @@ describe('Agent facade', () => {
       };
 
       const agent = makeAgent();
-      const result = await agent.daemonProfiles.create('team-1', body);
+      const result = await agent.runtimeProfiles.create(body, {
+        teamId: 'team-1',
+      });
 
-      expect(result).toEqual(mockDaemonProfile);
-      expect(createDaemonProfile).toHaveBeenCalledWith(
+      expect(result).toEqual(mockRuntimeProfile);
+      expect(createRuntimeProfile).toHaveBeenCalledWith(
         expect.objectContaining({
           client: mockClient,
           auth: mockAuth,
-          path: { id: 'team-1' },
+          headers: { 'x-moltnet-team-id': 'team-1' },
           body,
         }),
       );
     });
 
-    it('daemonProfiles.get calls getDaemonProfile with profile path', async () => {
-      vi.mocked(getDaemonProfile).mockResolvedValueOnce({
-        data: mockDaemonProfile,
+    it('runtimeProfiles.get calls getRuntimeProfile with profile path', async () => {
+      vi.mocked(getRuntimeProfile).mockResolvedValueOnce({
+        data: mockRuntimeProfile,
         error: undefined,
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.daemonProfiles.get('profile-1');
+      const result = await agent.runtimeProfiles.get('profile-1');
 
-      expect(result).toEqual(mockDaemonProfile);
-      expect(getDaemonProfile).toHaveBeenCalledWith(
+      expect(result).toEqual(mockRuntimeProfile);
+      expect(getRuntimeProfile).toHaveBeenCalledWith(
         expect.objectContaining({
           client: mockClient,
           auth: mockAuth,
@@ -1382,9 +1404,9 @@ describe('Agent facade', () => {
       );
     });
 
-    it('daemonProfiles.update sends profile path and body', async () => {
-      const updated = { ...mockDaemonProfile, description: 'Updated' };
-      vi.mocked(updateDaemonProfile).mockResolvedValueOnce({
+    it('runtimeProfiles.update sends profile path and body', async () => {
+      const updated = { ...mockRuntimeProfile, description: 'Updated' };
+      vi.mocked(updateRuntimeProfile).mockResolvedValueOnce({
         data: updated,
         error: undefined,
       } as any);
@@ -1392,10 +1414,10 @@ describe('Agent facade', () => {
       const body = { description: 'Updated' };
 
       const agent = makeAgent();
-      const result = await agent.daemonProfiles.update('profile-1', body);
+      const result = await agent.runtimeProfiles.update('profile-1', body);
 
       expect(result).toEqual(updated);
-      expect(updateDaemonProfile).toHaveBeenCalledWith(
+      expect(updateRuntimeProfile).toHaveBeenCalledWith(
         expect.objectContaining({
           client: mockClient,
           auth: mockAuth,
@@ -1405,18 +1427,18 @@ describe('Agent facade', () => {
       );
     });
 
-    it('daemonProfiles.delete accepts a 204 empty response', async () => {
-      vi.mocked(deleteDaemonProfile).mockResolvedValueOnce({
+    it('runtimeProfiles.delete accepts a 204 empty response', async () => {
+      vi.mocked(deleteRuntimeProfile).mockResolvedValueOnce({
         data: undefined,
         error: undefined,
       } as any);
 
       const agent = makeAgent();
-      await expect(agent.daemonProfiles.delete('profile-1')).resolves.toBe(
+      await expect(agent.runtimeProfiles.delete('profile-1')).resolves.toBe(
         undefined,
       );
 
-      expect(deleteDaemonProfile).toHaveBeenCalledWith(
+      expect(deleteRuntimeProfile).toHaveBeenCalledWith(
         expect.objectContaining({
           client: mockClient,
           auth: mockAuth,
@@ -1425,14 +1447,14 @@ describe('Agent facade', () => {
       );
     });
 
-    it('daemonProfiles.delete throws MoltNetError on API problem', async () => {
-      vi.mocked(deleteDaemonProfile).mockResolvedValueOnce({
+    it('runtimeProfiles.delete throws MoltNetError on API problem', async () => {
+      vi.mocked(deleteRuntimeProfile).mockResolvedValueOnce({
         data: undefined,
         error: problemError,
       } as any);
 
       const agent = makeAgent();
-      await expect(agent.daemonProfiles.delete('profile-1')).rejects.toThrow(
+      await expect(agent.runtimeProfiles.delete('profile-1')).rejects.toThrow(
         MoltNetError,
       );
     });

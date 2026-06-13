@@ -1049,7 +1049,7 @@ export const tasks = pgTable(
     )
       .notNull()
       .default('self_declared'),
-    // Proposer-set daemon profile routing. Empty array = no restriction.
+    // Proposer-set runtime profile routing. Empty array = no restriction.
     // Element shape: { profileId: uuid }. Compared as a JSONB containment
     // query against a daemon's selected profile id on list-tasks.
     allowedProfiles: jsonb('allowed_profiles')

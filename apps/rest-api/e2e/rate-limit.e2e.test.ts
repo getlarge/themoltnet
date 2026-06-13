@@ -48,6 +48,18 @@ const PUBLIC_VERIFY_LIMIT = 5;
 // real crypto, so each call exercises the rate limiter, not the verify logic.
 const DUMMY_SIGNATURE = 'a'.repeat(88);
 
+async function clearE2eRateLimitKeys(): Promise<void> {
+  const redis = new Redis({ host: '127.0.0.1', port: REDIS_HOST_PORT });
+  try {
+    const keys = await redis.keys(`${REDIS_NAMESPACE}*`);
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
+  } finally {
+    await redis.quit();
+  }
+}
+
 describe('Rate limiting (429 contract)', () => {
   let harness: TestHarness;
   let client: ReturnType<typeof createClient>;
@@ -58,6 +70,7 @@ describe('Rate limiting (429 contract)', () => {
   });
 
   afterAll(async () => {
+    await clearE2eRateLimitKeys();
     await harness?.teardown();
   });
 

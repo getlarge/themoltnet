@@ -29,10 +29,6 @@ type CompleteTaskRes interface {
 	completeTaskRes()
 }
 
-type CreateDaemonProfileRes interface {
-	createDaemonProfileRes()
-}
-
 type CreateDiaryCustomPackRes interface {
 	createDiaryCustomPackRes()
 }
@@ -57,6 +53,10 @@ type CreateGroupRes interface {
 	createGroupRes()
 }
 
+type CreateRuntimeProfileRes interface {
+	createRuntimeProfileRes()
+}
+
 type CreateSigningRequestRes interface {
 	createSigningRequestRes()
 }
@@ -73,10 +73,6 @@ type CreateTeamRes interface {
 	createTeamRes()
 }
 
-type DeleteDaemonProfileRes interface {
-	deleteDaemonProfileRes()
-}
-
 type DeleteDiaryEntryByIdRes interface {
 	deleteDiaryEntryByIdRes()
 }
@@ -91,6 +87,10 @@ type DeleteEntryRelationRes interface {
 
 type DeleteGroupRes interface {
 	deleteGroupRes()
+}
+
+type DeleteRuntimeProfileRes interface {
+	deleteRuntimeProfileRes()
 }
 
 type DeleteTeamInviteRes interface {
@@ -133,10 +133,6 @@ type GetCryptoIdentityRes interface {
 	getCryptoIdentityRes()
 }
 
-type GetDaemonProfileRes interface {
-	getDaemonProfileRes()
-}
-
 type GetDiaryEntryByIdRes interface {
 	getDiaryEntryByIdRes()
 }
@@ -175,6 +171,10 @@ type GetReadinessRes interface {
 
 type GetRenderedPackByIdRes interface {
 	getRenderedPackByIdRes()
+}
+
+type GetRuntimeProfileRes interface {
+	getRuntimeProfileRes()
 }
 
 type GetSigningRequestRes interface {
@@ -217,10 +217,6 @@ type ListContextPacksRes interface {
 	listContextPacksRes()
 }
 
-type ListDaemonProfilesRes interface {
-	listDaemonProfilesRes()
-}
-
 type ListDiariesRes interface {
 	listDiariesRes()
 }
@@ -259,6 +255,10 @@ type ListGroupsRes interface {
 
 type ListPendingTransfersRes interface {
 	listPendingTransfersRes()
+}
+
+type ListRuntimeProfilesRes interface {
+	listRuntimeProfilesRes()
 }
 
 type ListSigningRequestsRes interface {
@@ -357,10 +357,6 @@ type UpdateContextPackRes interface {
 	updateContextPackRes()
 }
 
-type UpdateDaemonProfileRes interface {
-	updateDaemonProfileRes()
-}
-
 type UpdateDiaryEntryByIdRes interface {
 	updateDiaryEntryByIdRes()
 }
@@ -375,6 +371,10 @@ type UpdateEntryRelationStatusRes interface {
 
 type UpdateRenderedPackRes interface {
 	updateRenderedPackRes()
+}
+
+type UpdateRuntimeProfileRes interface {
+	updateRuntimeProfileRes()
 }
 
 type UpdateTaskMetadataRes interface {

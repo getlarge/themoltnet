@@ -1,35 +1,37 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
-import type { DaemonProfile } from '@moltnet/database';
-import { ProblemDetailsSchema } from '@moltnet/models';
-import { DaemonProfile as DaemonProfileSchema } from '@moltnet/tasks';
+import type { DaemonProfile as RuntimeProfile } from '@moltnet/database';
+import {
+  ProblemDetailsSchema,
+  TeamHeaderOptionalSchema,
+} from '@moltnet/models';
+import { RuntimeProfile as RuntimeProfileSchema } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
 import { createProblem, isUniqueViolation } from '../problems/index.js';
 import {
-  CreateDaemonProfileBodySchema,
-  DaemonProfileListResponseSchema,
-  UpdateDaemonProfileBodySchema,
+  CreateRuntimeProfileBodySchema,
+  RuntimeProfileListResponseSchema,
+  UpdateRuntimeProfileBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 
-type CreateDaemonProfileBody = Static<typeof CreateDaemonProfileBodySchema>;
-type UpdateDaemonProfileBody = Static<typeof UpdateDaemonProfileBodySchema>;
+type CreateRuntimeProfileBody = Static<typeof CreateRuntimeProfileBodySchema>;
+type UpdateRuntimeProfileBody = Static<typeof UpdateRuntimeProfileBodySchema>;
 
 const ProfileParamsSchema = Type.Object(
   { profileId: Type.String({ format: 'uuid' }) },
-  { $id: 'DaemonProfileParams' },
-);
-
-const TeamParamsSchema = Type.Object(
-  { id: Type.String({ format: 'uuid' }) },
-  { $id: 'DaemonProfileTeamParams' },
+  { $id: 'RuntimeProfileParams' },
 );
 
 function authSubject(request: {
-  authContext: { identityId: string; subjectType: 'agent' | 'human' } | null;
+  authContext: {
+    identityId: string;
+    subjectType: 'agent' | 'human';
+    currentTeamId: string | null;
+  } | null;
 }) {
   const auth = request.authContext;
   if (!auth)
@@ -41,13 +43,26 @@ function authSubject(request: {
   };
 }
 
+function requireCurrentTeamId(request: {
+  authContext: { currentTeamId: string | null } | null;
+}): string {
+  const teamId = request.authContext?.currentTeamId;
+  if (!teamId) {
+    throw createProblem(
+      'validation-failed',
+      `${TEAM_HEADER} header is required: runtime profiles are team-scoped`,
+    );
+  }
+  return teamId;
+}
+
 function normalizeList(values: readonly string[] | undefined): string[] {
   return [...new Set((values ?? []).map((v) => v.trim()).filter(Boolean))];
 }
 
 function serializeProfile(
-  row: DaemonProfile,
-): Static<typeof DaemonProfileSchema> {
+  row: RuntimeProfile,
+): Static<typeof RuntimeProfileSchema> {
   return {
     id: row.id,
     teamId: row.teamId,
@@ -66,7 +81,7 @@ function serializeProfile(
     maxBatchSize: row.maxBatchSize,
     requiredEnv: row.requiredEnv,
     requiredTools: row.requiredTools,
-    context: row.context as Static<typeof DaemonProfileSchema>['context'],
+    context: row.context as Static<typeof RuntimeProfileSchema>['context'],
     revision: row.revision,
     definitionCid: row.definitionCid,
     createdByAgentId: row.createdByAgentId ?? null,
@@ -99,7 +114,7 @@ async function computeProfileDefinitionCid(
   input: ProfileDefinitionInput,
 ): Promise<string> {
   return computeJsonCid({
-    v: 'moltnet:daemon-profile:v1',
+    v: 'moltnet:runtime-profile:v1',
     name: input.name,
     description: input.description ?? null,
     provider: input.provider.toLowerCase(),
@@ -119,22 +134,22 @@ async function computeProfileDefinitionCid(
   });
 }
 
-export async function daemonProfileRoutes(fastify: FastifyInstance) {
+export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
 
   server.get(
-    '/teams/:id/daemon-profiles',
+    '/runtime-profiles',
     {
       config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
-        operationId: 'listDaemonProfiles',
-        tags: ['daemon-profiles'],
-        description: 'List daemon runtime profiles for a team.',
+        operationId: 'listRuntimeProfiles',
+        tags: ['runtime-profiles'],
+        description: 'List runtime profiles for the active team context.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        params: TeamParamsSchema,
+        headers: TeamHeaderOptionalSchema,
         response: {
-          200: Type.Ref(DaemonProfileListResponseSchema.$id),
+          200: Type.Ref(RuntimeProfileListResponseSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
@@ -142,32 +157,31 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
+      const teamId = requireCurrentTeamId(request);
       const { identityId, subjectNs } = authSubject(request);
       const canAccess = await fastify.permissionChecker.canAccessTeam(
-        request.params.id,
+        teamId,
         identityId,
         subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
-      const rows = await fastify.daemonProfileRepository.listByTeamId(
-        request.params.id,
-      );
+      const rows = await fastify.daemonProfileRepository.listByTeamId(teamId);
       return { items: rows.map(serializeProfile) };
     },
   );
 
   server.post(
-    '/teams/:id/daemon-profiles',
+    '/runtime-profiles',
     {
       schema: {
-        operationId: 'createDaemonProfile',
-        tags: ['daemon-profiles'],
-        description: 'Create a daemon runtime profile for a team.',
+        operationId: 'createRuntimeProfile',
+        tags: ['runtime-profiles'],
+        description: 'Create a runtime profile for the active team context.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        params: TeamParamsSchema,
-        body: Type.Ref(CreateDaemonProfileBodySchema.$id),
+        headers: TeamHeaderOptionalSchema,
+        body: Type.Ref(CreateRuntimeProfileBodySchema.$id),
         response: {
-          201: Type.Ref(DaemonProfileSchema.$id),
+          201: Type.Ref(RuntimeProfileSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
@@ -177,21 +191,22 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const teamId = requireCurrentTeamId(request);
       const { identityId, subjectNs } = authSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeam(
-        request.params.id,
+        teamId,
         identityId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
-      const team = await fastify.teamRepository.findById(request.params.id);
+      const team = await fastify.teamRepository.findById(teamId);
       if (!team) throw createProblem('not-found');
       const creator = authContextToCreator(request);
-      const body = request.body as CreateDaemonProfileBody;
+      const body = request.body as CreateRuntimeProfileBody;
       const definitionCid = await computeProfileDefinitionCid(body);
       try {
         const row = await fastify.daemonProfileRepository.create({
-          teamId: request.params.id,
+          teamId,
           name: body.name,
           description: body.description ?? null,
           provider: body.provider.toLowerCase(),
@@ -217,7 +232,7 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
         if (isUniqueViolation(err)) {
           throw createProblem(
             'conflict',
-            'A daemon profile with this name already exists in this team',
+            'A runtime profile with this name already exists in this team',
           );
         }
         throw err;
@@ -226,17 +241,17 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
   );
 
   server.get(
-    '/daemon-profiles/:profileId',
+    '/runtime-profiles/:profileId',
     {
       config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
-        operationId: 'getDaemonProfile',
-        tags: ['daemon-profiles'],
-        description: 'Get one daemon runtime profile.',
+        operationId: 'getRuntimeProfile',
+        tags: ['runtime-profiles'],
+        description: 'Get one runtime profile.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: ProfileParamsSchema,
         response: {
-          200: Type.Ref(DaemonProfileSchema.$id),
+          200: Type.Ref(RuntimeProfileSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
         },
@@ -259,17 +274,17 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
   );
 
   server.patch(
-    '/daemon-profiles/:profileId',
+    '/runtime-profiles/:profileId',
     {
       schema: {
-        operationId: 'updateDaemonProfile',
-        tags: ['daemon-profiles'],
-        description: 'Update one daemon runtime profile.',
+        operationId: 'updateRuntimeProfile',
+        tags: ['runtime-profiles'],
+        description: 'Update one runtime profile.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: ProfileParamsSchema,
-        body: Type.Ref(UpdateDaemonProfileBodySchema.$id),
+        body: Type.Ref(UpdateRuntimeProfileBodySchema.$id),
         response: {
-          200: Type.Ref(DaemonProfileSchema.$id),
+          200: Type.Ref(RuntimeProfileSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
@@ -290,7 +305,7 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
-      const body = request.body as UpdateDaemonProfileBody;
+      const body = request.body as UpdateRuntimeProfileBody;
       const next: ProfileDefinitionInput = {
         name: body.name ?? existing.name,
         description:
@@ -327,7 +342,7 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
         if (isUniqueViolation(err)) {
           throw createProblem(
             'conflict',
-            'A daemon profile with this name already exists in this team',
+            'A runtime profile with this name already exists in this team',
           );
         }
         throw err;
@@ -336,12 +351,12 @@ export async function daemonProfileRoutes(fastify: FastifyInstance) {
   );
 
   server.delete(
-    '/daemon-profiles/:profileId',
+    '/runtime-profiles/:profileId',
     {
       schema: {
-        operationId: 'deleteDaemonProfile',
-        tags: ['daemon-profiles'],
-        description: 'Delete one daemon runtime profile.',
+        operationId: 'deleteRuntimeProfile',
+        tags: ['runtime-profiles'],
+        description: 'Delete one runtime profile.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: ProfileParamsSchema,
         response: {

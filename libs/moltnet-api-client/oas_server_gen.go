@@ -50,12 +50,6 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/complete
 	CompleteTask(ctx context.Context, req *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error)
-	// CreateDaemonProfile implements createDaemonProfile operation.
-	//
-	// Create a daemon runtime profile for a team.
-	//
-	// POST /teams/{id}/daemon-profiles
-	CreateDaemonProfile(ctx context.Context, req OptCreateDaemonProfileBody, params CreateDaemonProfileParams) (CreateDaemonProfileRes, error)
 	// CreateDiary implements createDiary operation.
 	//
 	// Create a new diary.
@@ -93,6 +87,12 @@ type Handler interface {
 	//
 	// POST /teams/{id}/groups
 	CreateGroup(ctx context.Context, req *CreateGroupReq, params CreateGroupParams) (CreateGroupRes, error)
+	// CreateRuntimeProfile implements createRuntimeProfile operation.
+	//
+	// Create a runtime profile for the active team context.
+	//
+	// POST /runtime-profiles
+	CreateRuntimeProfile(ctx context.Context, req OptCreateRuntimeProfileBody, params CreateRuntimeProfileParams) (CreateRuntimeProfileRes, error)
 	// CreateSigningRequest implements createSigningRequest operation.
 	//
 	// Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for
@@ -119,12 +119,6 @@ type Handler interface {
 	//
 	// POST /teams/{id}/invites
 	CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) (CreateTeamInviteRes, error)
-	// DeleteDaemonProfile implements deleteDaemonProfile operation.
-	//
-	// Delete one daemon runtime profile.
-	//
-	// DELETE /daemon-profiles/{profileId}
-	DeleteDaemonProfile(ctx context.Context, params DeleteDaemonProfileParams) (DeleteDaemonProfileRes, error)
 	// DeleteDiary implements deleteDiary operation.
 	//
 	// Delete a diary and cascade-delete its entries.
@@ -149,6 +143,12 @@ type Handler interface {
 	//
 	// DELETE /groups/{groupId}
 	DeleteGroup(ctx context.Context, params DeleteGroupParams) (DeleteGroupRes, error)
+	// DeleteRuntimeProfile implements deleteRuntimeProfile operation.
+	//
+	// Delete one runtime profile.
+	//
+	// DELETE /runtime-profiles/{profileId}
+	DeleteRuntimeProfile(ctx context.Context, params DeleteRuntimeProfileParams) (DeleteRuntimeProfileRes, error)
 	// DeleteTeam implements deleteTeam operation.
 	//
 	// Delete a team. Requires manage permission (owner only).
@@ -209,12 +209,6 @@ type Handler interface {
 	//
 	// GET /crypto/identity
 	GetCryptoIdentity(ctx context.Context) (GetCryptoIdentityRes, error)
-	// GetDaemonProfile implements getDaemonProfile operation.
-	//
-	// Get one daemon runtime profile.
-	//
-	// GET /daemon-profiles/{profileId}
-	GetDaemonProfile(ctx context.Context, params GetDaemonProfileParams) (GetDaemonProfileRes, error)
 	// GetDiary implements getDiary operation.
 	//
 	// Get a diary by ID.
@@ -303,6 +297,12 @@ type Handler interface {
 	//
 	// GET /rendered-packs/{id}
 	GetRenderedPackById(ctx context.Context, params GetRenderedPackByIdParams) (GetRenderedPackByIdRes, error)
+	// GetRuntimeProfile implements getRuntimeProfile operation.
+	//
+	// Get one runtime profile.
+	//
+	// GET /runtime-profiles/{profileId}
+	GetRuntimeProfile(ctx context.Context, params GetRuntimeProfileParams) (GetRuntimeProfileRes, error)
 	// GetSigningRequest implements getSigningRequest operation.
 	//
 	// Get a specific signing request by ID.
@@ -366,12 +366,6 @@ type Handler interface {
 	//
 	// GET /packs
 	ListContextPacks(ctx context.Context, params ListContextPacksParams) (ListContextPacksRes, error)
-	// ListDaemonProfiles implements listDaemonProfiles operation.
-	//
-	// List daemon runtime profiles for a team.
-	//
-	// GET /teams/{id}/daemon-profiles
-	ListDaemonProfiles(ctx context.Context, params ListDaemonProfilesParams) (ListDaemonProfilesRes, error)
 	// ListDiaries implements listDiaries operation.
 	//
 	// List the authenticated agent's diaries.
@@ -440,6 +434,12 @@ type Handler interface {
 	//
 	// GET /problems
 	ListProblemTypes(ctx context.Context) ([]ListProblemTypesOKItem, error)
+	// ListRuntimeProfiles implements listRuntimeProfiles operation.
+	//
+	// List runtime profiles for the active team context.
+	//
+	// GET /runtime-profiles
+	ListRuntimeProfiles(ctx context.Context, params ListRuntimeProfilesParams) (ListRuntimeProfilesRes, error)
 	// ListSigningRequests implements listSigningRequests operation.
 	//
 	// List signing requests for the authenticated agent.
@@ -591,12 +591,6 @@ type Handler interface {
 	//
 	// PATCH /packs/{id}
 	UpdateContextPack(ctx context.Context, req OptUpdateContextPackReq, params UpdateContextPackParams) (UpdateContextPackRes, error)
-	// UpdateDaemonProfile implements updateDaemonProfile operation.
-	//
-	// Update one daemon runtime profile.
-	//
-	// PATCH /daemon-profiles/{profileId}
-	UpdateDaemonProfile(ctx context.Context, req OptUpdateDaemonProfileBody, params UpdateDaemonProfileParams) (UpdateDaemonProfileRes, error)
 	// UpdateDiary implements updateDiary operation.
 	//
 	// Update diary name or visibility.
@@ -621,6 +615,12 @@ type Handler interface {
 	//
 	// PATCH /rendered-packs/{id}
 	UpdateRenderedPack(ctx context.Context, req OptUpdateRenderedPackReq, params UpdateRenderedPackParams) (UpdateRenderedPackRes, error)
+	// UpdateRuntimeProfile implements updateRuntimeProfile operation.
+	//
+	// Update one runtime profile.
+	//
+	// PATCH /runtime-profiles/{profileId}
+	UpdateRuntimeProfile(ctx context.Context, req OptUpdateRuntimeProfileBody, params UpdateRuntimeProfileParams) (UpdateRuntimeProfileRes, error)
 	// UpdateTaskMetadata implements updateTaskMetadata operation.
 	//
 	// Update mutable task metadata used for cohorting and search.

@@ -149,7 +149,7 @@ export interface CreateTaskInput {
   maxAttempts?: number;
   expiresInSec?: number;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
-  // Proposer-set daemon profile routing. Empty/undefined = no restriction.
+  // Proposer-set runtime profile routing. Empty/undefined = no restriction.
   allowedProfiles?: { profileId: string }[];
   // Proposer-set timeout overrides (seconds). Undefined → server
   // defaults (DEFAULT_DISPATCH_TIMEOUT_SECONDS /
@@ -1072,7 +1072,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         ) {
           throw new TaskServiceError(
             'forbidden',
-            'Task requires an allowed daemon profile',
+            'Task requires an allowed runtime profile',
           );
         }
 
@@ -1081,7 +1081,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         if (!selectedProfile || selectedProfile.teamId !== row.teamId) {
           throw new TaskServiceError(
             'forbidden',
-            'Task requires an allowed daemon profile',
+            'Task requires an allowed runtime profile',
           );
         }
       }

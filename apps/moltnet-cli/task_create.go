@@ -32,7 +32,7 @@ type taskCreateOpts struct {
 	correlationIDSet bool
 
 	references      []string // raw JSON blobs, each a TaskRef
-	allowedProfiles []string // raw JSON blobs, each a DaemonProfileRef
+	allowedProfiles []string // raw JSON blobs, each a RuntimeProfileRef
 
 	requiredExecutorTrustLevel    string
 	requiredExecutorTrustLevelSet bool
@@ -181,7 +181,7 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 	}
 
 	for i, raw := range opts.allowedProfiles {
-		var ref moltnetapi.DaemonProfileRef
+		var ref moltnetapi.RuntimeProfileRef
 		if err := json.Unmarshal([]byte(raw), &ref); err != nil {
 			return nil, fmt.Errorf("invalid --allowed-profile #%d JSON: %w", i+1, err)
 		}

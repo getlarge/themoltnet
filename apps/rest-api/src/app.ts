@@ -35,7 +35,7 @@ import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
-import { daemonProfileRoutes } from './routes/daemon-profiles.js';
+import { runtimeProfileRoutes } from './routes/runtime-profiles.js';
 import { diaryRoutes } from './routes/diary.js';
 import { diaryEntryRoutes } from './routes/diary-entries.js';
 import { entryRelationRoutes } from './routes/entry-relations.js';
@@ -388,7 +388,7 @@ export async function registerApiRoutes(
   await app.register(registrationRoutes);
   await app.register(teamRoutes);
   await app.register(groupRoutes);
-  await app.register(daemonProfileRoutes);
+  await app.register(runtimeProfileRoutes);
   await app.register(vouchRoutes);
   await app.register(publicRoutes);
   await app.register(taskRoutes);

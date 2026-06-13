@@ -26,10 +26,10 @@ import {
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
 import {
-  resolveDaemonProfile,
+  resolveRuntimeProfile,
   resolveProfileWarmSessionTtlSec,
-  validateDaemonProfilePrerequisites,
-} from '../lib/daemon-profile.js';
+  validateRuntimeProfilePrerequisites,
+} from '../lib/runtime-profile.js';
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
@@ -122,7 +122,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   if (values.profile && values.sandbox) {
     console.error(
       `[${opts.modeLabel}] Cannot use --sandbox with --profile. ` +
-        'Remote daemon profiles define sandbox policy.',
+        'Remote runtime profiles define sandbox policy.',
     );
     return 1;
   }
@@ -138,7 +138,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const initialCommon = common;
   const ctx = await resolveAgentContext(initialCommon.agent);
   const profile = values.profile
-    ? await resolveDaemonProfile({
+    ? await resolveRuntimeProfile({
         agent: ctx.agent,
         profile: values.profile,
         teamId,
@@ -146,7 +146,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       })
     : null;
   if (profile) {
-    validateDaemonProfilePrerequisites(
+    validateRuntimeProfilePrerequisites(
       profile,
       cfg.profilePrerequisiteEnv,
       cfg.profilePrerequisitePath,
@@ -164,7 +164,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const provider = profile?.provider ?? common.provider;
   const model = profile?.model ?? common.model;
   if (!provider || !model) {
-    throw new Error('provider/model missing after daemon profile resolution');
+    throw new Error('provider/model missing after runtime profile resolution');
   }
   const sandbox = profile
     ? {

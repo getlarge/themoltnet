@@ -2,11 +2,11 @@ import type { Agent } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  DaemonProfilePrerequisiteError,
-  resolveDaemonProfile,
+  RuntimeProfilePrerequisiteError,
+  resolveRuntimeProfile,
   resolveProfileWarmSessionTtlSec,
-  validateDaemonProfilePrerequisites,
-} from './daemon-profile.js';
+  validateRuntimeProfilePrerequisites,
+} from './runtime-profile.js';
 
 const profile = {
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -28,23 +28,23 @@ const profile = {
 };
 
 function makeAgent(overrides: {
-  get?: Agent['daemonProfiles']['get'];
-  list?: Agent['daemonProfiles']['list'];
+  get?: Agent['runtimeProfiles']['get'];
+  list?: Agent['runtimeProfiles']['list'];
 }): Agent {
   return {
-    daemonProfiles: {
+    runtimeProfiles: {
       get: overrides.get ?? vi.fn(),
       list: overrides.list ?? vi.fn(),
     },
   } as unknown as Agent;
 }
 
-describe('resolveDaemonProfile', () => {
+describe('resolveRuntimeProfile', () => {
   it('fetches a UUID profile directly', async () => {
     const get = vi.fn().mockResolvedValue(profile);
     const agent = makeAgent({ get });
 
-    const result = await resolveDaemonProfile({
+    const result = await resolveRuntimeProfile({
       agent,
       profile: profile.id,
       teamId: 'team-1',
@@ -67,7 +67,7 @@ describe('resolveDaemonProfile', () => {
       requiredTools: [],
       sandboxConfig: profile.sandbox,
       mountPath: '/tmp/workspace',
-      source: `daemon-profile:${profile.id}`,
+      source: `runtime-profile:${profile.id}`,
     });
   });
 
@@ -75,20 +75,20 @@ describe('resolveDaemonProfile', () => {
     const list = vi.fn().mockResolvedValue({ items: [profile] });
     const agent = makeAgent({ list });
 
-    const result = await resolveDaemonProfile({
+    const result = await resolveRuntimeProfile({
       agent,
       profile: 'github-linear',
       teamId: 'team-1',
       cwd: '/tmp/workspace',
     });
 
-    expect(list).toHaveBeenCalledWith('team-1');
+    expect(list).toHaveBeenCalledWith({ teamId: 'team-1' });
     expect(result.id).toBe(profile.id);
   });
 
   it('rejects profile names without a team-scoped list', async () => {
     await expect(
-      resolveDaemonProfile({
+      resolveRuntimeProfile({
         agent: makeAgent({}),
         profile: 'github-linear',
         cwd: '/tmp/workspace',
@@ -105,7 +105,7 @@ describe('resolveDaemonProfile', () => {
     });
 
     await expect(
-      resolveDaemonProfile({
+      resolveRuntimeProfile({
         agent: makeAgent({ list }),
         profile: 'github-linear',
         teamId: 'team-1',
@@ -118,7 +118,7 @@ describe('resolveDaemonProfile', () => {
     const get = vi.fn().mockResolvedValue({ ...profile, teamId: 'team-2' });
 
     await expect(
-      resolveDaemonProfile({
+      resolveRuntimeProfile({
         agent: makeAgent({ get }),
         profile: profile.id,
         teamId: 'team-1',
@@ -139,7 +139,7 @@ describe('resolveDaemonProfile', () => {
   });
 
   it('accepts satisfied profile prerequisites', () => {
-    validateDaemonProfilePrerequisites(
+    validateRuntimeProfilePrerequisites(
       {
         name: 'github-linear',
         requiredEnv: ['GITHUB_TOKEN'],
@@ -152,7 +152,7 @@ describe('resolveDaemonProfile', () => {
 
   it('rejects missing profile env and tool prerequisites before claiming', () => {
     expect(() =>
-      validateDaemonProfilePrerequisites(
+      validateRuntimeProfilePrerequisites(
         {
           name: 'github-linear',
           requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
@@ -161,9 +161,9 @@ describe('resolveDaemonProfile', () => {
         { GITHUB_TOKEN: 'token' },
         '/usr/bin:/bin',
       ),
-    ).toThrow(DaemonProfilePrerequisiteError);
+    ).toThrow(RuntimeProfilePrerequisiteError);
     expect(() =>
-      validateDaemonProfilePrerequisites(
+      validateRuntimeProfilePrerequisites(
         {
           name: 'github-linear',
           requiredEnv: ['LINEAR_API_KEY'],

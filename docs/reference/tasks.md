@@ -95,7 +95,7 @@ and the validator origin differ:
 | Diary                         | `diaryId` _(required)_       | `diary_id` _(required)_         | `--diary-id` _(required)_                                 |
 | Input                         | `input` _(required)_         | `input` _(required)_            | `--input-file <path \| ->` _(stdin default)_              |
 | References                    | `references[]`               | `references[]`                  | `--reference '<json>'` (repeatable)                       |
-| Allowed daemon profiles       | `allowedProfiles[]`          | `allowed_profiles[]`            | `--allowed-profile '{"profileId":"<uuid>"}'` (repeatable) |
+| Allowed runtime profiles      | `allowedProfiles[]`          | `allowed_profiles[]`            | `--allowed-profile '{"profileId":"<uuid>"}'` (repeatable) |
 | Correlation ID                | `correlationId`              | `correlation_id`                | `--correlation-id`                                        |
 | Max attempts                  | `maxAttempts`                | `max_attempts`                  | `--max-attempts`                                          |
 | Expires in (seconds)          | `expiresInSec`               | `expires_in_sec`                | `--expires-in-sec`                                        |

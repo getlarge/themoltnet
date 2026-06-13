@@ -2,8 +2,8 @@ import {
   ClaimCondition,
   type ClaimCondition as ClaimConditionType,
   ClaimConditionDefinition,
-  DaemonProfileRef,
-  type DaemonProfileRef as DaemonProfileRefType,
+  RuntimeProfileRef,
+  type RuntimeProfileRef as RuntimeProfileRefType,
   DaemonState,
   type DaemonState as DaemonStateType,
   ExecutorTrustLevel,
@@ -65,11 +65,11 @@ export const CreateTaskBodySchema = Type.Object(
     requiredExecutorTrustLevel: Type.Optional(
       Type.Unsafe<ExecutorTrustLevelType>(Type.Ref(ExecutorTrustLevel.$id)),
     ),
-    // Proposer-set daemon profile allowlist. Empty/unset = no restriction.
+    // Proposer-set runtime profile allowlist. Empty/unset = no restriction.
     // Each profile id must resolve to a profile in the task's team.
     allowedProfiles: Type.Optional(
       Type.Array(
-        Type.Unsafe<DaemonProfileRefType>(Type.Ref(DaemonProfileRef.$id)),
+        Type.Unsafe<RuntimeProfileRefType>(Type.Ref(RuntimeProfileRef.$id)),
         { maxItems: 16 },
       ),
     ),
@@ -308,7 +308,7 @@ export const taskSchemas = [
   TaskStatus,
   ClaimConditionDefinition,
   ExecutorTrustLevel,
-  DaemonProfileRef,
+  RuntimeProfileRef,
   TaskMessageKind,
   TaskRef,
   TaskUsage,

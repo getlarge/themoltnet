@@ -1,7 +1,7 @@
 /**
- * E2E: Daemon Profiles API
+ * E2E: Runtime Profiles API
  *
- * Covers team-scoped daemon profile CRUD and the task allowedProfiles
+ * Covers team-scoped runtime profile CRUD and the task allowedProfiles
  * routing filter against a real REST API, database, and Keto stack.
  */
 
@@ -9,20 +9,20 @@ import {
   claimTask,
   type Client,
   createClient,
-  createDaemonProfile,
+  createRuntimeProfile,
   createTask,
-  deleteDaemonProfile,
-  getDaemonProfile,
-  listDaemonProfiles,
+  deleteRuntimeProfile,
+  getRuntimeProfile,
+  listRuntimeProfiles,
   listTasks,
-  updateDaemonProfile,
+  updateRuntimeProfile,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
-describe('Daemon Profiles API', () => {
+describe('Runtime Profiles API', () => {
   let harness: TestHarness;
   let client: Client;
   let owner: TestAgent;
@@ -80,10 +80,10 @@ describe('Daemon Profiles API', () => {
   }
 
   function createProfile(name: string) {
-    return createDaemonProfile({
+    return createRuntimeProfile({
       client,
       auth: () => owner.accessToken,
-      path: { id: owner.personalTeamId },
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       body: profileBody(name),
     });
   }
@@ -106,7 +106,7 @@ describe('Daemon Profiles API', () => {
     });
   }
 
-  it('creates, lists, gets, updates, and deletes a daemon profile', async () => {
+  it('creates, lists, gets, updates, and deletes a runtime profile', async () => {
     const name = `linear-github-${Date.now()}`;
     const {
       data: created,
@@ -129,15 +129,15 @@ describe('Daemon Profiles API', () => {
     expect(created!.definitionCid).toMatch(/^ba/);
     expect(created!.requiredEnv).toEqual(['LINEAR_API_KEY', 'GITHUB_TOKEN']);
 
-    const { data: listed, error: listError } = await listDaemonProfiles({
+    const { data: listed, error: listError } = await listRuntimeProfiles({
       client,
       auth: () => owner.accessToken,
-      path: { id: owner.personalTeamId },
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
     });
     expect(listError).toBeUndefined();
     expect(listed!.items.map((item) => item.id)).toContain(created!.id);
 
-    const { data: fetched, error: getError } = await getDaemonProfile({
+    const { data: fetched, error: getError } = await getRuntimeProfile({
       client,
       auth: () => owner.accessToken,
       path: { profileId: created!.id },
@@ -145,7 +145,7 @@ describe('Daemon Profiles API', () => {
     expect(getError).toBeUndefined();
     expect(fetched!.id).toBe(created!.id);
 
-    const { data: updated, error: updateError } = await updateDaemonProfile({
+    const { data: updated, error: updateError } = await updateRuntimeProfile({
       client,
       auth: () => owner.accessToken,
       path: { profileId: created!.id },
@@ -164,7 +164,7 @@ describe('Daemon Profiles API', () => {
     expect(updated!.definitionCid).not.toBe(created!.definitionCid);
 
     const { response: deleteResponse, error: deleteError } =
-      await deleteDaemonProfile({
+      await deleteRuntimeProfile({
         client,
         auth: () => owner.accessToken,
         path: { profileId: created!.id },
@@ -172,7 +172,7 @@ describe('Daemon Profiles API', () => {
     expect(deleteError).toBeUndefined();
     expect(deleteResponse.status).toBe(204);
 
-    const { response: getDeletedResponse } = await getDaemonProfile({
+    const { response: getDeletedResponse } = await getRuntimeProfile({
       client,
       auth: () => owner.accessToken,
       path: { profileId: created!.id },
@@ -186,24 +186,24 @@ describe('Daemon Profiles API', () => {
     );
     expect(profile).toBeDefined();
 
-    const { response: listResponse } = await listDaemonProfiles({
+    const { response: listResponse } = await listRuntimeProfiles({
       client,
       auth: () => outsider.accessToken,
-      path: { id: owner.personalTeamId },
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
     });
-    expect(listResponse.status).toBe(404);
+    expect(listResponse.status).toBe(403);
 
-    const { response: getResponse } = await getDaemonProfile({
+    const { response: getResponse } = await getRuntimeProfile({
       client,
       auth: () => outsider.accessToken,
       path: { profileId: profile!.id },
     });
     expect(getResponse.status).toBe(404);
 
-    const { response: createResponse } = await createDaemonProfile({
+    const { response: createResponse } = await createRuntimeProfile({
       client,
       auth: () => outsider.accessToken,
-      path: { id: owner.personalTeamId },
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       body: profileBody(`outsider-profile-${Date.now()}`),
     });
     expect(createResponse.status).toBe(403);
@@ -302,11 +302,26 @@ describe('Daemon Profiles API', () => {
     expect(allowedProfileClaim.data!.task.id).toBe(task!.id);
   });
 
-  it('rejects sandbox configs that request host exec auto-approval', async () => {
-    const { response } = await createDaemonProfile({
+  it('requires team context for collection operations', async () => {
+    const listResponse = await listRuntimeProfiles({
       client,
       auth: () => owner.accessToken,
-      path: { id: owner.personalTeamId },
+    });
+    expect(listResponse.response.status).toBe(400);
+
+    const createResponse = await createRuntimeProfile({
+      client,
+      auth: () => owner.accessToken,
+      body: profileBody(`missing-team-${Date.now()}`),
+    });
+    expect(createResponse.response.status).toBe(400);
+  });
+
+  it('rejects sandbox configs that request host exec auto-approval', async () => {
+    const { response } = await createRuntimeProfile({
+      client,
+      auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       body: {
         name: `unsafe-profile-${Date.now()}`,
         provider: 'anthropic',

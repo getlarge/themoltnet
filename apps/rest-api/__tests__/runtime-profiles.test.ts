@@ -48,7 +48,7 @@ function mockProfile(overrides: Partial<DaemonProfile> = {}): DaemonProfile {
   };
 }
 
-describe('daemon profile routes', () => {
+describe('runtime profile routes', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
@@ -57,15 +57,19 @@ describe('daemon profile routes', () => {
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
   });
 
-  it('creates a daemon profile for a managed team', async () => {
+  it('creates a runtime profile for a managed team', async () => {
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
     mocks.daemonProfileRepository.create.mockResolvedValue(mockProfile());
 
     const response = await app.inject({
       method: 'POST',
-      url: `/teams/${TEAM_ID}/daemon-profiles`,
-      headers: { authorization: 'Bearer test-token' },
+      url: '/runtime-profiles',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
       payload: {
         name: 'linear-github',
         description: 'Linear triage and GitHub implementation profile',
@@ -121,7 +125,7 @@ describe('daemon profile routes', () => {
     );
   });
 
-  it('lists daemon profiles when the caller can access the team', async () => {
+  it('lists runtime profiles when the caller can access the team', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.daemonProfileRepository.listByTeamId.mockResolvedValue([
       mockProfile(),
@@ -129,8 +133,11 @@ describe('daemon profile routes', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: `/teams/${TEAM_ID}/daemon-profiles`,
-      headers: { authorization: 'Bearer test-token' },
+      url: '/runtime-profiles',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
     });
 
     expect(response.statusCode).toBe(200);
@@ -140,13 +147,17 @@ describe('daemon profile routes', () => {
   });
 
   it('rejects sandbox configs with host exec auto-approval', async () => {
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
 
     const response = await app.inject({
       method: 'POST',
-      url: `/teams/${TEAM_ID}/daemon-profiles`,
-      headers: { authorization: 'Bearer test-token' },
+      url: '/runtime-profiles',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
       payload: {
         name: 'unsafe',
         provider: 'anthropic',

@@ -24,9 +24,6 @@ import type {
   CompleteTaskData,
   CompleteTaskErrors,
   CompleteTaskResponses,
-  CreateDaemonProfileData,
-  CreateDaemonProfileErrors,
-  CreateDaemonProfileResponses,
   CreateDiaryCustomPackData,
   CreateDiaryCustomPackErrors,
   CreateDiaryCustomPackResponses,
@@ -45,6 +42,9 @@ import type {
   CreateGroupData,
   CreateGroupErrors,
   CreateGroupResponses,
+  CreateRuntimeProfileData,
+  CreateRuntimeProfileErrors,
+  CreateRuntimeProfileResponses,
   CreateSigningRequestData,
   CreateSigningRequestErrors,
   CreateSigningRequestResponses,
@@ -57,9 +57,6 @@ import type {
   CreateTeamInviteErrors,
   CreateTeamInviteResponses,
   CreateTeamResponses,
-  DeleteDaemonProfileData,
-  DeleteDaemonProfileErrors,
-  DeleteDaemonProfileResponses,
   DeleteDiaryData,
   DeleteDiaryEntryByIdData,
   DeleteDiaryEntryByIdErrors,
@@ -72,6 +69,9 @@ import type {
   DeleteGroupData,
   DeleteGroupErrors,
   DeleteGroupResponses,
+  DeleteRuntimeProfileData,
+  DeleteRuntimeProfileErrors,
+  DeleteRuntimeProfileResponses,
   DeleteTeamData,
   DeleteTeamErrors,
   DeleteTeamInviteData,
@@ -102,9 +102,6 @@ import type {
   GetCryptoIdentityData,
   GetCryptoIdentityErrors,
   GetCryptoIdentityResponses,
-  GetDaemonProfileData,
-  GetDaemonProfileErrors,
-  GetDaemonProfileResponses,
   GetDiaryData,
   GetDiaryEntryByIdData,
   GetDiaryEntryByIdErrors,
@@ -143,6 +140,9 @@ import type {
   GetRenderedPackByIdData,
   GetRenderedPackByIdErrors,
   GetRenderedPackByIdResponses,
+  GetRuntimeProfileData,
+  GetRuntimeProfileErrors,
+  GetRuntimeProfileResponses,
   GetSigningRequestData,
   GetSigningRequestErrors,
   GetSigningRequestResponses,
@@ -173,9 +173,6 @@ import type {
   ListContextPacksData,
   ListContextPacksErrors,
   ListContextPacksResponses,
-  ListDaemonProfilesData,
-  ListDaemonProfilesErrors,
-  ListDaemonProfilesResponses,
   ListDiariesData,
   ListDiariesErrors,
   ListDiariesResponses,
@@ -208,6 +205,9 @@ import type {
   ListPendingTransfersResponses,
   ListProblemTypesData,
   ListProblemTypesResponses,
+  ListRuntimeProfilesData,
+  ListRuntimeProfilesErrors,
+  ListRuntimeProfilesResponses,
   ListSigningRequestsData,
   ListSigningRequestsErrors,
   ListSigningRequestsResponses,
@@ -280,9 +280,6 @@ import type {
   UpdateContextPackData,
   UpdateContextPackErrors,
   UpdateContextPackResponses,
-  UpdateDaemonProfileData,
-  UpdateDaemonProfileErrors,
-  UpdateDaemonProfileResponses,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateDiaryEntryByIdErrors,
@@ -295,6 +292,9 @@ import type {
   UpdateRenderedPackData,
   UpdateRenderedPackErrors,
   UpdateRenderedPackResponses,
+  UpdateRuntimeProfileData,
+  UpdateRuntimeProfileErrors,
+  UpdateRuntimeProfileResponses,
   UpdateTaskMetadataData,
   UpdateTaskMetadataErrors,
   UpdateTaskMetadataResponses,
@@ -582,82 +582,6 @@ export const verifyCryptoSignature = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     url: '/crypto/verify',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete one daemon runtime profile.
- */
-export const deleteDaemonProfile = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteDaemonProfileData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    DeleteDaemonProfileResponses,
-    DeleteDaemonProfileErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/daemon-profiles/{profileId}',
-    ...options,
-  });
-
-/**
- * Get one daemon runtime profile.
- */
-export const getDaemonProfile = <ThrowOnError extends boolean = false>(
-  options: Options<GetDaemonProfileData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetDaemonProfileResponses,
-    GetDaemonProfileErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/daemon-profiles/{profileId}',
-    ...options,
-  });
-
-/**
- * Update one daemon runtime profile.
- */
-export const updateDaemonProfile = <ThrowOnError extends boolean = false>(
-  options: Options<UpdateDaemonProfileData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    UpdateDaemonProfileResponses,
-    UpdateDaemonProfileErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/daemon-profiles/{profileId}',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -1923,6 +1847,134 @@ export const updateRenderedPack = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * List runtime profiles for the active team context.
+ */
+export const listRuntimeProfiles = <ThrowOnError extends boolean = false>(
+  options?: Options<ListRuntimeProfilesData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListRuntimeProfilesResponses,
+    ListRuntimeProfilesErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-profiles',
+    ...options,
+  });
+
+/**
+ * Create a runtime profile for the active team context.
+ */
+export const createRuntimeProfile = <ThrowOnError extends boolean = false>(
+  options?: Options<CreateRuntimeProfileData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    CreateRuntimeProfileResponses,
+    CreateRuntimeProfileErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-profiles',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+/**
+ * Delete one runtime profile.
+ */
+export const deleteRuntimeProfile = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteRuntimeProfileData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteRuntimeProfileResponses,
+    DeleteRuntimeProfileErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-profiles/{profileId}',
+    ...options,
+  });
+
+/**
+ * Get one runtime profile.
+ */
+export const getRuntimeProfile = <ThrowOnError extends boolean = false>(
+  options: Options<GetRuntimeProfileData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetRuntimeProfileResponses,
+    GetRuntimeProfileErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-profiles/{profileId}',
+    ...options,
+  });
+
+/**
+ * Update one runtime profile.
+ */
+export const updateRuntimeProfile = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateRuntimeProfileData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateRuntimeProfileResponses,
+    UpdateRuntimeProfileErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-profiles/{profileId}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
  * List tasks for a team with optional filters.
  */
 export const listTasks = <ThrowOnError extends boolean = false>(
@@ -2411,58 +2463,6 @@ export const acceptTeamFounding = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/teams/{id}/accept',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * List daemon runtime profiles for a team.
- */
-export const listDaemonProfiles = <ThrowOnError extends boolean = false>(
-  options: Options<ListDaemonProfilesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListDaemonProfilesResponses,
-    ListDaemonProfilesErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/daemon-profiles',
-    ...options,
-  });
-
-/**
- * Create a daemon runtime profile for a team.
- */
-export const createDaemonProfile = <ThrowOnError extends boolean = false>(
-  options: Options<CreateDaemonProfileData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CreateDaemonProfileResponses,
-    CreateDaemonProfileErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/daemon-profiles',
     ...options,
     headers: {
       'Content-Type': 'application/json',
