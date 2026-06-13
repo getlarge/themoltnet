@@ -167,13 +167,33 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   const abort = new AbortController();
   let runtime: AgentRuntime | null = null;
+  let drainingSignal: string | null = null;
   const onSignal = (sig: string) => {
-    rootLogger.warn({ signal: sig }, 'agent-daemon.draining');
+    if (drainingSignal) {
+      process.stderr.write(
+        `[agent-daemon] ${sig} received while already draining from ` +
+          `${drainingSignal}; forcing exit.\n`,
+      );
+      process.exit(signalExitCode(sig));
+    }
+    drainingSignal = sig;
+    process.exitCode = signalExitCode(sig);
+    try {
+      rootLogger.warn({ signal: sig }, 'agent-daemon.draining');
+    } catch (err) {
+      process.stderr.write(
+        `[agent-daemon] failed to log ${sig}: ` +
+          (err instanceof Error ? err.message : String(err)) +
+          '\n',
+      );
+    }
     abort.abort();
-    runtime?.stop();
+    runtime?.stop(`agent-daemon received ${sig}`);
   };
-  process.on('SIGINT', () => onSignal('SIGINT'));
-  process.on('SIGTERM', () => onSignal('SIGTERM'));
+  const handleSigint = () => onSignal('SIGINT');
+  const handleSigterm = () => onSignal('SIGTERM');
+  process.on('SIGINT', handleSigint);
+  process.on('SIGTERM', handleSigterm);
 
   rootLogger.info(
     {
@@ -427,10 +447,16 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     const anyFailed = drained.some((o) => o.status !== 'completed');
     return anyFailed ? 1 : 0;
   } finally {
+    process.off('SIGINT', handleSigint);
+    process.off('SIGTERM', handleSigterm);
     await slotRegistry.close();
     await otelShutdown();
     await shutdownLogger();
   }
+}
+
+function signalExitCode(sig: string): number {
+  return sig === 'SIGINT' ? 130 : sig === 'SIGTERM' ? 143 : 1;
 }
 
 function resolveRecordedWorkspacePath(
