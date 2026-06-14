@@ -31,7 +31,8 @@
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "build": "vite build",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-agent --args --help --expect \"long-running task worker for MoltNet\""
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
@@ -45,7 +46,6 @@
     "@opentelemetry/instrumentation-net": "catalog:",
     "@opentelemetry/instrumentation-pg": "catalog:",
     "@opentelemetry/instrumentation-pino": "catalog:",
-    "@opentelemetry/instrumentation-runtime-node": "catalog:",
     "@opentelemetry/instrumentation-undici": "catalog:",
     "@opentelemetry/resources": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",
