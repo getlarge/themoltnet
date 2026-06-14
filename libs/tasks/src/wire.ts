@@ -47,6 +47,7 @@ export const TaskAttemptStatus = Type.Union(
     Type.Literal('completed'),
     Type.Literal('failed'),
     Type.Literal('cancelled'),
+    Type.Literal('aborted'),
     Type.Literal('timed_out'),
   ],
   { $id: 'TaskAttemptStatus' },
