@@ -8,6 +8,14 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// AbortTaskAttempt implements abortTaskAttempt operation.
+	//
+	// Claimant intentionally abandons this attempt (e.g. daemon shutdown). The attempt becomes aborted
+	// and the task requeues for another claim (or fails when retries are exhausted). Does NOT cancel the
+	// task.
+	//
+	// POST /tasks/{id}/attempts/{n}/abort
+	AbortTaskAttempt(ctx context.Context, req OptAbortTaskAttemptReq, params AbortTaskAttemptParams) (AbortTaskAttemptRes, error)
 	// AcceptTeamFounding implements acceptTeamFounding operation.
 	//
 	// Accept a founding role in a team. Only valid while team is in founding status.

@@ -48,6 +48,7 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 
 // operationRolesBearerAuth is a private map storing roles per operation.
 var operationRolesBearerAuth = map[string][]string{
+	AbortTaskAttemptOperation:              []string{},
 	AcceptTeamFoundingOperation:            []string{},
 	AcceptTransferOperation:                []string{},
 	AddGroupMemberOperation:                []string{},
@@ -159,6 +160,7 @@ func GetRolesForBearerAuth(operation string) []string {
 
 // operationRolesCookieAuth is a private map storing roles per operation.
 var operationRolesCookieAuth = map[string][]string{
+	AbortTaskAttemptOperation:              []string{},
 	AcceptTeamFoundingOperation:            []string{},
 	AcceptTransferOperation:                []string{},
 	AddGroupMemberOperation:                []string{},
@@ -270,6 +272,7 @@ func GetRolesForCookieAuth(operation string) []string {
 
 // operationRolesSessionAuth is a private map storing roles per operation.
 var operationRolesSessionAuth = map[string][]string{
+	AbortTaskAttemptOperation:              []string{},
 	AcceptTeamFoundingOperation:            []string{},
 	AcceptTransferOperation:                []string{},
 	AddGroupMemberOperation:                []string{},

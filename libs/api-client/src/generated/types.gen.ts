@@ -4,6 +4,10 @@ export type ClientOptions = {
   baseUrl: 'https://api.themolt.net' | 'http://localhost:8000' | (string & {});
 };
 
+export type AbortTaskBody = {
+  reason?: string;
+};
+
 export type AgentIdentity = {
   /**
    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -1724,6 +1728,7 @@ export type TaskAttempt = {
     | 'completed'
     | 'failed'
     | 'cancelled'
+    | 'aborted'
     | 'timed_out';
   taskId: string;
   usage: {
@@ -1748,6 +1753,7 @@ export type TaskAttemptStatus =
   | 'completed'
   | 'failed'
   | 'cancelled'
+  | 'aborted'
   | 'timed_out';
 
 export type TaskError = {
@@ -5990,6 +5996,54 @@ export type ListTaskAttemptsResponses = {
 
 export type ListTaskAttemptsResponse =
   ListTaskAttemptsResponses[keyof ListTaskAttemptsResponses];
+
+export type AbortTaskAttemptData = {
+  body?: {
+    reason?: string;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/abort';
+};
+
+export type AbortTaskAttemptErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type AbortTaskAttemptError =
+  AbortTaskAttemptErrors[keyof AbortTaskAttemptErrors];
+
+export type AbortTaskAttemptResponses = {
+  /**
+   * Default Response
+   */
+  200: Task;
+};
+
+export type AbortTaskAttemptResponse =
+  AbortTaskAttemptResponses[keyof AbortTaskAttemptResponses];
 
 export type CompleteTaskData = {
   body: {

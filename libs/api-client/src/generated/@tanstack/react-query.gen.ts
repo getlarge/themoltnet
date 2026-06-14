@@ -10,6 +10,7 @@ import {
 
 import { client } from '../client.gen';
 import {
+  abortTaskAttempt,
   acceptTeamFounding,
   acceptTransfer,
   addGroupMember,
@@ -118,6 +119,9 @@ import {
   verifyRecoveryChallenge,
 } from '../sdk.gen';
 import type {
+  AbortTaskAttemptData,
+  AbortTaskAttemptError,
+  AbortTaskAttemptResponse,
   AcceptTeamFoundingData,
   AcceptTeamFoundingError,
   AcceptTeamFoundingResponse,
@@ -2998,6 +3002,33 @@ export const listTaskAttemptsOptions = (
     },
     queryKey: listTaskAttemptsQueryKey(options),
   });
+
+/**
+ * Claimant intentionally abandons this attempt (e.g. daemon shutdown). The attempt becomes aborted and the task requeues for another claim (or fails when retries are exhausted). Does NOT cancel the task.
+ */
+export const abortTaskAttemptMutation = (
+  options?: Partial<Options<AbortTaskAttemptData>>,
+): UseMutationOptions<
+  AbortTaskAttemptResponse,
+  AbortTaskAttemptError,
+  Options<AbortTaskAttemptData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    AbortTaskAttemptResponse,
+    AbortTaskAttemptError,
+    Options<AbortTaskAttemptData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await abortTaskAttempt({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 /**
  * Mark an attempt as completed with output.

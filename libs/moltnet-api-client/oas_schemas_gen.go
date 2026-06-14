@@ -12,6 +12,40 @@ import (
 	"github.com/google/uuid"
 )
 
+type AbortTaskAttemptBadRequest ProblemDetails
+
+func (*AbortTaskAttemptBadRequest) abortTaskAttemptRes() {}
+
+type AbortTaskAttemptConflict ProblemDetails
+
+func (*AbortTaskAttemptConflict) abortTaskAttemptRes() {}
+
+type AbortTaskAttemptForbidden ProblemDetails
+
+func (*AbortTaskAttemptForbidden) abortTaskAttemptRes() {}
+
+type AbortTaskAttemptNotFound ProblemDetails
+
+func (*AbortTaskAttemptNotFound) abortTaskAttemptRes() {}
+
+type AbortTaskAttemptReq struct {
+	Reason OptString `json:"reason"`
+}
+
+// GetReason returns the value of Reason.
+func (s *AbortTaskAttemptReq) GetReason() OptString {
+	return s.Reason
+}
+
+// SetReason sets the value of Reason.
+func (s *AbortTaskAttemptReq) SetReason(val OptString) {
+	s.Reason = val
+}
+
+type AbortTaskAttemptUnauthorized ProblemDetails
+
+func (*AbortTaskAttemptUnauthorized) abortTaskAttemptRes() {}
+
 type AcceptTeamFoundingBadRequest ProblemDetails
 
 func (*AcceptTeamFoundingBadRequest) acceptTeamFoundingRes() {}
@@ -13814,6 +13848,52 @@ func (o NilUUID) Or(d uuid.UUID) uuid.UUID {
 	return d
 }
 
+// NewOptAbortTaskAttemptReq returns new OptAbortTaskAttemptReq with value set to v.
+func NewOptAbortTaskAttemptReq(v AbortTaskAttemptReq) OptAbortTaskAttemptReq {
+	return OptAbortTaskAttemptReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptAbortTaskAttemptReq is optional AbortTaskAttemptReq.
+type OptAbortTaskAttemptReq struct {
+	Value AbortTaskAttemptReq
+	Set   bool
+}
+
+// IsSet returns true if OptAbortTaskAttemptReq was set.
+func (o OptAbortTaskAttemptReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptAbortTaskAttemptReq) Reset() {
+	var v AbortTaskAttemptReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptAbortTaskAttemptReq) SetTo(v AbortTaskAttemptReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptAbortTaskAttemptReq) Get() (v AbortTaskAttemptReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptAbortTaskAttemptReq) Or(d AbortTaskAttemptReq) AbortTaskAttemptReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptAddGroupMemberReqSubjectNs returns new OptAddGroupMemberReqSubjectNs with value set to v.
 func NewOptAddGroupMemberReqSubjectNs(v AddGroupMemberReqSubjectNs) OptAddGroupMemberReqSubjectNs {
 	return OptAddGroupMemberReqSubjectNs{
@@ -24467,6 +24547,7 @@ func (s *Task) SetTitle(val NilString) {
 	s.Title = val
 }
 
+func (*Task) abortTaskAttemptRes()   {}
 func (*Task) cancelTaskRes()         {}
 func (*Task) completeTaskRes()       {}
 func (*Task) createTaskRes()         {}
@@ -24815,6 +24896,7 @@ const (
 	TaskAttemptStatusCompleted TaskAttemptStatus = "completed"
 	TaskAttemptStatusFailed    TaskAttemptStatus = "failed"
 	TaskAttemptStatusCancelled TaskAttemptStatus = "cancelled"
+	TaskAttemptStatusAborted   TaskAttemptStatus = "aborted"
 	TaskAttemptStatusTimedOut  TaskAttemptStatus = "timed_out"
 )
 
@@ -24826,6 +24908,7 @@ func (TaskAttemptStatus) AllValues() []TaskAttemptStatus {
 		TaskAttemptStatusCompleted,
 		TaskAttemptStatusFailed,
 		TaskAttemptStatusCancelled,
+		TaskAttemptStatusAborted,
 		TaskAttemptStatusTimedOut,
 	}
 }
@@ -24842,6 +24925,8 @@ func (s TaskAttemptStatus) MarshalText() ([]byte, error) {
 	case TaskAttemptStatusFailed:
 		return []byte(s), nil
 	case TaskAttemptStatusCancelled:
+		return []byte(s), nil
+	case TaskAttemptStatusAborted:
 		return []byte(s), nil
 	case TaskAttemptStatusTimedOut:
 		return []byte(s), nil
@@ -24867,6 +24952,9 @@ func (s *TaskAttemptStatus) UnmarshalText(data []byte) error {
 		return nil
 	case TaskAttemptStatusCancelled:
 		*s = TaskAttemptStatusCancelled
+		return nil
+	case TaskAttemptStatusAborted:
+		*s = TaskAttemptStatusAborted
 		return nil
 	case TaskAttemptStatusTimedOut:
 		*s = TaskAttemptStatusTimedOut

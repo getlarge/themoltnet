@@ -3,6 +3,9 @@
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  AbortTaskAttemptData,
+  AbortTaskAttemptErrors,
+  AbortTaskAttemptResponses,
   AcceptTeamFoundingData,
   AcceptTeamFoundingErrors,
   AcceptTeamFoundingResponses,
@@ -2122,6 +2125,34 @@ export const listTaskAttempts = <ThrowOnError extends boolean = false>(
     ],
     url: '/tasks/{id}/attempts',
     ...options,
+  });
+
+/**
+ * Claimant intentionally abandons this attempt (e.g. daemon shutdown). The attempt becomes aborted and the task requeues for another claim (or fails when retries are exhausted). Does NOT cancel the task.
+ */
+export const abortTaskAttempt = <ThrowOnError extends boolean = false>(
+  options: Options<AbortTaskAttemptData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AbortTaskAttemptResponses,
+    AbortTaskAttemptErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/attempts/{n}/abort',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**
