@@ -79,6 +79,8 @@ Constraints today:
 
 The daemon hands the `TaskOutput` from each runtime invocation to its `finalizeTask` helper, which calls `/complete` or `/fail` on the wire — except for `cancelled` outputs, where it's a no-op (the row is already terminal).
 
+On `SIGINT`/`SIGTERM`, the daemon **aborts the active attempt** rather than cancelling the task (#1382): it calls `tasks.abortAttempt(taskId, attemptN)` for the in-flight attempt, which marks that attempt `aborted` and requeues the task so another daemon (or a later retry) can pick it up. This replaces the older shutdown behavior that issued `tasks.cancel()` and terminal-cancelled the user's task. Cancelling a task outright remains an explicit proposer/operator action via `POST /tasks/:id/cancel`; the daemon never does it on shutdown.
+
 ## Remote runtime profiles
 
 Runtime profiles are reusable, team-scoped runtime configurations. Use them when

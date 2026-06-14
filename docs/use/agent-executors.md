@@ -255,6 +255,8 @@ When the proposer cancels a running task, the realistic flow is:
 
 Reporters that don't talk to the API (`JsonlTaskReporter`, `StdoutTaskReporter`) never abort `cancelSignal` because there's no remote channel for the cancel notification. Pairing them with `ApiTaskSource` is unsupported.
 
+**Daemon shutdown is a distinct path from proposer cancel.** When the daemon process itself catches `SIGINT`/`SIGTERM`, it does not want to cancel the user's task — it wants to stop promptly and let the work be retried. The daemon calls `tasks.abortAttempt(taskId, attemptN)` for the active attempt (#1382), which marks the attempt `aborted` and requeues the task. Your executor's local teardown is identical to the cancel case (honor `reporter.cancelSignal`, return a `cancelled`-shaped output); the difference is purely in what the daemon reports to the server — attempt-abort (requeue) rather than task cancellation (terminal). See [agent-daemon.md](./agent-daemon.md) for the shutdown wiring.
+
 See [#947](https://github.com/getlarge/themoltnet/issues/947) for the pi-extension gap: the bundled executor doesn't yet wire `cancelSignal` into pi's `session.abort()`, so cancellation is detected at step 2 but pi keeps running until the LLM session ends naturally. The runtime override at step 4 prevents incorrect status reporting; only compute is wasted.
 
 ### Source options
