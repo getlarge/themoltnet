@@ -9,12 +9,12 @@
 export * from './agents.js';
 export * from './atoms.js';
 export * from './crypto.js';
-export * from './runtime-profiles.js';
 export * from './diary.js';
 export * from './network.js';
 export * from './packs.js';
 export * from './principal.js';
 export * from './relations.js';
+export * from './runtime-profiles.js';
 export * from './tasks.js';
 
 import {
@@ -40,7 +40,6 @@ import {
   SigningRequestListSchema,
   SigningRequestSchema,
 } from './crypto.js';
-import { runtimeProfileSchemas } from './runtime-profiles.js';
 import {
   AgentIdentitySchema,
   DiaryCatalogListSchema,
@@ -87,6 +86,7 @@ import {
   RelationStatusSchema,
   RelationTypeSchema,
 } from './relations.js';
+import { runtimeProfileSchemas } from './runtime-profiles.js';
 import { taskSchemas } from './tasks.js';
 
 /**

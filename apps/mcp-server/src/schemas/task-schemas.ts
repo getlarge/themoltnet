@@ -19,8 +19,8 @@ import type {
 } from '@moltnet/api-client';
 import {
   ClaimConditionDefinition,
-  RuntimeProfileRef,
   ExecutorTrustLevel,
+  RuntimeProfileRef,
   SuccessCriteria,
   Task,
   TaskAttempt,

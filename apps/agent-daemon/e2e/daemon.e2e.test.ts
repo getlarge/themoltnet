@@ -39,12 +39,12 @@ import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
+import { createExecutionPlanCache } from '../src/lib/execution-plan-cache.js';
+import { finalizeTask } from '../src/lib/finalize.js';
 import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../src/lib/runtime-profile.js';
-import { createExecutionPlanCache } from '../src/lib/execution-plan-cache.js';
-import { finalizeTask } from '../src/lib/finalize.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 

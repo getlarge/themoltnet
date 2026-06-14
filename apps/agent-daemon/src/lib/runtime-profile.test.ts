@@ -2,9 +2,9 @@ import type { Agent } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  RuntimeProfilePrerequisiteError,
-  resolveRuntimeProfile,
   resolveProfileWarmSessionTtlSec,
+  resolveRuntimeProfile,
+  RuntimeProfilePrerequisiteError,
   validateRuntimeProfilePrerequisites,
 } from './runtime-profile.js';
 

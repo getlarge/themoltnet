@@ -9,12 +9,12 @@ import type {
   CompleteTaskData,
   ContextPackResponse,
   ContextPackResponseListWithRendered,
-  CreateRuntimeProfileData,
   CreateDiaryCustomPackData,
   CreateDiaryData,
   CreateDiaryEntryData,
   CreateDiaryGrantData,
   CreateDiaryGrantResponse,
+  CreateRuntimeProfileData,
   CreateTaskData,
   CreateTeamData,
   CreateTeamInviteData,
@@ -23,8 +23,6 @@ import type {
   CryptoIdentity,
   CryptoVerifyResult,
   CustomPackResult,
-  RuntimeProfile,
-  RuntimeProfileListResponse,
   DeleteTeamInviteResponse,
   DeleteTeamResponse,
   DiaryCatalog,
@@ -87,6 +85,8 @@ import type {
   RevokeDiaryGrantData,
   RevokeDiaryGrantResponse,
   RotateSecretResponse,
+  RuntimeProfile,
+  RuntimeProfileListResponse,
   SearchDiaryData,
   SearchPublicFeedData,
   SigningRequest,
@@ -100,10 +100,10 @@ import type {
   TaskListResponse,
   TaskMessage,
   UpdateContextPackData,
-  UpdateRuntimeProfileData,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateRenderedPackData,
+  UpdateRuntimeProfileData,
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleResponse,
   VerifyRecoveryChallengeData,
@@ -115,7 +115,6 @@ import type { AgentContext } from './agent-context.js';
 import { createAgentsNamespace } from './namespaces/agents.js';
 import { createAuthNamespace } from './namespaces/auth.js';
 import { createCryptoNamespace } from './namespaces/crypto.js';
-import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
 import { createDiaryTransfersNamespace } from './namespaces/diary-transfers.js';
@@ -125,6 +124,7 @@ import { createPacksNamespace } from './namespaces/packs.js';
 import { createProblemsNamespace } from './namespaces/problems.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRecoveryNamespace } from './namespaces/recovery.js';
+import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';

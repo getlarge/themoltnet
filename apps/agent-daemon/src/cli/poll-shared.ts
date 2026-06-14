@@ -26,11 +26,6 @@ import {
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
 import {
-  resolveRuntimeProfile,
-  resolveProfileWarmSessionTtlSec,
-  validateRuntimeProfilePrerequisites,
-} from '../lib/runtime-profile.js';
-import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
 } from '../lib/execution-plan-cache.js';
@@ -45,6 +40,11 @@ import {
   validateTaskTypes,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
+import {
+  resolveProfileWarmSessionTtlSec,
+  resolveRuntimeProfile,
+  validateRuntimeProfilePrerequisites,
+} from '../lib/runtime-profile.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';

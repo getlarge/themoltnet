@@ -2,7 +2,6 @@ import type { Client, Config } from '@moltnet/api-client';
 import { createClient } from '@moltnet/api-client';
 
 import type {
-  RuntimeProfilesNamespace,
   DiariesNamespace,
   DiaryGrantsNamespace,
   EntriesNamespace,
@@ -10,11 +9,11 @@ import type {
   PacksNamespace,
   ProblemsNamespace,
   PublicNamespace,
+  RuntimeProfilesNamespace,
   TasksNamespace,
   TeamsNamespace,
 } from './agent.js';
 import type { AgentContext } from './agent-context.js';
-import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
 import { createEntriesNamespace } from './namespaces/entries.js';
@@ -22,6 +21,7 @@ import { createLegreffierNamespace } from './namespaces/legreffier.js';
 import { createPacksNamespace } from './namespaces/packs.js';
 import { createProblemsNamespace } from './namespaces/problems.js';
 import { createPublicNamespace } from './namespaces/public.js';
+import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
 
