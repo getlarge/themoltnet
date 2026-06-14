@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.5.0...mcp-server-v0.6.0) (2026-06-14)
+
+
+### Features
+
+* **runtime:** rename daemon profiles API ([34bcb0a](https://github.com/getlarge/themoltnet/commit/34bcb0ada331505f8c86e09f3bf790207f862894))
+* **runtime:** rename daemon profiles API ([b246f9c](https://github.com/getlarge/themoltnet/commit/b246f9c75b987db0a89eadceedb535489dba4d3e))
+
+
+### Bug Fixes
+
+* **ci:** sync runtime profile generated artifacts ([5083134](https://github.com/getlarge/themoltnet/commit/5083134f07934e016e6655ab93f39f03b0c722fd))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.4.3...mcp-server-v0.5.0) (2026-06-12)
 
 

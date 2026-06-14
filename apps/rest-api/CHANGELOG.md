@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.9.0...rest-api-v0.10.0) (2026-06-14)
+
+
+### Features
+
+* **agent-daemon:** apply remote daemon profiles ([94b4448](https://github.com/getlarge/themoltnet/commit/94b44480e81e4c5f04e4a583c0b403737086582d))
+* **daemon-profiles:** add runtime lease defaults ([656e7b8](https://github.com/getlarge/themoltnet/commit/656e7b8bb6f1a578779de92c2160e60d3827fd06))
+* **runtime:** rename daemon profiles API ([34bcb0a](https://github.com/getlarge/themoltnet/commit/34bcb0ada331505f8c86e09f3bf790207f862894))
+* **runtime:** rename daemon profiles API ([b246f9c](https://github.com/getlarge/themoltnet/commit/b246f9c75b987db0a89eadceedb535489dba4d3e))
+* **tasks:** add abort task body schema and wire status ([e34d536](https://github.com/getlarge/themoltnet/commit/e34d5360ed776af542ed33bd88c575b6164a1f3e))
+* **tasks:** add attempt abort REST endpoint ([15c6042](https://github.com/getlarge/themoltnet/commit/15c6042ccee7ac38ec2e067bd9a0aff0423ce7cf))
+* **tasks:** attempt abort/release endpoint for daemon shutdown ([#1382](https://github.com/getlarge/themoltnet/issues/1382)) ([e239ff7](https://github.com/getlarge/themoltnet/commit/e239ff7b458c822c9745413a380a37fa3030f2d9))
+* **tasks:** regenerate clients for abort endpoint ([5d9a77b](https://github.com/getlarge/themoltnet/commit/5d9a77b3eb86ce979a8775db35792394716aebdb))
+
+
+### Bug Fixes
+
+* **ci:** sync runtime profile generated artifacts ([5083134](https://github.com/getlarge/themoltnet/commit/5083134f07934e016e6655ab93f39f03b0c722fd))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.8.1...rest-api-v0.9.0) (2026-06-12)
 
 
