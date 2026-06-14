@@ -76,15 +76,6 @@ func (UnimplementedHandler) CompleteTask(ctx context.Context, req *CompleteTaskR
 	return r, ht.ErrNotImplemented
 }
 
-// CreateDaemonProfile implements createDaemonProfile operation.
-//
-// Create a daemon runtime profile for a team.
-//
-// POST /teams/{id}/daemon-profiles
-func (UnimplementedHandler) CreateDaemonProfile(ctx context.Context, req OptCreateDaemonProfileBody, params CreateDaemonProfileParams) (r CreateDaemonProfileRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // CreateDiary implements createDiary operation.
 //
 // Create a new diary.
@@ -140,6 +131,15 @@ func (UnimplementedHandler) CreateGroup(ctx context.Context, req *CreateGroupReq
 	return r, ht.ErrNotImplemented
 }
 
+// CreateRuntimeProfile implements createRuntimeProfile operation.
+//
+// Create a runtime profile for the active team context.
+//
+// POST /runtime-profiles
+func (UnimplementedHandler) CreateRuntimeProfile(ctx context.Context, req OptCreateRuntimeProfileBody, params CreateRuntimeProfileParams) (r CreateRuntimeProfileRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateSigningRequest implements createSigningRequest operation.
 //
 // Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for
@@ -178,15 +178,6 @@ func (UnimplementedHandler) CreateTeamInvite(ctx context.Context, req OptCreateT
 	return r, ht.ErrNotImplemented
 }
 
-// DeleteDaemonProfile implements deleteDaemonProfile operation.
-//
-// Delete one daemon runtime profile.
-//
-// DELETE /daemon-profiles/{profileId}
-func (UnimplementedHandler) DeleteDaemonProfile(ctx context.Context, params DeleteDaemonProfileParams) (r DeleteDaemonProfileRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // DeleteDiary implements deleteDiary operation.
 //
 // Delete a diary and cascade-delete its entries.
@@ -220,6 +211,15 @@ func (UnimplementedHandler) DeleteEntryRelation(ctx context.Context, params Dele
 //
 // DELETE /groups/{groupId}
 func (UnimplementedHandler) DeleteGroup(ctx context.Context, params DeleteGroupParams) (r DeleteGroupRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteRuntimeProfile implements deleteRuntimeProfile operation.
+//
+// Delete one runtime profile.
+//
+// DELETE /runtime-profiles/{profileId}
+func (UnimplementedHandler) DeleteRuntimeProfile(ctx context.Context, params DeleteRuntimeProfileParams) (r DeleteRuntimeProfileRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -310,15 +310,6 @@ func (UnimplementedHandler) GetContextPackProvenanceById(ctx context.Context, pa
 //
 // GET /crypto/identity
 func (UnimplementedHandler) GetCryptoIdentity(ctx context.Context) (r GetCryptoIdentityRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// GetDaemonProfile implements getDaemonProfile operation.
-//
-// Get one daemon runtime profile.
-//
-// GET /daemon-profiles/{profileId}
-func (UnimplementedHandler) GetDaemonProfile(ctx context.Context, params GetDaemonProfileParams) (r GetDaemonProfileRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -452,6 +443,15 @@ func (UnimplementedHandler) GetRenderedPackById(ctx context.Context, params GetR
 	return r, ht.ErrNotImplemented
 }
 
+// GetRuntimeProfile implements getRuntimeProfile operation.
+//
+// Get one runtime profile.
+//
+// GET /runtime-profiles/{profileId}
+func (UnimplementedHandler) GetRuntimeProfile(ctx context.Context, params GetRuntimeProfileParams) (r GetRuntimeProfileRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetSigningRequest implements getSigningRequest operation.
 //
 // Get a specific signing request by ID.
@@ -543,15 +543,6 @@ func (UnimplementedHandler) ListActiveVouchers(ctx context.Context) (r ListActiv
 //
 // GET /packs
 func (UnimplementedHandler) ListContextPacks(ctx context.Context, params ListContextPacksParams) (r ListContextPacksRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// ListDaemonProfiles implements listDaemonProfiles operation.
-//
-// List daemon runtime profiles for a team.
-//
-// GET /teams/{id}/daemon-profiles
-func (UnimplementedHandler) ListDaemonProfiles(ctx context.Context, params ListDaemonProfilesParams) (r ListDaemonProfilesRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -653,6 +644,15 @@ func (UnimplementedHandler) ListPendingTransfers(ctx context.Context) (r ListPen
 //
 // GET /problems
 func (UnimplementedHandler) ListProblemTypes(ctx context.Context) (r []ListProblemTypesOKItem, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListRuntimeProfiles implements listRuntimeProfiles operation.
+//
+// List runtime profiles for the active team context.
+//
+// GET /runtime-profiles
+func (UnimplementedHandler) ListRuntimeProfiles(ctx context.Context, params ListRuntimeProfilesParams) (r ListRuntimeProfilesRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -879,15 +879,6 @@ func (UnimplementedHandler) UpdateContextPack(ctx context.Context, req OptUpdate
 	return r, ht.ErrNotImplemented
 }
 
-// UpdateDaemonProfile implements updateDaemonProfile operation.
-//
-// Update one daemon runtime profile.
-//
-// PATCH /daemon-profiles/{profileId}
-func (UnimplementedHandler) UpdateDaemonProfile(ctx context.Context, req OptUpdateDaemonProfileBody, params UpdateDaemonProfileParams) (r UpdateDaemonProfileRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // UpdateDiary implements updateDiary operation.
 //
 // Update diary name or visibility.
@@ -921,6 +912,15 @@ func (UnimplementedHandler) UpdateEntryRelationStatus(ctx context.Context, req *
 //
 // PATCH /rendered-packs/{id}
 func (UnimplementedHandler) UpdateRenderedPack(ctx context.Context, req OptUpdateRenderedPackReq, params UpdateRenderedPackParams) (r UpdateRenderedPackRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateRuntimeProfile implements updateRuntimeProfile operation.
+//
+// Update one runtime profile.
+//
+// PATCH /runtime-profiles/{profileId}
+func (UnimplementedHandler) UpdateRuntimeProfile(ctx context.Context, req OptUpdateRuntimeProfileBody, params UpdateRuntimeProfileParams) (r UpdateRuntimeProfileRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

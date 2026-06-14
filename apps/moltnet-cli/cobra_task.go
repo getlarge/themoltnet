@@ -128,8 +128,8 @@ fix the file quickly.
 
 --reference and --allowed-profile are repeatable; each value is a JSON object
 matching the respective wire schema. JSON-blob flags are ugly in the shell but
-lossless for the nested external object on TaskRef and the daemon profile
-reference on DaemonProfileRef.`,
+lossless for the nested external object on TaskRef and the runtime profile
+reference on RuntimeProfileRef.`,
 		Example: `  # Stdin input (default)
   echo '{"brief":"Fix issue #123","scopeHint":"misc"}' \
     | moltnet task create --task-type fulfill_brief \
@@ -146,7 +146,7 @@ reference on DaemonProfileRef.`,
     --reference '{"taskId":"<uuid>","role":"judged_work","outputCid":"<cid>"}' \
     --input-file ./assess-input.json
 
-  # Restrict daemon profiles (repeatable)
+  # Restrict runtime profiles (repeatable)
   moltnet task create --task-type fulfill_brief \
     --team-id <uuid> --diary-id <uuid> \
     --allowed-profile '{"profileId":"<uuid>"}' \
@@ -202,7 +202,7 @@ reference on DaemonProfileRef.`,
 	cmd.Flags().String("input-file", "-", `Path to the input JSON blob; "-" reads stdin (default)`)
 	cmd.Flags().String("correlation-id", "", "Correlation UUID — link this task to an existing chain")
 	cmd.Flags().StringArray("reference", nil, "TaskRef JSON object; repeatable")
-	cmd.Flags().StringArray("allowed-profile", nil, "DaemonProfileRef JSON object; repeatable")
+	cmd.Flags().StringArray("allowed-profile", nil, "RuntimeProfileRef JSON object; repeatable")
 	cmd.Flags().String("required-executor-trust-level", "", "One of: selfDeclared, agentSigned, releaseVerifiedTool, sandboxAttested")
 	cmd.Flags().Int("dispatch-timeout-sec", 0, "Override dispatch timeout (seconds)")
 	cmd.Flags().Int("running-timeout-sec", 0, "Override running timeout (seconds)")

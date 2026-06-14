@@ -19,7 +19,7 @@
  */
 import { type Static, Type } from 'typebox';
 
-import { DaemonProfileRef } from './daemon-profiles.js';
+import { RuntimeProfileRef } from './runtime-profiles.js';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -319,10 +319,10 @@ export const Task = Type.Object(
     ]),
     requiredExecutorTrustLevel: ExecutorTrustLevel,
 
-    // Proposer-set daemon profile allowlist. Empty = no restriction.
+    // Proposer-set runtime profile allowlist. Empty = no restriction.
     // Advisory routing; the daemon filters at list time with its
     // selected profile id.
-    allowedProfiles: Type.Array(DaemonProfileRef, { maxItems: 16 }),
+    allowedProfiles: Type.Array(RuntimeProfileRef, { maxItems: 16 }),
 
     // Lifecycle
     status: TaskStatus,

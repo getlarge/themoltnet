@@ -208,11 +208,11 @@ func buildContinuationRequest(opts taskContinueOpts, source *moltnetapi.Task) (*
 		req.CorrelationId = moltnetapi.NewOptUUID(corrID)
 	}
 
-	// Inherit profile pinning. DaemonProfileRef and TaskAllowedProfilesItem
+	// Inherit profile pinning. RuntimeProfileRef and TaskAllowedProfilesItem
 	// have identical shape but distinct nominal types in the generated
 	// client; copy field-by-field.
 	for _, profile := range source.AllowedProfiles {
-		req.AllowedProfiles = append(req.AllowedProfiles, moltnetapi.DaemonProfileRef{
+		req.AllowedProfiles = append(req.AllowedProfiles, moltnetapi.RuntimeProfileRef{
 			ProfileId: profile.ProfileId,
 		})
 	}

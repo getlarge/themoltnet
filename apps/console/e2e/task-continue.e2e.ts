@@ -1,9 +1,9 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 
 import {
-  createDaemonProfile,
   createDiary,
   createDiaryGrant,
+  createRuntimeProfile,
   createTeam,
   getTask,
   listTasks,
@@ -111,9 +111,9 @@ test.describe.serial('Continue task from console', () => {
     }
     sharedTeamId = created.data.id;
 
-    const profile = await createDaemonProfile({
+    const profile = await createRuntimeProfile({
       client: humanClient,
-      path: { id: sharedTeamId },
+      headers: { 'x-moltnet-team-id': sharedTeamId },
       body: {
         name: `task-continue-profile-${nonce}`,
         runtimeKind: 'gondolin_pi',
@@ -126,7 +126,7 @@ test.describe.serial('Continue task from console', () => {
     });
     if (!profile.data?.id) {
       throw new Error(
-        `createDaemonProfile failed: ${JSON.stringify(profile.error)}`,
+        `createRuntimeProfile failed: ${JSON.stringify(profile.error)}`,
       );
     }
     allowedProfileId = profile.data.id;

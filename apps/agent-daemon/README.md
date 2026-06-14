@@ -87,10 +87,10 @@ current directory. Configure host-side auto-approval there, not in task data:
 Set `"autoApprove": true` only for isolated hosts where every built-in
 host-exec command is safe to run without a dialog.
 
-### Remote daemon profiles
+### Remote runtime profiles
 
 The canonical user-facing guide lives in the public docs:
-[Agent Daemon § Remote daemon profiles](https://docs.themolt.net/use/agent-daemon.html#remote-daemon-profiles).
+[Agent Daemon § Remote runtime profiles](https://docs.themolt.net/use/agent-daemon.html#remote-runtime-profiles).
 
 ## Correlation anchors
 

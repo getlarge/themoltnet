@@ -39,12 +39,12 @@ import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  resolveDaemonProfile,
-  validateDaemonProfilePrerequisites,
-} from '../src/lib/daemon-profile.js';
 import { createExecutionPlanCache } from '../src/lib/execution-plan-cache.js';
 import { finalizeTask } from '../src/lib/finalize.js';
+import {
+  resolveRuntimeProfile,
+  validateRuntimeProfilePrerequisites,
+} from '../src/lib/runtime-profile.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
@@ -56,8 +56,8 @@ const silentLogger: AgentRuntimeLogger = {
   child: () => silentLogger,
 };
 
-type DaemonProfileSandbox = Awaited<
-  ReturnType<Agent['daemonProfiles']['get']>
+type RuntimeProfileSandbox = Awaited<
+  ReturnType<Agent['runtimeProfiles']['get']>
 >['sandbox'];
 
 function buildProducerVerification(inputCid: string) {
@@ -962,24 +962,29 @@ describe('Agent daemon (e2e)', () => {
 
     async function createProfile(
       name: string,
-      sandbox: DaemonProfileSandbox = {},
-      overrides: Partial<Parameters<Agent['daemonProfiles']['create']>[1]> = {},
+      sandbox: RuntimeProfileSandbox = {},
+      overrides: Partial<
+        Parameters<Agent['runtimeProfiles']['create']>[0]
+      > = {},
     ) {
-      return agent.daemonProfiles.create(teamId, {
-        name,
-        runtimeKind: 'gondolin_pi',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
-        leaseTtlSec: 900,
-        heartbeatIntervalMs: 15_000,
-        maxBatchSize: 10,
-        sandbox,
-        ...overrides,
-      });
+      return agent.runtimeProfiles.create(
+        {
+          name,
+          runtimeKind: 'gondolin_pi',
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          leaseTtlSec: 900,
+          heartbeatIntervalMs: 15_000,
+          maxBatchSize: 10,
+          sandbox,
+          ...overrides,
+        },
+        { teamId },
+      );
     }
 
     function deleteProfile(profileId: string) {
-      return agent.daemonProfiles.delete(profileId);
+      return agent.runtimeProfiles.delete(profileId);
     }
 
     function proposePinnedCuratePackTask(
@@ -1047,7 +1052,7 @@ describe('Agent daemon (e2e)', () => {
       }
     });
 
-    it('returns unrestricted tasks regardless of daemon profile', async () => {
+    it('returns unrestricted tasks regardless of runtime profile', async () => {
       const profile = await createProfile(`daemon-e2e-${randomUUID()}`);
       const unrestricted = await proposeCuratePackTask();
       try {
@@ -1066,7 +1071,7 @@ describe('Agent daemon (e2e)', () => {
       }
     });
 
-    it('resolves a remote daemon profile and claims only matching pinned tasks', async () => {
+    it('resolves a remote runtime profile and claims only matching pinned tasks', async () => {
       const profileName = `daemon-e2e-${randomUUID()}`;
       const allowedProfile = await createProfile(profileName, {
         snapshot: { allowedHosts: ['api.github.com'] },
@@ -1081,7 +1086,7 @@ describe('Agent daemon (e2e)', () => {
       ]);
 
       try {
-        const resolved = await resolveDaemonProfile({
+        const resolved = await resolveRuntimeProfile({
           agent,
           profile: profileName,
           teamId,
@@ -1137,7 +1142,7 @@ describe('Agent daemon (e2e)', () => {
       ]);
 
       try {
-        const resolved = await resolveDaemonProfile({
+        const resolved = await resolveRuntimeProfile({
           agent,
           profile: profileName,
           teamId,
@@ -1145,7 +1150,7 @@ describe('Agent daemon (e2e)', () => {
         });
 
         expect(() =>
-          validateDaemonProfilePrerequisites(resolved, {}, ''),
+          validateRuntimeProfilePrerequisites(resolved, {}, ''),
         ).toThrow(/prerequisites are not satisfied/);
 
         const taskAfterValidationFailure = await agent.tasks.get(pinned.id);

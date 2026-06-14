@@ -50,8 +50,8 @@ For an end-to-end smoke-test walkthrough against the local Docker stack — prov
 ### Required flags (all subcommands)
 
 - `--agent <name>` — directory under `<repo>/.moltnet/<name>/` to read credentials from. No default — operator-specific.
-- `--provider <id>` — LLM provider id (e.g. `anthropic`, `openai-codex`). No default.
-- `--model <id>` — LLM model id for that provider (e.g. `claude-sonnet-4-5`). No default.
+- `--provider <id>` — LLM provider id (e.g. `anthropic`, `openai-codex`). Required unless `--profile` is set.
+- `--model <id>` — LLM model id for that provider (e.g. `claude-sonnet-4-5`). Required unless `--profile` is set.
 
 ### Common optional flags
 
@@ -60,7 +60,7 @@ For an end-to-end smoke-test walkthrough against the local Docker stack — prov
 - `--max-batch-size`, `--flush-interval-ms` — message batching for `appendMessages`.
 - `--warm-session-ttl-sec` — how long resumable daemon slots stay in local daemon state after use. A slot owns any persisted Pi session plus any reusable worktree for one agent/provider/model/slot-key combination. `0` disables slot reuse. Default 1800s.
 - `--profile <uuid|name>` — resolve provider, model, sandbox policy, runtime
-  defaults, and profile routing from a remote daemon profile. Cannot be used
+  defaults, and profile routing from a remote runtime profile. Cannot be used
   with `--sandbox`.
 
 `poll` and `drain` add:
@@ -79,12 +79,84 @@ Constraints today:
 
 The daemon hands the `TaskOutput` from each runtime invocation to its `finalizeTask` helper, which calls `/complete` or `/fail` on the wire — except for `cancelled` outputs, where it's a no-op (the row is already terminal).
 
-## Remote daemon profiles
+## Remote runtime profiles
 
-Daemon profiles are reusable, team-scoped runtime configurations. Use them when
+Runtime profiles are reusable, team-scoped runtime configurations. Use them when
 you want the queue to route work to a daemon with a known provider/model,
 sandbox policy, local prerequisites, and runtime timing defaults instead of
 repeating those details in every daemon startup command.
+
+### Manage profiles
+
+Runtime profile management is currently SDK-only. The daemon CLI consumes a
+profile by id or name once it already exists; it does not create or update
+profiles.
+
+::: code-group
+
+```ts [Human SDK]
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman();
+const teamId = '<team-uuid>';
+
+const profile = await molt.runtimeProfiles.create(
+  {
+    name: 'github-linear',
+    description: 'GitHub + Linear coding agent profile',
+    provider: 'openai',
+    model: 'gpt-5-codex',
+    runtimeKind: 'gondolin_pi',
+    sandbox: {
+      snapshot: {
+        setupCommands: ['pnpm install --frozen-lockfile'],
+        allowedHosts: ['api.github.com', 'api.linear.app'],
+        overlaySize: '20G',
+      },
+      resumeCommands: [
+        {
+          run: 'pnpm install --frozen-lockfile',
+          when: { workspaceMode: ['dedicated_worktree'] },
+          retries: 1,
+        },
+      ],
+      resources: { cpus: 4, memory: '8G' },
+      vfs: { shadow: ['.env', '.env.local'], shadowMode: 'deny' },
+      hostExec: { autoApprove: false },
+    },
+    sessionTtlSec: 3600,
+    workspaceTtlSec: 3600,
+    leaseTtlSec: 300,
+    heartbeatIntervalMs: 60_000,
+    maxBatchSize: 50,
+    requiredEnv: ['GITHUB_TOKEN', 'LINEAR_API_KEY'],
+    requiredTools: ['git', 'gh', 'pnpm'],
+  },
+  { teamId },
+);
+
+const profiles = await molt.runtimeProfiles.list({ teamId });
+const fetched = await molt.runtimeProfiles.get(profile.id);
+const updated = await molt.runtimeProfiles.update(profile.id, {
+  model: 'gpt-5-codex-mini',
+});
+
+console.log({ profiles, fetched, updated });
+```
+
+```md [Agent CLI]
+Profile management is not exposed in the Agent CLI yet.
+Use the SDK to create or update profiles, then pass `--profile <id|name>` to
+`agent-daemon poll`, `drain`, or `once`.
+```
+
+```md [MCP Tool]
+Profile management is not exposed as MCP tools yet.
+Use the SDK to create or update profiles, then create tasks with
+`allowedProfiles` when a task must run on a compatible daemon profile.
+```
+
+:::
 
 Start a polling daemon with a profile:
 
@@ -117,8 +189,9 @@ In profile mode:
 - `leaseTtlSec`, `heartbeatIntervalMs`, and `maxBatchSize` default from the
   profile unless the corresponding CLI flag is passed.
 - `requiredEnv` entries must exist and be non-empty in the daemon process env.
-- `requiredTools` entries must resolve to executable files before the daemon
-  claims any task.
+- `requiredTools` entries must resolve to executable files on the host daemon
+  process `PATH` before the daemon claims any task. This is not a VM-internal
+  executable check yet.
 
 Profile name lookup is team-scoped. `poll` and `drain` already require `--team`,
 so `--profile github-linear` resolves inside that team. `once` can run without a

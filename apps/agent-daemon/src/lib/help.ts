@@ -15,7 +15,7 @@ export const COMMON_OPTIONAL_FLAGS = `\
                               the daemon's CWD until found. The directory
                               containing sandbox.json is also used as the
                               VM mountPath. Cannot be used with --profile.
-  --profile <uuid|name>       Remote daemon profile. When set, provider,
+  --profile <uuid|name>       Remote runtime profile. When set, provider,
                               model, and sandbox policy come from the
                               profile; task listing/claiming is restricted
                               to unrestricted tasks plus tasks allowing this
@@ -67,7 +67,7 @@ Prerequisites (all subcommands):
   - <repo-root>/.moltnet/<agent>/moltnet.json — credentials (see --agent)
   - sandbox.json or --profile — local sandbox config is resolved by
     searching up from CWD, or pass --sandbox <path>. With --profile, the
-    remote daemon profile supplies provider/model/sandbox policy and CWD
+    remote runtime profile supplies provider/model/sandbox policy and CWD
     is used as the VM mountPath.
 
 Registered task types: ${knownTaskTypesList()}`;

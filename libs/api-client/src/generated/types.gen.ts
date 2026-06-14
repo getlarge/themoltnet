@@ -281,7 +281,7 @@ export type ContextPackResponseListWithRendered = {
   renderedPacks?: Array<RenderedPack>;
 };
 
-export type CreateDaemonProfileBody = {
+export type CreateRuntimeProfileBody = {
   context?: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
@@ -338,7 +338,7 @@ export type CreateDaemonProfileBody = {
 };
 
 export type CreateTaskBody = {
-  allowedProfiles?: Array<DaemonProfileRef>;
+  allowedProfiles?: Array<RuntimeProfileRef>;
   claimCondition?: ClaimCondition;
   correlationId?: string;
   diaryId: string;
@@ -384,181 +384,6 @@ export type CustomPackResult = {
   packType: 'custom';
   params: {
     [key: string]: unknown;
-  };
-};
-
-export type DaemonProfile = {
-  context: Array<{
-    binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
-    content: string;
-    slug: string;
-  }>;
-  createdAt: string;
-  createdByAgentId: string | null;
-  createdByHumanId: string | null;
-  definitionCid: string;
-  description: string | null;
-  heartbeatIntervalMs: number;
-  id: string;
-  leaseTtlSec: number;
-  maxBatchSize: number;
-  model: string;
-  name: string;
-  provider: string;
-  requiredEnv: Array<string>;
-  requiredTools: Array<string>;
-  revision: number;
-  runtimeKind: 'gondolin_pi';
-  sandbox: {
-    env?: {
-      [key: string]: string;
-    };
-    hostExec?: {
-      autoApprove?: false;
-    };
-    resources?: {
-      cpus?: number;
-      memory?: string;
-    };
-    resumeCommands?: Array<
-      | string
-      | {
-          retries?: number;
-          retryBackoffMs?: number;
-          run: string;
-          when?: {
-            workspaceMode?: Array<
-              'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
-            >;
-          };
-        }
-    >;
-    snapshot?: {
-      allowedHosts?: Array<string>;
-      overlaySize?: string;
-      setupCommands?: Array<string>;
-    };
-    vfs?: {
-      shadow?: Array<string>;
-      shadowMode?: 'deny' | 'tmpfs';
-    };
-  };
-  sessionStorageMode: 'local';
-  sessionTtlSec: number;
-  teamId: string;
-  updatedAt: string;
-  workspaceStorageMode: 'local';
-  workspaceTtlSec: number;
-};
-
-export type DaemonProfileContext = {
-  binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
-  content: string;
-  slug: string;
-};
-
-export type DaemonProfileListResponse = {
-  items: Array<{
-    context: Array<{
-      binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
-      content: string;
-      slug: string;
-    }>;
-    createdAt: string;
-    createdByAgentId: string | null;
-    createdByHumanId: string | null;
-    definitionCid: string;
-    description: string | null;
-    heartbeatIntervalMs: number;
-    id: string;
-    leaseTtlSec: number;
-    maxBatchSize: number;
-    model: string;
-    name: string;
-    provider: string;
-    requiredEnv: Array<string>;
-    requiredTools: Array<string>;
-    revision: number;
-    runtimeKind: 'gondolin_pi';
-    sandbox: {
-      env?: {
-        [key: string]: string;
-      };
-      hostExec?: {
-        autoApprove?: false;
-      };
-      resources?: {
-        cpus?: number;
-        memory?: string;
-      };
-      resumeCommands?: Array<
-        | string
-        | {
-            retries?: number;
-            retryBackoffMs?: number;
-            run: string;
-            when?: {
-              workspaceMode?: Array<
-                'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
-              >;
-            };
-          }
-      >;
-      snapshot?: {
-        allowedHosts?: Array<string>;
-        overlaySize?: string;
-        setupCommands?: Array<string>;
-      };
-      vfs?: {
-        shadow?: Array<string>;
-        shadowMode?: 'deny' | 'tmpfs';
-      };
-    };
-    sessionStorageMode: 'local';
-    sessionTtlSec: number;
-    teamId: string;
-    updatedAt: string;
-    workspaceStorageMode: 'local';
-    workspaceTtlSec: number;
-  }>;
-};
-
-export type DaemonProfileRef = {
-  profileId: string;
-};
-
-export type DaemonProfileSandbox = {
-  env?: {
-    [key: string]: string;
-  };
-  hostExec?: {
-    autoApprove?: false;
-  };
-  resources?: {
-    cpus?: number;
-    memory?: string;
-  };
-  resumeCommands?: Array<
-    | string
-    | {
-        retries?: number;
-        retryBackoffMs?: number;
-        run: string;
-        when?: {
-          workspaceMode?: Array<
-            'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
-          >;
-        };
-      }
-  >;
-  snapshot?: {
-    allowedHosts?: Array<string>;
-    overlaySize?: string;
-    setupCommands?: Array<string>;
-  };
-  vfs?: {
-    shadow?: Array<string>;
-    shadowMode?: 'deny' | 'tmpfs';
   };
 };
 
@@ -1600,6 +1425,181 @@ export type RotateSecretResponse = {
   clientSecret: string;
 };
 
+export type RuntimeProfile = {
+  context: Array<{
+    binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
+    content: string;
+    slug: string;
+  }>;
+  createdAt: string;
+  createdByAgentId: string | null;
+  createdByHumanId: string | null;
+  definitionCid: string;
+  description: string | null;
+  heartbeatIntervalMs: number;
+  id: string;
+  leaseTtlSec: number;
+  maxBatchSize: number;
+  model: string;
+  name: string;
+  provider: string;
+  requiredEnv: Array<string>;
+  requiredTools: Array<string>;
+  revision: number;
+  runtimeKind: 'gondolin_pi';
+  sandbox: {
+    env?: {
+      [key: string]: string;
+    };
+    hostExec?: {
+      autoApprove?: false;
+    };
+    resources?: {
+      cpus?: number;
+      memory?: string;
+    };
+    resumeCommands?: Array<
+      | string
+      | {
+          retries?: number;
+          retryBackoffMs?: number;
+          run: string;
+          when?: {
+            workspaceMode?: Array<
+              'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
+            >;
+          };
+        }
+    >;
+    snapshot?: {
+      allowedHosts?: Array<string>;
+      overlaySize?: string;
+      setupCommands?: Array<string>;
+    };
+    vfs?: {
+      shadow?: Array<string>;
+      shadowMode?: 'deny' | 'tmpfs';
+    };
+  };
+  sessionStorageMode: 'local';
+  sessionTtlSec: number;
+  teamId: string;
+  updatedAt: string;
+  workspaceStorageMode: 'local';
+  workspaceTtlSec: number;
+};
+
+export type RuntimeProfileContext = {
+  binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
+  content: string;
+  slug: string;
+};
+
+export type RuntimeProfileListResponse = {
+  items: Array<{
+    context: Array<{
+      binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
+      content: string;
+      slug: string;
+    }>;
+    createdAt: string;
+    createdByAgentId: string | null;
+    createdByHumanId: string | null;
+    definitionCid: string;
+    description: string | null;
+    heartbeatIntervalMs: number;
+    id: string;
+    leaseTtlSec: number;
+    maxBatchSize: number;
+    model: string;
+    name: string;
+    provider: string;
+    requiredEnv: Array<string>;
+    requiredTools: Array<string>;
+    revision: number;
+    runtimeKind: 'gondolin_pi';
+    sandbox: {
+      env?: {
+        [key: string]: string;
+      };
+      hostExec?: {
+        autoApprove?: false;
+      };
+      resources?: {
+        cpus?: number;
+        memory?: string;
+      };
+      resumeCommands?: Array<
+        | string
+        | {
+            retries?: number;
+            retryBackoffMs?: number;
+            run: string;
+            when?: {
+              workspaceMode?: Array<
+                'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
+              >;
+            };
+          }
+      >;
+      snapshot?: {
+        allowedHosts?: Array<string>;
+        overlaySize?: string;
+        setupCommands?: Array<string>;
+      };
+      vfs?: {
+        shadow?: Array<string>;
+        shadowMode?: 'deny' | 'tmpfs';
+      };
+    };
+    sessionStorageMode: 'local';
+    sessionTtlSec: number;
+    teamId: string;
+    updatedAt: string;
+    workspaceStorageMode: 'local';
+    workspaceTtlSec: number;
+  }>;
+};
+
+export type RuntimeProfileRef = {
+  profileId: string;
+};
+
+export type RuntimeProfileSandbox = {
+  env?: {
+    [key: string]: string;
+  };
+  hostExec?: {
+    autoApprove?: false;
+  };
+  resources?: {
+    cpus?: number;
+    memory?: string;
+  };
+  resumeCommands?: Array<
+    | string
+    | {
+        retries?: number;
+        retryBackoffMs?: number;
+        run: string;
+        when?: {
+          workspaceMode?: Array<
+            'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
+          >;
+        };
+      }
+  >;
+  snapshot?: {
+    allowedHosts?: Array<string>;
+    overlaySize?: string;
+    setupCommands?: Array<string>;
+  };
+  vfs?: {
+    shadow?: Array<string>;
+    shadowMode?: 'deny' | 'tmpfs';
+  };
+};
+
 export type SigningRequest = {
   agentId: string;
   completedAt: string | null;
@@ -1838,7 +1838,7 @@ export type TaskUsage = {
   toolCalls?: number;
 };
 
-export type UpdateDaemonProfileBody = {
+export type UpdateRuntimeProfileBody = {
   context?: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
@@ -2447,121 +2447,6 @@ export type VerifyCryptoSignatureResponses = {
 
 export type VerifyCryptoSignatureResponse =
   VerifyCryptoSignatureResponses[keyof VerifyCryptoSignatureResponses];
-
-export type DeleteDaemonProfileData = {
-  body?: never;
-  path: {
-    profileId: string;
-  };
-  query?: never;
-  url: '/daemon-profiles/{profileId}';
-};
-
-export type DeleteDaemonProfileErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type DeleteDaemonProfileError =
-  DeleteDaemonProfileErrors[keyof DeleteDaemonProfileErrors];
-
-export type DeleteDaemonProfileResponses = {
-  /**
-   * Default Response
-   */
-  204: void;
-};
-
-export type DeleteDaemonProfileResponse =
-  DeleteDaemonProfileResponses[keyof DeleteDaemonProfileResponses];
-
-export type GetDaemonProfileData = {
-  body?: never;
-  path: {
-    profileId: string;
-  };
-  query?: never;
-  url: '/daemon-profiles/{profileId}';
-};
-
-export type GetDaemonProfileErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type GetDaemonProfileError =
-  GetDaemonProfileErrors[keyof GetDaemonProfileErrors];
-
-export type GetDaemonProfileResponses = {
-  /**
-   * Default Response
-   */
-  200: DaemonProfile;
-};
-
-export type GetDaemonProfileResponse =
-  GetDaemonProfileResponses[keyof GetDaemonProfileResponses];
-
-export type UpdateDaemonProfileData = {
-  body?: UpdateDaemonProfileBody;
-  path: {
-    profileId: string;
-  };
-  query?: never;
-  url: '/daemon-profiles/{profileId}';
-};
-
-export type UpdateDaemonProfileErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-};
-
-export type UpdateDaemonProfileError =
-  UpdateDaemonProfileErrors[keyof UpdateDaemonProfileErrors];
-
-export type UpdateDaemonProfileResponses = {
-  /**
-   * Default Response
-   */
-  200: DaemonProfile;
-};
-
-export type UpdateDaemonProfileResponse =
-  UpdateDaemonProfileResponses[keyof UpdateDaemonProfileResponses];
 
 export type ListDiariesData = {
   body?: never;
@@ -5644,6 +5529,211 @@ export type UpdateRenderedPackResponses = {
 export type UpdateRenderedPackResponse =
   UpdateRenderedPackResponses[keyof UpdateRenderedPackResponses];
 
+export type ListRuntimeProfilesData = {
+  body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/runtime-profiles';
+};
+
+export type ListRuntimeProfilesErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type ListRuntimeProfilesError =
+  ListRuntimeProfilesErrors[keyof ListRuntimeProfilesErrors];
+
+export type ListRuntimeProfilesResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimeProfileListResponse;
+};
+
+export type ListRuntimeProfilesResponse =
+  ListRuntimeProfilesResponses[keyof ListRuntimeProfilesResponses];
+
+export type CreateRuntimeProfileData = {
+  body?: CreateRuntimeProfileBody;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/runtime-profiles';
+};
+
+export type CreateRuntimeProfileErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type CreateRuntimeProfileError =
+  CreateRuntimeProfileErrors[keyof CreateRuntimeProfileErrors];
+
+export type CreateRuntimeProfileResponses = {
+  /**
+   * Default Response
+   */
+  201: RuntimeProfile;
+};
+
+export type CreateRuntimeProfileResponse =
+  CreateRuntimeProfileResponses[keyof CreateRuntimeProfileResponses];
+
+export type DeleteRuntimeProfileData = {
+  body?: never;
+  path: {
+    profileId: string;
+  };
+  query?: never;
+  url: '/runtime-profiles/{profileId}';
+};
+
+export type DeleteRuntimeProfileErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type DeleteRuntimeProfileError =
+  DeleteRuntimeProfileErrors[keyof DeleteRuntimeProfileErrors];
+
+export type DeleteRuntimeProfileResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type DeleteRuntimeProfileResponse =
+  DeleteRuntimeProfileResponses[keyof DeleteRuntimeProfileResponses];
+
+export type GetRuntimeProfileData = {
+  body?: never;
+  path: {
+    profileId: string;
+  };
+  query?: never;
+  url: '/runtime-profiles/{profileId}';
+};
+
+export type GetRuntimeProfileErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetRuntimeProfileError =
+  GetRuntimeProfileErrors[keyof GetRuntimeProfileErrors];
+
+export type GetRuntimeProfileResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimeProfile;
+};
+
+export type GetRuntimeProfileResponse =
+  GetRuntimeProfileResponses[keyof GetRuntimeProfileResponses];
+
+export type UpdateRuntimeProfileData = {
+  body?: UpdateRuntimeProfileBody;
+  path: {
+    profileId: string;
+  };
+  query?: never;
+  url: '/runtime-profiles/{profileId}';
+};
+
+export type UpdateRuntimeProfileErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type UpdateRuntimeProfileError =
+  UpdateRuntimeProfileErrors[keyof UpdateRuntimeProfileErrors];
+
+export type UpdateRuntimeProfileResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimeProfile;
+};
+
+export type UpdateRuntimeProfileResponse =
+  UpdateRuntimeProfileResponses[keyof UpdateRuntimeProfileResponses];
+
 export type ListTasksData = {
   body?: never;
   path?: never;
@@ -5709,7 +5799,7 @@ export type ListTasksResponse = ListTasksResponses[keyof ListTasksResponses];
 
 export type CreateTaskData = {
   body: {
-    allowedProfiles?: Array<DaemonProfileRef>;
+    allowedProfiles?: Array<RuntimeProfileRef>;
     claimCondition?: ClaimCondition;
     correlationId?: string;
     diaryId: string;
@@ -6539,88 +6629,6 @@ export type AcceptTeamFoundingResponses = {
 
 export type AcceptTeamFoundingResponse =
   AcceptTeamFoundingResponses[keyof AcceptTeamFoundingResponses];
-
-export type ListDaemonProfilesData = {
-  body?: never;
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/teams/{id}/daemon-profiles';
-};
-
-export type ListDaemonProfilesErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-};
-
-export type ListDaemonProfilesError =
-  ListDaemonProfilesErrors[keyof ListDaemonProfilesErrors];
-
-export type ListDaemonProfilesResponses = {
-  /**
-   * Default Response
-   */
-  200: DaemonProfileListResponse;
-};
-
-export type ListDaemonProfilesResponse =
-  ListDaemonProfilesResponses[keyof ListDaemonProfilesResponses];
-
-export type CreateDaemonProfileData = {
-  body?: CreateDaemonProfileBody;
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/teams/{id}/daemon-profiles';
-};
-
-export type CreateDaemonProfileErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  409: ProblemDetails;
-};
-
-export type CreateDaemonProfileError =
-  CreateDaemonProfileErrors[keyof CreateDaemonProfileErrors];
-
-export type CreateDaemonProfileResponses = {
-  /**
-   * Default Response
-   */
-  201: DaemonProfile;
-};
-
-export type CreateDaemonProfileResponse =
-  CreateDaemonProfileResponses[keyof CreateDaemonProfileResponses];
 
 export type ListGroupsData = {
   body?: never;

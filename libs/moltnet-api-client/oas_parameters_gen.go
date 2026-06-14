@@ -617,71 +617,6 @@ func decodeCompleteTaskParams(args [2]string, argsEscaped bool, r *http.Request)
 	return params, nil
 }
 
-// CreateDaemonProfileParams is parameters of createDaemonProfile operation.
-type CreateDaemonProfileParams struct {
-	ID uuid.UUID
-}
-
-func unpackCreateDaemonProfileParams(packed middleware.Parameters) (params CreateDaemonProfileParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "id",
-			In:   "path",
-		}
-		params.ID = packed[key].(uuid.UUID)
-	}
-	return params
-}
-
-func decodeCreateDaemonProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params CreateDaemonProfileParams, _ error) {
-	// Decode path: id.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ID = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "id",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
 // CreateDiaryParams is parameters of createDiary operation.
 type CreateDiaryParams struct {
 	// Team ID (UUID) that will own the resource. Required.
@@ -1068,6 +1003,69 @@ func decodeCreateGroupParams(args [1]string, argsEscaped bool, r *http.Request) 
 	return params, nil
 }
 
+// CreateRuntimeProfileParams is parameters of createRuntimeProfile operation.
+type CreateRuntimeProfileParams struct {
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
+}
+
+func unpackCreateRuntimeProfileParams(packed middleware.Parameters) (params CreateRuntimeProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
+	return params
+}
+
+func decodeCreateRuntimeProfileParams(args [0]string, argsEscaped bool, r *http.Request) (params CreateRuntimeProfileParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CreateTeamInviteParams is parameters of createTeamInvite operation.
 type CreateTeamInviteParams struct {
 	// UUID v4 identifier.
@@ -1127,71 +1125,6 @@ func decodeCreateTeamInviteParams(args [1]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
-// DeleteDaemonProfileParams is parameters of deleteDaemonProfile operation.
-type DeleteDaemonProfileParams struct {
-	ProfileId uuid.UUID
-}
-
-func unpackDeleteDaemonProfileParams(packed middleware.Parameters) (params DeleteDaemonProfileParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "profileId",
-			In:   "path",
-		}
-		params.ProfileId = packed[key].(uuid.UUID)
-	}
-	return params
-}
-
-func decodeDeleteDaemonProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteDaemonProfileParams, _ error) {
-	// Decode path: profileId.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "profileId",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ProfileId = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "profileId",
 			In:   "path",
 			Err:  err,
 		}
@@ -1506,6 +1439,71 @@ func decodeDeleteGroupParams(args [1]string, argsEscaped bool, r *http.Request) 
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "groupId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteRuntimeProfileParams is parameters of deleteRuntimeProfile operation.
+type DeleteRuntimeProfileParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackDeleteRuntimeProfileParams(packed middleware.Parameters) (params DeleteRuntimeProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteRuntimeProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteRuntimeProfileParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
 			In:   "path",
 			Err:  err,
 		}
@@ -2576,71 +2574,6 @@ func decodeGetContextPackProvenanceByIdParams(args [1]string, argsEscaped bool, 
 	return params, nil
 }
 
-// GetDaemonProfileParams is parameters of getDaemonProfile operation.
-type GetDaemonProfileParams struct {
-	ProfileId uuid.UUID
-}
-
-func unpackGetDaemonProfileParams(packed middleware.Parameters) (params GetDaemonProfileParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "profileId",
-			In:   "path",
-		}
-		params.ProfileId = packed[key].(uuid.UUID)
-	}
-	return params
-}
-
-func decodeGetDaemonProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDaemonProfileParams, _ error) {
-	// Decode path: profileId.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "profileId",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ProfileId = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "profileId",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
 // GetDiaryParams is parameters of getDiary operation.
 type GetDiaryParams struct {
 	// UUID v4 identifier.
@@ -3665,6 +3598,71 @@ func decodeGetRenderedPackByIdParams(args [1]string, argsEscaped bool, r *http.R
 	return params, nil
 }
 
+// GetRuntimeProfileParams is parameters of getRuntimeProfile operation.
+type GetRuntimeProfileParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackGetRuntimeProfileParams(packed middleware.Parameters) (params GetRuntimeProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetRuntimeProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params GetRuntimeProfileParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetSigningRequestParams is parameters of getSigningRequest operation.
 type GetSigningRequestParams struct {
 	ID uuid.UUID
@@ -4480,71 +4478,6 @@ func decodeListContextPacksParams(args [0]string, argsEscaped bool, r *http.Requ
 		return params, &ogenerrors.DecodeParamError{
 			Name: "expand",
 			In:   "query",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
-// ListDaemonProfilesParams is parameters of listDaemonProfiles operation.
-type ListDaemonProfilesParams struct {
-	ID uuid.UUID
-}
-
-func unpackListDaemonProfilesParams(packed middleware.Parameters) (params ListDaemonProfilesParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "id",
-			In:   "path",
-		}
-		params.ID = packed[key].(uuid.UUID)
-	}
-	return params
-}
-
-func decodeListDaemonProfilesParams(args [1]string, argsEscaped bool, r *http.Request) (params ListDaemonProfilesParams, _ error) {
-	// Decode path: id.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ID = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "id",
-			In:   "path",
 			Err:  err,
 		}
 	}
@@ -6798,6 +6731,69 @@ func decodeListGroupsParams(args [1]string, argsEscaped bool, r *http.Request) (
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ListRuntimeProfilesParams is parameters of listRuntimeProfiles operation.
+type ListRuntimeProfilesParams struct {
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
+}
+
+func unpackListRuntimeProfilesParams(packed middleware.Parameters) (params ListRuntimeProfilesParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
+	return params
+}
+
+func decodeListRuntimeProfilesParams(args [0]string, argsEscaped bool, r *http.Request) (params ListRuntimeProfilesParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -10086,71 +10082,6 @@ func decodeUpdateContextPackParams(args [1]string, argsEscaped bool, r *http.Req
 	return params, nil
 }
 
-// UpdateDaemonProfileParams is parameters of updateDaemonProfile operation.
-type UpdateDaemonProfileParams struct {
-	ProfileId uuid.UUID
-}
-
-func unpackUpdateDaemonProfileParams(packed middleware.Parameters) (params UpdateDaemonProfileParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "profileId",
-			In:   "path",
-		}
-		params.ProfileId = packed[key].(uuid.UUID)
-	}
-	return params
-}
-
-func decodeUpdateDaemonProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateDaemonProfileParams, _ error) {
-	// Decode path: profileId.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "profileId",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ProfileId = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "profileId",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
 // UpdateDiaryParams is parameters of updateDiary operation.
 type UpdateDiaryParams struct {
 	// UUID v4 identifier.
@@ -10457,6 +10388,71 @@ func decodeUpdateRenderedPackParams(args [1]string, argsEscaped bool, r *http.Re
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateRuntimeProfileParams is parameters of updateRuntimeProfile operation.
+type UpdateRuntimeProfileParams struct {
+	ProfileId uuid.UUID
+}
+
+func unpackUpdateRuntimeProfileParams(packed middleware.Parameters) (params UpdateRuntimeProfileParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateRuntimeProfileParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateRuntimeProfileParams, _ error) {
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
 			In:   "path",
 			Err:  err,
 		}

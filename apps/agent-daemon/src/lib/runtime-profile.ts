@@ -4,9 +4,9 @@ import { delimiter, isAbsolute, resolve } from 'node:path';
 import type { SandboxConfig } from '@themoltnet/pi-extension';
 import type { Agent } from '@themoltnet/sdk';
 
-type DaemonProfile = Awaited<ReturnType<Agent['daemonProfiles']['get']>>;
+type RuntimeProfile = Awaited<ReturnType<Agent['runtimeProfiles']['get']>>;
 
-export interface ResolvedDaemonProfile {
+export interface ResolvedRuntimeProfile {
   id: string;
   name: string;
   teamId: string;
@@ -24,7 +24,7 @@ export interface ResolvedDaemonProfile {
   source: string;
 }
 
-export class DaemonProfilePrerequisiteError extends Error {
+export class RuntimeProfilePrerequisiteError extends Error {
   constructor(
     public readonly profileName: string,
     public readonly missingEnv: readonly string[],
@@ -37,28 +37,28 @@ export class DaemonProfilePrerequisiteError extends Error {
         : null,
     ].filter(Boolean);
     super(
-      `Daemon profile "${profileName}" prerequisites are not satisfied: ${parts.join('; ')}`,
+      `Runtime profile "${profileName}" prerequisites are not satisfied: ${parts.join('; ')}`,
     );
-    this.name = 'DaemonProfilePrerequisiteError';
+    this.name = 'RuntimeProfilePrerequisiteError';
   }
 }
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export async function resolveDaemonProfile(options: {
+export async function resolveRuntimeProfile(options: {
   agent: Agent;
   profile: string;
   teamId?: string;
   cwd: string;
-}): Promise<ResolvedDaemonProfile> {
+}): Promise<ResolvedRuntimeProfile> {
   const profile = UUID_RE.test(options.profile)
-    ? await options.agent.daemonProfiles.get(options.profile)
+    ? await options.agent.runtimeProfiles.get(options.profile)
     : await resolveProfileByName(options);
 
   if (options.teamId && profile.teamId !== options.teamId) {
     throw new Error(
-      `Daemon profile "${options.profile}" belongs to team ${profile.teamId}, not ${options.teamId}.`,
+      `Runtime profile "${options.profile}" belongs to team ${profile.teamId}, not ${options.teamId}.`,
     );
   }
 
@@ -77,13 +77,13 @@ export async function resolveDaemonProfile(options: {
     requiredTools: profile.requiredTools,
     sandboxConfig: profile.sandbox,
     mountPath: resolve(options.cwd),
-    source: `daemon-profile:${profile.id}`,
+    source: `runtime-profile:${profile.id}`,
   };
 }
 
-export function validateDaemonProfilePrerequisites(
+export function validateRuntimeProfilePrerequisites(
   profile: Pick<
-    ResolvedDaemonProfile,
+    ResolvedRuntimeProfile,
     'name' | 'requiredEnv' | 'requiredTools'
   >,
   env: NodeJS.ProcessEnv,
@@ -94,7 +94,7 @@ export function validateDaemonProfilePrerequisites(
     (tool) => !isExecutableOnPath(tool, pathValue),
   );
   if (missingEnv.length > 0 || missingTools.length > 0) {
-    throw new DaemonProfilePrerequisiteError(
+    throw new RuntimeProfilePrerequisiteError(
       profile.name,
       missingEnv,
       missingTools,
@@ -103,7 +103,7 @@ export function validateDaemonProfilePrerequisites(
 }
 
 export function resolveProfileWarmSessionTtlSec(
-  profile: Pick<ResolvedDaemonProfile, 'sessionTtlSec' | 'workspaceTtlSec'>,
+  profile: Pick<ResolvedRuntimeProfile, 'sessionTtlSec' | 'workspaceTtlSec'>,
 ): number {
   return Math.min(profile.sessionTtlSec, profile.workspaceTtlSec);
 }
@@ -112,26 +112,28 @@ async function resolveProfileByName(options: {
   agent: Agent;
   profile: string;
   teamId?: string;
-}): Promise<DaemonProfile> {
+}): Promise<RuntimeProfile> {
   if (!options.teamId) {
     throw new Error(
-      `Daemon profile name "${options.profile}" requires --team. ` +
+      `Runtime profile name "${options.profile}" requires --team. ` +
         'Use a profile UUID when running without a team-scoped list.',
     );
   }
 
-  const profiles = await options.agent.daemonProfiles.list(options.teamId);
+  const profiles = await options.agent.runtimeProfiles.list({
+    teamId: options.teamId,
+  });
   const matches = profiles.items.filter(
     (item) => item.name === options.profile,
   );
   if (matches.length === 0) {
     throw new Error(
-      `Daemon profile "${options.profile}" was not found in team ${options.teamId}.`,
+      `Runtime profile "${options.profile}" was not found in team ${options.teamId}.`,
     );
   }
   if (matches.length > 1) {
     throw new Error(
-      `Daemon profile name "${options.profile}" is ambiguous in team ${options.teamId}. ` +
+      `Runtime profile name "${options.profile}" is ambiguous in team ${options.teamId}. ` +
         'Use the profile UUID instead.',
     );
   }

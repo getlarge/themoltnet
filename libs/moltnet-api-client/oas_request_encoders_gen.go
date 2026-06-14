@@ -102,26 +102,6 @@ func encodeCompleteTaskRequest(
 	return nil
 }
 
-func encodeCreateDaemonProfileRequest(
-	req OptCreateDaemonProfileBody,
-	r *http.Request,
-) error {
-	const contentType = "application/json"
-	if !req.Set {
-		// Keep request with empty body if value is not set.
-		return nil
-	}
-	e := new(jx.Encoder)
-	{
-		if req.Set {
-			req.Encode(e)
-		}
-	}
-	encoded := e.Bytes()
-	ht.SetBody(r, bytes.NewReader(encoded), contentType)
-	return nil
-}
-
 func encodeCreateDiaryRequest(
 	req *CreateDiaryReq,
 	r *http.Request,
@@ -200,6 +180,26 @@ func encodeCreateGroupRequest(
 	e := new(jx.Encoder)
 	{
 		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeCreateRuntimeProfileRequest(
+	req OptCreateRuntimeProfileBody,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	if !req.Set {
+		// Keep request with empty body if value is not set.
+		return nil
+	}
+	e := new(jx.Encoder)
+	{
+		if req.Set {
+			req.Encode(e)
+		}
 	}
 	encoded := e.Bytes()
 	ht.SetBody(r, bytes.NewReader(encoded), contentType)
@@ -482,26 +482,6 @@ func encodeUpdateContextPackRequest(
 	return nil
 }
 
-func encodeUpdateDaemonProfileRequest(
-	req OptUpdateDaemonProfileBody,
-	r *http.Request,
-) error {
-	const contentType = "application/json"
-	if !req.Set {
-		// Keep request with empty body if value is not set.
-		return nil
-	}
-	e := new(jx.Encoder)
-	{
-		if req.Set {
-			req.Encode(e)
-		}
-	}
-	encoded := e.Bytes()
-	ht.SetBody(r, bytes.NewReader(encoded), contentType)
-	return nil
-}
-
 func encodeUpdateDiaryRequest(
 	req OptUpdateDiaryReq,
 	r *http.Request,
@@ -558,6 +538,26 @@ func encodeUpdateEntryRelationStatusRequest(
 
 func encodeUpdateRenderedPackRequest(
 	req OptUpdateRenderedPackReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	if !req.Set {
+		// Keep request with empty body if value is not set.
+		return nil
+	}
+	e := new(jx.Encoder)
+	{
+		if req.Set {
+			req.Encode(e)
+		}
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateRuntimeProfileRequest(
+	req OptUpdateRuntimeProfileBody,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

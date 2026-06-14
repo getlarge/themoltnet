@@ -25,11 +25,6 @@ import {
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
 import {
-  resolveDaemonProfile,
-  resolveProfileWarmSessionTtlSec,
-  validateDaemonProfilePrerequisites,
-} from '../lib/daemon-profile.js';
-import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
 } from '../lib/execution-plan-cache.js';
@@ -43,6 +38,11 @@ import {
   parseCommonOptions,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
+import {
+  resolveProfileWarmSessionTtlSec,
+  resolveRuntimeProfile,
+  validateRuntimeProfilePrerequisites,
+} from '../lib/runtime-profile.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
@@ -87,7 +87,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   if (values.profile && values.sandbox) {
     console.error(
       'Cannot use --sandbox with --profile. ' +
-        'Remote daemon profiles define sandbox policy.',
+        'Remote runtime profiles define sandbox policy.',
     );
     return 1;
   }
@@ -95,14 +95,14 @@ export async function runOnce(argv: string[]): Promise<number> {
   const initialOpts = opts;
   const ctx = await resolveAgentContext(initialOpts.agent);
   const profile = values.profile
-    ? await resolveDaemonProfile({
+    ? await resolveRuntimeProfile({
         agent: ctx.agent,
         profile: values.profile,
         cwd: process.cwd(),
       })
     : null;
   if (profile) {
-    validateDaemonProfilePrerequisites(
+    validateRuntimeProfilePrerequisites(
       profile,
       cfg.profilePrerequisiteEnv,
       cfg.profilePrerequisitePath,
@@ -120,7 +120,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   const provider = profile?.provider ?? opts.provider;
   const model = profile?.model ?? opts.model;
   if (!provider || !model) {
-    throw new Error('provider/model missing after daemon profile resolution');
+    throw new Error('provider/model missing after runtime profile resolution');
   }
   const sandbox = profile
     ? {
