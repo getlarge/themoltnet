@@ -16,7 +16,8 @@
   "scripts": {
     "dev": "vite build --watch",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin legreffier --args --help --expect \"attribution and measured memory\""
   },
   "files": [
     "dist/index.js"

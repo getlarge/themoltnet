@@ -32,7 +32,7 @@
     "start": "node dist/main.js",
     "build": "vite build",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
-    "smoke:pack": "node scripts/smoke-pack.mjs"
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-agent --args --help --expect \"long-running task worker for MoltNet\""
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
