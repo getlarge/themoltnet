@@ -61,7 +61,10 @@ function parseFlags(argv: string[]): {
     else if (flag === '--expect') expect = argv[++i];
     else if (flag === '--args') {
       // consume the rest until the next recognised flag
-      while (i + 1 < argv.length && !['--package', '--bin', '--expect'].includes(argv[i + 1])) {
+      while (
+        i + 1 < argv.length &&
+        !['--package', '--bin', '--expect'].includes(argv[i + 1])
+      ) {
         args.push(argv[++i]);
       }
     }
@@ -99,9 +102,7 @@ if (!binTarget) {
   fail(`package.json#bin has no entry for "${bin}"`);
 }
 if (!existsSync(join(pkgDir, binTarget))) {
-  fail(
-    `bin target ${binTarget} is missing; run the build before smoke:pack`,
-  );
+  fail(`bin target ${binTarget} is missing; run the build before smoke:pack`);
 }
 
 // 1. Pack exactly as publish would (pnpm resolves catalog: + workspace:* to
@@ -170,7 +171,9 @@ const run = spawnSync('node', [binPath, ...args], {
 });
 const output = `${run.stdout ?? ''}${run.stderr ?? ''}`;
 
-if (/ERR_MODULE_NOT_FOUND|Cannot find package|Cannot find module/.test(output)) {
+if (
+  /ERR_MODULE_NOT_FOUND|Cannot find package|Cannot find module/.test(output)
+) {
   cleanup();
   fail(`${bin} is missing a runtime dependency`, output);
 }
