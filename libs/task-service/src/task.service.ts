@@ -86,6 +86,19 @@ const TERMINAL_STATUSES = new Set<DbTask['status']>([
   'expired',
 ]);
 
+// Attempt-level terminal states. Used to reject a late /complete or /fail
+// from an attempt that has already settled — critically, this survives an
+// abort+requeue where the TASK is back to `queued`/`running` (a new attempt
+// may be live) but the OLD attempt is terminal. The task-level
+// TERMINAL_STATUSES check alone cannot catch that case (#1382).
+const ATTEMPT_TERMINAL_STATUSES = new Set<TaskAttempt['status']>([
+  'completed',
+  'failed',
+  'cancelled',
+  'aborted',
+  'timed_out',
+]);
+
 const TRUST_LEVEL_TO_DB = {
   selfDeclared: 'self_declared',
   agentSigned: 'agent_signed',
@@ -1380,6 +1393,15 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Cannot complete an attempt that has not been started; call /heartbeat first',
         );
       }
+      if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
+        // The attempt already settled (e.g. aborted on daemon shutdown,
+        // then the task requeued). A late /complete from this abandoned
+        // attempt must not revive or overwrite the task (#1382).
+        throw new TaskServiceError(
+          'conflict',
+          `Attempt ${attemptN} is already in terminal state: ${attempt.status}`,
+        );
+      }
 
       // Pass `task.input` so per-type validators can run cross-field
       // rules (e.g. "verification is required when input.successCriteria
@@ -1520,6 +1542,15 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Cannot fail an attempt that has not been started; call /heartbeat first',
         );
       }
+      if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
+        // The attempt already settled (e.g. aborted on daemon shutdown,
+        // then the task requeued). A late /fail from this abandoned
+        // attempt must not revive or overwrite the task (#1382).
+        throw new TaskServiceError(
+          'conflict',
+          `Attempt ${attemptN} is already in terminal state: ${attempt.status}`,
+        );
+      }
 
       const workflowId = taskWorkflowId(taskId, attemptN);
       // Multiplexed `progress` topic (#936).
@@ -1558,6 +1589,98 @@ export function createTaskService(deps: TaskServiceDeps) {
           throw new TaskServiceError(
             'timed_out',
             'Fail workflow timed out waiting for result',
+          );
+        }
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 250);
+        });
+      }
+    },
+
+    async abort(
+      taskId: string,
+      attemptN: number,
+      callerId: string,
+      callerNs: KetoNamespace,
+      reason?: string,
+    ): Promise<Task> {
+      // Attempt-level abort (#1382): the active claimant intentionally
+      // abandons this attempt (e.g. daemon SIGINT/SIGTERM) without
+      // cancelling the whole task. The task requeues for another claim
+      // when retry policy allows, or settles `failed` when exhausted.
+      const canReport = await permissionChecker.canReportTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canReport)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to report on this task',
+        );
+
+      const task = await taskRepository.findById(taskId);
+      if (!task) throw new TaskServiceError('not_found', 'Task not found');
+      if (TERMINAL_STATUSES.has(task.status)) {
+        throw new TaskServiceError(
+          'conflict',
+          `Task is already in terminal state: ${task.status}`,
+        );
+      }
+
+      const attempt = await taskRepository.findAttempt(taskId, attemptN);
+      if (!attempt)
+        throw new TaskServiceError('not_found', 'Attempt not found');
+      // Stricter than /cancel: only the active claimant may abort its own
+      // attempt. A non-claimant abort would be a denial primitive.
+      if (attempt.claimedByAgentId !== callerId) {
+        throw new TaskServiceError(
+          'forbidden',
+          'Only the claiming agent may abort this attempt',
+        );
+      }
+      if (attempt.status === 'claimed') {
+        throw new TaskServiceError(
+          'conflict',
+          'Cannot abort an attempt that has not been started; call /heartbeat first',
+        );
+      }
+      if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
+        throw new TaskServiceError(
+          'conflict',
+          `Attempt ${attemptN} is already in terminal state: ${attempt.status}`,
+        );
+      }
+
+      const workflowId = taskWorkflowId(taskId, attemptN);
+      const error = {
+        code: 'worker_aborted',
+        message: reason ?? 'attempt aborted by claimant',
+      };
+      // Multiplexed `progress` topic (#936).
+      await DBOS.send(workflowId, { kind: 'aborted', error }, 'progress');
+
+      const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
+      while (true) {
+        const updated = await taskRepository.findById(taskId);
+        // Success when the workflow requeued the task (non-terminal
+        // `queued`, the expected outcome with retries remaining) OR settled
+        // it terminally (`failed` when exhausted, or a raced `cancelled`).
+        if (
+          updated &&
+          (updated.status === 'queued' || TERMINAL_STATUSES.has(updated.status))
+        ) {
+          logger.info(
+            { taskId, attemptN, status: updated.status },
+            'task.aborted',
+          );
+          await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
+          return dbTaskToWire(updated);
+        }
+        if (Date.now() >= deadline) {
+          throw new TaskServiceError(
+            'timed_out',
+            'Abort workflow timed out waiting for result',
           );
         }
         await new Promise<void>((resolve) => {
