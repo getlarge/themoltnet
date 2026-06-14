@@ -29438,6 +29438,32 @@ var listTaskAttempts = (options) => (options.client ?? client).get({
 	...options
 });
 /**
+* Claimant intentionally abandons this attempt (e.g. daemon shutdown). The attempt becomes aborted and the task requeues for another claim (or fails when retries are exhausted). Does NOT cancel the task.
+*/
+var abortTaskAttempt = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/attempts/{n}/abort",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
 * Mark an attempt as completed with output.
 */
 var completeTask = (options) => (options.client ?? client).post({
@@ -32505,6 +32531,17 @@ function createTasksNamespace(context) {
 		},
 		async fail(id, n, body) {
 			return unwrapResult(await failTask({
+				client,
+				auth,
+				path: {
+					id,
+					n
+				},
+				body
+			}));
+		},
+		async abortAttempt(id, n, body) {
+			return unwrapResult(await abortTaskAttempt({
 				client,
 				auth,
 				path: {
