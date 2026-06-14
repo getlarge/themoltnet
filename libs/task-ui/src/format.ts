@@ -52,6 +52,7 @@ export function taskStatusTone(
     case 'expired':
       return 'error';
     case 'cancelled':
+    case 'aborted':
       return 'warning';
     case 'running':
     case 'claimed':

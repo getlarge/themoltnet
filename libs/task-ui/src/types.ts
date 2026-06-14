@@ -16,6 +16,7 @@ export type TaskAttemptStatus =
   | 'completed'
   | 'failed'
   | 'cancelled'
+  | 'aborted'
   | 'timed_out';
 
 export type OutputKind = 'artifact' | 'judgment';
