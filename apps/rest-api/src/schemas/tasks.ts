@@ -205,6 +205,13 @@ export const FailTaskBodySchema = Type.Object(
   { $id: 'FailTaskBody' },
 );
 
+export const AbortTaskBodySchema = Type.Object(
+  {
+    reason: Type.Optional(Type.String({ minLength: 1, maxLength: 512 })),
+  },
+  { $id: 'AbortTaskBody' },
+);
+
 export const CancelTaskBodySchema = Type.Object(
   {
     reason: Type.String({ minLength: 1 }),
@@ -328,6 +335,7 @@ export const taskSchemas = [
   HeartbeatBodySchema,
   CompleteTaskBodySchema,
   FailTaskBodySchema,
+  AbortTaskBodySchema,
   CancelTaskBodySchema,
   ListMessagesQuerySchema,
   AppendMessagesBodySchema,

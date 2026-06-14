@@ -6,6 +6,7 @@ package moltnetapi
 type OperationName = string
 
 const (
+	AbortTaskAttemptOperation              OperationName = "AbortTaskAttempt"
 	AcceptTeamFoundingOperation            OperationName = "AcceptTeamFounding"
 	AcceptTransferOperation                OperationName = "AcceptTransfer"
 	AddGroupMemberOperation                OperationName = "AddGroupMember"

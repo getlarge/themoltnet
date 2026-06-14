@@ -1,4 +1,5 @@
 import type {
+  AbortTaskAttemptData,
   AcceptTransferResponses,
   AgentProfile,
   AppendTaskMessagesData,
@@ -480,6 +481,12 @@ export interface TasksNamespace {
   ): Promise<Task>;
 
   fail(id: string, n: number, body: FailTaskData['body']): Promise<Task>;
+
+  abortAttempt(
+    id: string,
+    n: number,
+    body?: AbortTaskAttemptData['body'],
+  ): Promise<Task>;
 
   cancel(id: string, body: CancelTaskData['body']): Promise<Task>;
 

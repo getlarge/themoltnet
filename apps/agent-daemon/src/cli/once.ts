@@ -195,26 +195,37 @@ export async function runOnce(argv: string[]): Promise<number> {
 
   // Wire SIGTERM/SIGINT for cooperative shutdown. GitHub-hosted runners
   // send SIGTERM 5 minutes before `timeout-minutes` expires (then
-  // SIGKILL on expiry); using that grace window to issue a server-side
-  // `tasks.cancel()` lets the workflow flip the attempt from
-  // `running` → `cancelled` cleanly instead of waiting on the
-  // ~5min lease_expired path. Idempotent: cancel-on-already-terminal
-  // is a server-side no-op.
+  // SIGKILL on expiry); we use that grace window to abort the *active
+  // attempt* server-side (#1382). Attempt abort flips the running attempt
+  // to `aborted` and requeues the task for another daemon / retry — it
+  // does NOT terminal-cancel the user's task the way `tasks.cancel()`
+  // did. Cancellation of the whole task stays an explicit proposer/operator
+  // action via `tasks.cancel()`.
   let runtime: AgentRuntime | null = null;
+  // The signal handler only has `taskId` in lexical scope; the live attempt
+  // number is known only inside the executor. Track it here so `drain` can
+  // target the correct attempt. Null when no attempt is in flight.
+  let activeAttemptN: number | null = null;
   const signalHandlers = installShutdownSignalHandlers({
     logDrain: (signal) => {
       rootLogger.warn({ signal, taskId }, 'agent-daemon.draining');
     },
     drain: (signal) => {
       runtime?.stop(`agent-daemon received ${signal}`);
-      // Fire-and-forget: cancel reaches the workflow and surfaces back
+      // No attempt in flight (claim loop idle / already settled): nothing
+      // to abort, and the server has no running attempt to target.
+      if (activeAttemptN === null) return;
+      const attemptN = activeAttemptN;
+      // Fire-and-forget: abort reaches the workflow and surfaces back
       // through the reporter's `cancelSignal`, which pi-extension uses
       // to abort the LLM session. We don't await — SIGKILL deadline is
       // 5 min away and the executor needs every second.
       void ctx.agent.tasks
-        .cancel(taskId, { reason: `runner_${signal.toLowerCase()}` })
+        .abortAttempt(taskId, attemptN, {
+          reason: `runner_${signal.toLowerCase()}`,
+        })
         .catch((err: unknown) => {
-          // Cancel-on-already-terminal returns a 4xx; ignore. Other
+          // Abort-on-already-terminal returns a 4xx; ignore. Other
           // errors are visible in the daemon log but shouldn't block
           // SIGKILL — the server's lease check is the backstop.
           try {
@@ -222,12 +233,13 @@ export async function runOnce(argv: string[]): Promise<number> {
               {
                 err: err instanceof Error ? err.message : String(err),
                 taskId,
+                attemptN,
               },
-              'agent-daemon.cancel_on_signal_failed',
+              'agent-daemon.abort_on_signal_failed',
             );
           } catch (logErr) {
             process.stderr.write(
-              `[agent-daemon] failed to log cancel error: ` +
+              `[agent-daemon] failed to log abort error: ` +
                 (logErr instanceof Error ? logErr.message : String(logErr)) +
                 '\n',
             );
@@ -322,9 +334,14 @@ export async function runOnce(argv: string[]): Promise<number> {
           ttlSec: opts.warmSessionTtlSec,
         });
       }
+      // Publish the live attempt number so a SIGINT/SIGTERM `drain` can
+      // abort exactly this attempt (#1382). Cleared in the finally so a
+      // signal arriving after the executor returns finds no live attempt.
+      activeAttemptN = claimedTask.attemptN;
       try {
         return await rawExecuteTask(claimedTask, reporter);
       } finally {
+        activeAttemptN = null;
         executionPlans.delete(claimedTask);
         if (executionPlan.slotKey) {
           await slotRegistry.finishSlot(

@@ -130,6 +130,7 @@ export const taskAttemptStatusEnum = pgEnum('task_attempt_status', [
   'completed',
   'failed',
   'cancelled',
+  'aborted',
   'timed_out',
 ]);
 

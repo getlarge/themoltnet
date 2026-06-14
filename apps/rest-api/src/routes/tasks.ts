@@ -17,6 +17,7 @@ import { Type } from 'typebox';
 
 import { createProblem, createValidationProblem } from '../problems/index.js';
 import {
+  AbortTaskBodySchema,
   AppendMessagesBodySchema,
   AppendMessagesResponseSchema,
   CancelTaskBodySchema,
@@ -514,6 +515,49 @@ export function taskRoutes(fastify: FastifyInstance) {
           identityId,
           callerNs,
           request.body.error,
+        );
+      } catch (error) {
+        if (error instanceof TaskServiceError) throw toTaskProblem(error);
+        throw error;
+      }
+    },
+  );
+
+  // POST /tasks/:id/attempts/:n/abort
+  server.post(
+    '/tasks/:id/attempts/:n/abort',
+    {
+      schema: {
+        operationId: 'abortTaskAttempt',
+        tags: ['tasks'],
+        description:
+          'Claimant intentionally abandons this attempt (e.g. daemon shutdown). ' +
+          'The attempt becomes aborted and the task requeues for another claim ' +
+          '(or fails when retries are exhausted). Does NOT cancel the task.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        params: TaskAttemptParamsSchema,
+        body: AbortTaskBodySchema,
+        response: {
+          200: Type.Ref(Task.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectType } = getAuthContext(request);
+      const callerNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      try {
+        return await fastify.taskService.abort(
+          request.params.id,
+          request.params.n,
+          identityId,
+          callerNs,
+          request.body.reason,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);

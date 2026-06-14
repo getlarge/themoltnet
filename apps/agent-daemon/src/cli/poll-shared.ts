@@ -223,6 +223,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   const abort = new AbortController();
   let runtime: AgentRuntime | null = null;
+  // Track the in-flight task+attempt so a SIGINT/SIGTERM `drain` can abort
+  // exactly the running attempt server-side (#1382) instead of leaving it
+  // to lease-expire. Poll mode runs one task at a time through the runtime
+  // loop, so a single ref pair is sufficient. Null when the loop is idle.
+  let active: { taskId: string; attemptN: number } | null = null;
   const signalHandlers = installShutdownSignalHandlers({
     logDrain: (signal) => {
       rootLogger.warn({ signal }, 'agent-daemon.draining');
@@ -230,6 +235,28 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     drain: (signal) => {
       abort.abort();
       runtime?.stop(`agent-daemon received ${signal}`);
+      // Abort the active attempt rather than letting it lease-expire. The
+      // task requeues for another daemon / retry; it is NOT cancelled.
+      if (active === null) return;
+      const { taskId, attemptN } = active;
+      void ctx.agent.tasks
+        .abortAttempt(taskId, attemptN, {
+          reason: `runner_${signal.toLowerCase()}`,
+        })
+        .catch((err: unknown) => {
+          try {
+            rootLogger.warn(
+              {
+                err: err instanceof Error ? err.message : String(err),
+                taskId,
+                attemptN,
+              },
+              'agent-daemon.abort_on_signal_failed',
+            );
+          } catch {
+            // best-effort logging; never block SIGKILL deadline
+          }
+        });
     },
   });
 
@@ -256,7 +283,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   const outputs: TaskOutput[] = [];
   try {
-    const executeTask = createPiTaskExecutor({
+    const rawExecuteTask = createPiTaskExecutor({
       agentName: common.agent,
       mountPath: sandbox.rootDir,
       provider,
@@ -271,6 +298,21 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       maxTurns: common.maxTurns,
       maxBashTimeouts: common.maxBashTimeouts,
     });
+
+    // Publish the live task+attempt so `drain` can abort it on shutdown
+    // (#1382); clear it in the finally so a signal after the executor
+    // returns finds no live attempt to abort.
+    const executeTask: typeof rawExecuteTask = async (
+      claimedTask,
+      reporter,
+    ) => {
+      active = { taskId: claimedTask.task.id, attemptN: claimedTask.attemptN };
+      try {
+        return await rawExecuteTask(claimedTask, reporter);
+      } finally {
+        active = null;
+      }
+    };
 
     runtime = new AgentRuntime({
       logger: rootLogger,

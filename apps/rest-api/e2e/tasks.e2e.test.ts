@@ -12,6 +12,7 @@
  */
 
 import {
+  abortTaskAttempt,
   appendTaskMessages,
   cancelTask,
   claimTask,
@@ -1985,6 +1986,204 @@ describe('Tasks API', () => {
       const statuses = [r1.response.status, r2.response.status].sort();
       // Exactly one 200, one 409
       expect(statuses).toEqual([200, 409]);
+    });
+  });
+
+  // ── Attempt abort (#1382) ──────────────────────────────────────────────────────
+
+  describe('POST /tasks/:id/attempts/:n/abort', () => {
+    it('aborts an attempt and requeues the task without cancelling it', async () => {
+      const { data } = await propose({}, { maxAttempts: 2 });
+      const taskId = data!.id;
+
+      const { data: claimed1 } = await claim(taskId);
+      const n1 = claimed1!.attempt.attemptN;
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: n1 },
+        body: { leaseTtlSec: 30 },
+      });
+
+      const { error } = await abortTaskAttempt({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: n1 },
+        body: { reason: 'runner_sigterm' },
+      });
+      expect(error).toBeUndefined();
+
+      const requeued = await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: taskId },
+          }).then((r) => r.data!),
+        (t) =>
+          t.status === 'queued' ||
+          t.status === 'cancelled' ||
+          t.status === 'failed',
+        { label: 'abort.requeue', maxAttempts: 20, intervalMs: 250 },
+      );
+      // Requeued, NOT cancelled — and no cancellation metadata written.
+      expect(requeued.status).toBe('queued');
+      expect(requeued.cancelReason).toBeFalsy();
+      expect(requeued.cancelledByAgentId).toBeFalsy();
+      expect(requeued.cancelledByHumanId).toBeFalsy();
+
+      const { data: attempts } = await listTaskAttempts({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: taskId },
+      });
+      expect(attempts!.find((a) => a.attemptN === n1)!.status).toBe('aborted');
+
+      // The task can be reclaimed by the next attempt.
+      const { data: claimed2 } = await claim(taskId);
+      expect(claimed2!.attempt.attemptN).toBe(2);
+    });
+
+    it('fails the task when an abort exhausts the retry budget', async () => {
+      const { data } = await propose({}, { maxAttempts: 1 });
+      const taskId = data!.id;
+      const { data: claimed } = await claim(taskId);
+      const n = claimed!.attempt.attemptN;
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n },
+        body: { leaseTtlSec: 30 },
+      });
+
+      await abortTaskAttempt({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n },
+        body: {},
+      });
+
+      const settled = await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: taskId },
+          }).then((r) => r.data!),
+        (t) =>
+          t.status === 'failed' ||
+          t.status === 'cancelled' ||
+          t.status === 'queued',
+        { label: 'abort.exhausted', maxAttempts: 20, intervalMs: 250 },
+      );
+      expect(settled.status).toBe('failed');
+
+      const { data: attempts } = await listTaskAttempts({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: taskId },
+      });
+      expect(attempts!.find((a) => a.attemptN === n)!.status).toBe('aborted');
+    });
+
+    it('rejects a non-claimant abort with 403', async () => {
+      const { data } = await propose({}, { maxAttempts: 2 });
+      const taskId = data!.id;
+      const { data: claimed } = await claim(taskId);
+      const n = claimed!.attempt.attemptN;
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n },
+        body: { leaseTtlSec: 30 },
+      });
+
+      // proposer is not the claimant.
+      const { response } = await abortTaskAttempt({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: taskId, n },
+        body: {},
+      });
+      expect(response.status).toBe(403);
+    });
+
+    it('rejects aborting a not-yet-started attempt with 409', async () => {
+      const { data } = await propose({}, { maxAttempts: 2 });
+      const taskId = data!.id;
+      const { data: claimed } = await claim(taskId);
+      const n = claimed!.attempt.attemptN; // claimed, no heartbeat
+
+      const { response } = await abortTaskAttempt({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n },
+        body: {},
+      });
+      expect(response.status).toBe(409);
+    });
+
+    it('blocks late complete and fail from the aborted attempt', async () => {
+      const { data } = await propose({}, { maxAttempts: 2 });
+      const taskId = data!.id;
+      const { data: claimed } = await claim(taskId);
+      const n = claimed!.attempt.attemptN;
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n },
+        body: { leaseTtlSec: 30 },
+      });
+      await abortTaskAttempt({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n },
+        body: {},
+      });
+      await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: taskId },
+          }).then((r) => r.data!),
+        (t) => t.status === 'queued',
+        { label: 'abort.late.requeue', maxAttempts: 20, intervalMs: 250 },
+      );
+
+      // A late /complete or /fail from the abandoned attempt must be rejected
+      // and must NOT revive or overwrite the task. Two layers enforce this:
+      // (1) abort removed the claimant's Keto report tuple, so canReportTask
+      //     now fails → 403; and (2) the attempt-terminal guard in the service
+      //     would return 409 if the call ever got past auth. Either rejection
+      //     code is acceptable; the invariant under test is "task untouched".
+      const output = { packId: 'late', summary: 'late' };
+      const completeRes = await completeTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n },
+        body: {
+          output,
+          outputCid: await computeJsonCid(output),
+          usage: { model: 'test-model', inputTokens: 1, outputTokens: 1 },
+        },
+      });
+      expect([403, 409]).toContain(completeRes.response.status);
+
+      const failRes = await failTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n },
+        body: { error: { code: 'late', message: 'late' } },
+      });
+      expect([403, 409]).toContain(failRes.response.status);
+
+      const { data: still } = await getTask({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: taskId },
+      });
+      expect(still!.status).toBe('queued');
     });
   });
 });

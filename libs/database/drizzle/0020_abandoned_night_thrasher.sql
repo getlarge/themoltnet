@@ -1,0 +1,1 @@
+ALTER TYPE "public"."task_attempt_status" ADD VALUE 'aborted' BEFORE 'timed_out';

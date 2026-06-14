@@ -594,6 +594,79 @@ describe('Agent daemon (e2e)', () => {
     expect(final.cancelReason).toBe('e2e test cancellation');
   }, 30_000);
 
+  it('daemon shutdown aborts the active attempt without cancelling the task (#1382)', async () => {
+    // maxAttempts:2 so the requeued task is reclaimable after the abort.
+    const created = await agent.tasks.create({
+      taskType: 'curate_pack',
+      teamId,
+      diaryId,
+      input: { diaryId, taskPrompt: 'e2e daemon shutdown abort' },
+      maxAttempts: 2,
+    });
+
+    let abortedAttemptN: number | null = null;
+    let runtime: AgentRuntime | null = null;
+    runtime = new AgentRuntime({
+      source: new PollingApiTaskSource({
+        agent: agent,
+        teamId: teamId,
+        taskTypes: ['curate_pack'],
+        leaseTtlSec: 60,
+        stopWhenEmpty: true,
+        logger: silentLogger,
+      }),
+      makeReporter: () =>
+        new ApiTaskReporter({
+          tasks: agent.tasks,
+          leaseTtlSec: 60,
+          heartbeatIntervalMs: 0,
+        }),
+      executeTask: async (claimedTask, reporter) => {
+        // open() fires the startup heartbeat → attempt claimed → running,
+        // matching the real pi-extension lifecycle before a SIGTERM.
+        await reporter.open({
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+        });
+        // Simulate the daemon's `drain` handler firing on SIGINT/SIGTERM
+        // mid-execution: stop the loop (so it doesn't re-claim the
+        // requeued task) and abort the active attempt server-side.
+        abortedAttemptN = claimedTask.attemptN;
+        runtime?.stop('e2e simulated SIGTERM');
+        await agent.tasks.abortAttempt(
+          claimedTask.task.id,
+          claimedTask.attemptN,
+          { reason: 'runner_sigterm' },
+        );
+        await reporter.close();
+        // Local executor returns a cancelled-shaped output (what
+        // pi-extension yields when its cancelSignal fires). The daemon
+        // does not finalize an interrupted attempt.
+        return {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          status: 'cancelled' as const,
+          durationMs: 1,
+        };
+      },
+    });
+
+    await runtime.start();
+    expect(abortedAttemptN).toBe(1);
+
+    // abortAttempt() polls server-side until the workflow settles, so by the
+    // time it resolved (inside the executor) the task already requeued.
+    // The aborted attempt is recorded as `aborted` (not cancelled/failed).
+    const attempts = await agent.tasks.listAttempts(created.id);
+    expect(attempts.find((a) => a.attemptN === 1)!.status).toBe('aborted');
+
+    // The task is requeued and reclaimable — NOT terminal-cancelled, and no
+    // cancellation metadata written.
+    const requeued = await agent.tasks.get(created.id);
+    expect(requeued.status).toBe('queued');
+    expect(requeued.cancelReason).toBeFalsy();
+  }, 30_000);
+
   it('reuses daemon slot resources across fulfill_brief tasks and reaps them on expiry', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-slot-e2e-'));
     tempRoots.push(mountRoot);

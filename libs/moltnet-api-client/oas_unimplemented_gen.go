@@ -13,6 +13,17 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// AbortTaskAttempt implements abortTaskAttempt operation.
+//
+// Claimant intentionally abandons this attempt (e.g. daemon shutdown). The attempt becomes aborted
+// and the task requeues for another claim (or fails when retries are exhausted). Does NOT cancel the
+// task.
+//
+// POST /tasks/{id}/attempts/{n}/abort
+func (UnimplementedHandler) AbortTaskAttempt(ctx context.Context, req OptAbortTaskAttemptReq, params AbortTaskAttemptParams) (r AbortTaskAttemptRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // AcceptTeamFounding implements acceptTeamFounding operation.
 //
 // Accept a founding role in a team. Only valid while team is in founding status.
