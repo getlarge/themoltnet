@@ -573,7 +573,10 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
 echo "username=x-access-token"
 echo "password=$(moltnet github token --credentials ${vmSshDir}/moltnet.json)"
 `;
-    await vm.fs.writeFile(gitCredHelperPath, credHelperScript, { mode: 0o755, signal: config.signal });
+    await vm.fs.writeFile(gitCredHelperPath, credHelperScript, {
+      mode: 0o755,
+      signal: config.signal,
+    });
     await vmRun(
       vm,
       'git credential helper',
