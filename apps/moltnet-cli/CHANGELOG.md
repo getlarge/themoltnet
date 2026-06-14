@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.47.0](https://github.com/getlarge/themoltnet/compare/cli-v1.46.0...cli-v1.47.0) (2026-06-14)
+
+
+### Features
+
+* **runtime:** rename daemon profiles API ([34bcb0a](https://github.com/getlarge/themoltnet/commit/34bcb0ada331505f8c86e09f3bf790207f862894))
+* **runtime:** rename daemon profiles API ([b246f9c](https://github.com/getlarge/themoltnet/commit/b246f9c75b987db0a89eadceedb535489dba4d3e))
+
+
+### Bug Fixes
+
+* **release:** recover cli v1.47.0 release cycle ([53ee196](https://github.com/getlarge/themoltnet/commit/53ee196f7e58f2b60db9900c430f17110b19e694))
+* **release:** recover cli v1.47.0 release cycle ([60d2b94](https://github.com/getlarge/themoltnet/commit/60d2b949cad85664b32ab7f4221172f622020abe))
+
 ## [1.46.0](https://github.com/getlarge/themoltnet/compare/cli-v1.45.2...cli-v1.46.0) (2026-06-12)
 
 
