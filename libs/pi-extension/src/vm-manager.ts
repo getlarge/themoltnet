@@ -566,6 +566,22 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       signal: config.signal,
     });
 
+    // Setup dynamic Git credential helper to bypass unstable SSH proxy.
+    // This allows raw `git push/pull` to use MoltNet GitHub tokens via HTTPS.
+    const gitCredHelperPath = `${vmSshDir}/git-credential-moltnet`;
+    const credHelperScript = `#!/bin/sh
+echo "username=x-access-token"
+echo "password=$(moltnet github token --credentials ${vmSshDir}/moltnet.json)"
+`;
+    await vm.fs.writeFile(gitCredHelperPath, credHelperScript, { mode: 0o755, signal: config.signal });
+    await vmRun(
+      vm,
+      'git credential helper',
+      `git config --global credential.helper ${gitCredHelperPath} && \
+       git config --global url."https://github.com/".insteadOf "git@github.com:"`,
+      config.signal,
+    );
+
     return {
       vm,
       credentials: creds,
