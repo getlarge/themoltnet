@@ -81,6 +81,8 @@ The daemon hands the `TaskOutput` from each runtime invocation to its `finalizeT
 
 On `SIGINT`/`SIGTERM`, the daemon **aborts the active attempt** rather than cancelling the task (#1382): it calls `tasks.abortAttempt(taskId, attemptN)` for the in-flight attempt, which marks that attempt `aborted` and requeues the task so another daemon (or a later retry) can pick it up. This replaces the older shutdown behavior that issued `tasks.cancel()` and terminal-cancelled the user's task. Cancelling a task outright remains an explicit proposer/operator action via `POST /tasks/:id/cancel`; the daemon never does it on shutdown.
 
+Requeue-on-abort only happens when the task has retries left. `maxAttempts` is set at task **creation** and defaults to `1`, so a default task aborts straight to `failed` — there is no second attempt for another daemon to claim. If you want a daemon shutdown to leave the work reclaimable, create the task with `maxAttempts >= 2` (e.g. `agent.tasks.create({ ..., maxAttempts: 2 })` or `--max-attempts 2` on the Go CLI).
+
 ## Remote runtime profiles
 
 Runtime profiles are reusable, team-scoped runtime configurations. Use them when
