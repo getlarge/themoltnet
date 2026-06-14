@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.16.0...agent-daemon-v0.17.0) (2026-06-14)
+
+
+### Features
+
+* **agent-daemon:** abort active attempt on shutdown instead of cancel ([423daaf](https://github.com/getlarge/themoltnet/commit/423daafec2f6aa4e2e665f5269a6da822fe7ad62))
+* **agent-daemon:** apply remote daemon profiles ([94b4448](https://github.com/getlarge/themoltnet/commit/94b44480e81e4c5f04e4a583c0b403737086582d))
+* **agent-daemon:** apply remote daemon profiles ([04f31b6](https://github.com/getlarge/themoltnet/commit/04f31b68db3a452c02643411be913eaf094cc253))
+* **agent-daemon:** validate remote profile runtime requirements ([a797dcd](https://github.com/getlarge/themoltnet/commit/a797dcdb3491406ea372a52f22fbbfc7aa94b86b))
+* **daemon-profiles:** add runtime lease defaults ([656e7b8](https://github.com/getlarge/themoltnet/commit/656e7b8bb6f1a578779de92c2160e60d3827fd06))
+* **runtime:** rename daemon profiles API ([34bcb0a](https://github.com/getlarge/themoltnet/commit/34bcb0ada331505f8c86e09f3bf790207f862894))
+* **runtime:** rename daemon profiles API ([b246f9c](https://github.com/getlarge/themoltnet/commit/b246f9c75b987db0a89eadceedb535489dba4d3e))
+* **sdk:** expose daemon profile operations ([230da86](https://github.com/getlarge/themoltnet/commit/230da86d0a7908e35f357044cc92950f14fdd791))
+* **tasks:** attempt abort/release endpoint for daemon shutdown ([#1382](https://github.com/getlarge/themoltnet/issues/1382)) ([e239ff7](https://github.com/getlarge/themoltnet/commit/e239ff7b458c822c9745413a380a37fa3030f2d9))
+
+
+### Bug Fixes
+
+* **agent-daemon:** drop unbundled OTel dep, add pack-and-run smoke ([#1384](https://github.com/getlarge/themoltnet/issues/1384)) ([27a26c3](https://github.com/getlarge/themoltnet/commit/27a26c3554930b56c4ff569b9967930643a03f62))
+* **agent-daemon:** drop unbundled OTel dep, add pack-and-run smoke ([#1384](https://github.com/getlarge/themoltnet/issues/1384)) ([de9b1b5](https://github.com/getlarge/themoltnet/commit/de9b1b5b4a656c331b1999fa8e2a04e2c685d5f3))
+* **agent-daemon:** harden shutdown signal logging ([eb8f9c6](https://github.com/getlarge/themoltnet/commit/eb8f9c68cac295b4755c4eac7a3b2fc3ad245f17))
+* **ci:** sync runtime profile generated artifacts ([5083134](https://github.com/getlarge/themoltnet/commit/5083134f07934e016e6655ab93f39f03b0c722fd))
+* harden agent-daemon shutdown during VM resume ([c167b7a](https://github.com/getlarge/themoltnet/commit/c167b7ad5494cd807f8c1647387226796df1418c))
+* **pi-extension:** close late VM resume after abort ([22f1fba](https://github.com/getlarge/themoltnet/commit/22f1fba5660c356958323c4b09a8467f8d663313))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.24.0
+    * @themoltnet/pi-extension bumped to 0.23.1
+    * @themoltnet/sdk bumped to 0.108.0
+
 ## [0.16.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.15.0...agent-daemon-v0.16.0) (2026-06-12)
 
 

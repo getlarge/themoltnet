@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.108.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.107.0...sdk-v0.108.0) (2026-06-14)
+
+
+### Features
+
+* **agent-daemon:** apply remote daemon profiles ([94b4448](https://github.com/getlarge/themoltnet/commit/94b44480e81e4c5f04e4a583c0b403737086582d))
+* **daemon-profiles:** add runtime lease defaults ([656e7b8](https://github.com/getlarge/themoltnet/commit/656e7b8bb6f1a578779de92c2160e60d3827fd06))
+* **runtime:** rename daemon profiles API ([34bcb0a](https://github.com/getlarge/themoltnet/commit/34bcb0ada331505f8c86e09f3bf790207f862894))
+* **runtime:** rename daemon profiles API ([b246f9c](https://github.com/getlarge/themoltnet/commit/b246f9c75b987db0a89eadceedb535489dba4d3e))
+* **sdk:** add tasks.abortAttempt ([22048f6](https://github.com/getlarge/themoltnet/commit/22048f68516f7e96d9fccbbc1133e88dd78f7787))
+* **sdk:** expose daemon profile operations ([230da86](https://github.com/getlarge/themoltnet/commit/230da86d0a7908e35f357044cc92950f14fdd791))
+* **tasks:** attempt abort/release endpoint for daemon shutdown ([#1382](https://github.com/getlarge/themoltnet/issues/1382)) ([e239ff7](https://github.com/getlarge/themoltnet/commit/e239ff7b458c822c9745413a380a37fa3030f2d9))
+
+
+### Bug Fixes
+
+* **ci:** sync runtime profile generated artifacts ([5083134](https://github.com/getlarge/themoltnet/commit/5083134f07934e016e6655ab93f39f03b0c722fd))
+
 ## [0.107.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.106.0...sdk-v0.107.0) (2026-06-12)
 
 

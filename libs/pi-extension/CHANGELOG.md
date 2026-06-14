@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.23.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.23.0...pi-extension-v0.23.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* harden agent-daemon shutdown during VM resume ([c167b7a](https://github.com/getlarge/themoltnet/commit/c167b7ad5494cd807f8c1647387226796df1418c))
+* implement dynamic git credential helper for sandbox ([18a7f45](https://github.com/getlarge/themoltnet/commit/18a7f4524526e33099e5d1959d5d59d8b034936d))
+* **pi-extension:** abort VM resume on shutdown ([9465625](https://github.com/getlarge/themoltnet/commit/946562529157dece240b908ce1128b3eb5fdb65c))
+* **pi-extension:** add dynamic git credential helper ([1751d44](https://github.com/getlarge/themoltnet/commit/1751d4476c28bb0954a91b587b2aec1a111f5108))
+* **pi-extension:** close late VM resume after abort ([22f1fba](https://github.com/getlarge/themoltnet/commit/22f1fba5660c356958323c4b09a8467f8d663313))
+* **pi-extension:** pass shutdown signal to gondolin setup calls ([415390b](https://github.com/getlarge/themoltnet/commit/415390bcec93e8869e44496b0fad5b3bdf5ceabf))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.24.0
+    * @themoltnet/sdk bumped to 0.108.0
+
 ## [0.23.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.22.5...pi-extension-v0.23.0) (2026-06-12)
 
 

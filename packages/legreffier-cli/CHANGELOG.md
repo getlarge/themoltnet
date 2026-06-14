@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.33.15](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.14...legreffier-v0.33.15) (2026-06-14)
+
+
+### Bug Fixes
+
+* **agent-daemon:** drop unbundled OTel dep, add pack-and-run smoke ([#1384](https://github.com/getlarge/themoltnet/issues/1384)) ([27a26c3](https://github.com/getlarge/themoltnet/commit/27a26c3554930b56c4ff569b9967930643a03f62))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/github-agent bumped to 0.23.15
+    * @themoltnet/sdk bumped to 0.108.0
+
 ## [0.33.14](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.13...legreffier-v0.33.14) (2026-06-12)
 
 

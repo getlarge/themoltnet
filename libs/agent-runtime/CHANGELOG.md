@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.24.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.23.0...agent-runtime-v0.24.0) (2026-06-14)
+
+
+### Features
+
+* **agent-daemon:** apply remote daemon profiles ([94b4448](https://github.com/getlarge/themoltnet/commit/94b44480e81e4c5f04e4a583c0b403737086582d))
+* **agent-daemon:** apply remote daemon profiles ([04f31b6](https://github.com/getlarge/themoltnet/commit/04f31b68db3a452c02643411be913eaf094cc253))
+* **runtime:** rename daemon profiles API ([34bcb0a](https://github.com/getlarge/themoltnet/commit/34bcb0ada331505f8c86e09f3bf790207f862894))
+* **runtime:** rename daemon profiles API ([b246f9c](https://github.com/getlarge/themoltnet/commit/b246f9c75b987db0a89eadceedb535489dba4d3e))
+
+
+### Bug Fixes
+
+* harden agent-daemon shutdown during VM resume ([c167b7a](https://github.com/getlarge/themoltnet/commit/c167b7ad5494cd807f8c1647387226796df1418c))
+* **pi-extension:** abort VM resume on shutdown ([9465625](https://github.com/getlarge/themoltnet/commit/946562529157dece240b908ce1128b3eb5fdb65c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.108.0
+
 ## [0.23.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.22.4...agent-runtime-v0.23.0) (2026-06-12)
 
 
