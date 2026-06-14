@@ -1,4 +1,5 @@
 import {
+  abortTaskAttempt,
   appendTaskMessages,
   cancelTask,
   claimTask,
@@ -65,6 +66,12 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
     async fail(id, n, body) {
       return unwrapResult(
         await failTask({ client, auth, path: { id, n }, body }),
+      );
+    },
+
+    async abortAttempt(id, n, body) {
+      return unwrapResult(
+        await abortTaskAttempt({ client, auth, path: { id, n }, body }),
       );
     },
 
