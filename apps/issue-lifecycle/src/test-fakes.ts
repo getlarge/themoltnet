@@ -96,7 +96,7 @@ export class FakeTasks implements TaskClient {
       claimCondition: body.claimCondition ?? null,
       requiredExecutorTrustLevel:
         body.requiredExecutorTrustLevel ?? 'selfDeclared',
-      allowedExecutors: body.allowedExecutors ?? [],
+      allowedProfiles: body.allowedProfiles ?? [],
       status: failedStatus ?? 'completed',
       queuedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
