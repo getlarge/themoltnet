@@ -29,6 +29,7 @@ export type TaskProgressEvent =
       daemonState?: unknown;
     }
   | { kind: 'failed'; error?: unknown }
+  | { kind: 'aborted'; error?: unknown }
   | { kind: 'cancelled'; error?: unknown };
 
 export interface TaskAttemptClaimedEvent {
@@ -37,7 +38,7 @@ export interface TaskAttemptClaimedEvent {
 }
 
 export interface TaskAttemptFinalEvent {
-  status: 'completed' | 'failed' | 'cancelled' | 'timed_out';
+  status: 'completed' | 'failed' | 'aborted' | 'cancelled' | 'timed_out';
   taskId: string;
   attemptN: number;
   output?: unknown;
@@ -387,7 +388,11 @@ export function initTaskWorkflows(): void {
         // The HTTP layer's TERMINAL_STATUSES + claimed-status guards make
         // this rare in practice, but we accept it: skip the running phase
         // and persist directly. (Prior behaviour rejected with 409.)
-        if (firstEvent.kind === 'completed' || firstEvent.kind === 'failed') {
+        if (
+          firstEvent.kind === 'completed' ||
+          firstEvent.kind === 'failed' ||
+          firstEvent.kind === 'aborted'
+        ) {
           return persistTerminalResult(firstEvent);
         }
 
@@ -438,10 +443,17 @@ export function initTaskWorkflows(): void {
           evt:
             | (TaskProgressEvent & { kind: 'completed' })
             | (TaskProgressEvent & { kind: 'failed' })
+            | (TaskProgressEvent & { kind: 'aborted' })
             | (TaskProgressEvent & { kind: 'cancelled' }),
         ): Promise<TaskAttemptFinalEvent> {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
-          const canRetry = evt.kind === 'failed' && attemptCount < maxAttempts;
+          // `aborted` (intentional claimant abandonment, e.g. daemon
+          // shutdown) is retryable like `failed`: the task requeues so
+          // another daemon can reclaim it. Only when retries are exhausted
+          // does it settle the task terminally (see status mapping below).
+          const canRetry =
+            (evt.kind === 'failed' || evt.kind === 'aborted') &&
+            attemptCount < maxAttempts;
           const now = new Date();
           const { taskNow, isTerminal } = await checkExternalTerminal();
           await getDeps().dataSource.runTransaction(
@@ -457,7 +469,9 @@ export function initTaskWorkflows(): void {
                     ? (evt.completedExecutorFingerprint ?? null)
                     : null,
                 error:
-                  evt.kind === 'failed' || evt.kind === 'cancelled'
+                  evt.kind === 'failed' ||
+                  evt.kind === 'aborted' ||
+                  evt.kind === 'cancelled'
                     ? (evt.error ?? null)
                     : null,
                 usage: evt.kind === 'completed' ? (evt.usage ?? null) : null,
@@ -490,15 +504,22 @@ export function initTaskWorkflows(): void {
                   claimExpiresAt: null,
                 });
               } else {
-                // Atomic guard for the failed/cancelled paths: a cancel
-                // landing between checkExternalTerminal and this tx must
-                // not be overwritten by `queued`/`failed` (#949). When
+                // Atomic guard for the failed/aborted/cancelled paths: a
+                // cancel landing between checkExternalTerminal and this tx
+                // must not be overwritten by `queued`/`failed` (#949). When
                 // evt.kind === 'cancelled' the write is idempotent on a
                 // cancelled row (NOT IN excludes 'cancelled', so the
                 // update is a no-op — also fine).
+                //
+                // `aborted` has no task-level status of its own: an
+                // exhausted abort settles the task as `failed` (#1382).
+                // The attempt row still records `aborted` (set above), so
+                // the shutdown-vs-error distinction is preserved per-attempt.
+                const exhaustedStatus =
+                  evt.kind === 'aborted' ? 'failed' : evt.kind;
                 await getDeps().updateTaskStatusIfNotIn(
                   taskId,
-                  canRetry ? 'queued' : evt.kind,
+                  canRetry ? 'queued' : exhaustedStatus,
                   ['cancelled', 'completed', 'failed', 'expired'],
                   { claimAgentId: null, claimExpiresAt: null },
                 );
@@ -510,6 +531,10 @@ export function initTaskWorkflows(): void {
           // the worker's next /heartbeat can still pass canReportTask
           // and observe `cancelled: true` in the response (#938).
           // The orphan-recovery sweeper (#937) cleans these up later.
+          //
+          // 'aborted' is the opposite case (#1382): the claimant has
+          // intentionally walked away, so we DO remove the tuple to let
+          // another daemon reclaim the requeued task immediately.
           if (evt.kind !== 'cancelled') {
             await removeClaimantTupleStep(taskId, agentId);
           }
@@ -619,6 +644,7 @@ export function initTaskWorkflows(): void {
           if (
             evt.kind === 'completed' ||
             evt.kind === 'failed' ||
+            evt.kind === 'aborted' ||
             evt.kind === 'cancelled'
           ) {
             return persistTerminalResult(evt);
