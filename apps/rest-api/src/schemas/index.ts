@@ -15,6 +15,7 @@ export * from './packs.js';
 export * from './principal.js';
 export * from './relations.js';
 export * from './runtime-profiles.js';
+export * from './runtime-models.js';
 export * from './tasks.js';
 
 import {
@@ -87,6 +88,7 @@ import {
   RelationTypeSchema,
 } from './relations.js';
 import { runtimeProfileSchemas } from './runtime-profiles.js';
+import { runtimeModelSchemas } from './runtime-models.js';
 import { taskSchemas } from './tasks.js';
 
 /**
@@ -135,6 +137,7 @@ export const sharedSchemas = [
   RecoveryVerifyResponseSchema,
   VoucherSchema,
   ...runtimeProfileSchemas,
+  ...runtimeModelSchemas,
   HealthSchema,
   ReadinessSchema,
   SigningRequestSchema,

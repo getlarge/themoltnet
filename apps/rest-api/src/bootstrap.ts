@@ -26,6 +26,7 @@ import {
   createContextPackRepository,
   createCorrelationSealRepository,
   createDaemonProfileRepository,
+  createRuntimeModelRepository,
   createDatabase,
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
@@ -242,6 +243,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const daemonProfileRepository = createDaemonProfileRepository(
+    dbConnection.db,
+  );
+  const runtimeModelRepository = createRuntimeModelRepository(
     dbConnection.db,
   );
   const groupRepository = createGroupRepository(dbConnection.db);
@@ -502,6 +506,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     teamRepository,
     diaryTransferRepository,
     daemonProfileRepository,
+    runtimeModelRepository,
     taskRepository,
     taskService,
     signingRequestRepository,

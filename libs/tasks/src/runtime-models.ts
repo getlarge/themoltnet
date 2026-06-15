@@ -15,14 +15,18 @@ import { type Static, Type } from 'typebox';
 export const RuntimeModelProvider = Type.String({
   minLength: 1,
   maxLength: 100,
-  pattern: '^[a-z][a-z0-9._-]{0,99}$',
+  // Permissive on case so the route can lowercase on write. Strict version
+  // of the value is enforced at the DB layer via the partial unique indexes
+  // and the `findVisibleByProviderAndModel` repository lookup.
+  pattern: '^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$',
 });
 export type RuntimeModelProvider = Static<typeof RuntimeModelProvider>;
 
 export const RuntimeModelName = Type.String({
   minLength: 1,
   maxLength: 200,
-  pattern: '^[a-zA-Z0-9][a-z0-9._:-]{0,199}$',
+  // Permissive on case so the route can lowercase on write.
+  pattern: '^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,199}$',
 });
 export type RuntimeModelName = Static<typeof RuntimeModelName>;
 
