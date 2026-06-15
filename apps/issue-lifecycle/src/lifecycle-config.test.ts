@@ -4,8 +4,6 @@ import { join } from 'node:path';
 
 import { afterAll, describe, expect, it } from 'vitest';
 
-const EXAMPLE_CONFIG_PATH = join(import.meta.dirname, '..', 'profiles.example.json');
-
 import {
   EMPTY_LIFECYCLE_CONFIG,
   loadLifecycleConfig,
@@ -13,6 +11,11 @@ import {
   stepConfig,
 } from './lifecycle-config.js';
 
+const EXAMPLE_CONFIG_PATH = join(
+  import.meta.dirname,
+  '..',
+  'profiles.example.json',
+);
 const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000';
 
 const tmpDirs: string[] = [];
@@ -68,21 +71,21 @@ describe('parseLifecycleConfig', () => {
   });
 
   it('rejects maxAttempts below 1', () => {
-    expect(() =>
-      parseLifecycleConfig({ triage: { maxAttempts: 0 } }),
-    ).toThrow(/Invalid issue-lifecycle profiles config/);
+    expect(() => parseLifecycleConfig({ triage: { maxAttempts: 0 } })).toThrow(
+      /Invalid issue-lifecycle profiles config/,
+    );
   });
 
   it('rejects maxAttempts above the ceiling', () => {
-    expect(() =>
-      parseLifecycleConfig({ triage: { maxAttempts: 99 } }),
-    ).toThrow(/Invalid issue-lifecycle profiles config/);
+    expect(() => parseLifecycleConfig({ triage: { maxAttempts: 99 } })).toThrow(
+      /Invalid issue-lifecycle profiles config/,
+    );
   });
 
   it('rejects unknown properties within a step', () => {
-    expect(() =>
-      parseLifecycleConfig({ triage: { model: 'gpt-4' } }),
-    ).toThrow(/Invalid issue-lifecycle profiles config/);
+    expect(() => parseLifecycleConfig({ triage: { model: 'gpt-4' } })).toThrow(
+      /Invalid issue-lifecycle profiles config/,
+    );
   });
 });
 
@@ -114,7 +117,9 @@ describe('loadLifecycleConfig', () => {
   });
 
   it('throws a schema error for an invalid file', () => {
-    const path = writeConfigFile(JSON.stringify({ triage: { maxAttempts: 0 } }));
+    const path = writeConfigFile(
+      JSON.stringify({ triage: { maxAttempts: 0 } }),
+    );
     expect(() => loadLifecycleConfig(path)).toThrow(
       /Invalid issue-lifecycle profiles config/,
     );
