@@ -147,6 +147,13 @@
       "tag": "0020_abandoned_night_thrasher",
       "version": "7",
       "when": 1781456713007
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1781552723250,
+      "tag": "0021_secret_shooting_star",
+      "breakpoints": true
     }
   ],
   "version": "7"

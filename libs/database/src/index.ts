@@ -65,6 +65,13 @@ export {
   type UpdateDaemonProfileInput,
 } from './repositories/daemon-profile.repository.js';
 export {
+  type CreateRuntimeModelInput,
+  createRuntimeModelRepository,
+  type ListRuntimeModelsFilter,
+  type RuntimeModelRepository,
+  type UpdateRuntimeModelInput,
+} from './repositories/runtime-models.repository.js';
+export {
   createDiaryRepository,
   type DiaryRepository,
 } from './repositories/diary.repository.js';

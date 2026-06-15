@@ -181,6 +181,22 @@ export type RuntimeProfileMaxBatchSize = Static<
   typeof RuntimeProfileMaxBatchSize
 >;
 
+/**
+ * Optional advisory warnings attached to a runtime profile response when the
+ * catalog flags the (provider, model) couple as not-in-catalog. The catalog
+ * is informational only — profiles with unknown couples still save, so the
+ * `warnings` field is the explicit "consider adding it to the catalog" hint
+ * and is omitted when the list is empty.
+ */
+export const RuntimeProfileWarning = Type.Object(
+  {
+    code: Type.Literal('provider-model-not-in-catalog'),
+    message: Type.String({ minLength: 1, maxLength: 1024 }),
+  },
+  { $id: 'RuntimeProfileWarning', additionalProperties: false },
+);
+export type RuntimeProfileWarning = Static<typeof RuntimeProfileWarning>;
+
 export const RuntimeProfile = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
@@ -213,6 +229,7 @@ export const RuntimeProfile = Type.Object(
     ]),
     createdAt: Type.String({ format: 'date-time' }),
     updatedAt: Type.String({ format: 'date-time' }),
+    warnings: Type.Optional(Type.Array(RuntimeProfileWarning, { maxItems: 10 })),
   },
   { $id: 'RuntimeProfile', additionalProperties: false },
 );
