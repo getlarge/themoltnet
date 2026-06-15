@@ -64,18 +64,6 @@
     "package:skill": "packages/openclaw-skill/scripts/package.sh",
     "prepare": "node tools/prepare.mjs"
   },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix --no-warn-ignored",
-      "prettier --write"
-    ],
-    "*.{json,md,yaml,yml}": [
-      "prettier --write"
-    ],
-    "*.go": [
-      "gofmt -w"
-    ]
-  },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",
     "@eslint/js": "catalog:",
