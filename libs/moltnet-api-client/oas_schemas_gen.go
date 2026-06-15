@@ -593,7 +593,8 @@ func (*CancelTaskUnauthorized) cancelTaskRes() {}
 // Ref: #/components/schemas/ClaimCondition
 // ClaimCondition represents sum type.
 type ClaimCondition struct {
-	Type                       ClaimConditionType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type                       ClaimConditionType
 	ClaimConditionAll          ClaimConditionAll
 	ClaimConditionAny          ClaimConditionAny
 	ClaimConditionTaskStatus   ClaimConditionTaskStatus
@@ -1468,7 +1469,8 @@ func (*ContextPackResponse) updateContextPackRes()  {}
 
 // ContextPackResponseCreator represents sum type.
 type ContextPackResponseCreator struct {
-	Type           ContextPackResponseCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           ContextPackResponseCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -3037,7 +3039,8 @@ func (s *CreateRuntimeProfileBodySandboxResources) SetMemory(val OptString) {
 
 // CreateRuntimeProfileBodySandboxResumeCommandsItem represents sum type.
 type CreateRuntimeProfileBodySandboxResumeCommandsItem struct {
-	Type                                               CreateRuntimeProfileBodySandboxResumeCommandsItemType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type                                               CreateRuntimeProfileBodySandboxResumeCommandsItemType
 	String                                             string
 	CreateRuntimeProfileBodySandboxResumeCommandsItem1 CreateRuntimeProfileBodySandboxResumeCommandsItem1
 }
@@ -4663,7 +4666,8 @@ func (*DiaryCatalog) updateDiaryRes() {}
 
 // DiaryCatalogCreator represents sum type.
 type DiaryCatalogCreator struct {
-	Type           DiaryCatalogCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           DiaryCatalogCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -4968,7 +4972,8 @@ func (*DiaryEntry) updateDiaryEntryByIdRes() {}
 
 // DiaryEntryCreator represents sum type.
 type DiaryEntryCreator struct {
-	Type           DiaryEntryCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           DiaryEntryCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -5270,7 +5275,8 @@ func (s *DiaryEntryWithCreator) SetUpdatedAt(val time.Time) {
 
 // DiaryEntryWithCreatorCreator represents sum type.
 type DiaryEntryWithCreatorCreator struct {
-	Type           DiaryEntryWithCreatorCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           DiaryEntryWithCreatorCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -5590,7 +5596,8 @@ func (*DiaryEntryWithRelations) getDiaryEntryByIdRes() {}
 
 // DiaryEntryWithRelationsCreator represents sum type.
 type DiaryEntryWithRelationsCreator struct {
-	Type           DiaryEntryWithRelationsCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           DiaryEntryWithRelationsCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -8781,7 +8788,8 @@ func (s *GetContextPackProvenanceByCidOKMetadataFormat) UnmarshalText(data []byt
 
 // GetContextPackProvenanceByCidOKNodesItem represents sum type.
 type GetContextPackProvenanceByCidOKNodesItem struct {
-	Type                            GetContextPackProvenanceByCidOKNodesItemType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type                            GetContextPackProvenanceByCidOKNodesItemType
 	ProvenanceGraphPackNode         ProvenanceGraphPackNode
 	ProvenanceGraphEntryNode        ProvenanceGraphEntryNode
 	ProvenanceGraphRenderedPackNode ProvenanceGraphRenderedPackNode
@@ -15502,6 +15510,11 @@ func (o *OptNilDaemonState) SetToNull() {
 	o.Value = v
 }
 
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilDaemonState) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
 // Get returns value and boolean that denotes whether value was set.
 func (o OptNilDaemonState) Get() (v DaemonState, ok bool) {
 	if o.Null {
@@ -15565,6 +15578,11 @@ func (o *OptNilString) SetToNull() {
 	o.Value = v
 }
 
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilString) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
 // Get returns value and boolean that denotes whether value was set.
 func (o OptNilString) Get() (v string, ok bool) {
 	if o.Null {
@@ -15626,6 +15644,11 @@ func (o *OptNilUUID) SetToNull() {
 	o.Null = true
 	var v uuid.UUID
 	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilUUID) IsEmpty() bool {
+	return !o.Set && !o.Null
 }
 
 // Get returns value and boolean that denotes whether value was set.
@@ -18902,7 +18925,8 @@ func (s *ProvenanceGraphEntryNodeMeta) SetUpdatedAt(val time.Time) {
 
 // ProvenanceGraphEntryNodeMetaCreator represents sum type.
 type ProvenanceGraphEntryNodeMetaCreator struct {
-	Type           ProvenanceGraphEntryNodeMetaCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           ProvenanceGraphEntryNodeMetaCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -19134,7 +19158,8 @@ func (s *ProvenanceGraphMetadataFormat) UnmarshalText(data []byte) error {
 
 // ProvenanceGraphNodesItem represents sum type.
 type ProvenanceGraphNodesItem struct {
-	Type                            ProvenanceGraphNodesItemType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type                            ProvenanceGraphNodesItemType
 	ProvenanceGraphPackNode         ProvenanceGraphPackNode
 	ProvenanceGraphEntryNode        ProvenanceGraphEntryNode
 	ProvenanceGraphRenderedPackNode ProvenanceGraphRenderedPackNode
@@ -19442,7 +19467,8 @@ func (s *ProvenanceGraphPackNodeMeta) SetCreator(val OptProvenanceGraphPackNodeM
 
 // ProvenanceGraphPackNodeMetaCreator represents sum type.
 type ProvenanceGraphPackNodeMetaCreator struct {
-	Type           ProvenanceGraphPackNodeMetaCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           ProvenanceGraphPackNodeMetaCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -19721,7 +19747,8 @@ func (s *ProvenanceGraphRenderedPackNodeMeta) SetTotalTokens(val float64) {
 
 // ProvenanceGraphRenderedPackNodeMetaCreator represents sum type.
 type ProvenanceGraphRenderedPackNodeMetaCreator struct {
-	Type           ProvenanceGraphRenderedPackNodeMetaCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           ProvenanceGraphRenderedPackNodeMetaCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -20949,7 +20976,8 @@ func (s *RenderedPack) SetTotalTokens(val int) {
 
 // RenderedPackCreator represents sum type.
 type RenderedPackCreator struct {
-	Type           RenderedPackCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           RenderedPackCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -21256,7 +21284,8 @@ func (*RenderedPackResult) renderContextPackRes() {}
 
 // RenderedPackResultCreator represents sum type.
 type RenderedPackResultCreator struct {
-	Type           RenderedPackResultCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           RenderedPackResultCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -21486,7 +21515,8 @@ func (*RenderedPackWithContent) updateRenderedPackRes()    {}
 
 // RenderedPackWithContentCreator represents sum type.
 type RenderedPackWithContentCreator struct {
-	Type           RenderedPackWithContentCreatorType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type           RenderedPackWithContentCreatorType
 	AgentPrincipal AgentPrincipal
 	HumanPrincipal HumanPrincipal
 }
@@ -22683,7 +22713,8 @@ func (s *RuntimeProfileListResponseItemsItemSandboxResources) SetMemory(val OptS
 
 // RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem represents sum type.
 type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem struct {
-	Type                                                          RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type                                                          RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType
 	String                                                        string
 	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1
 }
@@ -23212,7 +23243,8 @@ func (s *RuntimeProfileSandboxResources) SetMemory(val OptString) {
 
 // RuntimeProfileSandboxResumeCommandsItem represents sum type.
 type RuntimeProfileSandboxResumeCommandsItem struct {
-	Type                                     RuntimeProfileSandboxResumeCommandsItemType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type                                     RuntimeProfileSandboxResumeCommandsItemType
 	String                                   string
 	RuntimeProfileSandboxResumeCommandsItem1 RuntimeProfileSandboxResumeCommandsItem1
 }
@@ -26970,7 +27002,8 @@ func (s *UpdateRuntimeProfileBodySandboxResources) SetMemory(val OptString) {
 
 // UpdateRuntimeProfileBodySandboxResumeCommandsItem represents sum type.
 type UpdateRuntimeProfileBodySandboxResumeCommandsItem struct {
-	Type                                               UpdateRuntimeProfileBodySandboxResumeCommandsItemType // switch on this field
+	// Type selects the active sum variant, switch on this field.
+	Type                                               UpdateRuntimeProfileBodySandboxResumeCommandsItemType
 	String                                             string
 	UpdateRuntimeProfileBodySandboxResumeCommandsItem1 UpdateRuntimeProfileBodySandboxResumeCommandsItem1
 }
