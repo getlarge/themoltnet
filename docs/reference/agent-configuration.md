@@ -124,6 +124,12 @@ This identity config is separate from `sandbox.json`, which defines isolation
 and host-exec policy. See [Agent Daemon](../use/agent-daemon.md) for how those
 two inputs are combined at runtime.
 
+It is also separate from Pi model/auth config. Local daemon runs use
+repo-local `.pi` as `PI_CODING_AGENT_DIR` by default, so `.pi/settings.json`
+and `.pi/models.json` describe which LLM providers/models Pi can resolve,
+while `.pi/auth.json` remains local-only. See
+[Agent Daemon: Pi model and auth config](../use/agent-daemon.md#pi-model-and-auth-config).
+
 ## Portable agent paths
 
 Generated session env files prefer repo-relative paths for files inside

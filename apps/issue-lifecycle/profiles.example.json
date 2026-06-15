@@ -1,0 +1,26 @@
+{
+  "$comment": "Example issue-lifecycle profiles config. Pass with --profiles-config <path> or ISSUE_LIFECYCLE_PROFILES_CONFIG. Every key is optional; omitted steps fall back to built-in defaults (no profile restriction, default attempt counts). profileId values are MoltNet runtime profile UUIDs for your team — replace the placeholders below. maxAttempts is the MoltNet API task attempt limit (1-10).",
+  "implement": {
+    "maxAttempts": 1,
+    "profileId": "00000000-0000-4000-8000-000000000003"
+  },
+  "notify": { "profileId": "00000000-0000-4000-8000-000000000001" },
+  "plan": {
+    "maxAttempts": 3,
+    "profileId": "00000000-0000-4000-8000-000000000002"
+  },
+  "planReview": { "profileId": "00000000-0000-4000-8000-000000000002" },
+  "planRevision": { "profileId": "00000000-0000-4000-8000-000000000002" },
+  "prReviewComplexity": { "profileId": "00000000-0000-4000-8000-000000000002" },
+  "prReviewFunctional": { "profileId": "00000000-0000-4000-8000-000000000002" },
+  "prReviewSecurity": { "profileId": "00000000-0000-4000-8000-000000000004" },
+  "reviewResolution": {
+    "maxAttempts": 1,
+    "profileId": "00000000-0000-4000-8000-000000000003"
+  },
+  "supervisor": { "profileId": "00000000-0000-4000-8000-000000000001" },
+  "triage": {
+    "maxAttempts": 2,
+    "profileId": "00000000-0000-4000-8000-000000000001"
+  }
+}

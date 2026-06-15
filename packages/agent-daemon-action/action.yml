@@ -248,6 +248,20 @@ runs:
           echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
         } >> "$GITHUB_ENV"
 
+    - name: Configure Pi agent dir
+      shell: bash
+      run: |
+        set -euo pipefail
+        # GitHub Actions runs should be hermetic: do not let the daemon
+        # fall back to repo-local .pi or to the runner user's home dir.
+        # Callers may still provide PI_CODING_AGENT_DIR explicitly.
+        PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
+        mkdir -p "$PI_AGENT_DIR"
+        {
+          echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR"
+        } >> "$GITHUB_ENV"
+        echo "::notice::Pi agent dir set to $PI_AGENT_DIR"
+
     - name: Materialize Pi auth.json (when PI_AUTH_JSON is set)
       shell: bash
       run: |
@@ -277,13 +291,10 @@ runs:
           # PI_CODING_AGENT_DIR — keeps the secret out of the home
           # tree (so it doesn't leak into action caches that include
           # `~`) while staying inside what pi can read directly.
-          PI_AGENT_DIR="$RUNNER_TEMP/.pi/agent"
+          PI_AGENT_DIR="${PI_CODING_AGENT_DIR:?PI_CODING_AGENT_DIR must be configured before materializing Pi auth}"
           mkdir -p "$PI_AGENT_DIR"
           printf '%s' "$PI_AUTH_JSON" > "$PI_AGENT_DIR/auth.json"
           chmod 600 "$PI_AGENT_DIR/auth.json"
-          {
-            echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR"
-          } >> "$GITHUB_ENV"
           echo "::notice::Pi auth.json materialized at $PI_AGENT_DIR/auth.json (PI_CODING_AGENT_DIR=$PI_AGENT_DIR)"
 
           # Best-effort staleness check (#1040). Pi writes per-provider

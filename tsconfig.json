@@ -21,6 +21,9 @@
       "path": "apps/agent-daemon"
     },
     {
+      "path": "apps/issue-lifecycle"
+    },
+    {
       "path": "apps/console"
     },
     {

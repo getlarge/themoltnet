@@ -53,6 +53,40 @@ For an end-to-end smoke-test walkthrough against the local Docker stack — prov
 - `--provider <id>` — LLM provider id (e.g. `anthropic`, `openai-codex`). Required unless `--profile` is set.
 - `--model <id>` — LLM model id for that provider (e.g. `claude-sonnet-4-5`). Required unless `--profile` is set.
 
+### Pi model and auth config
+
+The daemon runs Pi headlessly through `@themoltnet/pi-extension`. For local
+daemon runs, it sets `PI_CODING_AGENT_DIR` to repo-local `.pi` before creating
+Pi sessions, unless you already set `PI_CODING_AGENT_DIR` yourself.
+
+Use this split:
+
+| File                | Commit? | Purpose                                                                                     |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `.pi/settings.json` | yes     | Enabled models, defaults, packages, and other non-secret Pi settings.                       |
+| `.pi/models.json`   | yes     | Provider/model registry. Reference keys by env var name, e.g. `"apiKey": "OLLAMA_API_KEY"`. |
+| `.pi/auth.json`     | no      | Local subscription OAuth/API-key auth blob. Keep gitignored.                                |
+
+This means `--provider ollama-cloud --model gemma4:31b-cloud` only works when
+repo-local `.pi/models.json` defines the `ollama-cloud` provider and that
+model. If `.pi/auth.json` is absent, Pi resolves the provider key from the
+environment variable named in `.pi/models.json`, for example:
+
+```bash
+export OLLAMA_API_KEY=...
+npx @themoltnet/agent-daemon poll \
+  --team "$MOLTNET_TEAM_ID" \
+  --agent legreffier \
+  --provider ollama-cloud \
+  --model gemma4:31b-cloud \
+  --task-types freeform
+```
+
+To use Pi's default home directory for a run, set
+`PI_CODING_AGENT_DIR="$HOME/.pi/agent"` before starting the daemon. That is an
+explicit override; the daemon default is repo-local `.pi` so local runs remain
+portable across developers and machines.
+
 ### Common optional flags
 
 - `--lease-ttl-sec` — daemon-set sliding liveness window. Silence longer than this ends the attempt with `lease_expired`. Also written to `task.claim_expires_at` for external observability. Default 300s.

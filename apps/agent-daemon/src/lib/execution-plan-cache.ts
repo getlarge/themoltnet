@@ -145,6 +145,7 @@ async function maybeAttachWarmSlotContext(
     return {
       ...basePlan,
       workspaceMode: 'dedicated_worktree',
+      workspaceId: resolution.producerSlot.workspace?.workspaceId ?? null,
       worktreeBranch: resolution.producerSlot.workspace?.worktreeBranch ?? null,
       sessionPersistence: {
         sessionDir: `${stateDirs.piSessionsDir}/continue-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,

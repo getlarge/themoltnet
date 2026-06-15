@@ -1,0 +1,7 @@
+{
+  "name": "@moltnet/absurd-migrate-image",
+  "projectType": "application",
+  "root": "infra/absurd",
+  "tags": ["type:infra", "scope:agent", "platform:docker"],
+  "targets": {}
+}

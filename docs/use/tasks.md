@@ -105,6 +105,26 @@ The useful pattern is:
 4. Promote repeated shapes into real task types only after the contract is
    stable enough to validate and route.
 
+### Durable freeform orchestration
+
+Some workflows are specific enough to need orchestration, but still broad
+enough that each step should remain `freeform`. In that case, keep execution
+and orchestration separate:
+
+- a durable workflow app creates tasks, records their ids, and waits for
+  accepted attempts
+- agents execute each task through the normal daemon loop
+- follow-up work is another correlated task, usually with `continueFrom`
+- ambiguous or failed task outputs are handled by creating a decision-only
+  supervisor task rather than by hiding the failure in the orchestrator
+- the workflow validates the supervisor output and applies only actions it
+  explicitly allows
+
+This keeps the daemon generic and makes recovery decisions inspectable as task
+outputs. The GitHub issue lifecycle runner is the concrete example in this
+repository: see
+[`apps/issue-lifecycle/README.md`](../../apps/issue-lifecycle/README.md).
+
 Source-of-truth tests for this contract:
 
 - `libs/tasks/src/validation.test.ts` covers the freeform execution policy,

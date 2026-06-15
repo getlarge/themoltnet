@@ -471,7 +471,7 @@ describe('isContinuationClaimableByThisDaemon', () => {
         { input: { brief: 'x' } } as never,
         makeSlotRegistry(null),
       ),
-    ).resolves.toBe(true);
+    ).resolves.toEqual({ claimable: true });
   });
 
   it('returns false when no slot exists for the source', async () => {
@@ -485,7 +485,11 @@ describe('isContinuationClaimableByThisDaemon', () => {
         } as never,
         makeSlotRegistry(null),
       ),
-    ).resolves.toBe(false);
+    ).resolves.toEqual({
+      claimable: false,
+      reason: 'missing_producer_slot',
+      continueFrom: { taskId: 'aaa', attemptN: 1 },
+    });
   });
 
   it("returns false when slot exists but sessionDir doesn't exist on disk", async () => {
@@ -500,7 +504,12 @@ describe('isContinuationClaimableByThisDaemon', () => {
         } as never,
         makeSlotRegistry(slot),
       ),
-    ).resolves.toBe(false);
+    ).resolves.toEqual({
+      claimable: false,
+      reason: 'missing_session_dir',
+      continueFrom: { taskId: 'aaa', attemptN: 1 },
+      sessionDir: '/tmp/does/not/exist-xyz-123',
+    });
   });
 
   it('returns true when slot + sessionDir both exist', async () => {
@@ -516,6 +525,6 @@ describe('isContinuationClaimableByThisDaemon', () => {
         } as never,
         makeSlotRegistry(slot),
       ),
-    ).resolves.toBe(true);
+    ).resolves.toEqual({ claimable: true });
   });
 });

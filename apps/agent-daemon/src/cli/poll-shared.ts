@@ -19,7 +19,7 @@ import {
   findMainWorktree,
 } from '@themoltnet/pi-extension';
 
-import { loadConfig } from '../config.js';
+import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { resolveAgentContext } from '../lib/agent-context.js';
 import {
   createGhCliClient,
@@ -40,6 +40,7 @@ import {
   validateTaskTypes,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
+import { ensurePiAgentDir } from '../lib/pi-agent-dir.js';
 import {
   resolveProfileWarmSessionTtlSec,
   resolveRuntimeProfile,
@@ -174,6 +175,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         path: profile.source,
       }
     : resolveSandbox(process.cwd(), values.sandbox);
+  const piAgentDir = ensurePiAgentDir(sandbox.rootDir, cfg.piCodingAgentDir);
+  activatePiCodingAgentDir(piAgentDir.path);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
   const slotRegistry = new DaemonSlotRegistry(
     resolveDaemonStateStorageConfig(
@@ -277,6 +280,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             profileWorkspaceTtlSec: profile.workspaceTtlSec,
           }
         : {}),
+      piAgentDir: piAgentDir.path,
+      piAgentDirSource: piAgentDir.source,
     },
     'agent-daemon.starting',
   );

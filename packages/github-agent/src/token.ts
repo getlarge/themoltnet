@@ -141,12 +141,15 @@ export async function getInstallationToken(opts: {
   appId: string;
   privateKeyPath: string;
   installationId: string;
+  forceRefresh?: boolean;
 }): Promise<{ token: string; expiresAt: string }> {
   const cachePath = join(dirname(opts.privateKeyPath), 'gh-token-cache.json');
 
   // Try cache first
-  const cached = await readTokenCache(cachePath);
-  if (cached) return cached;
+  if (!opts.forceRefresh) {
+    const cached = await readTokenCache(cachePath);
+    if (cached) return cached;
+  }
 
   // Cache miss — fetch from GitHub API
   const privateKeyPem = await readFile(opts.privateKeyPath, 'utf-8');

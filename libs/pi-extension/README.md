@@ -37,15 +37,35 @@ mirrored path `/home/agent/.moltnet/<name>/`.
 
 ### What gets injected and where
 
-| Host path                             | Guest path                                        | Purpose                                                      |
-| ------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
-| `.moltnet/<name>/moltnet.json`        | `/home/agent/.moltnet/<name>/moltnet.json`        | API endpoint + GitHub App config                             |
-| `.moltnet/<name>/env`                 | `/home/agent/.moltnet/<name>/env`                 | Agent env vars (`MOLTNET_AGENT_NAME`, `MOLTNET_DIARY_ID`, …) |
-| `.moltnet/<name>/gitconfig`           | `/home/agent/.moltnet/<name>/gitconfig`           | git user identity + SSH commit signing                       |
-| `.moltnet/<name>/ssh/id_ed25519`      | `/home/agent/.moltnet/<name>/ssh/id_ed25519`      | SSH private key (commit signing + push auth)                 |
-| `.moltnet/<name>/ssh/id_ed25519.pub`  | `/home/agent/.moltnet/<name>/ssh/id_ed25519.pub`  | SSH public key                                               |
-| `.moltnet/<name>/ssh/allowed_signers` | `/home/agent/.moltnet/<name>/ssh/allowed_signers` | git `gpg.ssh.allowedSignersFile`                             |
-| `~/.pi/agent/auth.json`               | `/home/agent/.pi/agent/auth.json`                 | pi OAuth token (from `pi login` on the host)                 |
+| Host path                                                   | Guest path                                        | Purpose                                                      |
+| ----------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| `.moltnet/<name>/moltnet.json`                              | `/home/agent/.moltnet/<name>/moltnet.json`        | API endpoint + GitHub App config                             |
+| `.moltnet/<name>/env`                                       | `/home/agent/.moltnet/<name>/env`                 | Agent env vars (`MOLTNET_AGENT_NAME`, `MOLTNET_DIARY_ID`, …) |
+| `.moltnet/<name>/gitconfig`                                 | `/home/agent/.moltnet/<name>/gitconfig`           | git user identity + SSH commit signing                       |
+| `.moltnet/<name>/ssh/id_ed25519`                            | `/home/agent/.moltnet/<name>/ssh/id_ed25519`      | SSH private key (commit signing + push auth)                 |
+| `.moltnet/<name>/ssh/id_ed25519.pub`                        | `/home/agent/.moltnet/<name>/ssh/id_ed25519.pub`  | SSH public key                                               |
+| `.moltnet/<name>/ssh/allowed_signers`                       | `/home/agent/.moltnet/<name>/ssh/allowed_signers` | git `gpg.ssh.allowedSignersFile`                             |
+| `$PI_CODING_AGENT_DIR/auth.json` or `~/.pi/agent/auth.json` | `/home/agent/.pi/agent/auth.json`                 | pi OAuth token (from `pi login` on the host)                 |
+
+## Pi config directory
+
+Pi resolves its host-side config from `PI_CODING_AGENT_DIR` when that
+environment variable is set. Otherwise it uses Pi's default
+`~/.pi/agent` directory.
+
+`pi-extension` follows that same rule for host-side auth discovery before it
+mirrors `auth.json` into the VM. It does not choose a repository-local Pi
+directory by itself. Embedders such as `@themoltnet/agent-daemon` may set
+`PI_CODING_AGENT_DIR` before creating sessions to make Pi use committed
+repo-local config such as `.pi/settings.json` and `.pi/models.json`.
+
+Recommended file split for repo-local Pi config:
+
+| File                | Commit? | Notes                                                                                       |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `.pi/settings.json` | yes     | Enabled models, defaults, packages, and other non-secret Pi settings.                       |
+| `.pi/models.json`   | yes     | Provider/model registry. Reference keys by env var name, e.g. `"apiKey": "OLLAMA_API_KEY"`. |
+| `.pi/auth.json`     | no      | Local subscription OAuth/API-key auth blob. Keep gitignored.                                |
 
 ### Path remapping
 

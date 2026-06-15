@@ -50,8 +50,17 @@ The agent's `moltnet.json` and gitconfig live next to each other in
 
 ### Pi provider auth
 
-Pi resolves provider credentials in this order: `~/.pi/agent/auth.json` (if
-present) wins, else environment variables. For CI prefer env vars:
+The daemon resolves Pi config from the repository-local `.pi` directory by
+default. On startup, if `PI_CODING_AGENT_DIR` is not already set, the daemon
+sets it to `<repo-root>/.pi` before creating Pi sessions. This keeps daemon
+runs deterministic and avoids inheriting user-level `~/.pi/agent` state.
+
+Repo-local `.pi/settings.json` and `.pi/models.json` are intended to be
+committed. `models.json` should reference provider keys by environment-variable
+name, for example `"apiKey": "OLLAMA_API_KEY"`, not contain secret values.
+Repo-local `.pi/auth.json` may exist for local subscription auth, but is
+gitignored. Without `.pi/auth.json`, Pi falls back to environment-variable
+provider keys:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -59,7 +68,8 @@ export ANTHROPIC_API_KEY=sk-ant-...
 # https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts
 ```
 
-To use a non-default auth directory: `PI_CODING_AGENT_DIR=/abs/path/to/.pi/agent`.
+To force a non-repo Pi directory, set
+`PI_CODING_AGENT_DIR=/abs/path/to/.pi-or-agent-dir` before starting the daemon.
 
 ### Observability
 
@@ -126,11 +136,12 @@ registered task type; unknown task-type names remain invalid.
 ### Prerequisites
 
 - Docker running.
-- pi authenticated for the model provider you'll drive the daemon with
-  (`~/.pi/agent/auth.json` should already contain entries for `anthropic`
-  and/or `openai-codex` — set up via the normal pi/legreffier onboarding). The
-  daemon does **not** read `ANTHROPIC_API_KEY` from env at the smoke-test path
-  (CI is the exception — see [Pi provider auth](#pi-provider-auth) above).
+- Pi config for the model provider you'll drive the daemon with. Local daemon
+  runs default `PI_CODING_AGENT_DIR` to repo-local `.pi`, so committed
+  `.pi/settings.json` and `.pi/models.json` must list the provider/model. For
+  subscription auth, put your local token blob in `.pi/auth.json`; it is
+  gitignored. For API-key auth, keep `.pi/auth.json` absent and export the
+  provider key referenced by `.pi/models.json`, for example `OLLAMA_API_KEY`.
 - `ssh-keygen` on `PATH`.
 - A `sandbox.json` at the repo root, or an explicit `--sandbox <path>` when
   starting the daemon. The daemon searches up for this file and uses its

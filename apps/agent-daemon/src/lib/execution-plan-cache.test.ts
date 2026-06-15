@@ -240,6 +240,7 @@ describe('createExecutionPlanCache', () => {
     });
 
     expect(plan.workspaceMode).toBe('dedicated_worktree');
+    expect(plan.workspaceId).toBe('task-parent');
     expect(plan.worktreeBranch).toBe('feat/parent');
     expect(plan.sessionPersistence?.forkFromSessionPath).toBe(
       producerSessionPath,

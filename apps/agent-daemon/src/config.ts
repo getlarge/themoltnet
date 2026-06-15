@@ -16,6 +16,8 @@ export interface DaemonConfig {
   profilePrerequisiteEnv: NodeJS.ProcessEnv;
   /** PATH used when resolving profile requiredTools. */
   profilePrerequisitePath: string;
+  /** Optional Pi agent dir override. Empty = daemon defaults to repo-local .pi. */
+  piCodingAgentDir: string;
 }
 
 export function loadConfig(): DaemonConfig {
@@ -26,5 +28,10 @@ export function loadConfig(): DaemonConfig {
     logLevel: process.env['LOG_LEVEL'] ?? '',
     profilePrerequisiteEnv: process.env,
     profilePrerequisitePath: process.env.PATH ?? '',
+    piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
   };
+}
+
+export function activatePiCodingAgentDir(path: string): void {
+  process.env['PI_CODING_AGENT_DIR'] = path;
 }

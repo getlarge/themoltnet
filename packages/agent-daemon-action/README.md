@@ -140,6 +140,12 @@ with an error explaining what to set. The workflow fails closed.
 Pi-headless inside the daemon needs to authenticate against an LLM
 provider. Two mutually-compatible options:
 
+The action always sets `PI_CODING_AGENT_DIR` before starting the
+daemon. By default it points to `$RUNNER_TEMP/.pi/agent`, keeping
+GitHub runs isolated from both repo-local `.pi` config and the runner
+user's home directory. Set `PI_CODING_AGENT_DIR` explicitly only if
+you want the action to use a different runner-local Pi directory.
+
 ### Option A — Env-var API key (default, stateless)
 
 Set one of the [Pi-supported provider env vars](https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts)

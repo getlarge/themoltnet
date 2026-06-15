@@ -210,6 +210,9 @@ catalogs:
     '@vitest/ui':
       specifier: ^3.0.0
       version: 3.2.4
+    absurd-sdk:
+      specifier: ^0.4.0
+      version: 0.4.0
     citty:
       specifier: ^0.2.2
       version: 0.2.2
@@ -688,6 +691,46 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+
+  apps/issue-lifecycle:
+    dependencies:
+      '@themoltnet/github-agent':
+        specifier: workspace:*
+        version: link:../../packages/github-agent
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../../libs/sdk
+      absurd-sdk:
+        specifier: 'catalog:'
+        version: 0.4.0(pg@8.18.0)
+      pino:
+        specifier: 'catalog:'
+        version: 10.3.1
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
+    devDependencies:
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   apps/landing:
     dependencies:
@@ -5928,6 +5971,12 @@ packages:
 
   abstract-logging@2.0.1:
     resolution: {integrity: sha512-2BjRTZxTPvheOvGbBslFSYOUkr+SjPtOnrLP33f+VIWLzezQpZcqVg7ja3L4dBXmzzgwT+a029jRx5PCi3JuiA==}
+
+  absurd-sdk@0.4.0:
+    resolution: {integrity: sha512-vUqaC8HaLi/LMNDzRDveyaiBJF6owt3VfY90jhbD/E29ec4p9GeDRNe6ZQJ5Jc7eJcQV7+2bC0V+FkAImrW8Dw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      pg: ^8.0.0
 
   accepts@2.0.0:
     resolution: {integrity: sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng==}
@@ -12338,7 +12387,7 @@ snapshots:
   '@earendil-works/pi-agent-core@0.74.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.20.0)(zod@4.4.3)':
     dependencies:
       '@earendil-works/pi-ai': 0.74.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.20.0)(zod@4.4.3)
-      typebox: 1.1.37
+      typebox: 1.2.8
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - aws-crt
@@ -15332,6 +15381,10 @@ snapshots:
       event-target-shim: 5.0.1
 
   abstract-logging@2.0.1: {}
+
+  absurd-sdk@0.4.0(pg@8.18.0):
+    dependencies:
+      pg: 8.18.0
 
   accepts@2.0.0:
     dependencies:

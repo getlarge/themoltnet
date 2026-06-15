@@ -40,17 +40,38 @@ export interface ContinuationSlotRegistry {
 export async function isContinuationClaimableByThisDaemon(
   task: { input?: { continueFrom?: { taskId: string; attemptN: number } } },
   slotRegistry: ContinuationSlotRegistry,
-): Promise<boolean> {
+): Promise<
+  | { claimable: true }
+  | {
+      claimable: false;
+      reason: 'missing_producer_slot' | 'missing_session_dir';
+      continueFrom: { taskId: string; attemptN: number };
+      sessionDir?: string | null;
+    }
+> {
   const cf = task.input?.continueFrom;
-  if (!cf) return true;
+  if (!cf) return { claimable: true };
   const slot = await slotRegistry.findLatestProducerSlotByTaskAttempt(
     cf.taskId,
     cf.attemptN,
   );
-  if (!slot) return false;
+  if (!slot) {
+    return {
+      claimable: false,
+      reason: 'missing_producer_slot',
+      continueFrom: cf,
+    };
+  }
   const sessionDir = slot.session?.sessionDir;
-  if (!sessionDir || !existsSync(sessionDir)) return false;
-  return true;
+  if (!sessionDir || !existsSync(sessionDir)) {
+    return {
+      claimable: false,
+      reason: 'missing_session_dir',
+      continueFrom: cf,
+      sessionDir,
+    };
+  }
+  return { claimable: true };
 }
 
 export interface PollingApiTaskSourceOptions {
@@ -242,14 +263,24 @@ export class PollingApiTaskSource implements TaskSource {
         // gone). Other daemons skip too if they also don't own it; the
         // task lingers queued until the original daemon polls or the
         // server's dispatch_timeout_sec fires. See #1287, #1299.
-        if (
-          this.opts.slotRegistry &&
-          !(await isContinuationClaimableByThisDaemon(
+        if (this.opts.slotRegistry) {
+          const affinity = await isContinuationClaimableByThisDaemon(
             item,
             this.opts.slotRegistry,
-          ))
-        ) {
-          continue;
+          );
+          if (!affinity.claimable) {
+            this.logger.debug(
+              {
+                taskId: item.id,
+                taskType: item.taskType,
+                reason: affinity.reason,
+                continueFrom: affinity.continueFrom,
+                sessionDir: affinity.sessionDir,
+              },
+              'polling-api.continuation_skipped',
+            );
+            continue;
+          }
         }
         // Belt-and-braces profile filter — silently skip profile-pinned
         // tasks whose allowedProfiles does not include this daemon's
