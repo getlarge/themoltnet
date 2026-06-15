@@ -354,7 +354,10 @@ is created.
 Steps: `triage`, `plan`, `planReview`, `planRevision`, `implement`,
 `prReviewComplexity`, `prReviewFunctional`, `prReviewSecurity`,
 `reviewResolution`, `supervisor`, `notify`. Each entry accepts an optional
-`profileId` (UUID) and `maxAttempts` (1–10).
+`profileId` (UUID), `maxAttempts` (1–10), and `requiredExecutorTrustLevel`
+(`selfDeclared` | `agentSigned` | `releaseVerifiedTool` | `sandboxAttested` —
+the minimum executor trust a daemon must have to claim that step's task; the
+server defaults to `selfDeclared`).
 
 See [`profiles.example.json`](./profiles.example.json) for a full template:
 

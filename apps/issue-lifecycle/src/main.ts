@@ -10,6 +10,7 @@ import { GhCliGithubClient } from './github-cli.js';
 import { FetchGithubClient } from './github-fetch.js';
 import { createSdkTaskClient } from './sdk-task-client.js';
 import type { GithubClient } from './types.js';
+import { validateConfiguredProfiles } from './validate-profiles.js';
 
 function createGithubClient(
   cfg: ReturnType<typeof parseCliConfig>,
@@ -43,6 +44,17 @@ async function main(): Promise<number> {
     'issue_lifecycle.cli.start',
   );
   const agent = await connect({ configDir: cfg.agentDir });
+
+  // Fail fast if the profiles config pins steps to runtime profiles this agent
+  // can't resolve — otherwise those tasks would be created with an
+  // unsatisfiable allowedProfiles allowlist and never get claimed.
+  if (cfg.input.lifecycleConfig) {
+    await validateConfiguredProfiles(
+      agent.runtimeProfiles,
+      cfg.input.lifecycleConfig,
+    );
+  }
+
   const app = createIssueLifecycleAbsurdApp({
     databaseUrl: cfg.databaseUrl,
     queueName: cfg.queueName,

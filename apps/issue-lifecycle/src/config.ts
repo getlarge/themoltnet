@@ -14,6 +14,31 @@ import type { IssueLifecycleInput } from './types.js';
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const ISSUE_LIFECYCLE_HELP = `moltnet-issue-lifecycle — drive a GitHub issue through the MoltNet task lifecycle.
+
+Usage: moltnet-issue-lifecycle --repo <owner/repo> --issue <n> [flags]
+
+Required:
+  --repo <owner/repo>        GitHub repository
+  --issue <n>                issue number (positive integer)
+  --database-url <url>       Absurd queue database (or ISSUE_LIFECYCLE_DATABASE_URL)
+
+Common flags:
+  --agent <name>             activated MoltNet agent dir under .moltnet/ (default: legreffier)
+  --team-id <uuid>           override .moltnet/<agent>/env
+  --diary-id <uuid>          override .moltnet/<agent>/env
+  --correlation-id <uuid>    stable idempotency key
+  --console-url <url>        console base URL for task links
+  --queue-name <name>        Absurd queue name (default: issue-lifecycle)
+  --github-auth <mode>       moltnet | env | gh-cli (default: moltnet)
+  --poll-interval-sec <n>    label/task/PR poll interval
+  --max-pr-pending-polls <n> max pending PR-check polls before failing
+  --profiles-config <path>   per-step runtime profile + task config (JSON);
+                             also ISSUE_LIFECYCLE_PROFILES_CONFIG
+  -h, --help                 show this help and exit
+
+See apps/issue-lifecycle/README.md for the full reference.`;
+
 export interface CliConfig {
   repoRoot: string;
   agentName: string;
@@ -95,6 +120,7 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
   const { values } = parseArgs({
     args: argv,
     options: {
+      help: { type: 'boolean', short: 'h', default: false },
       repo: { type: 'string' },
       issue: { type: 'string' },
       agent: { type: 'string', default: 'legreffier' },
@@ -113,6 +139,11 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
       'profiles-config': { type: 'string' },
     },
   });
+
+  if (values.help) {
+    process.stdout.write(`${ISSUE_LIFECYCLE_HELP}\n`);
+    process.exit(0);
+  }
 
   const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
     encoding: 'utf8',

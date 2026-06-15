@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 
+import { ExecutorTrustLevel } from '@moltnet/tasks';
 import { type Static, Type } from 'typebox';
 import { Value } from 'typebox/value';
 
@@ -50,6 +51,13 @@ const StepConfig = Type.Object(
     maxAttempts: Type.Optional(
       Type.Integer({ minimum: 1, maximum: MAX_CONFIGURABLE_ATTEMPTS }),
     ),
+    /**
+     * Minimum executor trust level required to claim this step's task
+     * (`selfDeclared` < `agentSigned` < `releaseVerifiedTool` <
+     * `sandboxAttested`). Independent of the runtime profile. The server
+     * defaults to `selfDeclared` when omitted.
+     */
+    requiredExecutorTrustLevel: Type.Optional(ExecutorTrustLevel),
   },
   { additionalProperties: false },
 );
