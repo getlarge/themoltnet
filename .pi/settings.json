@@ -8,7 +8,8 @@
     "ollama-cloud/qwen3-coder:480b-cloud",
     "ollama/gemma4:12b",
     "ollama-cloud/gemma4:31b-cloud",
-    "ollama-cloud/minimax-m3:cloud"
+    "ollama-cloud/minimax-m3:cloud",
+    "ollama-cloud/kimi-k2.7-code:cloud"
   ],
   "packages": ["npm:@ollama/pi-web-search", "npm:@themoltnet/pi-extension"],
   "transport": "sse",
