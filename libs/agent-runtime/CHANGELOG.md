@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.25.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.24.0...agent-runtime-v0.25.0) (2026-06-15)
+
+
+### Features
+
+* add GitHub issue lifecycle runner ([f93439c](https://github.com/getlarge/themoltnet/commit/f93439c8065f4903615d9c37a471127bd4192afa))
+* add PR review loop to issue lifecycle ([5447439](https://github.com/getlarge/themoltnet/commit/54474399e97e27dc3d836c0848bc1e4b88729f4c))
+
 ## [0.24.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.23.0...agent-runtime-v0.24.0) (2026-06-14)
 
 

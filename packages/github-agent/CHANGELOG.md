@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.24.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.23.15...github-agent-v0.24.0) (2026-06-15)
+
+
+### Features
+
+* add GitHub issue lifecycle runner ([f93439c](https://github.com/getlarge/themoltnet/commit/f93439c8065f4903615d9c37a471127bd4192afa))
+
+
+### Bug Fixes
+
+* **issue-lifecycle:** use github app fetch client ([87789c8](https://github.com/getlarge/themoltnet/commit/87789c86ee26572e4c0c04b4c2a4d89345a0946d))
+
 ## [0.23.15](https://github.com/getlarge/themoltnet/compare/github-agent-v0.23.14...github-agent-v0.23.15) (2026-06-14)
 
 

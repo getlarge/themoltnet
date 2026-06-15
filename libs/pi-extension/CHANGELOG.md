@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.24.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.23.1...pi-extension-v0.24.0) (2026-06-15)
+
+
+### Features
+
+* add GitHub issue lifecycle runner ([f93439c](https://github.com/getlarge/themoltnet/commit/f93439c8065f4903615d9c37a471127bd4192afa))
+
+
+### Bug Fixes
+
+* **agent-daemon:** log pi auth diagnostics ([6086df2](https://github.com/getlarge/themoltnet/commit/6086df2acd44e346cc6786b619c931c01f4c3a16))
+
+
+### Reverts
+
+* **agent-daemon:** remove pi auth diagnostics ([a508d30](https://github.com/getlarge/themoltnet/commit/a508d30d3798cadb974b86d7eddeeef3d717bac2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.25.0
+
 ## [0.23.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.23.0...pi-extension-v0.23.1) (2026-06-14)
 
 
