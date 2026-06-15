@@ -8,6 +8,7 @@ import { getInstallationToken } from '@themoltnet/github-agent';
 import type { MoltNetConfig } from '@themoltnet/sdk';
 
 import type { GithubTokenProvider } from './github-fetch.js';
+import { loadLifecycleConfig } from './lifecycle-config.js';
 import type { IssueLifecycleInput } from './types.js';
 
 const UUID_RE =
@@ -109,6 +110,7 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
       'github-auth': { type: 'string' },
       'poll-interval-sec': { type: 'string' },
       'max-pr-pending-polls': { type: 'string' },
+      'profiles-config': { type: 'string' },
     },
   });
 
@@ -161,6 +163,13 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
 
   const correlationId = values['correlation-id'] ?? randomUUID();
 
+  // Optional per-step runtime profile + task-attempt config. Loaded and
+  // validated here so a malformed file fails before any task is created.
+  const lifecycleConfig = loadLifecycleConfig(
+    values['profiles-config'] ?? process.env.ISSUE_LIFECYCLE_PROFILES_CONFIG,
+  );
+  const hasLifecycleConfig = Object.keys(lifecycleConfig).length > 0;
+
   return {
     repoRoot,
     agentName,
@@ -194,6 +203,7 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
         : {}),
       ...(pollIntervalSec !== undefined ? { pollIntervalSec } : {}),
       ...(maxPrPendingPolls !== undefined ? { maxPrPendingPolls } : {}),
+      ...(hasLifecycleConfig ? { lifecycleConfig } : {}),
     },
   };
 }

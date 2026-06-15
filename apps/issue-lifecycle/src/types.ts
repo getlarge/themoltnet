@@ -1,5 +1,7 @@
 import type { Agent } from '@themoltnet/sdk';
 
+import type { LifecycleConfig } from './lifecycle-config.js';
+
 export type SdkTask = Awaited<ReturnType<Agent['tasks']['get']>>;
 export type SdkTaskAttempt = Awaited<
   ReturnType<Agent['tasks']['listAttempts']>
@@ -38,7 +40,13 @@ export interface IssueLifecycleInput {
   approvalLabel?: string;
   readyForReviewLabel?: string;
   skipNotifyLabel?: string;
-  allowedExecutors?: Array<{ provider: string; model: string }>;
+  /**
+   * Per-step runtime profile + task-attempt config. Pins which MoltNet runtime
+   * profile (provider/model/sandbox) each lifecycle step may run on (enforced
+   * via the task `allowedProfiles` allowlist) and the per-task `maxAttempts`.
+   * Loaded and validated from an external JSON file; empty = built-in defaults.
+   */
+  lifecycleConfig?: LifecycleConfig;
   requiredExecutorTrustLevel?:
     | 'selfDeclared'
     | 'agentSigned'

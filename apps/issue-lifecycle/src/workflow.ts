@@ -276,6 +276,7 @@ export async function runGithubIssueLifecycle(
       title: `Plan issue #${issue.number}`,
       brief: planBrief(issue),
       successCriteria: lifecycleCriteria.plan(),
+      step: 'plan',
     });
     const task = await deps.tasks.createTask(body);
     logCreatedTask(deps.logger, 'plan', task);
@@ -324,6 +325,7 @@ export async function runGithubIssueLifecycle(
           title: `Review plan for issue #${issue.number}`,
           brief: reviewBrief(),
           successCriteria: lifecycleCriteria.review(),
+          step: 'planReview',
         });
         const task = await deps.tasks.createTask(body);
         logCreatedTask(deps.logger, `plan-review.${round}`, task);
@@ -399,6 +401,7 @@ export async function runGithubIssueLifecycle(
           title: `Revise plan for issue #${issue.number}`,
           brief: revisePlanBrief(findings),
           successCriteria: lifecycleCriteria.revisePlan(),
+          step: 'planRevision',
         });
         const task = await deps.tasks.createTask(body);
         logCreatedTask(deps.logger, `plan-revision.${round}`, task);
@@ -519,6 +522,7 @@ export async function runGithubIssueLifecycle(
                 title: `Implement issue #${issue.number}`,
                 brief: implementationRetryBrief(),
                 successCriteria: lifecycleCriteria.implement(),
+                step: 'implement',
                 maxAttempts: 1,
               });
         const task = await deps.tasks.createTask(body);
@@ -906,6 +910,7 @@ export async function runGithubIssueLifecycle(
       title: `Notify issue #${issue.number}`,
       brief: notifyBrief(issue, prNumber, skipNotify),
       successCriteria: lifecycleCriteria.notify(),
+      step: 'notify',
       maxAttempts: 1,
     });
     const task = await deps.tasks.createTask(body);

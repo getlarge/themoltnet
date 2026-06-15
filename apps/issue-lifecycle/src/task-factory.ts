@@ -3,6 +3,11 @@ import { randomUUID } from 'node:crypto';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import type { SuccessCriteria } from '@moltnet/tasks';
 
+import {
+  type LifecycleStepName,
+  type StepConfig,
+  stepConfig,
+} from './lifecycle-config.js';
 import type {
   GithubIssue,
   IssueLifecycleInput,
@@ -168,14 +173,31 @@ function withApprovedPlanDependency(
   };
 }
 
+/** Resolve a step's config into the task fields it controls. */
+function stepTaskFields(
+  config: StepConfig,
+  defaultMaxAttempts: number,
+): { maxAttempts: number; allowedProfiles: Array<{ profileId: string }> } {
+  return {
+    maxAttempts: config.maxAttempts ?? defaultMaxAttempts,
+    allowedProfiles: config.profileId ? [{ profileId: config.profileId }] : [],
+  };
+}
+
 async function baseBody(
   input: IssueLifecycleInput & LifecycleDefaults,
   title: string,
   brief: string,
   issue: GithubIssue,
   successCriteria: SuccessCriteria,
-  maxAttempts = RETRYABLE_AGENT_TASK_ATTEMPTS,
+  step: LifecycleStepName,
+  defaultMaxAttempts = RETRYABLE_AGENT_TASK_ATTEMPTS,
 ) {
+  const config = stepConfig(input.lifecycleConfig ?? {}, step);
+  const { maxAttempts, allowedProfiles } = stepTaskFields(
+    config,
+    defaultMaxAttempts,
+  );
   return {
     taskType: 'freeform',
     title,
@@ -191,9 +213,9 @@ async function baseBody(
       successCriteria,
     },
     references: [await issueReference(input, issue)],
-    ...(input.allowedExecutors
-      ? { allowedExecutors: input.allowedExecutors }
-      : {}),
+    // Empty allowedProfiles = no restriction (any daemon may claim). A profileId
+    // pins the task to a runtime profile (provider/model/sandbox) server-side.
+    ...(allowedProfiles.length > 0 ? { allowedProfiles } : {}),
     ...(input.requiredExecutorTrustLevel
       ? { requiredExecutorTrustLevel: input.requiredExecutorTrustLevel }
       : {}),
@@ -237,6 +259,7 @@ export async function buildTriageTask(
       ],
       dependency: 'Initial task. Classify the issue before any planning work.',
     }),
+    'triage',
   );
 
   return {
@@ -256,6 +279,7 @@ export async function buildContinuationTask(args: {
   title: string;
   brief: string;
   successCriteria: SuccessCriteria;
+  step: LifecycleStepName;
   maxAttempts?: number;
 }): Promise<Parameters<TaskClient['createTask']>[0]> {
   const successCriteria = withParentDependency(
@@ -275,6 +299,7 @@ export async function buildContinuationTask(args: {
     continuationBrief,
     args.issue,
     successCriteria,
+    args.step,
     args.maxAttempts,
   );
   return {
@@ -328,6 +353,7 @@ export async function buildFreshImplementationTask(args: {
     freshBrief,
     args.issue,
     successCriteria,
+    'implement',
     SINGLE_MUTATION_TASK_ATTEMPTS,
   );
   return {
@@ -363,6 +389,7 @@ export async function buildPrReviewTask(args: {
     prReviewBrief(args.kind, args.prNumber),
     args.issue,
     lifecycleCriteria.prReview(args.kind),
+    prReviewStep(args.kind),
   );
   return {
     ...body,
@@ -403,6 +430,7 @@ export async function buildPrReviewResolutionTask(args: {
     brief,
     args.issue,
     lifecycleCriteria.reviewResolution(),
+    'reviewResolution',
     SINGLE_MUTATION_TASK_ATTEMPTS,
   );
   return {
@@ -484,6 +512,7 @@ export async function buildSupervisorRecommendationTask(args: {
       dependency:
         'Decision-only lifecycle supervisor task. Use the provided snapshot and choose one allowed next action.',
     }),
+    'supervisor',
   );
 }
 
@@ -753,6 +782,19 @@ function reviewTitle(kind: 'complexity' | 'functional' | 'security'): string {
       return 'Functional review';
     case 'security':
       return 'Security review';
+  }
+}
+
+function prReviewStep(
+  kind: 'complexity' | 'functional' | 'security',
+): LifecycleStepName {
+  switch (kind) {
+    case 'complexity':
+      return 'prReviewComplexity';
+    case 'functional':
+      return 'prReviewFunctional';
+    case 'security':
+      return 'prReviewSecurity';
   }
 }
 

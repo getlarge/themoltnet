@@ -34,7 +34,8 @@
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "absurd-sdk": "catalog:",
-    "pino": "catalog:"
+    "pino": "catalog:",
+    "typebox": "catalog:"
   },
   "devDependencies": {
     "@moltnet/crypto-service": "workspace:*",

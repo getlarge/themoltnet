@@ -319,6 +319,9 @@ Useful options:
 - `--poll-interval-sec <n>`: wait interval for labels/tasks/PR status
 - `--max-pr-pending-polls <n>`: maximum pending PR-check or merge polls before
   the workflow fails with an operator-actionable error
+- `--profiles-config <path>`: per-step runtime profile + task-attempt config
+  (JSON). Also read from `ISSUE_LIFECYCLE_PROFILES_CONFIG`. See
+  [Per-step runtime profiles](#per-step-runtime-profiles) below.
 
 GitHub auth defaults to a token minted from `.moltnet/<agent>/moltnet.json`
 using `@themoltnet/github-agent`. This keeps the lifecycle tied to the selected
@@ -327,6 +330,41 @@ default client calls the GitHub API directly with `fetch`, retries transient
 network/5xx failures, and forces one token refresh on `HTTP 401`. Use
 `--github-auth env` only when you explicitly want `GH_TOKEN`/`GITHUB_TOKEN` to
 win.
+
+### Per-step runtime profiles
+
+Each lifecycle step can be pinned to a MoltNet **runtime profile** and given a
+per-task **`maxAttempts`** via an external JSON file (`--profiles-config <path>`
+or `ISSUE_LIFECYCLE_PROFILES_CONFIG`). A runtime profile is a team-scoped,
+server-side record that fixes the provider, model, sandbox policy, and lease
+limits; pinning a step sets the task's `allowedProfiles` allowlist, so only a
+daemon running that profile can claim it. This is how you run, e.g., triage on a
+cheap model and security review on a stronger one.
+
+`maxAttempts` is the **MoltNet API task attempt limit** (the `maxAttempts` field
+on the created task), not a workflow-level retry. It bounds how many times a
+single task may be claimed and attempted before it terminally fails.
+
+The config is **optional** — omitted steps fall back to built-in defaults (no
+profile restriction, so any daemon may claim; 3 attempts for reasoning/review
+steps, 1 for mutation steps). The file is validated on load (TypeBox); unknown
+step keys, malformed UUIDs, or out-of-range attempts fail fast before any task
+is created.
+
+Steps: `triage`, `plan`, `planReview`, `planRevision`, `implement`,
+`prReviewComplexity`, `prReviewFunctional`, `prReviewSecurity`,
+`reviewResolution`, `supervisor`, `notify`. Each entry accepts an optional
+`profileId` (UUID) and `maxAttempts` (1–10).
+
+See [`profiles.example.json`](./profiles.example.json) for a full template:
+
+```bash
+node apps/issue-lifecycle/dist/main.js \
+  --repo getlarge/themoltnet \
+  --issue 1327 \
+  --database-url "$ISSUE_LIFECYCLE_DATABASE_URL" \
+  --profiles-config ./my-profiles.json
+```
 
 ### Local GitHub App Credentials
 
