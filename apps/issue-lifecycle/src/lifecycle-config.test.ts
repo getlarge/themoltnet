@@ -48,6 +48,23 @@ describe('parseLifecycleConfig', () => {
     expect(parseLifecycleConfig({})).toEqual({});
   });
 
+  it('accepts a valid requiredExecutorTrustLevel', () => {
+    const config = parseLifecycleConfig({
+      implement: { requiredExecutorTrustLevel: 'sandboxAttested' },
+    });
+    expect(config.implement?.requiredExecutorTrustLevel).toBe(
+      'sandboxAttested',
+    );
+  });
+
+  it('rejects an unknown requiredExecutorTrustLevel', () => {
+    expect(() =>
+      parseLifecycleConfig({
+        implement: { requiredExecutorTrustLevel: 'god' },
+      }),
+    ).toThrow(/Invalid issue-lifecycle profiles config/);
+  });
+
   it('allows $schema and $comment metadata keys', () => {
     expect(() =>
       parseLifecycleConfig({

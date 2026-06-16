@@ -1,8 +1,9 @@
 {
-  "$comment": "Example issue-lifecycle profiles config. Pass with --profiles-config <path> or ISSUE_LIFECYCLE_PROFILES_CONFIG. Every key is optional; omitted steps fall back to built-in defaults (no profile restriction, default attempt counts). profileId values are MoltNet runtime profile UUIDs for your team — replace the placeholders below. maxAttempts is the MoltNet API task attempt limit (1-10).",
+  "$comment": "Example issue-lifecycle profiles config. Pass with --profiles-config <path> or ISSUE_LIFECYCLE_PROFILES_CONFIG. Every key is optional; omitted steps fall back to built-in defaults (no profile restriction, default attempt counts, selfDeclared trust). profileId values are MoltNet runtime profile UUIDs for your team — replace the placeholders below. maxAttempts is the MoltNet API task attempt limit (1-10). requiredExecutorTrustLevel is one of selfDeclared|agentSigned|releaseVerifiedTool|sandboxAttested.",
   "implement": {
     "maxAttempts": 1,
-    "profileId": "00000000-0000-4000-8000-000000000003"
+    "profileId": "00000000-0000-4000-8000-000000000003",
+    "requiredExecutorTrustLevel": "sandboxAttested"
   },
   "notify": { "profileId": "00000000-0000-4000-8000-000000000001" },
   "plan": {

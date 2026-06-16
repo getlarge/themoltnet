@@ -177,10 +177,18 @@ function withApprovedPlanDependency(
 function stepTaskFields(
   config: StepConfig,
   defaultMaxAttempts: number,
-): { maxAttempts: number; allowedProfiles: Array<{ profileId: string }> } {
+  globalTrustLevel: IssueLifecycleInput['requiredExecutorTrustLevel'],
+): {
+  maxAttempts: number;
+  allowedProfiles: Array<{ profileId: string }>;
+  requiredExecutorTrustLevel: IssueLifecycleInput['requiredExecutorTrustLevel'];
+} {
   return {
     maxAttempts: config.maxAttempts ?? defaultMaxAttempts,
     allowedProfiles: config.profileId ? [{ profileId: config.profileId }] : [],
+    // Step-level trust level wins over the global input default.
+    requiredExecutorTrustLevel:
+      config.requiredExecutorTrustLevel ?? globalTrustLevel,
   };
 }
 
@@ -194,10 +202,12 @@ async function baseBody(
   defaultMaxAttempts = RETRYABLE_AGENT_TASK_ATTEMPTS,
 ) {
   const config = stepConfig(input.lifecycleConfig ?? {}, step);
-  const { maxAttempts, allowedProfiles } = stepTaskFields(
-    config,
-    defaultMaxAttempts,
-  );
+  const { maxAttempts, allowedProfiles, requiredExecutorTrustLevel } =
+    stepTaskFields(
+      config,
+      defaultMaxAttempts,
+      input.requiredExecutorTrustLevel,
+    );
   return {
     taskType: 'freeform',
     title,
@@ -216,9 +226,9 @@ async function baseBody(
     // Empty allowedProfiles = no restriction (any daemon may claim). A profileId
     // pins the task to a runtime profile (provider/model/sandbox) server-side.
     ...(allowedProfiles.length > 0 ? { allowedProfiles } : {}),
-    ...(input.requiredExecutorTrustLevel
-      ? { requiredExecutorTrustLevel: input.requiredExecutorTrustLevel }
-      : {}),
+    // Per-step trust level overrides the global input default; the server
+    // defaults to `selfDeclared` when neither is set.
+    ...(requiredExecutorTrustLevel ? { requiredExecutorTrustLevel } : {}),
   } satisfies Parameters<TaskClient['createTask']>[0];
 }
 
