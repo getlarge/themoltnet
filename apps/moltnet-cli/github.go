@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -92,23 +93,42 @@ func runGitHubSetupCmd(credPath, name, appSlug string) error {
 		}
 	}
 
-	// Step 6: Add credential helper to gitconfig
+	// Step 6: Add tokenless credential helper + SSH->HTTPS rewrite to gitconfig.
+	// The helper mints a fresh GitHub App token on demand (no secret on disk);
+	// the insteadOf rule rewrites SSH remotes to HTTPS so the helper applies.
+	// Idempotent: append only whichever pieces are not already present.
 	if creds.Git != nil && creds.Git.ConfigPath != "" {
-		fmt.Fprintln(os.Stderr, "Adding credential helper to gitconfig...")
-		helperCmd := "moltnet github credential-helper"
-		if credPath != "" {
-			helperCmd += " --credentials " + credPath
-		}
-		credHelperLine := fmt.Sprintf("\n[credential \"https://github.com\"]\n\thelper = %s\n", helperCmd)
-		f, err := os.OpenFile(creds.Git.ConfigPath, os.O_APPEND|os.O_WRONLY, 0o644)
-		if err != nil {
-			return fmt.Errorf("open gitconfig: %w", err)
-		}
-		if _, err := f.WriteString(credHelperLine); err != nil {
+		existing, _ := os.ReadFile(creds.Git.ConfigPath)
+		existingStr := string(existing)
+		needHelper := !strings.Contains(existingStr, `[credential "https://github.com"]`)
+		needInsteadOf := !strings.Contains(existingStr, "insteadOf = git@github.com:")
+		if needHelper || needInsteadOf {
+			fmt.Fprintln(os.Stderr, "Adding tokenless credential helper to gitconfig...")
+			block := buildCredentialBlock(credPath)
+			// buildCredentialBlock returns the [credential] section followed by
+			// the [url] section. Split so we can append just the missing parts.
+			parts := strings.SplitN(block, "[url ", 2)
+			credSection := parts[0]
+			urlSection := "[url " + parts[1]
+			var toWrite string
+			switch {
+			case needHelper && needInsteadOf:
+				toWrite = "\n" + block
+			case needHelper:
+				toWrite = "\n" + credSection
+			default: // needInsteadOf only
+				toWrite = "\n" + urlSection
+			}
+			f, err := os.OpenFile(creds.Git.ConfigPath, os.O_APPEND|os.O_WRONLY, 0o644)
+			if err != nil {
+				return fmt.Errorf("open gitconfig: %w", err)
+			}
+			if _, err := f.WriteString(toWrite); err != nil {
+				f.Close()
+				return fmt.Errorf("write credential helper: %w", err)
+			}
 			f.Close()
-			return fmt.Errorf("write credential helper: %w", err)
 		}
-		f.Close()
 	}
 
 	fmt.Fprintln(os.Stderr, "")
