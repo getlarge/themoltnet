@@ -33,7 +33,6 @@ export type RuntimeModelName = Static<typeof RuntimeModelName>;
 export const RuntimeModelCapabilities = Type.Record(
   Type.String({ minLength: 1, maxLength: 64 }),
   Type.Union([Type.Boolean(), Type.Number(), Type.String({ maxLength: 256 })]),
-  { additionalProperties: false },
 );
 export type RuntimeModelCapabilities = Static<typeof RuntimeModelCapabilities>;
 

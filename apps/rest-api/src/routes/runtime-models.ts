@@ -117,7 +117,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         description:
           'Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam` on the active team.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        headers: Type.Ref(TeamHeaderOptionalSchema.$id),
+        headers: TeamHeaderOptionalSchema,
         body: Type.Ref(CreateRuntimeModelBodySchema.$id),
         response: {
           201: Type.Ref(RuntimeModelSchema.$id),
