@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -22,6 +23,17 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		return err
 	}
 
+	// Detect #1396 token pollution in git config files (outside moltnet.json).
+	// On a real (non-dry) run these are stripped in place below.
+	tokenPaths := pollutedGitConfigs(gitConfigCandidates(creds))
+	for _, p := range tokenPaths {
+		issues = append(issues, ConfigIssue{
+			Field:   "git-config",
+			Problem: fmt.Sprintf("embedded GitHub token found in %s", p),
+			Action:  "fixed",
+		})
+	}
+
 	if len(issues) == 0 {
 		fmt.Fprintln(os.Stderr, "Config is valid, no issues found.")
 		return nil
@@ -36,23 +48,46 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		return nil
 	}
 
-	// Apply fixes
 	fixed := 0
+
+	// Strip token pollution from git config files (file mutations, independent
+	// of the moltnet.json struct rewrite below).
+	for _, p := range tokenPaths {
+		changed, err := repairGitConfigTokens(p)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  [warning] could not scrub %s: %v\n", p, err)
+			continue
+		}
+		if changed {
+			fmt.Fprintf(os.Stderr, "  [fixed] stripped embedded GitHub token from %s\n", p)
+			fixed++
+		}
+	}
+
+	// Apply moltnet.json fixes. Only struct-level changes (in-memory "fixed"
+	// edits and "migrate") gate the WriteConfigTo below; git-config scrubs are
+	// already persisted above and must not force a redundant moltnet.json write.
+	jsonChanged := false
 	for _, iss := range issues {
+		if iss.Field == "git-config" {
+			continue
+		}
 		if iss.Action == "migrate" {
 			newPath, err := migrateConfig(resolvedPath, creds)
 			if err != nil {
 				return fmt.Errorf("migrate: %w", err)
 			}
 			resolvedPath = newPath
+			jsonChanged = true
 			fixed++
 		}
 		if iss.Action == "fixed" {
+			jsonChanged = true
 			fixed++
 		}
 	}
 
-	if fixed > 0 {
+	if jsonChanged {
 		writePath := resolvedPath
 		if credPath != "" {
 			writePath = credPath
@@ -60,7 +95,10 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		if _, err := WriteConfigTo(creds, writePath); err != nil {
 			return fmt.Errorf("write config: %w", err)
 		}
-		fmt.Fprintf(os.Stderr, "\n%d issue(s) fixed. Config written to %s\n", fixed, writePath)
+	}
+
+	if fixed > 0 {
+		fmt.Fprintf(os.Stderr, "\n%d issue(s) fixed.\n", fixed)
 	}
 
 	return nil
@@ -232,6 +270,47 @@ func runConfigRepair(args []string) error {
 		return err
 	}
 	return runConfigRepairCmd(*credPath, *dryRun)
+}
+
+// repairGitConfigTokens strips embedded GitHub tokens from a git config file.
+// A missing file is a silent no-op. Returns true if the file was modified.
+func repairGitConfigTokens(gitConfigPath string) (bool, error) {
+	if _, err := os.Stat(gitConfigPath); os.IsNotExist(err) {
+		return false, nil
+	}
+	return cleanGitConfigFile(gitConfigPath)
+}
+
+// gitConfigCandidates returns git config files that may carry #1396 token
+// pollution: the current repo's .git/config and the agent gitconfig.
+func gitConfigCandidates(creds *CredentialsFile) []string {
+	var paths []string
+	if out, err := exec.Command("git", "rev-parse", "--git-dir").Output(); err == nil {
+		gitDir := strings.TrimSpace(string(out))
+		if gitDir != "" {
+			paths = append(paths, filepath.Join(gitDir, "config"))
+		}
+	}
+	if creds.Git != nil && creds.Git.ConfigPath != "" {
+		paths = append(paths, creds.Git.ConfigPath)
+	}
+	return paths
+}
+
+// pollutedGitConfigs returns the subset of paths that exist and contain an
+// embedded GitHub token. Used to report issues before applying fixes.
+func pollutedGitConfigs(candidates []string) []string {
+	var polluted []string
+	for _, p := range candidates {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		if hasTokenBearingRule(string(b)) {
+			polluted = append(polluted, p)
+		}
+	}
+	return polluted
 }
 
 // migrateConfig writes the config to moltnet.json in the same directory.
