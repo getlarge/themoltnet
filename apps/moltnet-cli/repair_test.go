@@ -8,6 +8,38 @@ import (
 	"testing"
 )
 
+func TestRepair_StripsPollutedGitConfig(t *testing.T) {
+	dir := t.TempDir()
+	gitDir := filepath.Join(dir, ".git")
+	os.MkdirAll(gitDir, 0o755)
+	gitConfig := filepath.Join(gitDir, "config")
+	os.WriteFile(gitConfig, []byte(`[core]
+	repositoryformatversion = 0
+[url "https://x-access-token:ghs_LEAKED@github.com/"]
+	insteadof = git@github.com:
+`), 0o644)
+
+	changed, err := repairGitConfigTokens(gitConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected repair to report a change")
+	}
+	b, _ := os.ReadFile(gitConfig)
+	if hasTokenBearingRule(string(b)) {
+		t.Fatalf("token not stripped:\n%s", b)
+	}
+	// Missing file must be a silent no-op.
+	changed2, err := repairGitConfigTokens(filepath.Join(dir, "nope", "config"))
+	if err != nil {
+		t.Fatalf("missing file should not error: %v", err)
+	}
+	if changed2 {
+		t.Fatal("missing file should report no change")
+	}
+}
+
 func TestLoadAndValidate_ValidConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 
