@@ -25,11 +25,24 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 
 	// Detect #1396 token pollution in git config files (outside moltnet.json).
 	// On a real (non-dry) run these are stripped in place below.
-	tokenPaths := pollutedGitConfigs(gitConfigCandidates(creds))
+	candidates := gitConfigCandidates(creds)
+	tokenPaths := pollutedGitConfigs(candidates)
 	for _, p := range tokenPaths {
 		issues = append(issues, ConfigIssue{
 			Field:   "git-config",
 			Problem: fmt.Sprintf("embedded GitHub token found in %s", p),
+			Action:  "fixed",
+		})
+	}
+
+	// Detect helper shadowing: a github.com credential block missing the empty
+	// `helper = ""` reset, which lets an inherited generic helper (osxkeychain)
+	// shadow the agent helper with a stale token (#1396 regression).
+	shadowPaths := shadowProneGitconfigs(candidates)
+	for _, p := range shadowPaths {
+		issues = append(issues, ConfigIssue{
+			Field:   "git-config",
+			Problem: fmt.Sprintf("github.com credential helper missing reset (shadow-prone) in %s", p),
 			Action:  "fixed",
 		})
 	}
@@ -60,6 +73,19 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		}
 		if changed {
 			fmt.Fprintf(os.Stderr, "  [fixed] stripped embedded GitHub token from %s\n", p)
+			fixed++
+		}
+	}
+
+	// Add the helper reset to shadow-prone github.com credential blocks.
+	for _, p := range shadowPaths {
+		changed, err := repairHelperShadowing(p)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  [warning] could not fix helper shadowing in %s: %v\n", p, err)
+			continue
+		}
+		if changed {
+			fmt.Fprintf(os.Stderr, "  [fixed] added credential helper reset to %s\n", p)
 			fixed++
 		}
 	}
@@ -281,6 +307,32 @@ func repairGitConfigTokens(gitConfigPath string) (bool, error) {
 	return cleanGitConfigFile(gitConfigPath)
 }
 
+// repairHelperShadowing adds the empty `helper = ""` reset to a github.com
+// credential block that lacks it, so the agent helper is authoritative over an
+// inherited generic helper (osxkeychain/store). A missing file or a block that
+// already has the reset is a no-op. Returns true if the file was modified.
+func repairHelperShadowing(gitConfigPath string) (bool, error) {
+	b, err := os.ReadFile(gitConfigPath)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	original := string(b)
+	if !needsHelperReset(original) {
+		return false, nil
+	}
+	fixed := addHelperReset(original)
+	if fixed == original {
+		return false, nil
+	}
+	if err := os.WriteFile(gitConfigPath, []byte(fixed), 0o644); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // gitConfigCandidates returns git config files that may carry #1396 token
 // pollution: the current repo's .git/config and the agent gitconfig.
 func gitConfigCandidates(creds *CredentialsFile) []string {
@@ -311,6 +363,23 @@ func pollutedGitConfigs(candidates []string) []string {
 		}
 	}
 	return polluted
+}
+
+// shadowProneGitconfigs returns the subset of paths that have a github.com
+// credential helper without the empty reset (and are thus vulnerable to an
+// inherited generic helper shadowing the agent helper).
+func shadowProneGitconfigs(candidates []string) []string {
+	var prone []string
+	for _, p := range candidates {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		if needsHelperReset(string(b)) {
+			prone = append(prone, p)
+		}
+	}
+	return prone
 }
 
 // migrateConfig writes the config to moltnet.json in the same directory.

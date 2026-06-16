@@ -217,6 +217,24 @@ describe('rewriteGitconfigPaths', () => {
     expect(out).toContain('insteadOf = git@github.com:');
   });
 
+  it('preserves the empty helper-reset line verbatim', () => {
+    const input = [
+      '[credential "https://github.com"]',
+      '\thelper = ""',
+      '\thelper = "!moltnet github credential-helper --credentials /Users/ed/.moltnet/legreffier/moltnet.json"',
+    ].join('\n');
+    const out = rewriteGitconfigPaths(input, vmSshDir, vmAgentDir);
+    // The reset line must survive the rewrite unchanged and still precede the
+    // real helper, so the agent helper stays authoritative in the guest too.
+    expect(out).toContain('helper = ""');
+    expect(out.indexOf('helper = ""')).toBeLessThan(
+      out.indexOf('credential-helper'),
+    );
+    expect(out).toContain(
+      `moltnet github credential-helper --credentials ${vmAgentDir}/moltnet.json`,
+    );
+  });
+
   it('leaves a gitconfig without credential helper unchanged except signingKey', () => {
     const input = [
       '[user]',

@@ -81,11 +81,80 @@ func TestBuildCredentialBlock(t *testing.T) {
 	if hasTokenBearingRule(block) {
 		t.Fatalf("block must never embed a token:\n%s", block)
 	}
+	// Must reset any inherited generic helper (e.g. osxkeychain) for github.com
+	// so the agent helper is authoritative and a stale keychain token can't
+	// shadow it. The empty helper line MUST come before the real helper.
+	emptyIdx := strings.Index(block, "helper =\n")
+	if emptyIdx == -1 {
+		// allow `helper = ""` or `helper =` forms; check for an empty-value reset
+		if !strings.Contains(block, "helper = \"\"") && !strings.Contains(block, "helper =\n") {
+			t.Fatalf("missing empty helper reset line:\n%s", block)
+		}
+	}
+	realIdx := strings.Index(block, "credential-helper")
+	resetIdx := strings.Index(block, `helper = ""`)
+	if resetIdx == -1 || resetIdx > realIdx {
+		t.Fatalf("empty helper reset must appear before the real helper:\n%s", block)
+	}
 }
 
 func TestBuildCredentialBlock_NoCredPath(t *testing.T) {
 	block := buildCredentialBlock("")
 	if !strings.Contains(block, `helper = "!moltnet github credential-helper"`) {
 		t.Fatalf("expected bare helper when no cred path:\n%s", block)
+	}
+}
+
+func TestNeedsHelperReset(t *testing.T) {
+	// A github.com helper block WITHOUT the empty reset is shadow-prone.
+	shadowProne := `[credential "https://github.com"]
+	helper = "!moltnet github credential-helper --credentials /x/moltnet.json"
+`
+	if !needsHelperReset(shadowProne) {
+		t.Fatal("expected shadow-prone block to need a reset")
+	}
+	// Already has the reset — no action.
+	fixed := `[credential "https://github.com"]
+	helper = ""
+	helper = "!moltnet github credential-helper --credentials /x/moltnet.json"
+`
+	if needsHelperReset(fixed) {
+		t.Fatal("block with reset must not need another")
+	}
+	// No github.com credential helper at all — nothing to reset.
+	none := `[user]
+	name = x
+`
+	if needsHelperReset(none) {
+		t.Fatal("block without a github helper must not need a reset")
+	}
+}
+
+func TestAddHelperReset(t *testing.T) {
+	in := `[user]
+	name = LeGreffier
+[credential "https://github.com"]
+	helper = "!moltnet github credential-helper --credentials /x/moltnet.json"
+[url "https://github.com/"]
+	insteadOf = git@github.com:
+`
+	out := addHelperReset(in)
+	// The empty reset must be inserted immediately after the credential header,
+	// before the real helper.
+	resetIdx := strings.Index(out, `helper = ""`)
+	realIdx := strings.Index(out, "credential-helper")
+	if resetIdx == -1 {
+		t.Fatalf("reset not added:\n%s", out)
+	}
+	if resetIdx > realIdx {
+		t.Fatalf("reset must precede the real helper:\n%s", out)
+	}
+	// Unrelated sections preserved.
+	if !strings.Contains(out, "name = LeGreffier") || !strings.Contains(out, "insteadOf = git@github.com:") {
+		t.Fatalf("unrelated content lost:\n%s", out)
+	}
+	// Idempotent.
+	if needsHelperReset(out) {
+		t.Fatalf("addHelperReset output should not still need a reset:\n%s", out)
 	}
 }

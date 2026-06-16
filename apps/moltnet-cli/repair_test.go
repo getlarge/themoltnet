@@ -40,6 +40,40 @@ func TestRepair_StripsPollutedGitConfig(t *testing.T) {
 	}
 }
 
+func TestRepair_AddsHelperResetToShadowProneGitconfig(t *testing.T) {
+	dir := t.TempDir()
+	gitconfig := filepath.Join(dir, "gitconfig")
+	os.WriteFile(gitconfig, []byte(`[user]
+	name = LeGreffier
+[credential "https://github.com"]
+	helper = "!moltnet github credential-helper --credentials /x/moltnet.json"
+[url "https://github.com/"]
+	insteadOf = git@github.com:
+`), 0o644)
+
+	changed, err := repairHelperShadowing(gitconfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected a change for shadow-prone gitconfig")
+	}
+	b, _ := os.ReadFile(gitconfig)
+	if needsHelperReset(string(b)) {
+		t.Fatalf("reset still missing after repair:\n%s", b)
+	}
+	// Second pass is a no-op.
+	changed2, _ := repairHelperShadowing(gitconfig)
+	if changed2 {
+		t.Fatal("second pass should not change an already-fixed gitconfig")
+	}
+	// Missing file is a silent no-op.
+	changed3, err := repairHelperShadowing(filepath.Join(dir, "nope"))
+	if err != nil || changed3 {
+		t.Fatalf("missing file: want (false,nil) got (%v,%v)", changed3, err)
+	}
+}
+
 func TestLoadAndValidate_ValidConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 
