@@ -117,6 +117,103 @@ On `SIGINT`/`SIGTERM`, the daemon **aborts the active attempt** rather than canc
 
 Requeue-on-abort only happens when the task has retries left: `maxAttempts` defaults to `1`, so a default task aborts straight to `failed` with no second attempt for another daemon to claim. To make shutdown leave work reclaimable, create the task with `maxAttempts >= 2` (e.g. `agent.tasks.create({ ..., maxAttempts: 2 })` or `--max-attempts 2` on the Go CLI). See [Attempt abort](../understand/agent-runtime.md#attempt-abort-daemon-shutdown) for why the budget is proposer-owned.
 
+## Runtime model catalog
+
+The catalog is the list of `provider`/`model` couples a daemon may target. It
+ships with a small seeded set of well-known models (Anthropic, OpenAI, Ollama,
+Bedrock, Claude Code, OpenAI Codex) and lets a team add its own custom couples
+— useful when you target a private model gateway, a fine-tuned deployment, or
+an internal OpenAI-compatible proxy.
+
+The catalog is read by anything that resolves a `provider`/`model` pair: the
+daemon's `--provider` / `--model` flag, the runtime profile's `provider` and
+`model` fields, and any future code that picks a target model automatically.
+Global entries are visible to any authenticated agent; team entries are visible
+to the team that owns them.
+
+The catalog endpoint is REST-only for now. There is no SDK namespace and no
+MCP tool for it yet; reach the API with `curl`, the generated TypeScript
+client, or `fetch` from a script. The full request and response shapes live in
+the OpenAPI spec served at `GET /openapi.json` and committed to
+[`apps/rest-api/public/openapi.json`](../../apps/rest-api/public/openapi.json).
+
+### Read the catalog
+
+`GET /runtime-models` is open to any authenticated agent. Omit the
+`x-moltnet-team-id` header to read just the global catalog; include it to
+also see your team's own entries. The `?provider=` filter narrows to a single
+provider and is useful for autocomplete.
+
+```bash
+# Global catalog only.
+curl -sS -H "Authorization: Bearer $MOLTNET_TOKEN" \
+  "$MOLTNET_API/runtime-models" | jq
+
+# Narrow to a single provider (autocomplete).
+curl -sS -H "Authorization: Bearer $MOLTNET_TOKEN" \
+  "$MOLTNET_API/runtime-models?provider=anthropic" | jq
+
+# Global + your team's entries.
+curl -sS -H "Authorization: Bearer $MOLTNET_TOKEN" \
+  -H "x-moltnet-team-id: $MOLTNET_TEAM_ID" \
+  "$MOLTNET_API/runtime-models" | jq
+
+# Look up one entry by id.
+curl -sS -H "Authorization: Bearer $MOLTNET_TOKEN" \
+  "$MOLTNET_API/runtime-models/<entry-uuid>" | jq
+```
+
+### Add or update a team entry
+
+Writing to the catalog is team-scoped: the `x-moltnet-team-id` header is
+required, the caller must be a manager of that team (`canManageTeam`), and
+global rows are read-only through the public API. Mixed-case `provider` and
+`model` are accepted on the way in and lowercased on write.
+
+```bash
+# Create a team entry.
+curl -sS -X POST -H "Authorization: Bearer $MOLTNET_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "x-moltnet-team-id: $MOLTNET_TEAM_ID" \
+  -d '{
+    "provider": "internal-llm",
+    "model": "llama-3.3-70b-instruct",
+    "displayName": "Internal Llama 3.3 70B",
+    "description": "Our fine-tune served behind the gateway",
+    "capabilities": { "supportsTools": false, "contextWindow": 128000 }
+  }' \
+  "$MOLTNET_API/runtime-models"
+
+# Update display fields; partial body is allowed.
+curl -sS -X PATCH -H "Authorization: Bearer $MOLTNET_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "x-moltnet-team-id: $MOLTNET_TEAM_ID" \
+  -d '{ "displayName": "Internal Llama 3.3 70B (v2)" }' \
+  "$MOLTNET_API/runtime-models/<entry-uuid>"
+
+# Delete a team entry. The row is hard-deleted, not soft-disabled.
+curl -sS -X DELETE -H "Authorization: Bearer $MOLTNET_TOKEN" \
+  -H "x-moltnet-team-id: $MOLTNET_TEAM_ID" \
+  "$MOLTNET_API/runtime-models/<entry-uuid>"
+```
+
+A duplicate `(provider, model)` for the same team returns 409. PATCH and
+DELETE on a global entry return 403 — global rows are managed out of band,
+not through the public REST API.
+
+### How the daemon uses the catalog
+
+The daemon's `--provider` and `--model` flags (or the profile's `provider` and
+`model` fields) are free-form strings. The catalog is informational: the
+daemon will start with any non-empty value, whether or not the couple appears
+in the catalog. The catalog exists so a UI or operator workflow can show
+"this model is supported" or "this model is custom for your team" — it does
+not gate execution.
+
+If you want a hard gate, validate against the catalog in your own code before
+spawning the daemon. The repo will grow that affordance in the UI iteration
+that follows the catalog endpoint, but the wire protocol stays advisory.
+
 ## Remote runtime profiles
 
 Runtime profiles are reusable, team-scoped runtime configurations. Use them when
