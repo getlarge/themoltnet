@@ -564,6 +564,32 @@ jobs:
               });
             }
 
+  token-leak-scan:
+    name: Token Leak Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fail on embedded GitHub tokens
+        run: |
+          set -euo pipefail
+          # ghs_ = server-to-server (Actions), ghp_ = personal access token.
+          # Neither should ever be committed or embedded in a git config
+          # insteadOf rule (see #1396). The {20,} suffix avoids matching the
+          # short token-shaped literals used in unit-test fixtures while still
+          # catching real ~36-40 char tokens.
+          if grep -rIns -E 'gh[ps]_[A-Za-z0-9]{20,}' . \
+               --exclude-dir=.git \
+               --exclude-dir=node_modules \
+               --exclude-dir=out-tsc \
+               --exclude-dir=dist; then
+            echo "::error::Embedded GitHub token found (see #1396)"
+            exit 1
+          fi
+          echo "No embedded GitHub tokens found."
+
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
