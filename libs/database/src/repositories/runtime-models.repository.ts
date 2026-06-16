@@ -75,10 +75,7 @@ export function createRuntimeModelRepository(db: Database) {
             eq(runtimeModels.provider, provider),
             eq(runtimeModels.model, model),
             isActiveFilter(),
-            or(
-              isNull(runtimeModels.teamId),
-              eq(runtimeModels.teamId, teamId),
-            ),
+            or(isNull(runtimeModels.teamId), eq(runtimeModels.teamId, teamId)),
           ),
         )
         .orderBy(sql`${runtimeModels.teamId} NULLS FIRST`)

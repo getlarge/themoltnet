@@ -122,14 +122,13 @@ describe('Runtime Models Catalog API', () => {
     expect(getResponse.status).toBe(200);
     expect(fetched!.id).toBe(created!.id);
 
-    const { data: updated, response: updateResponse } = await updateRuntimeModel(
-      {
+    const { data: updated, response: updateResponse } =
+      await updateRuntimeModel({
         client,
         auth: () => owner.accessToken,
         path: { entryId: created!.id },
         body: { displayName: `e2e ${tag} renamed` },
-      },
-    );
+      });
     expect(updateResponse.status).toBe(200);
     expect(updated!.displayName).toBe(`e2e ${tag} renamed`);
 
@@ -217,7 +216,7 @@ describe('Runtime Models Catalog API', () => {
       expect(response.status).toBe(403);
     });
 
-    it('rejects an outsider listing another team\'s catalog', async () => {
+    it("rejects an outsider listing another team's catalog", async () => {
       const { response } = await listRuntimeModels({
         client,
         auth: () => outsider.accessToken,

@@ -237,7 +237,9 @@ describe('runtime model catalog routes', () => {
       });
 
       expect(response.statusCode).toBe(204);
-      expect(mocks.runtimeModelRepository.delete).toHaveBeenCalledWith(ENTRY_ID);
+      expect(mocks.runtimeModelRepository.delete).toHaveBeenCalledWith(
+        ENTRY_ID,
+      );
     });
 
     it('refuses to delete a global entry via the public API', async () => {

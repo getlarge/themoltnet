@@ -254,7 +254,9 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         ...(body.provider !== undefined
           ? { provider: body.provider.toLowerCase() }
           : {}),
-        ...(body.model !== undefined ? { model: body.model.toLowerCase() } : {}),
+        ...(body.model !== undefined
+          ? { model: body.model.toLowerCase() }
+          : {}),
         ...(body.displayName !== undefined
           ? { displayName: body.displayName }
           : {}),

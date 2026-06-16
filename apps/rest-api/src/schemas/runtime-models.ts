@@ -10,9 +10,7 @@ export const CreateRuntimeModelBodySchema = Type.Object(
   {
     provider: RuntimeModelProvider,
     model: RuntimeModelName,
-    displayName: Type.Optional(
-      Type.String({ minLength: 1, maxLength: 200 }),
-    ),
+    displayName: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
     description: Type.Optional(Type.String({ maxLength: 4096 })),
     capabilities: Type.Optional(RuntimeModelCapabilities),
   },
