@@ -178,6 +178,69 @@ func TestRunGitHubSetup_FullFlow(t *testing.T) {
 	}
 }
 
+func TestRunGitHubSetup_WritesInsteadOfIdempotent(t *testing.T) {
+	// Mock GitHub API for bot user lookup
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"id":261968324,"login":"mybot[bot]","type":"Bot"}`)
+	}))
+	defer server.Close()
+
+	old := githubAPIBaseURL
+	githubAPIBaseURL = server.URL
+	defer func() { githubAPIBaseURL = old }()
+
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+
+	sshDir := filepath.Join(tmpDir, "ssh")
+	os.MkdirAll(sshDir, 0o700)
+	pubKeyPath := filepath.Join(sshDir, "id_ed25519.pub")
+	os.WriteFile(pubKeyPath, []byte("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDtqJ7zOtqQtYqOo0CpvDXNlMhV3HeJDpjrASKGLWdop\n"), 0o644)
+
+	credPath := filepath.Join(tmpDir, "moltnet.json")
+	creds := CredentialsFile{
+		IdentityID: "test-agent-12345678",
+		Keys: CredentialsKeys{
+			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
+			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+			Fingerprint: "TEST-TEST-TEST-TEST",
+		},
+		SSH: &SSHSection{
+			PrivateKeyPath: filepath.Join(sshDir, "id_ed25519"),
+			PublicKeyPath:  pubKeyPath,
+		},
+		GitHub: &GitHubSection{
+			AppID:          "2878569",
+			InstallationID: "12345",
+			PrivateKeyPath: "/tmp/fake.pem",
+		},
+	}
+	data, _ := json.Marshal(creds)
+	os.WriteFile(credPath, data, 0o600)
+
+	// Run setup twice.
+	if err := runGitHubSetupCmd(credPath, "", "mybot"); err != nil {
+		t.Fatalf("first setup: %v", err)
+	}
+	if err := runGitHubSetupCmd(credPath, "", "mybot"); err != nil {
+		t.Fatalf("second setup: %v", err)
+	}
+
+	gitconfigPath := filepath.Join(tmpDir, "gitconfig")
+	b, _ := os.ReadFile(gitconfigPath)
+	cfg := string(b)
+	if strings.Count(cfg, `[credential "https://github.com"]`) != 1 {
+		t.Fatalf("credential block not idempotent (count != 1):\n%s", cfg)
+	}
+	if strings.Count(cfg, "insteadOf = git@github.com:") != 1 {
+		t.Fatalf("insteadOf not idempotent (count != 1):\n%s", cfg)
+	}
+	if hasTokenBearingRule(cfg) {
+		t.Fatalf("setup must not embed a token:\n%s", cfg)
+	}
+}
+
 func TestRunGitHubToken_NoGitHub(t *testing.T) {
 	tmpDir := t.TempDir()
 

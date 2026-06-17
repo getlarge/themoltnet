@@ -8,6 +8,72 @@ import (
 	"testing"
 )
 
+func TestRepair_StripsPollutedGitConfig(t *testing.T) {
+	dir := t.TempDir()
+	gitDir := filepath.Join(dir, ".git")
+	os.MkdirAll(gitDir, 0o755)
+	gitConfig := filepath.Join(gitDir, "config")
+	os.WriteFile(gitConfig, []byte(`[core]
+	repositoryformatversion = 0
+[url "https://x-access-token:ghs_LEAKED@github.com/"]
+	insteadof = git@github.com:
+`), 0o644)
+
+	changed, err := repairGitConfigTokens(gitConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected repair to report a change")
+	}
+	b, _ := os.ReadFile(gitConfig)
+	if hasTokenBearingRule(string(b)) {
+		t.Fatalf("token not stripped:\n%s", b)
+	}
+	// Missing file must be a silent no-op.
+	changed2, err := repairGitConfigTokens(filepath.Join(dir, "nope", "config"))
+	if err != nil {
+		t.Fatalf("missing file should not error: %v", err)
+	}
+	if changed2 {
+		t.Fatal("missing file should report no change")
+	}
+}
+
+func TestRepair_AddsHelperResetToShadowProneGitconfig(t *testing.T) {
+	dir := t.TempDir()
+	gitconfig := filepath.Join(dir, "gitconfig")
+	os.WriteFile(gitconfig, []byte(`[user]
+	name = LeGreffier
+[credential "https://github.com"]
+	helper = "!moltnet github credential-helper --credentials /x/moltnet.json"
+[url "https://github.com/"]
+	insteadOf = git@github.com:
+`), 0o644)
+
+	changed, err := repairHelperShadowing(gitconfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected a change for shadow-prone gitconfig")
+	}
+	b, _ := os.ReadFile(gitconfig)
+	if needsHelperReset(string(b)) {
+		t.Fatalf("reset still missing after repair:\n%s", b)
+	}
+	// Second pass is a no-op.
+	changed2, _ := repairHelperShadowing(gitconfig)
+	if changed2 {
+		t.Fatal("second pass should not change an already-fixed gitconfig")
+	}
+	// Missing file is a silent no-op.
+	changed3, err := repairHelperShadowing(filepath.Join(dir, "nope"))
+	if err != nil || changed3 {
+		t.Fatalf("missing file: want (false,nil) got (%v,%v)", changed3, err)
+	}
+}
+
 func TestLoadAndValidate_ValidConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 

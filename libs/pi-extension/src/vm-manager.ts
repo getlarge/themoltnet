@@ -516,10 +516,10 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     // extensions.relativeworktrees repository extension that breaks older git
     // libraries.
     if (creds.gitconfig) {
-      const vmSigningKey = `${vmSshDir}/id_ed25519`;
-      const vmGitconfig = creds.gitconfig.replace(
-        /signingKey\s*=\s*.+/g,
-        `signingKey = ${vmSigningKey}`,
+      const vmGitconfig = rewriteGitconfigPaths(
+        creds.gitconfig,
+        vmSshDir,
+        vmAgentDir,
       );
       await vm.fs.writeFile(`${vmAgentDir}/gitconfig`, vmGitconfig, {
         mode: 0o644,
@@ -566,24 +566,15 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       signal: config.signal,
     });
 
-    // Setup dynamic Git credential helper to bypass unstable SSH proxy.
-    // This allows raw `git push/pull` to use MoltNet GitHub tokens via HTTPS.
-    const gitCredHelperPath = `${vmSshDir}/git-credential-moltnet`;
-    const credHelperScript = `#!/bin/sh
-echo "username=x-access-token"
-echo "password=$(moltnet github token --credentials ${vmSshDir}/moltnet.json)"
-`;
-    await vm.fs.writeFile(gitCredHelperPath, credHelperScript, {
-      mode: 0o755,
-      signal: config.signal,
-    });
-    await vmRun(
-      vm,
-      'git credential helper',
-      `git config --global credential.helper ${gitCredHelperPath} && \
-       git config --global url."https://github.com/".insteadOf "git@github.com:"`,
-      config.signal,
-    );
+    // Git push/pull auth over HTTPS comes entirely from the injected gitconfig
+    // (rewriteGitconfigPaths above): the tokenless `moltnet github
+    // credential-helper` plus the `insteadOf` SSH→HTTPS rewrite that
+    // `moltnet github setup` writes into the agent gitconfig. No hand-rolled
+    // credential script and no imperative `git config --global` here — that
+    // parallel mechanism could drift from the CLI source of truth and was the
+    // shape that leaked tokens into git config (#1396). Agents whose gitconfig
+    // predates `github setup` writing the helper should re-run
+    // `moltnet github setup` or `moltnet config repair`.
 
     return {
       vm,
@@ -606,6 +597,40 @@ echo "password=$(moltnet github token --credentials ${vmSshDir}/moltnet.json)"
     }
     throw err;
   }
+}
+
+/**
+ * Rewrite host-absolute paths inside an agent gitconfig to VM-local
+ * equivalents before injecting it into the guest.
+ *
+ * Two rewrites:
+ *   - `signingKey = <host path>`  → `<vmSshDir>/id_ed25519`
+ *   - `... credential-helper --credentials <host moltnet.json>`
+ *                                 → `<vmAgentDir>/moltnet.json`
+ *
+ * The credential-helper line is generated host-side by `moltnet github setup`
+ * with a host-absolute `--credentials` path; inside the guest that path is
+ * invalid, so it must point at the VM-side moltnet.json. The `insteadOf`
+ * rewrite rule and every other line are workspace-independent and pass through
+ * unchanged. A gitconfig without a credential helper is rewritten only for
+ * `signingKey`.
+ *
+ * This is the single source of truth for git push auth in the guest: the
+ * injected gitconfig carries the tokenless mint-on-demand helper, so the VM
+ * no longer hand-rolls a credential-helper script or runs an imperative
+ * `git config --global ... insteadOf` against the guest $HOME.
+ */
+export function rewriteGitconfigPaths(
+  gitconfig: string,
+  vmSshDir: string,
+  vmAgentDir: string,
+): string {
+  return gitconfig
+    .replace(/signingKey\s*=\s*.+/g, `signingKey = ${vmSshDir}/id_ed25519`)
+    .replace(
+      /(moltnet github credential-helper --credentials )\S+/g,
+      `$1${vmAgentDir}/moltnet.json`,
+    );
 }
 
 /**
