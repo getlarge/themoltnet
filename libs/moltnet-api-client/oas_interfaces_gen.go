@@ -57,6 +57,10 @@ type CreateGroupRes interface {
 	createGroupRes()
 }
 
+type CreateRuntimeModelRes interface {
+	createRuntimeModelRes()
+}
+
 type CreateRuntimeProfileRes interface {
 	createRuntimeProfileRes()
 }
@@ -91,6 +95,10 @@ type DeleteEntryRelationRes interface {
 
 type DeleteGroupRes interface {
 	deleteGroupRes()
+}
+
+type DeleteRuntimeModelRes interface {
+	deleteRuntimeModelRes()
 }
 
 type DeleteRuntimeProfileRes interface {
@@ -177,6 +185,10 @@ type GetRenderedPackByIdRes interface {
 	getRenderedPackByIdRes()
 }
 
+type GetRuntimeModelRes interface {
+	getRuntimeModelRes()
+}
+
 type GetRuntimeProfileRes interface {
 	getRuntimeProfileRes()
 }
@@ -259,6 +271,10 @@ type ListGroupsRes interface {
 
 type ListPendingTransfersRes interface {
 	listPendingTransfersRes()
+}
+
+type ListRuntimeModelsRes interface {
+	listRuntimeModelsRes()
 }
 
 type ListRuntimeProfilesRes interface {
@@ -375,6 +391,10 @@ type UpdateEntryRelationStatusRes interface {
 
 type UpdateRenderedPackRes interface {
 	updateRenderedPackRes()
+}
+
+type UpdateRuntimeModelRes interface {
+	updateRuntimeModelRes()
 }
 
 type UpdateRuntimeProfileRes interface {

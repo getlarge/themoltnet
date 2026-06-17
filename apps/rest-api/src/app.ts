@@ -48,8 +48,8 @@ import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { registrationRoutes } from './routes/registration.js';
 import { renderedPackRoutes } from './routes/rendered-packs.js';
-import { runtimeProfileRoutes } from './routes/runtime-profiles.js';
 import { runtimeModelRoutes } from './routes/runtime-models.js';
+import { runtimeProfileRoutes } from './routes/runtime-profiles.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
 import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
@@ -61,7 +61,6 @@ import type {
   ContextPackService,
   CryptoService,
   DaemonProfileRepository,
-  RuntimeModelRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryService,
@@ -72,6 +71,7 @@ import type {
   HumanRepository,
   NonceRepository,
   RenderedPackRepository,
+  RuntimeModelRepository,
   SigningRequestRepository,
   TaskRepository,
   TaskService,

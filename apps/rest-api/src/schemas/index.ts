@@ -14,8 +14,8 @@ export * from './network.js';
 export * from './packs.js';
 export * from './principal.js';
 export * from './relations.js';
-export * from './runtime-profiles.js';
 export * from './runtime-models.js';
+export * from './runtime-profiles.js';
 export * from './tasks.js';
 
 import {
@@ -87,8 +87,8 @@ import {
   RelationStatusSchema,
   RelationTypeSchema,
 } from './relations.js';
-import { runtimeProfileSchemas } from './runtime-profiles.js';
 import { runtimeModelSchemas } from './runtime-models.js';
+import { runtimeProfileSchemas } from './runtime-profiles.js';
 import { taskSchemas } from './tasks.js';
 
 /**

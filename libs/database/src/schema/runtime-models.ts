@@ -81,7 +81,7 @@ export function defineRuntimeModelsTable({
       index('runtime_models_provider_idx').on(table.provider),
       check(
         'runtime_models_creator_xor',
-        sql`(created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL)`,
+        sql`(team_id IS NULL AND created_by_agent_id IS NULL AND created_by_human_id IS NULL) OR (team_id IS NOT NULL AND ((created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL)))`,
       ),
     ],
   );

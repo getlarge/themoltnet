@@ -11,7 +11,7 @@ CREATE TABLE "runtime_models" (
 	"created_by_human_id" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "runtime_models_creator_xor" CHECK ((created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL))
+	CONSTRAINT "runtime_models_creator_xor" CHECK (((team_id IS NULL) AND (created_by_agent_id IS NULL) AND (created_by_human_id IS NULL)) OR ((team_id IS NOT NULL) AND ((created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL))))
 );
 --> statement-breakpoint
 ALTER TABLE "runtime_models" ADD CONSTRAINT "runtime_models_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

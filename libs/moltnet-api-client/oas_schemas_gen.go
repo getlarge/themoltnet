@@ -2596,6 +2596,193 @@ type CreateGroupUnauthorized ProblemDetails
 
 func (*CreateGroupUnauthorized) createGroupRes() {}
 
+type CreateRuntimeModelBadRequest ProblemDetails
+
+func (*CreateRuntimeModelBadRequest) createRuntimeModelRes() {}
+
+// Ref: #/components/schemas/CreateRuntimeModelBody
+type CreateRuntimeModelBody struct {
+	Capabilities OptCreateRuntimeModelBodyCapabilities `json:"capabilities"`
+	Description  OptString                             `json:"description"`
+	DisplayName  OptString                             `json:"displayName"`
+	Model        string                                `json:"model"`
+	Provider     string                                `json:"provider"`
+}
+
+// GetCapabilities returns the value of Capabilities.
+func (s *CreateRuntimeModelBody) GetCapabilities() OptCreateRuntimeModelBodyCapabilities {
+	return s.Capabilities
+}
+
+// GetDescription returns the value of Description.
+func (s *CreateRuntimeModelBody) GetDescription() OptString {
+	return s.Description
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *CreateRuntimeModelBody) GetDisplayName() OptString {
+	return s.DisplayName
+}
+
+// GetModel returns the value of Model.
+func (s *CreateRuntimeModelBody) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *CreateRuntimeModelBody) GetProvider() string {
+	return s.Provider
+}
+
+// SetCapabilities sets the value of Capabilities.
+func (s *CreateRuntimeModelBody) SetCapabilities(val OptCreateRuntimeModelBodyCapabilities) {
+	s.Capabilities = val
+}
+
+// SetDescription sets the value of Description.
+func (s *CreateRuntimeModelBody) SetDescription(val OptString) {
+	s.Description = val
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *CreateRuntimeModelBody) SetDisplayName(val OptString) {
+	s.DisplayName = val
+}
+
+// SetModel sets the value of Model.
+func (s *CreateRuntimeModelBody) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *CreateRuntimeModelBody) SetProvider(val string) {
+	s.Provider = val
+}
+
+type CreateRuntimeModelBodyCapabilities map[string]CreateRuntimeModelBodyCapabilitiesItem
+
+func (s *CreateRuntimeModelBodyCapabilities) init() CreateRuntimeModelBodyCapabilities {
+	m := *s
+	if m == nil {
+		m = map[string]CreateRuntimeModelBodyCapabilitiesItem{}
+		*s = m
+	}
+	return m
+}
+
+// CreateRuntimeModelBodyCapabilitiesItem represents sum type.
+type CreateRuntimeModelBodyCapabilitiesItem struct {
+	// Type selects the active sum variant, switch on this field.
+	Type    CreateRuntimeModelBodyCapabilitiesItemType
+	Bool    bool
+	Float64 float64
+	String  string
+}
+
+// CreateRuntimeModelBodyCapabilitiesItemType is oneOf type of CreateRuntimeModelBodyCapabilitiesItem.
+type CreateRuntimeModelBodyCapabilitiesItemType string
+
+// Possible values for CreateRuntimeModelBodyCapabilitiesItemType.
+const (
+	BoolCreateRuntimeModelBodyCapabilitiesItem    CreateRuntimeModelBodyCapabilitiesItemType = "bool"
+	Float64CreateRuntimeModelBodyCapabilitiesItem CreateRuntimeModelBodyCapabilitiesItemType = "float64"
+	StringCreateRuntimeModelBodyCapabilitiesItem  CreateRuntimeModelBodyCapabilitiesItemType = "string"
+)
+
+// IsBool reports whether CreateRuntimeModelBodyCapabilitiesItem is bool.
+func (s CreateRuntimeModelBodyCapabilitiesItem) IsBool() bool {
+	return s.Type == BoolCreateRuntimeModelBodyCapabilitiesItem
+}
+
+// IsFloat64 reports whether CreateRuntimeModelBodyCapabilitiesItem is float64.
+func (s CreateRuntimeModelBodyCapabilitiesItem) IsFloat64() bool {
+	return s.Type == Float64CreateRuntimeModelBodyCapabilitiesItem
+}
+
+// IsString reports whether CreateRuntimeModelBodyCapabilitiesItem is string.
+func (s CreateRuntimeModelBodyCapabilitiesItem) IsString() bool {
+	return s.Type == StringCreateRuntimeModelBodyCapabilitiesItem
+}
+
+// SetBool sets CreateRuntimeModelBodyCapabilitiesItem to bool.
+func (s *CreateRuntimeModelBodyCapabilitiesItem) SetBool(v bool) {
+	s.Type = BoolCreateRuntimeModelBodyCapabilitiesItem
+	s.Bool = v
+}
+
+// GetBool returns bool and true boolean if CreateRuntimeModelBodyCapabilitiesItem is bool.
+func (s CreateRuntimeModelBodyCapabilitiesItem) GetBool() (v bool, ok bool) {
+	if !s.IsBool() {
+		return v, false
+	}
+	return s.Bool, true
+}
+
+// NewBoolCreateRuntimeModelBodyCapabilitiesItem returns new CreateRuntimeModelBodyCapabilitiesItem from bool.
+func NewBoolCreateRuntimeModelBodyCapabilitiesItem(v bool) CreateRuntimeModelBodyCapabilitiesItem {
+	var s CreateRuntimeModelBodyCapabilitiesItem
+	s.SetBool(v)
+	return s
+}
+
+// SetFloat64 sets CreateRuntimeModelBodyCapabilitiesItem to float64.
+func (s *CreateRuntimeModelBodyCapabilitiesItem) SetFloat64(v float64) {
+	s.Type = Float64CreateRuntimeModelBodyCapabilitiesItem
+	s.Float64 = v
+}
+
+// GetFloat64 returns float64 and true boolean if CreateRuntimeModelBodyCapabilitiesItem is float64.
+func (s CreateRuntimeModelBodyCapabilitiesItem) GetFloat64() (v float64, ok bool) {
+	if !s.IsFloat64() {
+		return v, false
+	}
+	return s.Float64, true
+}
+
+// NewFloat64CreateRuntimeModelBodyCapabilitiesItem returns new CreateRuntimeModelBodyCapabilitiesItem from float64.
+func NewFloat64CreateRuntimeModelBodyCapabilitiesItem(v float64) CreateRuntimeModelBodyCapabilitiesItem {
+	var s CreateRuntimeModelBodyCapabilitiesItem
+	s.SetFloat64(v)
+	return s
+}
+
+// SetString sets CreateRuntimeModelBodyCapabilitiesItem to string.
+func (s *CreateRuntimeModelBodyCapabilitiesItem) SetString(v string) {
+	s.Type = StringCreateRuntimeModelBodyCapabilitiesItem
+	s.String = v
+}
+
+// GetString returns string and true boolean if CreateRuntimeModelBodyCapabilitiesItem is string.
+func (s CreateRuntimeModelBodyCapabilitiesItem) GetString() (v string, ok bool) {
+	if !s.IsString() {
+		return v, false
+	}
+	return s.String, true
+}
+
+// NewStringCreateRuntimeModelBodyCapabilitiesItem returns new CreateRuntimeModelBodyCapabilitiesItem from string.
+func NewStringCreateRuntimeModelBodyCapabilitiesItem(v string) CreateRuntimeModelBodyCapabilitiesItem {
+	var s CreateRuntimeModelBodyCapabilitiesItem
+	s.SetString(v)
+	return s
+}
+
+type CreateRuntimeModelConflict ProblemDetails
+
+func (*CreateRuntimeModelConflict) createRuntimeModelRes() {}
+
+type CreateRuntimeModelForbidden ProblemDetails
+
+func (*CreateRuntimeModelForbidden) createRuntimeModelRes() {}
+
+type CreateRuntimeModelNotFound ProblemDetails
+
+func (*CreateRuntimeModelNotFound) createRuntimeModelRes() {}
+
+type CreateRuntimeModelUnauthorized ProblemDetails
+
+func (*CreateRuntimeModelUnauthorized) createRuntimeModelRes() {}
+
 type CreateRuntimeProfileBadRequest ProblemDetails
 
 func (*CreateRuntimeProfileBadRequest) createRuntimeProfileRes() {}
@@ -4486,6 +4673,23 @@ func (*DeleteGroupOK) deleteGroupRes() {}
 type DeleteGroupUnauthorized ProblemDetails
 
 func (*DeleteGroupUnauthorized) deleteGroupRes() {}
+
+type DeleteRuntimeModelForbidden ProblemDetails
+
+func (*DeleteRuntimeModelForbidden) deleteRuntimeModelRes() {}
+
+// DeleteRuntimeModelNoContent is response for DeleteRuntimeModel operation.
+type DeleteRuntimeModelNoContent struct{}
+
+func (*DeleteRuntimeModelNoContent) deleteRuntimeModelRes() {}
+
+type DeleteRuntimeModelNotFound ProblemDetails
+
+func (*DeleteRuntimeModelNotFound) deleteRuntimeModelRes() {}
+
+type DeleteRuntimeModelUnauthorized ProblemDetails
+
+func (*DeleteRuntimeModelUnauthorized) deleteRuntimeModelRes() {}
 
 type DeleteRuntimeProfileForbidden ProblemDetails
 
@@ -9737,6 +9941,14 @@ type GetRenderedPackByIdUnauthorized ProblemDetails
 
 func (*GetRenderedPackByIdUnauthorized) getRenderedPackByIdRes() {}
 
+type GetRuntimeModelNotFound ProblemDetails
+
+func (*GetRuntimeModelNotFound) getRuntimeModelRes() {}
+
+type GetRuntimeModelUnauthorized ProblemDetails
+
+func (*GetRuntimeModelUnauthorized) getRuntimeModelRes() {}
+
 type GetRuntimeProfileNotFound ProblemDetails
 
 func (*GetRuntimeProfileNotFound) getRuntimeProfileRes() {}
@@ -14316,6 +14528,98 @@ func (o OptCreateEntryRelationReqStatus) Or(d CreateEntryRelationReqStatus) Crea
 	return d
 }
 
+// NewOptCreateRuntimeModelBody returns new OptCreateRuntimeModelBody with value set to v.
+func NewOptCreateRuntimeModelBody(v CreateRuntimeModelBody) OptCreateRuntimeModelBody {
+	return OptCreateRuntimeModelBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeModelBody is optional CreateRuntimeModelBody.
+type OptCreateRuntimeModelBody struct {
+	Value CreateRuntimeModelBody
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeModelBody was set.
+func (o OptCreateRuntimeModelBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeModelBody) Reset() {
+	var v CreateRuntimeModelBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeModelBody) SetTo(v CreateRuntimeModelBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeModelBody) Get() (v CreateRuntimeModelBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeModelBody) Or(d CreateRuntimeModelBody) CreateRuntimeModelBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeModelBodyCapabilities returns new OptCreateRuntimeModelBodyCapabilities with value set to v.
+func NewOptCreateRuntimeModelBodyCapabilities(v CreateRuntimeModelBodyCapabilities) OptCreateRuntimeModelBodyCapabilities {
+	return OptCreateRuntimeModelBodyCapabilities{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeModelBodyCapabilities is optional CreateRuntimeModelBodyCapabilities.
+type OptCreateRuntimeModelBodyCapabilities struct {
+	Value CreateRuntimeModelBodyCapabilities
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeModelBodyCapabilities was set.
+func (o OptCreateRuntimeModelBodyCapabilities) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeModelBodyCapabilities) Reset() {
+	var v CreateRuntimeModelBodyCapabilities
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeModelBodyCapabilities) SetTo(v CreateRuntimeModelBodyCapabilities) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeModelBodyCapabilities) Get() (v CreateRuntimeModelBodyCapabilities, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeModelBodyCapabilities) Or(d CreateRuntimeModelBodyCapabilities) CreateRuntimeModelBodyCapabilities {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptCreateRuntimeProfileBody returns new OptCreateRuntimeProfileBody with value set to v.
 func NewOptCreateRuntimeProfileBody(v CreateRuntimeProfileBody) OptCreateRuntimeProfileBody {
 	return OptCreateRuntimeProfileBody{
@@ -17328,6 +17632,98 @@ func (o OptUpdateRenderedPackReq) Or(d UpdateRenderedPackReq) UpdateRenderedPack
 	return d
 }
 
+// NewOptUpdateRuntimeModelBody returns new OptUpdateRuntimeModelBody with value set to v.
+func NewOptUpdateRuntimeModelBody(v UpdateRuntimeModelBody) OptUpdateRuntimeModelBody {
+	return OptUpdateRuntimeModelBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeModelBody is optional UpdateRuntimeModelBody.
+type OptUpdateRuntimeModelBody struct {
+	Value UpdateRuntimeModelBody
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeModelBody was set.
+func (o OptUpdateRuntimeModelBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeModelBody) Reset() {
+	var v UpdateRuntimeModelBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeModelBody) SetTo(v UpdateRuntimeModelBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeModelBody) Get() (v UpdateRuntimeModelBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeModelBody) Or(d UpdateRuntimeModelBody) UpdateRuntimeModelBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeModelBodyCapabilities returns new OptUpdateRuntimeModelBodyCapabilities with value set to v.
+func NewOptUpdateRuntimeModelBodyCapabilities(v UpdateRuntimeModelBodyCapabilities) OptUpdateRuntimeModelBodyCapabilities {
+	return OptUpdateRuntimeModelBodyCapabilities{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeModelBodyCapabilities is optional UpdateRuntimeModelBodyCapabilities.
+type OptUpdateRuntimeModelBodyCapabilities struct {
+	Value UpdateRuntimeModelBodyCapabilities
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeModelBodyCapabilities was set.
+func (o OptUpdateRuntimeModelBodyCapabilities) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeModelBodyCapabilities) Reset() {
+	var v UpdateRuntimeModelBodyCapabilities
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeModelBodyCapabilities) SetTo(v UpdateRuntimeModelBodyCapabilities) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeModelBodyCapabilities) Get() (v UpdateRuntimeModelBodyCapabilities, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeModelBodyCapabilities) Or(d UpdateRuntimeModelBodyCapabilities) UpdateRuntimeModelBodyCapabilities {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptUpdateRuntimeProfileBody returns new OptUpdateRuntimeProfileBody with value set to v.
 func NewOptUpdateRuntimeProfileBody(v UpdateRuntimeProfileBody) OptUpdateRuntimeProfileBody {
 	return OptUpdateRuntimeProfileBody{
@@ -18316,6 +18712,7 @@ func (s *ProblemDetails) SetAdditionalProps(val ProblemDetailsAdditional) {
 
 func (*ProblemDetails) getLegreffierOnboardingStatusRes() {}
 func (*ProblemDetails) getTrustGraphRes()                 {}
+func (*ProblemDetails) listRuntimeModelsRes()             {}
 func (*ProblemDetails) listTaskSchemasRes()               {}
 
 type ProblemDetailsAdditional map[string]jx.Raw
@@ -21806,6 +22203,514 @@ func (s *RotateSecretResponse) SetClientSecret(val string) {
 }
 
 func (*RotateSecretResponse) rotateClientSecretRes() {}
+
+// Ref: #/components/schemas/RuntimeModel
+type RuntimeModel struct {
+	Capabilities     RuntimeModelCapabilities `json:"capabilities"`
+	CreatedAt        time.Time                `json:"createdAt"`
+	CreatedByAgentId NilUUID                  `json:"createdByAgentId"`
+	CreatedByHumanId NilUUID                  `json:"createdByHumanId"`
+	Description      NilString                `json:"description"`
+	DisplayName      NilString                `json:"displayName"`
+	ID               uuid.UUID                `json:"id"`
+	IsActive         bool                     `json:"isActive"`
+	Model            string                   `json:"model"`
+	Provider         string                   `json:"provider"`
+	TeamId           NilUUID                  `json:"teamId"`
+	UpdatedAt        time.Time                `json:"updatedAt"`
+}
+
+// GetCapabilities returns the value of Capabilities.
+func (s *RuntimeModel) GetCapabilities() RuntimeModelCapabilities {
+	return s.Capabilities
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *RuntimeModel) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreatedByAgentId returns the value of CreatedByAgentId.
+func (s *RuntimeModel) GetCreatedByAgentId() NilUUID {
+	return s.CreatedByAgentId
+}
+
+// GetCreatedByHumanId returns the value of CreatedByHumanId.
+func (s *RuntimeModel) GetCreatedByHumanId() NilUUID {
+	return s.CreatedByHumanId
+}
+
+// GetDescription returns the value of Description.
+func (s *RuntimeModel) GetDescription() NilString {
+	return s.Description
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *RuntimeModel) GetDisplayName() NilString {
+	return s.DisplayName
+}
+
+// GetID returns the value of ID.
+func (s *RuntimeModel) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetIsActive returns the value of IsActive.
+func (s *RuntimeModel) GetIsActive() bool {
+	return s.IsActive
+}
+
+// GetModel returns the value of Model.
+func (s *RuntimeModel) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *RuntimeModel) GetProvider() string {
+	return s.Provider
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *RuntimeModel) GetTeamId() NilUUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *RuntimeModel) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetCapabilities sets the value of Capabilities.
+func (s *RuntimeModel) SetCapabilities(val RuntimeModelCapabilities) {
+	s.Capabilities = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *RuntimeModel) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreatedByAgentId sets the value of CreatedByAgentId.
+func (s *RuntimeModel) SetCreatedByAgentId(val NilUUID) {
+	s.CreatedByAgentId = val
+}
+
+// SetCreatedByHumanId sets the value of CreatedByHumanId.
+func (s *RuntimeModel) SetCreatedByHumanId(val NilUUID) {
+	s.CreatedByHumanId = val
+}
+
+// SetDescription sets the value of Description.
+func (s *RuntimeModel) SetDescription(val NilString) {
+	s.Description = val
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *RuntimeModel) SetDisplayName(val NilString) {
+	s.DisplayName = val
+}
+
+// SetID sets the value of ID.
+func (s *RuntimeModel) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetIsActive sets the value of IsActive.
+func (s *RuntimeModel) SetIsActive(val bool) {
+	s.IsActive = val
+}
+
+// SetModel sets the value of Model.
+func (s *RuntimeModel) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *RuntimeModel) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *RuntimeModel) SetTeamId(val NilUUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *RuntimeModel) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+func (*RuntimeModel) createRuntimeModelRes() {}
+func (*RuntimeModel) getRuntimeModelRes()    {}
+func (*RuntimeModel) updateRuntimeModelRes() {}
+
+type RuntimeModelCapabilities map[string]RuntimeModelCapabilitiesItem
+
+func (s *RuntimeModelCapabilities) init() RuntimeModelCapabilities {
+	m := *s
+	if m == nil {
+		m = map[string]RuntimeModelCapabilitiesItem{}
+		*s = m
+	}
+	return m
+}
+
+// RuntimeModelCapabilitiesItem represents sum type.
+type RuntimeModelCapabilitiesItem struct {
+	// Type selects the active sum variant, switch on this field.
+	Type    RuntimeModelCapabilitiesItemType
+	Bool    bool
+	Float64 float64
+	String  string
+}
+
+// RuntimeModelCapabilitiesItemType is oneOf type of RuntimeModelCapabilitiesItem.
+type RuntimeModelCapabilitiesItemType string
+
+// Possible values for RuntimeModelCapabilitiesItemType.
+const (
+	BoolRuntimeModelCapabilitiesItem    RuntimeModelCapabilitiesItemType = "bool"
+	Float64RuntimeModelCapabilitiesItem RuntimeModelCapabilitiesItemType = "float64"
+	StringRuntimeModelCapabilitiesItem  RuntimeModelCapabilitiesItemType = "string"
+)
+
+// IsBool reports whether RuntimeModelCapabilitiesItem is bool.
+func (s RuntimeModelCapabilitiesItem) IsBool() bool {
+	return s.Type == BoolRuntimeModelCapabilitiesItem
+}
+
+// IsFloat64 reports whether RuntimeModelCapabilitiesItem is float64.
+func (s RuntimeModelCapabilitiesItem) IsFloat64() bool {
+	return s.Type == Float64RuntimeModelCapabilitiesItem
+}
+
+// IsString reports whether RuntimeModelCapabilitiesItem is string.
+func (s RuntimeModelCapabilitiesItem) IsString() bool {
+	return s.Type == StringRuntimeModelCapabilitiesItem
+}
+
+// SetBool sets RuntimeModelCapabilitiesItem to bool.
+func (s *RuntimeModelCapabilitiesItem) SetBool(v bool) {
+	s.Type = BoolRuntimeModelCapabilitiesItem
+	s.Bool = v
+}
+
+// GetBool returns bool and true boolean if RuntimeModelCapabilitiesItem is bool.
+func (s RuntimeModelCapabilitiesItem) GetBool() (v bool, ok bool) {
+	if !s.IsBool() {
+		return v, false
+	}
+	return s.Bool, true
+}
+
+// NewBoolRuntimeModelCapabilitiesItem returns new RuntimeModelCapabilitiesItem from bool.
+func NewBoolRuntimeModelCapabilitiesItem(v bool) RuntimeModelCapabilitiesItem {
+	var s RuntimeModelCapabilitiesItem
+	s.SetBool(v)
+	return s
+}
+
+// SetFloat64 sets RuntimeModelCapabilitiesItem to float64.
+func (s *RuntimeModelCapabilitiesItem) SetFloat64(v float64) {
+	s.Type = Float64RuntimeModelCapabilitiesItem
+	s.Float64 = v
+}
+
+// GetFloat64 returns float64 and true boolean if RuntimeModelCapabilitiesItem is float64.
+func (s RuntimeModelCapabilitiesItem) GetFloat64() (v float64, ok bool) {
+	if !s.IsFloat64() {
+		return v, false
+	}
+	return s.Float64, true
+}
+
+// NewFloat64RuntimeModelCapabilitiesItem returns new RuntimeModelCapabilitiesItem from float64.
+func NewFloat64RuntimeModelCapabilitiesItem(v float64) RuntimeModelCapabilitiesItem {
+	var s RuntimeModelCapabilitiesItem
+	s.SetFloat64(v)
+	return s
+}
+
+// SetString sets RuntimeModelCapabilitiesItem to string.
+func (s *RuntimeModelCapabilitiesItem) SetString(v string) {
+	s.Type = StringRuntimeModelCapabilitiesItem
+	s.String = v
+}
+
+// GetString returns string and true boolean if RuntimeModelCapabilitiesItem is string.
+func (s RuntimeModelCapabilitiesItem) GetString() (v string, ok bool) {
+	if !s.IsString() {
+		return v, false
+	}
+	return s.String, true
+}
+
+// NewStringRuntimeModelCapabilitiesItem returns new RuntimeModelCapabilitiesItem from string.
+func NewStringRuntimeModelCapabilitiesItem(v string) RuntimeModelCapabilitiesItem {
+	var s RuntimeModelCapabilitiesItem
+	s.SetString(v)
+	return s
+}
+
+// Ref: #/components/schemas/RuntimeModelListResponse
+type RuntimeModelListResponse struct {
+	Items []RuntimeModelListResponseItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *RuntimeModelListResponse) GetItems() []RuntimeModelListResponseItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *RuntimeModelListResponse) SetItems(val []RuntimeModelListResponseItemsItem) {
+	s.Items = val
+}
+
+func (*RuntimeModelListResponse) listRuntimeModelsRes() {}
+
+type RuntimeModelListResponseItemsItem struct {
+	Capabilities     RuntimeModelListResponseItemsItemCapabilities `json:"capabilities"`
+	CreatedAt        time.Time                                     `json:"createdAt"`
+	CreatedByAgentId NilUUID                                       `json:"createdByAgentId"`
+	CreatedByHumanId NilUUID                                       `json:"createdByHumanId"`
+	Description      NilString                                     `json:"description"`
+	DisplayName      NilString                                     `json:"displayName"`
+	ID               uuid.UUID                                     `json:"id"`
+	IsActive         bool                                          `json:"isActive"`
+	Model            string                                        `json:"model"`
+	Provider         string                                        `json:"provider"`
+	TeamId           NilUUID                                       `json:"teamId"`
+	UpdatedAt        time.Time                                     `json:"updatedAt"`
+}
+
+// GetCapabilities returns the value of Capabilities.
+func (s *RuntimeModelListResponseItemsItem) GetCapabilities() RuntimeModelListResponseItemsItemCapabilities {
+	return s.Capabilities
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *RuntimeModelListResponseItemsItem) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreatedByAgentId returns the value of CreatedByAgentId.
+func (s *RuntimeModelListResponseItemsItem) GetCreatedByAgentId() NilUUID {
+	return s.CreatedByAgentId
+}
+
+// GetCreatedByHumanId returns the value of CreatedByHumanId.
+func (s *RuntimeModelListResponseItemsItem) GetCreatedByHumanId() NilUUID {
+	return s.CreatedByHumanId
+}
+
+// GetDescription returns the value of Description.
+func (s *RuntimeModelListResponseItemsItem) GetDescription() NilString {
+	return s.Description
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *RuntimeModelListResponseItemsItem) GetDisplayName() NilString {
+	return s.DisplayName
+}
+
+// GetID returns the value of ID.
+func (s *RuntimeModelListResponseItemsItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetIsActive returns the value of IsActive.
+func (s *RuntimeModelListResponseItemsItem) GetIsActive() bool {
+	return s.IsActive
+}
+
+// GetModel returns the value of Model.
+func (s *RuntimeModelListResponseItemsItem) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *RuntimeModelListResponseItemsItem) GetProvider() string {
+	return s.Provider
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *RuntimeModelListResponseItemsItem) GetTeamId() NilUUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *RuntimeModelListResponseItemsItem) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetCapabilities sets the value of Capabilities.
+func (s *RuntimeModelListResponseItemsItem) SetCapabilities(val RuntimeModelListResponseItemsItemCapabilities) {
+	s.Capabilities = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *RuntimeModelListResponseItemsItem) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreatedByAgentId sets the value of CreatedByAgentId.
+func (s *RuntimeModelListResponseItemsItem) SetCreatedByAgentId(val NilUUID) {
+	s.CreatedByAgentId = val
+}
+
+// SetCreatedByHumanId sets the value of CreatedByHumanId.
+func (s *RuntimeModelListResponseItemsItem) SetCreatedByHumanId(val NilUUID) {
+	s.CreatedByHumanId = val
+}
+
+// SetDescription sets the value of Description.
+func (s *RuntimeModelListResponseItemsItem) SetDescription(val NilString) {
+	s.Description = val
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *RuntimeModelListResponseItemsItem) SetDisplayName(val NilString) {
+	s.DisplayName = val
+}
+
+// SetID sets the value of ID.
+func (s *RuntimeModelListResponseItemsItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetIsActive sets the value of IsActive.
+func (s *RuntimeModelListResponseItemsItem) SetIsActive(val bool) {
+	s.IsActive = val
+}
+
+// SetModel sets the value of Model.
+func (s *RuntimeModelListResponseItemsItem) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *RuntimeModelListResponseItemsItem) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *RuntimeModelListResponseItemsItem) SetTeamId(val NilUUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *RuntimeModelListResponseItemsItem) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+type RuntimeModelListResponseItemsItemCapabilities map[string]RuntimeModelListResponseItemsItemCapabilitiesItem
+
+func (s *RuntimeModelListResponseItemsItemCapabilities) init() RuntimeModelListResponseItemsItemCapabilities {
+	m := *s
+	if m == nil {
+		m = map[string]RuntimeModelListResponseItemsItemCapabilitiesItem{}
+		*s = m
+	}
+	return m
+}
+
+// RuntimeModelListResponseItemsItemCapabilitiesItem represents sum type.
+type RuntimeModelListResponseItemsItemCapabilitiesItem struct {
+	// Type selects the active sum variant, switch on this field.
+	Type    RuntimeModelListResponseItemsItemCapabilitiesItemType
+	Bool    bool
+	Float64 float64
+	String  string
+}
+
+// RuntimeModelListResponseItemsItemCapabilitiesItemType is oneOf type of RuntimeModelListResponseItemsItemCapabilitiesItem.
+type RuntimeModelListResponseItemsItemCapabilitiesItemType string
+
+// Possible values for RuntimeModelListResponseItemsItemCapabilitiesItemType.
+const (
+	BoolRuntimeModelListResponseItemsItemCapabilitiesItem    RuntimeModelListResponseItemsItemCapabilitiesItemType = "bool"
+	Float64RuntimeModelListResponseItemsItemCapabilitiesItem RuntimeModelListResponseItemsItemCapabilitiesItemType = "float64"
+	StringRuntimeModelListResponseItemsItemCapabilitiesItem  RuntimeModelListResponseItemsItemCapabilitiesItemType = "string"
+)
+
+// IsBool reports whether RuntimeModelListResponseItemsItemCapabilitiesItem is bool.
+func (s RuntimeModelListResponseItemsItemCapabilitiesItem) IsBool() bool {
+	return s.Type == BoolRuntimeModelListResponseItemsItemCapabilitiesItem
+}
+
+// IsFloat64 reports whether RuntimeModelListResponseItemsItemCapabilitiesItem is float64.
+func (s RuntimeModelListResponseItemsItemCapabilitiesItem) IsFloat64() bool {
+	return s.Type == Float64RuntimeModelListResponseItemsItemCapabilitiesItem
+}
+
+// IsString reports whether RuntimeModelListResponseItemsItemCapabilitiesItem is string.
+func (s RuntimeModelListResponseItemsItemCapabilitiesItem) IsString() bool {
+	return s.Type == StringRuntimeModelListResponseItemsItemCapabilitiesItem
+}
+
+// SetBool sets RuntimeModelListResponseItemsItemCapabilitiesItem to bool.
+func (s *RuntimeModelListResponseItemsItemCapabilitiesItem) SetBool(v bool) {
+	s.Type = BoolRuntimeModelListResponseItemsItemCapabilitiesItem
+	s.Bool = v
+}
+
+// GetBool returns bool and true boolean if RuntimeModelListResponseItemsItemCapabilitiesItem is bool.
+func (s RuntimeModelListResponseItemsItemCapabilitiesItem) GetBool() (v bool, ok bool) {
+	if !s.IsBool() {
+		return v, false
+	}
+	return s.Bool, true
+}
+
+// NewBoolRuntimeModelListResponseItemsItemCapabilitiesItem returns new RuntimeModelListResponseItemsItemCapabilitiesItem from bool.
+func NewBoolRuntimeModelListResponseItemsItemCapabilitiesItem(v bool) RuntimeModelListResponseItemsItemCapabilitiesItem {
+	var s RuntimeModelListResponseItemsItemCapabilitiesItem
+	s.SetBool(v)
+	return s
+}
+
+// SetFloat64 sets RuntimeModelListResponseItemsItemCapabilitiesItem to float64.
+func (s *RuntimeModelListResponseItemsItemCapabilitiesItem) SetFloat64(v float64) {
+	s.Type = Float64RuntimeModelListResponseItemsItemCapabilitiesItem
+	s.Float64 = v
+}
+
+// GetFloat64 returns float64 and true boolean if RuntimeModelListResponseItemsItemCapabilitiesItem is float64.
+func (s RuntimeModelListResponseItemsItemCapabilitiesItem) GetFloat64() (v float64, ok bool) {
+	if !s.IsFloat64() {
+		return v, false
+	}
+	return s.Float64, true
+}
+
+// NewFloat64RuntimeModelListResponseItemsItemCapabilitiesItem returns new RuntimeModelListResponseItemsItemCapabilitiesItem from float64.
+func NewFloat64RuntimeModelListResponseItemsItemCapabilitiesItem(v float64) RuntimeModelListResponseItemsItemCapabilitiesItem {
+	var s RuntimeModelListResponseItemsItemCapabilitiesItem
+	s.SetFloat64(v)
+	return s
+}
+
+// SetString sets RuntimeModelListResponseItemsItemCapabilitiesItem to string.
+func (s *RuntimeModelListResponseItemsItemCapabilitiesItem) SetString(v string) {
+	s.Type = StringRuntimeModelListResponseItemsItemCapabilitiesItem
+	s.String = v
+}
+
+// GetString returns string and true boolean if RuntimeModelListResponseItemsItemCapabilitiesItem is string.
+func (s RuntimeModelListResponseItemsItemCapabilitiesItem) GetString() (v string, ok bool) {
+	if !s.IsString() {
+		return v, false
+	}
+	return s.String, true
+}
+
+// NewStringRuntimeModelListResponseItemsItemCapabilitiesItem returns new RuntimeModelListResponseItemsItemCapabilitiesItem from string.
+func NewStringRuntimeModelListResponseItemsItemCapabilitiesItem(v string) RuntimeModelListResponseItemsItemCapabilitiesItem {
+	var s RuntimeModelListResponseItemsItemCapabilitiesItem
+	s.SetString(v)
+	return s
+}
 
 // Ref: #/components/schemas/RuntimeProfile
 type RuntimeProfile struct {
@@ -26558,6 +27463,204 @@ func (s *UpdateRenderedPackReq) SetVerifiedTaskId(val OptUUID) {
 type UpdateRenderedPackUnauthorized ProblemDetails
 
 func (*UpdateRenderedPackUnauthorized) updateRenderedPackRes() {}
+
+type UpdateRuntimeModelBadRequest ProblemDetails
+
+func (*UpdateRuntimeModelBadRequest) updateRuntimeModelRes() {}
+
+// Ref: #/components/schemas/UpdateRuntimeModelBody
+type UpdateRuntimeModelBody struct {
+	Capabilities OptUpdateRuntimeModelBodyCapabilities `json:"capabilities"`
+	Description  OptString                             `json:"description"`
+	DisplayName  OptString                             `json:"displayName"`
+	IsActive     OptBool                               `json:"isActive"`
+	Model        OptString                             `json:"model"`
+	Provider     OptString                             `json:"provider"`
+}
+
+// GetCapabilities returns the value of Capabilities.
+func (s *UpdateRuntimeModelBody) GetCapabilities() OptUpdateRuntimeModelBodyCapabilities {
+	return s.Capabilities
+}
+
+// GetDescription returns the value of Description.
+func (s *UpdateRuntimeModelBody) GetDescription() OptString {
+	return s.Description
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *UpdateRuntimeModelBody) GetDisplayName() OptString {
+	return s.DisplayName
+}
+
+// GetIsActive returns the value of IsActive.
+func (s *UpdateRuntimeModelBody) GetIsActive() OptBool {
+	return s.IsActive
+}
+
+// GetModel returns the value of Model.
+func (s *UpdateRuntimeModelBody) GetModel() OptString {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *UpdateRuntimeModelBody) GetProvider() OptString {
+	return s.Provider
+}
+
+// SetCapabilities sets the value of Capabilities.
+func (s *UpdateRuntimeModelBody) SetCapabilities(val OptUpdateRuntimeModelBodyCapabilities) {
+	s.Capabilities = val
+}
+
+// SetDescription sets the value of Description.
+func (s *UpdateRuntimeModelBody) SetDescription(val OptString) {
+	s.Description = val
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *UpdateRuntimeModelBody) SetDisplayName(val OptString) {
+	s.DisplayName = val
+}
+
+// SetIsActive sets the value of IsActive.
+func (s *UpdateRuntimeModelBody) SetIsActive(val OptBool) {
+	s.IsActive = val
+}
+
+// SetModel sets the value of Model.
+func (s *UpdateRuntimeModelBody) SetModel(val OptString) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *UpdateRuntimeModelBody) SetProvider(val OptString) {
+	s.Provider = val
+}
+
+type UpdateRuntimeModelBodyCapabilities map[string]UpdateRuntimeModelBodyCapabilitiesItem
+
+func (s *UpdateRuntimeModelBodyCapabilities) init() UpdateRuntimeModelBodyCapabilities {
+	m := *s
+	if m == nil {
+		m = map[string]UpdateRuntimeModelBodyCapabilitiesItem{}
+		*s = m
+	}
+	return m
+}
+
+// UpdateRuntimeModelBodyCapabilitiesItem represents sum type.
+type UpdateRuntimeModelBodyCapabilitiesItem struct {
+	// Type selects the active sum variant, switch on this field.
+	Type    UpdateRuntimeModelBodyCapabilitiesItemType
+	Bool    bool
+	Float64 float64
+	String  string
+}
+
+// UpdateRuntimeModelBodyCapabilitiesItemType is oneOf type of UpdateRuntimeModelBodyCapabilitiesItem.
+type UpdateRuntimeModelBodyCapabilitiesItemType string
+
+// Possible values for UpdateRuntimeModelBodyCapabilitiesItemType.
+const (
+	BoolUpdateRuntimeModelBodyCapabilitiesItem    UpdateRuntimeModelBodyCapabilitiesItemType = "bool"
+	Float64UpdateRuntimeModelBodyCapabilitiesItem UpdateRuntimeModelBodyCapabilitiesItemType = "float64"
+	StringUpdateRuntimeModelBodyCapabilitiesItem  UpdateRuntimeModelBodyCapabilitiesItemType = "string"
+)
+
+// IsBool reports whether UpdateRuntimeModelBodyCapabilitiesItem is bool.
+func (s UpdateRuntimeModelBodyCapabilitiesItem) IsBool() bool {
+	return s.Type == BoolUpdateRuntimeModelBodyCapabilitiesItem
+}
+
+// IsFloat64 reports whether UpdateRuntimeModelBodyCapabilitiesItem is float64.
+func (s UpdateRuntimeModelBodyCapabilitiesItem) IsFloat64() bool {
+	return s.Type == Float64UpdateRuntimeModelBodyCapabilitiesItem
+}
+
+// IsString reports whether UpdateRuntimeModelBodyCapabilitiesItem is string.
+func (s UpdateRuntimeModelBodyCapabilitiesItem) IsString() bool {
+	return s.Type == StringUpdateRuntimeModelBodyCapabilitiesItem
+}
+
+// SetBool sets UpdateRuntimeModelBodyCapabilitiesItem to bool.
+func (s *UpdateRuntimeModelBodyCapabilitiesItem) SetBool(v bool) {
+	s.Type = BoolUpdateRuntimeModelBodyCapabilitiesItem
+	s.Bool = v
+}
+
+// GetBool returns bool and true boolean if UpdateRuntimeModelBodyCapabilitiesItem is bool.
+func (s UpdateRuntimeModelBodyCapabilitiesItem) GetBool() (v bool, ok bool) {
+	if !s.IsBool() {
+		return v, false
+	}
+	return s.Bool, true
+}
+
+// NewBoolUpdateRuntimeModelBodyCapabilitiesItem returns new UpdateRuntimeModelBodyCapabilitiesItem from bool.
+func NewBoolUpdateRuntimeModelBodyCapabilitiesItem(v bool) UpdateRuntimeModelBodyCapabilitiesItem {
+	var s UpdateRuntimeModelBodyCapabilitiesItem
+	s.SetBool(v)
+	return s
+}
+
+// SetFloat64 sets UpdateRuntimeModelBodyCapabilitiesItem to float64.
+func (s *UpdateRuntimeModelBodyCapabilitiesItem) SetFloat64(v float64) {
+	s.Type = Float64UpdateRuntimeModelBodyCapabilitiesItem
+	s.Float64 = v
+}
+
+// GetFloat64 returns float64 and true boolean if UpdateRuntimeModelBodyCapabilitiesItem is float64.
+func (s UpdateRuntimeModelBodyCapabilitiesItem) GetFloat64() (v float64, ok bool) {
+	if !s.IsFloat64() {
+		return v, false
+	}
+	return s.Float64, true
+}
+
+// NewFloat64UpdateRuntimeModelBodyCapabilitiesItem returns new UpdateRuntimeModelBodyCapabilitiesItem from float64.
+func NewFloat64UpdateRuntimeModelBodyCapabilitiesItem(v float64) UpdateRuntimeModelBodyCapabilitiesItem {
+	var s UpdateRuntimeModelBodyCapabilitiesItem
+	s.SetFloat64(v)
+	return s
+}
+
+// SetString sets UpdateRuntimeModelBodyCapabilitiesItem to string.
+func (s *UpdateRuntimeModelBodyCapabilitiesItem) SetString(v string) {
+	s.Type = StringUpdateRuntimeModelBodyCapabilitiesItem
+	s.String = v
+}
+
+// GetString returns string and true boolean if UpdateRuntimeModelBodyCapabilitiesItem is string.
+func (s UpdateRuntimeModelBodyCapabilitiesItem) GetString() (v string, ok bool) {
+	if !s.IsString() {
+		return v, false
+	}
+	return s.String, true
+}
+
+// NewStringUpdateRuntimeModelBodyCapabilitiesItem returns new UpdateRuntimeModelBodyCapabilitiesItem from string.
+func NewStringUpdateRuntimeModelBodyCapabilitiesItem(v string) UpdateRuntimeModelBodyCapabilitiesItem {
+	var s UpdateRuntimeModelBodyCapabilitiesItem
+	s.SetString(v)
+	return s
+}
+
+type UpdateRuntimeModelConflict ProblemDetails
+
+func (*UpdateRuntimeModelConflict) updateRuntimeModelRes() {}
+
+type UpdateRuntimeModelForbidden ProblemDetails
+
+func (*UpdateRuntimeModelForbidden) updateRuntimeModelRes() {}
+
+type UpdateRuntimeModelNotFound ProblemDetails
+
+func (*UpdateRuntimeModelNotFound) updateRuntimeModelRes() {}
+
+type UpdateRuntimeModelUnauthorized ProblemDetails
+
+func (*UpdateRuntimeModelUnauthorized) updateRuntimeModelRes() {}
 
 type UpdateRuntimeProfileBadRequest ProblemDetails
 
