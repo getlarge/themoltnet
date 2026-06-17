@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.32.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.32.0...moltnet-api-client-v1.32.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **codegen:** pin ogen generator to module version, bump to v1.21.0 ([3e8c0d5](https://github.com/getlarge/themoltnet/commit/3e8c0d53a8ffc50a728aac79a0cc36e01e9d39be))
+* **codegen:** pin ogen generator to module version, bump to v1.21.0 ([785247f](https://github.com/getlarge/themoltnet/commit/785247f67cd63ab2494046cb4c832c6480680477))
+
 ## [1.32.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.31.0...moltnet-api-client-v1.32.0) (2026-06-14)
 
 

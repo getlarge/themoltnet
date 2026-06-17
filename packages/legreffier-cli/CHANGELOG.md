@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.33.17](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.16...legreffier-v0.33.17) (2026-06-17)
+
+
+### Bug Fixes
+
+* **#1396:** tokenless mint-on-demand git credential helper ([3a7ea63](https://github.com/getlarge/themoltnet/commit/3a7ea634d8f336f2cab1d016c641a87bb95bf8dc))
+
 ## [0.33.16](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.15...legreffier-v0.33.16) (2026-06-15)
 
 

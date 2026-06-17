@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.3](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.9.2...dspy-adapters-v0.9.3) (2026-06-17)
+
+
+### Bug Fixes
+
+* **codegen:** pin ogen generator to module version, bump to v1.21.0 ([3e8c0d5](https://github.com/getlarge/themoltnet/commit/3e8c0d53a8ffc50a728aac79a0cc36e01e9d39be))
+* **codegen:** pin ogen generator to module version, bump to v1.21.0 ([785247f](https://github.com/getlarge/themoltnet/commit/785247f67cd63ab2494046cb4c832c6480680477))
+
 ## [0.9.2](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.9.1...dspy-adapters-v0.9.2) (2026-05-08)
 
 

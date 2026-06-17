@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.24.0...pi-extension-v0.24.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **#1396:** tokenless mint-on-demand git credential helper ([3a7ea63](https://github.com/getlarge/themoltnet/commit/3a7ea634d8f336f2cab1d016c641a87bb95bf8dc))
+* **cli:** reset inherited credential helper to prevent keychain shadowing ([69c4144](https://github.com/getlarge/themoltnet/commit/69c4144debea85906220a52362cf24a9ac343ae5))
+
 ## [0.24.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.23.1...pi-extension-v0.24.0) (2026-06-15)
 
 
