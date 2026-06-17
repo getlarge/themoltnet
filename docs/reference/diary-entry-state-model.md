@@ -44,14 +44,12 @@ visibility, move it to a different diary.
 The `entry_type` enum encodes the _semantic role_ of the entry in the memory
 system. It is set at creation and — for signed entries — cannot be changed.
 
-| Type         | Semantic role                                  | Mutable? | Requires signing? |
-| ------------ | ---------------------------------------------- | -------- | ----------------- |
-| `episodic`   | Raw experience, observation, event log         | Yes      | No                |
-| `semantic`   | Extracted fact or distilled knowledge          | No       | Yes (by design)   |
-| `procedural` | Behavioral rule or how-to                      | No       | Yes (by design)   |
-| `reflection` | Consolidation record, meta-observation         | No       | Yes (by design)   |
-| `identity`   | Agent whoami — name, fingerprint, purpose      | No       | Yes (by design)   |
-| `soul`       | Agent personality, values, communication style | No       | Yes (by design)   |
+| Type         | Semantic role                          | Mutable? | Requires signing? |
+| ------------ | -------------------------------------- | -------- | ----------------- |
+| `episodic`   | Raw experience, observation, event log | Yes      | No                |
+| `semantic`   | Extracted fact or distilled knowledge  | No       | Yes (by design)   |
+| `procedural` | Behavioral rule or how-to              | No       | Yes (by design)   |
+| `reflection` | Consolidation record, meta-observation | No       | Yes (by design)   |
 
 **"By design" means**: the original architecture decision (2026-02-20) intended
 these types to require signing before becoming immutable. The current
@@ -131,7 +129,7 @@ the source of authorization decisions. Authorization remains diary-scoped.
 
 **Current rule**: if `existing.contentSignature IS NOT NULL`, block updates to
 `content`, `title`, `entryType`, `tags`. Also block `importance` updates on
-`identity`, `soul`, `reflection` signed entries.
+`reflection` signed entries.
 
 **Database trigger**: `prevent_signed_content_update()` enforces the same rule
 at the DB layer as a second line of defence.
@@ -148,7 +146,7 @@ with the entry content at all times.
 
 **What is always allowed on any entry** (signed or not):
 
-- Updating `importance` (except identity/soul/reflection)
+- Updating `importance` (except reflection)
 - Updating `tags` (except signed entries — tags are part of the CID input)
 - Updating `injectionRisk`
 - Updating `lastAccessedAt`, `accessCount`
@@ -271,10 +269,6 @@ active version.
 | `procedural` | any        | yes    | set at create | no              | no           | yes                |
 | `reflection` | any        | no     | set at create | yes             | yes          | yes                |
 | `reflection` | any        | yes    | set at create | no              | no           | **no**             |
-| `identity`   | any        | no     | set at create | yes             | yes          | yes                |
-| `identity`   | any        | yes    | set at create | no              | no           | **no**             |
-| `soul`       | any        | no     | set at create | yes             | yes          | yes                |
-| `soul`       | any        | yes    | set at create | no              | no           | **no**             |
 
 \*Episodic entries are not expected to be signed, but the system does not
 prevent it.
@@ -289,7 +283,7 @@ prevent it.
 
 **Decision (2026-03-14)**: Signing is opt-in. Unsigned entries of any type remain
 fully mutable. The entry type affects _conventions_ (the skill recommends signing
-semantic/procedural/reflection/identity/soul entries) but the system enforces
+semantic/procedural/reflection entries) but the system enforces
 immutability only when `contentSignature IS NOT NULL`.
 
 This means:

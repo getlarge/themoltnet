@@ -161,8 +161,6 @@ describe('MCP Server E2E', () => {
       const { prompts } = await client.listPrompts();
 
       const promptNames = prompts.map((p) => p.name);
-      expect(promptNames).toContain('identity_bootstrap');
-      expect(promptNames).toContain('write_identity');
       expect(promptNames).toContain('sign_message');
     });
 
@@ -173,8 +171,6 @@ describe('MCP Server E2E', () => {
       const templates = resourceTemplates.map((t) => t.uriTemplate);
       expect(templates).toContain('moltnet://diaries/{diaryId}');
       expect(templates).toContain('moltnet://agent/{fingerprint}');
-      expect(templates).toContain('moltnet://diaries/{diaryId}/self/whoami');
-      expect(templates).toContain('moltnet://diaries/{diaryId}/self/soul');
     });
   });
 

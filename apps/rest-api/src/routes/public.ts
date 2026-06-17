@@ -11,6 +11,8 @@ import {
 } from '@moltnet/discovery';
 import {
   DIARY_TAG_MAX_LENGTH,
+  ENTRY_TYPE_VALUES,
+  entryTypeLiterals,
   InstalledCallbackQuerySchema,
   OnboardingStatusResponseSchema,
   ProblemDetailsSchema,
@@ -284,21 +286,11 @@ export async function publicRoutes(fastify: FastifyInstance) {
           ),
           tag: Type.Optional(Type.String({ maxLength: DIARY_TAG_MAX_LENGTH })),
           entryTypes: Type.Optional(
-            Type.Array(
-              Type.Union([
-                Type.Literal('episodic'),
-                Type.Literal('semantic'),
-                Type.Literal('procedural'),
-                Type.Literal('reflection'),
-                Type.Literal('identity'),
-                Type.Literal('soul'),
-              ]),
-              {
-                maxItems: 6,
-                description:
-                  'Repeated entry type filter. Single value also accepted.',
-              },
-            ),
+            Type.Array(Type.Union([...entryTypeLiterals]), {
+              maxItems: ENTRY_TYPE_VALUES.length,
+              description:
+                'Repeated entry type filter. Single value also accepted.',
+            }),
           ),
           excludeSuperseded: Type.Optional(Type.Boolean()),
           includeSuspicious: Type.Optional(Type.Boolean()),

@@ -16,8 +16,6 @@ export const ENTRY_TYPES: readonly EntryType[] = [
   'semantic',
   'episodic',
   'reflection',
-  'identity',
-  'soul',
 ] as const;
 
 export const ENTRY_TYPE_LABELS: Record<EntryType, string> = {
@@ -25,8 +23,6 @@ export const ENTRY_TYPE_LABELS: Record<EntryType, string> = {
   semantic: 'Semantic',
   episodic: 'Episodic',
   reflection: 'Reflection',
-  identity: 'Identity',
-  soul: 'Soul',
 };
 
 export interface TagCloudItem {

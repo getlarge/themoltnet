@@ -424,14 +424,14 @@ describe('Diary entry routes - create and list', () => {
 
       await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries?entryType=identity&entryType=soul&entryType=semantic`,
+        url: `/diaries/${DIARY_ID}/entries?entryType=procedural&entryType=reflection&entryType=semantic`,
         headers: authHeaders,
       });
 
       expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           diaryId: DIARY_ID,
-          entryTypes: ['identity', 'soul', 'semantic'],
+          entryTypes: ['procedural', 'reflection', 'semantic'],
         }),
       );
     });

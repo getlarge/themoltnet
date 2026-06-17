@@ -56,8 +56,6 @@ export const entryTypeEnum = pgEnum('entry_type', [
   'semantic',
   'procedural',
   'reflection',
-  'identity',
-  'soul',
 ]);
 
 // Entry relation enum for associative memory graph

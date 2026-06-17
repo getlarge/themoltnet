@@ -560,16 +560,14 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           );
         }
 
-        // importance is also immutable on identity/soul/reflection entries
+        // importance is also immutable on signed reflection entries
         if (
-          (existing.entryType === 'identity' ||
-            existing.entryType === 'soul' ||
-            existing.entryType === 'reflection') &&
+          existing.entryType === 'reflection' &&
           updates.importance !== undefined
         ) {
           throw new DiaryServiceError(
             'immutable',
-            'Importance is immutable on signed identity, soul, and reflection entries.',
+            'Importance is immutable on signed reflection entries.',
           );
         }
       }

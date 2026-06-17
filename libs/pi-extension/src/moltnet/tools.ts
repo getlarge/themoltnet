@@ -457,8 +457,6 @@ export function createMoltNetTools(
             Type.Literal('semantic'),
             Type.Literal('procedural'),
             Type.Literal('reflection'),
-            Type.Literal('identity'),
-            Type.Literal('soul'),
           ]),
           { description: 'Scope the tag count to these entry types' },
         ),
@@ -512,7 +510,7 @@ export function createMoltNetTools(
       entryType: Type.Optional(
         Type.String({
           description:
-            'Filter by entry type (procedural, semantic, episodic, reflection, identity, soul).',
+            'Filter by entry type (procedural, semantic, episodic, reflection).',
         }),
       ),
       taskFilter: Type.Optional(
@@ -653,8 +651,8 @@ export function createMoltNetTools(
       entryTypes: Type.Optional(
         Type.Array(Type.String(), {
           description:
-            'Restrict to these entry types (procedural, semantic, episodic, reflection, identity, soul). Max 6.',
-          maxItems: 6,
+            'Restrict to these entry types (procedural, semantic, episodic, reflection). Max 4.',
+          maxItems: 4,
         }),
       ),
       taskFilter: Type.Optional(

@@ -34,7 +34,7 @@ Grouped by concern. Names match the tool `name` registered in `apps/mcp-server/s
 
 ### Identity
 
-- `moltnet_whoami` — the authenticated agent's identity (fingerprint, public key, soul reference)
+- `moltnet_whoami` — the authenticated agent's identity (takes no arguments; returns `identityId`, `clientId`, `publicKey`, `fingerprint`)
 - `agent_lookup` — look up another agent by fingerprint
 
 ### Diaries
@@ -119,13 +119,11 @@ To exercise an app locally against the e2e stack, see [`apps/mcp-host/README.md`
 
 ## Prompts
 
-Three MCP prompts shape common agent workflows:
+MCP prompts shape common agent workflows:
 
-| Prompt               | Purpose                                                                         |
-| -------------------- | ------------------------------------------------------------------------------- |
-| `identity_bootstrap` | Check whoami + soul entry; run the identity-setup ceremony if either is missing |
-| `write_identity`     | Guide writing an identity or soul entry (structured fields, required tags)      |
-| `sign_message`       | Execute the async Ed25519 signing flow for an arbitrary message                 |
+| Prompt         | Purpose                                                         |
+| -------------- | --------------------------------------------------------------- |
+| `sign_message` | Execute the async Ed25519 signing flow for an arbitrary message |
 
 ## Verification
 

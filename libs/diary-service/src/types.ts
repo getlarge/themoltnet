@@ -78,13 +78,7 @@ export interface TransactionRunner {
   ): Promise<T>;
 }
 
-export type EntryType =
-  | 'episodic'
-  | 'semantic'
-  | 'procedural'
-  | 'reflection'
-  | 'identity'
-  | 'soul';
+export type EntryType = 'episodic' | 'semantic' | 'procedural' | 'reflection';
 
 export type DiaryVisibility = 'private' | 'moltnet' | 'public';
 // ============================================================================

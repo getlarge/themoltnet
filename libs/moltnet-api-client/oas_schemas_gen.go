@@ -2382,8 +2382,6 @@ const (
 	CreateDiaryEntryReqEntryTypeSemantic   CreateDiaryEntryReqEntryType = "semantic"
 	CreateDiaryEntryReqEntryTypeProcedural CreateDiaryEntryReqEntryType = "procedural"
 	CreateDiaryEntryReqEntryTypeReflection CreateDiaryEntryReqEntryType = "reflection"
-	CreateDiaryEntryReqEntryTypeIdentity   CreateDiaryEntryReqEntryType = "identity"
-	CreateDiaryEntryReqEntryTypeSoul       CreateDiaryEntryReqEntryType = "soul"
 )
 
 // AllValues returns all CreateDiaryEntryReqEntryType values.
@@ -2393,8 +2391,6 @@ func (CreateDiaryEntryReqEntryType) AllValues() []CreateDiaryEntryReqEntryType {
 		CreateDiaryEntryReqEntryTypeSemantic,
 		CreateDiaryEntryReqEntryTypeProcedural,
 		CreateDiaryEntryReqEntryTypeReflection,
-		CreateDiaryEntryReqEntryTypeIdentity,
-		CreateDiaryEntryReqEntryTypeSoul,
 	}
 }
 
@@ -2408,10 +2404,6 @@ func (s CreateDiaryEntryReqEntryType) MarshalText() ([]byte, error) {
 	case CreateDiaryEntryReqEntryTypeProcedural:
 		return []byte(s), nil
 	case CreateDiaryEntryReqEntryTypeReflection:
-		return []byte(s), nil
-	case CreateDiaryEntryReqEntryTypeIdentity:
-		return []byte(s), nil
-	case CreateDiaryEntryReqEntryTypeSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -2432,12 +2424,6 @@ func (s *CreateDiaryEntryReqEntryType) UnmarshalText(data []byte) error {
 		return nil
 	case CreateDiaryEntryReqEntryTypeReflection:
 		*s = CreateDiaryEntryReqEntryTypeReflection
-		return nil
-	case CreateDiaryEntryReqEntryTypeIdentity:
-		*s = CreateDiaryEntryReqEntryTypeIdentity
-		return nil
-	case CreateDiaryEntryReqEntryTypeSoul:
-		*s = CreateDiaryEntryReqEntryTypeSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -5616,8 +5602,6 @@ const (
 	DiaryEntryEntryTypeSemantic   DiaryEntryEntryType = "semantic"
 	DiaryEntryEntryTypeProcedural DiaryEntryEntryType = "procedural"
 	DiaryEntryEntryTypeReflection DiaryEntryEntryType = "reflection"
-	DiaryEntryEntryTypeIdentity   DiaryEntryEntryType = "identity"
-	DiaryEntryEntryTypeSoul       DiaryEntryEntryType = "soul"
 )
 
 // AllValues returns all DiaryEntryEntryType values.
@@ -5627,8 +5611,6 @@ func (DiaryEntryEntryType) AllValues() []DiaryEntryEntryType {
 		DiaryEntryEntryTypeSemantic,
 		DiaryEntryEntryTypeProcedural,
 		DiaryEntryEntryTypeReflection,
-		DiaryEntryEntryTypeIdentity,
-		DiaryEntryEntryTypeSoul,
 	}
 }
 
@@ -5642,10 +5624,6 @@ func (s DiaryEntryEntryType) MarshalText() ([]byte, error) {
 	case DiaryEntryEntryTypeProcedural:
 		return []byte(s), nil
 	case DiaryEntryEntryTypeReflection:
-		return []byte(s), nil
-	case DiaryEntryEntryTypeIdentity:
-		return []byte(s), nil
-	case DiaryEntryEntryTypeSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -5666,12 +5644,6 @@ func (s *DiaryEntryEntryType) UnmarshalText(data []byte) error {
 		return nil
 	case DiaryEntryEntryTypeReflection:
 		*s = DiaryEntryEntryTypeReflection
-		return nil
-	case DiaryEntryEntryTypeIdentity:
-		*s = DiaryEntryEntryTypeIdentity
-		return nil
-	case DiaryEntryEntryTypeSoul:
-		*s = DiaryEntryEntryTypeSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -5923,8 +5895,6 @@ const (
 	DiaryEntryWithCreatorEntryTypeSemantic   DiaryEntryWithCreatorEntryType = "semantic"
 	DiaryEntryWithCreatorEntryTypeProcedural DiaryEntryWithCreatorEntryType = "procedural"
 	DiaryEntryWithCreatorEntryTypeReflection DiaryEntryWithCreatorEntryType = "reflection"
-	DiaryEntryWithCreatorEntryTypeIdentity   DiaryEntryWithCreatorEntryType = "identity"
-	DiaryEntryWithCreatorEntryTypeSoul       DiaryEntryWithCreatorEntryType = "soul"
 )
 
 // AllValues returns all DiaryEntryWithCreatorEntryType values.
@@ -5934,8 +5904,6 @@ func (DiaryEntryWithCreatorEntryType) AllValues() []DiaryEntryWithCreatorEntryTy
 		DiaryEntryWithCreatorEntryTypeSemantic,
 		DiaryEntryWithCreatorEntryTypeProcedural,
 		DiaryEntryWithCreatorEntryTypeReflection,
-		DiaryEntryWithCreatorEntryTypeIdentity,
-		DiaryEntryWithCreatorEntryTypeSoul,
 	}
 }
 
@@ -5949,10 +5917,6 @@ func (s DiaryEntryWithCreatorEntryType) MarshalText() ([]byte, error) {
 	case DiaryEntryWithCreatorEntryTypeProcedural:
 		return []byte(s), nil
 	case DiaryEntryWithCreatorEntryTypeReflection:
-		return []byte(s), nil
-	case DiaryEntryWithCreatorEntryTypeIdentity:
-		return []byte(s), nil
-	case DiaryEntryWithCreatorEntryTypeSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -5973,12 +5937,6 @@ func (s *DiaryEntryWithCreatorEntryType) UnmarshalText(data []byte) error {
 		return nil
 	case DiaryEntryWithCreatorEntryTypeReflection:
 		*s = DiaryEntryWithCreatorEntryTypeReflection
-		return nil
-	case DiaryEntryWithCreatorEntryTypeIdentity:
-		*s = DiaryEntryWithCreatorEntryTypeIdentity
-		return nil
-	case DiaryEntryWithCreatorEntryTypeSoul:
-		*s = DiaryEntryWithCreatorEntryTypeSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -6244,8 +6202,6 @@ const (
 	DiaryEntryWithRelationsEntryTypeSemantic   DiaryEntryWithRelationsEntryType = "semantic"
 	DiaryEntryWithRelationsEntryTypeProcedural DiaryEntryWithRelationsEntryType = "procedural"
 	DiaryEntryWithRelationsEntryTypeReflection DiaryEntryWithRelationsEntryType = "reflection"
-	DiaryEntryWithRelationsEntryTypeIdentity   DiaryEntryWithRelationsEntryType = "identity"
-	DiaryEntryWithRelationsEntryTypeSoul       DiaryEntryWithRelationsEntryType = "soul"
 )
 
 // AllValues returns all DiaryEntryWithRelationsEntryType values.
@@ -6255,8 +6211,6 @@ func (DiaryEntryWithRelationsEntryType) AllValues() []DiaryEntryWithRelationsEnt
 		DiaryEntryWithRelationsEntryTypeSemantic,
 		DiaryEntryWithRelationsEntryTypeProcedural,
 		DiaryEntryWithRelationsEntryTypeReflection,
-		DiaryEntryWithRelationsEntryTypeIdentity,
-		DiaryEntryWithRelationsEntryTypeSoul,
 	}
 }
 
@@ -6270,10 +6224,6 @@ func (s DiaryEntryWithRelationsEntryType) MarshalText() ([]byte, error) {
 	case DiaryEntryWithRelationsEntryTypeProcedural:
 		return []byte(s), nil
 	case DiaryEntryWithRelationsEntryTypeReflection:
-		return []byte(s), nil
-	case DiaryEntryWithRelationsEntryTypeIdentity:
-		return []byte(s), nil
-	case DiaryEntryWithRelationsEntryTypeSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -6294,12 +6244,6 @@ func (s *DiaryEntryWithRelationsEntryType) UnmarshalText(data []byte) error {
 		return nil
 	case DiaryEntryWithRelationsEntryTypeReflection:
 		*s = DiaryEntryWithRelationsEntryTypeReflection
-		return nil
-	case DiaryEntryWithRelationsEntryTypeIdentity:
-		*s = DiaryEntryWithRelationsEntryTypeIdentity
-		return nil
-	case DiaryEntryWithRelationsEntryTypeSoul:
-		*s = DiaryEntryWithRelationsEntryTypeSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -11158,8 +11102,6 @@ const (
 	ListDiaryEntriesEntryTypeItemSemantic   ListDiaryEntriesEntryTypeItem = "semantic"
 	ListDiaryEntriesEntryTypeItemProcedural ListDiaryEntriesEntryTypeItem = "procedural"
 	ListDiaryEntriesEntryTypeItemReflection ListDiaryEntriesEntryTypeItem = "reflection"
-	ListDiaryEntriesEntryTypeItemIdentity   ListDiaryEntriesEntryTypeItem = "identity"
-	ListDiaryEntriesEntryTypeItemSoul       ListDiaryEntriesEntryTypeItem = "soul"
 )
 
 // AllValues returns all ListDiaryEntriesEntryTypeItem values.
@@ -11169,8 +11111,6 @@ func (ListDiaryEntriesEntryTypeItem) AllValues() []ListDiaryEntriesEntryTypeItem
 		ListDiaryEntriesEntryTypeItemSemantic,
 		ListDiaryEntriesEntryTypeItemProcedural,
 		ListDiaryEntriesEntryTypeItemReflection,
-		ListDiaryEntriesEntryTypeItemIdentity,
-		ListDiaryEntriesEntryTypeItemSoul,
 	}
 }
 
@@ -11184,10 +11124,6 @@ func (s ListDiaryEntriesEntryTypeItem) MarshalText() ([]byte, error) {
 	case ListDiaryEntriesEntryTypeItemProcedural:
 		return []byte(s), nil
 	case ListDiaryEntriesEntryTypeItemReflection:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeItemIdentity:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeItemSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -11208,12 +11144,6 @@ func (s *ListDiaryEntriesEntryTypeItem) UnmarshalText(data []byte) error {
 		return nil
 	case ListDiaryEntriesEntryTypeItemReflection:
 		*s = ListDiaryEntriesEntryTypeItemReflection
-		return nil
-	case ListDiaryEntriesEntryTypeItemIdentity:
-		*s = ListDiaryEntriesEntryTypeItemIdentity
-		return nil
-	case ListDiaryEntriesEntryTypeItemSoul:
-		*s = ListDiaryEntriesEntryTypeItemSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -11475,8 +11405,6 @@ const (
 	ListDiaryTagsEntryTypesItemSemantic   ListDiaryTagsEntryTypesItem = "semantic"
 	ListDiaryTagsEntryTypesItemProcedural ListDiaryTagsEntryTypesItem = "procedural"
 	ListDiaryTagsEntryTypesItemReflection ListDiaryTagsEntryTypesItem = "reflection"
-	ListDiaryTagsEntryTypesItemIdentity   ListDiaryTagsEntryTypesItem = "identity"
-	ListDiaryTagsEntryTypesItemSoul       ListDiaryTagsEntryTypesItem = "soul"
 )
 
 // AllValues returns all ListDiaryTagsEntryTypesItem values.
@@ -11486,8 +11414,6 @@ func (ListDiaryTagsEntryTypesItem) AllValues() []ListDiaryTagsEntryTypesItem {
 		ListDiaryTagsEntryTypesItemSemantic,
 		ListDiaryTagsEntryTypesItemProcedural,
 		ListDiaryTagsEntryTypesItemReflection,
-		ListDiaryTagsEntryTypesItemIdentity,
-		ListDiaryTagsEntryTypesItemSoul,
 	}
 }
 
@@ -11501,10 +11427,6 @@ func (s ListDiaryTagsEntryTypesItem) MarshalText() ([]byte, error) {
 	case ListDiaryTagsEntryTypesItemProcedural:
 		return []byte(s), nil
 	case ListDiaryTagsEntryTypesItemReflection:
-		return []byte(s), nil
-	case ListDiaryTagsEntryTypesItemIdentity:
-		return []byte(s), nil
-	case ListDiaryTagsEntryTypesItemSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -11525,12 +11447,6 @@ func (s *ListDiaryTagsEntryTypesItem) UnmarshalText(data []byte) error {
 		return nil
 	case ListDiaryTagsEntryTypesItemReflection:
 		*s = ListDiaryTagsEntryTypesItemReflection
-		return nil
-	case ListDiaryTagsEntryTypesItemIdentity:
-		*s = ListDiaryTagsEntryTypesItemIdentity
-		return nil
-	case ListDiaryTagsEntryTypesItemSoul:
-		*s = ListDiaryTagsEntryTypesItemSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -19843,8 +19759,6 @@ const (
 	ProvenanceGraphEntryNodeMetaEntryTypeSemantic   ProvenanceGraphEntryNodeMetaEntryType = "semantic"
 	ProvenanceGraphEntryNodeMetaEntryTypeProcedural ProvenanceGraphEntryNodeMetaEntryType = "procedural"
 	ProvenanceGraphEntryNodeMetaEntryTypeReflection ProvenanceGraphEntryNodeMetaEntryType = "reflection"
-	ProvenanceGraphEntryNodeMetaEntryTypeIdentity   ProvenanceGraphEntryNodeMetaEntryType = "identity"
-	ProvenanceGraphEntryNodeMetaEntryTypeSoul       ProvenanceGraphEntryNodeMetaEntryType = "soul"
 )
 
 // AllValues returns all ProvenanceGraphEntryNodeMetaEntryType values.
@@ -19854,8 +19768,6 @@ func (ProvenanceGraphEntryNodeMetaEntryType) AllValues() []ProvenanceGraphEntryN
 		ProvenanceGraphEntryNodeMetaEntryTypeSemantic,
 		ProvenanceGraphEntryNodeMetaEntryTypeProcedural,
 		ProvenanceGraphEntryNodeMetaEntryTypeReflection,
-		ProvenanceGraphEntryNodeMetaEntryTypeIdentity,
-		ProvenanceGraphEntryNodeMetaEntryTypeSoul,
 	}
 }
 
@@ -19869,10 +19781,6 @@ func (s ProvenanceGraphEntryNodeMetaEntryType) MarshalText() ([]byte, error) {
 	case ProvenanceGraphEntryNodeMetaEntryTypeProcedural:
 		return []byte(s), nil
 	case ProvenanceGraphEntryNodeMetaEntryTypeReflection:
-		return []byte(s), nil
-	case ProvenanceGraphEntryNodeMetaEntryTypeIdentity:
-		return []byte(s), nil
-	case ProvenanceGraphEntryNodeMetaEntryTypeSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -19893,12 +19801,6 @@ func (s *ProvenanceGraphEntryNodeMetaEntryType) UnmarshalText(data []byte) error
 		return nil
 	case ProvenanceGraphEntryNodeMetaEntryTypeReflection:
 		*s = ProvenanceGraphEntryNodeMetaEntryTypeReflection
-		return nil
-	case ProvenanceGraphEntryNodeMetaEntryTypeIdentity:
-		*s = ProvenanceGraphEntryNodeMetaEntryTypeIdentity
-		return nil
-	case ProvenanceGraphEntryNodeMetaEntryTypeSoul:
-		*s = ProvenanceGraphEntryNodeMetaEntryTypeSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -20783,8 +20685,6 @@ const (
 	PublicFeedEntryEntryTypeSemantic   PublicFeedEntryEntryType = "semantic"
 	PublicFeedEntryEntryTypeProcedural PublicFeedEntryEntryType = "procedural"
 	PublicFeedEntryEntryTypeReflection PublicFeedEntryEntryType = "reflection"
-	PublicFeedEntryEntryTypeIdentity   PublicFeedEntryEntryType = "identity"
-	PublicFeedEntryEntryTypeSoul       PublicFeedEntryEntryType = "soul"
 )
 
 // AllValues returns all PublicFeedEntryEntryType values.
@@ -20794,8 +20694,6 @@ func (PublicFeedEntryEntryType) AllValues() []PublicFeedEntryEntryType {
 		PublicFeedEntryEntryTypeSemantic,
 		PublicFeedEntryEntryTypeProcedural,
 		PublicFeedEntryEntryTypeReflection,
-		PublicFeedEntryEntryTypeIdentity,
-		PublicFeedEntryEntryTypeSoul,
 	}
 }
 
@@ -20809,10 +20707,6 @@ func (s PublicFeedEntryEntryType) MarshalText() ([]byte, error) {
 	case PublicFeedEntryEntryTypeProcedural:
 		return []byte(s), nil
 	case PublicFeedEntryEntryTypeReflection:
-		return []byte(s), nil
-	case PublicFeedEntryEntryTypeIdentity:
-		return []byte(s), nil
-	case PublicFeedEntryEntryTypeSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -20833,12 +20727,6 @@ func (s *PublicFeedEntryEntryType) UnmarshalText(data []byte) error {
 		return nil
 	case PublicFeedEntryEntryTypeReflection:
 		*s = PublicFeedEntryEntryTypeReflection
-		return nil
-	case PublicFeedEntryEntryTypeIdentity:
-		*s = PublicFeedEntryEntryTypeIdentity
-		return nil
-	case PublicFeedEntryEntryTypeSoul:
-		*s = PublicFeedEntryEntryTypeSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -25071,8 +24959,6 @@ const (
 	SearchDiaryReqEntryTypesItemSemantic   SearchDiaryReqEntryTypesItem = "semantic"
 	SearchDiaryReqEntryTypesItemProcedural SearchDiaryReqEntryTypesItem = "procedural"
 	SearchDiaryReqEntryTypesItemReflection SearchDiaryReqEntryTypesItem = "reflection"
-	SearchDiaryReqEntryTypesItemIdentity   SearchDiaryReqEntryTypesItem = "identity"
-	SearchDiaryReqEntryTypesItemSoul       SearchDiaryReqEntryTypesItem = "soul"
 )
 
 // AllValues returns all SearchDiaryReqEntryTypesItem values.
@@ -25082,8 +24968,6 @@ func (SearchDiaryReqEntryTypesItem) AllValues() []SearchDiaryReqEntryTypesItem {
 		SearchDiaryReqEntryTypesItemSemantic,
 		SearchDiaryReqEntryTypesItemProcedural,
 		SearchDiaryReqEntryTypesItemReflection,
-		SearchDiaryReqEntryTypesItemIdentity,
-		SearchDiaryReqEntryTypesItemSoul,
 	}
 }
 
@@ -25097,10 +24981,6 @@ func (s SearchDiaryReqEntryTypesItem) MarshalText() ([]byte, error) {
 	case SearchDiaryReqEntryTypesItemProcedural:
 		return []byte(s), nil
 	case SearchDiaryReqEntryTypesItemReflection:
-		return []byte(s), nil
-	case SearchDiaryReqEntryTypesItemIdentity:
-		return []byte(s), nil
-	case SearchDiaryReqEntryTypesItemSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -25122,12 +25002,6 @@ func (s *SearchDiaryReqEntryTypesItem) UnmarshalText(data []byte) error {
 	case SearchDiaryReqEntryTypesItemReflection:
 		*s = SearchDiaryReqEntryTypesItemReflection
 		return nil
-	case SearchDiaryReqEntryTypesItemIdentity:
-		*s = SearchDiaryReqEntryTypesItemIdentity
-		return nil
-	case SearchDiaryReqEntryTypesItemSoul:
-		*s = SearchDiaryReqEntryTypesItemSoul
-		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
@@ -25148,8 +25022,6 @@ const (
 	SearchPublicFeedEntryTypesItemSemantic   SearchPublicFeedEntryTypesItem = "semantic"
 	SearchPublicFeedEntryTypesItemProcedural SearchPublicFeedEntryTypesItem = "procedural"
 	SearchPublicFeedEntryTypesItemReflection SearchPublicFeedEntryTypesItem = "reflection"
-	SearchPublicFeedEntryTypesItemIdentity   SearchPublicFeedEntryTypesItem = "identity"
-	SearchPublicFeedEntryTypesItemSoul       SearchPublicFeedEntryTypesItem = "soul"
 )
 
 // AllValues returns all SearchPublicFeedEntryTypesItem values.
@@ -25159,8 +25031,6 @@ func (SearchPublicFeedEntryTypesItem) AllValues() []SearchPublicFeedEntryTypesIt
 		SearchPublicFeedEntryTypesItemSemantic,
 		SearchPublicFeedEntryTypesItemProcedural,
 		SearchPublicFeedEntryTypesItemReflection,
-		SearchPublicFeedEntryTypesItemIdentity,
-		SearchPublicFeedEntryTypesItemSoul,
 	}
 }
 
@@ -25174,10 +25044,6 @@ func (s SearchPublicFeedEntryTypesItem) MarshalText() ([]byte, error) {
 	case SearchPublicFeedEntryTypesItemProcedural:
 		return []byte(s), nil
 	case SearchPublicFeedEntryTypesItemReflection:
-		return []byte(s), nil
-	case SearchPublicFeedEntryTypesItemIdentity:
-		return []byte(s), nil
-	case SearchPublicFeedEntryTypesItemSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -25198,12 +25064,6 @@ func (s *SearchPublicFeedEntryTypesItem) UnmarshalText(data []byte) error {
 		return nil
 	case SearchPublicFeedEntryTypesItemReflection:
 		*s = SearchPublicFeedEntryTypesItemReflection
-		return nil
-	case SearchPublicFeedEntryTypesItemIdentity:
-		*s = SearchPublicFeedEntryTypesItemIdentity
-		return nil
-	case SearchPublicFeedEntryTypesItemSoul:
-		*s = SearchPublicFeedEntryTypesItemSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -27625,8 +27485,6 @@ const (
 	UpdateDiaryEntryByIdReqEntryTypeSemantic   UpdateDiaryEntryByIdReqEntryType = "semantic"
 	UpdateDiaryEntryByIdReqEntryTypeProcedural UpdateDiaryEntryByIdReqEntryType = "procedural"
 	UpdateDiaryEntryByIdReqEntryTypeReflection UpdateDiaryEntryByIdReqEntryType = "reflection"
-	UpdateDiaryEntryByIdReqEntryTypeIdentity   UpdateDiaryEntryByIdReqEntryType = "identity"
-	UpdateDiaryEntryByIdReqEntryTypeSoul       UpdateDiaryEntryByIdReqEntryType = "soul"
 )
 
 // AllValues returns all UpdateDiaryEntryByIdReqEntryType values.
@@ -27636,8 +27494,6 @@ func (UpdateDiaryEntryByIdReqEntryType) AllValues() []UpdateDiaryEntryByIdReqEnt
 		UpdateDiaryEntryByIdReqEntryTypeSemantic,
 		UpdateDiaryEntryByIdReqEntryTypeProcedural,
 		UpdateDiaryEntryByIdReqEntryTypeReflection,
-		UpdateDiaryEntryByIdReqEntryTypeIdentity,
-		UpdateDiaryEntryByIdReqEntryTypeSoul,
 	}
 }
 
@@ -27651,10 +27507,6 @@ func (s UpdateDiaryEntryByIdReqEntryType) MarshalText() ([]byte, error) {
 	case UpdateDiaryEntryByIdReqEntryTypeProcedural:
 		return []byte(s), nil
 	case UpdateDiaryEntryByIdReqEntryTypeReflection:
-		return []byte(s), nil
-	case UpdateDiaryEntryByIdReqEntryTypeIdentity:
-		return []byte(s), nil
-	case UpdateDiaryEntryByIdReqEntryTypeSoul:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -27675,12 +27527,6 @@ func (s *UpdateDiaryEntryByIdReqEntryType) UnmarshalText(data []byte) error {
 		return nil
 	case UpdateDiaryEntryByIdReqEntryTypeReflection:
 		*s = UpdateDiaryEntryByIdReqEntryTypeReflection
-		return nil
-	case UpdateDiaryEntryByIdReqEntryTypeIdentity:
-		*s = UpdateDiaryEntryByIdReqEntryTypeIdentity
-		return nil
-	case UpdateDiaryEntryByIdReqEntryTypeSoul:
-		*s = UpdateDiaryEntryByIdReqEntryTypeSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

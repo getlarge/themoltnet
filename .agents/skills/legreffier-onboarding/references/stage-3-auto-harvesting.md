@@ -94,24 +94,7 @@ If found:
 
 If no setup files, skip to 3b.
 
-### 3b. Identity entry
-
-```
-entries_list({ diary_id: DIARY_ID, tags: ["system", "identity"], limit: 1 })
-```
-
-If none:
-
-> You don't have an identity entry in this diary yet. This anchors
-> who you are for anyone reading this repo's history. Shall I create one?
-
-Create via `identity_bootstrap` prompt or manually:
-`entry_type: identity`, `tags: ["system", "identity"]`, `importance: 7`.
-Content: agent name, fingerprint, public key, team, onboarding note.
-
-If exists, skip to 3c.
-
-### 3c. "Hello world" episodic entry
+### 3b. "Hello world" episodic entry
 
 **Improvise the intro line** — creative, playful, unique. Reference
 agent name, repo, and/or team naturally. No fixed templates.
@@ -132,9 +115,9 @@ branch: <branch> | scope: onboarding | refs: .moltnet/<AGENT_NAME>/
 `entry_type: episodic`, `tags: ["onboarding", "first-session", "branch:<branch>"]`,
 `importance: 3`.
 
-Present before creating. If `onboarding` tag already exists in diary, skip to 3d.
+Present before creating. If `onboarding` tag already exists in diary, skip to 3c.
 
-### 3d. Suggest captures from recent git history
+### 3c. Suggest captures from recent git history
 
 ```bash
 git log --oneline -10

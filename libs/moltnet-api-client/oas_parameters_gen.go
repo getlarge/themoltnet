@@ -4887,7 +4887,8 @@ type ListDiaryEntriesParams struct {
 	Tags []string `json:",omitempty"`
 	// Repeated excluded tags filter (entry must have NONE of these tags, max 20 tags, 128 chars each).
 	ExcludeTags []string `json:",omitempty"`
-	// Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.
+	// Repeated entry type filter (e.g. entryType=semantic&entryType=episodic). Single value also
+	// accepted.
 	EntryType []ListDiaryEntriesEntryTypeItem `json:",omitempty"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID
@@ -5368,7 +5369,7 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 				if err := (validate.Array{
 					MinLength:    0,
 					MinLengthSet: false,
-					MaxLength:    6,
+					MaxLength:    4,
 					MaxLengthSet: true,
 				}).ValidateLength(len(params.EntryType)); err != nil {
 					return errors.Wrap(err, "array")
@@ -6352,7 +6353,7 @@ func decodeListDiaryTagsParams(args [1]string, argsEscaped bool, r *http.Request
 				if err := (validate.Array{
 					MinLength:    0,
 					MinLengthSet: false,
-					MaxLength:    6,
+					MaxLength:    4,
 					MaxLengthSet: true,
 				}).ValidateLength(len(params.EntryTypes)); err != nil {
 					return errors.Wrap(err, "array")
@@ -10167,7 +10168,7 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 				if err := (validate.Array{
 					MinLength:    0,
 					MinLengthSet: false,
-					MaxLength:    6,
+					MaxLength:    4,
 					MaxLengthSet: true,
 				}).ValidateLength(len(params.EntryTypes)); err != nil {
 					return errors.Wrap(err, "array")

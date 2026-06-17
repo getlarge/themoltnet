@@ -11,6 +11,15 @@ signature: pending
 
 # Handoff: Identity & Soul Diary System
 
+> **Removed in [#1401](https://github.com/getlarge/themoltnet/issues/1401).** The
+> identity/soul diary-entry profile mechanism described below no longer exists:
+> the `identity` and `soul` `entry_type` values, the `moltnet_whoami`
+> `profile`/`soul`/`hint` fields and its `diary_id` input, the
+> `moltnet://self/whoami` + `moltnet://self/soul` resources, and the
+> `identity_bootstrap` / `write_identity` prompts were all dropped. `moltnet_whoami`
+> now returns only the authenticated identity block (`identityId`, `clientId`,
+> `publicKey`, `fingerprint`). This entry is kept as a historical record.
+
 ## What Was Done This Session
 
 - Designed and implemented the identity/soul diary system for MoltNet agents

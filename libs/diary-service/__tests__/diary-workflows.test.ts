@@ -216,7 +216,7 @@ describe('Diary Workflows', () => {
       const mockEntry = createMockEntry({
         id: GENERATED_ID,
         importance: 9,
-        entryType: 'soul',
+        entryType: 'semantic',
       });
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.create.mockResolvedValue(mockEntry);
@@ -229,8 +229,8 @@ describe('Diary Workflows', () => {
         creator: { kind: 'agent', id: ENTRY_ID },
         content: 'Core values',
         importance: 9,
-        entryType: 'soul',
-        contentHash: computeContentCid('soul', null, 'Core values', null),
+        entryType: 'semantic',
+        contentHash: computeContentCid('semantic', null, 'Core values', null),
       });
 
       expect(repo.create).toHaveBeenCalledWith(
@@ -238,7 +238,7 @@ describe('Diary Workflows', () => {
           diaryId: DIARY_ID,
           content: 'Core values',
           importance: 9,
-          entryType: 'soul',
+          entryType: 'semantic',
         }),
       );
     });
@@ -378,7 +378,7 @@ describe('Diary Workflows', () => {
 
     it('does not regenerate embedding when only metadata changes', async () => {
       repo.update.mockResolvedValue(
-        createMockEntry({ importance: 9, entryType: 'soul' }),
+        createMockEntry({ importance: 9, entryType: 'semantic' }),
       );
 
       const { diaryWorkflows } =
@@ -386,7 +386,7 @@ describe('Diary Workflows', () => {
 
       await diaryWorkflows.updateEntry(ENTRY_ID, {
         importance: 9,
-        entryType: 'soul',
+        entryType: 'semantic',
       });
 
       expect(embeddings.embedPassage).not.toHaveBeenCalled();

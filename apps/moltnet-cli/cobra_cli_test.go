@@ -765,7 +765,7 @@ func TestEntryCreateSignedHelpShowsTypes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, entryType := range []string{"semantic", "episodic", "procedural", "reflection", "identity", "soul"} {
+	for _, entryType := range []string{"semantic", "episodic", "procedural", "reflection"} {
 		if !strings.Contains(stdout, entryType) {
 			t.Errorf("expected create-signed help to mention entry type %q, got: %s", entryType, stdout)
 		}

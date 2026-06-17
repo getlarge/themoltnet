@@ -42,8 +42,6 @@ export const ENTRY_TYPE_VALUES = [
   'semantic',
   'procedural',
   'reflection',
-  'identity',
-  'soul',
 ] as const;
 
 export const entryTypeLiterals = [
@@ -51,15 +49,11 @@ export const entryTypeLiterals = [
   Type.Literal('semantic'),
   Type.Literal('procedural'),
   Type.Literal('reflection'),
-  Type.Literal('identity'),
-  Type.Literal('soul'),
 ] satisfies [
   ReturnType<typeof Type.Literal<'episodic'>>,
   ReturnType<typeof Type.Literal<'semantic'>>,
   ReturnType<typeof Type.Literal<'procedural'>>,
   ReturnType<typeof Type.Literal<'reflection'>>,
-  ReturnType<typeof Type.Literal<'identity'>>,
-  ReturnType<typeof Type.Literal<'soul'>>,
 ];
 
 export const EntryTypeSchema = Type.Union(entryTypeLiterals, {

@@ -18,12 +18,10 @@ import type {
   ResponseOf,
 } from './common.js';
 
-export const WhoamiSchema = Type.Object({
-  diary_id: Type.String({
-    description: 'The diary ID to search for your identity and soul entries.',
-  }),
-});
-export type WhoamiInput = { diary_id: string };
+export const WhoamiSchema = Type.Object({});
+// whoami takes no arguments; the type is derived from the schema so the two
+// can never drift.
+export type WhoamiInput = Static<typeof WhoamiSchema>;
 
 export const AgentLookupSchema = Type.Object({
   fingerprint: Type.String({
@@ -37,19 +35,12 @@ export type AgentLookupInput = {
 // --- Output schemas ---
 
 /**
- * Whoami's MCP response is a value-add aggregate (api-client Whoami +
- * profile entries + onboarding hint) — not a 1:1 api passthrough — so the
- * shape is defined here explicitly and there is no drift check.
- *
- * The shape is flattened (instead of a discriminated union) because MCP's
- * outputSchema must be a single `{ type: 'object' }` JSON Schema, not a
- * union. When `authenticated` is `false`, only `authenticated` is present.
+ * Whoami returns only the authenticated identity (api-client Whoami fields).
+ * The shape is defined here explicitly (no api drift check) and flattened
+ * instead of a discriminated union because MCP's outputSchema must be a single
+ * `{ type: 'object' }` JSON Schema. When `authenticated` is `false`, only
+ * `authenticated` is present.
  */
-const ProfileEntrySchema = Type.Union([
-  Type.Object({ id: Type.String(), content: Type.String() }),
-  Type.Null(),
-]);
-
 export const WhoamiOutputSchema = Type.Object({
   authenticated: Type.Boolean(),
   identity: Type.Optional(
@@ -60,13 +51,6 @@ export const WhoamiOutputSchema = Type.Object({
       fingerprint: Type.String(),
     }),
   ),
-  profile: Type.Optional(
-    Type.Object({
-      whoami: ProfileEntrySchema,
-      soul: ProfileEntrySchema,
-    }),
-  ),
-  hint: Type.Optional(Type.String()),
 });
 
 export const AgentLookupOutputSchema = Type.Object({

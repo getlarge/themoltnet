@@ -30,7 +30,7 @@ func newEntryCreateCmd() *cobra.Command {
 		Long: `Create a mutable diary entry (editable via "entry update", removable via
 "entry delete"). Prefer this for exploratory or testing work.
 
-Entry types: semantic, episodic, procedural, reflection, identity, soul`,
+Entry types: semantic, episodic, procedural, reflection`,
 		Example: `  moltnet entry create --diary-id <uuid> --content "Entry text"
   moltnet entry create --diary-id <uuid> --content "Entry text" \
     --type semantic --tags "tag1,tag2" --title "Title" --importance 6`,
@@ -50,7 +50,7 @@ Entry types: semantic, episodic, procedural, reflection, identity, soul`,
 	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
 	cmd.Flags().String("content", "", "Entry content (required)")
 	cmd.Flags().String("title", "", "Entry title")
-	cmd.Flags().String("type", "", "Entry type (semantic, episodic, procedural, reflection, identity, soul)")
+	cmd.Flags().String("type", "", "Entry type (semantic, episodic, procedural, reflection)")
 	cmd.Flags().String("tags", "", "Comma-separated tags")
 	cmd.Flags().Int("importance", 0, "Importance score (1-10)")
 	_ = cmd.MarkFlagRequired("diary-id")
@@ -72,7 +72,7 @@ create-signed" and linking it via "relations create --relation supersedes".
 
 DO NOT USE FOR TESTING — use "entry create" for throwaway work.
 
-Entry types: semantic, episodic, procedural, reflection, identity, soul`,
+Entry types: semantic, episodic, procedural, reflection`,
 		Example: `  moltnet entry create-signed --diary-id <uuid> --content "Entry text" --type semantic --tags "tag1,tag2"
   moltnet entry create-signed --diary-id <uuid> --content "..." --type semantic --importance 8`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -96,7 +96,7 @@ Entry types: semantic, episodic, procedural, reflection, identity, soul`,
 	// omits --type and the server defaults it to "semantic", the CIDs
 	// disagree and the request is rejected. Requiring the flag makes the
 	// user's intent explicit rather than silently assuming one type.
-	cmd.Flags().String("type", "", "Entry type (semantic, episodic, procedural, reflection, identity, soul) (required)")
+	cmd.Flags().String("type", "", "Entry type (semantic, episodic, procedural, reflection) (required)")
 	cmd.Flags().String("tags", "", "Comma-separated tags")
 	cmd.Flags().Int("importance", 0, "Importance score (1-10)")
 	_ = cmd.MarkFlagRequired("diary-id")
@@ -129,7 +129,7 @@ func newEntryListCmd() *cobra.Command {
 	cmd.Flags().String("ids", "", "Comma-separated entry UUIDs to fetch (max 50). Combines with tags/entry-type as AND.")
 	cmd.Flags().String("tags", "", "Comma-separated tags filter (entry must have ALL)")
 	cmd.Flags().String("exclude-tags", "", "Comma-separated excluded tags filter (entry must have NONE)")
-	cmd.Flags().String("entry-type", "", "Filter by entry type (semantic, episodic, procedural, reflection, identity, soul)")
+	cmd.Flags().String("entry-type", "", "Filter by entry type (semantic, episodic, procedural, reflection)")
 	cmd.Flags().Int("limit", 0, "Maximum number of entries to return")
 	cmd.Flags().Int("offset", 0, "Number of entries to skip")
 	_ = cmd.MarkFlagRequired("diary-id")
@@ -177,7 +177,7 @@ func newEntryUpdateCmd() *cobra.Command {
 	}
 	cmd.Flags().String("content", "", "Updated entry content")
 	cmd.Flags().String("title", "", "Updated entry title")
-	cmd.Flags().String("type", "", "Entry type (semantic, episodic, procedural, reflection, identity, soul)")
+	cmd.Flags().String("type", "", "Entry type (semantic, episodic, procedural, reflection)")
 	cmd.Flags().String("tags", "", "Comma-separated tags (replaces existing)")
 	cmd.Flags().Int("importance", 0, "Importance 1-10")
 	return cmd

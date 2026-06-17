@@ -11,7 +11,9 @@ import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   ConflictProblemDetailsSchema,
   DIARY_TAG_MAX_LENGTH,
+  ENTRY_TYPE_VALUES,
   EntryParamsSchema,
+  type EntryType,
   entryTypeLiterals,
   NestedDiaryParamsSchema,
   ProblemDetailsSchema,
@@ -294,9 +296,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           ),
           entryType: Type.Optional(
             Type.Array(Type.Union(entryTypeLiterals), {
-              maxItems: 6,
+              maxItems: ENTRY_TYPE_VALUES.length,
               description:
-                'Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.',
+                'Repeated entry type filter (e.g. entryType=semantic&entryType=episodic). Single value also accepted.',
             }),
           ),
         }),
@@ -375,7 +377,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           ),
           entryTypes: Type.Optional(
             Type.Array(Type.Union(entryTypeLiterals), {
-              maxItems: 6,
+              maxItems: ENTRY_TYPE_VALUES.length,
               description:
                 'Repeated entry types to scope the tag count. Single value also accepted.',
             }),
@@ -526,13 +528,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       content?: string;
       tags?: string[];
       importance?: number;
-      entryType?:
-        | 'episodic'
-        | 'semantic'
-        | 'procedural'
-        | 'reflection'
-        | 'identity'
-        | 'soul';
+      entryType?: EntryType;
     },
   ) => {
     try {
@@ -789,7 +785,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           entryTypes: Type.Optional(
             Type.Array(Type.Union(entryTypeLiterals), {
               minItems: 1,
-              maxItems: 6,
+              maxItems: ENTRY_TYPE_VALUES.length,
             }),
           ),
           excludeSuperseded: Type.Optional(Type.Boolean()),

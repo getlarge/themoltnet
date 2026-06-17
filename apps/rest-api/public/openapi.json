@@ -2129,18 +2129,6 @@
                   "reflection"
                 ],
                 "type": "string"
-              },
-              {
-                "enum": [
-                  "identity"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "soul"
-                ],
-                "type": "string"
               }
             ]
           },
@@ -2347,18 +2335,6 @@
               {
                 "enum": [
                   "reflection"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "identity"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "soul"
                 ],
                 "type": "string"
               }
@@ -2569,18 +2545,6 @@
                   {
                     "enum": [
                       "reflection"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "identity"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "soul"
                     ],
                     "type": "string"
                   }
@@ -3014,18 +2978,6 @@
           {
             "enum": [
               "reflection"
-            ],
-            "type": "string"
-          },
-          {
-            "enum": [
-              "identity"
-            ],
-            "type": "string"
-          },
-          {
-            "enum": [
-              "soul"
             ],
             "type": "string"
           }
@@ -4818,18 +4770,6 @@
                                 "reflection"
                               ],
                               "type": "string"
-                            },
-                            {
-                              "enum": [
-                                "identity"
-                              ],
-                              "type": "string"
-                            },
-                            {
-                              "enum": [
-                                "soul"
-                              ],
-                              "type": "string"
                             }
                           ],
                           "description": "Entry memory type"
@@ -5109,18 +5049,6 @@
               {
                 "enum": [
                   "reflection"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "identity"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "soul"
                 ],
                 "type": "string"
               }
@@ -10474,22 +10402,10 @@
                             "reflection"
                           ],
                           "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "identity"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "soul"
-                          ],
-                          "type": "string"
                         }
                       ]
                     },
-                    "maxItems": 6,
+                    "maxItems": 4,
                     "minItems": 1,
                     "type": "array"
                   },
@@ -10680,7 +10596,7 @@
             }
           },
           {
-            "description": "Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.",
+            "description": "Repeated entry type filter (e.g. entryType=semantic&entryType=episodic). Single value also accepted.",
             "in": "query",
             "name": "entryType",
             "required": false,
@@ -10710,22 +10626,10 @@
                       "reflection"
                     ],
                     "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "identity"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "soul"
-                    ],
-                    "type": "string"
                   }
                 ]
               },
-              "maxItems": 6,
+              "maxItems": 4,
               "type": "array"
             }
           },
@@ -10860,18 +10764,6 @@
                       {
                         "enum": [
                           "reflection"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "identity"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "soul"
                         ],
                         "type": "string"
                       }
@@ -11043,22 +10935,10 @@
                       "reflection"
                     ],
                     "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "identity"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "soul"
-                    ],
-                    "type": "string"
                   }
                 ]
               },
-              "maxItems": 6,
+              "maxItems": 4,
               "type": "array"
             }
           },
@@ -12982,18 +12862,6 @@
                       {
                         "enum": [
                           "reflection"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "identity"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "soul"
                         ],
                         "type": "string"
                       }
@@ -15415,18 +15283,6 @@
                                           "reflection"
                                         ],
                                         "type": "string"
-                                      },
-                                      {
-                                        "enum": [
-                                          "identity"
-                                        ],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": [
-                                          "soul"
-                                        ],
-                                        "type": "string"
                                       }
                                     ],
                                     "description": "Entry memory type"
@@ -17474,22 +17330,10 @@
                       "reflection"
                     ],
                     "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "identity"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "soul"
-                    ],
-                    "type": "string"
                   }
                 ]
               },
-              "maxItems": 6,
+              "maxItems": 4,
               "type": "array"
             }
           },
