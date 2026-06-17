@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.48.0](https://github.com/getlarge/themoltnet/compare/cli-v1.47.0...cli-v1.48.0) (2026-06-17)
+
+
+### Features
+
+* **cli:** config repair strips embedded GitHub tokens ([d65d802](https://github.com/getlarge/themoltnet/commit/d65d8029d7262b8aee5a04df4b6e5362a116eef1))
+* **cli:** github setup writes tokenless insteadOf idempotently ([94ed84e](https://github.com/getlarge/themoltnet/commit/94ed84ea6a5a12517d93371ef102c5ea17801507))
+* **cli:** tokenless git-credential scrubbing + block helpers ([2d6ba6c](https://github.com/getlarge/themoltnet/commit/2d6ba6c8966888c2c0132c435fce84ed15401675))
+
+
+### Bug Fixes
+
+* **#1396:** tokenless mint-on-demand git credential helper ([3a7ea63](https://github.com/getlarge/themoltnet/commit/3a7ea634d8f336f2cab1d016c641a87bb95bf8dc))
+* **cli:** reset inherited credential helper to prevent keychain shadowing ([69c4144](https://github.com/getlarge/themoltnet/commit/69c4144debea85906220a52362cf24a9ac343ae5))
+* **codegen:** pin ogen generator to module version, bump to v1.21.0 ([3e8c0d5](https://github.com/getlarge/themoltnet/commit/3e8c0d53a8ffc50a728aac79a0cc36e01e9d39be))
+* **codegen:** pin ogen generator to module version, bump to v1.21.0 ([785247f](https://github.com/getlarge/themoltnet/commit/785247f67cd63ab2494046cb4c832c6480680477))
+
 ## [1.47.0](https://github.com/getlarge/themoltnet/compare/cli-v1.46.0...cli-v1.47.0) (2026-06-14)
 
 
