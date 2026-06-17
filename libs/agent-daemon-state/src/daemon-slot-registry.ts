@@ -14,6 +14,7 @@ import {
 } from 'drizzle-orm/sqlite-proxy';
 import { Pool } from 'pg';
 
+import { applySqliteMigrations, runPgMigrations } from './migrate.js';
 import {
   pgAgentDaemonStateSchema,
   pgDaemonSlots,
@@ -170,59 +171,7 @@ class SqliteDaemonSlotStore implements DaemonSlotStore {
       this.withSyncDb('initialize sqlite schema', () => {
         this.client.exec('PRAGMA journal_mode = WAL');
         this.client.exec('PRAGMA foreign_keys = ON');
-        this.client.exec(`
-          CREATE TABLE IF NOT EXISTS daemon_slots (
-            agent_name TEXT NOT NULL,
-            provider TEXT NOT NULL,
-            model TEXT NOT NULL,
-            slot_key TEXT NOT NULL,
-            task_type TEXT NOT NULL,
-            state TEXT NOT NULL CHECK (state IN ('active', 'idle')),
-            last_task_id TEXT NOT NULL,
-            last_attempt_n INTEGER NOT NULL,
-            created_at_ms INTEGER NOT NULL,
-            last_used_at_ms INTEGER NOT NULL,
-            expires_at_ms INTEGER NOT NULL,
-            PRIMARY KEY (agent_name, provider, model, slot_key)
-          );
-
-          CREATE TABLE IF NOT EXISTS daemon_slot_sessions (
-            agent_name TEXT NOT NULL,
-            provider TEXT NOT NULL,
-            model TEXT NOT NULL,
-            slot_key TEXT NOT NULL,
-            session_dir TEXT NOT NULL UNIQUE,
-            session_path TEXT,
-            PRIMARY KEY (agent_name, provider, model, slot_key),
-            FOREIGN KEY (agent_name, provider, model, slot_key)
-              REFERENCES daemon_slots(agent_name, provider, model, slot_key)
-              ON DELETE CASCADE
-          );
-
-          CREATE TABLE IF NOT EXISTS daemon_slot_workspaces (
-            agent_name TEXT NOT NULL,
-            provider TEXT NOT NULL,
-            model TEXT NOT NULL,
-            slot_key TEXT NOT NULL,
-            workspace_id TEXT NOT NULL UNIQUE,
-            worktree_path TEXT NOT NULL,
-            worktree_branch TEXT,
-            PRIMARY KEY (agent_name, provider, model, slot_key),
-            FOREIGN KEY (agent_name, provider, model, slot_key)
-              REFERENCES daemon_slots(agent_name, provider, model, slot_key)
-              ON DELETE CASCADE
-          );
-
-          CREATE INDEX IF NOT EXISTS daemon_slots_expires_idx
-            ON daemon_slots (expires_at_ms);
-
-          CREATE INDEX IF NOT EXISTS daemon_slots_task_attempt_idx
-            ON daemon_slots (
-              last_task_id,
-              last_attempt_n,
-              last_used_at_ms DESC
-            );
-        `);
+        applySqliteMigrations(this.client);
       });
     } catch (error) {
       throw new DaemonSlotRegistryError('open sqlite database', error);
@@ -749,64 +698,7 @@ class PgDaemonSlotStore implements DaemonSlotStore {
 
   private async initialize(): Promise<void> {
     await this.withDb('initialize postgres schema', () =>
-      this.pool.query(`
-        CREATE TABLE IF NOT EXISTS daemon_slots (
-          agent_name TEXT NOT NULL,
-          provider TEXT NOT NULL,
-          model TEXT NOT NULL,
-          slot_key TEXT NOT NULL,
-          task_type TEXT NOT NULL,
-          state TEXT NOT NULL CHECK (state IN ('active', 'idle')),
-          last_task_id TEXT NOT NULL,
-          last_attempt_n INTEGER NOT NULL,
-          created_at_ms BIGINT NOT NULL,
-          last_used_at_ms BIGINT NOT NULL,
-          expires_at_ms BIGINT NOT NULL,
-          PRIMARY KEY (agent_name, provider, model, slot_key)
-        );
-
-        CREATE TABLE IF NOT EXISTS daemon_slot_sessions (
-          agent_name TEXT NOT NULL,
-          provider TEXT NOT NULL,
-          model TEXT NOT NULL,
-          slot_key TEXT NOT NULL,
-          session_dir TEXT NOT NULL UNIQUE,
-          session_path TEXT,
-          PRIMARY KEY (agent_name, provider, model, slot_key),
-          FOREIGN KEY (agent_name, provider, model, slot_key)
-            REFERENCES daemon_slots(agent_name, provider, model, slot_key)
-            ON DELETE CASCADE
-        );
-
-        CREATE TABLE IF NOT EXISTS daemon_slot_workspaces (
-          agent_name TEXT NOT NULL,
-          provider TEXT NOT NULL,
-          model TEXT NOT NULL,
-          slot_key TEXT NOT NULL,
-          workspace_id TEXT NOT NULL UNIQUE,
-          worktree_path TEXT NOT NULL,
-          worktree_branch TEXT,
-          PRIMARY KEY (agent_name, provider, model, slot_key),
-          FOREIGN KEY (agent_name, provider, model, slot_key)
-            REFERENCES daemon_slots(agent_name, provider, model, slot_key)
-            ON DELETE CASCADE
-        );
-
-        CREATE INDEX IF NOT EXISTS daemon_slots_expires_idx
-          ON daemon_slots (expires_at_ms);
-
-        CREATE INDEX IF NOT EXISTS daemon_slots_task_attempt_idx
-          ON daemon_slots (
-            last_task_id,
-            last_attempt_n,
-            last_used_at_ms DESC
-          );
-
-        ALTER TABLE daemon_slots
-          ALTER COLUMN created_at_ms TYPE BIGINT,
-          ALTER COLUMN last_used_at_ms TYPE BIGINT,
-          ALTER COLUMN expires_at_ms TYPE BIGINT;
-      `),
+      runPgMigrations(this.pool),
     );
   }
 

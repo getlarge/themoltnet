@@ -1,0 +1,291 @@
+{
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  },
+  "dialect": "sqlite",
+  "enums": {},
+  "id": "e4768dc6-f00c-43d6-b0f4-3dba1c801218",
+  "internal": {
+    "indexes": {
+      "daemon_slots_task_attempt_idx": {
+        "columns": {
+          "\"last_used_at_ms\" DESC": {
+            "isExpression": true
+          }
+        }
+      }
+    }
+  },
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "daemon_slot_sessions": {
+      "checkConstraints": {},
+      "columns": {
+        "agent_name": {
+          "autoincrement": false,
+          "name": "agent_name",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "model": {
+          "autoincrement": false,
+          "name": "model",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "provider": {
+          "autoincrement": false,
+          "name": "provider",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "session_dir": {
+          "autoincrement": false,
+          "name": "session_dir",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "session_path": {
+          "autoincrement": false,
+          "name": "session_path",
+          "notNull": false,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "slot_key": {
+          "autoincrement": false,
+          "name": "slot_key",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        }
+      },
+      "compositePrimaryKeys": {
+        "daemon_slot_sessions_agent_name_provider_model_slot_key_pk": {
+          "columns": ["agent_name", "provider", "model", "slot_key"],
+          "name": "daemon_slot_sessions_agent_name_provider_model_slot_key_pk"
+        }
+      },
+      "foreignKeys": {
+        "daemon_slot_sessions_agent_name_provider_model_slot_key_daemon_slots_agent_name_provider_model_slot_key_fk": {
+          "columnsFrom": ["agent_name", "provider", "model", "slot_key"],
+          "columnsTo": ["agent_name", "provider", "model", "slot_key"],
+          "name": "daemon_slot_sessions_agent_name_provider_model_slot_key_daemon_slots_agent_name_provider_model_slot_key_fk",
+          "onDelete": "cascade",
+          "onUpdate": "no action",
+          "tableFrom": "daemon_slot_sessions",
+          "tableTo": "daemon_slots"
+        }
+      },
+      "indexes": {
+        "daemon_slot_sessions_session_dir_unique": {
+          "columns": ["session_dir"],
+          "isUnique": true,
+          "name": "daemon_slot_sessions_session_dir_unique"
+        }
+      },
+      "name": "daemon_slot_sessions",
+      "uniqueConstraints": {}
+    },
+    "daemon_slot_workspaces": {
+      "checkConstraints": {},
+      "columns": {
+        "agent_name": {
+          "autoincrement": false,
+          "name": "agent_name",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "model": {
+          "autoincrement": false,
+          "name": "model",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "provider": {
+          "autoincrement": false,
+          "name": "provider",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "slot_key": {
+          "autoincrement": false,
+          "name": "slot_key",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "workspace_id": {
+          "autoincrement": false,
+          "name": "workspace_id",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "worktree_branch": {
+          "autoincrement": false,
+          "name": "worktree_branch",
+          "notNull": false,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "worktree_path": {
+          "autoincrement": false,
+          "name": "worktree_path",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        }
+      },
+      "compositePrimaryKeys": {
+        "daemon_slot_workspaces_agent_name_provider_model_slot_key_pk": {
+          "columns": ["agent_name", "provider", "model", "slot_key"],
+          "name": "daemon_slot_workspaces_agent_name_provider_model_slot_key_pk"
+        }
+      },
+      "foreignKeys": {
+        "daemon_slot_workspaces_agent_name_provider_model_slot_key_daemon_slots_agent_name_provider_model_slot_key_fk": {
+          "columnsFrom": ["agent_name", "provider", "model", "slot_key"],
+          "columnsTo": ["agent_name", "provider", "model", "slot_key"],
+          "name": "daemon_slot_workspaces_agent_name_provider_model_slot_key_daemon_slots_agent_name_provider_model_slot_key_fk",
+          "onDelete": "cascade",
+          "onUpdate": "no action",
+          "tableFrom": "daemon_slot_workspaces",
+          "tableTo": "daemon_slots"
+        }
+      },
+      "indexes": {
+        "daemon_slot_workspaces_workspace_id_unique": {
+          "columns": ["workspace_id"],
+          "isUnique": true,
+          "name": "daemon_slot_workspaces_workspace_id_unique"
+        }
+      },
+      "name": "daemon_slot_workspaces",
+      "uniqueConstraints": {}
+    },
+    "daemon_slots": {
+      "checkConstraints": {
+        "daemon_slots_state_check": {
+          "name": "daemon_slots_state_check",
+          "value": "\"daemon_slots\".\"state\" IN ('active', 'idle')"
+        }
+      },
+      "columns": {
+        "agent_name": {
+          "autoincrement": false,
+          "name": "agent_name",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "created_at_ms": {
+          "autoincrement": false,
+          "name": "created_at_ms",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "integer"
+        },
+        "expires_at_ms": {
+          "autoincrement": false,
+          "name": "expires_at_ms",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "integer"
+        },
+        "last_attempt_n": {
+          "autoincrement": false,
+          "name": "last_attempt_n",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "integer"
+        },
+        "last_task_id": {
+          "autoincrement": false,
+          "name": "last_task_id",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "last_used_at_ms": {
+          "autoincrement": false,
+          "name": "last_used_at_ms",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "integer"
+        },
+        "model": {
+          "autoincrement": false,
+          "name": "model",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "provider": {
+          "autoincrement": false,
+          "name": "provider",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "slot_key": {
+          "autoincrement": false,
+          "name": "slot_key",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "state": {
+          "autoincrement": false,
+          "name": "state",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "task_type": {
+          "autoincrement": false,
+          "name": "task_type",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        }
+      },
+      "compositePrimaryKeys": {
+        "daemon_slots_agent_name_provider_model_slot_key_pk": {
+          "columns": ["agent_name", "provider", "model", "slot_key"],
+          "name": "daemon_slots_agent_name_provider_model_slot_key_pk"
+        }
+      },
+      "foreignKeys": {},
+      "indexes": {
+        "daemon_slots_expires_idx": {
+          "columns": ["expires_at_ms"],
+          "isUnique": false,
+          "name": "daemon_slots_expires_idx"
+        },
+        "daemon_slots_task_attempt_idx": {
+          "columns": [
+            "last_task_id",
+            "last_attempt_n",
+            "\"last_used_at_ms\" DESC"
+          ],
+          "isUnique": false,
+          "name": "daemon_slots_task_attempt_idx"
+        }
+      },
+      "name": "daemon_slots",
+      "uniqueConstraints": {}
+    }
+  },
+  "version": "6",
+  "views": {}
+}

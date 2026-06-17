@@ -1,5 +1,8 @@
+import { sql } from 'drizzle-orm';
 import {
   bigint,
+  check,
+  foreignKey,
   index,
   integer,
   pgTable,
@@ -26,11 +29,15 @@ export const pgDaemonSlots = pgTable(
     primaryKey({
       columns: [table.agentName, table.provider, table.model, table.slotKey],
     }),
+    check(
+      'daemon_slots_state_check',
+      sql`${table.state} IN ('active', 'idle')`,
+    ),
     index('daemon_slots_expires_idx').on(table.expiresAtMs),
     index('daemon_slots_task_attempt_idx').on(
       table.lastTaskId,
       table.lastAttemptN,
-      table.lastUsedAtMs,
+      table.lastUsedAtMs.desc(),
     ),
   ],
 );
@@ -49,6 +56,15 @@ export const pgDaemonSlotSessions = pgTable(
     primaryKey({
       columns: [table.agentName, table.provider, table.model, table.slotKey],
     }),
+    foreignKey({
+      columns: [table.agentName, table.provider, table.model, table.slotKey],
+      foreignColumns: [
+        pgDaemonSlots.agentName,
+        pgDaemonSlots.provider,
+        pgDaemonSlots.model,
+        pgDaemonSlots.slotKey,
+      ],
+    }).onDelete('cascade'),
   ],
 );
 
@@ -67,6 +83,15 @@ export const pgDaemonSlotWorkspaces = pgTable(
     primaryKey({
       columns: [table.agentName, table.provider, table.model, table.slotKey],
     }),
+    foreignKey({
+      columns: [table.agentName, table.provider, table.model, table.slotKey],
+      foreignColumns: [
+        pgDaemonSlots.agentName,
+        pgDaemonSlots.provider,
+        pgDaemonSlots.model,
+        pgDaemonSlots.slotKey,
+      ],
+    }).onDelete('cascade'),
   ],
 );
 
