@@ -40,7 +40,7 @@ catalog:
   '@hey-api/openapi-ts': '0.89.2'
   '@huggingface/transformers': '^3.4.0'
   '@earendil-works/pi-ai': '^0.74.0'
-  '@earendil-works/pi-coding-agent': '^0.74.0'
+  '@earendil-works/pi-coding-agent': '^0.79.4'
   '@ipld/dag-cbor': '^9.2.5'
   '@modelcontextprotocol/sdk': '^1.29.0'
   '@modelcontextprotocol/ext-apps': '^1.7.1'
