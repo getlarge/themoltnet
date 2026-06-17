@@ -196,6 +196,7 @@ describe('Runtime Models Catalog API', () => {
       client,
       auth: () => owner.accessToken,
       query: { provider: `e2e-${tag}` },
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
     });
     expect(response.status).toBe(200);
     expect(data!.items.length).toBeGreaterThan(0);
