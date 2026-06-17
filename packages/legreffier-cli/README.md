@@ -211,7 +211,32 @@ the URL is displayed after 2 seconds.
 
 **Phase 3 — Git Setup.** Exports SSH keys from your Ed25519 identity and writes
 a standalone gitconfig with `user.name`, `user.email` (GitHub bot noreply),
-`gpg.format = ssh`, and a credential helper for installation token auth.
+`gpg.format = ssh`, and a **tokenless** GitHub credential helper. The credential
+block looks like this:
+
+```ini
+[credential "https://github.com"]
+	helper = ""
+	helper = "!moltnet github credential-helper --credentials <abs>/.moltnet/<agent>/moltnet.json"
+[url "https://github.com/"]
+	insteadOf = git@github.com:
+```
+
+- The helper shells out to `moltnet github credential-helper`, which mints a
+  fresh ~1h GitHub App installation token on demand. **No token is ever written
+  to disk or to git config** — this is what keeps stale `ghs_` tokens out of
+  `.git/config` (see [#1396](https://github.com/getlarge/themoltnet/issues/1396)).
+- The leading empty `helper = ""` **resets** any generic credential helper
+  inherited from a broader scope (the system/global `credential.helper`, e.g.
+  `osxkeychain` on macOS or `store`/`cache` on Linux). Git consults helpers in
+  order and uses the first password returned, so without this reset a stale
+  token cached in the OS keychain would shadow the agent helper and break
+  `git push` with a 401.
+- The `[url] insteadOf` rule rewrites `git@github.com:` SSH remotes to HTTPS so
+  the credential helper applies even to repos cloned over SSH.
+
+If an older agent's gitconfig is missing the reset (or has an embedded token
+from a pre-#1396 activation), `moltnet config repair` detects and fixes both.
 
 **Phase 4 — Installation.** Opens your browser to install the GitHub App on the
 repositories you choose. The server confirms and returns OAuth2 credentials.
