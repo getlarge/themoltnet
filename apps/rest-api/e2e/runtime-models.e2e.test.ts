@@ -117,7 +117,7 @@ describe('Runtime Models Catalog API', () => {
     const { data: fetched, response: getResponse } = await getRuntimeModel({
       client,
       auth: () => owner.accessToken,
-      path: { entryId: created!.id },
+      path: { modelId: created!.id },
     });
     expect(getResponse.status).toBe(200);
     expect(fetched!.id).toBe(created!.id);
@@ -126,7 +126,7 @@ describe('Runtime Models Catalog API', () => {
       await updateRuntimeModel({
         client,
         auth: () => owner.accessToken,
-        path: { entryId: created!.id },
+        path: { modelId: created!.id },
         body: { displayName: `e2e ${tag} renamed` },
       });
     expect(updateResponse.status).toBe(200);
@@ -135,14 +135,14 @@ describe('Runtime Models Catalog API', () => {
     const { response: deleteResponse } = await deleteRuntimeModel({
       client,
       auth: () => owner.accessToken,
-      path: { entryId: created!.id },
+      path: { modelId: created!.id },
     });
     expect(deleteResponse.status).toBe(204);
 
     const { response: getAfterDelete } = await getRuntimeModel({
       client,
       auth: () => owner.accessToken,
-      path: { entryId: created!.id },
+      path: { modelId: created!.id },
     });
     expect(getAfterDelete.status).toBe(404);
   });
@@ -180,7 +180,7 @@ describe('Runtime Models Catalog API', () => {
     const { data, response } = await getRuntimeModel({
       client,
       auth: () => outsider.accessToken,
-      path: { entryId: sonnet!.id },
+      path: { modelId: sonnet!.id },
     });
     expect(response.status).toBe(200);
     expect(data!.id).toBe(sonnet!.id);
@@ -234,7 +234,7 @@ describe('Runtime Models Catalog API', () => {
       const { response } = await getRuntimeModel({
         client,
         auth: () => outsider.accessToken,
-        path: { entryId: created!.id },
+        path: { modelId: created!.id },
       });
       expect(response.status).toBe(404);
     });
@@ -247,7 +247,7 @@ describe('Runtime Models Catalog API', () => {
       const { response: updateResponse } = await updateRuntimeModel({
         client,
         auth: () => outsider.accessToken,
-        path: { entryId: created!.id },
+        path: { modelId: created!.id },
         body: { displayName: 'pwned' },
       });
       // Owner-only mutation. PATCH through the public API is gated by
@@ -259,7 +259,7 @@ describe('Runtime Models Catalog API', () => {
       const { response: deleteResponse } = await deleteRuntimeModel({
         client,
         auth: () => outsider.accessToken,
-        path: { entryId: created!.id },
+        path: { modelId: created!.id },
       });
       expect(deleteResponse.status).toBe(403);
     });
@@ -275,7 +275,7 @@ describe('Runtime Models Catalog API', () => {
       const { response: updateResponse } = await updateRuntimeModel({
         client,
         auth: () => owner.accessToken,
-        path: { entryId: seed!.id },
+        path: { modelId: seed!.id },
         body: { displayName: 'tampered' },
       });
       expect(updateResponse.status).toBe(403);
@@ -283,7 +283,7 @@ describe('Runtime Models Catalog API', () => {
       const { response: deleteResponse } = await deleteRuntimeModel({
         client,
         auth: () => owner.accessToken,
-        path: { entryId: seed!.id },
+        path: { modelId: seed!.id },
       });
       expect(deleteResponse.status).toBe(403);
     });
@@ -346,7 +346,7 @@ describe('Runtime Models Catalog API', () => {
       const { response } = await updateRuntimeModel({
         client,
         auth: () => owner.accessToken,
-        path: { entryId: created!.id },
+        path: { modelId: created!.id },
         body: {},
       });
       expect(response.status).toBe(400);

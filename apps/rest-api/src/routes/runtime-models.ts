@@ -18,8 +18,6 @@ import {
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 
-type CreateRuntimeModelBody = Static<typeof CreateRuntimeModelBodySchema>;
-type UpdateRuntimeModelBody = Static<typeof UpdateRuntimeModelBodySchema>;
 
 function authSubject(request: {
   authContext: {
@@ -147,7 +145,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
       const team = await fastify.teamRepository.findById(teamId);
       if (!team) throw createProblem('not-found');
       const creator = authContextToCreator(request);
-      const body = request.body as CreateRuntimeModelBody;
+      const body = request.body as Static<typeof CreateRuntimeModelBodySchema>;
       try {
         const row = await fastify.runtimeModelRepository.create({
           teamId,
@@ -174,7 +172,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
   );
 
   server.get(
-    '/runtime-models/:entryId',
+    '/runtime-models/:modelId',
     {
       config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
@@ -192,7 +190,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const row = await fastify.runtimeModelRepository.findById(
-        request.params.entryId,
+        request.params.modelId,
       );
       if (!row || !row.isActive) throw createProblem('not-found');
       // Team-scoped entries: caller must be able to access the team.
@@ -211,7 +209,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
   );
 
   server.patch(
-    '/runtime-models/:entryId',
+    '/runtime-models/:modelId',
     {
       schema: {
         operationId: 'updateRuntimeModel',
@@ -233,7 +231,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const existing = await fastify.runtimeModelRepository.findById(
-        request.params.entryId,
+        request.params.modelId,
       );
       if (!existing) throw createProblem('not-found');
       if (!existing.teamId) {
@@ -249,7 +247,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
-      const body = request.body as UpdateRuntimeModelBody;
+      const body = request.body as Static<typeof UpdateRuntimeModelBodySchema>;
       const patch = {
         ...(body.provider !== undefined
           ? { provider: body.provider.toLowerCase() }
@@ -288,7 +286,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
   );
 
   server.delete(
-    '/runtime-models/:entryId',
+    '/runtime-models/:modelId',
     {
       schema: {
         operationId: 'deleteRuntimeModel',
@@ -307,7 +305,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const existing = await fastify.runtimeModelRepository.findById(
-        request.params.entryId,
+        request.params.modelId,
       );
       if (!existing) throw createProblem('not-found');
       if (!existing.teamId) {

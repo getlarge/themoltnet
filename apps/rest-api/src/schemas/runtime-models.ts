@@ -44,7 +44,7 @@ export const RuntimeModelListResponseSchema = Type.Object(
 );
 
 export const RuntimeModelParamsSchema = Type.Object(
-  { entryId: Type.String({ format: 'uuid' }) },
+  { modelId: Type.String({ format: 'uuid' }) },
   { $id: 'RuntimeModelParams' },
 );
 

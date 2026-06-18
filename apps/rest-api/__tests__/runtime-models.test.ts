@@ -184,7 +184,7 @@ describe('runtime model catalog routes', () => {
     });
   });
 
-  describe('PATCH /runtime-models/:entryId', () => {
+  describe('PATCH /runtime-models/:modelId', () => {
     it('updates a team-scoped entry', async () => {
       mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
       mocks.runtimeModelRepository.findById.mockResolvedValue(mockModel());
@@ -224,7 +224,7 @@ describe('runtime model catalog routes', () => {
     });
   });
 
-  describe('DELETE /runtime-models/:entryId', () => {
+  describe('DELETE /runtime-models/:modelId', () => {
     it('deletes a team-scoped entry', async () => {
       mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
       mocks.runtimeModelRepository.findById.mockResolvedValue(mockModel());
@@ -258,7 +258,7 @@ describe('runtime model catalog routes', () => {
     });
   });
 
-  describe('GET /runtime-models/:entryId', () => {
+  describe('GET /runtime-models/:modelId', () => {
     it('returns a global entry to any authenticated caller', async () => {
       mocks.runtimeModelRepository.findById.mockResolvedValue(
         mockGlobalModel(),

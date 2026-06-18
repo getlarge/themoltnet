@@ -5897,13 +5897,13 @@
       },
       "RuntimeModelParams": {
         "properties": {
-          "entryId": {
+          "modelId": {
             "format": "uuid",
             "type": "string"
           }
         },
         "required": [
-          "entryId"
+          "modelId"
         ],
         "type": "object"
       },
@@ -18200,14 +18200,14 @@
         ]
       }
     },
-    "/runtime-models/{entryId}": {
+    "/runtime-models/{modelId}": {
       "delete": {
         "description": "Delete a team-scoped runtime model catalog entry. Global entries are not deletable.",
         "operationId": "deleteRuntimeModel",
         "parameters": [
           {
             "in": "path",
-            "name": "entryId",
+            "name": "modelId",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -18271,7 +18271,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "entryId",
+            "name": "modelId",
             "required": true,
             "schema": {
               "format": "uuid",
@@ -18332,7 +18332,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "entryId",
+            "name": "modelId",
             "required": true,
             "schema": {
               "format": "uuid",
