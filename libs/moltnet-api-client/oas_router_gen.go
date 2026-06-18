@@ -2120,7 +2120,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								break
 							}
 
-							// Param: "entryId"
+							// Param: "modelId"
 							// Leaf parameter, slashes are prohibited
 							idx := strings.IndexByte(elem, '/')
 							if idx >= 0 {
@@ -5106,7 +5106,7 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 								break
 							}
 
-							// Param: "entryId"
+							// Param: "modelId"
 							// Leaf parameter, slashes are prohibited
 							idx := strings.IndexByte(elem, '/')
 							if idx >= 0 {
@@ -5123,7 +5123,7 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 									r.summary = ""
 									r.operationID = "deleteRuntimeModel"
 									r.operationGroup = ""
-									r.pathPattern = "/runtime-models/{entryId}"
+									r.pathPattern = "/runtime-models/{modelId}"
 									r.args = args
 									r.count = 1
 									return r, true
@@ -5132,7 +5132,7 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 									r.summary = ""
 									r.operationID = "getRuntimeModel"
 									r.operationGroup = ""
-									r.pathPattern = "/runtime-models/{entryId}"
+									r.pathPattern = "/runtime-models/{modelId}"
 									r.args = args
 									r.count = 1
 									return r, true
@@ -5141,7 +5141,7 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 									r.summary = ""
 									r.operationID = "updateRuntimeModel"
 									r.operationGroup = ""
-									r.pathPattern = "/runtime-models/{entryId}"
+									r.pathPattern = "/runtime-models/{modelId}"
 									r.args = args
 									r.count = 1
 									return r, true

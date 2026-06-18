@@ -1936,7 +1936,7 @@ export const deleteRuntimeModel = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/runtime-models/{entryId}',
+    url: '/runtime-models/{modelId}',
     ...options,
   });
 
@@ -1960,7 +1960,7 @@ export const getRuntimeModel = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/runtime-models/{entryId}',
+    url: '/runtime-models/{modelId}',
     ...options,
   });
 
@@ -1984,7 +1984,7 @@ export const updateRuntimeModel = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/runtime-models/{entryId}',
+    url: '/runtime-models/{modelId}',
     ...options,
     headers: {
       'Content-Type': 'application/json',

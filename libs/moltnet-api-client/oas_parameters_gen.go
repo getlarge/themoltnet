@@ -1647,22 +1647,22 @@ func decodeDeleteGroupParams(args [1]string, argsEscaped bool, r *http.Request) 
 
 // DeleteRuntimeModelParams is parameters of deleteRuntimeModel operation.
 type DeleteRuntimeModelParams struct {
-	EntryId uuid.UUID
+	ModelId uuid.UUID
 }
 
 func unpackDeleteRuntimeModelParams(packed middleware.Parameters) (params DeleteRuntimeModelParams) {
 	{
 		key := middleware.ParameterKey{
-			Name: "entryId",
+			Name: "modelId",
 			In:   "path",
 		}
-		params.EntryId = packed[key].(uuid.UUID)
+		params.ModelId = packed[key].(uuid.UUID)
 	}
 	return params
 }
 
 func decodeDeleteRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteRuntimeModelParams, _ error) {
-	// Decode path: entryId.
+	// Decode path: modelId.
 	if err := func() error {
 		param := args[0]
 		if argsEscaped {
@@ -1674,7 +1674,7 @@ func decodeDeleteRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Re
 		}
 		if len(param) > 0 {
 			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "entryId",
+				Param:   "modelId",
 				Value:   param,
 				Style:   uri.PathStyleSimple,
 				Explode: false,
@@ -1691,7 +1691,7 @@ func decodeDeleteRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Re
 					return err
 				}
 
-				params.EntryId = c
+				params.ModelId = c
 				return nil
 			}(); err != nil {
 				return err
@@ -1702,7 +1702,7 @@ func decodeDeleteRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Re
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "entryId",
+			Name: "modelId",
 			In:   "path",
 			Err:  err,
 		}
@@ -3864,22 +3864,22 @@ func decodeGetRenderedPackByIdParams(args [1]string, argsEscaped bool, r *http.R
 
 // GetRuntimeModelParams is parameters of getRuntimeModel operation.
 type GetRuntimeModelParams struct {
-	EntryId uuid.UUID
+	ModelId uuid.UUID
 }
 
 func unpackGetRuntimeModelParams(packed middleware.Parameters) (params GetRuntimeModelParams) {
 	{
 		key := middleware.ParameterKey{
-			Name: "entryId",
+			Name: "modelId",
 			In:   "path",
 		}
-		params.EntryId = packed[key].(uuid.UUID)
+		params.ModelId = packed[key].(uuid.UUID)
 	}
 	return params
 }
 
 func decodeGetRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Request) (params GetRuntimeModelParams, _ error) {
-	// Decode path: entryId.
+	// Decode path: modelId.
 	if err := func() error {
 		param := args[0]
 		if argsEscaped {
@@ -3891,7 +3891,7 @@ func decodeGetRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Reque
 		}
 		if len(param) > 0 {
 			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "entryId",
+				Param:   "modelId",
 				Value:   param,
 				Style:   uri.PathStyleSimple,
 				Explode: false,
@@ -3908,7 +3908,7 @@ func decodeGetRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Reque
 					return err
 				}
 
-				params.EntryId = c
+				params.ModelId = c
 				return nil
 			}(); err != nil {
 				return err
@@ -3919,7 +3919,7 @@ func decodeGetRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Reque
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "entryId",
+			Name: "modelId",
 			In:   "path",
 			Err:  err,
 		}
@@ -10868,22 +10868,22 @@ func decodeUpdateRenderedPackParams(args [1]string, argsEscaped bool, r *http.Re
 
 // UpdateRuntimeModelParams is parameters of updateRuntimeModel operation.
 type UpdateRuntimeModelParams struct {
-	EntryId uuid.UUID
+	ModelId uuid.UUID
 }
 
 func unpackUpdateRuntimeModelParams(packed middleware.Parameters) (params UpdateRuntimeModelParams) {
 	{
 		key := middleware.ParameterKey{
-			Name: "entryId",
+			Name: "modelId",
 			In:   "path",
 		}
-		params.EntryId = packed[key].(uuid.UUID)
+		params.ModelId = packed[key].(uuid.UUID)
 	}
 	return params
 }
 
 func decodeUpdateRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateRuntimeModelParams, _ error) {
-	// Decode path: entryId.
+	// Decode path: modelId.
 	if err := func() error {
 		param := args[0]
 		if argsEscaped {
@@ -10895,7 +10895,7 @@ func decodeUpdateRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Re
 		}
 		if len(param) > 0 {
 			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "entryId",
+				Param:   "modelId",
 				Value:   param,
 				Style:   uri.PathStyleSimple,
 				Explode: false,
@@ -10912,7 +10912,7 @@ func decodeUpdateRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Re
 					return err
 				}
 
-				params.EntryId = c
+				params.ModelId = c
 				return nil
 			}(); err != nil {
 				return err
@@ -10923,7 +10923,7 @@ func decodeUpdateRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Re
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "entryId",
+			Name: "modelId",
 			In:   "path",
 			Err:  err,
 		}

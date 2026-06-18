@@ -5651,14 +5651,14 @@ func (s *Server) handleDeleteGroupRequest(args [1]string, argsEscaped bool, w ht
 //
 // Delete a team-scoped runtime model catalog entry. Global entries are not deletable.
 //
-// DELETE /runtime-models/{entryId}
+// DELETE /runtime-models/{modelId}
 func (s *Server) handleDeleteRuntimeModelRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("deleteRuntimeModel"),
 		semconv.HTTPRequestMethodKey.String("DELETE"),
-		semconv.HTTPRouteKey.String("/runtime-models/{entryId}"),
+		semconv.HTTPRouteKey.String("/runtime-models/{modelId}"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
@@ -5827,9 +5827,9 @@ func (s *Server) handleDeleteRuntimeModelRequest(args [1]string, argsEscaped boo
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "entryId",
+					Name: "modelId",
 					In:   "path",
-				}: params.EntryId,
+				}: params.ModelId,
 			},
 			Raw: r,
 		}
@@ -10610,14 +10610,14 @@ func (s *Server) handleGetRenderedPackByIdRequest(args [1]string, argsEscaped bo
 //
 // Get one runtime model catalog entry.
 //
-// GET /runtime-models/{entryId}
+// GET /runtime-models/{modelId}
 func (s *Server) handleGetRuntimeModelRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("getRuntimeModel"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/runtime-models/{entryId}"),
+		semconv.HTTPRouteKey.String("/runtime-models/{modelId}"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
@@ -10786,9 +10786,9 @@ func (s *Server) handleGetRuntimeModelRequest(args [1]string, argsEscaped bool, 
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "entryId",
+					Name: "modelId",
 					In:   "path",
-				}: params.EntryId,
+				}: params.ModelId,
 			},
 			Raw: r,
 		}
@@ -22269,14 +22269,14 @@ func (s *Server) handleUpdateRenderedPackRequest(args [1]string, argsEscaped boo
 // Update a team-scoped runtime model catalog entry. Global entries are not modifiable through this
 // endpoint.
 //
-// PATCH /runtime-models/{entryId}
+// PATCH /runtime-models/{modelId}
 func (s *Server) handleUpdateRuntimeModelRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("updateRuntimeModel"),
 		semconv.HTTPRequestMethodKey.String("PATCH"),
-		semconv.HTTPRouteKey.String("/runtime-models/{entryId}"),
+		semconv.HTTPRouteKey.String("/runtime-models/{modelId}"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
@@ -22460,9 +22460,9 @@ func (s *Server) handleUpdateRuntimeModelRequest(args [1]string, argsEscaped boo
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "entryId",
+					Name: "modelId",
 					In:   "path",
-				}: params.EntryId,
+				}: params.ModelId,
 			},
 			Raw: r,
 		}

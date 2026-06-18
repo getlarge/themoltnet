@@ -1476,7 +1476,7 @@ export type RuntimeModelListResponse = {
 };
 
 export type RuntimeModelParams = {
-  entryId: string;
+  modelId: string;
 };
 
 export type RuntimeProfile = {
@@ -5683,10 +5683,10 @@ export type CreateRuntimeModelResponse =
 export type DeleteRuntimeModelData = {
   body?: never;
   path: {
-    entryId: string;
+    modelId: string;
   };
   query?: never;
-  url: '/runtime-models/{entryId}';
+  url: '/runtime-models/{modelId}';
 };
 
 export type DeleteRuntimeModelErrors = {
@@ -5720,10 +5720,10 @@ export type DeleteRuntimeModelResponse =
 export type GetRuntimeModelData = {
   body?: never;
   path: {
-    entryId: string;
+    modelId: string;
   };
   query?: never;
-  url: '/runtime-models/{entryId}';
+  url: '/runtime-models/{modelId}';
 };
 
 export type GetRuntimeModelErrors = {
@@ -5753,10 +5753,10 @@ export type GetRuntimeModelResponse =
 export type UpdateRuntimeModelData = {
   body?: UpdateRuntimeModelBody;
   path: {
-    entryId: string;
+    modelId: string;
   };
   query?: never;
-  url: '/runtime-models/{entryId}';
+  url: '/runtime-models/{modelId}';
 };
 
 export type UpdateRuntimeModelErrors = {

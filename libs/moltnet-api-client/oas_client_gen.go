@@ -183,7 +183,7 @@ type Invoker interface {
 	//
 	// Delete a team-scoped runtime model catalog entry. Global entries are not deletable.
 	//
-	// DELETE /runtime-models/{entryId}
+	// DELETE /runtime-models/{modelId}
 	DeleteRuntimeModel(ctx context.Context, params DeleteRuntimeModelParams) (DeleteRuntimeModelRes, error)
 	// DeleteRuntimeProfile invokes deleteRuntimeProfile operation.
 	//
@@ -343,7 +343,7 @@ type Invoker interface {
 	//
 	// Get one runtime model catalog entry.
 	//
-	// GET /runtime-models/{entryId}
+	// GET /runtime-models/{modelId}
 	GetRuntimeModel(ctx context.Context, params GetRuntimeModelParams) (GetRuntimeModelRes, error)
 	// GetRuntimeProfile invokes getRuntimeProfile operation.
 	//
@@ -676,7 +676,7 @@ type Invoker interface {
 	// Update a team-scoped runtime model catalog entry. Global entries are not modifiable through this
 	// endpoint.
 	//
-	// PATCH /runtime-models/{entryId}
+	// PATCH /runtime-models/{modelId}
 	UpdateRuntimeModel(ctx context.Context, request OptUpdateRuntimeModelBody, params UpdateRuntimeModelParams) (UpdateRuntimeModelRes, error)
 	// UpdateRuntimeProfile invokes updateRuntimeProfile operation.
 	//
@@ -4579,7 +4579,7 @@ func (c *Client) sendDeleteGroup(ctx context.Context, params DeleteGroupParams) 
 //
 // Delete a team-scoped runtime model catalog entry. Global entries are not deletable.
 //
-// DELETE /runtime-models/{entryId}
+// DELETE /runtime-models/{modelId}
 func (c *Client) DeleteRuntimeModel(ctx context.Context, params DeleteRuntimeModelParams) (DeleteRuntimeModelRes, error) {
 	res, err := c.sendDeleteRuntimeModel(ctx, params)
 	return res, err
@@ -4589,7 +4589,7 @@ func (c *Client) sendDeleteRuntimeModel(ctx context.Context, params DeleteRuntim
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("deleteRuntimeModel"),
 		semconv.HTTPRequestMethodKey.String("DELETE"),
-		semconv.URLTemplateKey.String("/runtime-models/{entryId}"),
+		semconv.URLTemplateKey.String("/runtime-models/{modelId}"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -4625,14 +4625,14 @@ func (c *Client) sendDeleteRuntimeModel(ctx context.Context, params DeleteRuntim
 	var pathParts [2]string
 	pathParts[0] = "/runtime-models/"
 	{
-		// Encode "entryId" parameter.
+		// Encode "modelId" parameter.
 		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "entryId",
+			Param:   "modelId",
 			Style:   uri.PathStyleSimple,
 			Explode: false,
 		})
 		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+			return e.EncodeValue(conv.UUIDToString(params.ModelId))
 		}(); err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}
@@ -8190,7 +8190,7 @@ func (c *Client) sendGetRenderedPackById(ctx context.Context, params GetRendered
 //
 // Get one runtime model catalog entry.
 //
-// GET /runtime-models/{entryId}
+// GET /runtime-models/{modelId}
 func (c *Client) GetRuntimeModel(ctx context.Context, params GetRuntimeModelParams) (GetRuntimeModelRes, error) {
 	res, err := c.sendGetRuntimeModel(ctx, params)
 	return res, err
@@ -8200,7 +8200,7 @@ func (c *Client) sendGetRuntimeModel(ctx context.Context, params GetRuntimeModel
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("getRuntimeModel"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/runtime-models/{entryId}"),
+		semconv.URLTemplateKey.String("/runtime-models/{modelId}"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -8236,14 +8236,14 @@ func (c *Client) sendGetRuntimeModel(ctx context.Context, params GetRuntimeModel
 	var pathParts [2]string
 	pathParts[0] = "/runtime-models/"
 	{
-		// Encode "entryId" parameter.
+		// Encode "modelId" parameter.
 		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "entryId",
+			Param:   "modelId",
 			Style:   uri.PathStyleSimple,
 			Explode: false,
 		})
 		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+			return e.EncodeValue(conv.UUIDToString(params.ModelId))
 		}(); err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}
@@ -17111,7 +17111,7 @@ func (c *Client) sendUpdateRenderedPack(ctx context.Context, request OptUpdateRe
 // Update a team-scoped runtime model catalog entry. Global entries are not modifiable through this
 // endpoint.
 //
-// PATCH /runtime-models/{entryId}
+// PATCH /runtime-models/{modelId}
 func (c *Client) UpdateRuntimeModel(ctx context.Context, request OptUpdateRuntimeModelBody, params UpdateRuntimeModelParams) (UpdateRuntimeModelRes, error) {
 	res, err := c.sendUpdateRuntimeModel(ctx, request, params)
 	return res, err
@@ -17121,7 +17121,7 @@ func (c *Client) sendUpdateRuntimeModel(ctx context.Context, request OptUpdateRu
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("updateRuntimeModel"),
 		semconv.HTTPRequestMethodKey.String("PATCH"),
-		semconv.URLTemplateKey.String("/runtime-models/{entryId}"),
+		semconv.URLTemplateKey.String("/runtime-models/{modelId}"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -17157,14 +17157,14 @@ func (c *Client) sendUpdateRuntimeModel(ctx context.Context, request OptUpdateRu
 	var pathParts [2]string
 	pathParts[0] = "/runtime-models/"
 	{
-		// Encode "entryId" parameter.
+		// Encode "modelId" parameter.
 		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "entryId",
+			Param:   "modelId",
 			Style:   uri.PathStyleSimple,
 			Explode: false,
 		})
 		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+			return e.EncodeValue(conv.UUIDToString(params.ModelId))
 		}(); err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}

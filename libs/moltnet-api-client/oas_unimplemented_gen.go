@@ -239,7 +239,7 @@ func (UnimplementedHandler) DeleteGroup(ctx context.Context, params DeleteGroupP
 //
 // Delete a team-scoped runtime model catalog entry. Global entries are not deletable.
 //
-// DELETE /runtime-models/{entryId}
+// DELETE /runtime-models/{modelId}
 func (UnimplementedHandler) DeleteRuntimeModel(ctx context.Context, params DeleteRuntimeModelParams) (r DeleteRuntimeModelRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
@@ -477,7 +477,7 @@ func (UnimplementedHandler) GetRenderedPackById(ctx context.Context, params GetR
 //
 // Get one runtime model catalog entry.
 //
-// GET /runtime-models/{entryId}
+// GET /runtime-models/{modelId}
 func (UnimplementedHandler) GetRuntimeModel(ctx context.Context, params GetRuntimeModelParams) (r GetRuntimeModelRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
@@ -970,7 +970,7 @@ func (UnimplementedHandler) UpdateRenderedPack(ctx context.Context, req OptUpdat
 // Update a team-scoped runtime model catalog entry. Global entries are not modifiable through this
 // endpoint.
 //
-// PATCH /runtime-models/{entryId}
+// PATCH /runtime-models/{modelId}
 func (UnimplementedHandler) UpdateRuntimeModel(ctx context.Context, req OptUpdateRuntimeModelBody, params UpdateRuntimeModelParams) (r UpdateRuntimeModelRes, _ error) {
 	return r, ht.ErrNotImplemented
 }

@@ -162,7 +162,7 @@ type Handler interface {
 	//
 	// Delete a team-scoped runtime model catalog entry. Global entries are not deletable.
 	//
-	// DELETE /runtime-models/{entryId}
+	// DELETE /runtime-models/{modelId}
 	DeleteRuntimeModel(ctx context.Context, params DeleteRuntimeModelParams) (DeleteRuntimeModelRes, error)
 	// DeleteRuntimeProfile implements deleteRuntimeProfile operation.
 	//
@@ -322,7 +322,7 @@ type Handler interface {
 	//
 	// Get one runtime model catalog entry.
 	//
-	// GET /runtime-models/{entryId}
+	// GET /runtime-models/{modelId}
 	GetRuntimeModel(ctx context.Context, params GetRuntimeModelParams) (GetRuntimeModelRes, error)
 	// GetRuntimeProfile implements getRuntimeProfile operation.
 	//
@@ -655,7 +655,7 @@ type Handler interface {
 	// Update a team-scoped runtime model catalog entry. Global entries are not modifiable through this
 	// endpoint.
 	//
-	// PATCH /runtime-models/{entryId}
+	// PATCH /runtime-models/{modelId}
 	UpdateRuntimeModel(ctx context.Context, req OptUpdateRuntimeModelBody, params UpdateRuntimeModelParams) (UpdateRuntimeModelRes, error)
 	// UpdateRuntimeProfile implements updateRuntimeProfile operation.
 	//
