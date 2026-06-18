@@ -285,6 +285,16 @@ export type ContextPackResponseListWithRendered = {
   renderedPacks?: Array<RenderedPack>;
 };
 
+export type CreateRuntimeModelBody = {
+  capabilities?: {
+    [key: string]: boolean | number | string;
+  };
+  description?: string;
+  displayName?: string;
+  model: string;
+  provider: string;
+};
+
 export type CreateRuntimeProfileBody = {
   context?: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
@@ -1429,6 +1439,46 @@ export type RotateSecretResponse = {
   clientSecret: string;
 };
 
+export type RuntimeModel = {
+  capabilities: {
+    [key: string]: boolean | number | string;
+  };
+  createdAt: string;
+  createdByAgentId: string | null;
+  createdByHumanId: string | null;
+  description: string | null;
+  displayName: string | null;
+  id: string;
+  isActive: boolean;
+  model: string;
+  provider: string;
+  teamId: string | null;
+  updatedAt: string;
+};
+
+export type RuntimeModelListResponse = {
+  items: Array<{
+    capabilities: {
+      [key: string]: boolean | number | string;
+    };
+    createdAt: string;
+    createdByAgentId: string | null;
+    createdByHumanId: string | null;
+    description: string | null;
+    displayName: string | null;
+    id: string;
+    isActive: boolean;
+    model: string;
+    provider: string;
+    teamId: string | null;
+    updatedAt: string;
+  }>;
+};
+
+export type RuntimeModelParams = {
+  modelId: string;
+};
+
 export type RuntimeProfile = {
   context: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
@@ -1842,6 +1892,17 @@ export type TaskUsage = {
   outputTokens: number;
   provider?: string;
   toolCalls?: number;
+};
+
+export type UpdateRuntimeModelBody = {
+  capabilities?: {
+    [key: string]: boolean | number | string;
+  };
+  description?: string;
+  displayName?: string;
+  isActive?: boolean;
+  model?: string;
+  provider?: string;
 };
 
 export type UpdateRuntimeProfileBody = {
@@ -5534,6 +5595,205 @@ export type UpdateRenderedPackResponses = {
 
 export type UpdateRenderedPackResponse =
   UpdateRenderedPackResponses[keyof UpdateRenderedPackResponses];
+
+export type ListRuntimeModelsData = {
+  body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
+  path?: never;
+  query?: {
+    provider?: string;
+  };
+  url: '/runtime-models';
+};
+
+export type ListRuntimeModelsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+};
+
+export type ListRuntimeModelsError =
+  ListRuntimeModelsErrors[keyof ListRuntimeModelsErrors];
+
+export type ListRuntimeModelsResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimeModelListResponse;
+};
+
+export type ListRuntimeModelsResponse =
+  ListRuntimeModelsResponses[keyof ListRuntimeModelsResponses];
+
+export type CreateRuntimeModelData = {
+  body?: CreateRuntimeModelBody;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/runtime-models';
+};
+
+export type CreateRuntimeModelErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type CreateRuntimeModelError =
+  CreateRuntimeModelErrors[keyof CreateRuntimeModelErrors];
+
+export type CreateRuntimeModelResponses = {
+  /**
+   * Default Response
+   */
+  201: RuntimeModel;
+};
+
+export type CreateRuntimeModelResponse =
+  CreateRuntimeModelResponses[keyof CreateRuntimeModelResponses];
+
+export type DeleteRuntimeModelData = {
+  body?: never;
+  path: {
+    modelId: string;
+  };
+  query?: never;
+  url: '/runtime-models/{modelId}';
+};
+
+export type DeleteRuntimeModelErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type DeleteRuntimeModelError =
+  DeleteRuntimeModelErrors[keyof DeleteRuntimeModelErrors];
+
+export type DeleteRuntimeModelResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type DeleteRuntimeModelResponse =
+  DeleteRuntimeModelResponses[keyof DeleteRuntimeModelResponses];
+
+export type GetRuntimeModelData = {
+  body?: never;
+  path: {
+    modelId: string;
+  };
+  query?: never;
+  url: '/runtime-models/{modelId}';
+};
+
+export type GetRuntimeModelErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetRuntimeModelError =
+  GetRuntimeModelErrors[keyof GetRuntimeModelErrors];
+
+export type GetRuntimeModelResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimeModel;
+};
+
+export type GetRuntimeModelResponse =
+  GetRuntimeModelResponses[keyof GetRuntimeModelResponses];
+
+export type UpdateRuntimeModelData = {
+  body?: UpdateRuntimeModelBody;
+  path: {
+    modelId: string;
+  };
+  query?: never;
+  url: '/runtime-models/{modelId}';
+};
+
+export type UpdateRuntimeModelErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type UpdateRuntimeModelError =
+  UpdateRuntimeModelErrors[keyof UpdateRuntimeModelErrors];
+
+export type UpdateRuntimeModelResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimeModel;
+};
+
+export type UpdateRuntimeModelResponse =
+  UpdateRuntimeModelResponses[keyof UpdateRuntimeModelResponses];
 
 export type ListRuntimeProfilesData = {
   body?: never;

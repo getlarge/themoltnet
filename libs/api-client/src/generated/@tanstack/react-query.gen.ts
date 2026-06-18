@@ -24,6 +24,7 @@ import {
   createDiaryGrant,
   createEntryRelation,
   createGroup,
+  createRuntimeModel,
   createRuntimeProfile,
   createSigningRequest,
   createTask,
@@ -33,6 +34,7 @@ import {
   deleteDiaryEntryById,
   deleteEntryRelation,
   deleteGroup,
+  deleteRuntimeModel,
   deleteRuntimeProfile,
   deleteTeam,
   deleteTeamInvite,
@@ -58,6 +60,7 @@ import {
   getPublicFeed,
   getReadiness,
   getRenderedPackById,
+  getRuntimeModel,
   getRuntimeProfile,
   getSigningRequest,
   getTask,
@@ -80,6 +83,7 @@ import {
   listGroups,
   listPendingTransfers,
   listProblemTypes,
+  listRuntimeModels,
   listRuntimeProfiles,
   listSigningRequests,
   listTaskAttempts,
@@ -110,6 +114,7 @@ import {
   updateDiaryEntryById,
   updateEntryRelationStatus,
   updateRenderedPack,
+  updateRuntimeModel,
   updateRuntimeProfile,
   updateTaskMetadata,
   updateTeamMemberRole,
@@ -161,6 +166,9 @@ import type {
   CreateGroupData,
   CreateGroupError,
   CreateGroupResponse,
+  CreateRuntimeModelData,
+  CreateRuntimeModelError,
+  CreateRuntimeModelResponse,
   CreateRuntimeProfileData,
   CreateRuntimeProfileError,
   CreateRuntimeProfileResponse,
@@ -188,6 +196,9 @@ import type {
   DeleteGroupData,
   DeleteGroupError,
   DeleteGroupResponse,
+  DeleteRuntimeModelData,
+  DeleteRuntimeModelError,
+  DeleteRuntimeModelResponse,
   DeleteRuntimeProfileData,
   DeleteRuntimeProfileError,
   DeleteRuntimeProfileResponse,
@@ -258,6 +269,9 @@ import type {
   GetRenderedPackByIdData,
   GetRenderedPackByIdError,
   GetRenderedPackByIdResponse,
+  GetRuntimeModelData,
+  GetRuntimeModelError,
+  GetRuntimeModelResponse,
   GetRuntimeProfileData,
   GetRuntimeProfileError,
   GetRuntimeProfileResponse,
@@ -323,6 +337,9 @@ import type {
   ListPendingTransfersResponse,
   ListProblemTypesData,
   ListProblemTypesResponse,
+  ListRuntimeModelsData,
+  ListRuntimeModelsError,
+  ListRuntimeModelsResponse,
   ListRuntimeProfilesData,
   ListRuntimeProfilesError,
   ListRuntimeProfilesResponse,
@@ -410,6 +427,9 @@ import type {
   UpdateRenderedPackData,
   UpdateRenderedPackError,
   UpdateRenderedPackResponse,
+  UpdateRuntimeModelData,
+  UpdateRuntimeModelError,
+  UpdateRuntimeModelResponse,
   UpdateRuntimeProfileData,
   UpdateRuntimeProfileError,
   UpdateRuntimeProfileResponse,
@@ -2648,6 +2668,141 @@ export const updateRenderedPackMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await updateRenderedPack({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listRuntimeModelsQueryKey = (
+  options?: Options<ListRuntimeModelsData>,
+) => createQueryKey('listRuntimeModels', options);
+
+/**
+ * List runtime model catalog entries visible to the caller. Global entries are always included; team-scoped entries are appended when `x-moltnet-team-id` is set. Supports `?provider=<id>` for autocomplete narrowing.
+ */
+export const listRuntimeModelsOptions = (
+  options?: Options<ListRuntimeModelsData>,
+) =>
+  queryOptions<
+    ListRuntimeModelsResponse,
+    ListRuntimeModelsError,
+    ListRuntimeModelsResponse,
+    ReturnType<typeof listRuntimeModelsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listRuntimeModels({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listRuntimeModelsQueryKey(options),
+  });
+
+/**
+ * Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam` on the active team.
+ */
+export const createRuntimeModelMutation = (
+  options?: Partial<Options<CreateRuntimeModelData>>,
+): UseMutationOptions<
+  CreateRuntimeModelResponse,
+  CreateRuntimeModelError,
+  Options<CreateRuntimeModelData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateRuntimeModelResponse,
+    CreateRuntimeModelError,
+    Options<CreateRuntimeModelData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createRuntimeModel({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Delete a team-scoped runtime model catalog entry. Global entries are not deletable.
+ */
+export const deleteRuntimeModelMutation = (
+  options?: Partial<Options<DeleteRuntimeModelData>>,
+): UseMutationOptions<
+  DeleteRuntimeModelResponse,
+  DeleteRuntimeModelError,
+  Options<DeleteRuntimeModelData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteRuntimeModelResponse,
+    DeleteRuntimeModelError,
+    Options<DeleteRuntimeModelData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteRuntimeModel({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getRuntimeModelQueryKey = (
+  options: Options<GetRuntimeModelData>,
+) => createQueryKey('getRuntimeModel', options);
+
+/**
+ * Get one runtime model catalog entry.
+ */
+export const getRuntimeModelOptions = (options: Options<GetRuntimeModelData>) =>
+  queryOptions<
+    GetRuntimeModelResponse,
+    GetRuntimeModelError,
+    GetRuntimeModelResponse,
+    ReturnType<typeof getRuntimeModelQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getRuntimeModel({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getRuntimeModelQueryKey(options),
+  });
+
+/**
+ * Update a team-scoped runtime model catalog entry. Global entries are not modifiable through this endpoint.
+ */
+export const updateRuntimeModelMutation = (
+  options?: Partial<Options<UpdateRuntimeModelData>>,
+): UseMutationOptions<
+  UpdateRuntimeModelResponse,
+  UpdateRuntimeModelError,
+  Options<UpdateRuntimeModelData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateRuntimeModelResponse,
+    UpdateRuntimeModelError,
+    Options<UpdateRuntimeModelData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateRuntimeModel({
         ...options,
         ...fnOptions,
         throwOnError: true,

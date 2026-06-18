@@ -142,6 +142,16 @@ func (UnimplementedHandler) CreateGroup(ctx context.Context, req *CreateGroupReq
 	return r, ht.ErrNotImplemented
 }
 
+// CreateRuntimeModel implements createRuntimeModel operation.
+//
+// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam`
+// on the active team.
+//
+// POST /runtime-models
+func (UnimplementedHandler) CreateRuntimeModel(ctx context.Context, req OptCreateRuntimeModelBody, params CreateRuntimeModelParams) (r CreateRuntimeModelRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateRuntimeProfile implements createRuntimeProfile operation.
 //
 // Create a runtime profile for the active team context.
@@ -222,6 +232,15 @@ func (UnimplementedHandler) DeleteEntryRelation(ctx context.Context, params Dele
 //
 // DELETE /groups/{groupId}
 func (UnimplementedHandler) DeleteGroup(ctx context.Context, params DeleteGroupParams) (r DeleteGroupRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteRuntimeModel implements deleteRuntimeModel operation.
+//
+// Delete a team-scoped runtime model catalog entry. Global entries are not deletable.
+//
+// DELETE /runtime-models/{modelId}
+func (UnimplementedHandler) DeleteRuntimeModel(ctx context.Context, params DeleteRuntimeModelParams) (r DeleteRuntimeModelRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -454,6 +473,15 @@ func (UnimplementedHandler) GetRenderedPackById(ctx context.Context, params GetR
 	return r, ht.ErrNotImplemented
 }
 
+// GetRuntimeModel implements getRuntimeModel operation.
+//
+// Get one runtime model catalog entry.
+//
+// GET /runtime-models/{modelId}
+func (UnimplementedHandler) GetRuntimeModel(ctx context.Context, params GetRuntimeModelParams) (r GetRuntimeModelRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetRuntimeProfile implements getRuntimeProfile operation.
 //
 // Get one runtime profile.
@@ -655,6 +683,17 @@ func (UnimplementedHandler) ListPendingTransfers(ctx context.Context) (r ListPen
 //
 // GET /problems
 func (UnimplementedHandler) ListProblemTypes(ctx context.Context) (r []ListProblemTypesOKItem, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListRuntimeModels implements listRuntimeModels operation.
+//
+// List runtime model catalog entries visible to the caller. Global entries are always included;
+// team-scoped entries are appended when `x-moltnet-team-id` is set. Supports `?provider=<id>` for
+// autocomplete narrowing.
+//
+// GET /runtime-models
+func (UnimplementedHandler) ListRuntimeModels(ctx context.Context, params ListRuntimeModelsParams) (r ListRuntimeModelsRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -923,6 +962,16 @@ func (UnimplementedHandler) UpdateEntryRelationStatus(ctx context.Context, req *
 //
 // PATCH /rendered-packs/{id}
 func (UnimplementedHandler) UpdateRenderedPack(ctx context.Context, req OptUpdateRenderedPackReq, params UpdateRenderedPackParams) (r UpdateRenderedPackRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateRuntimeModel implements updateRuntimeModel operation.
+//
+// Update a team-scoped runtime model catalog entry. Global entries are not modifiable through this
+// endpoint.
+//
+// PATCH /runtime-models/{modelId}
+func (UnimplementedHandler) UpdateRuntimeModel(ctx context.Context, req OptUpdateRuntimeModelBody, params UpdateRuntimeModelParams) (r UpdateRuntimeModelRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

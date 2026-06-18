@@ -111,6 +111,13 @@ export {
   type RenderedPackWithCreator,
 } from './repositories/rendered-pack.repository.js';
 export {
+  type CreateRuntimeModelInput,
+  createRuntimeModelRepository,
+  type ListRuntimeModelsFilter,
+  type RuntimeModelRepository,
+  type UpdateRuntimeModelInput,
+} from './repositories/runtime-models.repository.js';
+export {
   createSigningRequestRepository,
   parseStatusFilter,
   type SigningRequestRepository,

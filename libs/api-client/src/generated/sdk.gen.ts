@@ -45,6 +45,9 @@ import type {
   CreateGroupData,
   CreateGroupErrors,
   CreateGroupResponses,
+  CreateRuntimeModelData,
+  CreateRuntimeModelErrors,
+  CreateRuntimeModelResponses,
   CreateRuntimeProfileData,
   CreateRuntimeProfileErrors,
   CreateRuntimeProfileResponses,
@@ -72,6 +75,9 @@ import type {
   DeleteGroupData,
   DeleteGroupErrors,
   DeleteGroupResponses,
+  DeleteRuntimeModelData,
+  DeleteRuntimeModelErrors,
+  DeleteRuntimeModelResponses,
   DeleteRuntimeProfileData,
   DeleteRuntimeProfileErrors,
   DeleteRuntimeProfileResponses,
@@ -143,6 +149,9 @@ import type {
   GetRenderedPackByIdData,
   GetRenderedPackByIdErrors,
   GetRenderedPackByIdResponses,
+  GetRuntimeModelData,
+  GetRuntimeModelErrors,
+  GetRuntimeModelResponses,
   GetRuntimeProfileData,
   GetRuntimeProfileErrors,
   GetRuntimeProfileResponses,
@@ -208,6 +217,9 @@ import type {
   ListPendingTransfersResponses,
   ListProblemTypesData,
   ListProblemTypesResponses,
+  ListRuntimeModelsData,
+  ListRuntimeModelsErrors,
+  ListRuntimeModelsResponses,
   ListRuntimeProfilesData,
   ListRuntimeProfilesErrors,
   ListRuntimeProfilesResponses,
@@ -295,6 +307,9 @@ import type {
   UpdateRenderedPackData,
   UpdateRenderedPackErrors,
   UpdateRenderedPackResponses,
+  UpdateRuntimeModelData,
+  UpdateRuntimeModelErrors,
+  UpdateRuntimeModelResponses,
   UpdateRuntimeProfileData,
   UpdateRuntimeProfileErrors,
   UpdateRuntimeProfileResponses,
@@ -1842,6 +1857,134 @@ export const updateRenderedPack = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/rendered-packs/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List runtime model catalog entries visible to the caller. Global entries are always included; team-scoped entries are appended when `x-moltnet-team-id` is set. Supports `?provider=<id>` for autocomplete narrowing.
+ */
+export const listRuntimeModels = <ThrowOnError extends boolean = false>(
+  options?: Options<ListRuntimeModelsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListRuntimeModelsResponses,
+    ListRuntimeModelsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-models',
+    ...options,
+  });
+
+/**
+ * Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam` on the active team.
+ */
+export const createRuntimeModel = <ThrowOnError extends boolean = false>(
+  options?: Options<CreateRuntimeModelData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    CreateRuntimeModelResponses,
+    CreateRuntimeModelErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-models',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+/**
+ * Delete a team-scoped runtime model catalog entry. Global entries are not deletable.
+ */
+export const deleteRuntimeModel = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteRuntimeModelData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteRuntimeModelResponses,
+    DeleteRuntimeModelErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-models/{modelId}',
+    ...options,
+  });
+
+/**
+ * Get one runtime model catalog entry.
+ */
+export const getRuntimeModel = <ThrowOnError extends boolean = false>(
+  options: Options<GetRuntimeModelData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetRuntimeModelResponses,
+    GetRuntimeModelErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-models/{modelId}',
+    ...options,
+  });
+
+/**
+ * Update a team-scoped runtime model catalog entry. Global entries are not modifiable through this endpoint.
+ */
+export const updateRuntimeModel = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateRuntimeModelData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateRuntimeModelResponses,
+    UpdateRuntimeModelErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-models/{modelId}',
     ...options,
     headers: {
       'Content-Type': 'application/json',

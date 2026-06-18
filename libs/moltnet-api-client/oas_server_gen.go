@@ -95,6 +95,13 @@ type Handler interface {
 	//
 	// POST /teams/{id}/groups
 	CreateGroup(ctx context.Context, req *CreateGroupReq, params CreateGroupParams) (CreateGroupRes, error)
+	// CreateRuntimeModel implements createRuntimeModel operation.
+	//
+	// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam`
+	// on the active team.
+	//
+	// POST /runtime-models
+	CreateRuntimeModel(ctx context.Context, req OptCreateRuntimeModelBody, params CreateRuntimeModelParams) (CreateRuntimeModelRes, error)
 	// CreateRuntimeProfile implements createRuntimeProfile operation.
 	//
 	// Create a runtime profile for the active team context.
@@ -151,6 +158,12 @@ type Handler interface {
 	//
 	// DELETE /groups/{groupId}
 	DeleteGroup(ctx context.Context, params DeleteGroupParams) (DeleteGroupRes, error)
+	// DeleteRuntimeModel implements deleteRuntimeModel operation.
+	//
+	// Delete a team-scoped runtime model catalog entry. Global entries are not deletable.
+	//
+	// DELETE /runtime-models/{modelId}
+	DeleteRuntimeModel(ctx context.Context, params DeleteRuntimeModelParams) (DeleteRuntimeModelRes, error)
 	// DeleteRuntimeProfile implements deleteRuntimeProfile operation.
 	//
 	// Delete one runtime profile.
@@ -305,6 +318,12 @@ type Handler interface {
 	//
 	// GET /rendered-packs/{id}
 	GetRenderedPackById(ctx context.Context, params GetRenderedPackByIdParams) (GetRenderedPackByIdRes, error)
+	// GetRuntimeModel implements getRuntimeModel operation.
+	//
+	// Get one runtime model catalog entry.
+	//
+	// GET /runtime-models/{modelId}
+	GetRuntimeModel(ctx context.Context, params GetRuntimeModelParams) (GetRuntimeModelRes, error)
 	// GetRuntimeProfile implements getRuntimeProfile operation.
 	//
 	// Get one runtime profile.
@@ -442,6 +461,14 @@ type Handler interface {
 	//
 	// GET /problems
 	ListProblemTypes(ctx context.Context) ([]ListProblemTypesOKItem, error)
+	// ListRuntimeModels implements listRuntimeModels operation.
+	//
+	// List runtime model catalog entries visible to the caller. Global entries are always included;
+	// team-scoped entries are appended when `x-moltnet-team-id` is set. Supports `?provider=<id>` for
+	// autocomplete narrowing.
+	//
+	// GET /runtime-models
+	ListRuntimeModels(ctx context.Context, params ListRuntimeModelsParams) (ListRuntimeModelsRes, error)
 	// ListRuntimeProfiles implements listRuntimeProfiles operation.
 	//
 	// List runtime profiles for the active team context.
@@ -623,6 +650,13 @@ type Handler interface {
 	//
 	// PATCH /rendered-packs/{id}
 	UpdateRenderedPack(ctx context.Context, req OptUpdateRenderedPackReq, params UpdateRenderedPackParams) (UpdateRenderedPackRes, error)
+	// UpdateRuntimeModel implements updateRuntimeModel operation.
+	//
+	// Update a team-scoped runtime model catalog entry. Global entries are not modifiable through this
+	// endpoint.
+	//
+	// PATCH /runtime-models/{modelId}
+	UpdateRuntimeModel(ctx context.Context, req OptUpdateRuntimeModelBody, params UpdateRuntimeModelParams) (UpdateRuntimeModelRes, error)
 	// UpdateRuntimeProfile implements updateRuntimeProfile operation.
 	//
 	// Update one runtime profile.

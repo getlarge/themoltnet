@@ -1139,6 +1139,69 @@ func decodeCreateGroupParams(args [1]string, argsEscaped bool, r *http.Request) 
 	return params, nil
 }
 
+// CreateRuntimeModelParams is parameters of createRuntimeModel operation.
+type CreateRuntimeModelParams struct {
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
+}
+
+func unpackCreateRuntimeModelParams(packed middleware.Parameters) (params CreateRuntimeModelParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
+	return params
+}
+
+func decodeCreateRuntimeModelParams(args [0]string, argsEscaped bool, r *http.Request) (params CreateRuntimeModelParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CreateRuntimeProfileParams is parameters of createRuntimeProfile operation.
 type CreateRuntimeProfileParams struct {
 	// Team ID (UUID) for scoping the request. Optional.
@@ -1575,6 +1638,71 @@ func decodeDeleteGroupParams(args [1]string, argsEscaped bool, r *http.Request) 
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "groupId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteRuntimeModelParams is parameters of deleteRuntimeModel operation.
+type DeleteRuntimeModelParams struct {
+	ModelId uuid.UUID
+}
+
+func unpackDeleteRuntimeModelParams(packed middleware.Parameters) (params DeleteRuntimeModelParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "modelId",
+			In:   "path",
+		}
+		params.ModelId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteRuntimeModelParams, _ error) {
+	// Decode path: modelId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "modelId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ModelId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "modelId",
 			In:   "path",
 			Err:  err,
 		}
@@ -3727,6 +3855,71 @@ func decodeGetRenderedPackByIdParams(args [1]string, argsEscaped bool, r *http.R
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetRuntimeModelParams is parameters of getRuntimeModel operation.
+type GetRuntimeModelParams struct {
+	ModelId uuid.UUID
+}
+
+func unpackGetRuntimeModelParams(packed middleware.Parameters) (params GetRuntimeModelParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "modelId",
+			In:   "path",
+		}
+		params.ModelId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Request) (params GetRuntimeModelParams, _ error) {
+	// Decode path: modelId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "modelId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ModelId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "modelId",
 			In:   "path",
 			Err:  err,
 		}
@@ -6867,6 +7060,148 @@ func decodeListGroupsParams(args [1]string, argsEscaped bool, r *http.Request) (
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ListRuntimeModelsParams is parameters of listRuntimeModels operation.
+type ListRuntimeModelsParams struct {
+	Provider OptString `json:",omitempty,omitzero"`
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
+}
+
+func unpackListRuntimeModelsParams(packed middleware.Parameters) (params ListRuntimeModelsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "provider",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Provider = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
+	return params
+}
+
+func decodeListRuntimeModelsParams(args [0]string, argsEscaped bool, r *http.Request) (params ListRuntimeModelsParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode query: provider.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "provider",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotProviderVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotProviderVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Provider.SetTo(paramsDotProviderVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Provider.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     100,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "provider",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -10524,6 +10859,71 @@ func decodeUpdateRenderedPackParams(args [1]string, argsEscaped bool, r *http.Re
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateRuntimeModelParams is parameters of updateRuntimeModel operation.
+type UpdateRuntimeModelParams struct {
+	ModelId uuid.UUID
+}
+
+func unpackUpdateRuntimeModelParams(packed middleware.Parameters) (params UpdateRuntimeModelParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "modelId",
+			In:   "path",
+		}
+		params.ModelId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateRuntimeModelParams, _ error) {
+	// Decode path: modelId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "modelId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ModelId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "modelId",
 			In:   "path",
 			Err:  err,
 		}

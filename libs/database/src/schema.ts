@@ -29,6 +29,7 @@ import {
 import { customType } from 'drizzle-orm/pg-core';
 
 import { defineDaemonProfilesTable } from './schema/daemon-profiles.js';
+import { defineRuntimeModelsTable } from './schema/runtime-models.js';
 
 const vector = customType<{ data: number[]; driverData: string }>({
   dataType() {
@@ -1192,6 +1193,17 @@ export const daemonProfiles = defineDaemonProfilesTable({
 
 export type DaemonProfile = typeof daemonProfiles.$inferSelect;
 export type NewDaemonProfile = typeof daemonProfiles.$inferInsert;
+
+// ── Runtime Models ───────────────────────────────────────────
+
+export const runtimeModels = defineRuntimeModelsTable({
+  agents,
+  humans,
+  teams,
+});
+
+export type RuntimeModel = typeof runtimeModels.$inferSelect;
+export type NewRuntimeModel = typeof runtimeModels.$inferInsert;
 
 // ── Executor Manifests ─────────────────────────────────────
 

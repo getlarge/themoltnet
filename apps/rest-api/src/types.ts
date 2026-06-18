@@ -30,6 +30,7 @@ export type {
   HumanRepository,
   NonceRepository,
   RenderedPackRepository,
+  RuntimeModelRepository,
   SigningRequestRepository,
   TaskRepository,
   TeamRepository,
@@ -57,6 +58,7 @@ import type {
   GroupRepository,
   HumanRepository,
   RenderedPackRepository,
+  RuntimeModelRepository,
   SigningRequestRepository,
   TaskRepository,
   TeamRepository,
@@ -89,6 +91,7 @@ declare module 'fastify' {
     teamRepository: TeamRepository;
     diaryTransferRepository: DiaryTransferRepository;
     daemonProfileRepository: DaemonProfileRepository;
+    runtimeModelRepository: RuntimeModelRepository;
     permissionChecker: PermissionChecker;
     relationshipReader: RelationshipReader;
     relationshipWriter: RelationshipWriter;

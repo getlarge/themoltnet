@@ -48,6 +48,7 @@ import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { registrationRoutes } from './routes/registration.js';
 import { renderedPackRoutes } from './routes/rendered-packs.js';
+import { runtimeModelRoutes } from './routes/runtime-models.js';
 import { runtimeProfileRoutes } from './routes/runtime-profiles.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
 import { taskRoutes } from './routes/tasks.js';
@@ -70,6 +71,7 @@ import type {
   HumanRepository,
   NonceRepository,
   RenderedPackRepository,
+  RuntimeModelRepository,
   SigningRequestRepository,
   TaskRepository,
   TaskService,
@@ -146,6 +148,7 @@ export interface AppOptions {
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
   daemonProfileRepository: DaemonProfileRepository;
+  runtimeModelRepository: RuntimeModelRepository;
   taskRepository: TaskRepository;
   taskService: TaskService;
   /** Signing request repository + dataSource are required together (DBOS) */
@@ -346,6 +349,7 @@ export async function registerApiRoutes(
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
   decorateSafe('daemonProfileRepository', options.daemonProfileRepository);
+  decorateSafe('runtimeModelRepository', options.runtimeModelRepository);
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('packGcConfig', options.packGcConfig);
@@ -389,6 +393,7 @@ export async function registerApiRoutes(
   await app.register(teamRoutes);
   await app.register(groupRoutes);
   await app.register(runtimeProfileRoutes);
+  await app.register(runtimeModelRoutes);
   await app.register(vouchRoutes);
   await app.register(publicRoutes);
   await app.register(taskRoutes);

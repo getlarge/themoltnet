@@ -29,6 +29,7 @@ import type {
   GroupRepository,
   HumanRepository,
   NonceRepository,
+  RuntimeModelRepository,
   SigningRequestRepository,
   TaskRepository,
   TaskService,
@@ -242,6 +243,9 @@ export interface MockServices {
   };
   daemonProfileRepository: {
     [K in keyof DaemonProfileRepository]: ReturnType<typeof vi.fn>;
+  };
+  runtimeModelRepository: {
+    [K in keyof RuntimeModelRepository]: ReturnType<typeof vi.fn>;
   };
   relationshipReader: {
     [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
@@ -527,6 +531,13 @@ export function createMockServices(): MockServices {
       update: vi.fn(),
       delete: vi.fn(),
     },
+    runtimeModelRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      listVisible: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
     relationshipReader: {
       listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
       listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
@@ -592,9 +603,12 @@ export async function createTestApp(
 ): Promise<FastifyInstance> {
   const mockTokenValidator: TokenValidator = {
     introspect: vi.fn().mockResolvedValue({ active: false }),
-    resolveAuthContext: vi.fn(
-      async (token: string) => resolveAuthContextImpl?.(token) ?? authContext,
-    ),
+    resolveAuthContext: vi.fn(async (token: string) => {
+      const ctx = resolveAuthContextImpl?.(token) ?? authContext;
+      // Return a shallow copy so per-request mutations of `currentTeamId`
+      // don't leak into the next test's auth context.
+      return ctx ? { ...ctx, scopes: [...ctx.scopes] } : null;
+    }),
   };
 
   const mockOAuth2Api = {
@@ -709,6 +723,8 @@ export async function createTestApp(
       mocks.diaryTransferRepository as unknown as DiaryTransferRepository,
     daemonProfileRepository:
       mocks.daemonProfileRepository as unknown as DaemonProfileRepository,
+    runtimeModelRepository:
+      mocks.runtimeModelRepository as unknown as RuntimeModelRepository,
     groupRepository: mocks.groupRepository as never,
     relationshipReader: mocks.relationshipReader as never,
     hydraPublicUrl: 'http://hydra-mock:4444',
