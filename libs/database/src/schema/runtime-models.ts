@@ -83,6 +83,14 @@ export function defineRuntimeModelsTable({
         'runtime_models_creator_xor',
         sql`(team_id IS NULL AND created_by_agent_id IS NULL AND created_by_human_id IS NULL) OR (team_id IS NOT NULL AND ((created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL)))`,
       ),
+      check(
+        'runtime_models_description_length',
+        sql`description IS NULL OR length(description) <= 4096`,
+      ),
+      check(
+        'runtime_models_capabilities_shape',
+        sql`capabilities IS NULL OR jsonb_typeof(capabilities) = 'object'`,
+      ),
     ],
   );
 }
