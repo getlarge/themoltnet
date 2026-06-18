@@ -534,9 +534,7 @@ export function createMockServices(): MockServices {
     runtimeModelRepository: {
       create: vi.fn(),
       findById: vi.fn(),
-      findVisibleByProviderAndModel: vi.fn(),
       listVisible: vi.fn().mockResolvedValue([]),
-      listByTeamId: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
       delete: vi.fn(),
     },

@@ -57,33 +57,6 @@ export function createRuntimeModelRepository(db: Database) {
     },
 
     /**
-     * Look up a couple by provider+model, scoped to the visible set:
-     *   - global entries (team_id IS NULL), always visible
-     *   - team-scoped entries (team_id = $teamId)
-     * Returns the first match (global wins on a tie because it's listed first).
-     */
-    async findVisibleByProviderAndModel(
-      teamId: string,
-      provider: string,
-      model: string,
-    ): Promise<RuntimeModel | null> {
-      const [row] = await getExecutor(db)
-        .select()
-        .from(runtimeModels)
-        .where(
-          and(
-            eq(runtimeModels.provider, provider),
-            eq(runtimeModels.model, model),
-            isActiveFilter(),
-            or(isNull(runtimeModels.teamId), eq(runtimeModels.teamId, teamId)),
-          ),
-        )
-        .orderBy(sql`${runtimeModels.teamId} NULLS FIRST`)
-        .limit(1);
-      return row ?? null;
-    },
-
-    /**
      * List entries visible to a team: all global entries plus team-scoped
      * entries for that team. Optionally filter by `provider` for autocomplete
      * narrowing.
@@ -112,16 +85,8 @@ export function createRuntimeModelRepository(db: Database) {
         .orderBy(
           runtimeModels.provider,
           runtimeModels.model,
-          sql`${runtimeModels.teamId} NULLS FIRST`,
+          sql`${runtimeModels.teamId} NULLS LAST`,
         );
-    },
-
-    async listByTeamId(teamId: string): Promise<RuntimeModel[]> {
-      return getExecutor(db)
-        .select()
-        .from(runtimeModels)
-        .where(eq(runtimeModels.teamId, teamId))
-        .orderBy(runtimeModels.provider, runtimeModels.model);
     },
 
     async update(
