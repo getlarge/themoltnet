@@ -1,0 +1,19 @@
+import { resolve } from 'node:path';
+
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    globals: false,
+    environment: 'node',
+    root: resolve(import.meta.dirname),
+    include: [
+      'src/**/*.test.ts',
+      '__tests__/**/*.test.ts',
+      '__tests__/**/*.integration.test.ts',
+    ],
+    testTimeout: 15_000,
+    // Container startup (testcontainers) can exceed the default hook timeout.
+    hookTimeout: 90_000,
+  },
+});

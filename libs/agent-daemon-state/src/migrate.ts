@@ -48,6 +48,14 @@ function readMigrationStatements(folder: string): string[] {
 /**
  * Apply the SQLite baseline synchronously via the driver's `exec`.
  *
+ * Fresh-start contract: the baseline is authored to run against an EMPTY
+ * database. The daemon-state DB is a local warm-slot cache, and this migrator
+ * does not adopt schemas created by the previous inline `CREATE TABLE IF NOT
+ * EXISTS` bootstrap — upgrading from that path requires deleting the local
+ * `daemon-state.sqlite` first (or dropping the Postgres tables). This is a
+ * deliberate scope decision: there is no durable data to preserve, so in-place
+ * adoption of legacy schemas is intentionally not implemented.
+ *
  * The daemon-state SQLite store is constructed synchronously (callers do not
  * await it), and the runtime driver is a `node:sqlite` `DatabaseSync` wrapped
  * in drizzle's sqlite-proxy — which has no file-based migrator. We therefore

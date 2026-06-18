@@ -66,6 +66,7 @@
     "pg": "catalog:"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "catalog:",
     "@types/pg": "catalog:",
     "drizzle-kit": "catalog:",
     "typescript": "catalog:",
