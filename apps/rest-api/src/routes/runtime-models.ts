@@ -194,7 +194,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
       const row = await fastify.runtimeModelRepository.findById(
         request.params.entryId,
       );
-      if (!row) throw createProblem('not-found');
+      if (!row || !row.isActive) throw createProblem('not-found');
       // Team-scoped entries: caller must be able to access the team.
       // Global entries: any authenticated caller can read.
       if (row.teamId) {
