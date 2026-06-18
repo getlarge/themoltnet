@@ -18,7 +18,6 @@ import {
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 
-
 function authSubject(request: {
   authContext: {
     identityId: string;

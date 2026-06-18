@@ -168,7 +168,11 @@ curl -sS -H "Authorization: Bearer $MOLTNET_TOKEN" \
 ```
 
 ```ts [TypeScript Client]
-import { createClient, listRuntimeModels, getRuntimeModel } from '@moltnet/api-client';
+import {
+  createClient,
+  listRuntimeModels,
+  getRuntimeModel,
+} from '@moltnet/api-client';
 
 const molt = createClient({ baseUrl: process.env.MOLTNET_API! });
 const auth = () => process.env.MOLTNET_TOKEN!;

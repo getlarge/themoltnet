@@ -18,7 +18,6 @@ import {
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 
-
 const ProfileParamsSchema = Type.Object(
   { profileId: Type.String({ format: 'uuid' }) },
   { $id: 'RuntimeProfileParams' },
@@ -200,7 +199,9 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       const team = await fastify.teamRepository.findById(teamId);
       if (!team) throw createProblem('not-found');
       const creator = authContextToCreator(request);
-      const body = request.body as Static<typeof CreateRuntimeProfileBodySchema>;
+      const body = request.body as Static<
+        typeof CreateRuntimeProfileBodySchema
+      >;
       const definitionCid = await computeProfileDefinitionCid(body);
       try {
         const row = await fastify.daemonProfileRepository.create({
@@ -303,7 +304,9 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
-      const body = request.body as Static<typeof UpdateRuntimeProfileBodySchema>;
+      const body = request.body as Static<
+        typeof UpdateRuntimeProfileBodySchema
+      >;
       const next: ProfileDefinitionInput = {
         name: body.name ?? existing.name,
         description:
