@@ -28,11 +28,16 @@
   },
   "files": [
     "dist",
+    "drizzle-sqlite",
+    "drizzle-pg",
     "!dist/tsconfig.tsbuildinfo"
   ],
   "scripts": {
     "build": "tsc -b tsconfig.lib.json",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
+    "db:generate": "pnpm run db:generate:sqlite && pnpm run db:generate:pg",
+    "db:generate:sqlite": "drizzle-kit generate --config drizzle.config.sqlite.ts",
+    "db:generate:pg": "drizzle-kit generate --config drizzle.config.pg.ts",
     "test": "vitest run --passWithNoTests"
   },
   "nx": {
@@ -61,7 +66,9 @@
     "pg": "catalog:"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "catalog:",
     "@types/pg": "catalog:",
+    "drizzle-kit": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

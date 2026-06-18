@@ -1,4 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
+  check,
+  foreignKey,
   index,
   integer,
   primaryKey,
@@ -25,11 +28,15 @@ export const daemonSlots = sqliteTable(
     primaryKey({
       columns: [table.agentName, table.provider, table.model, table.slotKey],
     }),
+    check(
+      'daemon_slots_state_check',
+      sql`${table.state} IN ('active', 'idle')`,
+    ),
     index('daemon_slots_expires_idx').on(table.expiresAtMs),
     index('daemon_slots_task_attempt_idx').on(
       table.lastTaskId,
       table.lastAttemptN,
-      table.lastUsedAtMs,
+      sql`${table.lastUsedAtMs} DESC`,
     ),
   ],
 );
@@ -48,6 +55,15 @@ export const daemonSlotSessions = sqliteTable(
     primaryKey({
       columns: [table.agentName, table.provider, table.model, table.slotKey],
     }),
+    foreignKey({
+      columns: [table.agentName, table.provider, table.model, table.slotKey],
+      foreignColumns: [
+        daemonSlots.agentName,
+        daemonSlots.provider,
+        daemonSlots.model,
+        daemonSlots.slotKey,
+      ],
+    }).onDelete('cascade'),
   ],
 );
 
@@ -66,6 +82,15 @@ export const daemonSlotWorkspaces = sqliteTable(
     primaryKey({
       columns: [table.agentName, table.provider, table.model, table.slotKey],
     }),
+    foreignKey({
+      columns: [table.agentName, table.provider, table.model, table.slotKey],
+      foreignColumns: [
+        daemonSlots.agentName,
+        daemonSlots.provider,
+        daemonSlots.model,
+        daemonSlots.slotKey,
+      ],
+    }).onDelete('cascade'),
   ],
 );
 
