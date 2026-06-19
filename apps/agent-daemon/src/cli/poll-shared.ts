@@ -510,6 +510,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               executionPlan,
             ),
             worktreeBranch: executionPlan.worktreeBranch,
+            workspaceKind: executionPlan.workspaceKind,
             lastTaskId: claimedTask.task.id,
             lastAttemptN: claimedTask.attemptN,
             ttlSec: common.warmSessionTtlSec,

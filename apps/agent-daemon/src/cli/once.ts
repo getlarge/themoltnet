@@ -334,6 +334,7 @@ export async function runOnce(argv: string[]): Promise<number> {
             executionPlan,
           ),
           worktreeBranch: executionPlan.worktreeBranch,
+          workspaceKind: executionPlan.workspaceKind,
           lastTaskId: claimedTask.task.id,
           lastAttemptN: claimedTask.attemptN,
           ttlSec: opts.warmSessionTtlSec,

@@ -96,11 +96,12 @@ export function prepareTaskWorkspace(
     executionPlan?.workspaceScope === 'session' &&
     executionPlan.sessionKey !== null;
 
+  const baseRefOverride = executionPlan?.worktreeBaseRef ?? null;
   if (keepWorkspace) {
-    ensureReusableTaskWorktree(mainRepo, worktreeDir, branch);
+    ensureReusableTaskWorktree(mainRepo, worktreeDir, branch, baseRefOverride);
   } else {
     removeExistingTaskWorktree(mainRepo, worktreeDir);
-    addTaskWorktree(mainRepo, worktreeDir, branch);
+    addTaskWorktree(mainRepo, worktreeDir, branch, baseRefOverride);
   }
 
   return {
@@ -138,6 +139,7 @@ function ensureReusableTaskWorktree(
   mainRepo: string,
   worktreeDir: string,
   branch: string,
+  baseRefOverride: string | null = null,
 ): void {
   if (isRegisteredWorktree(mainRepo, worktreeDir)) {
     return;
@@ -149,16 +151,19 @@ function ensureReusableTaskWorktree(
     );
   }
 
-  addTaskWorktree(mainRepo, worktreeDir, branch);
+  addTaskWorktree(mainRepo, worktreeDir, branch, baseRefOverride);
 }
 
 function addTaskWorktree(
   mainRepo: string,
   worktreeDir: string,
   branch: string,
+  baseRefOverride: string | null = null,
 ): void {
-  const baseRef = resolveWorktreeBaseRef(mainRepo);
   const branchExists = gitRefExists(mainRepo, `refs/heads/${branch}`);
+  // A `fork` continuation supplies the parent branch as the base ref so the
+  // new fork branch diverges from the parent's tip rather than main/HEAD.
+  const baseRef = baseRefOverride ?? resolveWorktreeBaseRef(mainRepo);
   const addArgs = branchExists
     ? ['-C', mainRepo, 'worktree', 'add', worktreeDir, branch]
     : ['-C', mainRepo, 'worktree', 'add', '-b', branch, worktreeDir, baseRef];

@@ -589,6 +589,64 @@ describe('dedicated worktree mount topology', () => {
     }
   });
 
+  it('forks a new branch from the parent tip when worktreeBaseRef is set', () => {
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-worktree-fork-'));
+    const oldCwd = process.cwd();
+    let workspace: {
+      mountPath: string;
+      cwdPath: string;
+      cleanup: () => void;
+    } | null = null;
+
+    try {
+      runGit(repoRoot, ['init', '-b', 'main']);
+      runGit(repoRoot, ['config', 'user.name', 'Test User']);
+      runGit(repoRoot, ['config', 'user.email', 'test@example.com']);
+      writeFileSync(path.join(repoRoot, 'README.md'), 'seed\n', 'utf8');
+      runGit(repoRoot, ['add', 'README.md']);
+      runGit(repoRoot, ['commit', '-m', 'seed']);
+      const mainTip = runGit(repoRoot, ['rev-parse', 'HEAD']);
+
+      // A parent branch that has advanced one commit beyond main.
+      runGit(repoRoot, ['branch', 'feat/parent']);
+      runGit(repoRoot, ['checkout', 'feat/parent']);
+      writeFileSync(path.join(repoRoot, 'PARENT.md'), 'parent work\n', 'utf8');
+      runGit(repoRoot, ['add', 'PARENT.md']);
+      runGit(repoRoot, ['commit', '-m', 'parent work']);
+      const parentTip = runGit(repoRoot, ['rev-parse', 'feat/parent']);
+      runGit(repoRoot, ['checkout', 'main']);
+
+      process.chdir(repoRoot);
+      const task = {
+        id: 'fork-task',
+        taskType: 'freeform',
+        correlationId: 'correlation-1',
+        input: { brief: 'diverge' },
+      } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
+
+      workspace = prepareTaskWorkspace(task, repoRoot, {
+        workspaceMode: 'dedicated_worktree',
+        sessionKey: null,
+        workspaceId: 'fork-task-attempt-1',
+        worktreeBranch: 'feat/parent-fork-1',
+        worktreeBaseRef: 'feat/parent',
+        workspaceScope: 'attempt',
+      });
+
+      const guestWorkspace = path.resolve(workspace.cwdPath);
+      const forkTip = runGit(guestWorkspace, ['rev-parse', 'HEAD']);
+      // The fork branch starts at the PARENT tip, not main.
+      expect(forkTip).toBe(parentTip);
+      expect(forkTip).not.toBe(mainTip);
+      // PARENT.md (committed only on the parent branch) is present in the fork.
+      expect(existsSync(path.join(guestWorkspace, 'PARENT.md'))).toBe(true);
+    } finally {
+      process.chdir(oldCwd);
+      workspace?.cleanup();
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
   it('creates and cleans up scratch workspaces for repo-free eval runs', () => {
     const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-scratch-repro-'));
     const oldCwd = process.cwd();

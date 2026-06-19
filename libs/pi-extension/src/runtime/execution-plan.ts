@@ -39,6 +39,12 @@ export interface PiTaskExecutionPlan {
    */
   worktreeBranch: string | null;
   /**
+   * Base ref a NEW `worktreeBranch` is cut from. Used by `fork` continuations
+   * to branch from the parent's tip instead of the default (main/HEAD). Ignored
+   * when `worktreeBranch` already exists.
+   */
+  worktreeBaseRef?: string | null;
+  /**
    * Lifetime of the task workspace from the daemon's point of view.
    * `attempt` = disposable; `session` = keep stable for the reuse key.
    */

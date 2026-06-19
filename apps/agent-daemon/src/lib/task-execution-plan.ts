@@ -15,6 +15,16 @@ export interface DaemonTaskExecutionPlan {
   slotId: string | null;
   workspaceId: string | null;
   worktreeBranch: string | null;
+  /**
+   * Base ref a NEW `worktreeBranch` is cut from (fork continuations branch from
+   * the parent tip). Ignored when the branch already exists.
+   */
+  worktreeBaseRef?: string | null;
+  /**
+   * Lifecycle kind for the recorded workspace: 'origin' (default worktree),
+   * 'fork' (diverged branch), or 'scratch' (copied scratch dir).
+   */
+  workspaceKind?: 'origin' | 'fork' | 'scratch';
   sessionKey: string | null;
   workspaceScope: 'attempt' | 'session';
   workspaceAttachment?: {
