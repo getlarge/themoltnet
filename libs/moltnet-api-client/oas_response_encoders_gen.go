@@ -76,7 +76,7 @@ func encodeAbortTaskAttemptResponse(response AbortTaskAttemptRes, w http.Respons
 
 		return nil
 
-	case *AbortTaskAttemptConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -155,7 +155,7 @@ func encodeAcceptTeamFoundingResponse(response AcceptTeamFoundingRes, w http.Res
 
 		return nil
 
-	case *AcceptTeamFoundingConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -234,7 +234,7 @@ func encodeAcceptTransferResponse(response AcceptTransferRes, w http.ResponseWri
 
 		return nil
 
-	case *AcceptTransferConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -447,7 +447,7 @@ func encodeCancelTaskResponse(response CancelTaskRes, w http.ResponseWriter, spa
 
 		return nil
 
-	case *CancelTaskConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -561,7 +561,7 @@ func encodeClaimTaskResponse(response ClaimTaskRes, w http.ResponseWriter, span 
 
 		return nil
 
-	case *ClaimTaskConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -640,7 +640,7 @@ func encodeCompleteTaskResponse(response CompleteTaskRes, w http.ResponseWriter,
 
 		return nil
 
-	case *CompleteTaskConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -775,7 +775,7 @@ func encodeCreateDiaryCustomPackResponse(response CreateDiaryCustomPackRes, w ht
 
 		return nil
 
-	case *CreateDiaryCustomPackConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -855,7 +855,7 @@ func encodeCreateDiaryEntryResponse(response CreateDiaryEntryRes, w http.Respons
 
 		return nil
 
-	case *CreateDiaryEntryConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -935,7 +935,7 @@ func encodeCreateDiaryGrantResponse(response CreateDiaryGrantRes, w http.Respons
 
 		return nil
 
-	case *CreateDiaryGrantConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -1119,7 +1119,7 @@ func encodeCreateGroupResponse(response CreateGroupRes, w http.ResponseWriter, s
 
 		return nil
 
-	case *CreateGroupConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -1198,7 +1198,7 @@ func encodeCreateRuntimeModelResponse(response CreateRuntimeModelRes, w http.Res
 
 		return nil
 
-	case *CreateRuntimeModelConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -1277,7 +1277,7 @@ func encodeCreateRuntimeProfileResponse(response CreateRuntimeProfileRes, w http
 
 		return nil
 
-	case *CreateRuntimeProfileConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -2292,7 +2292,7 @@ func encodeFailTaskResponse(response FailTaskRes, w http.ResponseWriter, span tr
 
 		return nil
 
-	case *FailTaskConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -3691,7 +3691,7 @@ func encodeInitiateTransferResponse(response InitiateTransferRes, w http.Respons
 
 		return nil
 
-	case *InitiateTransferConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -3826,7 +3826,7 @@ func encodeJoinTeamResponse(response JoinTeamRes, w http.ResponseWriter, span tr
 
 		return nil
 
-	case *JoinTeamConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -5214,7 +5214,7 @@ func encodePreviewDiaryCustomPackResponse(response PreviewDiaryCustomPackRes, w 
 
 		return nil
 
-	case *PreviewDiaryCustomPackConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -5455,7 +5455,7 @@ func encodeRejectTransferResponse(response RejectTransferRes, w http.ResponseWri
 
 		return nil
 
-	case *RejectTransferConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -5644,7 +5644,7 @@ func encodeRenderContextPackResponse(response RenderContextPackRes, w http.Respo
 
 		return nil
 
-	case *RenderContextPackConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -6061,7 +6061,7 @@ func encodeSubmitSignatureResponse(response SubmitSignatureRes, w http.ResponseW
 
 		return nil
 
-	case *SubmitSignatureConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -6208,7 +6208,7 @@ func encodeUpdateContextPackResponse(response UpdateContextPackRes, w http.Respo
 
 		return nil
 
-	case *UpdateContextPackConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -6380,7 +6380,7 @@ func encodeUpdateDiaryEntryByIdResponse(response UpdateDiaryEntryByIdRes, w http
 
 		return nil
 
-	case *UpdateDiaryEntryByIdConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -6552,7 +6552,7 @@ func encodeUpdateRenderedPackResponse(response UpdateRenderedPackRes, w http.Res
 
 		return nil
 
-	case *UpdateRenderedPackConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -6644,7 +6644,7 @@ func encodeUpdateRuntimeModelResponse(response UpdateRuntimeModelRes, w http.Res
 
 		return nil
 
-	case *UpdateRuntimeModelConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -6723,7 +6723,7 @@ func encodeUpdateRuntimeProfileResponse(response UpdateRuntimeProfileRes, w http
 
 		return nil
 
-	case *UpdateRuntimeProfileConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -6869,7 +6869,7 @@ func encodeUpdateTeamMemberRoleResponse(response UpdateTeamMemberRoleRes, w http
 
 		return nil
 
-	case *UpdateTeamMemberRoleConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 

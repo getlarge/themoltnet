@@ -68,6 +68,41 @@ export const ValidationErrorSchema = Type.Object(
 
 export type ValidationError = Static<typeof ValidationErrorSchema>;
 
+export const ConflictTargetSchema = Type.Object(
+  {
+    resource: Type.String(),
+    id: Type.Optional(Type.String({ format: 'uuid' })),
+    keys: Type.Optional(Type.Record(Type.String(), Type.String())),
+  },
+  { $id: 'ConflictTarget', additionalProperties: false },
+);
+
+export type ConflictTarget = Static<typeof ConflictTargetSchema>;
+
+export const ConflictErrorSchema = Type.Object(
+  {
+    constraint: Type.Optional(Type.String()),
+    target: Type.Optional(ConflictTargetSchema),
+  },
+  { $id: 'ConflictError', additionalProperties: false },
+);
+
+export type ConflictError = Static<typeof ConflictErrorSchema>;
+
+export const ConflictProblemDetailsSchema = Type.Intersect(
+  [
+    ProblemDetailsSchema,
+    Type.Object({
+      conflict: ConflictErrorSchema,
+    }),
+  ],
+  { $id: 'ConflictProblemDetails' },
+);
+
+export type ConflictProblemDetails = Static<
+  typeof ConflictProblemDetailsSchema
+>;
+
 export const ValidationProblemDetailsSchema = Type.Intersect(
   [
     ProblemDetailsSchema,

@@ -8,8 +8,10 @@
 
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { UniqueViolationError } from '@moltnet/database';
 import {
   AddGroupMemberSchema,
+  ConflictProblemDetailsSchema,
   CreateGroupSchema,
   DeletedResponseSchema,
   GroupDetailSchema,
@@ -24,7 +26,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
-import { createProblem, isUniqueViolation } from '../problems/index.js';
+import { createConflictProblem, createProblem } from '../problems/index.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 
 // ── Routes ─────────────────────────────────────────────────────
@@ -51,7 +53,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -89,10 +91,13 @@ export async function groupRoutes(fastify: FastifyInstance) {
           });
         });
       } catch (err) {
-        if (isUniqueViolation(err)) {
-          throw createProblem(
-            'conflict',
+        if (err instanceof UniqueViolationError) {
+          throw createConflictProblem(
             'A group with this name already exists in this team',
+            {
+              constraint: err.constraint,
+              target: err.target,
+            },
           );
         }
         throw err;

@@ -52,44 +52,6 @@ func (s *AbortTaskAttemptBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes AbortTaskAttemptConflict as json.
-func (s *AbortTaskAttemptConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes AbortTaskAttemptConflict from json.
-func (s *AbortTaskAttemptConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode AbortTaskAttemptConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = AbortTaskAttemptConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *AbortTaskAttemptConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AbortTaskAttemptConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes AbortTaskAttemptForbidden as json.
 func (s *AbortTaskAttemptForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -301,44 +263,6 @@ func (s *AcceptTeamFoundingBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *AcceptTeamFoundingBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes AcceptTeamFoundingConflict as json.
-func (s *AcceptTeamFoundingConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes AcceptTeamFoundingConflict from json.
-func (s *AcceptTeamFoundingConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode AcceptTeamFoundingConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = AcceptTeamFoundingConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *AcceptTeamFoundingConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AcceptTeamFoundingConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -648,44 +572,6 @@ func (s *AcceptTransferBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *AcceptTransferBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes AcceptTransferConflict as json.
-func (s *AcceptTransferConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes AcceptTransferConflict from json.
-func (s *AcceptTransferConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode AcceptTransferConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = AcceptTransferConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *AcceptTransferConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AcceptTransferConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -2309,44 +2195,6 @@ func (s *CancelTaskBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes CancelTaskConflict as json.
-func (s *CancelTaskConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CancelTaskConflict from json.
-func (s *CancelTaskConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CancelTaskConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CancelTaskConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CancelTaskConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CancelTaskConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes CancelTaskForbidden as json.
 func (s *CancelTaskForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -3390,44 +3238,6 @@ func (s *ClaimTaskBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes ClaimTaskConflict as json.
-func (s *ClaimTaskConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes ClaimTaskConflict from json.
-func (s *ClaimTaskConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ClaimTaskConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = ClaimTaskConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *ClaimTaskConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ClaimTaskConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes ClaimTaskForbidden as json.
 func (s *ClaimTaskForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -4022,44 +3832,6 @@ func (s *CompileStats) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes CompleteTaskConflict as json.
-func (s *CompleteTaskConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CompleteTaskConflict from json.
-func (s *CompleteTaskConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CompleteTaskConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CompleteTaskConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CompleteTaskConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CompleteTaskConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes CompleteTaskForbidden as json.
 func (s *CompleteTaskForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -4497,6 +4269,633 @@ func (s *CompleteTaskUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CompleteTaskUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ConflictProblemDetails) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ConflictProblemDetails) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("conflict")
+		s.Conflict.Encode(e)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfConflictProblemDetails = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "conflict",
+}
+
+// Decode decodes ConflictProblemDetails from json.
+func (s *ConflictProblemDetails) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ConflictProblemDetails to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "conflict":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.Conflict.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"conflict\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ConflictProblemDetails")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfConflictProblemDetails) {
+					name = jsonFieldsNameOfConflictProblemDetails[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ConflictProblemDetails) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ConflictProblemDetails) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s ConflictProblemDetailsAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s ConflictProblemDetailsAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes ConflictProblemDetailsAdditional from json.
+func (s *ConflictProblemDetailsAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ConflictProblemDetailsAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ConflictProblemDetailsAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ConflictProblemDetailsAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ConflictProblemDetailsAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ConflictProblemDetailsCode as json.
+func (s ConflictProblemDetailsCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ConflictProblemDetailsCode from json.
+func (s *ConflictProblemDetailsCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ConflictProblemDetailsCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ConflictProblemDetailsCode(v) {
+	case ConflictProblemDetailsCodeUNAUTHORIZED:
+		*s = ConflictProblemDetailsCodeUNAUTHORIZED
+	case ConflictProblemDetailsCodeFORBIDDEN:
+		*s = ConflictProblemDetailsCodeFORBIDDEN
+	case ConflictProblemDetailsCodeNOTFOUND:
+		*s = ConflictProblemDetailsCodeNOTFOUND
+	case ConflictProblemDetailsCodeCONFLICT:
+		*s = ConflictProblemDetailsCodeCONFLICT
+	case ConflictProblemDetailsCodeVALIDATIONFAILED:
+		*s = ConflictProblemDetailsCodeVALIDATIONFAILED
+	case ConflictProblemDetailsCodeINVALIDCHALLENGE:
+		*s = ConflictProblemDetailsCodeINVALIDCHALLENGE
+	case ConflictProblemDetailsCodeINVALIDSIGNATURE:
+		*s = ConflictProblemDetailsCodeINVALIDSIGNATURE
+	case ConflictProblemDetailsCodeVOUCHERLIMIT:
+		*s = ConflictProblemDetailsCodeVOUCHERLIMIT
+	case ConflictProblemDetailsCodeRATELIMITEXCEEDED:
+		*s = ConflictProblemDetailsCodeRATELIMITEXCEEDED
+	case ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED:
+		*s = ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED
+	case ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED:
+		*s = ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED
+	case ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ConflictProblemDetailsCodeREGISTRATIONFAILED:
+		*s = ConflictProblemDetailsCodeREGISTRATIONFAILED
+	case ConflictProblemDetailsCodeUPSTREAMERROR:
+		*s = ConflictProblemDetailsCodeUPSTREAMERROR
+	case ConflictProblemDetailsCodeSERVICEUNAVAILABLE:
+		*s = ConflictProblemDetailsCodeSERVICEUNAVAILABLE
+	case ConflictProblemDetailsCodeINTERNALSERVERERROR:
+		*s = ConflictProblemDetailsCodeINTERNALSERVERERROR
+	case ConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		*s = ConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE
+	case ConflictProblemDetailsCodeTEAMNOTACTIVE:
+		*s = ConflictProblemDetailsCodeTEAMNOTACTIVE
+	case ConflictProblemDetailsCodeINVITEEXPIRED:
+		*s = ConflictProblemDetailsCodeINVITEEXPIRED
+	case ConflictProblemDetailsCodeINVITEEXHAUSTED:
+		*s = ConflictProblemDetailsCodeINVITEEXHAUSTED
+	case ConflictProblemDetailsCodeTEAMLASTOWNER:
+		*s = ConflictProblemDetailsCodeTEAMLASTOWNER
+	case ConflictProblemDetailsCodeTEAMALREADYACTIVE:
+		*s = ConflictProblemDetailsCodeTEAMALREADYACTIVE
+	case ConflictProblemDetailsCodeTEAMNOTFOUNDING:
+		*s = ConflictProblemDetailsCodeTEAMNOTFOUNDING
+	case ConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		*s = ConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED
+	case ConflictProblemDetailsCodeDIARYTRANSFERPENDING:
+		*s = ConflictProblemDetailsCodeDIARYTRANSFERPENDING
+	case ConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		*s = ConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND
+	case ConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = ConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = ConflictProblemDetailsCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ConflictProblemDetailsCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ConflictProblemDetailsCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ConflictProblemDetailsConflict) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ConflictProblemDetailsConflict) encodeFields(e *jx.Encoder) {
+	{
+		if s.Constraint.Set {
+			e.FieldStart("constraint")
+			s.Constraint.Encode(e)
+		}
+	}
+	{
+		if s.Target.Set {
+			e.FieldStart("target")
+			s.Target.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfConflictProblemDetailsConflict = [2]string{
+	0: "constraint",
+	1: "target",
+}
+
+// Decode decodes ConflictProblemDetailsConflict from json.
+func (s *ConflictProblemDetailsConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ConflictProblemDetailsConflict to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "constraint":
+			if err := func() error {
+				s.Constraint.Reset()
+				if err := s.Constraint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"constraint\"")
+			}
+		case "target":
+			if err := func() error {
+				s.Target.Reset()
+				if err := s.Target.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"target\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ConflictProblemDetailsConflict")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ConflictProblemDetailsConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ConflictProblemDetailsConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ConflictProblemDetailsConflictTarget) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ConflictProblemDetailsConflictTarget) encodeFields(e *jx.Encoder) {
+	{
+		if s.ID.Set {
+			e.FieldStart("id")
+			s.ID.Encode(e)
+		}
+	}
+	{
+		if s.Keys.Set {
+			e.FieldStart("keys")
+			s.Keys.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("resource")
+		e.Str(s.Resource)
+	}
+}
+
+var jsonFieldsNameOfConflictProblemDetailsConflictTarget = [3]string{
+	0: "id",
+	1: "keys",
+	2: "resource",
+}
+
+// Decode decodes ConflictProblemDetailsConflictTarget from json.
+func (s *ConflictProblemDetailsConflictTarget) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ConflictProblemDetailsConflictTarget to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			if err := func() error {
+				s.ID.Reset()
+				if err := s.ID.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "keys":
+			if err := func() error {
+				s.Keys.Reset()
+				if err := s.Keys.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"keys\"")
+			}
+		case "resource":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Resource = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resource\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ConflictProblemDetailsConflictTarget")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfConflictProblemDetailsConflictTarget) {
+					name = jsonFieldsNameOfConflictProblemDetailsConflictTarget[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ConflictProblemDetailsConflictTarget) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ConflictProblemDetailsConflictTarget) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s ConflictProblemDetailsConflictTargetKeys) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s ConflictProblemDetailsConflictTargetKeys) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		e.Str(elem)
+	}
+}
+
+// Decode decodes ConflictProblemDetailsConflictTargetKeys from json.
+func (s *ConflictProblemDetailsConflictTargetKeys) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ConflictProblemDetailsConflictTargetKeys to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem string
+		if err := func() error {
+			v, err := d.Str()
+			elem = string(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ConflictProblemDetailsConflictTargetKeys")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ConflictProblemDetailsConflictTargetKeys) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ConflictProblemDetailsConflictTargetKeys) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -5381,44 +5780,6 @@ func (s *CreateDiaryCustomPackBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes CreateDiaryCustomPackConflict as json.
-func (s *CreateDiaryCustomPackConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CreateDiaryCustomPackConflict from json.
-func (s *CreateDiaryCustomPackConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateDiaryCustomPackConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CreateDiaryCustomPackConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CreateDiaryCustomPackConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateDiaryCustomPackConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes CreateDiaryCustomPackForbidden as json.
 func (s *CreateDiaryCustomPackForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -6005,44 +6366,6 @@ func (s *CreateDiaryEntryBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes CreateDiaryEntryConflict as json.
-func (s *CreateDiaryEntryConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CreateDiaryEntryConflict from json.
-func (s *CreateDiaryEntryConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateDiaryEntryConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CreateDiaryEntryConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CreateDiaryEntryConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateDiaryEntryConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes CreateDiaryEntryInternalServerError as json.
 func (s *CreateDiaryEntryInternalServerError) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -6450,44 +6773,6 @@ func (s *CreateDiaryGrantBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateDiaryGrantBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CreateDiaryGrantConflict as json.
-func (s *CreateDiaryGrantConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CreateDiaryGrantConflict from json.
-func (s *CreateDiaryGrantConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateDiaryGrantConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CreateDiaryGrantConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CreateDiaryGrantConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateDiaryGrantConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -7725,44 +8010,6 @@ func (s *CreateGroupBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes CreateGroupConflict as json.
-func (s *CreateGroupConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CreateGroupConflict from json.
-func (s *CreateGroupConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateGroupConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CreateGroupConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CreateGroupConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateGroupConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode implements json.Marshaler.
 func (s *CreateGroupCreated) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -8414,44 +8661,6 @@ func (s CreateRuntimeModelBodyCapabilitiesItem) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateRuntimeModelBodyCapabilitiesItem) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CreateRuntimeModelConflict as json.
-func (s *CreateRuntimeModelConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CreateRuntimeModelConflict from json.
-func (s *CreateRuntimeModelConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateRuntimeModelConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CreateRuntimeModelConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CreateRuntimeModelConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateRuntimeModelConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -10234,44 +10443,6 @@ func (s CreateRuntimeProfileBodyWorkspaceStorageMode) MarshalJSON() ([]byte, err
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CreateRuntimeProfileConflict as json.
-func (s *CreateRuntimeProfileConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CreateRuntimeProfileConflict from json.
-func (s *CreateRuntimeProfileConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateRuntimeProfileConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CreateRuntimeProfileConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CreateRuntimeProfileConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateRuntimeProfileConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -22612,44 +22783,6 @@ func (s *FailTaskBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes FailTaskConflict as json.
-func (s *FailTaskConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes FailTaskConflict from json.
-func (s *FailTaskConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode FailTaskConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = FailTaskConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *FailTaskConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FailTaskConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes FailTaskForbidden as json.
 func (s *FailTaskForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -28645,44 +28778,6 @@ func (s *InitiateTransferBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes InitiateTransferConflict as json.
-func (s *InitiateTransferConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes InitiateTransferConflict from json.
-func (s *InitiateTransferConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode InitiateTransferConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = InitiateTransferConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *InitiateTransferConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *InitiateTransferConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes InitiateTransferForbidden as json.
 func (s *InitiateTransferForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -29079,44 +29174,6 @@ func (s *JoinTeamBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *JoinTeamBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes JoinTeamConflict as json.
-func (s *JoinTeamConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes JoinTeamConflict from json.
-func (s *JoinTeamConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode JoinTeamConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = JoinTeamConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *JoinTeamConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *JoinTeamConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -39990,6 +40047,73 @@ func (s *OptCompleteTaskReqExecutorManifest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes ConflictProblemDetailsConflictTarget as json.
+func (o OptConflictProblemDetailsConflictTarget) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes ConflictProblemDetailsConflictTarget from json.
+func (o *OptConflictProblemDetailsConflictTarget) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptConflictProblemDetailsConflictTarget to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptConflictProblemDetailsConflictTarget) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptConflictProblemDetailsConflictTarget) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ConflictProblemDetailsConflictTargetKeys as json.
+func (o OptConflictProblemDetailsConflictTargetKeys) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes ConflictProblemDetailsConflictTargetKeys from json.
+func (o *OptConflictProblemDetailsConflictTargetKeys) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptConflictProblemDetailsConflictTargetKeys to nil")
+	}
+	o.Set = true
+	o.Value = make(ConflictProblemDetailsConflictTargetKeys)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptConflictProblemDetailsConflictTargetKeys) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptConflictProblemDetailsConflictTargetKeys) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes CreateDiaryEntryReqEntryType as json.
 func (o OptCreateDiaryEntryReqEntryType) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -42736,44 +42860,6 @@ func (s *PreviewDiaryCustomPackBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *PreviewDiaryCustomPackBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes PreviewDiaryCustomPackConflict as json.
-func (s *PreviewDiaryCustomPackConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes PreviewDiaryCustomPackConflict from json.
-func (s *PreviewDiaryCustomPackConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode PreviewDiaryCustomPackConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = PreviewDiaryCustomPackConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *PreviewDiaryCustomPackConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *PreviewDiaryCustomPackConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -48426,44 +48512,6 @@ func (s *RejectTransferBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes RejectTransferConflict as json.
-func (s *RejectTransferConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes RejectTransferConflict from json.
-func (s *RejectTransferConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RejectTransferConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = RejectTransferConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *RejectTransferConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RejectTransferConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes RejectTransferForbidden as json.
 func (s *RejectTransferForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -49337,44 +49385,6 @@ func (s *RenderContextPackBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RenderContextPackBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes RenderContextPackConflict as json.
-func (s *RenderContextPackConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes RenderContextPackConflict from json.
-func (s *RenderContextPackConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RenderContextPackConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = RenderContextPackConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *RenderContextPackConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RenderContextPackConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -58032,44 +58042,6 @@ func (s *SubmitSignatureBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes SubmitSignatureConflict as json.
-func (s *SubmitSignatureConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes SubmitSignatureConflict from json.
-func (s *SubmitSignatureConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode SubmitSignatureConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = SubmitSignatureConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *SubmitSignatureConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *SubmitSignatureConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes SubmitSignatureInternalServerError as json.
 func (s *SubmitSignatureInternalServerError) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -62314,44 +62286,6 @@ func (s *UpdateContextPackBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes UpdateContextPackConflict as json.
-func (s *UpdateContextPackConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes UpdateContextPackConflict from json.
-func (s *UpdateContextPackConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UpdateContextPackConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = UpdateContextPackConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *UpdateContextPackConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UpdateContextPackConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes UpdateContextPackForbidden as json.
 func (s *UpdateContextPackForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -62667,44 +62601,6 @@ func (s *UpdateDiaryEntryByIdBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateDiaryEntryByIdBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes UpdateDiaryEntryByIdConflict as json.
-func (s *UpdateDiaryEntryByIdConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes UpdateDiaryEntryByIdConflict from json.
-func (s *UpdateDiaryEntryByIdConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UpdateDiaryEntryByIdConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = UpdateDiaryEntryByIdConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *UpdateDiaryEntryByIdConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UpdateDiaryEntryByIdConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -63671,44 +63567,6 @@ func (s *UpdateRenderedPackBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes UpdateRenderedPackConflict as json.
-func (s *UpdateRenderedPackConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes UpdateRenderedPackConflict from json.
-func (s *UpdateRenderedPackConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UpdateRenderedPackConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = UpdateRenderedPackConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *UpdateRenderedPackConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UpdateRenderedPackConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes UpdateRenderedPackForbidden as json.
 func (s *UpdateRenderedPackForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -64292,44 +64150,6 @@ func (s UpdateRuntimeModelBodyCapabilitiesItem) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateRuntimeModelBodyCapabilitiesItem) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes UpdateRuntimeModelConflict as json.
-func (s *UpdateRuntimeModelConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes UpdateRuntimeModelConflict from json.
-func (s *UpdateRuntimeModelConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UpdateRuntimeModelConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = UpdateRuntimeModelConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *UpdateRuntimeModelConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UpdateRuntimeModelConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -66095,44 +65915,6 @@ func (s *UpdateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []byte
 	return s.Decode(d)
 }
 
-// Encode encodes UpdateRuntimeProfileConflict as json.
-func (s *UpdateRuntimeProfileConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes UpdateRuntimeProfileConflict from json.
-func (s *UpdateRuntimeProfileConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UpdateRuntimeProfileConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = UpdateRuntimeProfileConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *UpdateRuntimeProfileConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UpdateRuntimeProfileConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes UpdateRuntimeProfileForbidden as json.
 func (s *UpdateRuntimeProfileForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -66499,44 +66281,6 @@ func (s *UpdateTeamMemberRoleBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateTeamMemberRoleBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes UpdateTeamMemberRoleConflict as json.
-func (s *UpdateTeamMemberRoleConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes UpdateTeamMemberRoleConflict from json.
-func (s *UpdateTeamMemberRoleConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UpdateTeamMemberRoleConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = UpdateTeamMemberRoleConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *UpdateTeamMemberRoleConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UpdateTeamMemberRoleConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

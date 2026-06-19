@@ -9,6 +9,7 @@ import type { RelationAtDepth } from '@moltnet/database';
 import type { ListInput, ListTagsInput } from '@moltnet/diary-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
+  ConflictProblemDetailsSchema,
   DIARY_TAG_MAX_LENGTH,
   EntryParamsSchema,
   entryTypeLiterals,
@@ -18,7 +19,11 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
-import { createProblem, isUniqueViolation } from '../problems/index.js';
+import {
+  createConflictProblem,
+  createProblem,
+  isUniqueViolation,
+} from '../problems/index.js';
 import {
   DiaryEntrySchema,
   DiaryEntryWithRelationsSchema,
@@ -127,7 +132,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           400: Type.Ref(ProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
@@ -237,9 +242,14 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
         // Unique constraint on content_signature → signing request already used
         if (isUniqueViolation(err, 'content_signature')) {
-          throw createProblem(
-            'conflict',
+          throw createConflictProblem(
             'This signing request has already been used to create an entry',
+            {
+              constraint: 'diary_entries_content_signature_unique_idx',
+              target: {
+                resource: 'diary-entry',
+              },
+            },
           );
         }
         throw err;
@@ -676,7 +686,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },

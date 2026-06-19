@@ -117,6 +117,104 @@ export type CompleteTaskBody = {
   usage: TaskUsage;
 };
 
+export type ConflictError = {
+  constraint?: string;
+  target?: {
+    id?: string;
+    keys?: {
+      [key: string]: string;
+    };
+    resource: string;
+  };
+};
+
+export type ConflictProblemDetails = {
+  code:
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
+    | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+  detail?: string;
+  instance?: string;
+  status: number;
+  title: string;
+  type: string;
+  [key: string]:
+    | unknown
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
+    | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+    | string
+    | number
+    | undefined;
+} & {
+  conflict: {
+    constraint?: string;
+    target?: {
+      id?: string;
+      keys?: {
+        [key: string]: string;
+      };
+      resource: string;
+    };
+  };
+};
+
+export type ConflictTarget = {
+  id?: string;
+  keys?: {
+    [key: string]: string;
+  };
+  resource: string;
+};
+
 export type ContextPack = {
   createdAt: string;
   creator:
@@ -2462,7 +2560,7 @@ export type SubmitSignatureErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -2769,7 +2867,7 @@ export type CreateDiaryEntryErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -3153,7 +3251,7 @@ export type CreateDiaryGrantErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -3279,7 +3377,7 @@ export type CreateDiaryCustomPackErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -3346,7 +3444,7 @@ export type PreviewDiaryCustomPackErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -3462,7 +3560,7 @@ export type InitiateTransferErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type InitiateTransferError =
@@ -3648,7 +3746,7 @@ export type UpdateDiaryEntryByIdErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -4680,7 +4778,7 @@ export type UpdateContextPackErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -4912,7 +5010,7 @@ export type RenderContextPackErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -5576,7 +5674,7 @@ export type UpdateRenderedPackErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -5664,7 +5762,7 @@ export type CreateRuntimeModelErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type CreateRuntimeModelError =
@@ -5779,7 +5877,7 @@ export type UpdateRuntimeModelErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type UpdateRuntimeModelError =
@@ -5869,7 +5967,7 @@ export type CreateRuntimeProfileErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type CreateRuntimeProfileError =
@@ -5984,7 +6082,7 @@ export type UpdateRuntimeProfileErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type UpdateRuntimeProfileError =
@@ -6289,7 +6387,7 @@ export type AbortTaskAttemptErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type AbortTaskAttemptError =
@@ -6348,7 +6446,7 @@ export type CompleteTaskErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type CompleteTaskError = CompleteTaskErrors[keyof CompleteTaskErrors];
@@ -6395,7 +6493,7 @@ export type FailTaskErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type FailTaskError = FailTaskErrors[keyof FailTaskErrors];
@@ -6573,7 +6671,7 @@ export type CancelTaskErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type CancelTaskError = CancelTaskErrors[keyof CancelTaskErrors];
@@ -6624,7 +6722,7 @@ export type ClaimTaskErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type ClaimTaskError = ClaimTaskErrors[keyof ClaimTaskErrors];
@@ -6764,7 +6862,7 @@ export type JoinTeamErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -6925,7 +7023,7 @@ export type AcceptTeamFoundingErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type AcceptTeamFoundingError =
@@ -7028,7 +7126,7 @@ export type CreateGroupErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type CreateGroupError = CreateGroupErrors[keyof CreateGroupErrors];
@@ -7351,7 +7449,7 @@ export type UpdateTeamMemberRoleErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type UpdateTeamMemberRoleError =
@@ -7459,7 +7557,7 @@ export type AcceptTransferErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type AcceptTransferError =
@@ -7531,7 +7629,7 @@ export type RejectTransferErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type RejectTransferError =

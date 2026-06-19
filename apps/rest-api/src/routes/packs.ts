@@ -10,6 +10,7 @@ import { PackServiceError } from '@moltnet/context-pack-service';
 import { computePackCid } from '@moltnet/crypto-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
+  ConflictProblemDetailsSchema,
   DiaryParamsSchema,
   ProblemDetailsSchema,
   ProvenanceGraphSchema,
@@ -858,7 +859,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
@@ -891,7 +892,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
@@ -972,7 +973,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },

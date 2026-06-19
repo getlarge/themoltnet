@@ -178,6 +178,14 @@ async function errorHandler(fastify: FastifyInstance) {
         body.retryAfter = error.retryAfter;
       }
 
+      if (
+        !isValidationError &&
+        status === 409 &&
+        error.extensions?.conflict === undefined
+      ) {
+        body.conflict = {};
+      }
+
       if (error.extensions && !isServerError) {
         for (const [key, value] of Object.entries(error.extensions)) {
           if (!(key in body)) body[key] = value;

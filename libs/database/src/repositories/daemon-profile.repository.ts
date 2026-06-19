@@ -7,6 +7,7 @@ import {
   type NewDaemonProfile,
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
+import { translateUniqueViolation } from '../unique-violation.js';
 
 export type CreateDaemonProfileInput = Omit<
   NewDaemonProfile,
@@ -39,11 +40,26 @@ export type UpdateDaemonProfileInput = Partial<
 export function createDaemonProfileRepository(db: Database) {
   return {
     async create(input: CreateDaemonProfileInput): Promise<DaemonProfile> {
-      const [row] = await getExecutor(db)
-        .insert(daemonProfiles)
-        .values(input)
-        .returning();
-      return row;
+      try {
+        const [row] = await getExecutor(db)
+          .insert(daemonProfiles)
+          .values(input)
+          .returning();
+        return row;
+      } catch (err) {
+        throw (
+          translateUniqueViolation(err, {
+            constraint: 'daemon_profiles_team_name_idx',
+            target: {
+              resource: 'runtime-profile',
+              keys: {
+                teamId: input.teamId,
+                name: input.name,
+              },
+            },
+          }) ?? err
+        );
+      }
     },
 
     async findById(id: string): Promise<DaemonProfile | null> {
@@ -81,16 +97,28 @@ export function createDaemonProfileRepository(db: Database) {
       id: string,
       patch: UpdateDaemonProfileInput,
     ): Promise<DaemonProfile | null> {
-      const [row] = await getExecutor(db)
-        .update(daemonProfiles)
-        .set({
-          ...patch,
-          revision: sql`${daemonProfiles.revision} + 1`,
-          updatedAt: sql`now()`,
-        })
-        .where(eq(daemonProfiles.id, id))
-        .returning();
-      return row ?? null;
+      try {
+        const [row] = await getExecutor(db)
+          .update(daemonProfiles)
+          .set({
+            ...patch,
+            revision: sql`${daemonProfiles.revision} + 1`,
+            updatedAt: sql`now()`,
+          })
+          .where(eq(daemonProfiles.id, id))
+          .returning();
+        return row ?? null;
+      } catch (err) {
+        throw (
+          translateUniqueViolation(err, {
+            constraint: 'daemon_profiles_team_name_idx',
+            target: {
+              resource: 'runtime-profile',
+              id,
+            },
+          }) ?? err
+        );
+      }
     },
 
     async delete(id: string): Promise<boolean> {

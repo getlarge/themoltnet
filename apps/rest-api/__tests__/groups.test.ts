@@ -2,6 +2,7 @@
  * Group routes unit tests
  */
 
+import { UniqueViolationError } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -104,9 +105,18 @@ describe('Group routes', () => {
     });
 
     it('returns 409 if group name already exists in team', async () => {
-      const dbError = new Error('unique constraint');
-      (dbError as Error & { code: string }).code = '23505';
-      mocks.groupRepository.create.mockRejectedValue(dbError);
+      mocks.groupRepository.create.mockRejectedValue(
+        new UniqueViolationError({
+          constraint: 'groups_name_team_idx',
+          target: {
+            resource: 'group',
+            keys: {
+              teamId: TEAM_ID,
+              name: 'Engineering',
+            },
+          },
+        }),
+      );
 
       const res = await app.inject({
         method: 'POST',
@@ -116,6 +126,19 @@ describe('Group routes', () => {
       });
 
       expect(res.statusCode).toBe(409);
+      expect(res.json()).toMatchObject({
+        code: 'CONFLICT',
+        conflict: {
+          constraint: 'groups_name_team_idx',
+          target: {
+            resource: 'group',
+            keys: {
+              teamId: TEAM_ID,
+              name: 'Engineering',
+            },
+          },
+        },
+      });
     });
 
     it('returns 400 if team is personal', async () => {

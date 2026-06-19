@@ -1,6 +1,7 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import {
+  ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
@@ -357,7 +358,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -451,7 +452,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -500,7 +501,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -543,7 +544,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -583,7 +584,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },

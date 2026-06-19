@@ -2,7 +2,9 @@ import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import type { DaemonProfile as RuntimeProfile } from '@moltnet/database';
+import { UniqueViolationError } from '@moltnet/database';
 import {
+  ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   TeamHeaderOptionalSchema,
 } from '@moltnet/models';
@@ -10,7 +12,7 @@ import { RuntimeProfile as RuntimeProfileSchema } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
-import { createProblem, isUniqueViolation } from '../problems/index.js';
+import { createConflictProblem, createProblem } from '../problems/index.js';
 import {
   CreateRuntimeProfileBodySchema,
   RuntimeProfileListResponseSchema,
@@ -183,7 +185,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -228,10 +230,13 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         });
         return await reply.status(201).send(serializeProfile(row));
       } catch (err) {
-        if (isUniqueViolation(err)) {
-          throw createProblem(
-            'conflict',
+        if (err instanceof UniqueViolationError) {
+          throw createConflictProblem(
             'A runtime profile with this name already exists in this team',
+            {
+              constraint: err.constraint,
+              target: err.target,
+            },
           );
         }
         throw err;
@@ -288,7 +293,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -340,10 +345,13 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         if (!row) throw createProblem('not-found');
         return serializeProfile(row);
       } catch (err) {
-        if (isUniqueViolation(err)) {
-          throw createProblem(
-            'conflict',
+        if (err instanceof UniqueViolationError) {
+          throw createConflictProblem(
             'A runtime profile with this name already exists in this team',
+            {
+              constraint: err.constraint,
+              target: err.target,
+            },
           );
         }
         throw err;

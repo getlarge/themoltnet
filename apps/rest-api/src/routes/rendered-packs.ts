@@ -1,7 +1,11 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { PackServiceError } from '@moltnet/context-pack-service';
-import { DiaryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
+import {
+  ConflictProblemDetailsSchema,
+  DiaryParamsSchema,
+  ProblemDetailsSchema,
+} from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
@@ -125,7 +129,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
@@ -339,7 +343,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },

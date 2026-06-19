@@ -1,7 +1,9 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import type { RuntimeModel } from '@moltnet/database';
+import { UniqueViolationError } from '@moltnet/database';
 import {
+  ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   TeamHeaderOptionalSchema,
 } from '@moltnet/models';
@@ -9,7 +11,7 @@ import { RuntimeModel as RuntimeModelSchema } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
-import { createProblem, isUniqueViolation } from '../problems/index.js';
+import { createConflictProblem, createProblem } from '../problems/index.js';
 import {
   CreateRuntimeModelBodySchema,
   RuntimeModelListResponseSchema,
@@ -122,7 +124,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -159,10 +161,13 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         });
         return await reply.status(201).send(serializeModel(row));
       } catch (err) {
-        if (isUniqueViolation(err)) {
-          throw createProblem(
-            'conflict',
+        if (err instanceof UniqueViolationError) {
+          throw createConflictProblem(
             'A runtime model entry with this (provider, model) already exists for this team',
+            {
+              constraint: err.constraint,
+              target: err.target,
+            },
           );
         }
         throw err;
@@ -224,7 +229,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -273,10 +278,13 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         if (!row) throw createProblem('not-found');
         return serializeModel(row);
       } catch (err) {
-        if (isUniqueViolation(err)) {
-          throw createProblem(
-            'conflict',
+        if (err instanceof UniqueViolationError) {
+          throw createConflictProblem(
             'A runtime model entry with this (provider, model) already exists for this team',
+            {
+              constraint: err.constraint,
+              target: err.target,
+            },
           );
         }
         throw err;

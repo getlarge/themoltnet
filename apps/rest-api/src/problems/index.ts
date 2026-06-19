@@ -1,5 +1,6 @@
 export {
   acceptsProblemJson,
+  createConflictProblem,
   createProblem,
   createValidationProblem,
   isUniqueViolation,
