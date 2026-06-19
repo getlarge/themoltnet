@@ -1,4 +1,4 @@
-import type { ValidationError } from '@moltnet/models';
+import type { ConflictError, ValidationError } from '@moltnet/models';
 
 import { problemTypes } from './registry.js';
 
@@ -50,11 +50,19 @@ export function createProblem(
   return error;
 }
 
+export function createConflictProblem(
+  detail?: string,
+  conflict: ConflictError = {},
+): ProblemError {
+  return createProblem('conflict', detail, { conflict });
+}
+
 /**
  * Check whether an error (or its cause) is a Postgres unique constraint violation (23505).
  * Drizzle wraps PG errors, so the code may be on the error itself or on err.cause.
  * Optionally match a specific constraint name.
  */
+/** @deprecated Prefer repository-level UniqueViolationError translation. */
 export function isUniqueViolation(err: unknown, constraint?: string): boolean {
   for (const candidate of [err, (err as Error)?.cause]) {
     if (

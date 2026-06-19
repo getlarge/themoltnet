@@ -19,6 +19,9 @@ export * from './runtime-profiles.js';
 export * from './tasks.js';
 
 import {
+  ConflictErrorSchema,
+  ConflictProblemDetailsSchema,
+  ConflictTargetSchema,
   ProblemDetailsSchema,
   ProvenanceGraphSchema,
   ValidationProblemDetailsSchema,
@@ -98,7 +101,10 @@ import { taskSchemas } from './tasks.js';
 export const sharedSchemas = [
   VisibilitySchema,
   EntryTypeSchema,
+  ConflictTargetSchema,
+  ConflictErrorSchema,
   ProblemDetailsSchema,
+  ConflictProblemDetailsSchema,
   ValidationProblemDetailsSchema,
   // Register the principal variants BEFORE PrincipalIdentitySchema so the
   // union's Type.Ref(...) entries can resolve at addSchema() time. Anything

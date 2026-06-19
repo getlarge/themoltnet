@@ -1,4 +1,4 @@
-import type { RuntimeModel } from '@moltnet/database';
+import { type RuntimeModel, UniqueViolationError } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -166,9 +166,19 @@ describe('runtime model catalog routes', () => {
       mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
       mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
       mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
-      const pgError = new Error('duplicate key') as Error & { code?: string };
-      pgError.code = '23505';
-      mocks.runtimeModelRepository.create.mockRejectedValue(pgError);
+      mocks.runtimeModelRepository.create.mockRejectedValue(
+        new UniqueViolationError({
+          constraint: 'runtime_models_team_uq',
+          target: {
+            resource: 'runtime-model',
+            keys: {
+              teamId: TEAM_ID,
+              provider: 'anthropic',
+              model: 'claude-sonnet-4-5',
+            },
+          },
+        }),
+      );
 
       const response = await app.inject({
         method: 'POST',
@@ -181,6 +191,20 @@ describe('runtime model catalog routes', () => {
       });
 
       expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({
+        code: 'CONFLICT',
+        conflict: {
+          constraint: 'runtime_models_team_uq',
+          target: {
+            resource: 'runtime-model',
+            keys: {
+              teamId: TEAM_ID,
+              provider: 'anthropic',
+              model: 'claude-sonnet-4-5',
+            },
+          },
+        },
+      });
     });
   });
 

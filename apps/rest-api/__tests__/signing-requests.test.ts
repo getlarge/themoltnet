@@ -383,7 +383,10 @@ describe('Signing request routes', () => {
       });
 
       expect(response.statusCode).toBe(409);
-      expect(response.json().code).toBe('SIGNING_REQUEST_EXPIRED');
+      expect(response.json()).toMatchObject({
+        code: 'SIGNING_REQUEST_EXPIRED',
+        conflict: {},
+      });
     });
 
     it('returns 409 for already completed request', async () => {
@@ -401,7 +404,10 @@ describe('Signing request routes', () => {
       });
 
       expect(response.statusCode).toBe(409);
-      expect(response.json().code).toBe('SIGNING_REQUEST_ALREADY_COMPLETED');
+      expect(response.json()).toMatchObject({
+        code: 'SIGNING_REQUEST_ALREADY_COMPLETED',
+        conflict: {},
+      });
     });
 
     it('returns 404 for request owned by different agent', async () => {

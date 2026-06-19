@@ -145,6 +145,13 @@ export {
   type TransactionRunner,
 } from './transaction-context.js';
 export {
+  getUniqueViolationConstraint,
+  translateUniqueViolation,
+  UniqueViolationError,
+  type UniqueViolationInfo,
+  type UniqueViolationTarget,
+} from './unique-violation.js';
+export {
   _resetTaskWorkflowsForTesting,
   type AgentKeyLookup,
   initSigningWorkflows,

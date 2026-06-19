@@ -7,6 +7,7 @@ import {
   runtimeModels,
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
+import { translateUniqueViolation } from '../unique-violation.js';
 
 export type CreateRuntimeModelInput = Omit<
   NewRuntimeModel,
@@ -40,11 +41,39 @@ export function createRuntimeModelRepository(db: Database) {
      *   - `runtime_models_team_uq` (team_id, provider, model) WHERE team_id IS NOT NULL
      */
     async create(input: CreateRuntimeModelInput): Promise<RuntimeModel> {
-      const [row] = await getExecutor(db)
-        .insert(runtimeModels)
-        .values(input)
-        .returning();
-      return row;
+      try {
+        const [row] = await getExecutor(db)
+          .insert(runtimeModels)
+          .values(input)
+          .returning();
+        return row;
+      } catch (err) {
+        throw (
+          translateUniqueViolation(err, [
+            {
+              constraint: 'runtime_models_global_uq',
+              target: {
+                resource: 'runtime-model',
+                keys: {
+                  provider: input.provider,
+                  model: input.model,
+                },
+              },
+            },
+            {
+              constraint: 'runtime_models_team_uq',
+              target: {
+                resource: 'runtime-model',
+                keys: {
+                  teamId: input.teamId ?? 'global',
+                  provider: input.provider,
+                  model: input.model,
+                },
+              },
+            },
+          ]) ?? err
+        );
+      }
     },
 
     async findById(id: string): Promise<RuntimeModel | null> {
@@ -93,15 +122,36 @@ export function createRuntimeModelRepository(db: Database) {
       id: string,
       patch: UpdateRuntimeModelInput,
     ): Promise<RuntimeModel | null> {
-      const [row] = await getExecutor(db)
-        .update(runtimeModels)
-        .set({
-          ...patch,
-          updatedAt: sql`now()`,
-        })
-        .where(eq(runtimeModels.id, id))
-        .returning();
-      return row ?? null;
+      try {
+        const [row] = await getExecutor(db)
+          .update(runtimeModels)
+          .set({
+            ...patch,
+            updatedAt: sql`now()`,
+          })
+          .where(eq(runtimeModels.id, id))
+          .returning();
+        return row ?? null;
+      } catch (err) {
+        throw (
+          translateUniqueViolation(err, [
+            {
+              constraint: 'runtime_models_global_uq',
+              target: {
+                resource: 'runtime-model',
+                id,
+              },
+            },
+            {
+              constraint: 'runtime_models_team_uq',
+              target: {
+                resource: 'runtime-model',
+                id,
+              },
+            },
+          ]) ?? err
+        );
+      }
     },
 
     async delete(id: string): Promise<boolean> {

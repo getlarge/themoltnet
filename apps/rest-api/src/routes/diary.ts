@@ -14,6 +14,7 @@ import {
 import { DBOS, getDatabase, getExecutor } from '@moltnet/database';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
+  ConflictProblemDetailsSchema,
   CreateDiaryGrantSchema,
   DiaryGrantListResponseSchema,
   DiaryGrantResponseSchema,
@@ -356,7 +357,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           201: DiaryGrantResponseSchema,
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
@@ -549,7 +550,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -699,7 +700,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -762,7 +763,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },

@@ -22,7 +22,10 @@ import { requireAuth } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
 import type { SigningRequest } from '@moltnet/database';
 import { DBOS, parseStatusFilter, signingWorkflows } from '@moltnet/database';
-import { ProblemDetailsSchema } from '@moltnet/models';
+import {
+  ConflictProblemDetailsSchema,
+  ProblemDetailsSchema,
+} from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
@@ -230,7 +233,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           200: Type.Ref(SigningRequestSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
