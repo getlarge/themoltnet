@@ -37,7 +37,9 @@ describe('applySqliteMigrations', () => {
     const names = tables.map((t) => t.name);
     expect(names).toContain('daemon_slots');
     expect(names).toContain('daemon_slot_sessions');
-    expect(names).toContain('daemon_slot_workspaces');
+    expect(names).toContain('daemon_workspaces');
+    // Old 1:1 table is dropped by 0001 in favor of the refcounted entity.
+    expect(names).not.toContain('daemon_slot_workspaces');
   });
 
   it('enforces ON DELETE CASCADE from daemon_slots to dependent rows', () => {

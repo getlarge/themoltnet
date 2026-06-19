@@ -7,6 +7,13 @@
       "tag": "0000_bouncy_blur",
       "version": "7",
       "when": 1781721596880
+    },
+    {
+      "breakpoints": true,
+      "idx": 1,
+      "tag": "0001_open_karen_page",
+      "version": "7",
+      "when": 1781813748574
     }
   ],
   "version": "7"

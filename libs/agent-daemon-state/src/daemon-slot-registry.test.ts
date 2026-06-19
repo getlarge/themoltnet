@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   DaemonSlotRegistry,
+  type DaemonSlotStartInput,
   resolveLatestPiSessionPath,
 } from './daemon-slot-registry.js';
 import { pgDaemonSlots } from './pg-schema.js';
@@ -144,5 +145,121 @@ describe('DaemonSlotRegistry', () => {
     expect(pgDaemonSlots.createdAtMs.getSQLType()).toBe('bigint');
     expect(pgDaemonSlots.lastUsedAtMs.getSQLType()).toBe('bigint');
     expect(pgDaemonSlots.expiresAtMs.getSQLType()).toBe('bigint');
+  });
+
+  // ── Refcounted workspaces (#1293 PR2) ────────────────────────────────
+
+  function warmInput(
+    identity: { agentName: string; provider: string; model: string },
+    overrides: Partial<DaemonSlotStartInput> = {},
+  ): DaemonSlotStartInput {
+    return {
+      ...identity,
+      slotKey: 'freeform:correlation:rc',
+      taskType: 'freeform',
+      sessionDir: null,
+      sessionPath: null,
+      workspaceId: 'ws-shared',
+      worktreePath: '/tmp/wt-shared',
+      worktreeBranch: 'moltnet/rc/branch',
+      lastTaskId: '11111111-1111-4111-8111-111111111111',
+      lastAttemptN: 1,
+      ttlSec: 1,
+      ...overrides,
+    };
+  }
+
+  const PROFILE_A = {
+    agentName: 'legreffier',
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-5',
+  };
+  const PROFILE_B = {
+    agentName: 'legreffier',
+    provider: 'openai-codex',
+    model: 'gpt-5.4-codex',
+  };
+
+  it('lets two profiles share one workspace without a unique-id collision', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-slot-rc-'));
+    tempRoots.push(root);
+    const registry = new DaemonSlotRegistry(join(root, 'd.sqlite'));
+
+    await registry.beginSlot(warmInput(PROFILE_A, { ttlSec: 3600 }));
+    // Second profile references the SAME workspaceId — must not throw.
+    await expect(
+      registry.beginSlot(warmInput(PROFILE_B, { ttlSec: 3600 })),
+    ).resolves.toBeUndefined();
+
+    const a = await registry.findLatestProducerSlotByTaskAttempt(
+      '11111111-1111-4111-8111-111111111111',
+      1,
+    );
+    expect(a?.workspace?.workspaceId).toBe('ws-shared');
+    expect(a?.workspace?.worktreePath).toBe('/tmp/wt-shared');
+    await registry.close();
+  });
+
+  it('refcounts a shared workspace: reaping one slot keeps it, reaping the last removes it', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-slot-rc2-'));
+    tempRoots.push(root);
+    const worktreePath = join(root, 'wt');
+    mkdirSync(worktreePath, { recursive: true });
+    const registry = new DaemonSlotRegistry(join(root, 'd.sqlite'));
+
+    // Profile A: short TTL (will expire first). Profile B: long TTL.
+    await registry.beginSlot(
+      warmInput(PROFILE_A, { workspaceId: 'ws-x', worktreePath, ttlSec: 1 }),
+    );
+    await registry.beginSlot(
+      warmInput(PROFILE_B, { workspaceId: 'ws-x', worktreePath, ttlSec: 3600 }),
+    );
+
+    // Reap only profile A (B still alive). Workspace must survive (refcount 1).
+    const reapedA = await registry.reapExpiredSlots(Date.now() + 2_000);
+    expect(reapedA).toHaveLength(1);
+    expect(reapedA[0]?.workspace?.workspaceId).toBe('ws-x');
+    // B can still resolve the shared workspace.
+    const stillThere = await registry.findLatestProducerSlotByTaskAttempt(
+      '11111111-1111-4111-8111-111111111111',
+      1,
+    );
+    expect(stillThere?.workspace?.workspaceId).toBe('ws-x');
+
+    // Reap the last referencing slot (B). Workspace is now gone.
+    const reapedB = await registry.reapExpiredSlots(Date.now() + 10_000_000);
+    expect(reapedB).toHaveLength(1);
+    const gone = await registry.findLatestProducerSlotByTaskAttempt(
+      '11111111-1111-4111-8111-111111111111',
+      1,
+    );
+    expect(gone).toBeNull();
+    await registry.close();
+  });
+
+  it('does not double-count when the same slot re-warms the same workspace', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-slot-rc3-'));
+    tempRoots.push(root);
+    const worktreePath = join(root, 'wt');
+    mkdirSync(worktreePath, { recursive: true });
+    const registry = new DaemonSlotRegistry(join(root, 'd.sqlite'));
+
+    // Same profile warms twice with the same workspace (re-claim/continuation).
+    await registry.beginSlot(
+      warmInput(PROFILE_A, { workspaceId: 'ws-y', worktreePath, ttlSec: 1 }),
+    );
+    await registry.beginSlot(
+      warmInput(PROFILE_A, { workspaceId: 'ws-y', worktreePath, ttlSec: 1 }),
+    );
+
+    // Only one slot references ws-y, so one reap must drop refcount to 0.
+    const reaped = await registry.reapExpiredSlots(Date.now() + 2_000);
+    expect(reaped).toHaveLength(1);
+    const gone = await registry.findLatestProducerSlotByTaskAttempt(
+      '11111111-1111-4111-8111-111111111111',
+      1,
+    );
+    expect(gone).toBeNull();
+    await registry.close();
   });
 });

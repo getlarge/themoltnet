@@ -19,13 +19,13 @@ import {
   pgAgentDaemonStateSchema,
   pgDaemonSlots,
   pgDaemonSlotSessions,
-  pgDaemonSlotWorkspaces,
+  pgDaemonWorkspaces,
 } from './pg-schema.js';
 import {
   agentDaemonStateSchema,
   daemonSlots,
   daemonSlotSessions,
-  daemonSlotWorkspaces,
+  daemonWorkspaces,
 } from './schema.js';
 
 export class DaemonSlotRegistryError extends Error {
@@ -50,6 +50,7 @@ export interface DaemonSlotRecord extends DaemonSlotIdentity {
   state: 'active' | 'idle';
   lastTaskId: string;
   lastAttemptN: number;
+  workspaceId: string | null;
   createdAtMs: number;
   lastUsedAtMs: number;
   expiresAtMs: number;
@@ -61,11 +62,19 @@ export interface DaemonSlotSessionRecord extends DaemonSlotIdentity {
   sessionPath: string | null;
 }
 
-export interface DaemonSlotWorkspaceRecord extends DaemonSlotIdentity {
-  slotKey: string;
+export type DaemonWorkspaceKind = 'origin' | 'fork' | 'scratch';
+
+/**
+ * A refcounted workspace, shared by N slots that resume the same task chain.
+ * No longer carries slot identity — it is an independent entity resolved via
+ * `daemon_slots.workspace_id`.
+ */
+export interface DaemonSlotWorkspaceRecord {
   workspaceId: string;
   worktreePath: string;
   worktreeBranch: string | null;
+  kind: DaemonWorkspaceKind;
+  refcount: number;
 }
 
 export interface ReapedDaemonSlot {
@@ -88,6 +97,8 @@ export interface DaemonSlotStartInput extends DaemonSlotIdentity {
   workspaceId: string | null;
   worktreePath: string | null;
   worktreeBranch: string | null;
+  /** Workspace lifecycle kind; defaults to 'origin'. */
+  workspaceKind?: DaemonWorkspaceKind;
   lastTaskId: string;
   lastAttemptN: number;
   ttlSec: number;
@@ -187,41 +198,101 @@ class SqliteDaemonSlotStore implements DaemonSlotStore {
   async beginSlot(input: DaemonSlotStartInput): Promise<void> {
     const now = Date.now();
     const expiresAtMs = now + input.ttlSec * 1000;
+    const workspaceId =
+      input.workspaceId !== null && input.worktreePath !== null
+        ? input.workspaceId
+        : null;
 
-    await this.withDb('upsert sqlite slot', () =>
-      this.db
-        .insert(daemonSlots)
-        .values({
-          agentName: input.agentName,
-          createdAtMs: now,
-          expiresAtMs,
-          lastAttemptN: input.lastAttemptN,
-          lastTaskId: input.lastTaskId,
-          lastUsedAtMs: now,
-          model: input.model,
-          provider: input.provider,
-          slotKey: input.slotKey,
-          state: 'active',
-          taskType: input.taskType,
-        })
-        .onConflictDoUpdate({
-          set: {
-            expiresAtMs: sql`excluded.expires_at_ms`,
-            lastAttemptN: sql`excluded.last_attempt_n`,
-            lastTaskId: sql`excluded.last_task_id`,
-            lastUsedAtMs: sql`excluded.last_used_at_ms`,
-            state: 'active',
-            taskType: sql`excluded.task_type`,
-          },
-          target: [
-            daemonSlots.agentName,
-            daemonSlots.provider,
-            daemonSlots.model,
-            daemonSlots.slotKey,
-          ],
-        })
-        .run(),
-    );
+    // Slot + workspace refcount in one synchronous transaction. The slot ->
+    // workspace direction means a slot's workspace_id reference is what the
+    // refcount counts; we read the prior reference before upserting the slot
+    // so re-warming the same pairing is idempotent (no double count) and
+    // switching workspaces moves the count.
+    this.withSyncDb('upsert sqlite slot + workspace', () => {
+      this.client.exec('BEGIN IMMEDIATE');
+      try {
+        const priorWorkspaceId = this.priorSlotWorkspaceId(input);
+
+        if (workspaceId !== null) {
+          // Insert the workspace at refcount 0 if new; existing rows just
+          // refresh their mutable fields. The refcount delta is applied below.
+          this.client
+            .prepare(
+              `INSERT INTO daemon_workspaces
+                 (workspace_id, worktree_path, worktree_branch, kind,
+                  refcount, created_at_ms, last_used_at_ms)
+               VALUES (?, ?, ?, ?, 0, ?, ?)
+               ON CONFLICT(workspace_id) DO UPDATE SET
+                 worktree_path = excluded.worktree_path,
+                 worktree_branch = excluded.worktree_branch,
+                 last_used_at_ms = excluded.last_used_at_ms`,
+            )
+            .run(
+              workspaceId,
+              input.worktreePath as string,
+              input.worktreeBranch,
+              input.workspaceKind ?? 'origin',
+              now,
+              now,
+            );
+        }
+
+        this.client
+          .prepare(
+            `INSERT INTO daemon_slots
+               (agent_name, provider, model, slot_key, task_type, state,
+                last_task_id, last_attempt_n, workspace_id, created_at_ms,
+                last_used_at_ms, expires_at_ms)
+             VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(agent_name, provider, model, slot_key) DO UPDATE SET
+               task_type = excluded.task_type,
+               state = 'active',
+               last_task_id = excluded.last_task_id,
+               last_attempt_n = excluded.last_attempt_n,
+               workspace_id = excluded.workspace_id,
+               last_used_at_ms = excluded.last_used_at_ms,
+               expires_at_ms = excluded.expires_at_ms`,
+          )
+          .run(
+            input.agentName,
+            input.provider,
+            input.model,
+            input.slotKey,
+            input.taskType,
+            input.lastTaskId,
+            input.lastAttemptN,
+            workspaceId,
+            now,
+            now,
+            expiresAtMs,
+          );
+
+        // Apply the refcount delta only when the slot's workspace reference
+        // actually changed.
+        if (priorWorkspaceId !== workspaceId) {
+          if (priorWorkspaceId !== null) {
+            this.decrementWorkspaceRefcount(priorWorkspaceId);
+          }
+          if (workspaceId !== null) {
+            this.client
+              .prepare(
+                `UPDATE daemon_workspaces SET refcount = refcount + 1
+                   WHERE workspace_id = ?`,
+              )
+              .run(workspaceId);
+          }
+        }
+
+        this.client.exec('COMMIT');
+      } catch (error) {
+        try {
+          this.client.exec('ROLLBACK');
+        } catch {
+          // surface the original error
+        }
+        throw error;
+      }
+    });
 
     const sessionDir = input.sessionDir;
     if (sessionDir !== null) {
@@ -251,38 +322,34 @@ class SqliteDaemonSlotStore implements DaemonSlotStore {
           .run(),
       );
     }
+  }
 
-    const workspaceId = input.workspaceId;
-    const worktreePath = input.worktreePath;
-    if (workspaceId !== null && worktreePath !== null) {
-      await this.withDb('upsert sqlite slot workspace', () =>
-        this.db
-          .insert(daemonSlotWorkspaces)
-          .values({
-            agentName: input.agentName,
-            model: input.model,
-            provider: input.provider,
-            slotKey: input.slotKey,
-            workspaceId,
-            worktreeBranch: input.worktreeBranch,
-            worktreePath,
-          })
-          .onConflictDoUpdate({
-            set: {
-              workspaceId: sql`excluded.workspace_id`,
-              worktreeBranch: sql`excluded.worktree_branch`,
-              worktreePath: sql`excluded.worktree_path`,
-            },
-            target: [
-              daemonSlotWorkspaces.agentName,
-              daemonSlotWorkspaces.provider,
-              daemonSlotWorkspaces.model,
-              daemonSlotWorkspaces.slotKey,
-            ],
-          })
-          .run(),
-      );
-    }
+  /** The workspace_id the slot referenced before this begin, or null. */
+  private priorSlotWorkspaceId(slot: DaemonSlotIdentity & { slotKey: string }) {
+    const row = this.client
+      .prepare(
+        `SELECT workspace_id AS workspaceId FROM daemon_slots
+           WHERE agent_name = ? AND provider = ? AND model = ? AND slot_key = ?`,
+      )
+      .get(slot.agentName, slot.provider, slot.model, slot.slotKey) as
+      | { workspaceId: string | null }
+      | undefined;
+    return row?.workspaceId ?? null;
+  }
+
+  /** Decrement a workspace refcount; delete the row when it reaches 0. */
+  private decrementWorkspaceRefcount(workspaceId: string): void {
+    this.client
+      .prepare(
+        `UPDATE daemon_workspaces SET refcount = refcount - 1
+           WHERE workspace_id = ?`,
+      )
+      .run(workspaceId);
+    this.client
+      .prepare(
+        `DELETE FROM daemon_workspaces WHERE workspace_id = ? AND refcount <= 0`,
+      )
+      .run(workspaceId);
   }
 
   async finishSlot(
@@ -364,30 +431,67 @@ class SqliteDaemonSlotStore implements DaemonSlotStore {
         });
       }
 
-      this.withSyncDb('delete expired sqlite slots', () => {
-        this.client.exec('BEGIN IMMEDIATE');
-        try {
-          for (const slot of slots) {
-            this.client
-              .prepare(
-                `DELETE FROM daemon_slots
-                 WHERE agent_name = ? AND provider = ? AND model = ?
-                   AND slot_key = ?`,
-              )
-              .run(slot.agentName, slot.provider, slot.model, slot.slotKey);
-          }
-          this.client.exec('COMMIT');
-        } catch (error) {
+      // Delete slots, decrement each referenced workspace's refcount, and
+      // collect the workspaces that reached 0 (their disk artifacts are then
+      // removed below). A workspace still referenced by a live slot survives.
+      const releasable = this.withSyncDb<DaemonSlotWorkspaceRecord[]>(
+        'delete expired sqlite slots',
+        () => {
+          this.client.exec('BEGIN IMMEDIATE');
           try {
-            this.client.exec('ROLLBACK');
-          } catch {
-            // Ignore rollback failures and surface the original error.
+            const orphaned: DaemonSlotWorkspaceRecord[] = [];
+            for (const reaped of out) {
+              this.client
+                .prepare(
+                  `DELETE FROM daemon_slots
+                   WHERE agent_name = ? AND provider = ? AND model = ?
+                     AND slot_key = ?`,
+                )
+                .run(
+                  reaped.slot.agentName,
+                  reaped.slot.provider,
+                  reaped.slot.model,
+                  reaped.slot.slotKey,
+                );
+              const ws = reaped.workspace;
+              if (ws) {
+                this.client
+                  .prepare(
+                    `UPDATE daemon_workspaces SET refcount = refcount - 1
+                       WHERE workspace_id = ?`,
+                  )
+                  .run(ws.workspaceId);
+                const row = this.client
+                  .prepare(
+                    `SELECT refcount FROM daemon_workspaces WHERE workspace_id = ?`,
+                  )
+                  .get(ws.workspaceId) as { refcount: number } | undefined;
+                if (!row || row.refcount <= 0) {
+                  this.client
+                    .prepare(
+                      `DELETE FROM daemon_workspaces WHERE workspace_id = ?`,
+                    )
+                    .run(ws.workspaceId);
+                  orphaned.push(ws);
+                }
+              }
+            }
+            this.client.exec('COMMIT');
+            return orphaned;
+          } catch (error) {
+            try {
+              this.client.exec('ROLLBACK');
+            } catch {
+              // Ignore rollback failures and surface the original error.
+            }
+            throw error;
           }
-          throw error;
-        }
-      });
+        },
+      );
 
-      return cleanupReapedSlots(out);
+      cleanupReapedSessions(out);
+      cleanupReleasableWorkspaces(releasable);
+      return out;
     } catch (error) {
       throw error instanceof DaemonSlotRegistryError
         ? error
@@ -413,18 +517,16 @@ class SqliteDaemonSlotStore implements DaemonSlotStore {
   }
 
   private async lookupWorkspace(
-    slot: Pick<
-      DaemonSlotRecord,
-      'agentName' | 'provider' | 'model' | 'slotKey'
-    >,
+    slot: Pick<DaemonSlotRecord, 'workspaceId'>,
   ): Promise<DaemonSlotWorkspaceRecord | null> {
+    if (!slot.workspaceId) return null;
     return this.withDb(
-      'select sqlite slot workspace',
+      'select sqlite workspace',
       async () =>
         (await this.db
           .select()
-          .from(daemonSlotWorkspaces)
-          .where(sqliteSlotWorkspaceIdentityWhere(slot, slot.slotKey))
+          .from(daemonWorkspaces)
+          .where(eq(daemonWorkspaces.workspaceId, slot.workspaceId as string))
           .get()) ?? null,
     );
   }
@@ -498,39 +600,108 @@ class PgDaemonSlotStore implements DaemonSlotStore {
     const now = Date.now();
     const expiresAtMs = now + input.ttlSec * 1000;
 
-    await this.withDb('upsert postgres slot', () =>
-      this.db
-        .insert(pgDaemonSlots)
-        .values({
-          agentName: input.agentName,
-          createdAtMs: now,
-          expiresAtMs,
-          lastAttemptN: input.lastAttemptN,
-          lastTaskId: input.lastTaskId,
-          lastUsedAtMs: now,
-          model: input.model,
-          provider: input.provider,
-          slotKey: input.slotKey,
-          state: 'active',
-          taskType: input.taskType,
-        })
-        .onConflictDoUpdate({
-          set: {
-            expiresAtMs: sql`excluded.expires_at_ms`,
-            lastAttemptN: sql`excluded.last_attempt_n`,
-            lastTaskId: sql`excluded.last_task_id`,
-            lastUsedAtMs: sql`excluded.last_used_at_ms`,
+    const beginWorkspaceId =
+      input.workspaceId !== null && input.worktreePath !== null
+        ? input.workspaceId
+        : null;
+
+    // Slot + workspace refcount in one transaction (see SQLite store for the
+    // refcount rationale). Read the slot's prior workspace_id so re-warming the
+    // same pairing is idempotent and switching workspaces moves the count.
+    await this.withDb('upsert postgres slot + workspace', () =>
+      this.db.transaction(async (tx) => {
+        const [priorRow] = await tx
+          .select({ workspaceId: pgDaemonSlots.workspaceId })
+          .from(pgDaemonSlots)
+          .where(pgSlotIdentityWhere(input, input.slotKey))
+          .limit(1)
+          .execute();
+        const priorWorkspaceId = priorRow?.workspaceId ?? null;
+
+        if (beginWorkspaceId !== null) {
+          await tx
+            .insert(pgDaemonWorkspaces)
+            .values({
+              workspaceId: beginWorkspaceId,
+              worktreePath: input.worktreePath as string,
+              worktreeBranch: input.worktreeBranch,
+              kind: input.workspaceKind ?? 'origin',
+              refcount: 0,
+              createdAtMs: now,
+              lastUsedAtMs: now,
+            })
+            .onConflictDoUpdate({
+              set: {
+                worktreePath: sql`excluded.worktree_path`,
+                worktreeBranch: sql`excluded.worktree_branch`,
+                lastUsedAtMs: sql`excluded.last_used_at_ms`,
+              },
+              target: [pgDaemonWorkspaces.workspaceId],
+            })
+            .execute();
+        }
+
+        await tx
+          .insert(pgDaemonSlots)
+          .values({
+            agentName: input.agentName,
+            createdAtMs: now,
+            expiresAtMs,
+            lastAttemptN: input.lastAttemptN,
+            lastTaskId: input.lastTaskId,
+            lastUsedAtMs: now,
+            model: input.model,
+            provider: input.provider,
+            slotKey: input.slotKey,
             state: 'active',
-            taskType: sql`excluded.task_type`,
-          },
-          target: [
-            pgDaemonSlots.agentName,
-            pgDaemonSlots.provider,
-            pgDaemonSlots.model,
-            pgDaemonSlots.slotKey,
-          ],
-        })
-        .execute(),
+            taskType: input.taskType,
+            workspaceId: beginWorkspaceId,
+          })
+          .onConflictDoUpdate({
+            set: {
+              expiresAtMs: sql`excluded.expires_at_ms`,
+              lastAttemptN: sql`excluded.last_attempt_n`,
+              lastTaskId: sql`excluded.last_task_id`,
+              lastUsedAtMs: sql`excluded.last_used_at_ms`,
+              state: 'active',
+              taskType: sql`excluded.task_type`,
+              workspaceId: sql`excluded.workspace_id`,
+            },
+            target: [
+              pgDaemonSlots.agentName,
+              pgDaemonSlots.provider,
+              pgDaemonSlots.model,
+              pgDaemonSlots.slotKey,
+            ],
+          })
+          .execute();
+
+        if (priorWorkspaceId !== beginWorkspaceId) {
+          if (priorWorkspaceId !== null) {
+            await tx
+              .update(pgDaemonWorkspaces)
+              .set({ refcount: sql`${pgDaemonWorkspaces.refcount} - 1` })
+              .where(eq(pgDaemonWorkspaces.workspaceId, priorWorkspaceId))
+              .execute();
+            await tx
+              .delete(pgDaemonWorkspaces)
+              .where(
+                and(
+                  eq(pgDaemonWorkspaces.workspaceId, priorWorkspaceId),
+                  lte(pgDaemonWorkspaces.refcount, 0),
+                ),
+              )
+              .execute();
+          }
+          if (beginWorkspaceId !== null) {
+            await tx
+              .update(pgDaemonWorkspaces)
+              .set({ refcount: sql`${pgDaemonWorkspaces.refcount} + 1` })
+              .where(eq(pgDaemonWorkspaces.workspaceId, beginWorkspaceId))
+              .execute();
+          }
+        }
+      }),
     );
 
     const sessionDir = input.sessionDir;
@@ -556,38 +727,6 @@ class PgDaemonSlotStore implements DaemonSlotStore {
               pgDaemonSlotSessions.provider,
               pgDaemonSlotSessions.model,
               pgDaemonSlotSessions.slotKey,
-            ],
-          })
-          .execute(),
-      );
-    }
-
-    const workspaceId = input.workspaceId;
-    const worktreePath = input.worktreePath;
-    if (workspaceId !== null && worktreePath !== null) {
-      await this.withDb('upsert postgres slot workspace', () =>
-        this.db
-          .insert(pgDaemonSlotWorkspaces)
-          .values({
-            agentName: input.agentName,
-            model: input.model,
-            provider: input.provider,
-            slotKey: input.slotKey,
-            workspaceId,
-            worktreeBranch: input.worktreeBranch,
-            worktreePath,
-          })
-          .onConflictDoUpdate({
-            set: {
-              workspaceId: sql`excluded.workspace_id`,
-              worktreeBranch: sql`excluded.worktree_branch`,
-              worktreePath: sql`excluded.worktree_path`,
-            },
-            target: [
-              pgDaemonSlotWorkspaces.agentName,
-              pgDaemonSlotWorkspaces.provider,
-              pgDaemonSlotWorkspaces.model,
-              pgDaemonSlotWorkspaces.slotKey,
             ],
           })
           .execute(),
@@ -660,13 +799,14 @@ class PgDaemonSlotStore implements DaemonSlotStore {
   async reapExpiredSlots(now = Date.now()): Promise<ReapedDaemonSlot[]> {
     await this.ready;
     try {
-      const out = await this.db.transaction(async (tx) => {
+      const { out, releasable } = await this.db.transaction(async (tx) => {
         const slots = await tx
           .select()
           .from(pgDaemonSlots)
           .where(lte(pgDaemonSlots.expiresAtMs, now))
           .execute();
         const reaped: ReapedDaemonSlot[] = [];
+        const orphaned: DaemonSlotWorkspaceRecord[] = [];
         for (const slot of slots) {
           const [session = null] = await tx
             .select()
@@ -674,21 +814,49 @@ class PgDaemonSlotStore implements DaemonSlotStore {
             .where(pgSlotSessionIdentityWhere(slot, slot.slotKey))
             .limit(1)
             .execute();
-          const [workspace = null] = await tx
-            .select()
-            .from(pgDaemonSlotWorkspaces)
-            .where(pgSlotWorkspaceIdentityWhere(slot, slot.slotKey))
-            .limit(1)
-            .execute();
+          const workspace = slot.workspaceId
+            ? ((
+                await tx
+                  .select()
+                  .from(pgDaemonWorkspaces)
+                  .where(eq(pgDaemonWorkspaces.workspaceId, slot.workspaceId))
+                  .limit(1)
+                  .execute()
+              )[0] ?? null)
+            : null;
           reaped.push({ session, slot, workspace });
           await tx
             .delete(pgDaemonSlots)
             .where(pgSlotIdentityWhere(slot, slot.slotKey))
             .execute();
+          if (workspace) {
+            await tx
+              .update(pgDaemonWorkspaces)
+              .set({ refcount: sql`${pgDaemonWorkspaces.refcount} - 1` })
+              .where(eq(pgDaemonWorkspaces.workspaceId, workspace.workspaceId))
+              .execute();
+            const [after] = await tx
+              .select({ refcount: pgDaemonWorkspaces.refcount })
+              .from(pgDaemonWorkspaces)
+              .where(eq(pgDaemonWorkspaces.workspaceId, workspace.workspaceId))
+              .limit(1)
+              .execute();
+            if (!after || after.refcount <= 0) {
+              await tx
+                .delete(pgDaemonWorkspaces)
+                .where(
+                  eq(pgDaemonWorkspaces.workspaceId, workspace.workspaceId),
+                )
+                .execute();
+              orphaned.push(workspace);
+            }
+          }
         }
-        return reaped;
+        return { out: reaped, releasable: orphaned };
       });
-      return cleanupReapedSlots(out);
+      cleanupReapedSessions(out);
+      cleanupReleasableWorkspaces(releasable);
+      return out;
     } catch (error) {
       throw error instanceof DaemonSlotRegistryError
         ? error
@@ -720,20 +888,16 @@ class PgDaemonSlotStore implements DaemonSlotStore {
   }
 
   private async lookupWorkspace(
-    slot: Pick<
-      DaemonSlotRecord,
-      'agentName' | 'provider' | 'model' | 'slotKey'
-    >,
+    slot: Pick<DaemonSlotRecord, 'workspaceId'>,
   ): Promise<DaemonSlotWorkspaceRecord | null> {
-    const [workspace] = await this.withDb(
-      'select postgres slot workspace',
-      () =>
-        this.db
-          .select()
-          .from(pgDaemonSlotWorkspaces)
-          .where(pgSlotWorkspaceIdentityWhere(slot, slot.slotKey))
-          .limit(1)
-          .execute(),
+    if (!slot.workspaceId) return null;
+    const [workspace] = await this.withDb('select postgres workspace', () =>
+      this.db
+        .select()
+        .from(pgDaemonWorkspaces)
+        .where(eq(pgDaemonWorkspaces.workspaceId, slot.workspaceId as string))
+        .limit(1)
+        .execute(),
     );
     return workspace ?? null;
   }
@@ -803,18 +967,6 @@ function sqliteSlotSessionIdentityWhere(
   );
 }
 
-function sqliteSlotWorkspaceIdentityWhere(
-  identity: DaemonSlotIdentity,
-  slotKey: string,
-) {
-  return and(
-    eq(daemonSlotWorkspaces.agentName, identity.agentName),
-    eq(daemonSlotWorkspaces.provider, identity.provider),
-    eq(daemonSlotWorkspaces.model, identity.model),
-    eq(daemonSlotWorkspaces.slotKey, slotKey),
-  );
-}
-
 function pgSlotIdentityWhere(identity: DaemonSlotIdentity, slotKey: string) {
   return and(
     eq(pgDaemonSlots.agentName, identity.agentName),
@@ -836,28 +988,30 @@ function pgSlotSessionIdentityWhere(
   );
 }
 
-function pgSlotWorkspaceIdentityWhere(
-  identity: DaemonSlotIdentity,
-  slotKey: string,
-) {
-  return and(
-    eq(pgDaemonSlotWorkspaces.agentName, identity.agentName),
-    eq(pgDaemonSlotWorkspaces.provider, identity.provider),
-    eq(pgDaemonSlotWorkspaces.model, identity.model),
-    eq(pgDaemonSlotWorkspaces.slotKey, slotKey),
-  );
-}
-
-function cleanupReapedSlots(slots: ReapedDaemonSlot[]): ReapedDaemonSlot[] {
+/** Remove the persisted Pi session dir for each reaped slot. */
+function cleanupReapedSessions(slots: ReapedDaemonSlot[]): void {
   for (const item of slots) {
     if (item.session) {
       cleanupPiSessionDir(item.session.sessionDir);
     }
-    if (item.workspace) {
-      cleanupReusableWorktree(item.workspace.worktreePath);
+  }
+}
+
+/**
+ * Remove on-disk artifacts for workspaces whose refcount reached 0. Worktrees
+ * (origin/fork) are removed via `git worktree remove`; scratch workspaces are
+ * plain directories removed via rm.
+ */
+function cleanupReleasableWorkspaces(
+  workspaces: DaemonSlotWorkspaceRecord[],
+): void {
+  for (const ws of workspaces) {
+    if (ws.kind === 'scratch') {
+      rmSync(ws.worktreePath, { recursive: true, force: true });
+    } else {
+      cleanupReusableWorktree(ws.worktreePath);
     }
   }
-  return slots;
 }
 
 function cleanupPiSessionDir(sessionDir: string): void {
