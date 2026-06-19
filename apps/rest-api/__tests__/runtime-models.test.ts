@@ -231,6 +231,57 @@ describe('runtime model catalog routes', () => {
       );
     });
 
+    it('maps a duplicate provider/model update to 409', async () => {
+      mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+      mocks.runtimeModelRepository.findById.mockResolvedValue(mockModel());
+      mocks.runtimeModelRepository.update.mockRejectedValue(
+        new UniqueViolationError({
+          constraint: 'runtime_models_team_uq',
+          target: {
+            resource: 'runtime-model',
+            keys: {
+              teamId: TEAM_ID,
+              provider: 'openai',
+              model: 'gpt-5.1',
+            },
+          },
+        }),
+      );
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/runtime-models/${ENTRY_ID}`,
+        headers: { authorization: 'Bearer test-token' },
+        payload: {
+          provider: 'OpenAI',
+          model: 'GPT-5.1',
+        },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({
+        code: 'CONFLICT',
+        conflict: {
+          constraint: 'runtime_models_team_uq',
+          target: {
+            resource: 'runtime-model',
+            keys: {
+              teamId: TEAM_ID,
+              provider: 'openai',
+              model: 'gpt-5.1',
+            },
+          },
+        },
+      });
+      expect(mocks.runtimeModelRepository.update).toHaveBeenCalledWith(
+        ENTRY_ID,
+        expect.objectContaining({
+          provider: 'openai',
+          model: 'gpt-5.1',
+        }),
+      );
+    });
+
     it('refuses to update a global entry via the public API', async () => {
       mocks.runtimeModelRepository.findById.mockResolvedValue(
         mockGlobalModel(),

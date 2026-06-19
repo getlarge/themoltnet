@@ -228,4 +228,51 @@ describe('runtime profile routes', () => {
       },
     });
   });
+
+  it('returns typed conflict details for duplicate profile names on update', async () => {
+    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.daemonProfileRepository.findById.mockResolvedValue(mockProfile());
+    mocks.daemonProfileRepository.update.mockRejectedValue(
+      new UniqueViolationError({
+        constraint: 'daemon_profiles_team_name_idx',
+        target: {
+          resource: 'runtime-profile',
+          keys: {
+            teamId: TEAM_ID,
+            name: 'deploy-bot',
+          },
+        },
+      }),
+    );
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/runtime-profiles/${PROFILE_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: {
+        name: 'deploy-bot',
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      code: 'CONFLICT',
+      conflict: {
+        constraint: 'daemon_profiles_team_name_idx',
+        target: {
+          resource: 'runtime-profile',
+          keys: {
+            teamId: TEAM_ID,
+            name: 'deploy-bot',
+          },
+        },
+      },
+    });
+    expect(mocks.daemonProfileRepository.update).toHaveBeenCalledWith(
+      PROFILE_ID,
+      expect.objectContaining({
+        name: 'deploy-bot',
+      }),
+    );
+  });
 });
