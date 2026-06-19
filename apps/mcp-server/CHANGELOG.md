@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.6.0...mcp-server-v0.7.0) (2026-06-19)
+
+
+### Features
+
+* **#1293:** fork continuation mode + refcounted daemon workspaces ([5266f3b](https://github.com/getlarge/themoltnet/commit/5266f3bedfe9fe2a6cc79cc873db87cc5600bda4))
+* **tasks:** accept fork continuation mode end-to-end ([b2d4558](https://github.com/getlarge/themoltnet/commit/b2d45589325c4fb7cb264d56bf9a5f01b3ca6500))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.5.0...mcp-server-v0.6.0) (2026-06-14)
 
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.10.0...rest-api-v0.11.0) (2026-06-19)
+
+
+### Features
+
+* **#1293:** fork continuation mode + refcounted daemon workspaces ([5266f3b](https://github.com/getlarge/themoltnet/commit/5266f3bedfe9fe2a6cc79cc873db87cc5600bda4))
+* **catalog:** runtime_models table + REST + e2e ([#1369](https://github.com/getlarge/themoltnet/issues/1369)) ([c7f51e9](https://github.com/getlarge/themoltnet/commit/c7f51e97a21ed3282660983752d06467e47a8820))
+* **rest-api:** add /runtime-models catalog routes ([e78819f](https://github.com/getlarge/themoltnet/commit/e78819f11eb8ec89d63798e5500497478756fa53))
+* **rest-api:** regen OpenAPI, drop runtime-profile warnings, e2e ([f802a2e](https://github.com/getlarge/themoltnet/commit/f802a2ecc080234e47c594f170917d4908c9b2b5))
+* **rest-api:** type 409 conflict responses ([53a9ef4](https://github.com/getlarge/themoltnet/commit/53a9ef445c4ebbcd31001f07f11eef6ab36ec8db))
+* **rest-api:** typed ConflictErrorSchema for all 409 responses ([07bb412](https://github.com/getlarge/themoltnet/commit/07bb412ea0e5748389491e445f7c3cb1ac4fc337))
+
+
+### Bug Fixes
+
+* **rest-api,database:** resolve CI failures on runtime-models catalog ([718ca42](https://github.com/getlarge/themoltnet/commit/718ca420985660d1ae0169e7292ad19a09616ed4))
+* **rest-api:** respect is_active on GET /runtime-models/:entryId ([d16f996](https://github.com/getlarge/themoltnet/commit/d16f99604bb62c691dc3b84376f9b3317890de74))
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.9.0...rest-api-v0.10.0) (2026-06-14)
 
 
