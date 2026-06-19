@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.19.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.18.1...agent-daemon-v0.19.0) (2026-06-19)
+
+
+### Features
+
+* **#1293:** fork continuation mode + refcounted daemon workspaces ([5266f3b](https://github.com/getlarge/themoltnet/commit/5266f3bedfe9fe2a6cc79cc873db87cc5600bda4))
+* **agent-daemon:** implement fork continuation mode ([aafe59b](https://github.com/getlarge/themoltnet/commit/aafe59b04edc644b25616793c0a8073b11a70743))
+
+
+### Bug Fixes
+
+* **agent-daemon:** unique fork branch names + SQLite FK ON DELETE SET NULL ([86f0983](https://github.com/getlarge/themoltnet/commit/86f0983fe0f4f50e0f77615e28f8da0971eb79b1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-daemon-state bumped to 0.3.0
+    * @themoltnet/pi-extension bumped to 0.25.0
+
 ## [0.18.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.18.0...agent-daemon-v0.18.1) (2026-06-17)
 
 

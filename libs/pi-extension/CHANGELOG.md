@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.25.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.24.1...pi-extension-v0.25.0) (2026-06-19)
+
+
+### Features
+
+* **#1293:** fork continuation mode + refcounted daemon workspaces ([5266f3b](https://github.com/getlarge/themoltnet/commit/5266f3bedfe9fe2a6cc79cc873db87cc5600bda4))
+* **agent-daemon:** implement fork continuation mode ([aafe59b](https://github.com/getlarge/themoltnet/commit/aafe59b04edc644b25616793c0a8073b11a70743))
+
 ## [0.24.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.24.0...pi-extension-v0.24.1) (2026-06-17)
 
 

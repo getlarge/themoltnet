@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.49.0](https://github.com/getlarge/themoltnet/compare/cli-v1.48.0...cli-v1.49.0) (2026-06-19)
+
+
+### Features
+
+* **#1293:** fork continuation mode + refcounted daemon workspaces ([5266f3b](https://github.com/getlarge/themoltnet/commit/5266f3bedfe9fe2a6cc79cc873db87cc5600bda4))
+* **tasks:** accept fork continuation mode end-to-end ([b2d4558](https://github.com/getlarge/themoltnet/commit/b2d45589325c4fb7cb264d56bf9a5f01b3ca6500))
+
+
+### Bug Fixes
+
+* **moltnet-cli:** sync internal Go module releases ([10c05f5](https://github.com/getlarge/themoltnet/commit/10c05f57b21c2d2c9d5866dbd7b205ecb1a5878b))
+* **moltnet-cli:** sync internal Go module releases ([0136c1e](https://github.com/getlarge/themoltnet/commit/0136c1e61f6bed8758a41908c18f39cac0588cc5))
+
 ## [1.48.0](https://github.com/getlarge/themoltnet/compare/cli-v1.47.0...cli-v1.48.0) (2026-06-17)
 
 

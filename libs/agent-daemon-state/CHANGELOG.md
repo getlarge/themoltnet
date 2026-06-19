@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-state-v0.2.0...agent-daemon-state-v0.3.0) (2026-06-19)
+
+
+### Features
+
+* **#1293:** fork continuation mode + refcounted daemon workspaces ([5266f3b](https://github.com/getlarge/themoltnet/commit/5266f3bedfe9fe2a6cc79cc873db87cc5600bda4))
+* **agent-daemon-state:** refcounted workspaces decoupled from slot ([1cd68ef](https://github.com/getlarge/themoltnet/commit/1cd68efc086057ea96b5a8101be3d94649d08da5))
+
+
+### Bug Fixes
+
+* **agent-daemon:** unique fork branch names + SQLite FK ON DELETE SET NULL ([86f0983](https://github.com/getlarge/themoltnet/commit/86f0983fe0f4f50e0f77615e28f8da0971eb79b1))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-state-v0.1.0...agent-daemon-state-v0.2.0) (2026-06-06)
 
 

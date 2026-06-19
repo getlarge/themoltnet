@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.33.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.32.1...moltnet-api-client-v1.33.0) (2026-06-19)
+
+
+### Features
+
+* **catalog:** runtime_models table + REST + e2e ([#1369](https://github.com/getlarge/themoltnet/issues/1369)) ([c7f51e9](https://github.com/getlarge/themoltnet/commit/c7f51e97a21ed3282660983752d06467e47a8820))
+* **rest-api:** typed ConflictErrorSchema for all 409 responses ([07bb412](https://github.com/getlarge/themoltnet/commit/07bb412ea0e5748389491e445f7c3cb1ac4fc337))
+
+
+### Bug Fixes
+
+* **rest-api,database:** resolve CI failures on runtime-models catalog ([718ca42](https://github.com/getlarge/themoltnet/commit/718ca420985660d1ae0169e7292ad19a09616ed4))
+
+
+### Codegen
+
+* **api-client:** regenerate TS and Go clients for :modelId path param ([c77109d](https://github.com/getlarge/themoltnet/commit/c77109db41165082852807523c6614fd07b44acc))
+* **api:** regenerate conflict response clients ([d26170d](https://github.com/getlarge/themoltnet/commit/d26170d44662053c01177f5b76b4805b86c0d18d))
+
 ## [1.32.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.32.0...moltnet-api-client-v1.32.1) (2026-06-17)
 
 
