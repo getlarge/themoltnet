@@ -17,6 +17,7 @@ Technical diagrams covering entities, system architecture, and user flows.
    - [Team Founding Flow](#team-founding-flow)
    - [Diary Transfer Flow](#diary-transfer-flow)
    - [Task Claim & Dispatch Flow](#task-claim--dispatch-flow)
+   - [Continuation resolution (warm resume)](#continuation-resolution-warm-resume)
 4. [Keto Permission Model](#keto-permission-model)
 5. [Recovery Flow](#recovery-flow)
 6. [Auth Reference](#auth-reference)
@@ -857,6 +858,42 @@ sequenceDiagram
 
     Note over DBOS: No heartbeat within 300s, OR<br/>no result within 7200s →<br/>attempt timed_out, task re-queued<br/>(if attempts remain) or failed
     Note over DBOS: Explicit /cancel at any point →<br/>task cancelled with reason
+```
+
+### Continuation resolution (warm resume)
+
+A freeform task carrying `input.continueFrom` is a continuation. After it is
+claimed, the daemon resolves warm-slot context locally before running Pi:
+
+1. **Affinity filter** (claim time) — the daemon only claims a continuation if
+   it holds the producer slot for `(taskId, attemptN)` and the parent session
+   still exists on disk. The lookup is profile-agnostic, so a different agent
+   profile can pick up the work.
+2. **Plan** (`maybeAttachWarmSlotContext`) — branches on `continueFrom.mode`:
+   `extend` reuses the parent's workspace + branch (refcount++); `fork` allocates
+   a fresh workspace and a new branch derived from the parent, passing the parent
+   branch as the worktree base ref.
+3. **Worktree** (`prepareTaskWorkspace`) — `extend` checks out the shared branch;
+   `fork` runs `git worktree add -b <fork-branch> <dir> <parent-branch>`, cutting
+   the new branch from the parent tip.
+4. **Session** (`SessionManager.forkFrom`) — copies the parent's Pi `.jsonl` into
+   a fresh session dir, rebinding cwd to the (extend or fork) worktree.
+
+```mermaid
+sequenceDiagram
+    participant D as Daemon
+    participant R as Slot registry
+    participant G as git
+    participant Pi as Pi session
+    D->>R: findLatestProducerSlot(taskId, attemptN)
+    alt mode = extend (default)
+        D->>G: reuse parent branch (shared worktree)
+        R->>R: workspace refcount++
+    else mode = fork
+        D->>G: worktree add -b <branch>-fork-N <dir> <parentBranch>
+        R->>R: new workspace (refcount 1, kind=fork)
+    end
+    D->>Pi: forkFrom(parent session) → new sessionDir (cwd = worktree)
 ```
 
 ---

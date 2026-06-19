@@ -218,7 +218,12 @@ describe('DaemonSlotRegistry backend parity (integration)', () => {
       const registry = backend().makeRegistry();
       try {
         // Profile A warms first, profile B (different provider/model) second.
+        // Order by lastUsedAtMs is only meaningful across distinct
+        // milliseconds, so ensure B is recorded in a strictly later ms.
         await registry.beginSlot(startInput(IDENTITY_A, { ttlSec: 3600 }));
+        await new Promise((resolve) => {
+          setTimeout(resolve, 2);
+        });
         await registry.beginSlot(startInput(IDENTITY_B, { ttlSec: 3600 }));
 
         // Producer lookup is profile-agnostic and returns the most recently

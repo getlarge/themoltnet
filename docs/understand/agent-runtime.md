@@ -195,6 +195,38 @@ freeform tasks may request a narrow workspace hint through
 freeform attempt. Continuations inherit the parent daemon slot's workspace mode;
 callers cannot override it on the continuation task.
 
+#### Daemon slot & workspace lifecycle
+
+The daemon keeps a local **slot registry** (`@themoltnet/agent-daemon-state`) so
+related tasks can reuse a warm Pi session and its git worktree. A slot is keyed
+by `(agentName, provider, model, slotKey)` — so the **same logical task can hold
+several slots, one per agent profile**.
+
+The worktree/scratch **workspace** a slot uses is a separate, refcounted entity
+(`daemon_workspaces`), not owned by any single slot. `beginSlot` increments the
+referenced workspace's refcount; reap (TTL expiry) decrements it and removes the
+on-disk artifact — `git worktree remove` for `origin`/`fork` worktrees, `rm` for
+`scratch` dirs — **only when the count reaches zero**. This is what lets a
+continuation under a _different_ profile share the parent's branch: both slots
+reference one workspace, and the branch survives until the last referrer evicts.
+
+```mermaid
+sequenceDiagram
+    participant A as slot (profile A)
+    participant W as workspace ws-x (refcount)
+    participant B as slot (profile B)
+    A->>W: beginSlot → refcount 1 (create worktree)
+    B->>W: beginSlot (extend, shared branch) → refcount 2
+    Note over A: profile A slot TTL expires
+    A->>W: reap → refcount 1 (worktree kept)
+    Note over B: profile B slot TTL expires
+    B->>W: reap → refcount 0 (git worktree remove)
+```
+
+A `fork` continuation does not share: it gets its own workspace (refcount 1,
+`kind = fork`) on a new branch cut from the parent tip, so it evicts
+independently.
+
 #### Judgment tasks fetch their target themselves
 
 Target-fetching judgment task types fetch the subject they score instead of
