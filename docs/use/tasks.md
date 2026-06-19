@@ -88,9 +88,36 @@ dedicated REST endpoint; the helper still creates a normal task through
 Continuation workspace mode is inherited from the parent daemon slot. Do not
 set `input.execution.workspace` when `input.continueFrom` is present; the server
 rejects that combination because the daemon would otherwise have to ignore the
-override. Today `continueFrom.mode` defaults to `extend`; `fork` exists in the
-wire schema for future copy-on-write continuation work, but the current
-validator rejects it.
+override.
+
+`continueFrom.mode` selects how the continuation relates to the parent's git
+history. Both modes copy the parent's Pi session (the conversation carries
+forward); they differ only on the branch:
+
+|               | `extend` (default)                           | `fork`                               |
+| ------------- | -------------------------------------------- | ------------------------------------ |
+| git branch    | parent's branch (shared)                     | NEW branch cut from the parent's tip |
+| PR effect     | same PR                                      | a separate, divergent PR             |
+| Pi session    | copied from parent                           | copied from parent                   |
+| workspace     | parent's (refcounted)                        | a fresh workspace                    |
+| cross-profile | yes — a different agent profile may continue | n/a (own branch)                     |
+
+Use `extend` to keep building the same change — including handing the work to a
+**different agent profile** on the same PR (the daemon-state workspace is
+refcounted, so two profiles can resume the same branch without colliding). Use
+`fork` to explore a divergent alternative that should land as its own PR; the
+fork branch is `<parent-branch>-fork-<attemptN>`.
+
+```mermaid
+flowchart TD
+    P["parent attempt<br/>branch: feat/x · session S"]
+    P -->|extend| E["same branch feat/x<br/>copied session S′<br/>(any profile)"]
+    P -->|fork| F["new branch feat/x-fork-N<br/>copied session S′<br/>fresh worktree"]
+```
+
+`extend` is sequential per branch: don't run two `extend` continuations of the
+same branch concurrently — git refuses to check a branch out into two worktrees
+at once, and the second claim is rejected and retried.
 
 If repeated freeform work needs a stronger input/output contract or a runtime
 profile beyond these declared hints, treat that as evidence for a real task

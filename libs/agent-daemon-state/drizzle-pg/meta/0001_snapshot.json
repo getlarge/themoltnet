@@ -1,0 +1,298 @@
+{
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  },
+  "dialect": "postgresql",
+  "enums": {},
+  "id": "c54111f1-3bba-43ee-935f-9ddfbf20f811",
+  "policies": {},
+  "prevId": "e4af415d-f37b-44c3-9b7f-fb251da1c406",
+  "roles": {},
+  "schemas": {},
+  "sequences": {},
+  "tables": {
+    "public.daemon_slot_sessions": {
+      "checkConstraints": {},
+      "columns": {
+        "agent_name": {
+          "name": "agent_name",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "model": {
+          "name": "model",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "provider": {
+          "name": "provider",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "session_dir": {
+          "name": "session_dir",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "session_path": {
+          "name": "session_path",
+          "notNull": false,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "slot_key": {
+          "name": "slot_key",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        }
+      },
+      "compositePrimaryKeys": {
+        "daemon_slot_sessions_agent_name_provider_model_slot_key_pk": {
+          "columns": ["agent_name", "provider", "model", "slot_key"],
+          "name": "daemon_slot_sessions_agent_name_provider_model_slot_key_pk"
+        }
+      },
+      "foreignKeys": {
+        "daemon_slot_sessions_agent_name_provider_model_slot_key_daemon_slots_agent_name_provider_model_slot_key_fk": {
+          "columnsFrom": ["agent_name", "provider", "model", "slot_key"],
+          "columnsTo": ["agent_name", "provider", "model", "slot_key"],
+          "name": "daemon_slot_sessions_agent_name_provider_model_slot_key_daemon_slots_agent_name_provider_model_slot_key_fk",
+          "onDelete": "cascade",
+          "onUpdate": "no action",
+          "tableFrom": "daemon_slot_sessions",
+          "tableTo": "daemon_slots"
+        }
+      },
+      "indexes": {},
+      "isRLSEnabled": false,
+      "name": "daemon_slot_sessions",
+      "policies": {},
+      "schema": "",
+      "uniqueConstraints": {
+        "daemon_slot_sessions_session_dir_unique": {
+          "columns": ["session_dir"],
+          "name": "daemon_slot_sessions_session_dir_unique",
+          "nullsNotDistinct": false
+        }
+      }
+    },
+    "public.daemon_slots": {
+      "checkConstraints": {
+        "daemon_slots_state_check": {
+          "name": "daemon_slots_state_check",
+          "value": "\"daemon_slots\".\"state\" IN ('active', 'idle')"
+        }
+      },
+      "columns": {
+        "agent_name": {
+          "name": "agent_name",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "created_at_ms": {
+          "name": "created_at_ms",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "bigint"
+        },
+        "expires_at_ms": {
+          "name": "expires_at_ms",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "bigint"
+        },
+        "last_attempt_n": {
+          "name": "last_attempt_n",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "integer"
+        },
+        "last_task_id": {
+          "name": "last_task_id",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "last_used_at_ms": {
+          "name": "last_used_at_ms",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "bigint"
+        },
+        "model": {
+          "name": "model",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "provider": {
+          "name": "provider",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "slot_key": {
+          "name": "slot_key",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "state": {
+          "name": "state",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "task_type": {
+          "name": "task_type",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "notNull": false,
+          "primaryKey": false,
+          "type": "text"
+        }
+      },
+      "compositePrimaryKeys": {
+        "daemon_slots_agent_name_provider_model_slot_key_pk": {
+          "columns": ["agent_name", "provider", "model", "slot_key"],
+          "name": "daemon_slots_agent_name_provider_model_slot_key_pk"
+        }
+      },
+      "foreignKeys": {
+        "daemon_slots_workspace_id_daemon_workspaces_workspace_id_fk": {
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["workspace_id"],
+          "name": "daemon_slots_workspace_id_daemon_workspaces_workspace_id_fk",
+          "onDelete": "set null",
+          "onUpdate": "no action",
+          "tableFrom": "daemon_slots",
+          "tableTo": "daemon_workspaces"
+        }
+      },
+      "indexes": {
+        "daemon_slots_expires_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "expires_at_ms",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "daemon_slots_expires_idx",
+          "with": {}
+        },
+        "daemon_slots_task_attempt_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "last_task_id",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": true,
+              "expression": "last_attempt_n",
+              "isExpression": false,
+              "nulls": "last"
+            },
+            {
+              "asc": false,
+              "expression": "last_used_at_ms",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "daemon_slots_task_attempt_idx",
+          "with": {}
+        }
+      },
+      "isRLSEnabled": false,
+      "name": "daemon_slots",
+      "policies": {},
+      "schema": "",
+      "uniqueConstraints": {}
+    },
+    "public.daemon_workspaces": {
+      "checkConstraints": {
+        "daemon_workspaces_kind_check": {
+          "name": "daemon_workspaces_kind_check",
+          "value": "\"daemon_workspaces\".\"kind\" IN ('origin', 'fork', 'scratch')"
+        }
+      },
+      "columns": {
+        "created_at_ms": {
+          "name": "created_at_ms",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "bigint"
+        },
+        "kind": {
+          "name": "kind",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "last_used_at_ms": {
+          "name": "last_used_at_ms",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "bigint"
+        },
+        "refcount": {
+          "default": 0,
+          "name": "refcount",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "integer"
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "notNull": true,
+          "primaryKey": true,
+          "type": "text"
+        },
+        "worktree_branch": {
+          "name": "worktree_branch",
+          "notNull": false,
+          "primaryKey": false,
+          "type": "text"
+        },
+        "worktree_path": {
+          "name": "worktree_path",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "text"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "foreignKeys": {},
+      "indexes": {},
+      "isRLSEnabled": false,
+      "name": "daemon_workspaces",
+      "policies": {},
+      "schema": "",
+      "uniqueConstraints": {}
+    }
+  },
+  "version": "7",
+  "views": {}
+}

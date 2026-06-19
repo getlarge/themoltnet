@@ -118,7 +118,11 @@ async function maybeAttachWarmSlotContext(
   if (claimedTask.task.taskType === 'freeform') {
     const continueFrom = (
       claimedTask.task.input as {
-        continueFrom?: { taskId: string; attemptN: number };
+        continueFrom?: {
+          taskId: string;
+          attemptN: number;
+          mode?: 'extend' | 'fork';
+        };
       }
     ).continueFrom;
 
@@ -142,13 +146,58 @@ async function maybeAttachWarmSlotContext(
       );
     }
 
+    const sessionDir = `${stateDirs.piSessionsDir}/continue-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
+    const parentBranch =
+      resolution.producerSlot.workspace?.worktreeBranch ?? null;
+
+    if (continueFrom.mode === 'fork') {
+      // Fork: diverge onto a NEW branch cut from the parent's tip, in a fresh
+      // (unique) workspace. The session is still copied (forkFromSessionPath),
+      // but git state forks cleanly so the new chain is a separate PR.
+      if (!parentBranch) {
+        throw new ProducerContextResolutionError(
+          `Cannot fork continuation of ${continueFrom.taskId}/${continueFrom.attemptN}: producer slot has no worktree branch to fork from`,
+        );
+      }
+      // Both the workspace id and the branch name must be unique per fork
+      // task: two `fork` continuations of the same parent both run at child
+      // attempt 1, so keying the branch only on the parent + attempt would
+      // collide (the second `git worktree add` would hit an already-checked-out
+      // branch). Include the child task id (mirrors forkWorkspaceId).
+      const forkWorkspaceId = `fork-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
+      const forkBranch = `${parentBranch}-fork-${claimedTask.task.id.slice(0, 8)}-${claimedTask.attemptN}`;
+      return {
+        ...basePlan,
+        workspaceMode: 'dedicated_worktree',
+        workspaceId: forkWorkspaceId,
+        worktreeBranch: forkBranch,
+        worktreeBaseRef: parentBranch,
+        workspaceKind: 'fork',
+        sessionPersistence: {
+          sessionDir,
+          forkFromSessionPath: resolution.sessionPath,
+        },
+        // No workspaceSeed: the worktree is created by branching, not copying.
+      };
+    }
+
+    // extend (default): share the parent's branch/workspace. Cross-profile safe
+    // now that workspaces are refcounted.
+    //
+    // A null workspace here is legitimate, not a degraded continuation: it
+    // means the producer ran in shared_mount (no dedicated worktree), so there
+    // is no branch to share and the continuation correctly runs on the shared
+    // mount too. The dangerous case — a live producer slot whose workspace was
+    // reaped out from under it — cannot happen: reap deletes the slot and
+    // releases its workspace in one transaction, so a resolved (live) slot
+    // always still has its workspace row (refcount >= 1).
     return {
       ...basePlan,
       workspaceMode: 'dedicated_worktree',
       workspaceId: resolution.producerSlot.workspace?.workspaceId ?? null,
-      worktreeBranch: resolution.producerSlot.workspace?.worktreeBranch ?? null,
+      worktreeBranch: parentBranch,
       sessionPersistence: {
-        sessionDir: `${stateDirs.piSessionsDir}/continue-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,
+        sessionDir,
         forkFromSessionPath: resolution.sessionPath,
       },
       // Importantly: NO workspaceSeed. Continuation mounts the parent's
@@ -199,6 +248,7 @@ async function maybeAttachWarmSlotContext(
     ...basePlan,
     workspaceMode: 'scratch_mount',
     worktreeBranch: null,
+    workspaceKind: 'scratch',
     workspaceSeed: {
       copyFromPath: resolution.workspacePath,
       source: 'producer',

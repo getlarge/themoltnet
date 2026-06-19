@@ -218,7 +218,12 @@ describe('DaemonSlotRegistry backend parity (integration)', () => {
       const registry = backend().makeRegistry();
       try {
         // Profile A warms first, profile B (different provider/model) second.
+        // Order by lastUsedAtMs is only meaningful across distinct
+        // milliseconds, so ensure B is recorded in a strictly later ms.
         await registry.beginSlot(startInput(IDENTITY_A, { ttlSec: 3600 }));
+        await new Promise((resolve) => {
+          setTimeout(resolve, 2);
+        });
         await registry.beginSlot(startInput(IDENTITY_B, { ttlSec: 3600 }));
 
         // Producer lookup is profile-agnostic and returns the most recently
@@ -230,6 +235,44 @@ describe('DaemonSlotRegistry backend parity (integration)', () => {
         expect(found).not.toBeNull();
         expect(found?.slot.provider).toBe(IDENTITY_B.provider);
         expect(found?.workspace?.workspaceId).toBe('ws-openai-codex');
+      } finally {
+        await registry.reapExpiredSlots(Date.now() + 10_000_000);
+        await registry.close();
+      }
+    });
+
+    it('refcounts a workspace shared by two profiles across reaps', async () => {
+      const registry = backend().makeRegistry();
+      try {
+        // Both profiles reference the SAME workspaceId — the cross-profile
+        // continuation case. Pre-refcount this threw a unique violation.
+        const shared = { workspaceId: 'ws-shared', worktreePath: '/tmp/wt-sh' };
+        await registry.beginSlot(
+          startInput(IDENTITY_A, { ...shared, ttlSec: 1 }),
+        );
+        await registry.beginSlot(
+          startInput(IDENTITY_B, { ...shared, ttlSec: 3600 }),
+        );
+
+        // Reap profile A only — the shared workspace must survive (refcount 1).
+        const reapedA = await registry.reapExpiredSlots(Date.now() + 2_000);
+        expect(reapedA).toHaveLength(1);
+        const afterA = await registry.findLatestProducerSlotByTaskAttempt(
+          TASK_ID,
+          1,
+        );
+        expect(afterA?.workspace?.workspaceId).toBe('ws-shared');
+
+        // Reap profile B (last reference) — workspace + slot gone.
+        const reapedB = await registry.reapExpiredSlots(
+          Date.now() + 10_000_000,
+        );
+        expect(reapedB).toHaveLength(1);
+        const afterB = await registry.findLatestProducerSlotByTaskAttempt(
+          TASK_ID,
+          1,
+        );
+        expect(afterB).toBeNull();
       } finally {
         await registry.reapExpiredSlots(Date.now() + 10_000_000);
         await registry.close();

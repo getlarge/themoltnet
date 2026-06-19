@@ -9,6 +9,31 @@ import {
   text,
 } from 'drizzle-orm/sqlite-core';
 
+// Worktree/scratch workspaces are first-class, refcounted entities shared by
+// N slots (across agent profiles) that resume the same task chain. The slot ->
+// workspace direction (slot.workspace_id FK) lets two profiles reference one
+// branch/worktree without colliding on the workspace_id unique constraint, and
+// reap decrements `refcount`, removing the worktree only when it reaches 0.
+export const daemonWorkspaces = sqliteTable(
+  'daemon_workspaces',
+  {
+    workspaceId: text('workspace_id').primaryKey(),
+    worktreePath: text('worktree_path').notNull(),
+    // Null for scratch_mount workspaces, which have no git branch.
+    worktreeBranch: text('worktree_branch'),
+    kind: text('kind', { enum: ['origin', 'fork', 'scratch'] }).notNull(),
+    refcount: integer('refcount').notNull().default(0),
+    createdAtMs: integer('created_at_ms').notNull(),
+    lastUsedAtMs: integer('last_used_at_ms').notNull(),
+  },
+  (table) => [
+    check(
+      'daemon_workspaces_kind_check',
+      sql`${table.kind} IN ('origin', 'fork', 'scratch')`,
+    ),
+  ],
+);
+
 export const daemonSlots = sqliteTable(
   'daemon_slots',
   {
@@ -20,6 +45,10 @@ export const daemonSlots = sqliteTable(
     state: text('state', { enum: ['active', 'idle'] }).notNull(),
     lastTaskId: text('last_task_id').notNull(),
     lastAttemptN: integer('last_attempt_n').notNull(),
+    workspaceId: text('workspace_id').references(
+      () => daemonWorkspaces.workspaceId,
+      { onDelete: 'set null' },
+    ),
     createdAtMs: integer('created_at_ms').notNull(),
     lastUsedAtMs: integer('last_used_at_ms').notNull(),
     expiresAtMs: integer('expires_at_ms').notNull(),
@@ -67,35 +96,8 @@ export const daemonSlotSessions = sqliteTable(
   ],
 );
 
-export const daemonSlotWorkspaces = sqliteTable(
-  'daemon_slot_workspaces',
-  {
-    agentName: text('agent_name').notNull(),
-    provider: text('provider').notNull(),
-    model: text('model').notNull(),
-    slotKey: text('slot_key').notNull(),
-    workspaceId: text('workspace_id').notNull().unique(),
-    worktreePath: text('worktree_path').notNull(),
-    worktreeBranch: text('worktree_branch'),
-  },
-  (table) => [
-    primaryKey({
-      columns: [table.agentName, table.provider, table.model, table.slotKey],
-    }),
-    foreignKey({
-      columns: [table.agentName, table.provider, table.model, table.slotKey],
-      foreignColumns: [
-        daemonSlots.agentName,
-        daemonSlots.provider,
-        daemonSlots.model,
-        daemonSlots.slotKey,
-      ],
-    }).onDelete('cascade'),
-  ],
-);
-
 export const agentDaemonStateSchema = {
   daemonSlotSessions,
-  daemonSlotWorkspaces,
+  daemonWorkspaces,
   daemonSlots,
 };

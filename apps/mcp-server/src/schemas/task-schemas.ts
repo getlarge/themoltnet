@@ -179,7 +179,10 @@ export const TaskContinueSchema = Type.Object(
     // both set on the constructed input.
     successCriteria: Type.Optional(SuccessCriteria),
     mode: Type.Optional(
-      Type.Union([Type.Literal('extend'), Type.Literal('fork')]),
+      Type.Union([Type.Literal('extend'), Type.Literal('fork')], {
+        description:
+          "Continuation mode. 'extend' (default) continues on the parent's branch/worktree — same PR — and may run under a different agent profile. 'fork' cuts a NEW branch from the parent's tip into a fresh worktree, diverging into a separate PR. Both copy the parent Pi session.",
+      }),
     ),
   },
   { additionalProperties: false },

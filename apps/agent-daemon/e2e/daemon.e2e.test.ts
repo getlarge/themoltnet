@@ -1488,9 +1488,15 @@ function readDaemonSlotState(dbPath: string): DaemonSlotState {
           'SELECT slot_key as slotKey, session_dir as sessionDir, session_path as sessionPath FROM daemon_slot_sessions',
         )
         .all() as unknown as Array<Record<string, unknown>>,
+      // Workspaces are refcounted entities referenced by daemon_slots; join
+      // back to keep the per-slot (slotKey → workspace) shape the assertions
+      // expect. A slot with no workspace_id contributes no row.
       workspaces: db
         .prepare(
-          'SELECT slot_key as slotKey, workspace_id as workspaceId, worktree_path as worktreePath FROM daemon_slot_workspaces',
+          `SELECT s.slot_key as slotKey, w.workspace_id as workspaceId,
+                  w.worktree_path as worktreePath
+             FROM daemon_slots s
+             JOIN daemon_workspaces w ON w.workspace_id = s.workspace_id`,
         )
         .all() as unknown as Array<Record<string, unknown>>,
     };

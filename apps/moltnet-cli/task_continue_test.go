@@ -213,10 +213,9 @@ func TestRunTaskContinue_WithMode(t *testing.T) {
 	}
 }
 
-func TestRunTaskContinue_RejectsForkMode(t *testing.T) {
-	// The Go CLI should reject fork mode locally before the server hop,
-	// matching the rejection the MCP tool and async validator do. Saves the
-	// caller a round-trip and produces a clearer error.
+func TestRunTaskContinue_ForwardsForkMode(t *testing.T) {
+	// Fork mode is implemented (#1293); the CLI forwards it to the server
+	// rather than rejecting locally.
 	srcID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
 	h := &stubContinueHandler{source: freeformSourceFixture(
 		srcID, uuid.New(), uuid.New(), uuid.New())}
@@ -230,17 +229,15 @@ func TestRunTaskContinue_RejectsForkMode(t *testing.T) {
 		modeSet:        true,
 		skipValidation: true,
 	})
-	if err == nil {
-		t.Fatal("expected error for mode=fork, got nil")
+	if err != nil {
+		t.Fatalf("unexpected error for mode=fork: %v", err)
 	}
-	if !strings.Contains(err.Error(), "fork") || !strings.Contains(err.Error(), "1293") {
-		t.Errorf("error = %q, want substring 'fork' and '1293'", err)
+	if h.createCalls != 1 {
+		t.Fatalf("CreateTask calls = %d, want 1", h.createCalls)
 	}
-	if h.getCalls != 0 {
-		t.Errorf("unexpected GetTask calls = %d, want 0 (fork should be caught locally)", h.getCalls)
-	}
-	if h.createCalls != 0 {
-		t.Errorf("unexpected CreateTask calls = %d, want 0", h.createCalls)
+	cf := h.lastCreate.Input["continueFrom"]
+	if !strings.Contains(string(cf), `"mode":"fork"`) {
+		t.Errorf("continueFrom missing mode=fork: %s", cf)
 	}
 }
 

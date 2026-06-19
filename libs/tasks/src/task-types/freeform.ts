@@ -140,20 +140,17 @@ export type FreeformOutput = Static<typeof FreeformOutput>;
  *  3. `freeform.sourceAttemptNotCompleted` — named attempt is missing
  *     or not in `completed` state; warm continuation only makes sense
  *     once the parent has produced a terminal output.
- *  4. `freeform.forkModeNotImplemented` — `mode: 'fork'` is the wire
- *     surface for copy-on-write continuation tracked in #1293; v1
- *     rejects it server-side so daemons never have to branch.
- *  5. `freeform.executionWorkspaceNotInheritable` — caller set
+ *  4. `freeform.executionWorkspaceNotInheritable` — caller set
  *     `execution.workspace` together with `continueFrom`. Workspace
  *     mode for a continuation is inherited from the parent slot
  *     (`maybeAttachWarmSlotContext` forces `dedicated_worktree` +
  *     the parent's worktreeBranch), so any caller-supplied override
  *     is silently dropped at the daemon plan stage. Reject explicitly
  *     so misconfiguration surfaces at create time.
- *  6. `freeform.sourceNotResumeEligible` — `daemonState` is null or
+ *  5. `freeform.sourceNotResumeEligible` — `daemonState` is null or
  *     `slotResumableUntil` is null. Older completions (pre-#1287) and
  *     daemons that opt out fall here.
- *  7. `freeform.sourceResumeExpired` — `slotResumableUntil` is in the
+ *  6. `freeform.sourceResumeExpired` — `slotResumableUntil` is in the
  *     past; the warm slot's TTL has elapsed and no daemon is
  *     guaranteed to still hold it.
  *
@@ -184,22 +181,6 @@ export async function validateFreeformInputAsync(
         field: 'input/continueFrom/taskId',
         message: `Source task type '${source.taskType}' is not continuable; only freeform → freeform is supported in v1`,
         code: 'freeform.sourceTaskTypeNotSupported',
-      },
-    ];
-  }
-
-  // Stable check: fork mode rejection doesn't depend on parent runtime
-  // state. Fires even when readiness checks are deferred (e.g. a
-  // continuation proposed with a `task_status: completed` claim
-  // condition while the parent is still running) so callers learn the
-  // mode is invalid at create time rather than at claim time.
-  if (cf.mode === 'fork') {
-    return [
-      {
-        field: 'input/continueFrom/mode',
-        message:
-          'fork mode not yet implemented; see https://github.com/getlarge/themoltnet/issues/1293',
-        code: 'freeform.forkModeNotImplemented',
       },
     ];
   }

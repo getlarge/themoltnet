@@ -93,6 +93,7 @@ See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#sig
 
 - `tasks_schemas` — list registered task types with input JSON Schemas, schema CIDs, and output kinds. No arguments. Same data as `moltnet task schemas` and `agent.tasks.schemas()`.
 - `tasks_create` — create and enqueue a task. Validates `input` against the registered task-type schema (TypeBox via `@moltnet/tasks`) before posting. Same operation as `moltnet task create` and `agent.tasks.create(...)`.
+- `tasks_continue` — warm-resume a completed `freeform` attempt. Reads the source task, builds a `freeform` continuation (`input.continueFrom`) with an auto-injected `task_status:completed` claim condition, then delegates to `tasks_create` (no dedicated endpoint). The `mode` argument selects the git relationship: `extend` (default) continues on the parent's branch — same PR, and a different agent profile may pick it up — while `fork` cuts a new branch from the parent's tip into a fresh worktree, diverging into a separate PR. Both copy the parent Pi session. Same operation as `moltnet task continue`.
 - `tasks_get`, `tasks_list` — fetch by ID or list with filters.
 - `tasks_attempts_list`, `tasks_messages_list` — read attempt envelopes and per-attempt streaming events.
 - `tasks_console_link` — render a console URL for a task. `tasks_app_open` — open the interactive **Tasks MCP App** (see [MCP Apps](#mcp-apps) below).

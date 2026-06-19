@@ -343,7 +343,7 @@ describe('tasks_continue server-side validation matrix', () => {
     }
   }, 60_000);
 
-  it("5. mode='fork' — fresh, completed source → 400 with forkMode hint", async () => {
+  it("5. mode='fork' — fresh, completed source → 201, mode preserved", async () => {
     const sourceId = await createFreeformSource('scenario 5: fork mode');
     const attemptN = await claimSource(sourceId);
     await completeFreeformSource({
@@ -352,15 +352,26 @@ describe('tasks_continue server-side validation matrix', () => {
       eligibility: 'fresh',
     });
 
-    const { error, response } = await createContinuation({
+    const { data, error, response } = await createContinuation({
       taskId: sourceId,
       attemptN,
       mode: 'fork',
     });
 
-    expect(response.status).toBe(400);
-    expect(firstValidationMessage(error)).toMatch(
-      /input\/continueFrom\/mode.*fork mode not yet implemented/i,
+    // Fork is implemented (#1293): the continuation is accepted, not rejected.
+    expect(
+      error,
+      `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
+    ).toBeUndefined();
+    expect(response.status).toBe(201);
+    expect(data!.input).toEqual(
+      expect.objectContaining({
+        continueFrom: expect.objectContaining({
+          taskId: sourceId,
+          attemptN,
+          mode: 'fork',
+        }),
+      }),
     );
   }, 60_000);
 

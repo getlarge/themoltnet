@@ -79,15 +79,6 @@ func runTaskContinueWithClient(ctx context.Context, client *moltnetapi.Client, o
 	if err != nil {
 		return fmt.Errorf("invalid --from-task-id %q: %w", opts.fromTaskID, err)
 	}
-	if opts.modeSet && opts.mode == "fork" {
-		// Reject locally for symmetry with the async validator
-		// (libs/tasks/src/task-types/freeform.ts:201). Server would
-		// reject too; failing fast is friendlier.
-		return fmt.Errorf(
-			"fork mode not yet implemented; see " +
-				"https://github.com/getlarge/themoltnet/issues/1293",
-		)
-	}
 	if opts.modeSet && opts.mode != "extend" && opts.mode != "fork" {
 		return fmt.Errorf(
 			"--mode must be one of: extend, fork (got %q)", opts.mode)

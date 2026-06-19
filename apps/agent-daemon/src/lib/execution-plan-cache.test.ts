@@ -253,6 +253,96 @@ describe('createExecutionPlanCache', () => {
     await slotRegistry.close();
   });
 
+  it('forks onto a new branch from the parent tip for mode=fork', async () => {
+    const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-fork-'));
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+      registryDbPath: join(mountRoot, '.moltnet', 'd', 'daemon-state.sqlite'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const producerSessionDir = join(stateDirs.piSessionsDir, 'producer-slot');
+    const producerWorkspace = join(
+      mountRoot,
+      '.moltnet',
+      'd',
+      'task-workspaces',
+      'task-parent',
+    );
+    mkdirSync(producerSessionDir, { recursive: true });
+    mkdirSync(producerWorkspace, { recursive: true });
+    const producerSessionPath = join(producerSessionDir, 'session-1.jsonl');
+    writeFileSync(producerSessionPath, '{"role":"system"}\n', 'utf8');
+
+    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+    await slotRegistry.beginSlot({
+      agentName: 'a',
+      provider: 'p',
+      model: 'm',
+      slotKey: 'freeform:correlation:abc',
+      taskType: 'freeform',
+      sessionDir: producerSessionDir,
+      sessionPath: producerSessionPath,
+      workspaceId: 'task-parent',
+      worktreePath: producerWorkspace,
+      worktreeBranch: 'feat/parent',
+      lastTaskId: '11111111-1111-4111-8111-111111111111',
+      lastAttemptN: 1,
+      ttlSec: 300,
+    });
+    await slotRegistry.finishSlot(
+      { agentName: 'a', provider: 'p', model: 'm' },
+      'freeform:correlation:abc',
+      300,
+      producerSessionPath,
+    );
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', provider: 'p', model: 'm' },
+      warmSessionTtlSec: 300,
+      slotRegistry,
+    });
+
+    const plan = await cache.getOrCreate({
+      attemptN: 1,
+      task: {
+        id: '22222222-2222-4222-8222-222222222222',
+        taskType: 'freeform',
+        correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        input: {
+          brief: 'diverge',
+          continueFrom: {
+            taskId: '11111111-1111-4111-8111-111111111111',
+            attemptN: 1,
+            mode: 'fork',
+          },
+        },
+      } as unknown as Task,
+    });
+
+    expect(plan.workspaceMode).toBe('dedicated_worktree');
+    // NEW unique workspace + NEW branch derived from the parent, base ref =
+    // parent branch so git cuts the fork from the parent tip. Both the
+    // workspace id and the branch carry the child task id so two forks of the
+    // same parent at attempt 1 do not collide.
+    expect(plan.workspaceId).toBe(
+      'fork-22222222-2222-4222-8222-222222222222-attempt-1',
+    );
+    expect(plan.worktreeBranch).toBe('feat/parent-fork-22222222-1');
+    expect(plan.worktreeBaseRef).toBe('feat/parent');
+    expect(plan.workspaceKind).toBe('fork');
+    // Session is still copied; the worktree is branched, not seeded.
+    expect(plan.sessionPersistence?.forkFromSessionPath).toBe(
+      producerSessionPath,
+    );
+    expect(plan.workspaceSeed).toBeUndefined();
+
+    await slotRegistry.close();
+  });
+
   it('throws when freeform continueFrom cannot resolve a producer slot', async () => {
     const mountRoot = mkdtempSync(
       join(tmpdir(), 'daemon-exec-plan-cont-miss-'),
