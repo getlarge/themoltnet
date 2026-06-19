@@ -129,11 +129,28 @@ func TestE2E_CLI_TaskContinue_DryRunFromQueuedSource(t *testing.T) {
 
 // TestE2E_CLI_TaskContinue_ForwardsForkMode confirms the CLI forwards
 // --mode fork into the continueFrom payload (fork is implemented, #1293).
+// The continuation reads the source task to inherit team/correlation, so we
+// seed a real source first, then dry-run (never POSTs the continuation).
 func TestE2E_CLI_TaskContinue_ForwardsForkMode(t *testing.T) {
 	h := newTaskCreateHarness(t)
+	corr := uuid.NewString()
+
+	createOut, _ := h.runWithStdin(t, freeformInputJSON(corr),
+		"task", "create",
+		"--task-type", "freeform",
+		"--team-id", e2ePersonalTeamID.String(),
+		"--diary-id", e2eDiaryID.String(),
+		"--correlation-id", corr,
+		"--output", "id",
+	)
+	srcID := strings.TrimSpace(createOut)
+	if _, err := uuid.Parse(srcID); err != nil {
+		t.Fatalf("expected task create to print a UUID, got %q", srcID)
+	}
+
 	dryOut, _ := h.runWithStdin(t, "",
 		"task", "continue",
-		"--from-task-id", "11111111-1111-4111-8111-111111111111",
+		"--from-task-id", srcID,
 		"--from-attempt-n", "1",
 		"--brief", "fork probe",
 		"--mode", "fork",
