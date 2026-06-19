@@ -159,8 +159,13 @@ async function maybeAttachWarmSlotContext(
           `Cannot fork continuation of ${continueFrom.taskId}/${continueFrom.attemptN}: producer slot has no worktree branch to fork from`,
         );
       }
+      // Both the workspace id and the branch name must be unique per fork
+      // task: two `fork` continuations of the same parent both run at child
+      // attempt 1, so keying the branch only on the parent + attempt would
+      // collide (the second `git worktree add` would hit an already-checked-out
+      // branch). Include the child task id (mirrors forkWorkspaceId).
       const forkWorkspaceId = `fork-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
-      const forkBranch = `${parentBranch}-fork-${claimedTask.attemptN}`;
+      const forkBranch = `${parentBranch}-fork-${claimedTask.task.id.slice(0, 8)}-${claimedTask.attemptN}`;
       return {
         ...basePlan,
         workspaceMode: 'dedicated_worktree',
@@ -178,6 +183,14 @@ async function maybeAttachWarmSlotContext(
 
     // extend (default): share the parent's branch/workspace. Cross-profile safe
     // now that workspaces are refcounted.
+    //
+    // A null workspace here is legitimate, not a degraded continuation: it
+    // means the producer ran in shared_mount (no dedicated worktree), so there
+    // is no branch to share and the continuation correctly runs on the shared
+    // mount too. The dangerous case — a live producer slot whose workspace was
+    // reaped out from under it — cannot happen: reap deletes the slot and
+    // releases its workspace in one transaction, so a resolved (live) slot
+    // always still has its workspace row (refcount >= 1).
     return {
       ...basePlan,
       workspaceMode: 'dedicated_worktree',

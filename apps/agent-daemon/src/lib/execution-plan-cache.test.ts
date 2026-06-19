@@ -325,11 +325,13 @@ describe('createExecutionPlanCache', () => {
 
     expect(plan.workspaceMode).toBe('dedicated_worktree');
     // NEW unique workspace + NEW branch derived from the parent, base ref =
-    // parent branch so git cuts the fork from the parent tip.
+    // parent branch so git cuts the fork from the parent tip. Both the
+    // workspace id and the branch carry the child task id so two forks of the
+    // same parent at attempt 1 do not collide.
     expect(plan.workspaceId).toBe(
       'fork-22222222-2222-4222-8222-222222222222-attempt-1',
     );
-    expect(plan.worktreeBranch).toBe('feat/parent-fork-1');
+    expect(plan.worktreeBranch).toBe('feat/parent-fork-22222222-1');
     expect(plan.worktreeBaseRef).toBe('feat/parent');
     expect(plan.workspaceKind).toBe('fork');
     // Session is still copied; the worktree is branched, not seeded.

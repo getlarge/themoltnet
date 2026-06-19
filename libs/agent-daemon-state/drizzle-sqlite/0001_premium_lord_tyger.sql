@@ -10,4 +10,4 @@ CREATE TABLE `daemon_workspaces` (
 );
 --> statement-breakpoint
 DROP TABLE `daemon_slot_workspaces`;--> statement-breakpoint
-ALTER TABLE `daemon_slots` ADD `workspace_id` text REFERENCES daemon_workspaces(workspace_id);
+ALTER TABLE `daemon_slots` ADD `workspace_id` text REFERENCES daemon_workspaces(workspace_id) ON DELETE SET NULL;

@@ -216,6 +216,10 @@ class SqliteDaemonSlotStore implements DaemonSlotStore {
         if (workspaceId !== null) {
           // Insert the workspace at refcount 0 if new; existing rows just
           // refresh their mutable fields. The refcount delta is applied below.
+          // `kind` and `created_at_ms` are intentionally NOT refreshed: a
+          // workspace's lifecycle kind is immutable per id (origin/fork ids are
+          // unique, scratch ids are per-slot), so a conflicting upsert is always
+          // the same kind.
           this.client
             .prepare(
               `INSERT INTO daemon_workspaces
@@ -619,6 +623,8 @@ class PgDaemonSlotStore implements DaemonSlotStore {
         const priorWorkspaceId = priorRow?.workspaceId ?? null;
 
         if (beginWorkspaceId !== null) {
+          // `kind`/`createdAtMs` intentionally not refreshed on conflict — a
+          // workspace's lifecycle kind is immutable per id (see SQLite store).
           await tx
             .insert(pgDaemonWorkspaces)
             .values({
