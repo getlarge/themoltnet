@@ -16,10 +16,6 @@ type AbortTaskAttemptBadRequest ProblemDetails
 
 func (*AbortTaskAttemptBadRequest) abortTaskAttemptRes() {}
 
-type AbortTaskAttemptConflict ProblemDetails
-
-func (*AbortTaskAttemptConflict) abortTaskAttemptRes() {}
-
 type AbortTaskAttemptForbidden ProblemDetails
 
 func (*AbortTaskAttemptForbidden) abortTaskAttemptRes() {}
@@ -49,10 +45,6 @@ func (*AbortTaskAttemptUnauthorized) abortTaskAttemptRes() {}
 type AcceptTeamFoundingBadRequest ProblemDetails
 
 func (*AcceptTeamFoundingBadRequest) acceptTeamFoundingRes() {}
-
-type AcceptTeamFoundingConflict ProblemDetails
-
-func (*AcceptTeamFoundingConflict) acceptTeamFoundingRes() {}
 
 type AcceptTeamFoundingForbidden ProblemDetails
 
@@ -98,10 +90,6 @@ func (*AcceptTeamFoundingUnauthorized) acceptTeamFoundingRes() {}
 type AcceptTransferBadRequest ProblemDetails
 
 func (*AcceptTransferBadRequest) acceptTransferRes() {}
-
-type AcceptTransferConflict ProblemDetails
-
-func (*AcceptTransferConflict) acceptTransferRes() {}
 
 type AcceptTransferForbidden ProblemDetails
 
@@ -560,10 +548,6 @@ type CancelTaskBadRequest ProblemDetails
 
 func (*CancelTaskBadRequest) cancelTaskRes() {}
 
-type CancelTaskConflict ProblemDetails
-
-func (*CancelTaskConflict) cancelTaskRes() {}
-
 type CancelTaskForbidden ProblemDetails
 
 func (*CancelTaskForbidden) cancelTaskRes() {}
@@ -967,10 +951,6 @@ type ClaimTaskBadRequest ProblemDetails
 
 func (*ClaimTaskBadRequest) claimTaskRes() {}
 
-type ClaimTaskConflict ProblemDetails
-
-func (*ClaimTaskConflict) claimTaskRes() {}
-
 type ClaimTaskForbidden ProblemDetails
 
 func (*ClaimTaskForbidden) claimTaskRes() {}
@@ -1187,10 +1167,6 @@ func (s *CompileStats) SetTotalTokens(val float64) {
 	s.TotalTokens = val
 }
 
-type CompleteTaskConflict ProblemDetails
-
-func (*CompleteTaskConflict) completeTaskRes() {}
-
 type CompleteTaskForbidden ProblemDetails
 
 func (*CompleteTaskForbidden) completeTaskRes() {}
@@ -1315,6 +1291,424 @@ func (s *CompleteTaskReqOutput) init() CompleteTaskReqOutput {
 type CompleteTaskUnauthorized ProblemDetails
 
 func (*CompleteTaskUnauthorized) completeTaskRes() {}
+
+// Merged schema.
+// Ref: #/components/schemas/ConflictProblemDetails
+type ConflictProblemDetails struct {
+	Code            ConflictProblemDetailsCode     `json:"code"`
+	Detail          OptString                      `json:"detail"`
+	Instance        OptString                      `json:"instance"`
+	Status          int                            `json:"status"`
+	Title           string                         `json:"title"`
+	Type            url.URL                        `json:"type"`
+	Conflict        ConflictProblemDetailsConflict `json:"conflict"`
+	AdditionalProps ConflictProblemDetailsAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *ConflictProblemDetails) GetCode() ConflictProblemDetailsCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *ConflictProblemDetails) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *ConflictProblemDetails) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *ConflictProblemDetails) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *ConflictProblemDetails) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *ConflictProblemDetails) GetType() url.URL {
+	return s.Type
+}
+
+// GetConflict returns the value of Conflict.
+func (s *ConflictProblemDetails) GetConflict() ConflictProblemDetailsConflict {
+	return s.Conflict
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *ConflictProblemDetails) GetAdditionalProps() ConflictProblemDetailsAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *ConflictProblemDetails) SetCode(val ConflictProblemDetailsCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *ConflictProblemDetails) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *ConflictProblemDetails) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ConflictProblemDetails) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *ConflictProblemDetails) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *ConflictProblemDetails) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetConflict sets the value of Conflict.
+func (s *ConflictProblemDetails) SetConflict(val ConflictProblemDetailsConflict) {
+	s.Conflict = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *ConflictProblemDetails) SetAdditionalProps(val ConflictProblemDetailsAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*ConflictProblemDetails) abortTaskAttemptRes()       {}
+func (*ConflictProblemDetails) acceptTeamFoundingRes()     {}
+func (*ConflictProblemDetails) acceptTransferRes()         {}
+func (*ConflictProblemDetails) cancelTaskRes()             {}
+func (*ConflictProblemDetails) claimTaskRes()              {}
+func (*ConflictProblemDetails) completeTaskRes()           {}
+func (*ConflictProblemDetails) createDiaryCustomPackRes()  {}
+func (*ConflictProblemDetails) createDiaryEntryRes()       {}
+func (*ConflictProblemDetails) createDiaryGrantRes()       {}
+func (*ConflictProblemDetails) createGroupRes()            {}
+func (*ConflictProblemDetails) createRuntimeModelRes()     {}
+func (*ConflictProblemDetails) createRuntimeProfileRes()   {}
+func (*ConflictProblemDetails) failTaskRes()               {}
+func (*ConflictProblemDetails) initiateTransferRes()       {}
+func (*ConflictProblemDetails) joinTeamRes()               {}
+func (*ConflictProblemDetails) previewDiaryCustomPackRes() {}
+func (*ConflictProblemDetails) rejectTransferRes()         {}
+func (*ConflictProblemDetails) renderContextPackRes()      {}
+func (*ConflictProblemDetails) submitSignatureRes()        {}
+func (*ConflictProblemDetails) updateContextPackRes()      {}
+func (*ConflictProblemDetails) updateDiaryEntryByIdRes()   {}
+func (*ConflictProblemDetails) updateRenderedPackRes()     {}
+func (*ConflictProblemDetails) updateRuntimeModelRes()     {}
+func (*ConflictProblemDetails) updateRuntimeProfileRes()   {}
+func (*ConflictProblemDetails) updateTeamMemberRoleRes()   {}
+
+type ConflictProblemDetailsAdditional map[string]jx.Raw
+
+func (s *ConflictProblemDetailsAdditional) init() ConflictProblemDetailsAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type ConflictProblemDetailsCode string
+
+const (
+	ConflictProblemDetailsCodeUNAUTHORIZED                   ConflictProblemDetailsCode = "UNAUTHORIZED"
+	ConflictProblemDetailsCodeFORBIDDEN                      ConflictProblemDetailsCode = "FORBIDDEN"
+	ConflictProblemDetailsCodeNOTFOUND                       ConflictProblemDetailsCode = "NOT_FOUND"
+	ConflictProblemDetailsCodeCONFLICT                       ConflictProblemDetailsCode = "CONFLICT"
+	ConflictProblemDetailsCodeVALIDATIONFAILED               ConflictProblemDetailsCode = "VALIDATION_FAILED"
+	ConflictProblemDetailsCodeINVALIDCHALLENGE               ConflictProblemDetailsCode = "INVALID_CHALLENGE"
+	ConflictProblemDetailsCodeINVALIDSIGNATURE               ConflictProblemDetailsCode = "INVALID_SIGNATURE"
+	ConflictProblemDetailsCodeVOUCHERLIMIT                   ConflictProblemDetailsCode = "VOUCHER_LIMIT"
+	ConflictProblemDetailsCodeRATELIMITEXCEEDED              ConflictProblemDetailsCode = "RATE_LIMIT_EXCEEDED"
+	ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED         ConflictProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
+	ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED          ConflictProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
+	ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED ConflictProblemDetailsCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ConflictProblemDetailsCodeREGISTRATIONFAILED             ConflictProblemDetailsCode = "REGISTRATION_FAILED"
+	ConflictProblemDetailsCodeUPSTREAMERROR                  ConflictProblemDetailsCode = "UPSTREAM_ERROR"
+	ConflictProblemDetailsCodeSERVICEUNAVAILABLE             ConflictProblemDetailsCode = "SERVICE_UNAVAILABLE"
+	ConflictProblemDetailsCodeINTERNALSERVERERROR            ConflictProblemDetailsCode = "INTERNAL_SERVER_ERROR"
+	ConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE          ConflictProblemDetailsCode = "TEAM_PERSONAL_IMMUTABLE"
+	ConflictProblemDetailsCodeTEAMNOTACTIVE                  ConflictProblemDetailsCode = "TEAM_NOT_ACTIVE"
+	ConflictProblemDetailsCodeINVITEEXPIRED                  ConflictProblemDetailsCode = "INVITE_EXPIRED"
+	ConflictProblemDetailsCodeINVITEEXHAUSTED                ConflictProblemDetailsCode = "INVITE_EXHAUSTED"
+	ConflictProblemDetailsCodeTEAMLASTOWNER                  ConflictProblemDetailsCode = "TEAM_LAST_OWNER"
+	ConflictProblemDetailsCodeTEAMALREADYACTIVE              ConflictProblemDetailsCode = "TEAM_ALREADY_ACTIVE"
+	ConflictProblemDetailsCodeTEAMNOTFOUNDING                ConflictProblemDetailsCode = "TEAM_NOT_FOUNDING"
+	ConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED        ConflictProblemDetailsCode = "FOUNDING_ALREADY_ACCEPTED"
+	ConflictProblemDetailsCodeDIARYTRANSFERPENDING           ConflictProblemDetailsCode = "DIARY_TRANSFER_PENDING"
+	ConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND          ConflictProblemDetailsCode = "DIARY_TRANSFER_NOT_FOUND"
+	ConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED   ConflictProblemDetailsCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all ConflictProblemDetailsCode values.
+func (ConflictProblemDetailsCode) AllValues() []ConflictProblemDetailsCode {
+	return []ConflictProblemDetailsCode{
+		ConflictProblemDetailsCodeUNAUTHORIZED,
+		ConflictProblemDetailsCodeFORBIDDEN,
+		ConflictProblemDetailsCodeNOTFOUND,
+		ConflictProblemDetailsCodeCONFLICT,
+		ConflictProblemDetailsCodeVALIDATIONFAILED,
+		ConflictProblemDetailsCodeINVALIDCHALLENGE,
+		ConflictProblemDetailsCodeINVALIDSIGNATURE,
+		ConflictProblemDetailsCodeVOUCHERLIMIT,
+		ConflictProblemDetailsCodeRATELIMITEXCEEDED,
+		ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED,
+		ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED,
+		ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ConflictProblemDetailsCodeREGISTRATIONFAILED,
+		ConflictProblemDetailsCodeUPSTREAMERROR,
+		ConflictProblemDetailsCodeSERVICEUNAVAILABLE,
+		ConflictProblemDetailsCodeINTERNALSERVERERROR,
+		ConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE,
+		ConflictProblemDetailsCodeTEAMNOTACTIVE,
+		ConflictProblemDetailsCodeINVITEEXPIRED,
+		ConflictProblemDetailsCodeINVITEEXHAUSTED,
+		ConflictProblemDetailsCodeTEAMLASTOWNER,
+		ConflictProblemDetailsCodeTEAMALREADYACTIVE,
+		ConflictProblemDetailsCodeTEAMNOTFOUNDING,
+		ConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED,
+		ConflictProblemDetailsCodeDIARYTRANSFERPENDING,
+		ConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND,
+		ConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ConflictProblemDetailsCode) MarshalText() ([]byte, error) {
+	switch s {
+	case ConflictProblemDetailsCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeFORBIDDEN:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeNOTFOUND:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeCONFLICT:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ConflictProblemDetailsCode) UnmarshalText(data []byte) error {
+	switch ConflictProblemDetailsCode(data) {
+	case ConflictProblemDetailsCodeUNAUTHORIZED:
+		*s = ConflictProblemDetailsCodeUNAUTHORIZED
+		return nil
+	case ConflictProblemDetailsCodeFORBIDDEN:
+		*s = ConflictProblemDetailsCodeFORBIDDEN
+		return nil
+	case ConflictProblemDetailsCodeNOTFOUND:
+		*s = ConflictProblemDetailsCodeNOTFOUND
+		return nil
+	case ConflictProblemDetailsCodeCONFLICT:
+		*s = ConflictProblemDetailsCodeCONFLICT
+		return nil
+	case ConflictProblemDetailsCodeVALIDATIONFAILED:
+		*s = ConflictProblemDetailsCodeVALIDATIONFAILED
+		return nil
+	case ConflictProblemDetailsCodeINVALIDCHALLENGE:
+		*s = ConflictProblemDetailsCodeINVALIDCHALLENGE
+		return nil
+	case ConflictProblemDetailsCodeINVALIDSIGNATURE:
+		*s = ConflictProblemDetailsCodeINVALIDSIGNATURE
+		return nil
+	case ConflictProblemDetailsCodeVOUCHERLIMIT:
+		*s = ConflictProblemDetailsCodeVOUCHERLIMIT
+		return nil
+	case ConflictProblemDetailsCodeRATELIMITEXCEEDED:
+		*s = ConflictProblemDetailsCodeRATELIMITEXCEEDED
+		return nil
+	case ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED:
+		*s = ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED:
+		*s = ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ConflictProblemDetailsCodeREGISTRATIONFAILED:
+		*s = ConflictProblemDetailsCodeREGISTRATIONFAILED
+		return nil
+	case ConflictProblemDetailsCodeUPSTREAMERROR:
+		*s = ConflictProblemDetailsCodeUPSTREAMERROR
+		return nil
+	case ConflictProblemDetailsCodeSERVICEUNAVAILABLE:
+		*s = ConflictProblemDetailsCodeSERVICEUNAVAILABLE
+		return nil
+	case ConflictProblemDetailsCodeINTERNALSERVERERROR:
+		*s = ConflictProblemDetailsCodeINTERNALSERVERERROR
+		return nil
+	case ConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		*s = ConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case ConflictProblemDetailsCodeTEAMNOTACTIVE:
+		*s = ConflictProblemDetailsCodeTEAMNOTACTIVE
+		return nil
+	case ConflictProblemDetailsCodeINVITEEXPIRED:
+		*s = ConflictProblemDetailsCodeINVITEEXPIRED
+		return nil
+	case ConflictProblemDetailsCodeINVITEEXHAUSTED:
+		*s = ConflictProblemDetailsCodeINVITEEXHAUSTED
+		return nil
+	case ConflictProblemDetailsCodeTEAMLASTOWNER:
+		*s = ConflictProblemDetailsCodeTEAMLASTOWNER
+		return nil
+	case ConflictProblemDetailsCodeTEAMALREADYACTIVE:
+		*s = ConflictProblemDetailsCodeTEAMALREADYACTIVE
+		return nil
+	case ConflictProblemDetailsCodeTEAMNOTFOUNDING:
+		*s = ConflictProblemDetailsCodeTEAMNOTFOUNDING
+		return nil
+	case ConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		*s = ConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case ConflictProblemDetailsCodeDIARYTRANSFERPENDING:
+		*s = ConflictProblemDetailsCodeDIARYTRANSFERPENDING
+		return nil
+	case ConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		*s = ConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case ConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = ConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ConflictProblemDetailsConflict struct {
+	Constraint OptString                               `json:"constraint"`
+	Target     OptConflictProblemDetailsConflictTarget `json:"target"`
+}
+
+// GetConstraint returns the value of Constraint.
+func (s *ConflictProblemDetailsConflict) GetConstraint() OptString {
+	return s.Constraint
+}
+
+// GetTarget returns the value of Target.
+func (s *ConflictProblemDetailsConflict) GetTarget() OptConflictProblemDetailsConflictTarget {
+	return s.Target
+}
+
+// SetConstraint sets the value of Constraint.
+func (s *ConflictProblemDetailsConflict) SetConstraint(val OptString) {
+	s.Constraint = val
+}
+
+// SetTarget sets the value of Target.
+func (s *ConflictProblemDetailsConflict) SetTarget(val OptConflictProblemDetailsConflictTarget) {
+	s.Target = val
+}
+
+type ConflictProblemDetailsConflictTarget struct {
+	ID       OptUUID                                     `json:"id"`
+	Keys     OptConflictProblemDetailsConflictTargetKeys `json:"keys"`
+	Resource string                                      `json:"resource"`
+}
+
+// GetID returns the value of ID.
+func (s *ConflictProblemDetailsConflictTarget) GetID() OptUUID {
+	return s.ID
+}
+
+// GetKeys returns the value of Keys.
+func (s *ConflictProblemDetailsConflictTarget) GetKeys() OptConflictProblemDetailsConflictTargetKeys {
+	return s.Keys
+}
+
+// GetResource returns the value of Resource.
+func (s *ConflictProblemDetailsConflictTarget) GetResource() string {
+	return s.Resource
+}
+
+// SetID sets the value of ID.
+func (s *ConflictProblemDetailsConflictTarget) SetID(val OptUUID) {
+	s.ID = val
+}
+
+// SetKeys sets the value of Keys.
+func (s *ConflictProblemDetailsConflictTarget) SetKeys(val OptConflictProblemDetailsConflictTargetKeys) {
+	s.Keys = val
+}
+
+// SetResource sets the value of Resource.
+func (s *ConflictProblemDetailsConflictTarget) SetResource(val string) {
+	s.Resource = val
+}
+
+type ConflictProblemDetailsConflictTargetKeys map[string]string
+
+func (s *ConflictProblemDetailsConflictTargetKeys) init() ConflictProblemDetailsConflictTargetKeys {
+	m := *s
+	if m == nil {
+		m = map[string]string{}
+		*s = m
+	}
+	return m
+}
 
 // Merged schema.
 // Ref: #/components/schemas/ContextPackResponse
@@ -1728,10 +2122,6 @@ type CreateDiaryCustomPackBadRequest ProblemDetails
 
 func (*CreateDiaryCustomPackBadRequest) createDiaryCustomPackRes() {}
 
-type CreateDiaryCustomPackConflict ProblemDetails
-
-func (*CreateDiaryCustomPackConflict) createDiaryCustomPackRes() {}
-
 type CreateDiaryCustomPackForbidden ProblemDetails
 
 func (*CreateDiaryCustomPackForbidden) createDiaryCustomPackRes() {}
@@ -1892,10 +2282,6 @@ func (*CreateDiaryCustomPackUnauthorized) createDiaryCustomPackRes() {}
 type CreateDiaryEntryBadRequest ProblemDetails
 
 func (*CreateDiaryEntryBadRequest) createDiaryEntryRes() {}
-
-type CreateDiaryEntryConflict ProblemDetails
-
-func (*CreateDiaryEntryConflict) createDiaryEntryRes() {}
 
 type CreateDiaryEntryInternalServerError ProblemDetails
 
@@ -2065,10 +2451,6 @@ func (*CreateDiaryEntryUnauthorized) createDiaryEntryRes() {}
 type CreateDiaryGrantBadRequest ProblemDetails
 
 func (*CreateDiaryGrantBadRequest) createDiaryGrantRes() {}
-
-type CreateDiaryGrantConflict ProblemDetails
-
-func (*CreateDiaryGrantConflict) createDiaryGrantRes() {}
 
 type CreateDiaryGrantCreated struct {
 	Role CreateDiaryGrantCreatedRole `json:"role"`
@@ -2526,10 +2908,6 @@ type CreateGroupBadRequest ProblemDetails
 
 func (*CreateGroupBadRequest) createGroupRes() {}
 
-type CreateGroupConflict ProblemDetails
-
-func (*CreateGroupConflict) createGroupRes() {}
-
 type CreateGroupCreated struct {
 	// UUID v4 identifier.
 	ID   uuid.UUID `json:"id"`
@@ -2766,10 +3144,6 @@ func NewStringCreateRuntimeModelBodyCapabilitiesItem(v string) CreateRuntimeMode
 	s.SetString(v)
 	return s
 }
-
-type CreateRuntimeModelConflict ProblemDetails
-
-func (*CreateRuntimeModelConflict) createRuntimeModelRes() {}
 
 type CreateRuntimeModelForbidden ProblemDetails
 
@@ -3571,10 +3945,6 @@ func (s *CreateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalText(data []byte
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
-
-type CreateRuntimeProfileConflict ProblemDetails
-
-func (*CreateRuntimeProfileConflict) createRuntimeProfileRes() {}
 
 type CreateRuntimeProfileForbidden ProblemDetails
 
@@ -8618,10 +8988,6 @@ type FailTaskBadRequest ProblemDetails
 
 func (*FailTaskBadRequest) failTaskRes() {}
 
-type FailTaskConflict ProblemDetails
-
-func (*FailTaskConflict) failTaskRes() {}
-
 type FailTaskForbidden ProblemDetails
 
 func (*FailTaskForbidden) failTaskRes() {}
@@ -10545,10 +10911,6 @@ type InitiateTransferBadRequest ProblemDetails
 
 func (*InitiateTransferBadRequest) initiateTransferRes() {}
 
-type InitiateTransferConflict ProblemDetails
-
-func (*InitiateTransferConflict) initiateTransferRes() {}
-
 type InitiateTransferForbidden ProblemDetails
 
 func (*InitiateTransferForbidden) initiateTransferRes() {}
@@ -10595,10 +10957,6 @@ func (*IssueVoucherUnauthorized) issueVoucherRes() {}
 type JoinTeamBadRequest ProblemDetails
 
 func (*JoinTeamBadRequest) joinTeamRes() {}
-
-type JoinTeamConflict ProblemDetails
-
-func (*JoinTeamConflict) joinTeamRes() {}
 
 type JoinTeamGone ProblemDetails
 
@@ -14384,6 +14742,98 @@ func (o OptCompleteTaskReqExecutorManifest) Get() (v CompleteTaskReqExecutorMani
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCompleteTaskReqExecutorManifest) Or(d CompleteTaskReqExecutorManifest) CompleteTaskReqExecutorManifest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptConflictProblemDetailsConflictTarget returns new OptConflictProblemDetailsConflictTarget with value set to v.
+func NewOptConflictProblemDetailsConflictTarget(v ConflictProblemDetailsConflictTarget) OptConflictProblemDetailsConflictTarget {
+	return OptConflictProblemDetailsConflictTarget{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptConflictProblemDetailsConflictTarget is optional ConflictProblemDetailsConflictTarget.
+type OptConflictProblemDetailsConflictTarget struct {
+	Value ConflictProblemDetailsConflictTarget
+	Set   bool
+}
+
+// IsSet returns true if OptConflictProblemDetailsConflictTarget was set.
+func (o OptConflictProblemDetailsConflictTarget) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptConflictProblemDetailsConflictTarget) Reset() {
+	var v ConflictProblemDetailsConflictTarget
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptConflictProblemDetailsConflictTarget) SetTo(v ConflictProblemDetailsConflictTarget) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptConflictProblemDetailsConflictTarget) Get() (v ConflictProblemDetailsConflictTarget, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptConflictProblemDetailsConflictTarget) Or(d ConflictProblemDetailsConflictTarget) ConflictProblemDetailsConflictTarget {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptConflictProblemDetailsConflictTargetKeys returns new OptConflictProblemDetailsConflictTargetKeys with value set to v.
+func NewOptConflictProblemDetailsConflictTargetKeys(v ConflictProblemDetailsConflictTargetKeys) OptConflictProblemDetailsConflictTargetKeys {
+	return OptConflictProblemDetailsConflictTargetKeys{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptConflictProblemDetailsConflictTargetKeys is optional ConflictProblemDetailsConflictTargetKeys.
+type OptConflictProblemDetailsConflictTargetKeys struct {
+	Value ConflictProblemDetailsConflictTargetKeys
+	Set   bool
+}
+
+// IsSet returns true if OptConflictProblemDetailsConflictTargetKeys was set.
+func (o OptConflictProblemDetailsConflictTargetKeys) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptConflictProblemDetailsConflictTargetKeys) Reset() {
+	var v ConflictProblemDetailsConflictTargetKeys
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptConflictProblemDetailsConflictTargetKeys) SetTo(v ConflictProblemDetailsConflictTargetKeys) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptConflictProblemDetailsConflictTargetKeys) Get() (v ConflictProblemDetailsConflictTargetKeys, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptConflictProblemDetailsConflictTargetKeys) Or(d ConflictProblemDetailsConflictTargetKeys) ConflictProblemDetailsConflictTargetKeys {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -18418,10 +18868,6 @@ type PreviewDiaryCustomPackBadRequest ProblemDetails
 
 func (*PreviewDiaryCustomPackBadRequest) previewDiaryCustomPackRes() {}
 
-type PreviewDiaryCustomPackConflict ProblemDetails
-
-func (*PreviewDiaryCustomPackConflict) previewDiaryCustomPackRes() {}
-
 type PreviewDiaryCustomPackForbidden ProblemDetails
 
 func (*PreviewDiaryCustomPackForbidden) previewDiaryCustomPackRes() {}
@@ -20880,10 +21326,6 @@ type RejectTransferBadRequest ProblemDetails
 
 func (*RejectTransferBadRequest) rejectTransferRes() {}
 
-type RejectTransferConflict ProblemDetails
-
-func (*RejectTransferConflict) rejectTransferRes() {}
-
 type RejectTransferForbidden ProblemDetails
 
 func (*RejectTransferForbidden) rejectTransferRes() {}
@@ -21172,10 +21614,6 @@ func (*RemoveTeamMemberUnauthorized) removeTeamMemberRes() {}
 type RenderContextPackBadRequest ProblemDetails
 
 func (*RenderContextPackBadRequest) renderContextPackRes() {}
-
-type RenderContextPackConflict ProblemDetails
-
-func (*RenderContextPackConflict) renderContextPackRes() {}
 
 type RenderContextPackForbidden ProblemDetails
 
@@ -25124,10 +25562,6 @@ type SubmitSignatureBadRequest ProblemDetails
 
 func (*SubmitSignatureBadRequest) submitSignatureRes() {}
 
-type SubmitSignatureConflict ProblemDetails
-
-func (*SubmitSignatureConflict) submitSignatureRes() {}
-
 type SubmitSignatureInternalServerError ProblemDetails
 
 func (*SubmitSignatureInternalServerError) submitSignatureRes() {}
@@ -27062,10 +27496,6 @@ type UpdateContextPackBadRequest ProblemDetails
 
 func (*UpdateContextPackBadRequest) updateContextPackRes() {}
 
-type UpdateContextPackConflict ProblemDetails
-
-func (*UpdateContextPackConflict) updateContextPackRes() {}
-
 type UpdateContextPackForbidden ProblemDetails
 
 func (*UpdateContextPackForbidden) updateContextPackRes() {}
@@ -27116,10 +27546,6 @@ func (*UpdateDiaryBadRequest) updateDiaryRes() {}
 type UpdateDiaryEntryByIdBadRequest ProblemDetails
 
 func (*UpdateDiaryEntryByIdBadRequest) updateDiaryEntryByIdRes() {}
-
-type UpdateDiaryEntryByIdConflict ProblemDetails
-
-func (*UpdateDiaryEntryByIdConflict) updateDiaryEntryByIdRes() {}
 
 type UpdateDiaryEntryByIdForbidden ProblemDetails
 
@@ -27393,10 +27819,6 @@ type UpdateRenderedPackBadRequest ProblemDetails
 
 func (*UpdateRenderedPackBadRequest) updateRenderedPackRes() {}
 
-type UpdateRenderedPackConflict ProblemDetails
-
-func (*UpdateRenderedPackConflict) updateRenderedPackRes() {}
-
 type UpdateRenderedPackForbidden ProblemDetails
 
 func (*UpdateRenderedPackForbidden) updateRenderedPackRes() {}
@@ -27645,10 +28067,6 @@ func NewStringUpdateRuntimeModelBodyCapabilitiesItem(v string) UpdateRuntimeMode
 	s.SetString(v)
 	return s
 }
-
-type UpdateRuntimeModelConflict ProblemDetails
-
-func (*UpdateRuntimeModelConflict) updateRuntimeModelRes() {}
 
 type UpdateRuntimeModelForbidden ProblemDetails
 
@@ -28451,10 +28869,6 @@ func (s *UpdateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalText(data []byte
 	}
 }
 
-type UpdateRuntimeProfileConflict ProblemDetails
-
-func (*UpdateRuntimeProfileConflict) updateRuntimeProfileRes() {}
-
 type UpdateRuntimeProfileForbidden ProblemDetails
 
 func (*UpdateRuntimeProfileForbidden) updateRuntimeProfileRes() {}
@@ -28507,10 +28921,6 @@ func (*UpdateTaskMetadataUnauthorized) updateTaskMetadataRes() {}
 type UpdateTeamMemberRoleBadRequest ProblemDetails
 
 func (*UpdateTeamMemberRoleBadRequest) updateTeamMemberRoleRes() {}
-
-type UpdateTeamMemberRoleConflict ProblemDetails
-
-func (*UpdateTeamMemberRoleConflict) updateTeamMemberRoleRes() {}
 
 type UpdateTeamMemberRoleForbidden ProblemDetails
 

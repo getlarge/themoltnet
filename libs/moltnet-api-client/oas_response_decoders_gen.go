@@ -252,7 +252,7 @@ func decodeAbortTaskAttemptResponse(resp *http.Response) (res AbortTaskAttemptRe
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AbortTaskAttemptConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -513,7 +513,7 @@ func decodeAcceptTeamFoundingResponse(resp *http.Response) (res AcceptTeamFoundi
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AcceptTeamFoundingConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -774,7 +774,7 @@ func decodeAcceptTransferResponse(resp *http.Response) (res AcceptTransferRes, _
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AcceptTransferConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1487,7 +1487,7 @@ func decodeCancelTaskResponse(resp *http.Response) (res CancelTaskRes, _ error) 
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CancelTaskConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1834,7 +1834,7 @@ func decodeClaimTaskResponse(resp *http.Response) (res ClaimTaskRes, _ error) {
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ClaimTaskConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -2104,7 +2104,7 @@ func decodeCompleteTaskResponse(resp *http.Response) (res CompleteTaskRes, _ err
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CompleteTaskConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -2556,7 +2556,7 @@ func decodeCreateDiaryCustomPackResponse(resp *http.Response) (res CreateDiaryCu
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CreateDiaryCustomPackConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -2826,7 +2826,7 @@ func decodeCreateDiaryEntryResponse(resp *http.Response) (res CreateDiaryEntryRe
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CreateDiaryEntryConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -3096,7 +3096,7 @@ func decodeCreateDiaryGrantResponse(resp *http.Response) (res CreateDiaryGrantRe
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CreateDiaryGrantConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -3715,7 +3715,7 @@ func decodeCreateGroupResponse(resp *http.Response) (res CreateGroupRes, _ error
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CreateGroupConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -3985,7 +3985,7 @@ func decodeCreateRuntimeModelResponse(resp *http.Response) (res CreateRuntimeMod
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CreateRuntimeModelConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -4255,7 +4255,7 @@ func decodeCreateRuntimeProfileResponse(resp *http.Response) (res CreateRuntimeP
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CreateRuntimeProfileConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -7547,7 +7547,7 @@ func decodeFailTaskResponse(resp *http.Response) (res FailTaskRes, _ error) {
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FailTaskConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -12086,7 +12086,7 @@ func decodeInitiateTransferResponse(resp *http.Response) (res InitiateTransferRe
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response InitiateTransferConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -12529,7 +12529,7 @@ func decodeJoinTeamResponse(resp *http.Response) (res JoinTeamRes, _ error) {
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response JoinTeamConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -17125,7 +17125,7 @@ func decodePreviewDiaryCustomPackResponse(resp *http.Response) (res PreviewDiary
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response PreviewDiaryCustomPackConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -17908,7 +17908,7 @@ func decodeRejectTransferResponse(resp *http.Response) (res RejectTransferRes, _
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response RejectTransferConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -18524,7 +18524,7 @@ func decodeRenderContextPackResponse(resp *http.Response) (res RenderContextPack
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response RenderContextPackConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -19850,7 +19850,7 @@ func decodeSubmitSignatureResponse(resp *http.Response) (res SubmitSignatureRes,
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response SubmitSignatureConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -20337,7 +20337,7 @@ func decodeUpdateContextPackResponse(resp *http.Response) (res UpdateContextPack
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response UpdateContextPackConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -20921,7 +20921,7 @@ func decodeUpdateDiaryEntryByIdResponse(resp *http.Response) (res UpdateDiaryEnt
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response UpdateDiaryEntryByIdConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -21505,7 +21505,7 @@ func decodeUpdateRenderedPackResponse(resp *http.Response) (res UpdateRenderedPa
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response UpdateRenderedPackConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -21819,7 +21819,7 @@ func decodeUpdateRuntimeModelResponse(resp *http.Response) (res UpdateRuntimeMod
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response UpdateRuntimeModelConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -22089,7 +22089,7 @@ func decodeUpdateRuntimeProfileResponse(resp *http.Response) (res UpdateRuntimeP
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response UpdateRuntimeProfileConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -22585,7 +22585,7 @@ func decodeUpdateTeamMemberRoleResponse(resp *http.Response) (res UpdateTeamMemb
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response UpdateTeamMemberRoleConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

@@ -17,14 +17,6 @@ func (s *AbortTaskAttemptBadRequest) Validate() error {
 	return nil
 }
 
-func (s *AbortTaskAttemptConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *AbortTaskAttemptForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -99,14 +91,6 @@ func (s *AcceptTeamFoundingBadRequest) Validate() error {
 	return nil
 }
 
-func (s *AcceptTeamFoundingConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *AcceptTeamFoundingForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -132,14 +116,6 @@ func (s *AcceptTeamFoundingUnauthorized) Validate() error {
 }
 
 func (s *AcceptTransferBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *AcceptTransferConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -459,14 +435,6 @@ func (s *AppendTaskMessagesUnauthorized) Validate() error {
 }
 
 func (s *CancelTaskBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *CancelTaskConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -804,14 +772,6 @@ func (s *ClaimTaskBadRequest) Validate() error {
 	return nil
 }
 
-func (s *ClaimTaskConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *ClaimTaskForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -1071,14 +1031,6 @@ func (s *CompileStats) Validate() error {
 	return nil
 }
 
-func (s *CompleteTaskConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *CompleteTaskForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -1207,6 +1159,111 @@ func (s *CompleteTaskUnauthorized) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s *ConflictProblemDetails) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ConflictProblemDetailsCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *ContextPackResponse) Validate() error {
@@ -1483,14 +1540,6 @@ func (s *CreateDiaryCustomPackBadRequest) Validate() error {
 	return nil
 }
 
-func (s *CreateDiaryCustomPackConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *CreateDiaryCustomPackForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -1653,14 +1702,6 @@ func (s *CreateDiaryCustomPackUnauthorized) Validate() error {
 }
 
 func (s *CreateDiaryEntryBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *CreateDiaryEntryConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -1901,14 +1942,6 @@ func (s *CreateDiaryEntryUnauthorized) Validate() error {
 }
 
 func (s *CreateDiaryGrantBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *CreateDiaryGrantConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -2254,14 +2287,6 @@ func (s *CreateGroupBadRequest) Validate() error {
 	return nil
 }
 
-func (s *CreateGroupConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *CreateGroupForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -2516,14 +2541,6 @@ func (s CreateRuntimeModelBodyCapabilitiesItem) Validate() error {
 	default:
 		return errors.Errorf("invalid type %q", s.Type)
 	}
-}
-
-func (s *CreateRuntimeModelConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *CreateRuntimeModelForbidden) Validate() error {
@@ -3822,14 +3839,6 @@ func (s CreateRuntimeProfileBodyWorkspaceStorageMode) Validate() error {
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
-}
-
-func (s *CreateRuntimeProfileConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *CreateRuntimeProfileForbidden) Validate() error {
@@ -6924,14 +6933,6 @@ func (s *FailTaskBadRequest) Validate() error {
 	return nil
 }
 
-func (s *FailTaskConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *FailTaskForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -8068,14 +8069,6 @@ func (s *InitiateTransferBadRequest) Validate() error {
 	return nil
 }
 
-func (s *InitiateTransferConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *InitiateTransferForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -8133,14 +8126,6 @@ func (s *IssueVoucherUnauthorized) Validate() error {
 }
 
 func (s *JoinTeamBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *JoinTeamConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -9902,14 +9887,6 @@ func (s *PreviewDiaryCustomPackBadRequest) Validate() error {
 	return nil
 }
 
-func (s *PreviewDiaryCustomPackConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *PreviewDiaryCustomPackForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -11182,14 +11159,6 @@ func (s *RejectTransferBadRequest) Validate() error {
 	return nil
 }
 
-func (s *RejectTransferConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *RejectTransferForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -11295,14 +11264,6 @@ func (s *RemoveTeamMemberUnauthorized) Validate() error {
 }
 
 func (s *RenderContextPackBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *RenderContextPackConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -15369,14 +15330,6 @@ func (s *SubmitSignatureBadRequest) Validate() error {
 	return nil
 }
 
-func (s *SubmitSignatureConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *SubmitSignatureInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -16832,14 +16785,6 @@ func (s *UpdateContextPackBadRequest) Validate() error {
 	return nil
 }
 
-func (s *UpdateContextPackConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *UpdateContextPackForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -16881,14 +16826,6 @@ func (s *UpdateDiaryBadRequest) Validate() error {
 }
 
 func (s *UpdateDiaryEntryByIdBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *UpdateDiaryEntryByIdConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -17289,14 +17226,6 @@ func (s *UpdateRenderedPackBadRequest) Validate() error {
 	return nil
 }
 
-func (s *UpdateRenderedPackConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *UpdateRenderedPackForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -17580,14 +17509,6 @@ func (s UpdateRuntimeModelBodyCapabilitiesItem) Validate() error {
 	default:
 		return errors.Errorf("invalid type %q", s.Type)
 	}
-}
-
-func (s *UpdateRuntimeModelConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *UpdateRuntimeModelForbidden) Validate() error {
@@ -18916,14 +18837,6 @@ func (s UpdateRuntimeProfileBodyWorkspaceStorageMode) Validate() error {
 	}
 }
 
-func (s *UpdateRuntimeProfileConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *UpdateRuntimeProfileForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -19063,14 +18976,6 @@ func (s *UpdateTaskMetadataUnauthorized) Validate() error {
 }
 
 func (s *UpdateTeamMemberRoleBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *UpdateTeamMemberRoleConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
