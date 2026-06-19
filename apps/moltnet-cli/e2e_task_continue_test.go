@@ -127,12 +127,11 @@ func TestE2E_CLI_TaskContinue_DryRunFromQueuedSource(t *testing.T) {
 	}
 }
 
-// TestE2E_CLI_TaskContinue_RejectsForkMode confirms the CLI rejects
-// --mode fork locally without a server hop, with a message pointing at
-// the follow-up issue.
-func TestE2E_CLI_TaskContinue_RejectsForkMode(t *testing.T) {
+// TestE2E_CLI_TaskContinue_ForwardsForkMode confirms the CLI forwards
+// --mode fork into the continueFrom payload (fork is implemented, #1293).
+func TestE2E_CLI_TaskContinue_ForwardsForkMode(t *testing.T) {
 	h := newTaskCreateHarness(t)
-	_, stderr := h.runExpectingFailure(t, "",
+	dryOut, _ := h.runWithStdin(t, "",
 		"task", "continue",
 		"--from-task-id", "11111111-1111-4111-8111-111111111111",
 		"--from-attempt-n", "1",
@@ -141,8 +140,18 @@ func TestE2E_CLI_TaskContinue_RejectsForkMode(t *testing.T) {
 		"--dry-run",
 		"--skip-validation",
 	)
-	if !strings.Contains(stderr, "fork") || !strings.Contains(stderr, "1293") {
-		t.Errorf("stderr = %q, want substrings 'fork' and '1293'", stderr)
+	var req map[string]any
+	decodeJSON(t, dryOut, &req)
+	input, ok := req["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("input missing or wrong shape: %v", req["input"])
+	}
+	cf, ok := input["continueFrom"].(map[string]any)
+	if !ok {
+		t.Fatalf("input.continueFrom missing or wrong shape: %v", input["continueFrom"])
+	}
+	if cf["mode"] != "fork" {
+		t.Errorf("continueFrom.mode = %v, want fork", cf["mode"])
 	}
 }
 

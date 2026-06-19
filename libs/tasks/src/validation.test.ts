@@ -1019,7 +1019,7 @@ describe('freeform validateInputAsync — continuation', () => {
     expect(errors[0]?.code).toBe('freeform.sourceAttemptNotCompleted');
   });
 
-  it('rejects mode=fork', async () => {
+  it('accepts mode=fork on an eligible source (implemented in #1293)', async () => {
     const errors = await validator(
       {
         brief: 'x',
@@ -1043,7 +1043,7 @@ describe('freeform validateInputAsync — continuation', () => {
         ]),
       }),
     );
-    expect(errors[0]?.code).toBe('freeform.forkModeNotImplemented');
+    expect(errors).toHaveLength(0);
   });
 
   it('accepts execution.workspace when continueFrom is absent', async () => {
@@ -1174,7 +1174,7 @@ describe('freeform validateInputAsync — continuation', () => {
     // `task_status: completed` claim condition, which causes task-service
     // to set deferReadinessChecks. The parent attempt is still running
     // — readiness checks must defer to claim time, but stable checks
-    // (source exists, source is freeform, fork mode) still fire.
+    // (source exists, source is freeform) still fire.
     const listAttempts = vi.fn();
     const errors = await validator(
       {
@@ -1192,9 +1192,9 @@ describe('freeform validateInputAsync — continuation', () => {
     expect(listAttempts).not.toHaveBeenCalled();
   });
 
-  it('still rejects mode=fork when deferReadinessChecks is true', async () => {
-    // Fork mode is a stable check on the input — fires regardless of
-    // deferral so callers learn the mode is invalid at create time.
+  it('accepts mode=fork when deferReadinessChecks is true', async () => {
+    // Fork is implemented (#1293); it passes the stable-check gate and the
+    // readiness check defers to claim time just like a default continuation.
     const errors = await validator(
       {
         brief: 'x',
@@ -1205,7 +1205,7 @@ describe('freeform validateInputAsync — continuation', () => {
         resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
       }),
     );
-    expect(errors[0]?.code).toBe('freeform.forkModeNotImplemented');
+    expect(errors).toEqual([]);
   });
 
   it('still rejects unknown source when deferReadinessChecks is true', async () => {

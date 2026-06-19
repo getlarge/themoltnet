@@ -101,7 +101,7 @@ there is no --execution-workspace override.`,
 	cmd.Flags().String("title", "", "Optional operator-facing title")
 	cmd.Flags().String("expected-output", "", "Optional expected-output prose")
 	cmd.Flags().StringArray("constraint", nil, "Constraint string; repeatable")
-	cmd.Flags().String("mode", "", "Continuation mode: extend (default)|fork (rejected in v1; see #1293)")
+	cmd.Flags().String("mode", "", "Continuation mode: extend (default, same branch/PR)|fork (new branch from parent tip)")
 	cmd.Flags().Bool("skip-validation", false, "Skip client-side JSON Schema validation of the constructed input")
 	cmd.Flags().Bool("dry-run", false, "Print the canonical CreateTaskReq and exit; no POST")
 	cmd.Flags().String("output", "json", `Result rendering: "json" (full task) or "id" (UUID only)`)
