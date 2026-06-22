@@ -2,6 +2,7 @@ import './formats.js';
 
 export * from './async-validation.js';
 export * from './context.js';
+export * from './daemon-runtime-slots.js';
 export * from './rubric.js';
 export * from './runtime-models.js';
 export * from './runtime-profiles.js';
