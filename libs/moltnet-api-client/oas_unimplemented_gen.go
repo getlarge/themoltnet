@@ -60,6 +60,15 @@ func (UnimplementedHandler) AppendTaskMessages(ctx context.Context, req *AppendT
 	return r, ht.ErrNotImplemented
 }
 
+// BeginDaemonRuntimeSlot implements beginDaemonRuntimeSlot operation.
+//
+// Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.
+//
+// POST /daemon-runtime-slots/begin
+func (UnimplementedHandler) BeginDaemonRuntimeSlot(ctx context.Context, req OptBeginDaemonRuntimeSlotBody) (r BeginDaemonRuntimeSlotRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CancelTask implements cancelTask operation.
 //
 // Cancel a task.
@@ -295,6 +304,24 @@ func (UnimplementedHandler) DiffContextPacksById(ctx context.Context, params Dif
 //
 // POST /tasks/{id}/attempts/{n}/fail
 func (UnimplementedHandler) FailTask(ctx context.Context, req *FailTaskReq, params FailTaskParams) (r FailTaskRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// FindDaemonRuntimeProducerSlot implements findDaemonRuntimeProducerSlot operation.
+//
+// Find the latest team-scoped producer slot for a task attempt.
+//
+// GET /daemon-runtime-slots/producer
+func (UnimplementedHandler) FindDaemonRuntimeProducerSlot(ctx context.Context, params FindDaemonRuntimeProducerSlotParams) (r FindDaemonRuntimeProducerSlotRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// FinishDaemonRuntimeSlot implements finishDaemonRuntimeSlot operation.
+//
+// Mark a team-scoped daemon runtime slot idle without deleting it.
+//
+// POST /daemon-runtime-slots/finish
+func (UnimplementedHandler) FinishDaemonRuntimeSlot(ctx context.Context, req OptFinishDaemonRuntimeSlotBody) (r FinishDaemonRuntimeSlotRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -40,6 +40,12 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/messages
 	AppendTaskMessages(ctx context.Context, req *AppendTaskMessagesReq, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
+	// BeginDaemonRuntimeSlot implements beginDaemonRuntimeSlot operation.
+	//
+	// Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.
+	//
+	// POST /daemon-runtime-slots/begin
+	BeginDaemonRuntimeSlot(ctx context.Context, req OptBeginDaemonRuntimeSlotBody) (BeginDaemonRuntimeSlotRes, error)
 	// CancelTask implements cancelTask operation.
 	//
 	// Cancel a task.
@@ -200,6 +206,18 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/fail
 	FailTask(ctx context.Context, req *FailTaskReq, params FailTaskParams) (FailTaskRes, error)
+	// FindDaemonRuntimeProducerSlot implements findDaemonRuntimeProducerSlot operation.
+	//
+	// Find the latest team-scoped producer slot for a task attempt.
+	//
+	// GET /daemon-runtime-slots/producer
+	FindDaemonRuntimeProducerSlot(ctx context.Context, params FindDaemonRuntimeProducerSlotParams) (FindDaemonRuntimeProducerSlotRes, error)
+	// FinishDaemonRuntimeSlot implements finishDaemonRuntimeSlot operation.
+	//
+	// Mark a team-scoped daemon runtime slot idle without deleting it.
+	//
+	// POST /daemon-runtime-slots/finish
+	FinishDaemonRuntimeSlot(ctx context.Context, req OptFinishDaemonRuntimeSlotBody) (FinishDaemonRuntimeSlotRes, error)
 	// GetAgentProfile implements getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).

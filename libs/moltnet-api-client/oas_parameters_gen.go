@@ -2337,6 +2337,169 @@ func decodeFailTaskParams(args [2]string, argsEscaped bool, r *http.Request) (pa
 	return params, nil
 }
 
+// FindDaemonRuntimeProducerSlotParams is parameters of findDaemonRuntimeProducerSlot operation.
+type FindDaemonRuntimeProducerSlotParams struct {
+	TeamId   uuid.UUID
+	TaskId   uuid.UUID
+	AttemptN int
+}
+
+func unpackFindDaemonRuntimeProducerSlotParams(packed middleware.Parameters) (params FindDaemonRuntimeProducerSlotParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "teamId",
+			In:   "query",
+		}
+		params.TeamId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "taskId",
+			In:   "query",
+		}
+		params.TaskId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "attemptN",
+			In:   "query",
+		}
+		params.AttemptN = packed[key].(int)
+	}
+	return params
+}
+
+func decodeFindDaemonRuntimeProducerSlotParams(args [0]string, argsEscaped bool, r *http.Request) (params FindDaemonRuntimeProducerSlotParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: teamId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "teamId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TeamId = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "teamId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: taskId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "taskId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TaskId = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "taskId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: attemptN.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "attemptN",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToInt(val)
+				if err != nil {
+					return err
+				}
+
+				params.AttemptN = c
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        false,
+					Max:           0,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(params.AttemptN)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "attemptN",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetAgentProfileParams is parameters of getAgentProfile operation.
 type GetAgentProfileParams struct {
 	Fingerprint string

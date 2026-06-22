@@ -28379,6 +28379,80 @@ var verifyCryptoSignature = (options) => (options.client ?? client).post({
 	}
 });
 /**
+* Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.
+*/
+var beginDaemonRuntimeSlot = (options) => (options?.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/daemon-runtime-slots/begin",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options?.headers
+	}
+});
+/**
+* Mark a team-scoped daemon runtime slot idle without deleting it.
+*/
+var finishDaemonRuntimeSlot = (options) => (options?.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/daemon-runtime-slots/finish",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options?.headers
+	}
+});
+/**
+* Find the latest team-scoped producer slot for a task attempt.
+*/
+var findDaemonRuntimeProducerSlot = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/daemon-runtime-slots/producer",
+	...options
+});
+/**
 * List the authenticated agent's diaries.
 */
 var listDiaries = (options) => (options?.client ?? client).get({
@@ -30234,6 +30308,39 @@ function createCryptoNamespace(context, signingRequests) {
 			}));
 		},
 		signingRequests
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/daemon-runtime-slots.ts
+function createDaemonRuntimeSlotsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async begin(body) {
+			return unwrapResult(await beginDaemonRuntimeSlot({
+				client,
+				auth,
+				body
+			}));
+		},
+		async finish(body) {
+			return unwrapResult(await finishDaemonRuntimeSlot({
+				client,
+				auth,
+				body
+			}));
+		},
+		async findProducer(query) {
+			try {
+				return unwrapResult(await findDaemonRuntimeProducerSlot({
+					client,
+					auth,
+					query
+				}));
+			} catch (err) {
+				if (err instanceof MoltNetError && err.statusCode === 404) return null;
+				throw err;
+			}
+		}
 	};
 }
 //#endregion
@@ -32736,6 +32843,7 @@ function createAgent(options) {
 		teams: createTeamsNamespace(context),
 		runtimeProfiles: createRuntimeProfilesNamespace(context),
 		tasks: createTasksNamespace(context),
+		daemonRuntimeSlots: createDaemonRuntimeSlotsNamespace(context),
 		client,
 		getToken: () => tokenManager.getToken()
 	};

@@ -21,6 +21,10 @@ type AppendTaskMessagesRes interface {
 	appendTaskMessagesRes()
 }
 
+type BeginDaemonRuntimeSlotRes interface {
+	beginDaemonRuntimeSlotRes()
+}
+
 type CancelTaskRes interface {
 	cancelTaskRes()
 }
@@ -123,6 +127,14 @@ type DiffContextPacksByIdRes interface {
 
 type FailTaskRes interface {
 	failTaskRes()
+}
+
+type FindDaemonRuntimeProducerSlotRes interface {
+	findDaemonRuntimeProducerSlotRes()
+}
+
+type FinishDaemonRuntimeSlotRes interface {
+	finishDaemonRuntimeSlotRes()
 }
 
 type GetAgentProfileRes interface {

@@ -544,6 +544,257 @@ func (s *BearerAuth) SetRoles(val []string) {
 	s.Roles = val
 }
 
+// Ref: #/components/schemas/BeginDaemonRuntimeSlotBody
+type BeginDaemonRuntimeSlotBody struct {
+	AgentName       string                                     `json:"agentName"`
+	DaemonId        string                                     `json:"daemonId"`
+	DaemonProfileId OptUUID                                    `json:"daemonProfileId"`
+	LastAttemptN    int                                        `json:"lastAttemptN"`
+	LastTaskId      uuid.UUID                                  `json:"lastTaskId"`
+	Model           string                                     `json:"model"`
+	Provider        string                                     `json:"provider"`
+	SessionDir      OptString                                  `json:"sessionDir"`
+	SessionPath     OptString                                  `json:"sessionPath"`
+	SlotKey         string                                     `json:"slotKey"`
+	TaskType        string                                     `json:"taskType"`
+	TeamId          uuid.UUID                                  `json:"teamId"`
+	TtlSec          int                                        `json:"ttlSec"`
+	WorkspaceId     OptString                                  `json:"workspaceId"`
+	WorkspaceKind   OptBeginDaemonRuntimeSlotBodyWorkspaceKind `json:"workspaceKind"`
+	WorktreeBranch  OptString                                  `json:"worktreeBranch"`
+	WorktreePath    OptString                                  `json:"worktreePath"`
+}
+
+// GetAgentName returns the value of AgentName.
+func (s *BeginDaemonRuntimeSlotBody) GetAgentName() string {
+	return s.AgentName
+}
+
+// GetDaemonId returns the value of DaemonId.
+func (s *BeginDaemonRuntimeSlotBody) GetDaemonId() string {
+	return s.DaemonId
+}
+
+// GetDaemonProfileId returns the value of DaemonProfileId.
+func (s *BeginDaemonRuntimeSlotBody) GetDaemonProfileId() OptUUID {
+	return s.DaemonProfileId
+}
+
+// GetLastAttemptN returns the value of LastAttemptN.
+func (s *BeginDaemonRuntimeSlotBody) GetLastAttemptN() int {
+	return s.LastAttemptN
+}
+
+// GetLastTaskId returns the value of LastTaskId.
+func (s *BeginDaemonRuntimeSlotBody) GetLastTaskId() uuid.UUID {
+	return s.LastTaskId
+}
+
+// GetModel returns the value of Model.
+func (s *BeginDaemonRuntimeSlotBody) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *BeginDaemonRuntimeSlotBody) GetProvider() string {
+	return s.Provider
+}
+
+// GetSessionDir returns the value of SessionDir.
+func (s *BeginDaemonRuntimeSlotBody) GetSessionDir() OptString {
+	return s.SessionDir
+}
+
+// GetSessionPath returns the value of SessionPath.
+func (s *BeginDaemonRuntimeSlotBody) GetSessionPath() OptString {
+	return s.SessionPath
+}
+
+// GetSlotKey returns the value of SlotKey.
+func (s *BeginDaemonRuntimeSlotBody) GetSlotKey() string {
+	return s.SlotKey
+}
+
+// GetTaskType returns the value of TaskType.
+func (s *BeginDaemonRuntimeSlotBody) GetTaskType() string {
+	return s.TaskType
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *BeginDaemonRuntimeSlotBody) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetTtlSec returns the value of TtlSec.
+func (s *BeginDaemonRuntimeSlotBody) GetTtlSec() int {
+	return s.TtlSec
+}
+
+// GetWorkspaceId returns the value of WorkspaceId.
+func (s *BeginDaemonRuntimeSlotBody) GetWorkspaceId() OptString {
+	return s.WorkspaceId
+}
+
+// GetWorkspaceKind returns the value of WorkspaceKind.
+func (s *BeginDaemonRuntimeSlotBody) GetWorkspaceKind() OptBeginDaemonRuntimeSlotBodyWorkspaceKind {
+	return s.WorkspaceKind
+}
+
+// GetWorktreeBranch returns the value of WorktreeBranch.
+func (s *BeginDaemonRuntimeSlotBody) GetWorktreeBranch() OptString {
+	return s.WorktreeBranch
+}
+
+// GetWorktreePath returns the value of WorktreePath.
+func (s *BeginDaemonRuntimeSlotBody) GetWorktreePath() OptString {
+	return s.WorktreePath
+}
+
+// SetAgentName sets the value of AgentName.
+func (s *BeginDaemonRuntimeSlotBody) SetAgentName(val string) {
+	s.AgentName = val
+}
+
+// SetDaemonId sets the value of DaemonId.
+func (s *BeginDaemonRuntimeSlotBody) SetDaemonId(val string) {
+	s.DaemonId = val
+}
+
+// SetDaemonProfileId sets the value of DaemonProfileId.
+func (s *BeginDaemonRuntimeSlotBody) SetDaemonProfileId(val OptUUID) {
+	s.DaemonProfileId = val
+}
+
+// SetLastAttemptN sets the value of LastAttemptN.
+func (s *BeginDaemonRuntimeSlotBody) SetLastAttemptN(val int) {
+	s.LastAttemptN = val
+}
+
+// SetLastTaskId sets the value of LastTaskId.
+func (s *BeginDaemonRuntimeSlotBody) SetLastTaskId(val uuid.UUID) {
+	s.LastTaskId = val
+}
+
+// SetModel sets the value of Model.
+func (s *BeginDaemonRuntimeSlotBody) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *BeginDaemonRuntimeSlotBody) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetSessionDir sets the value of SessionDir.
+func (s *BeginDaemonRuntimeSlotBody) SetSessionDir(val OptString) {
+	s.SessionDir = val
+}
+
+// SetSessionPath sets the value of SessionPath.
+func (s *BeginDaemonRuntimeSlotBody) SetSessionPath(val OptString) {
+	s.SessionPath = val
+}
+
+// SetSlotKey sets the value of SlotKey.
+func (s *BeginDaemonRuntimeSlotBody) SetSlotKey(val string) {
+	s.SlotKey = val
+}
+
+// SetTaskType sets the value of TaskType.
+func (s *BeginDaemonRuntimeSlotBody) SetTaskType(val string) {
+	s.TaskType = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *BeginDaemonRuntimeSlotBody) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetTtlSec sets the value of TtlSec.
+func (s *BeginDaemonRuntimeSlotBody) SetTtlSec(val int) {
+	s.TtlSec = val
+}
+
+// SetWorkspaceId sets the value of WorkspaceId.
+func (s *BeginDaemonRuntimeSlotBody) SetWorkspaceId(val OptString) {
+	s.WorkspaceId = val
+}
+
+// SetWorkspaceKind sets the value of WorkspaceKind.
+func (s *BeginDaemonRuntimeSlotBody) SetWorkspaceKind(val OptBeginDaemonRuntimeSlotBodyWorkspaceKind) {
+	s.WorkspaceKind = val
+}
+
+// SetWorktreeBranch sets the value of WorktreeBranch.
+func (s *BeginDaemonRuntimeSlotBody) SetWorktreeBranch(val OptString) {
+	s.WorktreeBranch = val
+}
+
+// SetWorktreePath sets the value of WorktreePath.
+func (s *BeginDaemonRuntimeSlotBody) SetWorktreePath(val OptString) {
+	s.WorktreePath = val
+}
+
+type BeginDaemonRuntimeSlotBodyWorkspaceKind string
+
+const (
+	BeginDaemonRuntimeSlotBodyWorkspaceKindOrigin  BeginDaemonRuntimeSlotBodyWorkspaceKind = "origin"
+	BeginDaemonRuntimeSlotBodyWorkspaceKindFork    BeginDaemonRuntimeSlotBodyWorkspaceKind = "fork"
+	BeginDaemonRuntimeSlotBodyWorkspaceKindScratch BeginDaemonRuntimeSlotBodyWorkspaceKind = "scratch"
+)
+
+// AllValues returns all BeginDaemonRuntimeSlotBodyWorkspaceKind values.
+func (BeginDaemonRuntimeSlotBodyWorkspaceKind) AllValues() []BeginDaemonRuntimeSlotBodyWorkspaceKind {
+	return []BeginDaemonRuntimeSlotBodyWorkspaceKind{
+		BeginDaemonRuntimeSlotBodyWorkspaceKindOrigin,
+		BeginDaemonRuntimeSlotBodyWorkspaceKindFork,
+		BeginDaemonRuntimeSlotBodyWorkspaceKindScratch,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s BeginDaemonRuntimeSlotBodyWorkspaceKind) MarshalText() ([]byte, error) {
+	switch s {
+	case BeginDaemonRuntimeSlotBodyWorkspaceKindOrigin:
+		return []byte(s), nil
+	case BeginDaemonRuntimeSlotBodyWorkspaceKindFork:
+		return []byte(s), nil
+	case BeginDaemonRuntimeSlotBodyWorkspaceKindScratch:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *BeginDaemonRuntimeSlotBodyWorkspaceKind) UnmarshalText(data []byte) error {
+	switch BeginDaemonRuntimeSlotBodyWorkspaceKind(data) {
+	case BeginDaemonRuntimeSlotBodyWorkspaceKindOrigin:
+		*s = BeginDaemonRuntimeSlotBodyWorkspaceKindOrigin
+		return nil
+	case BeginDaemonRuntimeSlotBodyWorkspaceKindFork:
+		*s = BeginDaemonRuntimeSlotBodyWorkspaceKindFork
+		return nil
+	case BeginDaemonRuntimeSlotBodyWorkspaceKindScratch:
+		*s = BeginDaemonRuntimeSlotBodyWorkspaceKindScratch
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type BeginDaemonRuntimeSlotForbidden ProblemDetails
+
+func (*BeginDaemonRuntimeSlotForbidden) beginDaemonRuntimeSlotRes() {}
+
+type BeginDaemonRuntimeSlotNotFound ProblemDetails
+
+func (*BeginDaemonRuntimeSlotNotFound) beginDaemonRuntimeSlotRes() {}
+
+type BeginDaemonRuntimeSlotUnauthorized ProblemDetails
+
+func (*BeginDaemonRuntimeSlotUnauthorized) beginDaemonRuntimeSlotRes() {}
+
 type CancelTaskBadRequest ProblemDetails
 
 func (*CancelTaskBadRequest) cancelTaskRes() {}
@@ -1385,31 +1636,33 @@ func (s *ConflictProblemDetails) SetAdditionalProps(val ConflictProblemDetailsAd
 	s.AdditionalProps = val
 }
 
-func (*ConflictProblemDetails) abortTaskAttemptRes()       {}
-func (*ConflictProblemDetails) acceptTeamFoundingRes()     {}
-func (*ConflictProblemDetails) acceptTransferRes()         {}
-func (*ConflictProblemDetails) cancelTaskRes()             {}
-func (*ConflictProblemDetails) claimTaskRes()              {}
-func (*ConflictProblemDetails) completeTaskRes()           {}
-func (*ConflictProblemDetails) createDiaryCustomPackRes()  {}
-func (*ConflictProblemDetails) createDiaryEntryRes()       {}
-func (*ConflictProblemDetails) createDiaryGrantRes()       {}
-func (*ConflictProblemDetails) createGroupRes()            {}
-func (*ConflictProblemDetails) createRuntimeModelRes()     {}
-func (*ConflictProblemDetails) createRuntimeProfileRes()   {}
-func (*ConflictProblemDetails) failTaskRes()               {}
-func (*ConflictProblemDetails) initiateTransferRes()       {}
-func (*ConflictProblemDetails) joinTeamRes()               {}
-func (*ConflictProblemDetails) previewDiaryCustomPackRes() {}
-func (*ConflictProblemDetails) rejectTransferRes()         {}
-func (*ConflictProblemDetails) renderContextPackRes()      {}
-func (*ConflictProblemDetails) submitSignatureRes()        {}
-func (*ConflictProblemDetails) updateContextPackRes()      {}
-func (*ConflictProblemDetails) updateDiaryEntryByIdRes()   {}
-func (*ConflictProblemDetails) updateRenderedPackRes()     {}
-func (*ConflictProblemDetails) updateRuntimeModelRes()     {}
-func (*ConflictProblemDetails) updateRuntimeProfileRes()   {}
-func (*ConflictProblemDetails) updateTeamMemberRoleRes()   {}
+func (*ConflictProblemDetails) abortTaskAttemptRes()        {}
+func (*ConflictProblemDetails) acceptTeamFoundingRes()      {}
+func (*ConflictProblemDetails) acceptTransferRes()          {}
+func (*ConflictProblemDetails) beginDaemonRuntimeSlotRes()  {}
+func (*ConflictProblemDetails) cancelTaskRes()              {}
+func (*ConflictProblemDetails) claimTaskRes()               {}
+func (*ConflictProblemDetails) completeTaskRes()            {}
+func (*ConflictProblemDetails) createDiaryCustomPackRes()   {}
+func (*ConflictProblemDetails) createDiaryEntryRes()        {}
+func (*ConflictProblemDetails) createDiaryGrantRes()        {}
+func (*ConflictProblemDetails) createGroupRes()             {}
+func (*ConflictProblemDetails) createRuntimeModelRes()      {}
+func (*ConflictProblemDetails) createRuntimeProfileRes()    {}
+func (*ConflictProblemDetails) failTaskRes()                {}
+func (*ConflictProblemDetails) finishDaemonRuntimeSlotRes() {}
+func (*ConflictProblemDetails) initiateTransferRes()        {}
+func (*ConflictProblemDetails) joinTeamRes()                {}
+func (*ConflictProblemDetails) previewDiaryCustomPackRes()  {}
+func (*ConflictProblemDetails) rejectTransferRes()          {}
+func (*ConflictProblemDetails) renderContextPackRes()       {}
+func (*ConflictProblemDetails) submitSignatureRes()         {}
+func (*ConflictProblemDetails) updateContextPackRes()       {}
+func (*ConflictProblemDetails) updateDiaryEntryByIdRes()    {}
+func (*ConflictProblemDetails) updateRenderedPackRes()      {}
+func (*ConflictProblemDetails) updateRuntimeModelRes()      {}
+func (*ConflictProblemDetails) updateRuntimeProfileRes()    {}
+func (*ConflictProblemDetails) updateTeamMemberRoleRes()    {}
 
 type ConflictProblemDetailsAdditional map[string]jx.Raw
 
@@ -4905,6 +5158,418 @@ func (s *CustomPackResultParams) init() CustomPackResultParams {
 		*s = m
 	}
 	return m
+}
+
+// Ref: #/components/schemas/DaemonRuntimeSlot
+type DaemonRuntimeSlot struct {
+	AgentIdentityId uuid.UUID              `json:"agentIdentityId"`
+	AgentName       string                 `json:"agentName"`
+	CreatedAtMs     int                    `json:"createdAtMs"`
+	DaemonId        string                 `json:"daemonId"`
+	DaemonProfileId NilUUID                `json:"daemonProfileId"`
+	ExpiresAtMs     int                    `json:"expiresAtMs"`
+	ID              uuid.UUID              `json:"id"`
+	LastAttemptN    int                    `json:"lastAttemptN"`
+	LastTaskId      uuid.UUID              `json:"lastTaskId"`
+	LastUsedAtMs    int                    `json:"lastUsedAtMs"`
+	Model           string                 `json:"model"`
+	Provider        string                 `json:"provider"`
+	SlotKey         string                 `json:"slotKey"`
+	State           DaemonRuntimeSlotState `json:"state"`
+	TaskType        string                 `json:"taskType"`
+	TeamId          uuid.UUID              `json:"teamId"`
+	WorkspaceRowId  NilUUID                `json:"workspaceRowId"`
+}
+
+// GetAgentIdentityId returns the value of AgentIdentityId.
+func (s *DaemonRuntimeSlot) GetAgentIdentityId() uuid.UUID {
+	return s.AgentIdentityId
+}
+
+// GetAgentName returns the value of AgentName.
+func (s *DaemonRuntimeSlot) GetAgentName() string {
+	return s.AgentName
+}
+
+// GetCreatedAtMs returns the value of CreatedAtMs.
+func (s *DaemonRuntimeSlot) GetCreatedAtMs() int {
+	return s.CreatedAtMs
+}
+
+// GetDaemonId returns the value of DaemonId.
+func (s *DaemonRuntimeSlot) GetDaemonId() string {
+	return s.DaemonId
+}
+
+// GetDaemonProfileId returns the value of DaemonProfileId.
+func (s *DaemonRuntimeSlot) GetDaemonProfileId() NilUUID {
+	return s.DaemonProfileId
+}
+
+// GetExpiresAtMs returns the value of ExpiresAtMs.
+func (s *DaemonRuntimeSlot) GetExpiresAtMs() int {
+	return s.ExpiresAtMs
+}
+
+// GetID returns the value of ID.
+func (s *DaemonRuntimeSlot) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetLastAttemptN returns the value of LastAttemptN.
+func (s *DaemonRuntimeSlot) GetLastAttemptN() int {
+	return s.LastAttemptN
+}
+
+// GetLastTaskId returns the value of LastTaskId.
+func (s *DaemonRuntimeSlot) GetLastTaskId() uuid.UUID {
+	return s.LastTaskId
+}
+
+// GetLastUsedAtMs returns the value of LastUsedAtMs.
+func (s *DaemonRuntimeSlot) GetLastUsedAtMs() int {
+	return s.LastUsedAtMs
+}
+
+// GetModel returns the value of Model.
+func (s *DaemonRuntimeSlot) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *DaemonRuntimeSlot) GetProvider() string {
+	return s.Provider
+}
+
+// GetSlotKey returns the value of SlotKey.
+func (s *DaemonRuntimeSlot) GetSlotKey() string {
+	return s.SlotKey
+}
+
+// GetState returns the value of State.
+func (s *DaemonRuntimeSlot) GetState() DaemonRuntimeSlotState {
+	return s.State
+}
+
+// GetTaskType returns the value of TaskType.
+func (s *DaemonRuntimeSlot) GetTaskType() string {
+	return s.TaskType
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *DaemonRuntimeSlot) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetWorkspaceRowId returns the value of WorkspaceRowId.
+func (s *DaemonRuntimeSlot) GetWorkspaceRowId() NilUUID {
+	return s.WorkspaceRowId
+}
+
+// SetAgentIdentityId sets the value of AgentIdentityId.
+func (s *DaemonRuntimeSlot) SetAgentIdentityId(val uuid.UUID) {
+	s.AgentIdentityId = val
+}
+
+// SetAgentName sets the value of AgentName.
+func (s *DaemonRuntimeSlot) SetAgentName(val string) {
+	s.AgentName = val
+}
+
+// SetCreatedAtMs sets the value of CreatedAtMs.
+func (s *DaemonRuntimeSlot) SetCreatedAtMs(val int) {
+	s.CreatedAtMs = val
+}
+
+// SetDaemonId sets the value of DaemonId.
+func (s *DaemonRuntimeSlot) SetDaemonId(val string) {
+	s.DaemonId = val
+}
+
+// SetDaemonProfileId sets the value of DaemonProfileId.
+func (s *DaemonRuntimeSlot) SetDaemonProfileId(val NilUUID) {
+	s.DaemonProfileId = val
+}
+
+// SetExpiresAtMs sets the value of ExpiresAtMs.
+func (s *DaemonRuntimeSlot) SetExpiresAtMs(val int) {
+	s.ExpiresAtMs = val
+}
+
+// SetID sets the value of ID.
+func (s *DaemonRuntimeSlot) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetLastAttemptN sets the value of LastAttemptN.
+func (s *DaemonRuntimeSlot) SetLastAttemptN(val int) {
+	s.LastAttemptN = val
+}
+
+// SetLastTaskId sets the value of LastTaskId.
+func (s *DaemonRuntimeSlot) SetLastTaskId(val uuid.UUID) {
+	s.LastTaskId = val
+}
+
+// SetLastUsedAtMs sets the value of LastUsedAtMs.
+func (s *DaemonRuntimeSlot) SetLastUsedAtMs(val int) {
+	s.LastUsedAtMs = val
+}
+
+// SetModel sets the value of Model.
+func (s *DaemonRuntimeSlot) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *DaemonRuntimeSlot) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetSlotKey sets the value of SlotKey.
+func (s *DaemonRuntimeSlot) SetSlotKey(val string) {
+	s.SlotKey = val
+}
+
+// SetState sets the value of State.
+func (s *DaemonRuntimeSlot) SetState(val DaemonRuntimeSlotState) {
+	s.State = val
+}
+
+// SetTaskType sets the value of TaskType.
+func (s *DaemonRuntimeSlot) SetTaskType(val string) {
+	s.TaskType = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *DaemonRuntimeSlot) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetWorkspaceRowId sets the value of WorkspaceRowId.
+func (s *DaemonRuntimeSlot) SetWorkspaceRowId(val NilUUID) {
+	s.WorkspaceRowId = val
+}
+
+func (*DaemonRuntimeSlot) beginDaemonRuntimeSlotRes()  {}
+func (*DaemonRuntimeSlot) finishDaemonRuntimeSlotRes() {}
+
+// Ref: #/components/schemas/DaemonRuntimeSlotSession
+type DaemonRuntimeSlotSession struct {
+	SessionDir  string    `json:"sessionDir"`
+	SessionPath NilString `json:"sessionPath"`
+	SlotId      uuid.UUID `json:"slotId"`
+}
+
+// GetSessionDir returns the value of SessionDir.
+func (s *DaemonRuntimeSlotSession) GetSessionDir() string {
+	return s.SessionDir
+}
+
+// GetSessionPath returns the value of SessionPath.
+func (s *DaemonRuntimeSlotSession) GetSessionPath() NilString {
+	return s.SessionPath
+}
+
+// GetSlotId returns the value of SlotId.
+func (s *DaemonRuntimeSlotSession) GetSlotId() uuid.UUID {
+	return s.SlotId
+}
+
+// SetSessionDir sets the value of SessionDir.
+func (s *DaemonRuntimeSlotSession) SetSessionDir(val string) {
+	s.SessionDir = val
+}
+
+// SetSessionPath sets the value of SessionPath.
+func (s *DaemonRuntimeSlotSession) SetSessionPath(val NilString) {
+	s.SessionPath = val
+}
+
+// SetSlotId sets the value of SlotId.
+func (s *DaemonRuntimeSlotSession) SetSlotId(val uuid.UUID) {
+	s.SlotId = val
+}
+
+type DaemonRuntimeSlotState string
+
+const (
+	DaemonRuntimeSlotStateActive DaemonRuntimeSlotState = "active"
+	DaemonRuntimeSlotStateIdle   DaemonRuntimeSlotState = "idle"
+)
+
+// AllValues returns all DaemonRuntimeSlotState values.
+func (DaemonRuntimeSlotState) AllValues() []DaemonRuntimeSlotState {
+	return []DaemonRuntimeSlotState{
+		DaemonRuntimeSlotStateActive,
+		DaemonRuntimeSlotStateIdle,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DaemonRuntimeSlotState) MarshalText() ([]byte, error) {
+	switch s {
+	case DaemonRuntimeSlotStateActive:
+		return []byte(s), nil
+	case DaemonRuntimeSlotStateIdle:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DaemonRuntimeSlotState) UnmarshalText(data []byte) error {
+	switch DaemonRuntimeSlotState(data) {
+	case DaemonRuntimeSlotStateActive:
+		*s = DaemonRuntimeSlotStateActive
+		return nil
+	case DaemonRuntimeSlotStateIdle:
+		*s = DaemonRuntimeSlotStateIdle
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/DaemonRuntimeWorkspace
+type DaemonRuntimeWorkspace struct {
+	CreatedAtMs    int                        `json:"createdAtMs"`
+	ID             uuid.UUID                  `json:"id"`
+	Kind           DaemonRuntimeWorkspaceKind `json:"kind"`
+	LastUsedAtMs   int                        `json:"lastUsedAtMs"`
+	TeamId         uuid.UUID                  `json:"teamId"`
+	WorkspaceId    string                     `json:"workspaceId"`
+	WorktreeBranch NilString                  `json:"worktreeBranch"`
+	WorktreePath   string                     `json:"worktreePath"`
+}
+
+// GetCreatedAtMs returns the value of CreatedAtMs.
+func (s *DaemonRuntimeWorkspace) GetCreatedAtMs() int {
+	return s.CreatedAtMs
+}
+
+// GetID returns the value of ID.
+func (s *DaemonRuntimeWorkspace) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetKind returns the value of Kind.
+func (s *DaemonRuntimeWorkspace) GetKind() DaemonRuntimeWorkspaceKind {
+	return s.Kind
+}
+
+// GetLastUsedAtMs returns the value of LastUsedAtMs.
+func (s *DaemonRuntimeWorkspace) GetLastUsedAtMs() int {
+	return s.LastUsedAtMs
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *DaemonRuntimeWorkspace) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetWorkspaceId returns the value of WorkspaceId.
+func (s *DaemonRuntimeWorkspace) GetWorkspaceId() string {
+	return s.WorkspaceId
+}
+
+// GetWorktreeBranch returns the value of WorktreeBranch.
+func (s *DaemonRuntimeWorkspace) GetWorktreeBranch() NilString {
+	return s.WorktreeBranch
+}
+
+// GetWorktreePath returns the value of WorktreePath.
+func (s *DaemonRuntimeWorkspace) GetWorktreePath() string {
+	return s.WorktreePath
+}
+
+// SetCreatedAtMs sets the value of CreatedAtMs.
+func (s *DaemonRuntimeWorkspace) SetCreatedAtMs(val int) {
+	s.CreatedAtMs = val
+}
+
+// SetID sets the value of ID.
+func (s *DaemonRuntimeWorkspace) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetKind sets the value of Kind.
+func (s *DaemonRuntimeWorkspace) SetKind(val DaemonRuntimeWorkspaceKind) {
+	s.Kind = val
+}
+
+// SetLastUsedAtMs sets the value of LastUsedAtMs.
+func (s *DaemonRuntimeWorkspace) SetLastUsedAtMs(val int) {
+	s.LastUsedAtMs = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *DaemonRuntimeWorkspace) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetWorkspaceId sets the value of WorkspaceId.
+func (s *DaemonRuntimeWorkspace) SetWorkspaceId(val string) {
+	s.WorkspaceId = val
+}
+
+// SetWorktreeBranch sets the value of WorktreeBranch.
+func (s *DaemonRuntimeWorkspace) SetWorktreeBranch(val NilString) {
+	s.WorktreeBranch = val
+}
+
+// SetWorktreePath sets the value of WorktreePath.
+func (s *DaemonRuntimeWorkspace) SetWorktreePath(val string) {
+	s.WorktreePath = val
+}
+
+type DaemonRuntimeWorkspaceKind string
+
+const (
+	DaemonRuntimeWorkspaceKindOrigin  DaemonRuntimeWorkspaceKind = "origin"
+	DaemonRuntimeWorkspaceKindFork    DaemonRuntimeWorkspaceKind = "fork"
+	DaemonRuntimeWorkspaceKindScratch DaemonRuntimeWorkspaceKind = "scratch"
+)
+
+// AllValues returns all DaemonRuntimeWorkspaceKind values.
+func (DaemonRuntimeWorkspaceKind) AllValues() []DaemonRuntimeWorkspaceKind {
+	return []DaemonRuntimeWorkspaceKind{
+		DaemonRuntimeWorkspaceKindOrigin,
+		DaemonRuntimeWorkspaceKindFork,
+		DaemonRuntimeWorkspaceKindScratch,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DaemonRuntimeWorkspaceKind) MarshalText() ([]byte, error) {
+	switch s {
+	case DaemonRuntimeWorkspaceKindOrigin:
+		return []byte(s), nil
+	case DaemonRuntimeWorkspaceKindFork:
+		return []byte(s), nil
+	case DaemonRuntimeWorkspaceKindScratch:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DaemonRuntimeWorkspaceKind) UnmarshalText(data []byte) error {
+	switch DaemonRuntimeWorkspaceKind(data) {
+	case DaemonRuntimeWorkspaceKindOrigin:
+		*s = DaemonRuntimeWorkspaceKindOrigin
+		return nil
+	case DaemonRuntimeWorkspaceKindFork:
+		*s = DaemonRuntimeWorkspaceKindFork
+		return nil
+	case DaemonRuntimeWorkspaceKindScratch:
+		*s = DaemonRuntimeWorkspaceKindScratch
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/DaemonState
@@ -8957,6 +9622,144 @@ func (s *FailTaskReq) SetError(val TaskError) {
 type FailTaskUnauthorized ProblemDetails
 
 func (*FailTaskUnauthorized) failTaskRes() {}
+
+type FindDaemonRuntimeProducerSlotForbidden ProblemDetails
+
+func (*FindDaemonRuntimeProducerSlotForbidden) findDaemonRuntimeProducerSlotRes() {}
+
+type FindDaemonRuntimeProducerSlotNotFound ProblemDetails
+
+func (*FindDaemonRuntimeProducerSlotNotFound) findDaemonRuntimeProducerSlotRes() {}
+
+type FindDaemonRuntimeProducerSlotUnauthorized ProblemDetails
+
+func (*FindDaemonRuntimeProducerSlotUnauthorized) findDaemonRuntimeProducerSlotRes() {}
+
+// Ref: #/components/schemas/FinishDaemonRuntimeSlotBody
+type FinishDaemonRuntimeSlotBody struct {
+	AgentName   string    `json:"agentName"`
+	AttemptN    int       `json:"attemptN"`
+	DaemonId    string    `json:"daemonId"`
+	Model       string    `json:"model"`
+	Provider    string    `json:"provider"`
+	SessionPath OptString `json:"sessionPath"`
+	SlotKey     string    `json:"slotKey"`
+	TaskId      uuid.UUID `json:"taskId"`
+	TeamId      uuid.UUID `json:"teamId"`
+	TtlSec      int       `json:"ttlSec"`
+}
+
+// GetAgentName returns the value of AgentName.
+func (s *FinishDaemonRuntimeSlotBody) GetAgentName() string {
+	return s.AgentName
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *FinishDaemonRuntimeSlotBody) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetDaemonId returns the value of DaemonId.
+func (s *FinishDaemonRuntimeSlotBody) GetDaemonId() string {
+	return s.DaemonId
+}
+
+// GetModel returns the value of Model.
+func (s *FinishDaemonRuntimeSlotBody) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *FinishDaemonRuntimeSlotBody) GetProvider() string {
+	return s.Provider
+}
+
+// GetSessionPath returns the value of SessionPath.
+func (s *FinishDaemonRuntimeSlotBody) GetSessionPath() OptString {
+	return s.SessionPath
+}
+
+// GetSlotKey returns the value of SlotKey.
+func (s *FinishDaemonRuntimeSlotBody) GetSlotKey() string {
+	return s.SlotKey
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *FinishDaemonRuntimeSlotBody) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *FinishDaemonRuntimeSlotBody) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetTtlSec returns the value of TtlSec.
+func (s *FinishDaemonRuntimeSlotBody) GetTtlSec() int {
+	return s.TtlSec
+}
+
+// SetAgentName sets the value of AgentName.
+func (s *FinishDaemonRuntimeSlotBody) SetAgentName(val string) {
+	s.AgentName = val
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *FinishDaemonRuntimeSlotBody) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetDaemonId sets the value of DaemonId.
+func (s *FinishDaemonRuntimeSlotBody) SetDaemonId(val string) {
+	s.DaemonId = val
+}
+
+// SetModel sets the value of Model.
+func (s *FinishDaemonRuntimeSlotBody) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *FinishDaemonRuntimeSlotBody) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetSessionPath sets the value of SessionPath.
+func (s *FinishDaemonRuntimeSlotBody) SetSessionPath(val OptString) {
+	s.SessionPath = val
+}
+
+// SetSlotKey sets the value of SlotKey.
+func (s *FinishDaemonRuntimeSlotBody) SetSlotKey(val string) {
+	s.SlotKey = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *FinishDaemonRuntimeSlotBody) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *FinishDaemonRuntimeSlotBody) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetTtlSec sets the value of TtlSec.
+func (s *FinishDaemonRuntimeSlotBody) SetTtlSec(val int) {
+	s.TtlSec = val
+}
+
+type FinishDaemonRuntimeSlotForbidden ProblemDetails
+
+func (*FinishDaemonRuntimeSlotForbidden) finishDaemonRuntimeSlotRes() {}
+
+type FinishDaemonRuntimeSlotNotFound ProblemDetails
+
+func (*FinishDaemonRuntimeSlotNotFound) finishDaemonRuntimeSlotRes() {}
+
+type FinishDaemonRuntimeSlotUnauthorized ProblemDetails
+
+func (*FinishDaemonRuntimeSlotUnauthorized) finishDaemonRuntimeSlotRes() {}
 
 type GetAgentProfileBadRequest ProblemDetails
 
@@ -13847,6 +14650,96 @@ func (o NilClaimCondition) Or(d ClaimCondition) ClaimCondition {
 	return d
 }
 
+// NewNilDaemonRuntimeSlotSession returns new NilDaemonRuntimeSlotSession with value set to v.
+func NewNilDaemonRuntimeSlotSession(v DaemonRuntimeSlotSession) NilDaemonRuntimeSlotSession {
+	return NilDaemonRuntimeSlotSession{
+		Value: v,
+	}
+}
+
+// NilDaemonRuntimeSlotSession is nullable DaemonRuntimeSlotSession.
+type NilDaemonRuntimeSlotSession struct {
+	Value DaemonRuntimeSlotSession
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilDaemonRuntimeSlotSession) SetTo(v DaemonRuntimeSlotSession) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilDaemonRuntimeSlotSession) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilDaemonRuntimeSlotSession) SetToNull() {
+	o.Null = true
+	var v DaemonRuntimeSlotSession
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilDaemonRuntimeSlotSession) Get() (v DaemonRuntimeSlotSession, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilDaemonRuntimeSlotSession) Or(d DaemonRuntimeSlotSession) DaemonRuntimeSlotSession {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilDaemonRuntimeWorkspace returns new NilDaemonRuntimeWorkspace with value set to v.
+func NewNilDaemonRuntimeWorkspace(v DaemonRuntimeWorkspace) NilDaemonRuntimeWorkspace {
+	return NilDaemonRuntimeWorkspace{
+		Value: v,
+	}
+}
+
+// NilDaemonRuntimeWorkspace is nullable DaemonRuntimeWorkspace.
+type NilDaemonRuntimeWorkspace struct {
+	Value DaemonRuntimeWorkspace
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilDaemonRuntimeWorkspace) SetTo(v DaemonRuntimeWorkspace) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilDaemonRuntimeWorkspace) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilDaemonRuntimeWorkspace) SetToNull() {
+	o.Null = true
+	var v DaemonRuntimeWorkspace
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilDaemonRuntimeWorkspace) Get() (v DaemonRuntimeWorkspace, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilDaemonRuntimeWorkspace) Or(d DaemonRuntimeWorkspace) DaemonRuntimeWorkspace {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilDateTime returns new NilDateTime with value set to v.
 func NewNilDateTime(v time.Time) NilDateTime {
 	return NilDateTime{
@@ -14428,6 +15321,98 @@ func (o OptAddGroupMemberReqSubjectNs) Get() (v AddGroupMemberReqSubjectNs, ok b
 
 // Or returns value if set, or given parameter if does not.
 func (o OptAddGroupMemberReqSubjectNs) Or(d AddGroupMemberReqSubjectNs) AddGroupMemberReqSubjectNs {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptBeginDaemonRuntimeSlotBody returns new OptBeginDaemonRuntimeSlotBody with value set to v.
+func NewOptBeginDaemonRuntimeSlotBody(v BeginDaemonRuntimeSlotBody) OptBeginDaemonRuntimeSlotBody {
+	return OptBeginDaemonRuntimeSlotBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptBeginDaemonRuntimeSlotBody is optional BeginDaemonRuntimeSlotBody.
+type OptBeginDaemonRuntimeSlotBody struct {
+	Value BeginDaemonRuntimeSlotBody
+	Set   bool
+}
+
+// IsSet returns true if OptBeginDaemonRuntimeSlotBody was set.
+func (o OptBeginDaemonRuntimeSlotBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptBeginDaemonRuntimeSlotBody) Reset() {
+	var v BeginDaemonRuntimeSlotBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptBeginDaemonRuntimeSlotBody) SetTo(v BeginDaemonRuntimeSlotBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptBeginDaemonRuntimeSlotBody) Get() (v BeginDaemonRuntimeSlotBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptBeginDaemonRuntimeSlotBody) Or(d BeginDaemonRuntimeSlotBody) BeginDaemonRuntimeSlotBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptBeginDaemonRuntimeSlotBodyWorkspaceKind returns new OptBeginDaemonRuntimeSlotBodyWorkspaceKind with value set to v.
+func NewOptBeginDaemonRuntimeSlotBodyWorkspaceKind(v BeginDaemonRuntimeSlotBodyWorkspaceKind) OptBeginDaemonRuntimeSlotBodyWorkspaceKind {
+	return OptBeginDaemonRuntimeSlotBodyWorkspaceKind{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptBeginDaemonRuntimeSlotBodyWorkspaceKind is optional BeginDaemonRuntimeSlotBodyWorkspaceKind.
+type OptBeginDaemonRuntimeSlotBodyWorkspaceKind struct {
+	Value BeginDaemonRuntimeSlotBodyWorkspaceKind
+	Set   bool
+}
+
+// IsSet returns true if OptBeginDaemonRuntimeSlotBodyWorkspaceKind was set.
+func (o OptBeginDaemonRuntimeSlotBodyWorkspaceKind) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptBeginDaemonRuntimeSlotBodyWorkspaceKind) Reset() {
+	var v BeginDaemonRuntimeSlotBodyWorkspaceKind
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptBeginDaemonRuntimeSlotBodyWorkspaceKind) SetTo(v BeginDaemonRuntimeSlotBodyWorkspaceKind) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptBeginDaemonRuntimeSlotBodyWorkspaceKind) Get() (v BeginDaemonRuntimeSlotBodyWorkspaceKind, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptBeginDaemonRuntimeSlotBodyWorkspaceKind) Or(d BeginDaemonRuntimeSlotBodyWorkspaceKind) BeginDaemonRuntimeSlotBodyWorkspaceKind {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -15762,6 +16747,52 @@ func (o OptExpandedRelations) Get() (v ExpandedRelations, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptExpandedRelations) Or(d ExpandedRelations) ExpandedRelations {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptFinishDaemonRuntimeSlotBody returns new OptFinishDaemonRuntimeSlotBody with value set to v.
+func NewOptFinishDaemonRuntimeSlotBody(v FinishDaemonRuntimeSlotBody) OptFinishDaemonRuntimeSlotBody {
+	return OptFinishDaemonRuntimeSlotBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptFinishDaemonRuntimeSlotBody is optional FinishDaemonRuntimeSlotBody.
+type OptFinishDaemonRuntimeSlotBody struct {
+	Value FinishDaemonRuntimeSlotBody
+	Set   bool
+}
+
+// IsSet returns true if OptFinishDaemonRuntimeSlotBody was set.
+func (o OptFinishDaemonRuntimeSlotBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptFinishDaemonRuntimeSlotBody) Reset() {
+	var v FinishDaemonRuntimeSlotBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptFinishDaemonRuntimeSlotBody) SetTo(v FinishDaemonRuntimeSlotBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptFinishDaemonRuntimeSlotBody) Get() (v FinishDaemonRuntimeSlotBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptFinishDaemonRuntimeSlotBody) Or(d FinishDaemonRuntimeSlotBody) FinishDaemonRuntimeSlotBody {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -22327,6 +23358,45 @@ func (s *RequestRecoveryChallengeReq) GetPublicKey() string {
 func (s *RequestRecoveryChallengeReq) SetPublicKey(val string) {
 	s.PublicKey = val
 }
+
+// Ref: #/components/schemas/ResolvedDaemonRuntimeSlot
+type ResolvedDaemonRuntimeSlot struct {
+	Session   NilDaemonRuntimeSlotSession `json:"session"`
+	Slot      DaemonRuntimeSlot           `json:"slot"`
+	Workspace NilDaemonRuntimeWorkspace   `json:"workspace"`
+}
+
+// GetSession returns the value of Session.
+func (s *ResolvedDaemonRuntimeSlot) GetSession() NilDaemonRuntimeSlotSession {
+	return s.Session
+}
+
+// GetSlot returns the value of Slot.
+func (s *ResolvedDaemonRuntimeSlot) GetSlot() DaemonRuntimeSlot {
+	return s.Slot
+}
+
+// GetWorkspace returns the value of Workspace.
+func (s *ResolvedDaemonRuntimeSlot) GetWorkspace() NilDaemonRuntimeWorkspace {
+	return s.Workspace
+}
+
+// SetSession sets the value of Session.
+func (s *ResolvedDaemonRuntimeSlot) SetSession(val NilDaemonRuntimeSlotSession) {
+	s.Session = val
+}
+
+// SetSlot sets the value of Slot.
+func (s *ResolvedDaemonRuntimeSlot) SetSlot(val DaemonRuntimeSlot) {
+	s.Slot = val
+}
+
+// SetWorkspace sets the value of Workspace.
+func (s *ResolvedDaemonRuntimeSlot) SetWorkspace(val NilDaemonRuntimeWorkspace) {
+	s.Workspace = val
+}
+
+func (*ResolvedDaemonRuntimeSlot) findDaemonRuntimeProducerSlotRes() {}
 
 type RevokeDiaryGrantBadRequest ProblemDetails
 
@@ -28996,10 +30066,13 @@ func (s *ValidationProblemDetails) SetAdditionalProps(val ValidationProblemDetai
 	s.AdditionalProps = val
 }
 
-func (*ValidationProblemDetails) completeTaskRes()       {}
-func (*ValidationProblemDetails) createTaskRes()         {}
-func (*ValidationProblemDetails) listTasksRes()          {}
-func (*ValidationProblemDetails) updateTaskMetadataRes() {}
+func (*ValidationProblemDetails) beginDaemonRuntimeSlotRes()        {}
+func (*ValidationProblemDetails) completeTaskRes()                  {}
+func (*ValidationProblemDetails) createTaskRes()                    {}
+func (*ValidationProblemDetails) findDaemonRuntimeProducerSlotRes() {}
+func (*ValidationProblemDetails) finishDaemonRuntimeSlotRes()       {}
+func (*ValidationProblemDetails) listTasksRes()                     {}
+func (*ValidationProblemDetails) updateTaskMetadataRes()            {}
 
 type ValidationProblemDetailsAdditional map[string]jx.Raw
 
