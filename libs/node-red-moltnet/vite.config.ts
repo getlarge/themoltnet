@@ -9,7 +9,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 // Node-RED node sets: each runtime .js is paired with a sibling .html editor
 // file. We bundle the .js (inlining @themoltnet/sdk so the published node is
 // self-contained) and copy the .html alongside it.
-const nodes = ['moltnet-agent', 'tasks-create'];
+const nodes = ['agent', 'tasks-create'];
 
 export default defineConfig({
   build: {

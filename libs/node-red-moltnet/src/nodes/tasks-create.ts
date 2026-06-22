@@ -1,3 +1,12 @@
+import type {
+  Node,
+  NodeDef,
+  NodeInitializer,
+  NodeMessageInFlow,
+} from 'node-red';
+
+import type { MoltnetAgentNode } from './agent.js';
+
 /**
  * `moltnet-tasks-create` — creates a MoltNet task via the SDK, acting as the
  * agent identity held by a referenced `moltnet-agent` config node.
@@ -8,62 +17,23 @@
  * work happens through the connected Agent it hands back.
  */
 
-interface TasksCreateConfig {
-  name?: string;
+interface TasksCreateDef extends NodeDef {
   agent?: string; // id of the referenced moltnet-agent config node
   taskType?: string;
   teamId?: string;
 }
 
-interface StatusUpdate {
-  fill: 'red' | 'green' | 'yellow' | 'blue' | 'grey';
-  shape: 'ring' | 'dot';
-  text: string;
-}
+type AgentApi = Awaited<ReturnType<MoltnetAgentNode['getAgent']>>;
+type CreateTaskBody = Parameters<AgentApi['tasks']['create']>[0];
 
-interface NodeMessage {
-  payload?: unknown;
-  [key: string]: unknown;
-}
+const init: NodeInitializer = (RED): void => {
+  function TasksCreateNode(this: Node, def: TasksCreateDef): void {
+    RED.nodes.createNode(this, def);
+    const agentNode = def.agent
+      ? (RED.nodes.getNode(def.agent) as MoltnetAgentNode | null)
+      : null;
 
-interface AgentConfigNode {
-  getAgent(): Promise<{
-    tasks: { create(body: unknown): Promise<{ id?: string }> };
-  }>;
-}
-
-interface TasksCreateNode {
-  status(update: StatusUpdate | Record<string, never>): void;
-  on(
-    event: 'input',
-    handler: (
-      msg: NodeMessage,
-      send: (msg: NodeMessage) => void,
-      done: (err?: Error) => void,
-    ) => void,
-  ): void;
-}
-
-interface RED {
-  nodes: {
-    createNode(node: unknown, config: TasksCreateConfig): void;
-    getNode(id: string): AgentConfigNode | null;
-    registerType(
-      type: string,
-      ctor: (this: TasksCreateNode, config: TasksCreateConfig) => void,
-    ): void;
-  };
-}
-
-export default function (RED: RED): void {
-  function TasksCreateNode(
-    this: TasksCreateNode,
-    config: TasksCreateConfig,
-  ): void {
-    RED.nodes.createNode(this, config);
-    const agentNode = config.agent ? RED.nodes.getNode(config.agent) : null;
-
-    this.on('input', (msg, send, done) => {
+    this.on('input', (msg: NodeMessageInFlow, send, done) => {
       const run = async (): Promise<void> => {
         try {
           if (!agentNode || typeof agentNode.getAgent !== 'function') {
@@ -71,13 +41,11 @@ export default function (RED: RED): void {
           }
           this.status({ fill: 'blue', shape: 'dot', text: 'creating…' });
           const agent = await agentNode.getAgent();
-          const body =
+          const body = (
             msg.payload && typeof msg.payload === 'object'
               ? msg.payload
-              : {
-                  taskType: config.taskType || 'freeform',
-                  teamId: config.teamId,
-                };
+              : { taskType: def.taskType || 'freeform', teamId: def.teamId }
+          ) as CreateTaskBody;
           const task = await agent.tasks.create(body);
           msg.payload = task;
           this.status({
@@ -97,4 +65,6 @@ export default function (RED: RED): void {
   }
 
   RED.nodes.registerType('moltnet-tasks-create', TasksCreateNode);
-}
+};
+
+export default init;

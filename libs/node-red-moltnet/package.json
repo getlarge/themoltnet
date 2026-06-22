@@ -8,20 +8,21 @@
   "node-red": {
     "version": ">=5.0.0",
     "nodes": {
-      "moltnet-agent": "dist/nodes/moltnet-agent.js",
+      "moltnet-agent": "dist/nodes/agent.js",
       "moltnet-tasks-create": "dist/nodes/tasks-create.js"
     }
   },
   "engines": {
     "node": ">=20"
   },
-  "main": "dist/nodes/moltnet-agent.js",
+  "main": "dist/nodes/agent.js",
   "scripts": {
     "build": "vite build"
   },
   "devDependencies": {
     "@themoltnet/sdk": "workspace:*",
     "@types/node": "catalog:",
+    "@types/node-red": "1.3.5",
     "typescript": "catalog:",
     "vite": "catalog:"
   },
