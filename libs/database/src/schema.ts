@@ -167,15 +167,16 @@ export const daemonProfileStorageModeEnum = pgEnum(
   ['local'],
 );
 
-export const daemonRuntimeSlotStateEnum = pgEnum('daemon_runtime_slot_state', [
+export const runtimeSlotStateEnum = pgEnum('runtime_slot_state', [
   'active',
   'idle',
 ]);
 
-export const daemonRuntimeWorkspaceKindEnum = pgEnum(
-  'daemon_runtime_workspace_kind',
-  ['origin', 'fork', 'scratch'],
-);
+export const runtimeWorkspaceKindEnum = pgEnum('runtime_workspace_kind', [
+  'origin',
+  'fork',
+  'scratch',
+]);
 
 /**
  * Diaries Table
@@ -1323,10 +1324,10 @@ export const taskAttempts = pgTable(
 export type TaskAttempt = typeof taskAttempts.$inferSelect;
 export type NewTaskAttempt = typeof taskAttempts.$inferInsert;
 
-// ── Team-scoped daemon runtime slots ───────────────────────
+// ── Team-scoped runtime slots ──────────────────────────────
 
-export const daemonRuntimeWorkspaces = pgTable(
-  'daemon_runtime_workspaces',
+export const runtimeWorkspaces = pgTable(
+  'runtime_workspaces',
   {
     id: uuid('id').defaultRandom().primaryKey(),
     teamId: uuid('team_id')
@@ -1335,7 +1336,7 @@ export const daemonRuntimeWorkspaces = pgTable(
     workspaceId: text('workspace_id').notNull(),
     worktreePath: text('worktree_path').notNull(),
     worktreeBranch: text('worktree_branch'),
-    kind: daemonRuntimeWorkspaceKindEnum('kind').notNull(),
+    kind: runtimeWorkspaceKindEnum('kind').notNull(),
     createdAtMs: bigint('created_at_ms', { mode: 'number' }).notNull(),
     lastUsedAtMs: bigint('last_used_at_ms', { mode: 'number' }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -1346,19 +1347,19 @@ export const daemonRuntimeWorkspaces = pgTable(
       .defaultNow(),
   },
   (table) => [
-    uniqueIndex('daemon_runtime_workspaces_team_workspace_idx').on(
+    uniqueIndex('runtime_workspaces_team_workspace_idx').on(
       table.teamId,
       table.workspaceId,
     ),
-    index('daemon_runtime_workspaces_team_idx').on(table.teamId),
-    index('daemon_runtime_workspaces_branch_idx')
+    index('runtime_workspaces_team_idx').on(table.teamId),
+    index('runtime_workspaces_branch_idx')
       .on(table.teamId, table.worktreeBranch)
       .where(sql`worktree_branch IS NOT NULL`),
   ],
 );
 
-export const daemonRuntimeSlots = pgTable(
-  'daemon_runtime_slots',
+export const runtimeSlots = pgTable(
+  'runtime_slots',
   {
     id: uuid('id').defaultRandom().primaryKey(),
     teamId: uuid('team_id')
@@ -1374,13 +1375,13 @@ export const daemonRuntimeSlots = pgTable(
     model: varchar('model', { length: 200 }).notNull(),
     slotKey: text('slot_key').notNull(),
     taskType: varchar('task_type', { length: 100 }).notNull(),
-    state: daemonRuntimeSlotStateEnum('state').notNull(),
+    state: runtimeSlotStateEnum('state').notNull(),
     lastTaskId: uuid('last_task_id')
       .notNull()
       .references(() => tasks.id, { onDelete: 'cascade' }),
     lastAttemptN: integer('last_attempt_n').notNull(),
     workspaceRowId: uuid('workspace_row_id').references(
-      () => daemonRuntimeWorkspaces.id,
+      () => runtimeWorkspaces.id,
       { onDelete: 'set null' },
     ),
     createdAtMs: bigint('created_at_ms', { mode: 'number' }).notNull(),
@@ -1394,7 +1395,7 @@ export const daemonRuntimeSlots = pgTable(
       .defaultNow(),
   },
   (table) => [
-    uniqueIndex('daemon_runtime_slots_identity_idx').on(
+    uniqueIndex('runtime_slots_identity_idx').on(
       table.teamId,
       table.daemonId,
       table.agentName,
@@ -1402,11 +1403,11 @@ export const daemonRuntimeSlots = pgTable(
       table.model,
       table.slotKey,
     ),
-    index('daemon_runtime_slots_team_idx').on(table.teamId),
-    index('daemon_runtime_slots_profile_idx')
+    index('runtime_slots_team_idx').on(table.teamId),
+    index('runtime_slots_profile_idx')
       .on(table.daemonProfileId)
       .where(sql`daemon_profile_id IS NOT NULL`),
-    index('daemon_runtime_slots_task_attempt_idx').on(
+    index('runtime_slots_task_attempt_idx').on(
       table.teamId,
       table.lastTaskId,
       table.lastAttemptN,
@@ -1419,12 +1420,12 @@ export const daemonRuntimeSlots = pgTable(
   ],
 );
 
-export const daemonRuntimeSlotSessions = pgTable(
-  'daemon_runtime_slot_sessions',
+export const runtimeSlotSessions = pgTable(
+  'runtime_slot_sessions',
   {
     slotId: uuid('slot_id')
       .primaryKey()
-      .references(() => daemonRuntimeSlots.id, { onDelete: 'cascade' }),
+      .references(() => runtimeSlots.id, { onDelete: 'cascade' }),
     sessionDir: text('session_dir').notNull(),
     sessionPath: text('session_path'),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -1435,22 +1436,18 @@ export const daemonRuntimeSlotSessions = pgTable(
       .defaultNow(),
   },
   (table) => [
-    index('daemon_runtime_slot_sessions_session_path_idx')
+    index('runtime_slot_sessions_session_path_idx')
       .on(table.sessionPath)
       .where(sql`session_path IS NOT NULL`),
   ],
 );
 
-export type DaemonRuntimeWorkspace =
-  typeof daemonRuntimeWorkspaces.$inferSelect;
-export type NewDaemonRuntimeWorkspace =
-  typeof daemonRuntimeWorkspaces.$inferInsert;
-export type DaemonRuntimeSlot = typeof daemonRuntimeSlots.$inferSelect;
-export type NewDaemonRuntimeSlot = typeof daemonRuntimeSlots.$inferInsert;
-export type DaemonRuntimeSlotSession =
-  typeof daemonRuntimeSlotSessions.$inferSelect;
-export type NewDaemonRuntimeSlotSession =
-  typeof daemonRuntimeSlotSessions.$inferInsert;
+export type RuntimeWorkspace = typeof runtimeWorkspaces.$inferSelect;
+export type NewRuntimeWorkspace = typeof runtimeWorkspaces.$inferInsert;
+export type RuntimeSlot = typeof runtimeSlots.$inferSelect;
+export type NewRuntimeSlot = typeof runtimeSlots.$inferInsert;
+export type RuntimeSlotSession = typeof runtimeSlotSessions.$inferSelect;
+export type NewRuntimeSlotSession = typeof runtimeSlotSessions.$inferInsert;
 
 // ── Task Messages ──────────────────────────────────────────
 

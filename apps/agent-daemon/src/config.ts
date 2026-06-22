@@ -16,8 +16,8 @@ export interface DaemonConfig {
   profilePrerequisitePath: string;
   /** Optional Pi agent dir override. Empty = daemon defaults to repo-local .pi. */
   piCodingAgentDir: string;
-  /** Optional stable id for team-scoped daemon runtime slots. */
-  daemonRuntimeId: string;
+  /** Optional stable daemon id for team-scoped runtime slots. */
+  daemonId: string;
 }
 
 export function loadConfig(): DaemonConfig {
@@ -27,7 +27,7 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisiteEnv: process.env,
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
-    daemonRuntimeId: process.env['MOLTNET_AGENT_DAEMON_ID'] ?? '',
+    daemonId: process.env['MOLTNET_AGENT_DAEMON_ID'] ?? '',
   };
 }
 

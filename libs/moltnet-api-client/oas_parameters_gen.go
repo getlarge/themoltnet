@@ -487,6 +487,62 @@ func decodeAppendTaskMessagesParams(args [2]string, argsEscaped bool, r *http.Re
 	return params, nil
 }
 
+// BeginRuntimeSlotParams is parameters of beginRuntimeSlot operation.
+type BeginRuntimeSlotParams struct {
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackBeginRuntimeSlotParams(packed middleware.Parameters) (params BeginRuntimeSlotParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeBeginRuntimeSlotParams(args [0]string, argsEscaped bool, r *http.Request) (params BeginRuntimeSlotParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CancelTaskParams is parameters of cancelTask operation.
 type CancelTaskParams struct {
 	ID uuid.UUID
@@ -2337,21 +2393,15 @@ func decodeFailTaskParams(args [2]string, argsEscaped bool, r *http.Request) (pa
 	return params, nil
 }
 
-// FindDaemonRuntimeProducerSlotParams is parameters of findDaemonRuntimeProducerSlot operation.
-type FindDaemonRuntimeProducerSlotParams struct {
-	TeamId   uuid.UUID
+// FindRuntimeProducerSlotParams is parameters of findRuntimeProducerSlot operation.
+type FindRuntimeProducerSlotParams struct {
 	TaskId   uuid.UUID
 	AttemptN int
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
 }
 
-func unpackFindDaemonRuntimeProducerSlotParams(packed middleware.Parameters) (params FindDaemonRuntimeProducerSlotParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "teamId",
-			In:   "query",
-		}
-		params.TeamId = packed[key].(uuid.UUID)
-	}
+func unpackFindRuntimeProducerSlotParams(packed middleware.Parameters) (params FindRuntimeProducerSlotParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "taskId",
@@ -2366,47 +2416,19 @@ func unpackFindDaemonRuntimeProducerSlotParams(packed middleware.Parameters) (pa
 		}
 		params.AttemptN = packed[key].(int)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
 	return params
 }
 
-func decodeFindDaemonRuntimeProducerSlotParams(args [0]string, argsEscaped bool, r *http.Request) (params FindDaemonRuntimeProducerSlotParams, _ error) {
+func decodeFindRuntimeProducerSlotParams(args [0]string, argsEscaped bool, r *http.Request) (params FindRuntimeProducerSlotParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
-	// Decode query: teamId.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "teamId",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.TeamId = c
-				return nil
-			}); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "teamId",
-			In:   "query",
-			Err:  err,
-		}
-	}
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode query: taskId.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
@@ -2494,6 +2516,96 @@ func decodeFindDaemonRuntimeProducerSlotParams(args [0]string, argsEscaped bool,
 		return params, &ogenerrors.DecodeParamError{
 			Name: "attemptN",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// FinishRuntimeSlotParams is parameters of finishRuntimeSlot operation.
+type FinishRuntimeSlotParams struct {
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackFinishRuntimeSlotParams(packed middleware.Parameters) (params FinishRuntimeSlotParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeFinishRuntimeSlotParams(args [0]string, argsEscaped bool, r *http.Request) (params FinishRuntimeSlotParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}

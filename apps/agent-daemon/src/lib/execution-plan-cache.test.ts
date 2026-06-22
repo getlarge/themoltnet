@@ -7,19 +7,19 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   createExecutionPlanCache,
-  type DaemonRuntimeSlotStore,
   ProducerContextResolutionError,
-  type ResolvedDaemonRuntimeSlotContext,
+  type ResolvedRuntimeSlotContext,
+  type RuntimeSlotStore,
 } from './execution-plan-cache.js';
 
 const TEAM_ID = '99999999-9999-4999-8999-999999999999';
 
-type BeginSlotInput = Parameters<DaemonRuntimeSlotStore['beginSlot']>[0];
+type BeginSlotInput = Parameters<RuntimeSlotStore['beginSlot']>[0];
 
-class InMemoryDaemonRuntimeSlotStore implements DaemonRuntimeSlotStore {
+class InMemoryRuntimeSlotStore implements RuntimeSlotStore {
   private readonly slotsByAttempt = new Map<
     string,
-    ResolvedDaemonRuntimeSlotContext
+    ResolvedRuntimeSlotContext
   >();
 
   async beginSlot(input: BeginSlotInput): Promise<void> {
@@ -52,7 +52,7 @@ class InMemoryDaemonRuntimeSlotStore implements DaemonRuntimeSlotStore {
     teamId: string,
     taskId: string,
     attemptN: number,
-    _identity: Parameters<DaemonRuntimeSlotStore['finishSlot']>[3],
+    _identity: Parameters<RuntimeSlotStore['finishSlot']>[3],
     _slotKey: string,
     ttlSec: number,
     sessionPath: string | null,
@@ -70,7 +70,7 @@ class InMemoryDaemonRuntimeSlotStore implements DaemonRuntimeSlotStore {
     teamId: string,
     taskId: string,
     attemptN: number,
-  ): Promise<ResolvedDaemonRuntimeSlotContext | null> {
+  ): Promise<ResolvedRuntimeSlotContext | null> {
     return (
       this.slotsByAttempt.get(attemptKey(teamId, taskId, attemptN)) ?? null
     );
@@ -86,10 +86,10 @@ function attemptKey(teamId: string, taskId: string, attemptN: number): string {
 }
 
 async function finishProducerSlot(
-  slotStore: DaemonRuntimeSlotStore,
+  slotStore: RuntimeSlotStore,
   args: {
     taskId: string;
-    identity: Parameters<DaemonRuntimeSlotStore['finishSlot']>[3];
+    identity: Parameters<RuntimeSlotStore['finishSlot']>[3];
     slotKey: string;
     sessionPath: string;
   },
@@ -136,7 +136,7 @@ describe('createExecutionPlanCache', () => {
     const producerSessionPath = join(producerSessionDir, 'session-a.jsonl');
     writeFileSync(producerSessionPath, '[]\n', 'utf8');
 
-    const slotStore = new InMemoryDaemonRuntimeSlotStore();
+    const slotStore = new InMemoryRuntimeSlotStore();
     await slotStore.beginSlot({
       teamId: TEAM_ID,
       agentName: 'local-eval-943',
@@ -229,7 +229,7 @@ describe('createExecutionPlanCache', () => {
     };
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
-    const slotStore = new InMemoryDaemonRuntimeSlotStore();
+    const slotStore = new InMemoryRuntimeSlotStore();
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: {
@@ -287,7 +287,7 @@ describe('createExecutionPlanCache', () => {
       'utf8',
     );
 
-    const slotStore = new InMemoryDaemonRuntimeSlotStore();
+    const slotStore = new InMemoryRuntimeSlotStore();
     await slotStore.beginSlot({
       teamId: TEAM_ID,
       agentName: 'a',
@@ -371,7 +371,7 @@ describe('createExecutionPlanCache', () => {
     const producerSessionPath = join(producerSessionDir, 'session-1.jsonl');
     writeFileSync(producerSessionPath, '{"role":"system"}\n', 'utf8');
 
-    const slotStore = new InMemoryDaemonRuntimeSlotStore();
+    const slotStore = new InMemoryRuntimeSlotStore();
     await slotStore.beginSlot({
       teamId: TEAM_ID,
       agentName: 'a',
@@ -451,7 +451,7 @@ describe('createExecutionPlanCache', () => {
     };
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
-    const slotStore = new InMemoryDaemonRuntimeSlotStore();
+    const slotStore = new InMemoryRuntimeSlotStore();
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', provider: 'p', model: 'm' },
@@ -495,7 +495,7 @@ describe('createExecutionPlanCache', () => {
     const producerSessionPath = join(producerSessionDir, 'session-a.jsonl');
     writeFileSync(producerSessionPath, '[]\n', 'utf8');
 
-    const slotStore = new InMemoryDaemonRuntimeSlotStore();
+    const slotStore = new InMemoryRuntimeSlotStore();
     await slotStore.beginSlot({
       teamId: TEAM_ID,
       agentName: 'local-eval-943',

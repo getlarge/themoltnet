@@ -5,11 +5,11 @@ import type { Agent } from '@themoltnet/sdk';
 
 import type { DaemonSlotIdentity } from './daemon-slot-identity.js';
 import type {
-  DaemonRuntimeSlotStore,
-  ResolvedDaemonRuntimeSlotContext,
+  ResolvedRuntimeSlotContext,
+  RuntimeSlotStore,
 } from './execution-plan-cache.js';
 
-export function resolveDaemonRuntimeId(
+export function resolveDaemonId(
   stateRootDir: string,
   configuredId?: string,
 ): string {
@@ -22,34 +22,38 @@ export function resolveDaemonRuntimeId(
   return `${hostname()}:${process.pid}:${rootHash}`.slice(0, 200);
 }
 
-export function createApiDaemonRuntimeSlotStore(args: {
+export function createApiRuntimeSlotStore(args: {
   agent: Agent;
   daemonId: string;
   daemonProfileId?: string | null;
-}): DaemonRuntimeSlotStore {
+}): RuntimeSlotStore {
   const { agent, daemonId, daemonProfileId } = args;
 
   return {
     async beginSlot(input) {
-      await agent.daemonRuntimeSlots.begin({
-        agentName: input.agentName,
-        daemonId,
-        daemonProfileId: daemonProfileId ?? undefined,
-        lastAttemptN: input.lastAttemptN,
-        lastTaskId: input.lastTaskId,
-        model: input.model,
-        provider: input.provider,
-        sessionDir: input.sessionDir ?? undefined,
-        sessionPath: input.sessionPath ?? undefined,
-        slotKey: input.slotKey,
-        taskType: input.taskType,
-        teamId: input.teamId,
-        ttlSec: input.ttlSec,
-        workspaceId: input.workspaceId ?? undefined,
-        workspaceKind: input.workspaceKind,
-        worktreeBranch: input.worktreeBranch ?? undefined,
-        worktreePath: input.worktreePath ?? undefined,
-      });
+      await agent.runtimeSlots.begin(
+        {
+          agentName: input.agentName,
+          daemonId,
+          daemonProfileId: daemonProfileId ?? undefined,
+          lastAttemptN: input.lastAttemptN,
+          lastTaskId: input.lastTaskId,
+          model: input.model,
+          provider: input.provider,
+          sessionDir: input.sessionDir ?? undefined,
+          sessionPath: input.sessionPath ?? undefined,
+          slotKey: input.slotKey,
+          taskType: input.taskType,
+          ttlSec: input.ttlSec,
+          workspaceId: input.workspaceId ?? undefined,
+          workspaceKind: input.workspaceKind,
+          worktreeBranch: input.worktreeBranch ?? undefined,
+          worktreePath: input.worktreePath ?? undefined,
+        },
+        {
+          teamId: input.teamId,
+        },
+      );
     },
 
     async finishSlot(
@@ -61,26 +65,34 @@ export function createApiDaemonRuntimeSlotStore(args: {
       ttlSec: number,
       sessionPath: string | null,
     ) {
-      await agent.daemonRuntimeSlots.finish({
-        agentName: identity.agentName,
-        attemptN,
-        daemonId,
-        model: identity.model,
-        provider: identity.provider,
-        sessionPath: sessionPath ?? undefined,
-        slotKey,
-        taskId,
-        teamId,
-        ttlSec,
-      });
+      await agent.runtimeSlots.finish(
+        {
+          agentName: identity.agentName,
+          attemptN,
+          daemonId,
+          model: identity.model,
+          provider: identity.provider,
+          sessionPath: sessionPath ?? undefined,
+          slotKey,
+          taskId,
+          ttlSec,
+        },
+        {
+          teamId,
+        },
+      );
     },
 
     async findLatestProducerSlotByTaskAttempt(teamId, taskId, attemptN) {
-      const resolved = await agent.daemonRuntimeSlots.findProducer({
-        attemptN,
-        taskId,
-        teamId,
-      });
+      const resolved = await agent.runtimeSlots.findProducer(
+        {
+          attemptN,
+          taskId,
+        },
+        {
+          teamId,
+        },
+      );
       if (!resolved) return null;
       return {
         session: resolved.session,
@@ -93,7 +105,7 @@ export function createApiDaemonRuntimeSlotStore(args: {
               worktreePath: resolved.workspace.worktreePath,
             }
           : null,
-      } satisfies ResolvedDaemonRuntimeSlotContext;
+      } satisfies ResolvedRuntimeSlotContext;
     },
 
     async close() {

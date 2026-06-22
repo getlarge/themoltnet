@@ -2158,14 +2158,2222 @@ func (s *AppendTaskMessagesUnauthorized) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *BeginDaemonRuntimeSlotBody) Encode(e *jx.Encoder) {
+func (s *BeginRuntimeSlotBadRequest) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *BeginDaemonRuntimeSlotBody) encodeFields(e *jx.Encoder) {
+func (s *BeginRuntimeSlotBadRequest) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("errors")
+		e.ArrStart()
+		for _, elem := range s.Errors {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfBeginRuntimeSlotBadRequest = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "errors",
+}
+
+// Decode decodes BeginRuntimeSlotBadRequest from json.
+func (s *BeginRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotBadRequest to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "errors":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				s.Errors = make([]BeginRuntimeSlotBadRequestErrorsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem BeginRuntimeSlotBadRequestErrorsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Errors = append(s.Errors, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"errors\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotBadRequest")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfBeginRuntimeSlotBadRequest) {
+					name = jsonFieldsNameOfBeginRuntimeSlotBadRequest[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *BeginRuntimeSlotBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s BeginRuntimeSlotBadRequestAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s BeginRuntimeSlotBadRequestAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes BeginRuntimeSlotBadRequestAdditional from json.
+func (s *BeginRuntimeSlotBadRequestAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotBadRequestAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotBadRequestAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BeginRuntimeSlotBadRequestAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotBadRequestAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes BeginRuntimeSlotBadRequestCode as json.
+func (s BeginRuntimeSlotBadRequestCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes BeginRuntimeSlotBadRequestCode from json.
+func (s *BeginRuntimeSlotBadRequestCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotBadRequestCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch BeginRuntimeSlotBadRequestCode(v) {
+	case BeginRuntimeSlotBadRequestCodeUNAUTHORIZED:
+		*s = BeginRuntimeSlotBadRequestCodeUNAUTHORIZED
+	case BeginRuntimeSlotBadRequestCodeFORBIDDEN:
+		*s = BeginRuntimeSlotBadRequestCodeFORBIDDEN
+	case BeginRuntimeSlotBadRequestCodeNOTFOUND:
+		*s = BeginRuntimeSlotBadRequestCodeNOTFOUND
+	case BeginRuntimeSlotBadRequestCodeCONFLICT:
+		*s = BeginRuntimeSlotBadRequestCodeCONFLICT
+	case BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED:
+		*s = BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED
+	case BeginRuntimeSlotBadRequestCodeINVALIDCHALLENGE:
+		*s = BeginRuntimeSlotBadRequestCodeINVALIDCHALLENGE
+	case BeginRuntimeSlotBadRequestCodeINVALIDSIGNATURE:
+		*s = BeginRuntimeSlotBadRequestCodeINVALIDSIGNATURE
+	case BeginRuntimeSlotBadRequestCodeVOUCHERLIMIT:
+		*s = BeginRuntimeSlotBadRequestCodeVOUCHERLIMIT
+	case BeginRuntimeSlotBadRequestCodeRATELIMITEXCEEDED:
+		*s = BeginRuntimeSlotBadRequestCodeRATELIMITEXCEEDED
+	case BeginRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = BeginRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED
+	case BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED
+	case BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case BeginRuntimeSlotBadRequestCodeREGISTRATIONFAILED:
+		*s = BeginRuntimeSlotBadRequestCodeREGISTRATIONFAILED
+	case BeginRuntimeSlotBadRequestCodeUPSTREAMERROR:
+		*s = BeginRuntimeSlotBadRequestCodeUPSTREAMERROR
+	case BeginRuntimeSlotBadRequestCodeSERVICEUNAVAILABLE:
+		*s = BeginRuntimeSlotBadRequestCodeSERVICEUNAVAILABLE
+	case BeginRuntimeSlotBadRequestCodeINTERNALSERVERERROR:
+		*s = BeginRuntimeSlotBadRequestCodeINTERNALSERVERERROR
+	case BeginRuntimeSlotBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = BeginRuntimeSlotBadRequestCodeTEAMPERSONALIMMUTABLE
+	case BeginRuntimeSlotBadRequestCodeTEAMNOTACTIVE:
+		*s = BeginRuntimeSlotBadRequestCodeTEAMNOTACTIVE
+	case BeginRuntimeSlotBadRequestCodeINVITEEXPIRED:
+		*s = BeginRuntimeSlotBadRequestCodeINVITEEXPIRED
+	case BeginRuntimeSlotBadRequestCodeINVITEEXHAUSTED:
+		*s = BeginRuntimeSlotBadRequestCodeINVITEEXHAUSTED
+	case BeginRuntimeSlotBadRequestCodeTEAMLASTOWNER:
+		*s = BeginRuntimeSlotBadRequestCodeTEAMLASTOWNER
+	case BeginRuntimeSlotBadRequestCodeTEAMALREADYACTIVE:
+		*s = BeginRuntimeSlotBadRequestCodeTEAMALREADYACTIVE
+	case BeginRuntimeSlotBadRequestCodeTEAMNOTFOUNDING:
+		*s = BeginRuntimeSlotBadRequestCodeTEAMNOTFOUNDING
+	case BeginRuntimeSlotBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = BeginRuntimeSlotBadRequestCodeFOUNDINGALREADYACCEPTED
+	case BeginRuntimeSlotBadRequestCodeDIARYTRANSFERPENDING:
+		*s = BeginRuntimeSlotBadRequestCodeDIARYTRANSFERPENDING
+	case BeginRuntimeSlotBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = BeginRuntimeSlotBadRequestCodeDIARYTRANSFERNOTFOUND
+	case BeginRuntimeSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = BeginRuntimeSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = BeginRuntimeSlotBadRequestCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BeginRuntimeSlotBadRequestCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotBadRequestCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *BeginRuntimeSlotBadRequestErrorsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *BeginRuntimeSlotBadRequestErrorsItem) encodeFields(e *jx.Encoder) {
+	{
+		if s.Code.Set {
+			e.FieldStart("code")
+			s.Code.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("field")
+		e.Str(s.Field)
+	}
+	{
+		e.FieldStart("message")
+		e.Str(s.Message)
+	}
+}
+
+var jsonFieldsNameOfBeginRuntimeSlotBadRequestErrorsItem = [3]string{
+	0: "code",
+	1: "field",
+	2: "message",
+}
+
+// Decode decodes BeginRuntimeSlotBadRequestErrorsItem from json.
+func (s *BeginRuntimeSlotBadRequestErrorsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotBadRequestErrorsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			if err := func() error {
+				s.Code.Reset()
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "field":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Field = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"field\"")
+			}
+		case "message":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Message = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"message\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotBadRequestErrorsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfBeginRuntimeSlotBadRequestErrorsItem) {
+					name = jsonFieldsNameOfBeginRuntimeSlotBadRequestErrorsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *BeginRuntimeSlotBadRequestErrorsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotBadRequestErrorsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *BeginRuntimeSlotConflict) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *BeginRuntimeSlotConflict) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("conflict")
+		s.Conflict.Encode(e)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfBeginRuntimeSlotConflict = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "conflict",
+}
+
+// Decode decodes BeginRuntimeSlotConflict from json.
+func (s *BeginRuntimeSlotConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotConflict to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "conflict":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.Conflict.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"conflict\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotConflict")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfBeginRuntimeSlotConflict) {
+					name = jsonFieldsNameOfBeginRuntimeSlotConflict[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *BeginRuntimeSlotConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s BeginRuntimeSlotConflictAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s BeginRuntimeSlotConflictAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes BeginRuntimeSlotConflictAdditional from json.
+func (s *BeginRuntimeSlotConflictAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotConflictAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotConflictAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BeginRuntimeSlotConflictAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotConflictAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes BeginRuntimeSlotConflictCode as json.
+func (s BeginRuntimeSlotConflictCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes BeginRuntimeSlotConflictCode from json.
+func (s *BeginRuntimeSlotConflictCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotConflictCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch BeginRuntimeSlotConflictCode(v) {
+	case BeginRuntimeSlotConflictCodeUNAUTHORIZED:
+		*s = BeginRuntimeSlotConflictCodeUNAUTHORIZED
+	case BeginRuntimeSlotConflictCodeFORBIDDEN:
+		*s = BeginRuntimeSlotConflictCodeFORBIDDEN
+	case BeginRuntimeSlotConflictCodeNOTFOUND:
+		*s = BeginRuntimeSlotConflictCodeNOTFOUND
+	case BeginRuntimeSlotConflictCodeCONFLICT:
+		*s = BeginRuntimeSlotConflictCodeCONFLICT
+	case BeginRuntimeSlotConflictCodeVALIDATIONFAILED:
+		*s = BeginRuntimeSlotConflictCodeVALIDATIONFAILED
+	case BeginRuntimeSlotConflictCodeINVALIDCHALLENGE:
+		*s = BeginRuntimeSlotConflictCodeINVALIDCHALLENGE
+	case BeginRuntimeSlotConflictCodeINVALIDSIGNATURE:
+		*s = BeginRuntimeSlotConflictCodeINVALIDSIGNATURE
+	case BeginRuntimeSlotConflictCodeVOUCHERLIMIT:
+		*s = BeginRuntimeSlotConflictCodeVOUCHERLIMIT
+	case BeginRuntimeSlotConflictCodeRATELIMITEXCEEDED:
+		*s = BeginRuntimeSlotConflictCodeRATELIMITEXCEEDED
+	case BeginRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED:
+		*s = BeginRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED
+	case BeginRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED:
+		*s = BeginRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED
+	case BeginRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = BeginRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED
+	case BeginRuntimeSlotConflictCodeREGISTRATIONFAILED:
+		*s = BeginRuntimeSlotConflictCodeREGISTRATIONFAILED
+	case BeginRuntimeSlotConflictCodeUPSTREAMERROR:
+		*s = BeginRuntimeSlotConflictCodeUPSTREAMERROR
+	case BeginRuntimeSlotConflictCodeSERVICEUNAVAILABLE:
+		*s = BeginRuntimeSlotConflictCodeSERVICEUNAVAILABLE
+	case BeginRuntimeSlotConflictCodeINTERNALSERVERERROR:
+		*s = BeginRuntimeSlotConflictCodeINTERNALSERVERERROR
+	case BeginRuntimeSlotConflictCodeTEAMPERSONALIMMUTABLE:
+		*s = BeginRuntimeSlotConflictCodeTEAMPERSONALIMMUTABLE
+	case BeginRuntimeSlotConflictCodeTEAMNOTACTIVE:
+		*s = BeginRuntimeSlotConflictCodeTEAMNOTACTIVE
+	case BeginRuntimeSlotConflictCodeINVITEEXPIRED:
+		*s = BeginRuntimeSlotConflictCodeINVITEEXPIRED
+	case BeginRuntimeSlotConflictCodeINVITEEXHAUSTED:
+		*s = BeginRuntimeSlotConflictCodeINVITEEXHAUSTED
+	case BeginRuntimeSlotConflictCodeTEAMLASTOWNER:
+		*s = BeginRuntimeSlotConflictCodeTEAMLASTOWNER
+	case BeginRuntimeSlotConflictCodeTEAMALREADYACTIVE:
+		*s = BeginRuntimeSlotConflictCodeTEAMALREADYACTIVE
+	case BeginRuntimeSlotConflictCodeTEAMNOTFOUNDING:
+		*s = BeginRuntimeSlotConflictCodeTEAMNOTFOUNDING
+	case BeginRuntimeSlotConflictCodeFOUNDINGALREADYACCEPTED:
+		*s = BeginRuntimeSlotConflictCodeFOUNDINGALREADYACCEPTED
+	case BeginRuntimeSlotConflictCodeDIARYTRANSFERPENDING:
+		*s = BeginRuntimeSlotConflictCodeDIARYTRANSFERPENDING
+	case BeginRuntimeSlotConflictCodeDIARYTRANSFERNOTFOUND:
+		*s = BeginRuntimeSlotConflictCodeDIARYTRANSFERNOTFOUND
+	case BeginRuntimeSlotConflictCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = BeginRuntimeSlotConflictCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = BeginRuntimeSlotConflictCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BeginRuntimeSlotConflictCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotConflictCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *BeginRuntimeSlotConflictConflict) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *BeginRuntimeSlotConflictConflict) encodeFields(e *jx.Encoder) {
+	{
+		if s.Constraint.Set {
+			e.FieldStart("constraint")
+			s.Constraint.Encode(e)
+		}
+	}
+	{
+		if s.Target.Set {
+			e.FieldStart("target")
+			s.Target.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfBeginRuntimeSlotConflictConflict = [2]string{
+	0: "constraint",
+	1: "target",
+}
+
+// Decode decodes BeginRuntimeSlotConflictConflict from json.
+func (s *BeginRuntimeSlotConflictConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotConflictConflict to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "constraint":
+			if err := func() error {
+				s.Constraint.Reset()
+				if err := s.Constraint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"constraint\"")
+			}
+		case "target":
+			if err := func() error {
+				s.Target.Reset()
+				if err := s.Target.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"target\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotConflictConflict")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *BeginRuntimeSlotConflictConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotConflictConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *BeginRuntimeSlotConflictConflictTarget) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *BeginRuntimeSlotConflictConflictTarget) encodeFields(e *jx.Encoder) {
+	{
+		if s.ID.Set {
+			e.FieldStart("id")
+			s.ID.Encode(e)
+		}
+	}
+	{
+		if s.Keys.Set {
+			e.FieldStart("keys")
+			s.Keys.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("resource")
+		e.Str(s.Resource)
+	}
+}
+
+var jsonFieldsNameOfBeginRuntimeSlotConflictConflictTarget = [3]string{
+	0: "id",
+	1: "keys",
+	2: "resource",
+}
+
+// Decode decodes BeginRuntimeSlotConflictConflictTarget from json.
+func (s *BeginRuntimeSlotConflictConflictTarget) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotConflictConflictTarget to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			if err := func() error {
+				s.ID.Reset()
+				if err := s.ID.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "keys":
+			if err := func() error {
+				s.Keys.Reset()
+				if err := s.Keys.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"keys\"")
+			}
+		case "resource":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Resource = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resource\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotConflictConflictTarget")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfBeginRuntimeSlotConflictConflictTarget) {
+					name = jsonFieldsNameOfBeginRuntimeSlotConflictConflictTarget[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *BeginRuntimeSlotConflictConflictTarget) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotConflictConflictTarget) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s BeginRuntimeSlotConflictConflictTargetKeys) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s BeginRuntimeSlotConflictConflictTargetKeys) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		e.Str(elem)
+	}
+}
+
+// Decode decodes BeginRuntimeSlotConflictConflictTargetKeys from json.
+func (s *BeginRuntimeSlotConflictConflictTargetKeys) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotConflictConflictTargetKeys to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem string
+		if err := func() error {
+			v, err := d.Str()
+			elem = string(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotConflictConflictTargetKeys")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BeginRuntimeSlotConflictConflictTargetKeys) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotConflictConflictTargetKeys) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *BeginRuntimeSlotForbidden) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *BeginRuntimeSlotForbidden) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfBeginRuntimeSlotForbidden = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes BeginRuntimeSlotForbidden from json.
+func (s *BeginRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotForbidden to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotForbidden")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfBeginRuntimeSlotForbidden) {
+					name = jsonFieldsNameOfBeginRuntimeSlotForbidden[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *BeginRuntimeSlotForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s BeginRuntimeSlotForbiddenAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s BeginRuntimeSlotForbiddenAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes BeginRuntimeSlotForbiddenAdditional from json.
+func (s *BeginRuntimeSlotForbiddenAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotForbiddenAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotForbiddenAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BeginRuntimeSlotForbiddenAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotForbiddenAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes BeginRuntimeSlotForbiddenCode as json.
+func (s BeginRuntimeSlotForbiddenCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes BeginRuntimeSlotForbiddenCode from json.
+func (s *BeginRuntimeSlotForbiddenCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotForbiddenCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch BeginRuntimeSlotForbiddenCode(v) {
+	case BeginRuntimeSlotForbiddenCodeUNAUTHORIZED:
+		*s = BeginRuntimeSlotForbiddenCodeUNAUTHORIZED
+	case BeginRuntimeSlotForbiddenCodeFORBIDDEN:
+		*s = BeginRuntimeSlotForbiddenCodeFORBIDDEN
+	case BeginRuntimeSlotForbiddenCodeNOTFOUND:
+		*s = BeginRuntimeSlotForbiddenCodeNOTFOUND
+	case BeginRuntimeSlotForbiddenCodeCONFLICT:
+		*s = BeginRuntimeSlotForbiddenCodeCONFLICT
+	case BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED:
+		*s = BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED
+	case BeginRuntimeSlotForbiddenCodeINVALIDCHALLENGE:
+		*s = BeginRuntimeSlotForbiddenCodeINVALIDCHALLENGE
+	case BeginRuntimeSlotForbiddenCodeINVALIDSIGNATURE:
+		*s = BeginRuntimeSlotForbiddenCodeINVALIDSIGNATURE
+	case BeginRuntimeSlotForbiddenCodeVOUCHERLIMIT:
+		*s = BeginRuntimeSlotForbiddenCodeVOUCHERLIMIT
+	case BeginRuntimeSlotForbiddenCodeRATELIMITEXCEEDED:
+		*s = BeginRuntimeSlotForbiddenCodeRATELIMITEXCEEDED
+	case BeginRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = BeginRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED
+	case BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED
+	case BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case BeginRuntimeSlotForbiddenCodeREGISTRATIONFAILED:
+		*s = BeginRuntimeSlotForbiddenCodeREGISTRATIONFAILED
+	case BeginRuntimeSlotForbiddenCodeUPSTREAMERROR:
+		*s = BeginRuntimeSlotForbiddenCodeUPSTREAMERROR
+	case BeginRuntimeSlotForbiddenCodeSERVICEUNAVAILABLE:
+		*s = BeginRuntimeSlotForbiddenCodeSERVICEUNAVAILABLE
+	case BeginRuntimeSlotForbiddenCodeINTERNALSERVERERROR:
+		*s = BeginRuntimeSlotForbiddenCodeINTERNALSERVERERROR
+	case BeginRuntimeSlotForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = BeginRuntimeSlotForbiddenCodeTEAMPERSONALIMMUTABLE
+	case BeginRuntimeSlotForbiddenCodeTEAMNOTACTIVE:
+		*s = BeginRuntimeSlotForbiddenCodeTEAMNOTACTIVE
+	case BeginRuntimeSlotForbiddenCodeINVITEEXPIRED:
+		*s = BeginRuntimeSlotForbiddenCodeINVITEEXPIRED
+	case BeginRuntimeSlotForbiddenCodeINVITEEXHAUSTED:
+		*s = BeginRuntimeSlotForbiddenCodeINVITEEXHAUSTED
+	case BeginRuntimeSlotForbiddenCodeTEAMLASTOWNER:
+		*s = BeginRuntimeSlotForbiddenCodeTEAMLASTOWNER
+	case BeginRuntimeSlotForbiddenCodeTEAMALREADYACTIVE:
+		*s = BeginRuntimeSlotForbiddenCodeTEAMALREADYACTIVE
+	case BeginRuntimeSlotForbiddenCodeTEAMNOTFOUNDING:
+		*s = BeginRuntimeSlotForbiddenCodeTEAMNOTFOUNDING
+	case BeginRuntimeSlotForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = BeginRuntimeSlotForbiddenCodeFOUNDINGALREADYACCEPTED
+	case BeginRuntimeSlotForbiddenCodeDIARYTRANSFERPENDING:
+		*s = BeginRuntimeSlotForbiddenCodeDIARYTRANSFERPENDING
+	case BeginRuntimeSlotForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = BeginRuntimeSlotForbiddenCodeDIARYTRANSFERNOTFOUND
+	case BeginRuntimeSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = BeginRuntimeSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = BeginRuntimeSlotForbiddenCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BeginRuntimeSlotForbiddenCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotForbiddenCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *BeginRuntimeSlotNotFound) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *BeginRuntimeSlotNotFound) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfBeginRuntimeSlotNotFound = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes BeginRuntimeSlotNotFound from json.
+func (s *BeginRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotNotFound to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotNotFound")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfBeginRuntimeSlotNotFound) {
+					name = jsonFieldsNameOfBeginRuntimeSlotNotFound[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *BeginRuntimeSlotNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s BeginRuntimeSlotNotFoundAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s BeginRuntimeSlotNotFoundAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes BeginRuntimeSlotNotFoundAdditional from json.
+func (s *BeginRuntimeSlotNotFoundAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotNotFoundAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotNotFoundAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BeginRuntimeSlotNotFoundAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotNotFoundAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes BeginRuntimeSlotNotFoundCode as json.
+func (s BeginRuntimeSlotNotFoundCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes BeginRuntimeSlotNotFoundCode from json.
+func (s *BeginRuntimeSlotNotFoundCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotNotFoundCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch BeginRuntimeSlotNotFoundCode(v) {
+	case BeginRuntimeSlotNotFoundCodeUNAUTHORIZED:
+		*s = BeginRuntimeSlotNotFoundCodeUNAUTHORIZED
+	case BeginRuntimeSlotNotFoundCodeFORBIDDEN:
+		*s = BeginRuntimeSlotNotFoundCodeFORBIDDEN
+	case BeginRuntimeSlotNotFoundCodeNOTFOUND:
+		*s = BeginRuntimeSlotNotFoundCodeNOTFOUND
+	case BeginRuntimeSlotNotFoundCodeCONFLICT:
+		*s = BeginRuntimeSlotNotFoundCodeCONFLICT
+	case BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED:
+		*s = BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED
+	case BeginRuntimeSlotNotFoundCodeINVALIDCHALLENGE:
+		*s = BeginRuntimeSlotNotFoundCodeINVALIDCHALLENGE
+	case BeginRuntimeSlotNotFoundCodeINVALIDSIGNATURE:
+		*s = BeginRuntimeSlotNotFoundCodeINVALIDSIGNATURE
+	case BeginRuntimeSlotNotFoundCodeVOUCHERLIMIT:
+		*s = BeginRuntimeSlotNotFoundCodeVOUCHERLIMIT
+	case BeginRuntimeSlotNotFoundCodeRATELIMITEXCEEDED:
+		*s = BeginRuntimeSlotNotFoundCodeRATELIMITEXCEEDED
+	case BeginRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = BeginRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED
+	case BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED
+	case BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case BeginRuntimeSlotNotFoundCodeREGISTRATIONFAILED:
+		*s = BeginRuntimeSlotNotFoundCodeREGISTRATIONFAILED
+	case BeginRuntimeSlotNotFoundCodeUPSTREAMERROR:
+		*s = BeginRuntimeSlotNotFoundCodeUPSTREAMERROR
+	case BeginRuntimeSlotNotFoundCodeSERVICEUNAVAILABLE:
+		*s = BeginRuntimeSlotNotFoundCodeSERVICEUNAVAILABLE
+	case BeginRuntimeSlotNotFoundCodeINTERNALSERVERERROR:
+		*s = BeginRuntimeSlotNotFoundCodeINTERNALSERVERERROR
+	case BeginRuntimeSlotNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = BeginRuntimeSlotNotFoundCodeTEAMPERSONALIMMUTABLE
+	case BeginRuntimeSlotNotFoundCodeTEAMNOTACTIVE:
+		*s = BeginRuntimeSlotNotFoundCodeTEAMNOTACTIVE
+	case BeginRuntimeSlotNotFoundCodeINVITEEXPIRED:
+		*s = BeginRuntimeSlotNotFoundCodeINVITEEXPIRED
+	case BeginRuntimeSlotNotFoundCodeINVITEEXHAUSTED:
+		*s = BeginRuntimeSlotNotFoundCodeINVITEEXHAUSTED
+	case BeginRuntimeSlotNotFoundCodeTEAMLASTOWNER:
+		*s = BeginRuntimeSlotNotFoundCodeTEAMLASTOWNER
+	case BeginRuntimeSlotNotFoundCodeTEAMALREADYACTIVE:
+		*s = BeginRuntimeSlotNotFoundCodeTEAMALREADYACTIVE
+	case BeginRuntimeSlotNotFoundCodeTEAMNOTFOUNDING:
+		*s = BeginRuntimeSlotNotFoundCodeTEAMNOTFOUNDING
+	case BeginRuntimeSlotNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = BeginRuntimeSlotNotFoundCodeFOUNDINGALREADYACCEPTED
+	case BeginRuntimeSlotNotFoundCodeDIARYTRANSFERPENDING:
+		*s = BeginRuntimeSlotNotFoundCodeDIARYTRANSFERPENDING
+	case BeginRuntimeSlotNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = BeginRuntimeSlotNotFoundCodeDIARYTRANSFERNOTFOUND
+	case BeginRuntimeSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = BeginRuntimeSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = BeginRuntimeSlotNotFoundCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BeginRuntimeSlotNotFoundCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotNotFoundCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *BeginRuntimeSlotOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *BeginRuntimeSlotOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("agentName")
+		e.Str(s.AgentName)
+	}
+	{
+		e.FieldStart("createdAtMs")
+		e.Int(s.CreatedAtMs)
+	}
+	{
+		e.FieldStart("daemonId")
+		e.Str(s.DaemonId)
+	}
+	{
+		e.FieldStart("daemonProfileId")
+		s.DaemonProfileId.Encode(e)
+	}
+	{
+		e.FieldStart("expiresAtMs")
+		e.Int(s.ExpiresAtMs)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("lastAttemptN")
+		e.Int(s.LastAttemptN)
+	}
+	{
+		e.FieldStart("lastTaskId")
+		json.EncodeUUID(e, s.LastTaskId)
+	}
+	{
+		e.FieldStart("lastUsedAtMs")
+		e.Int(s.LastUsedAtMs)
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		e.FieldStart("slotKey")
+		e.Str(s.SlotKey)
+	}
+	{
+		e.FieldStart("state")
+		s.State.Encode(e)
+	}
+	{
+		e.FieldStart("taskType")
+		e.Str(s.TaskType)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("workspaceRowId")
+		s.WorkspaceRowId.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfBeginRuntimeSlotOK = [16]string{
+	0:  "agentName",
+	1:  "createdAtMs",
+	2:  "daemonId",
+	3:  "daemonProfileId",
+	4:  "expiresAtMs",
+	5:  "id",
+	6:  "lastAttemptN",
+	7:  "lastTaskId",
+	8:  "lastUsedAtMs",
+	9:  "model",
+	10: "provider",
+	11: "slotKey",
+	12: "state",
+	13: "taskType",
+	14: "teamId",
+	15: "workspaceRowId",
+}
+
+// Decode decodes BeginRuntimeSlotOK from json.
+func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotOK to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "agentName":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.AgentName = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"agentName\"")
+			}
+		case "createdAtMs":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.CreatedAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAtMs\"")
+			}
+		case "daemonId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.DaemonId = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"daemonId\"")
+			}
+		case "daemonProfileId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.DaemonProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"daemonProfileId\"")
+			}
+		case "expiresAtMs":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.ExpiresAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"expiresAtMs\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "lastAttemptN":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.LastAttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastAttemptN\"")
+			}
+		case "lastTaskId":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.LastTaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastTaskId\"")
+			}
+		case "lastUsedAtMs":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.LastUsedAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
+			}
+		case "model":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "slotKey":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				v, err := d.Str()
+				s.SlotKey = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"slotKey\"")
+			}
+		case "state":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				if err := s.State.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"state\"")
+			}
+		case "taskType":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.TaskType = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskType\"")
+			}
+		case "teamId":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "workspaceRowId":
+			requiredBitSet[1] |= 1 << 7
+			if err := func() error {
+				if err := s.WorkspaceRowId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceRowId\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfBeginRuntimeSlotOK) {
+					name = jsonFieldsNameOfBeginRuntimeSlotOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *BeginRuntimeSlotOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes BeginRuntimeSlotOKState as json.
+func (s BeginRuntimeSlotOKState) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes BeginRuntimeSlotOKState from json.
+func (s *BeginRuntimeSlotOKState) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotOKState to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch BeginRuntimeSlotOKState(v) {
+	case BeginRuntimeSlotOKStateActive:
+		*s = BeginRuntimeSlotOKStateActive
+	case BeginRuntimeSlotOKStateIdle:
+		*s = BeginRuntimeSlotOKStateIdle
+	default:
+		*s = BeginRuntimeSlotOKState(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BeginRuntimeSlotOKState) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BeginRuntimeSlotOKState) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *BeginRuntimeSlotReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *BeginRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("agentName")
 		e.Str(s.AgentName)
@@ -2217,10 +4425,6 @@ func (s *BeginDaemonRuntimeSlotBody) encodeFields(e *jx.Encoder) {
 		e.Str(s.TaskType)
 	}
 	{
-		e.FieldStart("teamId")
-		json.EncodeUUID(e, s.TeamId)
-	}
-	{
 		e.FieldStart("ttlSec")
 		e.Int(s.TtlSec)
 	}
@@ -2250,7 +4454,7 @@ func (s *BeginDaemonRuntimeSlotBody) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfBeginDaemonRuntimeSlotBody = [17]string{
+var jsonFieldsNameOfBeginRuntimeSlotReq = [16]string{
 	0:  "agentName",
 	1:  "daemonId",
 	2:  "daemonProfileId",
@@ -2262,20 +4466,19 @@ var jsonFieldsNameOfBeginDaemonRuntimeSlotBody = [17]string{
 	8:  "sessionPath",
 	9:  "slotKey",
 	10: "taskType",
-	11: "teamId",
-	12: "ttlSec",
-	13: "workspaceId",
-	14: "workspaceKind",
-	15: "worktreeBranch",
-	16: "worktreePath",
+	11: "ttlSec",
+	12: "workspaceId",
+	13: "workspaceKind",
+	14: "worktreeBranch",
+	15: "worktreePath",
 }
 
-// Decode decodes BeginDaemonRuntimeSlotBody from json.
-func (s *BeginDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
+// Decode decodes BeginRuntimeSlotReq from json.
+func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode BeginDaemonRuntimeSlotBody to nil")
+		return errors.New("invalid: unable to decode BeginRuntimeSlotReq to nil")
 	}
-	var requiredBitSet [3]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -2405,20 +4608,8 @@ func (s *BeginDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
-		case "teamId":
-			requiredBitSet[1] |= 1 << 3
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.TeamId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"teamId\"")
-			}
 		case "ttlSec":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.TtlSec = int(v)
@@ -2474,14 +4665,13 @@ func (s *BeginDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode BeginDaemonRuntimeSlotBody")
+		return errors.Wrap(err, "decode BeginRuntimeSlotReq")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [3]uint8{
+	for i, mask := range [2]uint8{
 		0b01111011,
-		0b00011110,
-		0b00000000,
+		0b00001110,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -2493,8 +4683,8 @@ func (s *BeginDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfBeginDaemonRuntimeSlotBody) {
-					name = jsonFieldsNameOfBeginDaemonRuntimeSlotBody[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfBeginRuntimeSlotReq) {
+					name = jsonFieldsNameOfBeginRuntimeSlotReq[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -2515,170 +4705,402 @@ func (s *BeginDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *BeginDaemonRuntimeSlotBody) MarshalJSON() ([]byte, error) {
+func (s *BeginRuntimeSlotReq) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *BeginDaemonRuntimeSlotBody) UnmarshalJSON(data []byte) error {
+func (s *BeginRuntimeSlotReq) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes BeginDaemonRuntimeSlotBodyWorkspaceKind as json.
-func (s BeginDaemonRuntimeSlotBodyWorkspaceKind) Encode(e *jx.Encoder) {
+// Encode encodes BeginRuntimeSlotReqWorkspaceKind as json.
+func (s BeginRuntimeSlotReqWorkspaceKind) Encode(e *jx.Encoder) {
 	e.Str(string(s))
 }
 
-// Decode decodes BeginDaemonRuntimeSlotBodyWorkspaceKind from json.
-func (s *BeginDaemonRuntimeSlotBodyWorkspaceKind) Decode(d *jx.Decoder) error {
+// Decode decodes BeginRuntimeSlotReqWorkspaceKind from json.
+func (s *BeginRuntimeSlotReqWorkspaceKind) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode BeginDaemonRuntimeSlotBodyWorkspaceKind to nil")
+		return errors.New("invalid: unable to decode BeginRuntimeSlotReqWorkspaceKind to nil")
 	}
 	v, err := d.StrBytes()
 	if err != nil {
 		return err
 	}
 	// Try to use constant string.
-	switch BeginDaemonRuntimeSlotBodyWorkspaceKind(v) {
-	case BeginDaemonRuntimeSlotBodyWorkspaceKindOrigin:
-		*s = BeginDaemonRuntimeSlotBodyWorkspaceKindOrigin
-	case BeginDaemonRuntimeSlotBodyWorkspaceKindFork:
-		*s = BeginDaemonRuntimeSlotBodyWorkspaceKindFork
-	case BeginDaemonRuntimeSlotBodyWorkspaceKindScratch:
-		*s = BeginDaemonRuntimeSlotBodyWorkspaceKindScratch
+	switch BeginRuntimeSlotReqWorkspaceKind(v) {
+	case BeginRuntimeSlotReqWorkspaceKindOrigin:
+		*s = BeginRuntimeSlotReqWorkspaceKindOrigin
+	case BeginRuntimeSlotReqWorkspaceKindFork:
+		*s = BeginRuntimeSlotReqWorkspaceKindFork
+	case BeginRuntimeSlotReqWorkspaceKindScratch:
+		*s = BeginRuntimeSlotReqWorkspaceKindScratch
 	default:
-		*s = BeginDaemonRuntimeSlotBodyWorkspaceKind(v)
+		*s = BeginRuntimeSlotReqWorkspaceKind(v)
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s BeginDaemonRuntimeSlotBodyWorkspaceKind) MarshalJSON() ([]byte, error) {
+func (s BeginRuntimeSlotReqWorkspaceKind) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *BeginDaemonRuntimeSlotBodyWorkspaceKind) UnmarshalJSON(data []byte) error {
+func (s *BeginRuntimeSlotReqWorkspaceKind) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes BeginDaemonRuntimeSlotForbidden as json.
-func (s *BeginDaemonRuntimeSlotForbidden) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
+// Encode implements json.Marshaler.
+func (s *BeginRuntimeSlotUnauthorized) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
 }
 
-// Decode decodes BeginDaemonRuntimeSlotForbidden from json.
-func (s *BeginDaemonRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode BeginDaemonRuntimeSlotForbidden to nil")
+// encodeFields encodes fields.
+func (s *BeginRuntimeSlotUnauthorized) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
 	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfBeginRuntimeSlotUnauthorized = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes BeginRuntimeSlotUnauthorized from json.
+func (s *BeginRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotUnauthorized to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
 		}
 		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotUnauthorized")
 	}
-	*s = BeginDaemonRuntimeSlotForbidden(unwrapped)
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfBeginRuntimeSlotUnauthorized) {
+					name = jsonFieldsNameOfBeginRuntimeSlotUnauthorized[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *BeginDaemonRuntimeSlotForbidden) MarshalJSON() ([]byte, error) {
+func (s *BeginRuntimeSlotUnauthorized) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *BeginDaemonRuntimeSlotForbidden) UnmarshalJSON(data []byte) error {
+func (s *BeginRuntimeSlotUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes BeginDaemonRuntimeSlotNotFound as json.
-func (s *BeginDaemonRuntimeSlotNotFound) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
+// Encode implements json.Marshaler.
+func (s BeginRuntimeSlotUnauthorizedAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
 }
 
-// Decode decodes BeginDaemonRuntimeSlotNotFound from json.
-func (s *BeginDaemonRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode BeginDaemonRuntimeSlotNotFound to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
+// encodeFields implements json.Marshaler.
+func (s BeginRuntimeSlotUnauthorizedAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
 		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
 	}
-	*s = BeginDaemonRuntimeSlotNotFound(unwrapped)
+}
+
+// Decode decodes BeginRuntimeSlotUnauthorizedAdditional from json.
+func (s *BeginRuntimeSlotUnauthorizedAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BeginRuntimeSlotUnauthorizedAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BeginRuntimeSlotUnauthorizedAdditional")
+	}
+
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *BeginDaemonRuntimeSlotNotFound) MarshalJSON() ([]byte, error) {
+func (s BeginRuntimeSlotUnauthorizedAdditional) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *BeginDaemonRuntimeSlotNotFound) UnmarshalJSON(data []byte) error {
+func (s *BeginRuntimeSlotUnauthorizedAdditional) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes BeginDaemonRuntimeSlotUnauthorized as json.
-func (s *BeginDaemonRuntimeSlotUnauthorized) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
+// Encode encodes BeginRuntimeSlotUnauthorizedCode as json.
+func (s BeginRuntimeSlotUnauthorizedCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
 }
 
-// Decode decodes BeginDaemonRuntimeSlotUnauthorized from json.
-func (s *BeginDaemonRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
+// Decode decodes BeginRuntimeSlotUnauthorizedCode from json.
+func (s *BeginRuntimeSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode BeginDaemonRuntimeSlotUnauthorized to nil")
+		return errors.New("invalid: unable to decode BeginRuntimeSlotUnauthorizedCode to nil")
 	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
 	}
-	*s = BeginDaemonRuntimeSlotUnauthorized(unwrapped)
+	// Try to use constant string.
+	switch BeginRuntimeSlotUnauthorizedCode(v) {
+	case BeginRuntimeSlotUnauthorizedCodeUNAUTHORIZED:
+		*s = BeginRuntimeSlotUnauthorizedCodeUNAUTHORIZED
+	case BeginRuntimeSlotUnauthorizedCodeFORBIDDEN:
+		*s = BeginRuntimeSlotUnauthorizedCodeFORBIDDEN
+	case BeginRuntimeSlotUnauthorizedCodeNOTFOUND:
+		*s = BeginRuntimeSlotUnauthorizedCodeNOTFOUND
+	case BeginRuntimeSlotUnauthorizedCodeCONFLICT:
+		*s = BeginRuntimeSlotUnauthorizedCodeCONFLICT
+	case BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
+		*s = BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED
+	case BeginRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE:
+		*s = BeginRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE
+	case BeginRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE:
+		*s = BeginRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE
+	case BeginRuntimeSlotUnauthorizedCodeVOUCHERLIMIT:
+		*s = BeginRuntimeSlotUnauthorizedCodeVOUCHERLIMIT
+	case BeginRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = BeginRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED
+	case BeginRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = BeginRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED
+	case BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED
+	case BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case BeginRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED:
+		*s = BeginRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED
+	case BeginRuntimeSlotUnauthorizedCodeUPSTREAMERROR:
+		*s = BeginRuntimeSlotUnauthorizedCodeUPSTREAMERROR
+	case BeginRuntimeSlotUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = BeginRuntimeSlotUnauthorizedCodeSERVICEUNAVAILABLE
+	case BeginRuntimeSlotUnauthorizedCodeINTERNALSERVERERROR:
+		*s = BeginRuntimeSlotUnauthorizedCodeINTERNALSERVERERROR
+	case BeginRuntimeSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = BeginRuntimeSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE
+	case BeginRuntimeSlotUnauthorizedCodeTEAMNOTACTIVE:
+		*s = BeginRuntimeSlotUnauthorizedCodeTEAMNOTACTIVE
+	case BeginRuntimeSlotUnauthorizedCodeINVITEEXPIRED:
+		*s = BeginRuntimeSlotUnauthorizedCodeINVITEEXPIRED
+	case BeginRuntimeSlotUnauthorizedCodeINVITEEXHAUSTED:
+		*s = BeginRuntimeSlotUnauthorizedCodeINVITEEXHAUSTED
+	case BeginRuntimeSlotUnauthorizedCodeTEAMLASTOWNER:
+		*s = BeginRuntimeSlotUnauthorizedCodeTEAMLASTOWNER
+	case BeginRuntimeSlotUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = BeginRuntimeSlotUnauthorizedCodeTEAMALREADYACTIVE
+	case BeginRuntimeSlotUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = BeginRuntimeSlotUnauthorizedCodeTEAMNOTFOUNDING
+	case BeginRuntimeSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = BeginRuntimeSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED
+	case BeginRuntimeSlotUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = BeginRuntimeSlotUnauthorizedCodeDIARYTRANSFERPENDING
+	case BeginRuntimeSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = BeginRuntimeSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND
+	case BeginRuntimeSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = BeginRuntimeSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = BeginRuntimeSlotUnauthorizedCode(v)
+	}
+
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *BeginDaemonRuntimeSlotUnauthorized) MarshalJSON() ([]byte, error) {
+func (s BeginRuntimeSlotUnauthorizedCode) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *BeginDaemonRuntimeSlotUnauthorized) UnmarshalJSON(data []byte) error {
+func (s *BeginRuntimeSlotUnauthorizedCode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -13757,773 +16179,6 @@ func (s *CustomPackResultParams) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *DaemonRuntimeSlot) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *DaemonRuntimeSlot) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("agentName")
-		e.Str(s.AgentName)
-	}
-	{
-		e.FieldStart("createdAtMs")
-		e.Int(s.CreatedAtMs)
-	}
-	{
-		e.FieldStart("daemonId")
-		e.Str(s.DaemonId)
-	}
-	{
-		e.FieldStart("daemonProfileId")
-		s.DaemonProfileId.Encode(e)
-	}
-	{
-		e.FieldStart("expiresAtMs")
-		e.Int(s.ExpiresAtMs)
-	}
-	{
-		e.FieldStart("id")
-		json.EncodeUUID(e, s.ID)
-	}
-	{
-		e.FieldStart("lastAttemptN")
-		e.Int(s.LastAttemptN)
-	}
-	{
-		e.FieldStart("lastTaskId")
-		json.EncodeUUID(e, s.LastTaskId)
-	}
-	{
-		e.FieldStart("lastUsedAtMs")
-		e.Int(s.LastUsedAtMs)
-	}
-	{
-		e.FieldStart("model")
-		e.Str(s.Model)
-	}
-	{
-		e.FieldStart("provider")
-		e.Str(s.Provider)
-	}
-	{
-		e.FieldStart("slotKey")
-		e.Str(s.SlotKey)
-	}
-	{
-		e.FieldStart("state")
-		s.State.Encode(e)
-	}
-	{
-		e.FieldStart("taskType")
-		e.Str(s.TaskType)
-	}
-	{
-		e.FieldStart("teamId")
-		json.EncodeUUID(e, s.TeamId)
-	}
-	{
-		e.FieldStart("workspaceRowId")
-		s.WorkspaceRowId.Encode(e)
-	}
-}
-
-var jsonFieldsNameOfDaemonRuntimeSlot = [16]string{
-	0:  "agentName",
-	1:  "createdAtMs",
-	2:  "daemonId",
-	3:  "daemonProfileId",
-	4:  "expiresAtMs",
-	5:  "id",
-	6:  "lastAttemptN",
-	7:  "lastTaskId",
-	8:  "lastUsedAtMs",
-	9:  "model",
-	10: "provider",
-	11: "slotKey",
-	12: "state",
-	13: "taskType",
-	14: "teamId",
-	15: "workspaceRowId",
-}
-
-// Decode decodes DaemonRuntimeSlot from json.
-func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode DaemonRuntimeSlot to nil")
-	}
-	var requiredBitSet [2]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "agentName":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Str()
-				s.AgentName = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"agentName\"")
-			}
-		case "createdAtMs":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Int()
-				s.CreatedAtMs = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdAtMs\"")
-			}
-		case "daemonId":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := d.Str()
-				s.DaemonId = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonId\"")
-			}
-		case "daemonProfileId":
-			requiredBitSet[0] |= 1 << 3
-			if err := func() error {
-				if err := s.DaemonProfileId.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonProfileId\"")
-			}
-		case "expiresAtMs":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				v, err := d.Int()
-				s.ExpiresAtMs = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"expiresAtMs\"")
-			}
-		case "id":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.ID = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"id\"")
-			}
-		case "lastAttemptN":
-			requiredBitSet[0] |= 1 << 6
-			if err := func() error {
-				v, err := d.Int()
-				s.LastAttemptN = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"lastAttemptN\"")
-			}
-		case "lastTaskId":
-			requiredBitSet[0] |= 1 << 7
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.LastTaskId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"lastTaskId\"")
-			}
-		case "lastUsedAtMs":
-			requiredBitSet[1] |= 1 << 0
-			if err := func() error {
-				v, err := d.Int()
-				s.LastUsedAtMs = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
-			}
-		case "model":
-			requiredBitSet[1] |= 1 << 1
-			if err := func() error {
-				v, err := d.Str()
-				s.Model = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"model\"")
-			}
-		case "provider":
-			requiredBitSet[1] |= 1 << 2
-			if err := func() error {
-				v, err := d.Str()
-				s.Provider = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"provider\"")
-			}
-		case "slotKey":
-			requiredBitSet[1] |= 1 << 3
-			if err := func() error {
-				v, err := d.Str()
-				s.SlotKey = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"slotKey\"")
-			}
-		case "state":
-			requiredBitSet[1] |= 1 << 4
-			if err := func() error {
-				if err := s.State.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"state\"")
-			}
-		case "taskType":
-			requiredBitSet[1] |= 1 << 5
-			if err := func() error {
-				v, err := d.Str()
-				s.TaskType = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"taskType\"")
-			}
-		case "teamId":
-			requiredBitSet[1] |= 1 << 6
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.TeamId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"teamId\"")
-			}
-		case "workspaceRowId":
-			requiredBitSet[1] |= 1 << 7
-			if err := func() error {
-				if err := s.WorkspaceRowId.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspaceRowId\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode DaemonRuntimeSlot")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
-		0b11111111,
-		0b11111111,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfDaemonRuntimeSlot) {
-					name = jsonFieldsNameOfDaemonRuntimeSlot[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *DaemonRuntimeSlot) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *DaemonRuntimeSlot) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s *DaemonRuntimeSlotSession) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *DaemonRuntimeSlotSession) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("sessionDir")
-		e.Str(s.SessionDir)
-	}
-	{
-		e.FieldStart("sessionPath")
-		s.SessionPath.Encode(e)
-	}
-	{
-		e.FieldStart("slotId")
-		json.EncodeUUID(e, s.SlotId)
-	}
-}
-
-var jsonFieldsNameOfDaemonRuntimeSlotSession = [3]string{
-	0: "sessionDir",
-	1: "sessionPath",
-	2: "slotId",
-}
-
-// Decode decodes DaemonRuntimeSlotSession from json.
-func (s *DaemonRuntimeSlotSession) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode DaemonRuntimeSlotSession to nil")
-	}
-	var requiredBitSet [1]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "sessionDir":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Str()
-				s.SessionDir = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionDir\"")
-			}
-		case "sessionPath":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				if err := s.SessionPath.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionPath\"")
-			}
-		case "slotId":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.SlotId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"slotId\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode DaemonRuntimeSlotSession")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000111,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfDaemonRuntimeSlotSession) {
-					name = jsonFieldsNameOfDaemonRuntimeSlotSession[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *DaemonRuntimeSlotSession) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *DaemonRuntimeSlotSession) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes DaemonRuntimeSlotState as json.
-func (s DaemonRuntimeSlotState) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes DaemonRuntimeSlotState from json.
-func (s *DaemonRuntimeSlotState) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode DaemonRuntimeSlotState to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch DaemonRuntimeSlotState(v) {
-	case DaemonRuntimeSlotStateActive:
-		*s = DaemonRuntimeSlotStateActive
-	case DaemonRuntimeSlotStateIdle:
-		*s = DaemonRuntimeSlotStateIdle
-	default:
-		*s = DaemonRuntimeSlotState(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s DaemonRuntimeSlotState) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *DaemonRuntimeSlotState) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s *DaemonRuntimeWorkspace) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *DaemonRuntimeWorkspace) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("createdAtMs")
-		e.Int(s.CreatedAtMs)
-	}
-	{
-		e.FieldStart("id")
-		json.EncodeUUID(e, s.ID)
-	}
-	{
-		e.FieldStart("kind")
-		s.Kind.Encode(e)
-	}
-	{
-		e.FieldStart("lastUsedAtMs")
-		e.Int(s.LastUsedAtMs)
-	}
-	{
-		e.FieldStart("teamId")
-		json.EncodeUUID(e, s.TeamId)
-	}
-	{
-		e.FieldStart("workspaceId")
-		e.Str(s.WorkspaceId)
-	}
-	{
-		e.FieldStart("worktreeBranch")
-		s.WorktreeBranch.Encode(e)
-	}
-	{
-		e.FieldStart("worktreePath")
-		e.Str(s.WorktreePath)
-	}
-}
-
-var jsonFieldsNameOfDaemonRuntimeWorkspace = [8]string{
-	0: "createdAtMs",
-	1: "id",
-	2: "kind",
-	3: "lastUsedAtMs",
-	4: "teamId",
-	5: "workspaceId",
-	6: "worktreeBranch",
-	7: "worktreePath",
-}
-
-// Decode decodes DaemonRuntimeWorkspace from json.
-func (s *DaemonRuntimeWorkspace) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode DaemonRuntimeWorkspace to nil")
-	}
-	var requiredBitSet [1]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "createdAtMs":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Int()
-				s.CreatedAtMs = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdAtMs\"")
-			}
-		case "id":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.ID = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"id\"")
-			}
-		case "kind":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				if err := s.Kind.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"kind\"")
-			}
-		case "lastUsedAtMs":
-			requiredBitSet[0] |= 1 << 3
-			if err := func() error {
-				v, err := d.Int()
-				s.LastUsedAtMs = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
-			}
-		case "teamId":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.TeamId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"teamId\"")
-			}
-		case "workspaceId":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				v, err := d.Str()
-				s.WorkspaceId = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspaceId\"")
-			}
-		case "worktreeBranch":
-			requiredBitSet[0] |= 1 << 6
-			if err := func() error {
-				if err := s.WorktreeBranch.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"worktreeBranch\"")
-			}
-		case "worktreePath":
-			requiredBitSet[0] |= 1 << 7
-			if err := func() error {
-				v, err := d.Str()
-				s.WorktreePath = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"worktreePath\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode DaemonRuntimeWorkspace")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b11111111,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfDaemonRuntimeWorkspace) {
-					name = jsonFieldsNameOfDaemonRuntimeWorkspace[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *DaemonRuntimeWorkspace) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *DaemonRuntimeWorkspace) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes DaemonRuntimeWorkspaceKind as json.
-func (s DaemonRuntimeWorkspaceKind) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes DaemonRuntimeWorkspaceKind from json.
-func (s *DaemonRuntimeWorkspaceKind) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode DaemonRuntimeWorkspaceKind to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch DaemonRuntimeWorkspaceKind(v) {
-	case DaemonRuntimeWorkspaceKindOrigin:
-		*s = DaemonRuntimeWorkspaceKindOrigin
-	case DaemonRuntimeWorkspaceKindFork:
-		*s = DaemonRuntimeWorkspaceKindFork
-	case DaemonRuntimeWorkspaceKindScratch:
-		*s = DaemonRuntimeWorkspaceKindScratch
-	default:
-		*s = DaemonRuntimeWorkspaceKind(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s DaemonRuntimeWorkspaceKind) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *DaemonRuntimeWorkspaceKind) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
 func (s *DaemonState) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -24268,129 +25923,4655 @@ func (s *FailTaskUnauthorized) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes FindDaemonRuntimeProducerSlotForbidden as json.
-func (s *FindDaemonRuntimeProducerSlotForbidden) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes FindDaemonRuntimeProducerSlotForbidden from json.
-func (s *FindDaemonRuntimeProducerSlotForbidden) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode FindDaemonRuntimeProducerSlotForbidden to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = FindDaemonRuntimeProducerSlotForbidden(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *FindDaemonRuntimeProducerSlotForbidden) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindDaemonRuntimeProducerSlotForbidden) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes FindDaemonRuntimeProducerSlotNotFound as json.
-func (s *FindDaemonRuntimeProducerSlotNotFound) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes FindDaemonRuntimeProducerSlotNotFound from json.
-func (s *FindDaemonRuntimeProducerSlotNotFound) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode FindDaemonRuntimeProducerSlotNotFound to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = FindDaemonRuntimeProducerSlotNotFound(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *FindDaemonRuntimeProducerSlotNotFound) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindDaemonRuntimeProducerSlotNotFound) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes FindDaemonRuntimeProducerSlotUnauthorized as json.
-func (s *FindDaemonRuntimeProducerSlotUnauthorized) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes FindDaemonRuntimeProducerSlotUnauthorized from json.
-func (s *FindDaemonRuntimeProducerSlotUnauthorized) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode FindDaemonRuntimeProducerSlotUnauthorized to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = FindDaemonRuntimeProducerSlotUnauthorized(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *FindDaemonRuntimeProducerSlotUnauthorized) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindDaemonRuntimeProducerSlotUnauthorized) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode implements json.Marshaler.
-func (s *FinishDaemonRuntimeSlotBody) Encode(e *jx.Encoder) {
+func (s *FindRuntimeProducerSlotBadRequest) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FinishDaemonRuntimeSlotBody) encodeFields(e *jx.Encoder) {
+func (s *FindRuntimeProducerSlotBadRequest) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("errors")
+		e.ArrStart()
+		for _, elem := range s.Errors {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfFindRuntimeProducerSlotBadRequest = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "errors",
+}
+
+// Decode decodes FindRuntimeProducerSlotBadRequest from json.
+func (s *FindRuntimeProducerSlotBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotBadRequest to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "errors":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				s.Errors = make([]FindRuntimeProducerSlotBadRequestErrorsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem FindRuntimeProducerSlotBadRequestErrorsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Errors = append(s.Errors, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"errors\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotBadRequest")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotBadRequest) {
+					name = jsonFieldsNameOfFindRuntimeProducerSlotBadRequest[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FindRuntimeProducerSlotBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s FindRuntimeProducerSlotBadRequestAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s FindRuntimeProducerSlotBadRequestAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes FindRuntimeProducerSlotBadRequestAdditional from json.
+func (s *FindRuntimeProducerSlotBadRequestAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotBadRequestAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotBadRequestAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FindRuntimeProducerSlotBadRequestAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotBadRequestAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FindRuntimeProducerSlotBadRequestCode as json.
+func (s FindRuntimeProducerSlotBadRequestCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FindRuntimeProducerSlotBadRequestCode from json.
+func (s *FindRuntimeProducerSlotBadRequestCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotBadRequestCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FindRuntimeProducerSlotBadRequestCode(v) {
+	case FindRuntimeProducerSlotBadRequestCodeUNAUTHORIZED:
+		*s = FindRuntimeProducerSlotBadRequestCodeUNAUTHORIZED
+	case FindRuntimeProducerSlotBadRequestCodeFORBIDDEN:
+		*s = FindRuntimeProducerSlotBadRequestCodeFORBIDDEN
+	case FindRuntimeProducerSlotBadRequestCodeNOTFOUND:
+		*s = FindRuntimeProducerSlotBadRequestCodeNOTFOUND
+	case FindRuntimeProducerSlotBadRequestCodeCONFLICT:
+		*s = FindRuntimeProducerSlotBadRequestCodeCONFLICT
+	case FindRuntimeProducerSlotBadRequestCodeVALIDATIONFAILED:
+		*s = FindRuntimeProducerSlotBadRequestCodeVALIDATIONFAILED
+	case FindRuntimeProducerSlotBadRequestCodeINVALIDCHALLENGE:
+		*s = FindRuntimeProducerSlotBadRequestCodeINVALIDCHALLENGE
+	case FindRuntimeProducerSlotBadRequestCodeINVALIDSIGNATURE:
+		*s = FindRuntimeProducerSlotBadRequestCodeINVALIDSIGNATURE
+	case FindRuntimeProducerSlotBadRequestCodeVOUCHERLIMIT:
+		*s = FindRuntimeProducerSlotBadRequestCodeVOUCHERLIMIT
+	case FindRuntimeProducerSlotBadRequestCodeRATELIMITEXCEEDED:
+		*s = FindRuntimeProducerSlotBadRequestCodeRATELIMITEXCEEDED
+	case FindRuntimeProducerSlotBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = FindRuntimeProducerSlotBadRequestCodeSERIALIZATIONEXHAUSTED
+	case FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTEXPIRED
+	case FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindRuntimeProducerSlotBadRequestCodeREGISTRATIONFAILED:
+		*s = FindRuntimeProducerSlotBadRequestCodeREGISTRATIONFAILED
+	case FindRuntimeProducerSlotBadRequestCodeUPSTREAMERROR:
+		*s = FindRuntimeProducerSlotBadRequestCodeUPSTREAMERROR
+	case FindRuntimeProducerSlotBadRequestCodeSERVICEUNAVAILABLE:
+		*s = FindRuntimeProducerSlotBadRequestCodeSERVICEUNAVAILABLE
+	case FindRuntimeProducerSlotBadRequestCodeINTERNALSERVERERROR:
+		*s = FindRuntimeProducerSlotBadRequestCodeINTERNALSERVERERROR
+	case FindRuntimeProducerSlotBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = FindRuntimeProducerSlotBadRequestCodeTEAMPERSONALIMMUTABLE
+	case FindRuntimeProducerSlotBadRequestCodeTEAMNOTACTIVE:
+		*s = FindRuntimeProducerSlotBadRequestCodeTEAMNOTACTIVE
+	case FindRuntimeProducerSlotBadRequestCodeINVITEEXPIRED:
+		*s = FindRuntimeProducerSlotBadRequestCodeINVITEEXPIRED
+	case FindRuntimeProducerSlotBadRequestCodeINVITEEXHAUSTED:
+		*s = FindRuntimeProducerSlotBadRequestCodeINVITEEXHAUSTED
+	case FindRuntimeProducerSlotBadRequestCodeTEAMLASTOWNER:
+		*s = FindRuntimeProducerSlotBadRequestCodeTEAMLASTOWNER
+	case FindRuntimeProducerSlotBadRequestCodeTEAMALREADYACTIVE:
+		*s = FindRuntimeProducerSlotBadRequestCodeTEAMALREADYACTIVE
+	case FindRuntimeProducerSlotBadRequestCodeTEAMNOTFOUNDING:
+		*s = FindRuntimeProducerSlotBadRequestCodeTEAMNOTFOUNDING
+	case FindRuntimeProducerSlotBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = FindRuntimeProducerSlotBadRequestCodeFOUNDINGALREADYACCEPTED
+	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERPENDING:
+		*s = FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERPENDING
+	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERNOTFOUND
+	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = FindRuntimeProducerSlotBadRequestCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FindRuntimeProducerSlotBadRequestCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotBadRequestCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FindRuntimeProducerSlotBadRequestErrorsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FindRuntimeProducerSlotBadRequestErrorsItem) encodeFields(e *jx.Encoder) {
+	{
+		if s.Code.Set {
+			e.FieldStart("code")
+			s.Code.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("field")
+		e.Str(s.Field)
+	}
+	{
+		e.FieldStart("message")
+		e.Str(s.Message)
+	}
+}
+
+var jsonFieldsNameOfFindRuntimeProducerSlotBadRequestErrorsItem = [3]string{
+	0: "code",
+	1: "field",
+	2: "message",
+}
+
+// Decode decodes FindRuntimeProducerSlotBadRequestErrorsItem from json.
+func (s *FindRuntimeProducerSlotBadRequestErrorsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotBadRequestErrorsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			if err := func() error {
+				s.Code.Reset()
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "field":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Field = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"field\"")
+			}
+		case "message":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Message = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"message\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotBadRequestErrorsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotBadRequestErrorsItem) {
+					name = jsonFieldsNameOfFindRuntimeProducerSlotBadRequestErrorsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FindRuntimeProducerSlotBadRequestErrorsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotBadRequestErrorsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FindRuntimeProducerSlotForbidden) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FindRuntimeProducerSlotForbidden) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfFindRuntimeProducerSlotForbidden = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes FindRuntimeProducerSlotForbidden from json.
+func (s *FindRuntimeProducerSlotForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotForbidden to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotForbidden")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotForbidden) {
+					name = jsonFieldsNameOfFindRuntimeProducerSlotForbidden[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FindRuntimeProducerSlotForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s FindRuntimeProducerSlotForbiddenAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s FindRuntimeProducerSlotForbiddenAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes FindRuntimeProducerSlotForbiddenAdditional from json.
+func (s *FindRuntimeProducerSlotForbiddenAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotForbiddenAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotForbiddenAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FindRuntimeProducerSlotForbiddenAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotForbiddenAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FindRuntimeProducerSlotForbiddenCode as json.
+func (s FindRuntimeProducerSlotForbiddenCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FindRuntimeProducerSlotForbiddenCode from json.
+func (s *FindRuntimeProducerSlotForbiddenCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotForbiddenCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FindRuntimeProducerSlotForbiddenCode(v) {
+	case FindRuntimeProducerSlotForbiddenCodeUNAUTHORIZED:
+		*s = FindRuntimeProducerSlotForbiddenCodeUNAUTHORIZED
+	case FindRuntimeProducerSlotForbiddenCodeFORBIDDEN:
+		*s = FindRuntimeProducerSlotForbiddenCodeFORBIDDEN
+	case FindRuntimeProducerSlotForbiddenCodeNOTFOUND:
+		*s = FindRuntimeProducerSlotForbiddenCodeNOTFOUND
+	case FindRuntimeProducerSlotForbiddenCodeCONFLICT:
+		*s = FindRuntimeProducerSlotForbiddenCodeCONFLICT
+	case FindRuntimeProducerSlotForbiddenCodeVALIDATIONFAILED:
+		*s = FindRuntimeProducerSlotForbiddenCodeVALIDATIONFAILED
+	case FindRuntimeProducerSlotForbiddenCodeINVALIDCHALLENGE:
+		*s = FindRuntimeProducerSlotForbiddenCodeINVALIDCHALLENGE
+	case FindRuntimeProducerSlotForbiddenCodeINVALIDSIGNATURE:
+		*s = FindRuntimeProducerSlotForbiddenCodeINVALIDSIGNATURE
+	case FindRuntimeProducerSlotForbiddenCodeVOUCHERLIMIT:
+		*s = FindRuntimeProducerSlotForbiddenCodeVOUCHERLIMIT
+	case FindRuntimeProducerSlotForbiddenCodeRATELIMITEXCEEDED:
+		*s = FindRuntimeProducerSlotForbiddenCodeRATELIMITEXCEEDED
+	case FindRuntimeProducerSlotForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = FindRuntimeProducerSlotForbiddenCodeSERIALIZATIONEXHAUSTED
+	case FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTEXPIRED
+	case FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindRuntimeProducerSlotForbiddenCodeREGISTRATIONFAILED:
+		*s = FindRuntimeProducerSlotForbiddenCodeREGISTRATIONFAILED
+	case FindRuntimeProducerSlotForbiddenCodeUPSTREAMERROR:
+		*s = FindRuntimeProducerSlotForbiddenCodeUPSTREAMERROR
+	case FindRuntimeProducerSlotForbiddenCodeSERVICEUNAVAILABLE:
+		*s = FindRuntimeProducerSlotForbiddenCodeSERVICEUNAVAILABLE
+	case FindRuntimeProducerSlotForbiddenCodeINTERNALSERVERERROR:
+		*s = FindRuntimeProducerSlotForbiddenCodeINTERNALSERVERERROR
+	case FindRuntimeProducerSlotForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = FindRuntimeProducerSlotForbiddenCodeTEAMPERSONALIMMUTABLE
+	case FindRuntimeProducerSlotForbiddenCodeTEAMNOTACTIVE:
+		*s = FindRuntimeProducerSlotForbiddenCodeTEAMNOTACTIVE
+	case FindRuntimeProducerSlotForbiddenCodeINVITEEXPIRED:
+		*s = FindRuntimeProducerSlotForbiddenCodeINVITEEXPIRED
+	case FindRuntimeProducerSlotForbiddenCodeINVITEEXHAUSTED:
+		*s = FindRuntimeProducerSlotForbiddenCodeINVITEEXHAUSTED
+	case FindRuntimeProducerSlotForbiddenCodeTEAMLASTOWNER:
+		*s = FindRuntimeProducerSlotForbiddenCodeTEAMLASTOWNER
+	case FindRuntimeProducerSlotForbiddenCodeTEAMALREADYACTIVE:
+		*s = FindRuntimeProducerSlotForbiddenCodeTEAMALREADYACTIVE
+	case FindRuntimeProducerSlotForbiddenCodeTEAMNOTFOUNDING:
+		*s = FindRuntimeProducerSlotForbiddenCodeTEAMNOTFOUNDING
+	case FindRuntimeProducerSlotForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = FindRuntimeProducerSlotForbiddenCodeFOUNDINGALREADYACCEPTED
+	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERPENDING:
+		*s = FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERPENDING
+	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERNOTFOUND
+	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = FindRuntimeProducerSlotForbiddenCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FindRuntimeProducerSlotForbiddenCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotForbiddenCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FindRuntimeProducerSlotNotFound) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FindRuntimeProducerSlotNotFound) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfFindRuntimeProducerSlotNotFound = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes FindRuntimeProducerSlotNotFound from json.
+func (s *FindRuntimeProducerSlotNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotNotFound to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotNotFound")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotNotFound) {
+					name = jsonFieldsNameOfFindRuntimeProducerSlotNotFound[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FindRuntimeProducerSlotNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s FindRuntimeProducerSlotNotFoundAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s FindRuntimeProducerSlotNotFoundAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes FindRuntimeProducerSlotNotFoundAdditional from json.
+func (s *FindRuntimeProducerSlotNotFoundAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotNotFoundAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotNotFoundAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FindRuntimeProducerSlotNotFoundAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotNotFoundAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FindRuntimeProducerSlotNotFoundCode as json.
+func (s FindRuntimeProducerSlotNotFoundCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FindRuntimeProducerSlotNotFoundCode from json.
+func (s *FindRuntimeProducerSlotNotFoundCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotNotFoundCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FindRuntimeProducerSlotNotFoundCode(v) {
+	case FindRuntimeProducerSlotNotFoundCodeUNAUTHORIZED:
+		*s = FindRuntimeProducerSlotNotFoundCodeUNAUTHORIZED
+	case FindRuntimeProducerSlotNotFoundCodeFORBIDDEN:
+		*s = FindRuntimeProducerSlotNotFoundCodeFORBIDDEN
+	case FindRuntimeProducerSlotNotFoundCodeNOTFOUND:
+		*s = FindRuntimeProducerSlotNotFoundCodeNOTFOUND
+	case FindRuntimeProducerSlotNotFoundCodeCONFLICT:
+		*s = FindRuntimeProducerSlotNotFoundCodeCONFLICT
+	case FindRuntimeProducerSlotNotFoundCodeVALIDATIONFAILED:
+		*s = FindRuntimeProducerSlotNotFoundCodeVALIDATIONFAILED
+	case FindRuntimeProducerSlotNotFoundCodeINVALIDCHALLENGE:
+		*s = FindRuntimeProducerSlotNotFoundCodeINVALIDCHALLENGE
+	case FindRuntimeProducerSlotNotFoundCodeINVALIDSIGNATURE:
+		*s = FindRuntimeProducerSlotNotFoundCodeINVALIDSIGNATURE
+	case FindRuntimeProducerSlotNotFoundCodeVOUCHERLIMIT:
+		*s = FindRuntimeProducerSlotNotFoundCodeVOUCHERLIMIT
+	case FindRuntimeProducerSlotNotFoundCodeRATELIMITEXCEEDED:
+		*s = FindRuntimeProducerSlotNotFoundCodeRATELIMITEXCEEDED
+	case FindRuntimeProducerSlotNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = FindRuntimeProducerSlotNotFoundCodeSERIALIZATIONEXHAUSTED
+	case FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTEXPIRED
+	case FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindRuntimeProducerSlotNotFoundCodeREGISTRATIONFAILED:
+		*s = FindRuntimeProducerSlotNotFoundCodeREGISTRATIONFAILED
+	case FindRuntimeProducerSlotNotFoundCodeUPSTREAMERROR:
+		*s = FindRuntimeProducerSlotNotFoundCodeUPSTREAMERROR
+	case FindRuntimeProducerSlotNotFoundCodeSERVICEUNAVAILABLE:
+		*s = FindRuntimeProducerSlotNotFoundCodeSERVICEUNAVAILABLE
+	case FindRuntimeProducerSlotNotFoundCodeINTERNALSERVERERROR:
+		*s = FindRuntimeProducerSlotNotFoundCodeINTERNALSERVERERROR
+	case FindRuntimeProducerSlotNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = FindRuntimeProducerSlotNotFoundCodeTEAMPERSONALIMMUTABLE
+	case FindRuntimeProducerSlotNotFoundCodeTEAMNOTACTIVE:
+		*s = FindRuntimeProducerSlotNotFoundCodeTEAMNOTACTIVE
+	case FindRuntimeProducerSlotNotFoundCodeINVITEEXPIRED:
+		*s = FindRuntimeProducerSlotNotFoundCodeINVITEEXPIRED
+	case FindRuntimeProducerSlotNotFoundCodeINVITEEXHAUSTED:
+		*s = FindRuntimeProducerSlotNotFoundCodeINVITEEXHAUSTED
+	case FindRuntimeProducerSlotNotFoundCodeTEAMLASTOWNER:
+		*s = FindRuntimeProducerSlotNotFoundCodeTEAMLASTOWNER
+	case FindRuntimeProducerSlotNotFoundCodeTEAMALREADYACTIVE:
+		*s = FindRuntimeProducerSlotNotFoundCodeTEAMALREADYACTIVE
+	case FindRuntimeProducerSlotNotFoundCodeTEAMNOTFOUNDING:
+		*s = FindRuntimeProducerSlotNotFoundCodeTEAMNOTFOUNDING
+	case FindRuntimeProducerSlotNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = FindRuntimeProducerSlotNotFoundCodeFOUNDINGALREADYACCEPTED
+	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERPENDING:
+		*s = FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERPENDING
+	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERNOTFOUND
+	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = FindRuntimeProducerSlotNotFoundCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FindRuntimeProducerSlotNotFoundCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotNotFoundCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FindRuntimeProducerSlotOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FindRuntimeProducerSlotOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("session")
+		s.Session.Encode(e)
+	}
+	{
+		e.FieldStart("slot")
+		s.Slot.Encode(e)
+	}
+	{
+		e.FieldStart("workspace")
+		s.Workspace.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfFindRuntimeProducerSlotOK = [3]string{
+	0: "session",
+	1: "slot",
+	2: "workspace",
+}
+
+// Decode decodes FindRuntimeProducerSlotOK from json.
+func (s *FindRuntimeProducerSlotOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "session":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Session.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"session\"")
+			}
+		case "slot":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Slot.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"slot\"")
+			}
+		case "workspace":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.Workspace.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspace\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotOK) {
+					name = jsonFieldsNameOfFindRuntimeProducerSlotOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FindRuntimeProducerSlotOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FindRuntimeProducerSlotOKSession) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FindRuntimeProducerSlotOKSession) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("sessionDir")
+		e.Str(s.SessionDir)
+	}
+	{
+		e.FieldStart("sessionPath")
+		s.SessionPath.Encode(e)
+	}
+	{
+		e.FieldStart("slotId")
+		json.EncodeUUID(e, s.SlotId)
+	}
+}
+
+var jsonFieldsNameOfFindRuntimeProducerSlotOKSession = [3]string{
+	0: "sessionDir",
+	1: "sessionPath",
+	2: "slotId",
+}
+
+// Decode decodes FindRuntimeProducerSlotOKSession from json.
+func (s *FindRuntimeProducerSlotOKSession) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOKSession to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "sessionDir":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.SessionDir = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionDir\"")
+			}
+		case "sessionPath":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.SessionPath.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionPath\"")
+			}
+		case "slotId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.SlotId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"slotId\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotOKSession")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotOKSession) {
+					name = jsonFieldsNameOfFindRuntimeProducerSlotOKSession[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FindRuntimeProducerSlotOKSession) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotOKSession) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FindRuntimeProducerSlotOKSlot) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FindRuntimeProducerSlotOKSlot) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("agentName")
+		e.Str(s.AgentName)
+	}
+	{
+		e.FieldStart("createdAtMs")
+		e.Int(s.CreatedAtMs)
+	}
+	{
+		e.FieldStart("daemonId")
+		e.Str(s.DaemonId)
+	}
+	{
+		e.FieldStart("daemonProfileId")
+		s.DaemonProfileId.Encode(e)
+	}
+	{
+		e.FieldStart("expiresAtMs")
+		e.Int(s.ExpiresAtMs)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("lastAttemptN")
+		e.Int(s.LastAttemptN)
+	}
+	{
+		e.FieldStart("lastTaskId")
+		json.EncodeUUID(e, s.LastTaskId)
+	}
+	{
+		e.FieldStart("lastUsedAtMs")
+		e.Int(s.LastUsedAtMs)
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		e.FieldStart("slotKey")
+		e.Str(s.SlotKey)
+	}
+	{
+		e.FieldStart("state")
+		s.State.Encode(e)
+	}
+	{
+		e.FieldStart("taskType")
+		e.Str(s.TaskType)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("workspaceRowId")
+		s.WorkspaceRowId.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfFindRuntimeProducerSlotOKSlot = [16]string{
+	0:  "agentName",
+	1:  "createdAtMs",
+	2:  "daemonId",
+	3:  "daemonProfileId",
+	4:  "expiresAtMs",
+	5:  "id",
+	6:  "lastAttemptN",
+	7:  "lastTaskId",
+	8:  "lastUsedAtMs",
+	9:  "model",
+	10: "provider",
+	11: "slotKey",
+	12: "state",
+	13: "taskType",
+	14: "teamId",
+	15: "workspaceRowId",
+}
+
+// Decode decodes FindRuntimeProducerSlotOKSlot from json.
+func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOKSlot to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "agentName":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.AgentName = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"agentName\"")
+			}
+		case "createdAtMs":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.CreatedAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAtMs\"")
+			}
+		case "daemonId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.DaemonId = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"daemonId\"")
+			}
+		case "daemonProfileId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.DaemonProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"daemonProfileId\"")
+			}
+		case "expiresAtMs":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.ExpiresAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"expiresAtMs\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "lastAttemptN":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.LastAttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastAttemptN\"")
+			}
+		case "lastTaskId":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.LastTaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastTaskId\"")
+			}
+		case "lastUsedAtMs":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.LastUsedAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
+			}
+		case "model":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "slotKey":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				v, err := d.Str()
+				s.SlotKey = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"slotKey\"")
+			}
+		case "state":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				if err := s.State.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"state\"")
+			}
+		case "taskType":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.TaskType = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskType\"")
+			}
+		case "teamId":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "workspaceRowId":
+			requiredBitSet[1] |= 1 << 7
+			if err := func() error {
+				if err := s.WorkspaceRowId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceRowId\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotOKSlot")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotOKSlot) {
+					name = jsonFieldsNameOfFindRuntimeProducerSlotOKSlot[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FindRuntimeProducerSlotOKSlot) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotOKSlot) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FindRuntimeProducerSlotOKSlotState as json.
+func (s FindRuntimeProducerSlotOKSlotState) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FindRuntimeProducerSlotOKSlotState from json.
+func (s *FindRuntimeProducerSlotOKSlotState) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOKSlotState to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FindRuntimeProducerSlotOKSlotState(v) {
+	case FindRuntimeProducerSlotOKSlotStateActive:
+		*s = FindRuntimeProducerSlotOKSlotStateActive
+	case FindRuntimeProducerSlotOKSlotStateIdle:
+		*s = FindRuntimeProducerSlotOKSlotStateIdle
+	default:
+		*s = FindRuntimeProducerSlotOKSlotState(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FindRuntimeProducerSlotOKSlotState) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotOKSlotState) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FindRuntimeProducerSlotOKWorkspace) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FindRuntimeProducerSlotOKWorkspace) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("createdAtMs")
+		e.Int(s.CreatedAtMs)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("kind")
+		s.Kind.Encode(e)
+	}
+	{
+		e.FieldStart("lastUsedAtMs")
+		e.Int(s.LastUsedAtMs)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("workspaceId")
+		e.Str(s.WorkspaceId)
+	}
+	{
+		e.FieldStart("worktreeBranch")
+		s.WorktreeBranch.Encode(e)
+	}
+	{
+		e.FieldStart("worktreePath")
+		e.Str(s.WorktreePath)
+	}
+}
+
+var jsonFieldsNameOfFindRuntimeProducerSlotOKWorkspace = [8]string{
+	0: "createdAtMs",
+	1: "id",
+	2: "kind",
+	3: "lastUsedAtMs",
+	4: "teamId",
+	5: "workspaceId",
+	6: "worktreeBranch",
+	7: "worktreePath",
+}
+
+// Decode decodes FindRuntimeProducerSlotOKWorkspace from json.
+func (s *FindRuntimeProducerSlotOKWorkspace) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOKWorkspace to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "createdAtMs":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.CreatedAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAtMs\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "kind":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.Kind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"kind\"")
+			}
+		case "lastUsedAtMs":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.LastUsedAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
+			}
+		case "teamId":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "workspaceId":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.WorkspaceId = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceId\"")
+			}
+		case "worktreeBranch":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.WorktreeBranch.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"worktreeBranch\"")
+			}
+		case "worktreePath":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Str()
+				s.WorktreePath = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"worktreePath\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotOKWorkspace")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotOKWorkspace) {
+					name = jsonFieldsNameOfFindRuntimeProducerSlotOKWorkspace[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FindRuntimeProducerSlotOKWorkspace) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotOKWorkspace) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FindRuntimeProducerSlotOKWorkspaceKind as json.
+func (s FindRuntimeProducerSlotOKWorkspaceKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FindRuntimeProducerSlotOKWorkspaceKind from json.
+func (s *FindRuntimeProducerSlotOKWorkspaceKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOKWorkspaceKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FindRuntimeProducerSlotOKWorkspaceKind(v) {
+	case FindRuntimeProducerSlotOKWorkspaceKindOrigin:
+		*s = FindRuntimeProducerSlotOKWorkspaceKindOrigin
+	case FindRuntimeProducerSlotOKWorkspaceKindFork:
+		*s = FindRuntimeProducerSlotOKWorkspaceKindFork
+	case FindRuntimeProducerSlotOKWorkspaceKindScratch:
+		*s = FindRuntimeProducerSlotOKWorkspaceKindScratch
+	default:
+		*s = FindRuntimeProducerSlotOKWorkspaceKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FindRuntimeProducerSlotOKWorkspaceKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotOKWorkspaceKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FindRuntimeProducerSlotUnauthorized) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FindRuntimeProducerSlotUnauthorized) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfFindRuntimeProducerSlotUnauthorized = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes FindRuntimeProducerSlotUnauthorized from json.
+func (s *FindRuntimeProducerSlotUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotUnauthorized to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotUnauthorized")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotUnauthorized) {
+					name = jsonFieldsNameOfFindRuntimeProducerSlotUnauthorized[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FindRuntimeProducerSlotUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s FindRuntimeProducerSlotUnauthorizedAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s FindRuntimeProducerSlotUnauthorizedAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes FindRuntimeProducerSlotUnauthorizedAdditional from json.
+func (s *FindRuntimeProducerSlotUnauthorizedAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotUnauthorizedAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FindRuntimeProducerSlotUnauthorizedAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FindRuntimeProducerSlotUnauthorizedAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotUnauthorizedAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FindRuntimeProducerSlotUnauthorizedCode as json.
+func (s FindRuntimeProducerSlotUnauthorizedCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FindRuntimeProducerSlotUnauthorizedCode from json.
+func (s *FindRuntimeProducerSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FindRuntimeProducerSlotUnauthorizedCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FindRuntimeProducerSlotUnauthorizedCode(v) {
+	case FindRuntimeProducerSlotUnauthorizedCodeUNAUTHORIZED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeUNAUTHORIZED
+	case FindRuntimeProducerSlotUnauthorizedCodeFORBIDDEN:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeFORBIDDEN
+	case FindRuntimeProducerSlotUnauthorizedCodeNOTFOUND:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeNOTFOUND
+	case FindRuntimeProducerSlotUnauthorizedCodeCONFLICT:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeCONFLICT
+	case FindRuntimeProducerSlotUnauthorizedCodeVALIDATIONFAILED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeVALIDATIONFAILED
+	case FindRuntimeProducerSlotUnauthorizedCodeINVALIDCHALLENGE:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeINVALIDCHALLENGE
+	case FindRuntimeProducerSlotUnauthorizedCodeINVALIDSIGNATURE:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeINVALIDSIGNATURE
+	case FindRuntimeProducerSlotUnauthorizedCodeVOUCHERLIMIT:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeVOUCHERLIMIT
+	case FindRuntimeProducerSlotUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeRATELIMITEXCEEDED
+	case FindRuntimeProducerSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED
+	case FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED
+	case FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindRuntimeProducerSlotUnauthorizedCodeREGISTRATIONFAILED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeREGISTRATIONFAILED
+	case FindRuntimeProducerSlotUnauthorizedCodeUPSTREAMERROR:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeUPSTREAMERROR
+	case FindRuntimeProducerSlotUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeSERVICEUNAVAILABLE
+	case FindRuntimeProducerSlotUnauthorizedCodeINTERNALSERVERERROR:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeINTERNALSERVERERROR
+	case FindRuntimeProducerSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE
+	case FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTACTIVE:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTACTIVE
+	case FindRuntimeProducerSlotUnauthorizedCodeINVITEEXPIRED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeINVITEEXPIRED
+	case FindRuntimeProducerSlotUnauthorizedCodeINVITEEXHAUSTED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeINVITEEXHAUSTED
+	case FindRuntimeProducerSlotUnauthorizedCodeTEAMLASTOWNER:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMLASTOWNER
+	case FindRuntimeProducerSlotUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMALREADYACTIVE
+	case FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTFOUNDING
+	case FindRuntimeProducerSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED
+	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERPENDING
+	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND
+	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = FindRuntimeProducerSlotUnauthorizedCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FindRuntimeProducerSlotUnauthorizedCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FindRuntimeProducerSlotUnauthorizedCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FinishRuntimeSlotBadRequest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FinishRuntimeSlotBadRequest) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("errors")
+		e.ArrStart()
+		for _, elem := range s.Errors {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfFinishRuntimeSlotBadRequest = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "errors",
+}
+
+// Decode decodes FinishRuntimeSlotBadRequest from json.
+func (s *FinishRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotBadRequest to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "errors":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				s.Errors = make([]FinishRuntimeSlotBadRequestErrorsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem FinishRuntimeSlotBadRequestErrorsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Errors = append(s.Errors, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"errors\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotBadRequest")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFinishRuntimeSlotBadRequest) {
+					name = jsonFieldsNameOfFinishRuntimeSlotBadRequest[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FinishRuntimeSlotBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s FinishRuntimeSlotBadRequestAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s FinishRuntimeSlotBadRequestAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes FinishRuntimeSlotBadRequestAdditional from json.
+func (s *FinishRuntimeSlotBadRequestAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotBadRequestAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotBadRequestAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FinishRuntimeSlotBadRequestAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotBadRequestAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FinishRuntimeSlotBadRequestCode as json.
+func (s FinishRuntimeSlotBadRequestCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FinishRuntimeSlotBadRequestCode from json.
+func (s *FinishRuntimeSlotBadRequestCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotBadRequestCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FinishRuntimeSlotBadRequestCode(v) {
+	case FinishRuntimeSlotBadRequestCodeUNAUTHORIZED:
+		*s = FinishRuntimeSlotBadRequestCodeUNAUTHORIZED
+	case FinishRuntimeSlotBadRequestCodeFORBIDDEN:
+		*s = FinishRuntimeSlotBadRequestCodeFORBIDDEN
+	case FinishRuntimeSlotBadRequestCodeNOTFOUND:
+		*s = FinishRuntimeSlotBadRequestCodeNOTFOUND
+	case FinishRuntimeSlotBadRequestCodeCONFLICT:
+		*s = FinishRuntimeSlotBadRequestCodeCONFLICT
+	case FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED:
+		*s = FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED
+	case FinishRuntimeSlotBadRequestCodeINVALIDCHALLENGE:
+		*s = FinishRuntimeSlotBadRequestCodeINVALIDCHALLENGE
+	case FinishRuntimeSlotBadRequestCodeINVALIDSIGNATURE:
+		*s = FinishRuntimeSlotBadRequestCodeINVALIDSIGNATURE
+	case FinishRuntimeSlotBadRequestCodeVOUCHERLIMIT:
+		*s = FinishRuntimeSlotBadRequestCodeVOUCHERLIMIT
+	case FinishRuntimeSlotBadRequestCodeRATELIMITEXCEEDED:
+		*s = FinishRuntimeSlotBadRequestCodeRATELIMITEXCEEDED
+	case FinishRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = FinishRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED
+	case FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED
+	case FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FinishRuntimeSlotBadRequestCodeREGISTRATIONFAILED:
+		*s = FinishRuntimeSlotBadRequestCodeREGISTRATIONFAILED
+	case FinishRuntimeSlotBadRequestCodeUPSTREAMERROR:
+		*s = FinishRuntimeSlotBadRequestCodeUPSTREAMERROR
+	case FinishRuntimeSlotBadRequestCodeSERVICEUNAVAILABLE:
+		*s = FinishRuntimeSlotBadRequestCodeSERVICEUNAVAILABLE
+	case FinishRuntimeSlotBadRequestCodeINTERNALSERVERERROR:
+		*s = FinishRuntimeSlotBadRequestCodeINTERNALSERVERERROR
+	case FinishRuntimeSlotBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = FinishRuntimeSlotBadRequestCodeTEAMPERSONALIMMUTABLE
+	case FinishRuntimeSlotBadRequestCodeTEAMNOTACTIVE:
+		*s = FinishRuntimeSlotBadRequestCodeTEAMNOTACTIVE
+	case FinishRuntimeSlotBadRequestCodeINVITEEXPIRED:
+		*s = FinishRuntimeSlotBadRequestCodeINVITEEXPIRED
+	case FinishRuntimeSlotBadRequestCodeINVITEEXHAUSTED:
+		*s = FinishRuntimeSlotBadRequestCodeINVITEEXHAUSTED
+	case FinishRuntimeSlotBadRequestCodeTEAMLASTOWNER:
+		*s = FinishRuntimeSlotBadRequestCodeTEAMLASTOWNER
+	case FinishRuntimeSlotBadRequestCodeTEAMALREADYACTIVE:
+		*s = FinishRuntimeSlotBadRequestCodeTEAMALREADYACTIVE
+	case FinishRuntimeSlotBadRequestCodeTEAMNOTFOUNDING:
+		*s = FinishRuntimeSlotBadRequestCodeTEAMNOTFOUNDING
+	case FinishRuntimeSlotBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = FinishRuntimeSlotBadRequestCodeFOUNDINGALREADYACCEPTED
+	case FinishRuntimeSlotBadRequestCodeDIARYTRANSFERPENDING:
+		*s = FinishRuntimeSlotBadRequestCodeDIARYTRANSFERPENDING
+	case FinishRuntimeSlotBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = FinishRuntimeSlotBadRequestCodeDIARYTRANSFERNOTFOUND
+	case FinishRuntimeSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FinishRuntimeSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = FinishRuntimeSlotBadRequestCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FinishRuntimeSlotBadRequestCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotBadRequestCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FinishRuntimeSlotBadRequestErrorsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FinishRuntimeSlotBadRequestErrorsItem) encodeFields(e *jx.Encoder) {
+	{
+		if s.Code.Set {
+			e.FieldStart("code")
+			s.Code.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("field")
+		e.Str(s.Field)
+	}
+	{
+		e.FieldStart("message")
+		e.Str(s.Message)
+	}
+}
+
+var jsonFieldsNameOfFinishRuntimeSlotBadRequestErrorsItem = [3]string{
+	0: "code",
+	1: "field",
+	2: "message",
+}
+
+// Decode decodes FinishRuntimeSlotBadRequestErrorsItem from json.
+func (s *FinishRuntimeSlotBadRequestErrorsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotBadRequestErrorsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			if err := func() error {
+				s.Code.Reset()
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "field":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Field = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"field\"")
+			}
+		case "message":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Message = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"message\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotBadRequestErrorsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFinishRuntimeSlotBadRequestErrorsItem) {
+					name = jsonFieldsNameOfFinishRuntimeSlotBadRequestErrorsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FinishRuntimeSlotBadRequestErrorsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotBadRequestErrorsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FinishRuntimeSlotConflict) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FinishRuntimeSlotConflict) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("conflict")
+		s.Conflict.Encode(e)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfFinishRuntimeSlotConflict = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "conflict",
+}
+
+// Decode decodes FinishRuntimeSlotConflict from json.
+func (s *FinishRuntimeSlotConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotConflict to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "conflict":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.Conflict.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"conflict\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotConflict")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFinishRuntimeSlotConflict) {
+					name = jsonFieldsNameOfFinishRuntimeSlotConflict[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FinishRuntimeSlotConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s FinishRuntimeSlotConflictAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s FinishRuntimeSlotConflictAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes FinishRuntimeSlotConflictAdditional from json.
+func (s *FinishRuntimeSlotConflictAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotConflictAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotConflictAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FinishRuntimeSlotConflictAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotConflictAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FinishRuntimeSlotConflictCode as json.
+func (s FinishRuntimeSlotConflictCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FinishRuntimeSlotConflictCode from json.
+func (s *FinishRuntimeSlotConflictCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotConflictCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FinishRuntimeSlotConflictCode(v) {
+	case FinishRuntimeSlotConflictCodeUNAUTHORIZED:
+		*s = FinishRuntimeSlotConflictCodeUNAUTHORIZED
+	case FinishRuntimeSlotConflictCodeFORBIDDEN:
+		*s = FinishRuntimeSlotConflictCodeFORBIDDEN
+	case FinishRuntimeSlotConflictCodeNOTFOUND:
+		*s = FinishRuntimeSlotConflictCodeNOTFOUND
+	case FinishRuntimeSlotConflictCodeCONFLICT:
+		*s = FinishRuntimeSlotConflictCodeCONFLICT
+	case FinishRuntimeSlotConflictCodeVALIDATIONFAILED:
+		*s = FinishRuntimeSlotConflictCodeVALIDATIONFAILED
+	case FinishRuntimeSlotConflictCodeINVALIDCHALLENGE:
+		*s = FinishRuntimeSlotConflictCodeINVALIDCHALLENGE
+	case FinishRuntimeSlotConflictCodeINVALIDSIGNATURE:
+		*s = FinishRuntimeSlotConflictCodeINVALIDSIGNATURE
+	case FinishRuntimeSlotConflictCodeVOUCHERLIMIT:
+		*s = FinishRuntimeSlotConflictCodeVOUCHERLIMIT
+	case FinishRuntimeSlotConflictCodeRATELIMITEXCEEDED:
+		*s = FinishRuntimeSlotConflictCodeRATELIMITEXCEEDED
+	case FinishRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED:
+		*s = FinishRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED
+	case FinishRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED:
+		*s = FinishRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED
+	case FinishRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FinishRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FinishRuntimeSlotConflictCodeREGISTRATIONFAILED:
+		*s = FinishRuntimeSlotConflictCodeREGISTRATIONFAILED
+	case FinishRuntimeSlotConflictCodeUPSTREAMERROR:
+		*s = FinishRuntimeSlotConflictCodeUPSTREAMERROR
+	case FinishRuntimeSlotConflictCodeSERVICEUNAVAILABLE:
+		*s = FinishRuntimeSlotConflictCodeSERVICEUNAVAILABLE
+	case FinishRuntimeSlotConflictCodeINTERNALSERVERERROR:
+		*s = FinishRuntimeSlotConflictCodeINTERNALSERVERERROR
+	case FinishRuntimeSlotConflictCodeTEAMPERSONALIMMUTABLE:
+		*s = FinishRuntimeSlotConflictCodeTEAMPERSONALIMMUTABLE
+	case FinishRuntimeSlotConflictCodeTEAMNOTACTIVE:
+		*s = FinishRuntimeSlotConflictCodeTEAMNOTACTIVE
+	case FinishRuntimeSlotConflictCodeINVITEEXPIRED:
+		*s = FinishRuntimeSlotConflictCodeINVITEEXPIRED
+	case FinishRuntimeSlotConflictCodeINVITEEXHAUSTED:
+		*s = FinishRuntimeSlotConflictCodeINVITEEXHAUSTED
+	case FinishRuntimeSlotConflictCodeTEAMLASTOWNER:
+		*s = FinishRuntimeSlotConflictCodeTEAMLASTOWNER
+	case FinishRuntimeSlotConflictCodeTEAMALREADYACTIVE:
+		*s = FinishRuntimeSlotConflictCodeTEAMALREADYACTIVE
+	case FinishRuntimeSlotConflictCodeTEAMNOTFOUNDING:
+		*s = FinishRuntimeSlotConflictCodeTEAMNOTFOUNDING
+	case FinishRuntimeSlotConflictCodeFOUNDINGALREADYACCEPTED:
+		*s = FinishRuntimeSlotConflictCodeFOUNDINGALREADYACCEPTED
+	case FinishRuntimeSlotConflictCodeDIARYTRANSFERPENDING:
+		*s = FinishRuntimeSlotConflictCodeDIARYTRANSFERPENDING
+	case FinishRuntimeSlotConflictCodeDIARYTRANSFERNOTFOUND:
+		*s = FinishRuntimeSlotConflictCodeDIARYTRANSFERNOTFOUND
+	case FinishRuntimeSlotConflictCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FinishRuntimeSlotConflictCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = FinishRuntimeSlotConflictCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FinishRuntimeSlotConflictCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotConflictCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FinishRuntimeSlotConflictConflict) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FinishRuntimeSlotConflictConflict) encodeFields(e *jx.Encoder) {
+	{
+		if s.Constraint.Set {
+			e.FieldStart("constraint")
+			s.Constraint.Encode(e)
+		}
+	}
+	{
+		if s.Target.Set {
+			e.FieldStart("target")
+			s.Target.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfFinishRuntimeSlotConflictConflict = [2]string{
+	0: "constraint",
+	1: "target",
+}
+
+// Decode decodes FinishRuntimeSlotConflictConflict from json.
+func (s *FinishRuntimeSlotConflictConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotConflictConflict to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "constraint":
+			if err := func() error {
+				s.Constraint.Reset()
+				if err := s.Constraint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"constraint\"")
+			}
+		case "target":
+			if err := func() error {
+				s.Target.Reset()
+				if err := s.Target.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"target\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotConflictConflict")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FinishRuntimeSlotConflictConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotConflictConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FinishRuntimeSlotConflictConflictTarget) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FinishRuntimeSlotConflictConflictTarget) encodeFields(e *jx.Encoder) {
+	{
+		if s.ID.Set {
+			e.FieldStart("id")
+			s.ID.Encode(e)
+		}
+	}
+	{
+		if s.Keys.Set {
+			e.FieldStart("keys")
+			s.Keys.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("resource")
+		e.Str(s.Resource)
+	}
+}
+
+var jsonFieldsNameOfFinishRuntimeSlotConflictConflictTarget = [3]string{
+	0: "id",
+	1: "keys",
+	2: "resource",
+}
+
+// Decode decodes FinishRuntimeSlotConflictConflictTarget from json.
+func (s *FinishRuntimeSlotConflictConflictTarget) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotConflictConflictTarget to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			if err := func() error {
+				s.ID.Reset()
+				if err := s.ID.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "keys":
+			if err := func() error {
+				s.Keys.Reset()
+				if err := s.Keys.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"keys\"")
+			}
+		case "resource":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Resource = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resource\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotConflictConflictTarget")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFinishRuntimeSlotConflictConflictTarget) {
+					name = jsonFieldsNameOfFinishRuntimeSlotConflictConflictTarget[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FinishRuntimeSlotConflictConflictTarget) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotConflictConflictTarget) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s FinishRuntimeSlotConflictConflictTargetKeys) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s FinishRuntimeSlotConflictConflictTargetKeys) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		e.Str(elem)
+	}
+}
+
+// Decode decodes FinishRuntimeSlotConflictConflictTargetKeys from json.
+func (s *FinishRuntimeSlotConflictConflictTargetKeys) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotConflictConflictTargetKeys to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem string
+		if err := func() error {
+			v, err := d.Str()
+			elem = string(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotConflictConflictTargetKeys")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FinishRuntimeSlotConflictConflictTargetKeys) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotConflictConflictTargetKeys) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FinishRuntimeSlotForbidden) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FinishRuntimeSlotForbidden) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfFinishRuntimeSlotForbidden = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes FinishRuntimeSlotForbidden from json.
+func (s *FinishRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotForbidden to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotForbidden")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFinishRuntimeSlotForbidden) {
+					name = jsonFieldsNameOfFinishRuntimeSlotForbidden[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FinishRuntimeSlotForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s FinishRuntimeSlotForbiddenAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s FinishRuntimeSlotForbiddenAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes FinishRuntimeSlotForbiddenAdditional from json.
+func (s *FinishRuntimeSlotForbiddenAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotForbiddenAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotForbiddenAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FinishRuntimeSlotForbiddenAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotForbiddenAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FinishRuntimeSlotForbiddenCode as json.
+func (s FinishRuntimeSlotForbiddenCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FinishRuntimeSlotForbiddenCode from json.
+func (s *FinishRuntimeSlotForbiddenCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotForbiddenCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FinishRuntimeSlotForbiddenCode(v) {
+	case FinishRuntimeSlotForbiddenCodeUNAUTHORIZED:
+		*s = FinishRuntimeSlotForbiddenCodeUNAUTHORIZED
+	case FinishRuntimeSlotForbiddenCodeFORBIDDEN:
+		*s = FinishRuntimeSlotForbiddenCodeFORBIDDEN
+	case FinishRuntimeSlotForbiddenCodeNOTFOUND:
+		*s = FinishRuntimeSlotForbiddenCodeNOTFOUND
+	case FinishRuntimeSlotForbiddenCodeCONFLICT:
+		*s = FinishRuntimeSlotForbiddenCodeCONFLICT
+	case FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED:
+		*s = FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED
+	case FinishRuntimeSlotForbiddenCodeINVALIDCHALLENGE:
+		*s = FinishRuntimeSlotForbiddenCodeINVALIDCHALLENGE
+	case FinishRuntimeSlotForbiddenCodeINVALIDSIGNATURE:
+		*s = FinishRuntimeSlotForbiddenCodeINVALIDSIGNATURE
+	case FinishRuntimeSlotForbiddenCodeVOUCHERLIMIT:
+		*s = FinishRuntimeSlotForbiddenCodeVOUCHERLIMIT
+	case FinishRuntimeSlotForbiddenCodeRATELIMITEXCEEDED:
+		*s = FinishRuntimeSlotForbiddenCodeRATELIMITEXCEEDED
+	case FinishRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = FinishRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED
+	case FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED
+	case FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FinishRuntimeSlotForbiddenCodeREGISTRATIONFAILED:
+		*s = FinishRuntimeSlotForbiddenCodeREGISTRATIONFAILED
+	case FinishRuntimeSlotForbiddenCodeUPSTREAMERROR:
+		*s = FinishRuntimeSlotForbiddenCodeUPSTREAMERROR
+	case FinishRuntimeSlotForbiddenCodeSERVICEUNAVAILABLE:
+		*s = FinishRuntimeSlotForbiddenCodeSERVICEUNAVAILABLE
+	case FinishRuntimeSlotForbiddenCodeINTERNALSERVERERROR:
+		*s = FinishRuntimeSlotForbiddenCodeINTERNALSERVERERROR
+	case FinishRuntimeSlotForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = FinishRuntimeSlotForbiddenCodeTEAMPERSONALIMMUTABLE
+	case FinishRuntimeSlotForbiddenCodeTEAMNOTACTIVE:
+		*s = FinishRuntimeSlotForbiddenCodeTEAMNOTACTIVE
+	case FinishRuntimeSlotForbiddenCodeINVITEEXPIRED:
+		*s = FinishRuntimeSlotForbiddenCodeINVITEEXPIRED
+	case FinishRuntimeSlotForbiddenCodeINVITEEXHAUSTED:
+		*s = FinishRuntimeSlotForbiddenCodeINVITEEXHAUSTED
+	case FinishRuntimeSlotForbiddenCodeTEAMLASTOWNER:
+		*s = FinishRuntimeSlotForbiddenCodeTEAMLASTOWNER
+	case FinishRuntimeSlotForbiddenCodeTEAMALREADYACTIVE:
+		*s = FinishRuntimeSlotForbiddenCodeTEAMALREADYACTIVE
+	case FinishRuntimeSlotForbiddenCodeTEAMNOTFOUNDING:
+		*s = FinishRuntimeSlotForbiddenCodeTEAMNOTFOUNDING
+	case FinishRuntimeSlotForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = FinishRuntimeSlotForbiddenCodeFOUNDINGALREADYACCEPTED
+	case FinishRuntimeSlotForbiddenCodeDIARYTRANSFERPENDING:
+		*s = FinishRuntimeSlotForbiddenCodeDIARYTRANSFERPENDING
+	case FinishRuntimeSlotForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = FinishRuntimeSlotForbiddenCodeDIARYTRANSFERNOTFOUND
+	case FinishRuntimeSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FinishRuntimeSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = FinishRuntimeSlotForbiddenCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FinishRuntimeSlotForbiddenCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotForbiddenCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FinishRuntimeSlotNotFound) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FinishRuntimeSlotNotFound) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfFinishRuntimeSlotNotFound = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes FinishRuntimeSlotNotFound from json.
+func (s *FinishRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotNotFound to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotNotFound")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFinishRuntimeSlotNotFound) {
+					name = jsonFieldsNameOfFinishRuntimeSlotNotFound[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FinishRuntimeSlotNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s FinishRuntimeSlotNotFoundAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s FinishRuntimeSlotNotFoundAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes FinishRuntimeSlotNotFoundAdditional from json.
+func (s *FinishRuntimeSlotNotFoundAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotNotFoundAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotNotFoundAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FinishRuntimeSlotNotFoundAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotNotFoundAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FinishRuntimeSlotNotFoundCode as json.
+func (s FinishRuntimeSlotNotFoundCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FinishRuntimeSlotNotFoundCode from json.
+func (s *FinishRuntimeSlotNotFoundCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotNotFoundCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FinishRuntimeSlotNotFoundCode(v) {
+	case FinishRuntimeSlotNotFoundCodeUNAUTHORIZED:
+		*s = FinishRuntimeSlotNotFoundCodeUNAUTHORIZED
+	case FinishRuntimeSlotNotFoundCodeFORBIDDEN:
+		*s = FinishRuntimeSlotNotFoundCodeFORBIDDEN
+	case FinishRuntimeSlotNotFoundCodeNOTFOUND:
+		*s = FinishRuntimeSlotNotFoundCodeNOTFOUND
+	case FinishRuntimeSlotNotFoundCodeCONFLICT:
+		*s = FinishRuntimeSlotNotFoundCodeCONFLICT
+	case FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED:
+		*s = FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED
+	case FinishRuntimeSlotNotFoundCodeINVALIDCHALLENGE:
+		*s = FinishRuntimeSlotNotFoundCodeINVALIDCHALLENGE
+	case FinishRuntimeSlotNotFoundCodeINVALIDSIGNATURE:
+		*s = FinishRuntimeSlotNotFoundCodeINVALIDSIGNATURE
+	case FinishRuntimeSlotNotFoundCodeVOUCHERLIMIT:
+		*s = FinishRuntimeSlotNotFoundCodeVOUCHERLIMIT
+	case FinishRuntimeSlotNotFoundCodeRATELIMITEXCEEDED:
+		*s = FinishRuntimeSlotNotFoundCodeRATELIMITEXCEEDED
+	case FinishRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = FinishRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED
+	case FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED
+	case FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FinishRuntimeSlotNotFoundCodeREGISTRATIONFAILED:
+		*s = FinishRuntimeSlotNotFoundCodeREGISTRATIONFAILED
+	case FinishRuntimeSlotNotFoundCodeUPSTREAMERROR:
+		*s = FinishRuntimeSlotNotFoundCodeUPSTREAMERROR
+	case FinishRuntimeSlotNotFoundCodeSERVICEUNAVAILABLE:
+		*s = FinishRuntimeSlotNotFoundCodeSERVICEUNAVAILABLE
+	case FinishRuntimeSlotNotFoundCodeINTERNALSERVERERROR:
+		*s = FinishRuntimeSlotNotFoundCodeINTERNALSERVERERROR
+	case FinishRuntimeSlotNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = FinishRuntimeSlotNotFoundCodeTEAMPERSONALIMMUTABLE
+	case FinishRuntimeSlotNotFoundCodeTEAMNOTACTIVE:
+		*s = FinishRuntimeSlotNotFoundCodeTEAMNOTACTIVE
+	case FinishRuntimeSlotNotFoundCodeINVITEEXPIRED:
+		*s = FinishRuntimeSlotNotFoundCodeINVITEEXPIRED
+	case FinishRuntimeSlotNotFoundCodeINVITEEXHAUSTED:
+		*s = FinishRuntimeSlotNotFoundCodeINVITEEXHAUSTED
+	case FinishRuntimeSlotNotFoundCodeTEAMLASTOWNER:
+		*s = FinishRuntimeSlotNotFoundCodeTEAMLASTOWNER
+	case FinishRuntimeSlotNotFoundCodeTEAMALREADYACTIVE:
+		*s = FinishRuntimeSlotNotFoundCodeTEAMALREADYACTIVE
+	case FinishRuntimeSlotNotFoundCodeTEAMNOTFOUNDING:
+		*s = FinishRuntimeSlotNotFoundCodeTEAMNOTFOUNDING
+	case FinishRuntimeSlotNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = FinishRuntimeSlotNotFoundCodeFOUNDINGALREADYACCEPTED
+	case FinishRuntimeSlotNotFoundCodeDIARYTRANSFERPENDING:
+		*s = FinishRuntimeSlotNotFoundCodeDIARYTRANSFERPENDING
+	case FinishRuntimeSlotNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = FinishRuntimeSlotNotFoundCodeDIARYTRANSFERNOTFOUND
+	case FinishRuntimeSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FinishRuntimeSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = FinishRuntimeSlotNotFoundCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FinishRuntimeSlotNotFoundCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotNotFoundCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FinishRuntimeSlotOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FinishRuntimeSlotOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("agentName")
+		e.Str(s.AgentName)
+	}
+	{
+		e.FieldStart("createdAtMs")
+		e.Int(s.CreatedAtMs)
+	}
+	{
+		e.FieldStart("daemonId")
+		e.Str(s.DaemonId)
+	}
+	{
+		e.FieldStart("daemonProfileId")
+		s.DaemonProfileId.Encode(e)
+	}
+	{
+		e.FieldStart("expiresAtMs")
+		e.Int(s.ExpiresAtMs)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("lastAttemptN")
+		e.Int(s.LastAttemptN)
+	}
+	{
+		e.FieldStart("lastTaskId")
+		json.EncodeUUID(e, s.LastTaskId)
+	}
+	{
+		e.FieldStart("lastUsedAtMs")
+		e.Int(s.LastUsedAtMs)
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		e.FieldStart("slotKey")
+		e.Str(s.SlotKey)
+	}
+	{
+		e.FieldStart("state")
+		s.State.Encode(e)
+	}
+	{
+		e.FieldStart("taskType")
+		e.Str(s.TaskType)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("workspaceRowId")
+		s.WorkspaceRowId.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfFinishRuntimeSlotOK = [16]string{
+	0:  "agentName",
+	1:  "createdAtMs",
+	2:  "daemonId",
+	3:  "daemonProfileId",
+	4:  "expiresAtMs",
+	5:  "id",
+	6:  "lastAttemptN",
+	7:  "lastTaskId",
+	8:  "lastUsedAtMs",
+	9:  "model",
+	10: "provider",
+	11: "slotKey",
+	12: "state",
+	13: "taskType",
+	14: "teamId",
+	15: "workspaceRowId",
+}
+
+// Decode decodes FinishRuntimeSlotOK from json.
+func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotOK to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "agentName":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.AgentName = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"agentName\"")
+			}
+		case "createdAtMs":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.CreatedAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAtMs\"")
+			}
+		case "daemonId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.DaemonId = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"daemonId\"")
+			}
+		case "daemonProfileId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.DaemonProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"daemonProfileId\"")
+			}
+		case "expiresAtMs":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.ExpiresAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"expiresAtMs\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "lastAttemptN":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.LastAttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastAttemptN\"")
+			}
+		case "lastTaskId":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.LastTaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastTaskId\"")
+			}
+		case "lastUsedAtMs":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.LastUsedAtMs = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
+			}
+		case "model":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "slotKey":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				v, err := d.Str()
+				s.SlotKey = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"slotKey\"")
+			}
+		case "state":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				if err := s.State.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"state\"")
+			}
+		case "taskType":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.TaskType = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskType\"")
+			}
+		case "teamId":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "workspaceRowId":
+			requiredBitSet[1] |= 1 << 7
+			if err := func() error {
+				if err := s.WorkspaceRowId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workspaceRowId\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFinishRuntimeSlotOK) {
+					name = jsonFieldsNameOfFinishRuntimeSlotOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *FinishRuntimeSlotOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FinishRuntimeSlotOKState as json.
+func (s FinishRuntimeSlotOKState) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes FinishRuntimeSlotOKState from json.
+func (s *FinishRuntimeSlotOKState) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotOKState to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch FinishRuntimeSlotOKState(v) {
+	case FinishRuntimeSlotOKStateActive:
+		*s = FinishRuntimeSlotOKStateActive
+	case FinishRuntimeSlotOKStateIdle:
+		*s = FinishRuntimeSlotOKStateIdle
+	default:
+		*s = FinishRuntimeSlotOKState(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s FinishRuntimeSlotOKState) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *FinishRuntimeSlotOKState) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *FinishRuntimeSlotReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *FinishRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("agentName")
 		e.Str(s.AgentName)
@@ -24426,16 +30607,12 @@ func (s *FinishDaemonRuntimeSlotBody) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.TaskId)
 	}
 	{
-		e.FieldStart("teamId")
-		json.EncodeUUID(e, s.TeamId)
-	}
-	{
 		e.FieldStart("ttlSec")
 		e.Int(s.TtlSec)
 	}
 }
 
-var jsonFieldsNameOfFinishDaemonRuntimeSlotBody = [10]string{
+var jsonFieldsNameOfFinishRuntimeSlotReq = [9]string{
 	0: "agentName",
 	1: "attemptN",
 	2: "daemonId",
@@ -24444,14 +30621,13 @@ var jsonFieldsNameOfFinishDaemonRuntimeSlotBody = [10]string{
 	5: "sessionPath",
 	6: "slotKey",
 	7: "taskId",
-	8: "teamId",
-	9: "ttlSec",
+	8: "ttlSec",
 }
 
-// Decode decodes FinishDaemonRuntimeSlotBody from json.
-func (s *FinishDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
+// Decode decodes FinishRuntimeSlotReq from json.
+func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FinishDaemonRuntimeSlotBody to nil")
+		return errors.New("invalid: unable to decode FinishRuntimeSlotReq to nil")
 	}
 	var requiredBitSet [2]uint8
 
@@ -24551,20 +30727,8 @@ func (s *FinishDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"taskId\"")
 			}
-		case "teamId":
-			requiredBitSet[1] |= 1 << 0
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.TeamId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"teamId\"")
-			}
 		case "ttlSec":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Int()
 				s.TtlSec = int(v)
@@ -24580,13 +30744,13 @@ func (s *FinishDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FinishDaemonRuntimeSlotBody")
+		return errors.Wrap(err, "decode FinishRuntimeSlotReq")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11011111,
-		0b00000011,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -24598,8 +30762,8 @@ func (s *FinishDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFinishDaemonRuntimeSlotBody) {
-					name = jsonFieldsNameOfFinishDaemonRuntimeSlotBody[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFinishRuntimeSlotReq) {
+					name = jsonFieldsNameOfFinishRuntimeSlotReq[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -24620,128 +30784,360 @@ func (s *FinishDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FinishDaemonRuntimeSlotBody) MarshalJSON() ([]byte, error) {
+func (s *FinishRuntimeSlotReq) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FinishDaemonRuntimeSlotBody) UnmarshalJSON(data []byte) error {
+func (s *FinishRuntimeSlotReq) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FinishDaemonRuntimeSlotForbidden as json.
-func (s *FinishDaemonRuntimeSlotForbidden) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
+// Encode implements json.Marshaler.
+func (s *FinishRuntimeSlotUnauthorized) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
 }
 
-// Decode decodes FinishDaemonRuntimeSlotForbidden from json.
-func (s *FinishDaemonRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode FinishDaemonRuntimeSlotForbidden to nil")
+// encodeFields encodes fields.
+func (s *FinishRuntimeSlotUnauthorized) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
 	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfFinishRuntimeSlotUnauthorized = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes FinishRuntimeSlotUnauthorized from json.
+func (s *FinishRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotUnauthorized to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
 		}
 		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotUnauthorized")
 	}
-	*s = FinishDaemonRuntimeSlotForbidden(unwrapped)
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfFinishRuntimeSlotUnauthorized) {
+					name = jsonFieldsNameOfFinishRuntimeSlotUnauthorized[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FinishDaemonRuntimeSlotForbidden) MarshalJSON() ([]byte, error) {
+func (s *FinishRuntimeSlotUnauthorized) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FinishDaemonRuntimeSlotForbidden) UnmarshalJSON(data []byte) error {
+func (s *FinishRuntimeSlotUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FinishDaemonRuntimeSlotNotFound as json.
-func (s *FinishDaemonRuntimeSlotNotFound) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
+// Encode implements json.Marshaler.
+func (s FinishRuntimeSlotUnauthorizedAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
 }
 
-// Decode decodes FinishDaemonRuntimeSlotNotFound from json.
-func (s *FinishDaemonRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode FinishDaemonRuntimeSlotNotFound to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
+// encodeFields implements json.Marshaler.
+func (s FinishRuntimeSlotUnauthorizedAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
 		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
 	}
-	*s = FinishDaemonRuntimeSlotNotFound(unwrapped)
+}
+
+// Decode decodes FinishRuntimeSlotUnauthorizedAdditional from json.
+func (s *FinishRuntimeSlotUnauthorizedAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode FinishRuntimeSlotUnauthorizedAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode FinishRuntimeSlotUnauthorizedAdditional")
+	}
+
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FinishDaemonRuntimeSlotNotFound) MarshalJSON() ([]byte, error) {
+func (s FinishRuntimeSlotUnauthorizedAdditional) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FinishDaemonRuntimeSlotNotFound) UnmarshalJSON(data []byte) error {
+func (s *FinishRuntimeSlotUnauthorizedAdditional) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FinishDaemonRuntimeSlotUnauthorized as json.
-func (s *FinishDaemonRuntimeSlotUnauthorized) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
+// Encode encodes FinishRuntimeSlotUnauthorizedCode as json.
+func (s FinishRuntimeSlotUnauthorizedCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
 }
 
-// Decode decodes FinishDaemonRuntimeSlotUnauthorized from json.
-func (s *FinishDaemonRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
+// Decode decodes FinishRuntimeSlotUnauthorizedCode from json.
+func (s *FinishRuntimeSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FinishDaemonRuntimeSlotUnauthorized to nil")
+		return errors.New("invalid: unable to decode FinishRuntimeSlotUnauthorizedCode to nil")
 	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
 	}
-	*s = FinishDaemonRuntimeSlotUnauthorized(unwrapped)
+	// Try to use constant string.
+	switch FinishRuntimeSlotUnauthorizedCode(v) {
+	case FinishRuntimeSlotUnauthorizedCodeUNAUTHORIZED:
+		*s = FinishRuntimeSlotUnauthorizedCodeUNAUTHORIZED
+	case FinishRuntimeSlotUnauthorizedCodeFORBIDDEN:
+		*s = FinishRuntimeSlotUnauthorizedCodeFORBIDDEN
+	case FinishRuntimeSlotUnauthorizedCodeNOTFOUND:
+		*s = FinishRuntimeSlotUnauthorizedCodeNOTFOUND
+	case FinishRuntimeSlotUnauthorizedCodeCONFLICT:
+		*s = FinishRuntimeSlotUnauthorizedCodeCONFLICT
+	case FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
+		*s = FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED
+	case FinishRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE:
+		*s = FinishRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE
+	case FinishRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE:
+		*s = FinishRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE
+	case FinishRuntimeSlotUnauthorizedCodeVOUCHERLIMIT:
+		*s = FinishRuntimeSlotUnauthorizedCodeVOUCHERLIMIT
+	case FinishRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = FinishRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED
+	case FinishRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = FinishRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED
+	case FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED
+	case FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FinishRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED:
+		*s = FinishRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED
+	case FinishRuntimeSlotUnauthorizedCodeUPSTREAMERROR:
+		*s = FinishRuntimeSlotUnauthorizedCodeUPSTREAMERROR
+	case FinishRuntimeSlotUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = FinishRuntimeSlotUnauthorizedCodeSERVICEUNAVAILABLE
+	case FinishRuntimeSlotUnauthorizedCodeINTERNALSERVERERROR:
+		*s = FinishRuntimeSlotUnauthorizedCodeINTERNALSERVERERROR
+	case FinishRuntimeSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = FinishRuntimeSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE
+	case FinishRuntimeSlotUnauthorizedCodeTEAMNOTACTIVE:
+		*s = FinishRuntimeSlotUnauthorizedCodeTEAMNOTACTIVE
+	case FinishRuntimeSlotUnauthorizedCodeINVITEEXPIRED:
+		*s = FinishRuntimeSlotUnauthorizedCodeINVITEEXPIRED
+	case FinishRuntimeSlotUnauthorizedCodeINVITEEXHAUSTED:
+		*s = FinishRuntimeSlotUnauthorizedCodeINVITEEXHAUSTED
+	case FinishRuntimeSlotUnauthorizedCodeTEAMLASTOWNER:
+		*s = FinishRuntimeSlotUnauthorizedCodeTEAMLASTOWNER
+	case FinishRuntimeSlotUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = FinishRuntimeSlotUnauthorizedCodeTEAMALREADYACTIVE
+	case FinishRuntimeSlotUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = FinishRuntimeSlotUnauthorizedCodeTEAMNOTFOUNDING
+	case FinishRuntimeSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = FinishRuntimeSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED
+	case FinishRuntimeSlotUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = FinishRuntimeSlotUnauthorizedCodeDIARYTRANSFERPENDING
+	case FinishRuntimeSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = FinishRuntimeSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND
+	case FinishRuntimeSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FinishRuntimeSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = FinishRuntimeSlotUnauthorizedCode(v)
+	}
+
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FinishDaemonRuntimeSlotUnauthorized) MarshalJSON() ([]byte, error) {
+func (s FinishRuntimeSlotUnauthorizedCode) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FinishDaemonRuntimeSlotUnauthorized) UnmarshalJSON(data []byte) error {
+func (s *FinishRuntimeSlotUnauthorizedCode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -41070,94 +47466,6 @@ func (s *NilClaimCondition) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes DaemonRuntimeSlotSession as json.
-func (o NilDaemonRuntimeSlotSession) Encode(e *jx.Encoder) {
-	if o.Null {
-		e.Null()
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes DaemonRuntimeSlotSession from json.
-func (o *NilDaemonRuntimeSlotSession) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode NilDaemonRuntimeSlotSession to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v DaemonRuntimeSlotSession
-		o.Value = v
-		o.Null = true
-		return nil
-	}
-	o.Null = false
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s NilDaemonRuntimeSlotSession) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilDaemonRuntimeSlotSession) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes DaemonRuntimeWorkspace as json.
-func (o NilDaemonRuntimeWorkspace) Encode(e *jx.Encoder) {
-	if o.Null {
-		e.Null()
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes DaemonRuntimeWorkspace from json.
-func (o *NilDaemonRuntimeWorkspace) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode NilDaemonRuntimeWorkspace to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v DaemonRuntimeWorkspace
-		o.Value = v
-		o.Null = true
-		return nil
-	}
-	o.Null = false
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s NilDaemonRuntimeWorkspace) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilDaemonRuntimeWorkspace) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes time.Time as json.
 func (o NilDateTime) Encode(e *jx.Encoder, format func(*jx.Encoder, time.Time)) {
 	if o.Null {
@@ -41202,6 +47510,94 @@ func (s NilDateTime) MarshalJSON() ([]byte, error) {
 func (s *NilDateTime) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d, json.DecodeDateTime)
+}
+
+// Encode encodes FindRuntimeProducerSlotOKSession as json.
+func (o NilFindRuntimeProducerSlotOKSession) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes FindRuntimeProducerSlotOKSession from json.
+func (o *NilFindRuntimeProducerSlotOKSession) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilFindRuntimeProducerSlotOKSession to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v FindRuntimeProducerSlotOKSession
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilFindRuntimeProducerSlotOKSession) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilFindRuntimeProducerSlotOKSession) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FindRuntimeProducerSlotOKWorkspace as json.
+func (o NilFindRuntimeProducerSlotOKWorkspace) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes FindRuntimeProducerSlotOKWorkspace from json.
+func (o *NilFindRuntimeProducerSlotOKWorkspace) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilFindRuntimeProducerSlotOKWorkspace to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v FindRuntimeProducerSlotOKWorkspace
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilFindRuntimeProducerSlotOKWorkspace) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilFindRuntimeProducerSlotOKWorkspace) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
 }
 
 // Encode encodes float64 as json.
@@ -41721,18 +48117,18 @@ func (s *OptAddGroupMemberReqSubjectNs) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes BeginDaemonRuntimeSlotBody as json.
-func (o OptBeginDaemonRuntimeSlotBody) Encode(e *jx.Encoder) {
+// Encode encodes BeginRuntimeSlotConflictConflictTarget as json.
+func (o OptBeginRuntimeSlotConflictConflictTarget) Encode(e *jx.Encoder) {
 	if !o.Set {
 		return
 	}
 	o.Value.Encode(e)
 }
 
-// Decode decodes BeginDaemonRuntimeSlotBody from json.
-func (o *OptBeginDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
+// Decode decodes BeginRuntimeSlotConflictConflictTarget from json.
+func (o *OptBeginRuntimeSlotConflictConflictTarget) Decode(d *jx.Decoder) error {
 	if o == nil {
-		return errors.New("invalid: unable to decode OptBeginDaemonRuntimeSlotBody to nil")
+		return errors.New("invalid: unable to decode OptBeginRuntimeSlotConflictConflictTarget to nil")
 	}
 	o.Set = true
 	if err := o.Value.Decode(d); err != nil {
@@ -41742,30 +48138,64 @@ func (o *OptBeginDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s OptBeginDaemonRuntimeSlotBody) MarshalJSON() ([]byte, error) {
+func (s OptBeginRuntimeSlotConflictConflictTarget) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptBeginDaemonRuntimeSlotBody) UnmarshalJSON(data []byte) error {
+func (s *OptBeginRuntimeSlotConflictConflictTarget) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes BeginDaemonRuntimeSlotBodyWorkspaceKind as json.
-func (o OptBeginDaemonRuntimeSlotBodyWorkspaceKind) Encode(e *jx.Encoder) {
+// Encode encodes BeginRuntimeSlotConflictConflictTargetKeys as json.
+func (o OptBeginRuntimeSlotConflictConflictTargetKeys) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes BeginRuntimeSlotConflictConflictTargetKeys from json.
+func (o *OptBeginRuntimeSlotConflictConflictTargetKeys) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptBeginRuntimeSlotConflictConflictTargetKeys to nil")
+	}
+	o.Set = true
+	o.Value = make(BeginRuntimeSlotConflictConflictTargetKeys)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptBeginRuntimeSlotConflictConflictTargetKeys) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptBeginRuntimeSlotConflictConflictTargetKeys) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes BeginRuntimeSlotReqWorkspaceKind as json.
+func (o OptBeginRuntimeSlotReqWorkspaceKind) Encode(e *jx.Encoder) {
 	if !o.Set {
 		return
 	}
 	e.Str(string(o.Value))
 }
 
-// Decode decodes BeginDaemonRuntimeSlotBodyWorkspaceKind from json.
-func (o *OptBeginDaemonRuntimeSlotBodyWorkspaceKind) Decode(d *jx.Decoder) error {
+// Decode decodes BeginRuntimeSlotReqWorkspaceKind from json.
+func (o *OptBeginRuntimeSlotReqWorkspaceKind) Decode(d *jx.Decoder) error {
 	if o == nil {
-		return errors.New("invalid: unable to decode OptBeginDaemonRuntimeSlotBodyWorkspaceKind to nil")
+		return errors.New("invalid: unable to decode OptBeginRuntimeSlotReqWorkspaceKind to nil")
 	}
 	o.Set = true
 	if err := o.Value.Decode(d); err != nil {
@@ -41775,14 +48205,14 @@ func (o *OptBeginDaemonRuntimeSlotBodyWorkspaceKind) Decode(d *jx.Decoder) error
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s OptBeginDaemonRuntimeSlotBodyWorkspaceKind) MarshalJSON() ([]byte, error) {
+func (s OptBeginRuntimeSlotReqWorkspaceKind) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptBeginDaemonRuntimeSlotBodyWorkspaceKind) UnmarshalJSON(data []byte) error {
+func (s *OptBeginRuntimeSlotReqWorkspaceKind) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -42753,18 +49183,18 @@ func (s *OptExpandedRelations) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes FinishDaemonRuntimeSlotBody as json.
-func (o OptFinishDaemonRuntimeSlotBody) Encode(e *jx.Encoder) {
+// Encode encodes FinishRuntimeSlotConflictConflictTarget as json.
+func (o OptFinishRuntimeSlotConflictConflictTarget) Encode(e *jx.Encoder) {
 	if !o.Set {
 		return
 	}
 	o.Value.Encode(e)
 }
 
-// Decode decodes FinishDaemonRuntimeSlotBody from json.
-func (o *OptFinishDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
+// Decode decodes FinishRuntimeSlotConflictConflictTarget from json.
+func (o *OptFinishRuntimeSlotConflictConflictTarget) Decode(d *jx.Decoder) error {
 	if o == nil {
-		return errors.New("invalid: unable to decode OptFinishDaemonRuntimeSlotBody to nil")
+		return errors.New("invalid: unable to decode OptFinishRuntimeSlotConflictConflictTarget to nil")
 	}
 	o.Set = true
 	if err := o.Value.Decode(d); err != nil {
@@ -42774,14 +49204,48 @@ func (o *OptFinishDaemonRuntimeSlotBody) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s OptFinishDaemonRuntimeSlotBody) MarshalJSON() ([]byte, error) {
+func (s OptFinishRuntimeSlotConflictConflictTarget) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptFinishDaemonRuntimeSlotBody) UnmarshalJSON(data []byte) error {
+func (s *OptFinishRuntimeSlotConflictConflictTarget) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes FinishRuntimeSlotConflictConflictTargetKeys as json.
+func (o OptFinishRuntimeSlotConflictConflictTargetKeys) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes FinishRuntimeSlotConflictConflictTargetKeys from json.
+func (o *OptFinishRuntimeSlotConflictConflictTargetKeys) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptFinishRuntimeSlotConflictConflictTargetKeys to nil")
+	}
+	o.Set = true
+	o.Value = make(FinishRuntimeSlotConflictConflictTargetKeys)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptFinishRuntimeSlotConflictConflictTargetKeys) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptFinishRuntimeSlotConflictConflictTargetKeys) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -53291,130 +59755,6 @@ func (s *RequestRecoveryChallengeReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RequestRecoveryChallengeReq) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s *ResolvedDaemonRuntimeSlot) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *ResolvedDaemonRuntimeSlot) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("session")
-		s.Session.Encode(e)
-	}
-	{
-		e.FieldStart("slot")
-		s.Slot.Encode(e)
-	}
-	{
-		e.FieldStart("workspace")
-		s.Workspace.Encode(e)
-	}
-}
-
-var jsonFieldsNameOfResolvedDaemonRuntimeSlot = [3]string{
-	0: "session",
-	1: "slot",
-	2: "workspace",
-}
-
-// Decode decodes ResolvedDaemonRuntimeSlot from json.
-func (s *ResolvedDaemonRuntimeSlot) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ResolvedDaemonRuntimeSlot to nil")
-	}
-	var requiredBitSet [1]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "session":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				if err := s.Session.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"session\"")
-			}
-		case "slot":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				if err := s.Slot.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"slot\"")
-			}
-		case "workspace":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				if err := s.Workspace.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspace\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode ResolvedDaemonRuntimeSlot")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000111,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfResolvedDaemonRuntimeSlot) {
-					name = jsonFieldsNameOfResolvedDaemonRuntimeSlot[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *ResolvedDaemonRuntimeSlot) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ResolvedDaemonRuntimeSlot) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

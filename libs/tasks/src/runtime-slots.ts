@@ -1,46 +1,44 @@
 import { type Static, Type } from 'typebox';
 
-export const DaemonRuntimeWorkspaceKind = Type.Union([
+export const RuntimeWorkspaceKind = Type.Union([
   Type.Literal('origin'),
   Type.Literal('fork'),
   Type.Literal('scratch'),
 ]);
-export type DaemonRuntimeWorkspaceKind = Static<
-  typeof DaemonRuntimeWorkspaceKind
->;
+export type RuntimeWorkspaceKind = Static<typeof RuntimeWorkspaceKind>;
 
-export const DaemonRuntimeSlotState = Type.Union([
+export const RuntimeSlotState = Type.Union([
   Type.Literal('active'),
   Type.Literal('idle'),
 ]);
-export type DaemonRuntimeSlotState = Static<typeof DaemonRuntimeSlotState>;
+export type RuntimeSlotState = Static<typeof RuntimeSlotState>;
 
-export const DaemonRuntimeWorkspace = Type.Object(
+export const RuntimeWorkspace = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     teamId: Type.String({ format: 'uuid' }),
     workspaceId: Type.String({ minLength: 1 }),
     worktreePath: Type.String({ minLength: 1 }),
     worktreeBranch: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
-    kind: DaemonRuntimeWorkspaceKind,
+    kind: RuntimeWorkspaceKind,
     createdAtMs: Type.Integer({ minimum: 0 }),
     lastUsedAtMs: Type.Integer({ minimum: 0 }),
   },
-  { $id: 'DaemonRuntimeWorkspace' },
+  { $id: 'RuntimeWorkspace' },
 );
-export type DaemonRuntimeWorkspace = Static<typeof DaemonRuntimeWorkspace>;
+export type RuntimeWorkspace = Static<typeof RuntimeWorkspace>;
 
-export const DaemonRuntimeSlotSession = Type.Object(
+export const RuntimeSlotSession = Type.Object(
   {
     slotId: Type.String({ format: 'uuid' }),
     sessionDir: Type.String({ minLength: 1 }),
     sessionPath: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
   },
-  { $id: 'DaemonRuntimeSlotSession' },
+  { $id: 'RuntimeSlotSession' },
 );
-export type DaemonRuntimeSlotSession = Static<typeof DaemonRuntimeSlotSession>;
+export type RuntimeSlotSession = Static<typeof RuntimeSlotSession>;
 
-export const DaemonRuntimeSlot = Type.Object(
+export const RuntimeSlot = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     teamId: Type.String({ format: 'uuid' }),
@@ -51,7 +49,7 @@ export const DaemonRuntimeSlot = Type.Object(
     model: Type.String({ minLength: 1, maxLength: 200 }),
     slotKey: Type.String({ minLength: 1 }),
     taskType: Type.String({ minLength: 1, maxLength: 100 }),
-    state: DaemonRuntimeSlotState,
+    state: RuntimeSlotState,
     lastTaskId: Type.String({ format: 'uuid' }),
     lastAttemptN: Type.Integer({ minimum: 1 }),
     workspaceRowId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
@@ -59,33 +57,22 @@ export const DaemonRuntimeSlot = Type.Object(
     lastUsedAtMs: Type.Integer({ minimum: 0 }),
     expiresAtMs: Type.Integer({ minimum: 0 }),
   },
-  { $id: 'DaemonRuntimeSlot' },
+  { $id: 'RuntimeSlot' },
 );
-export type DaemonRuntimeSlot = Static<typeof DaemonRuntimeSlot>;
+export type RuntimeSlot = Static<typeof RuntimeSlot>;
 
-export const ResolvedDaemonRuntimeSlot = Type.Object(
+export const ResolvedRuntimeSlot = Type.Object(
   {
-    slot: Type.Unsafe<DaemonRuntimeSlot>(Type.Ref('DaemonRuntimeSlot')),
-    session: Type.Union([
-      Type.Unsafe<DaemonRuntimeSlotSession>(
-        Type.Ref('DaemonRuntimeSlotSession'),
-      ),
-      Type.Null(),
-    ]),
-    workspace: Type.Union([
-      Type.Unsafe<DaemonRuntimeWorkspace>(Type.Ref('DaemonRuntimeWorkspace')),
-      Type.Null(),
-    ]),
+    slot: RuntimeSlot,
+    session: Type.Union([RuntimeSlotSession, Type.Null()]),
+    workspace: Type.Union([RuntimeWorkspace, Type.Null()]),
   },
-  { $id: 'ResolvedDaemonRuntimeSlot' },
+  { $id: 'ResolvedRuntimeSlot' },
 );
-export type ResolvedDaemonRuntimeSlot = Static<
-  typeof ResolvedDaemonRuntimeSlot
->;
+export type ResolvedRuntimeSlot = Static<typeof ResolvedRuntimeSlot>;
 
-export const BeginDaemonRuntimeSlotBody = Type.Object(
+export const BeginRuntimeSlotBody = Type.Object(
   {
-    teamId: Type.String({ format: 'uuid' }),
     daemonId: Type.String({ minLength: 1, maxLength: 200 }),
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
     daemonProfileId: Type.Optional(Type.String({ format: 'uuid' })),
@@ -98,20 +85,17 @@ export const BeginDaemonRuntimeSlotBody = Type.Object(
     workspaceId: Type.Optional(Type.String({ minLength: 1 })),
     worktreePath: Type.Optional(Type.String({ minLength: 1 })),
     worktreeBranch: Type.Optional(Type.String({ minLength: 1 })),
-    workspaceKind: Type.Optional(DaemonRuntimeWorkspaceKind),
+    workspaceKind: Type.Optional(RuntimeWorkspaceKind),
     lastTaskId: Type.String({ format: 'uuid' }),
     lastAttemptN: Type.Integer({ minimum: 1 }),
     ttlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
   },
-  { $id: 'BeginDaemonRuntimeSlotBody', additionalProperties: false },
+  { $id: 'BeginRuntimeSlotBody', additionalProperties: false },
 );
-export type BeginDaemonRuntimeSlotBody = Static<
-  typeof BeginDaemonRuntimeSlotBody
->;
+export type BeginRuntimeSlotBody = Static<typeof BeginRuntimeSlotBody>;
 
-export const FinishDaemonRuntimeSlotBody = Type.Object(
+export const FinishRuntimeSlotBody = Type.Object(
   {
-    teamId: Type.String({ format: 'uuid' }),
     daemonId: Type.String({ minLength: 1, maxLength: 200 }),
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
@@ -122,30 +106,27 @@ export const FinishDaemonRuntimeSlotBody = Type.Object(
     ttlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
     sessionPath: Type.Optional(Type.String({ minLength: 1 })),
   },
-  { $id: 'FinishDaemonRuntimeSlotBody', additionalProperties: false },
+  { $id: 'FinishRuntimeSlotBody', additionalProperties: false },
 );
-export type FinishDaemonRuntimeSlotBody = Static<
-  typeof FinishDaemonRuntimeSlotBody
->;
+export type FinishRuntimeSlotBody = Static<typeof FinishRuntimeSlotBody>;
 
-export const FindDaemonRuntimeProducerSlotQuery = Type.Object(
+export const FindRuntimeProducerSlotQuery = Type.Object(
   {
-    teamId: Type.String({ format: 'uuid' }),
     taskId: Type.String({ format: 'uuid' }),
     attemptN: Type.Integer({ minimum: 1 }),
   },
-  { $id: 'FindDaemonRuntimeProducerSlotQuery', additionalProperties: false },
+  { $id: 'FindRuntimeProducerSlotQuery', additionalProperties: false },
 );
-export type FindDaemonRuntimeProducerSlotQuery = Static<
-  typeof FindDaemonRuntimeProducerSlotQuery
+export type FindRuntimeProducerSlotQuery = Static<
+  typeof FindRuntimeProducerSlotQuery
 >;
 
-export const daemonRuntimeSlotSchemas = [
-  DaemonRuntimeWorkspace,
-  DaemonRuntimeSlotSession,
-  DaemonRuntimeSlot,
-  ResolvedDaemonRuntimeSlot,
-  BeginDaemonRuntimeSlotBody,
-  FinishDaemonRuntimeSlotBody,
-  FindDaemonRuntimeProducerSlotQuery,
+export const runtimeSlotSchemas = [
+  RuntimeWorkspace,
+  RuntimeSlotSession,
+  RuntimeSlot,
+  ResolvedRuntimeSlot,
+  BeginRuntimeSlotBody,
+  FinishRuntimeSlotBody,
+  FindRuntimeProducerSlotQuery,
 ];

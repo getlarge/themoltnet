@@ -19,10 +19,6 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
-import {
-  createApiDaemonRuntimeSlotStore,
-  resolveDaemonRuntimeId,
-} from '../lib/daemon-runtime-slots.js';
 import type { DaemonSlotIdentity } from '../lib/daemon-slot-identity.js';
 import {
   createExecutionPlanCache,
@@ -45,6 +41,10 @@ import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../lib/runtime-profile.js';
+import {
+  createApiRuntimeSlotStore,
+  resolveDaemonId,
+} from '../lib/runtime-slots.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
@@ -178,11 +178,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const piAgentDir = ensurePiAgentDir(sandbox.rootDir, cfg.piCodingAgentDir);
   activatePiCodingAgentDir(piAgentDir.path);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
-  const daemonId = resolveDaemonRuntimeId(
-    stateDirs.rootDir,
-    cfg.daemonRuntimeId,
-  );
-  const slotRegistry = createApiDaemonRuntimeSlotStore({
+  const daemonId = resolveDaemonId(stateDirs.rootDir, cfg.daemonId);
+  const slotRegistry = createApiRuntimeSlotStore({
     agent: ctx.agent,
     daemonId,
     daemonProfileId: profile?.id ?? null,

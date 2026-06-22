@@ -1251,7 +1251,7 @@ func decodeAppendTaskMessagesResponse(resp *http.Response) (res AppendTaskMessag
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
-func decodeBeginDaemonRuntimeSlotResponse(resp *http.Response) (res BeginDaemonRuntimeSlotRes, _ error) {
+func decodeBeginRuntimeSlotResponse(resp *http.Response) (res BeginRuntimeSlotRes, _ error) {
 	switch resp.StatusCode {
 	case 200:
 		// Code 200.
@@ -1267,7 +1267,7 @@ func decodeBeginDaemonRuntimeSlotResponse(resp *http.Response) (res BeginDaemonR
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response DaemonRuntimeSlot
+			var response BeginRuntimeSlotOK
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1311,7 +1311,7 @@ func decodeBeginDaemonRuntimeSlotResponse(resp *http.Response) (res BeginDaemonR
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ValidationProblemDetails
+			var response BeginRuntimeSlotBadRequest
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1355,7 +1355,7 @@ func decodeBeginDaemonRuntimeSlotResponse(resp *http.Response) (res BeginDaemonR
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response BeginDaemonRuntimeSlotUnauthorized
+			var response BeginRuntimeSlotUnauthorized
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1399,7 +1399,7 @@ func decodeBeginDaemonRuntimeSlotResponse(resp *http.Response) (res BeginDaemonR
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response BeginDaemonRuntimeSlotForbidden
+			var response BeginRuntimeSlotForbidden
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1443,7 +1443,7 @@ func decodeBeginDaemonRuntimeSlotResponse(resp *http.Response) (res BeginDaemonR
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response BeginDaemonRuntimeSlotNotFound
+			var response BeginRuntimeSlotNotFound
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1487,7 +1487,7 @@ func decodeBeginDaemonRuntimeSlotResponse(resp *http.Response) (res BeginDaemonR
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ConflictProblemDetails
+			var response BeginRuntimeSlotConflict
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -7851,7 +7851,7 @@ func decodeFailTaskResponse(resp *http.Response) (res FailTaskRes, _ error) {
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
-func decodeFindDaemonRuntimeProducerSlotResponse(resp *http.Response) (res FindDaemonRuntimeProducerSlotRes, _ error) {
+func decodeFindRuntimeProducerSlotResponse(resp *http.Response) (res FindRuntimeProducerSlotRes, _ error) {
 	switch resp.StatusCode {
 	case 200:
 		// Code 200.
@@ -7867,7 +7867,7 @@ func decodeFindDaemonRuntimeProducerSlotResponse(resp *http.Response) (res FindD
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ResolvedDaemonRuntimeSlot
+			var response FindRuntimeProducerSlotOK
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -7911,7 +7911,7 @@ func decodeFindDaemonRuntimeProducerSlotResponse(resp *http.Response) (res FindD
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ValidationProblemDetails
+			var response FindRuntimeProducerSlotBadRequest
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -7955,7 +7955,7 @@ func decodeFindDaemonRuntimeProducerSlotResponse(resp *http.Response) (res FindD
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FindDaemonRuntimeProducerSlotUnauthorized
+			var response FindRuntimeProducerSlotUnauthorized
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -7999,7 +7999,7 @@ func decodeFindDaemonRuntimeProducerSlotResponse(resp *http.Response) (res FindD
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FindDaemonRuntimeProducerSlotForbidden
+			var response FindRuntimeProducerSlotForbidden
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8043,7 +8043,7 @@ func decodeFindDaemonRuntimeProducerSlotResponse(resp *http.Response) (res FindD
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FindDaemonRuntimeProducerSlotNotFound
+			var response FindRuntimeProducerSlotNotFound
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8077,7 +8077,7 @@ func decodeFindDaemonRuntimeProducerSlotResponse(resp *http.Response) (res FindD
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
-func decodeFinishDaemonRuntimeSlotResponse(resp *http.Response) (res FinishDaemonRuntimeSlotRes, _ error) {
+func decodeFinishRuntimeSlotResponse(resp *http.Response) (res FinishRuntimeSlotRes, _ error) {
 	switch resp.StatusCode {
 	case 200:
 		// Code 200.
@@ -8093,7 +8093,7 @@ func decodeFinishDaemonRuntimeSlotResponse(resp *http.Response) (res FinishDaemo
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response DaemonRuntimeSlot
+			var response FinishRuntimeSlotOK
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8137,7 +8137,7 @@ func decodeFinishDaemonRuntimeSlotResponse(resp *http.Response) (res FinishDaemo
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ValidationProblemDetails
+			var response FinishRuntimeSlotBadRequest
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8181,7 +8181,7 @@ func decodeFinishDaemonRuntimeSlotResponse(resp *http.Response) (res FinishDaemo
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FinishDaemonRuntimeSlotUnauthorized
+			var response FinishRuntimeSlotUnauthorized
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8225,7 +8225,7 @@ func decodeFinishDaemonRuntimeSlotResponse(resp *http.Response) (res FinishDaemo
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FinishDaemonRuntimeSlotForbidden
+			var response FinishRuntimeSlotForbidden
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8269,7 +8269,7 @@ func decodeFinishDaemonRuntimeSlotResponse(resp *http.Response) (res FinishDaemo
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FinishDaemonRuntimeSlotNotFound
+			var response FinishRuntimeSlotNotFound
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8313,7 +8313,7 @@ func decodeFinishDaemonRuntimeSlotResponse(resp *http.Response) (res FinishDaemo
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ConflictProblemDetails
+			var response FinishRuntimeSlotConflict
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

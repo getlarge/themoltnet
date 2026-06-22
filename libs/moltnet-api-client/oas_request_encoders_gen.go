@@ -74,20 +74,14 @@ func encodeAppendTaskMessagesRequest(
 	return nil
 }
 
-func encodeBeginDaemonRuntimeSlotRequest(
-	req OptBeginDaemonRuntimeSlotBody,
+func encodeBeginRuntimeSlotRequest(
+	req *BeginRuntimeSlotReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
-	if !req.Set {
-		// Keep request with empty body if value is not set.
-		return nil
-	}
 	e := new(jx.Encoder)
 	{
-		if req.Set {
-			req.Encode(e)
-		}
+		req.Encode(e)
 	}
 	encoded := e.Bytes()
 	ht.SetBody(r, bytes.NewReader(encoded), contentType)
@@ -342,20 +336,14 @@ func encodeFailTaskRequest(
 	return nil
 }
 
-func encodeFinishDaemonRuntimeSlotRequest(
-	req OptFinishDaemonRuntimeSlotBody,
+func encodeFinishRuntimeSlotRequest(
+	req *FinishRuntimeSlotReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
-	if !req.Set {
-		// Keep request with empty body if value is not set.
-		return nil
-	}
 	e := new(jx.Encoder)
 	{
-		if req.Set {
-			req.Encode(e)
-		}
+		req.Encode(e)
 	}
 	encoded := e.Bytes()
 	ht.SetBody(r, bytes.NewReader(encoded), contentType)

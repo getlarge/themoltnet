@@ -958,8 +958,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.daemon_runtime_slot_sessions": {
-      "name": "daemon_runtime_slot_sessions",
+    "public.runtime_slot_sessions": {
+      "name": "runtime_slot_sessions",
       "schema": "",
       "columns": {
         "slot_id": {
@@ -996,8 +996,8 @@
         }
       },
       "indexes": {
-        "daemon_runtime_slot_sessions_session_path_idx": {
-          "name": "daemon_runtime_slot_sessions_session_path_idx",
+        "runtime_slot_sessions_session_path_idx": {
+          "name": "runtime_slot_sessions_session_path_idx",
           "columns": [
             {
               "expression": "session_path",
@@ -1014,10 +1014,10 @@
         }
       },
       "foreignKeys": {
-        "daemon_runtime_slot_sessions_slot_id_daemon_runtime_slots_id_fk": {
-          "name": "daemon_runtime_slot_sessions_slot_id_daemon_runtime_slots_id_fk",
-          "tableFrom": "daemon_runtime_slot_sessions",
-          "tableTo": "daemon_runtime_slots",
+        "runtime_slot_sessions_slot_id_runtime_slots_id_fk": {
+          "name": "runtime_slot_sessions_slot_id_runtime_slots_id_fk",
+          "tableFrom": "runtime_slot_sessions",
+          "tableTo": "runtime_slots",
           "columnsFrom": [
             "slot_id"
           ],
@@ -1034,8 +1034,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.daemon_runtime_slots": {
-      "name": "daemon_runtime_slots",
+    "public.runtime_slots": {
+      "name": "runtime_slots",
       "schema": "",
       "columns": {
         "id": {
@@ -1095,7 +1095,7 @@
         },
         "state": {
           "name": "state",
-          "type": "daemon_runtime_slot_state",
+          "type": "runtime_slot_state",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1152,8 +1152,8 @@
         }
       },
       "indexes": {
-        "daemon_runtime_slots_identity_idx": {
-          "name": "daemon_runtime_slots_identity_idx",
+        "runtime_slots_identity_idx": {
+          "name": "runtime_slots_identity_idx",
           "columns": [
             {
               "expression": "team_id",
@@ -1197,8 +1197,8 @@
           "method": "btree",
           "with": {}
         },
-        "daemon_runtime_slots_team_idx": {
-          "name": "daemon_runtime_slots_team_idx",
+        "runtime_slots_team_idx": {
+          "name": "runtime_slots_team_idx",
           "columns": [
             {
               "expression": "team_id",
@@ -1212,8 +1212,8 @@
           "method": "btree",
           "with": {}
         },
-        "daemon_runtime_slots_profile_idx": {
-          "name": "daemon_runtime_slots_profile_idx",
+        "runtime_slots_profile_idx": {
+          "name": "runtime_slots_profile_idx",
           "columns": [
             {
               "expression": "daemon_profile_id",
@@ -1228,8 +1228,8 @@
           "method": "btree",
           "with": {}
         },
-        "daemon_runtime_slots_task_attempt_idx": {
-          "name": "daemon_runtime_slots_task_attempt_idx",
+        "runtime_slots_task_attempt_idx": {
+          "name": "runtime_slots_task_attempt_idx",
           "columns": [
             {
               "expression": "team_id",
@@ -1263,9 +1263,9 @@
         }
       },
       "foreignKeys": {
-        "daemon_runtime_slots_team_id_teams_id_fk": {
-          "name": "daemon_runtime_slots_team_id_teams_id_fk",
-          "tableFrom": "daemon_runtime_slots",
+        "runtime_slots_team_id_teams_id_fk": {
+          "name": "runtime_slots_team_id_teams_id_fk",
+          "tableFrom": "runtime_slots",
           "tableTo": "teams",
           "columnsFrom": [
             "team_id"
@@ -1276,9 +1276,9 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "daemon_runtime_slots_daemon_profile_id_daemon_profiles_id_fk": {
-          "name": "daemon_runtime_slots_daemon_profile_id_daemon_profiles_id_fk",
-          "tableFrom": "daemon_runtime_slots",
+        "runtime_slots_daemon_profile_id_daemon_profiles_id_fk": {
+          "name": "runtime_slots_daemon_profile_id_daemon_profiles_id_fk",
+          "tableFrom": "runtime_slots",
           "tableTo": "daemon_profiles",
           "columnsFrom": [
             "daemon_profile_id"
@@ -1289,9 +1289,9 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "daemon_runtime_slots_last_task_id_tasks_id_fk": {
-          "name": "daemon_runtime_slots_last_task_id_tasks_id_fk",
-          "tableFrom": "daemon_runtime_slots",
+        "runtime_slots_last_task_id_tasks_id_fk": {
+          "name": "runtime_slots_last_task_id_tasks_id_fk",
+          "tableFrom": "runtime_slots",
           "tableTo": "tasks",
           "columnsFrom": [
             "last_task_id"
@@ -1302,10 +1302,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "daemon_runtime_slots_workspace_row_id_daemon_runtime_workspaces_id_fk": {
-          "name": "daemon_runtime_slots_workspace_row_id_daemon_runtime_workspaces_id_fk",
-          "tableFrom": "daemon_runtime_slots",
-          "tableTo": "daemon_runtime_workspaces",
+        "runtime_slots_workspace_row_id_runtime_workspaces_id_fk": {
+          "name": "runtime_slots_workspace_row_id_runtime_workspaces_id_fk",
+          "tableFrom": "runtime_slots",
+          "tableTo": "runtime_workspaces",
           "columnsFrom": [
             "workspace_row_id"
           ],
@@ -1315,9 +1315,9 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "daemon_runtime_slots_last_task_id_last_attempt_n_task_attempts_task_id_attempt_n_fk": {
-          "name": "daemon_runtime_slots_last_task_id_last_attempt_n_task_attempts_task_id_attempt_n_fk",
-          "tableFrom": "daemon_runtime_slots",
+        "runtime_slots_last_task_id_last_attempt_n_task_attempts_task_id_attempt_n_fk": {
+          "name": "runtime_slots_last_task_id_last_attempt_n_task_attempts_task_id_attempt_n_fk",
+          "tableFrom": "runtime_slots",
           "tableTo": "task_attempts",
           "columnsFrom": [
             "last_task_id",
@@ -1337,8 +1337,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.daemon_runtime_workspaces": {
-      "name": "daemon_runtime_workspaces",
+    "public.runtime_workspaces": {
+      "name": "runtime_workspaces",
       "schema": "",
       "columns": {
         "id": {
@@ -1374,7 +1374,7 @@
         },
         "kind": {
           "name": "kind",
-          "type": "daemon_runtime_workspace_kind",
+          "type": "runtime_workspace_kind",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1407,8 +1407,8 @@
         }
       },
       "indexes": {
-        "daemon_runtime_workspaces_team_workspace_idx": {
-          "name": "daemon_runtime_workspaces_team_workspace_idx",
+        "runtime_workspaces_team_workspace_idx": {
+          "name": "runtime_workspaces_team_workspace_idx",
           "columns": [
             {
               "expression": "team_id",
@@ -1428,8 +1428,8 @@
           "method": "btree",
           "with": {}
         },
-        "daemon_runtime_workspaces_team_idx": {
-          "name": "daemon_runtime_workspaces_team_idx",
+        "runtime_workspaces_team_idx": {
+          "name": "runtime_workspaces_team_idx",
           "columns": [
             {
               "expression": "team_id",
@@ -1443,8 +1443,8 @@
           "method": "btree",
           "with": {}
         },
-        "daemon_runtime_workspaces_branch_idx": {
-          "name": "daemon_runtime_workspaces_branch_idx",
+        "runtime_workspaces_branch_idx": {
+          "name": "runtime_workspaces_branch_idx",
           "columns": [
             {
               "expression": "team_id",
@@ -1467,9 +1467,9 @@
         }
       },
       "foreignKeys": {
-        "daemon_runtime_workspaces_team_id_teams_id_fk": {
-          "name": "daemon_runtime_workspaces_team_id_teams_id_fk",
-          "tableFrom": "daemon_runtime_workspaces",
+        "runtime_workspaces_team_id_teams_id_fk": {
+          "name": "runtime_workspaces_team_id_teams_id_fk",
+          "tableFrom": "runtime_workspaces",
           "tableTo": "teams",
           "columnsFrom": [
             "team_id"
@@ -4633,16 +4633,16 @@
         "local"
       ]
     },
-    "public.daemon_runtime_slot_state": {
-      "name": "daemon_runtime_slot_state",
+    "public.runtime_slot_state": {
+      "name": "runtime_slot_state",
       "schema": "public",
       "values": [
         "active",
         "idle"
       ]
     },
-    "public.daemon_runtime_workspace_kind": {
-      "name": "daemon_runtime_workspace_kind",
+    "public.runtime_workspace_kind": {
+      "name": "runtime_workspace_kind",
       "schema": "public",
       "values": [
         "origin",

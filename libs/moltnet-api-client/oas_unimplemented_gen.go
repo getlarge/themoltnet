@@ -60,12 +60,12 @@ func (UnimplementedHandler) AppendTaskMessages(ctx context.Context, req *AppendT
 	return r, ht.ErrNotImplemented
 }
 
-// BeginDaemonRuntimeSlot implements beginDaemonRuntimeSlot operation.
+// BeginRuntimeSlot implements beginRuntimeSlot operation.
 //
-// Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.
+// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
 //
-// POST /daemon-runtime-slots/begin
-func (UnimplementedHandler) BeginDaemonRuntimeSlot(ctx context.Context, req OptBeginDaemonRuntimeSlotBody) (r BeginDaemonRuntimeSlotRes, _ error) {
+// POST /runtime-slots/begin
+func (UnimplementedHandler) BeginRuntimeSlot(ctx context.Context, req *BeginRuntimeSlotReq, params BeginRuntimeSlotParams) (r BeginRuntimeSlotRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -307,21 +307,21 @@ func (UnimplementedHandler) FailTask(ctx context.Context, req *FailTaskReq, para
 	return r, ht.ErrNotImplemented
 }
 
-// FindDaemonRuntimeProducerSlot implements findDaemonRuntimeProducerSlot operation.
+// FindRuntimeProducerSlot implements findRuntimeProducerSlot operation.
 //
 // Find the latest team-scoped producer slot for a task attempt.
 //
-// GET /daemon-runtime-slots/producer
-func (UnimplementedHandler) FindDaemonRuntimeProducerSlot(ctx context.Context, params FindDaemonRuntimeProducerSlotParams) (r FindDaemonRuntimeProducerSlotRes, _ error) {
+// GET /runtime-slots/producer
+func (UnimplementedHandler) FindRuntimeProducerSlot(ctx context.Context, params FindRuntimeProducerSlotParams) (r FindRuntimeProducerSlotRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
-// FinishDaemonRuntimeSlot implements finishDaemonRuntimeSlot operation.
+// FinishRuntimeSlot implements finishRuntimeSlot operation.
 //
-// Mark a team-scoped daemon runtime slot idle without deleting it.
+// Mark a team-scoped runtime slot idle without deleting it.
 //
-// POST /daemon-runtime-slots/finish
-func (UnimplementedHandler) FinishDaemonRuntimeSlot(ctx context.Context, req OptFinishDaemonRuntimeSlotBody) (r FinishDaemonRuntimeSlotRes, _ error) {
+// POST /runtime-slots/finish
+func (UnimplementedHandler) FinishRuntimeSlot(ctx context.Context, req *FinishRuntimeSlotReq, params FinishRuntimeSlotParams) (r FinishRuntimeSlotRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

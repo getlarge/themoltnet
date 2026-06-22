@@ -61,12 +61,12 @@ type Invoker interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/messages
 	AppendTaskMessages(ctx context.Context, request *AppendTaskMessagesReq, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
-	// BeginDaemonRuntimeSlot invokes beginDaemonRuntimeSlot operation.
+	// BeginRuntimeSlot invokes beginRuntimeSlot operation.
 	//
-	// Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.
+	// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
 	//
-	// POST /daemon-runtime-slots/begin
-	BeginDaemonRuntimeSlot(ctx context.Context, request OptBeginDaemonRuntimeSlotBody) (BeginDaemonRuntimeSlotRes, error)
+	// POST /runtime-slots/begin
+	BeginRuntimeSlot(ctx context.Context, request *BeginRuntimeSlotReq, params BeginRuntimeSlotParams) (BeginRuntimeSlotRes, error)
 	// CancelTask invokes cancelTask operation.
 	//
 	// Cancel a task.
@@ -227,18 +227,18 @@ type Invoker interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/fail
 	FailTask(ctx context.Context, request *FailTaskReq, params FailTaskParams) (FailTaskRes, error)
-	// FindDaemonRuntimeProducerSlot invokes findDaemonRuntimeProducerSlot operation.
+	// FindRuntimeProducerSlot invokes findRuntimeProducerSlot operation.
 	//
 	// Find the latest team-scoped producer slot for a task attempt.
 	//
-	// GET /daemon-runtime-slots/producer
-	FindDaemonRuntimeProducerSlot(ctx context.Context, params FindDaemonRuntimeProducerSlotParams) (FindDaemonRuntimeProducerSlotRes, error)
-	// FinishDaemonRuntimeSlot invokes finishDaemonRuntimeSlot operation.
+	// GET /runtime-slots/producer
+	FindRuntimeProducerSlot(ctx context.Context, params FindRuntimeProducerSlotParams) (FindRuntimeProducerSlotRes, error)
+	// FinishRuntimeSlot invokes finishRuntimeSlot operation.
 	//
-	// Mark a team-scoped daemon runtime slot idle without deleting it.
+	// Mark a team-scoped runtime slot idle without deleting it.
 	//
-	// POST /daemon-runtime-slots/finish
-	FinishDaemonRuntimeSlot(ctx context.Context, request OptFinishDaemonRuntimeSlotBody) (FinishDaemonRuntimeSlotRes, error)
+	// POST /runtime-slots/finish
+	FinishRuntimeSlot(ctx context.Context, request *FinishRuntimeSlotReq, params FinishRuntimeSlotParams) (FinishRuntimeSlotRes, error)
 	// GetAgentProfile invokes getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -1614,21 +1614,21 @@ func (c *Client) sendAppendTaskMessages(ctx context.Context, request *AppendTask
 	return result, nil
 }
 
-// BeginDaemonRuntimeSlot invokes beginDaemonRuntimeSlot operation.
+// BeginRuntimeSlot invokes beginRuntimeSlot operation.
 //
-// Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.
+// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
 //
-// POST /daemon-runtime-slots/begin
-func (c *Client) BeginDaemonRuntimeSlot(ctx context.Context, request OptBeginDaemonRuntimeSlotBody) (BeginDaemonRuntimeSlotRes, error) {
-	res, err := c.sendBeginDaemonRuntimeSlot(ctx, request)
+// POST /runtime-slots/begin
+func (c *Client) BeginRuntimeSlot(ctx context.Context, request *BeginRuntimeSlotReq, params BeginRuntimeSlotParams) (BeginRuntimeSlotRes, error) {
+	res, err := c.sendBeginRuntimeSlot(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendBeginDaemonRuntimeSlot(ctx context.Context, request OptBeginDaemonRuntimeSlotBody) (res BeginDaemonRuntimeSlotRes, err error) {
+func (c *Client) sendBeginRuntimeSlot(ctx context.Context, request *BeginRuntimeSlotReq, params BeginRuntimeSlotParams) (res BeginRuntimeSlotRes, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("beginDaemonRuntimeSlot"),
+		otelogen.OperationID("beginRuntimeSlot"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/daemon-runtime-slots/begin"),
+		semconv.URLTemplateKey.String("/runtime-slots/begin"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -1644,7 +1644,7 @@ func (c *Client) sendBeginDaemonRuntimeSlot(ctx context.Context, request OptBegi
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, BeginDaemonRuntimeSlotOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, BeginRuntimeSlotOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -1662,7 +1662,7 @@ func (c *Client) sendBeginDaemonRuntimeSlot(ctx context.Context, request OptBegi
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
 	var pathParts [1]string
-	pathParts[0] = "/daemon-runtime-slots/begin"
+	pathParts[0] = "/runtime-slots/begin"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeRequest"
@@ -1670,8 +1670,22 @@ func (c *Client) sendBeginDaemonRuntimeSlot(ctx context.Context, request OptBegi
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
 	}
-	if err := encodeBeginDaemonRuntimeSlotRequest(request, r); err != nil {
+	if err := encodeBeginRuntimeSlotRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -1679,7 +1693,7 @@ func (c *Client) sendBeginDaemonRuntimeSlot(ctx context.Context, request OptBegi
 		var satisfied bitset
 		{
 			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, BeginDaemonRuntimeSlotOperation, r); {
+			switch err := c.securityBearerAuth(ctx, BeginRuntimeSlotOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1690,7 +1704,7 @@ func (c *Client) sendBeginDaemonRuntimeSlot(ctx context.Context, request OptBegi
 		}
 		{
 			stage = "Security:SessionAuth"
-			switch err := c.securitySessionAuth(ctx, BeginDaemonRuntimeSlotOperation, r); {
+			switch err := c.securitySessionAuth(ctx, BeginRuntimeSlotOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 1
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1701,7 +1715,7 @@ func (c *Client) sendBeginDaemonRuntimeSlot(ctx context.Context, request OptBegi
 		}
 		{
 			stage = "Security:CookieAuth"
-			switch err := c.securityCookieAuth(ctx, BeginDaemonRuntimeSlotOperation, r); {
+			switch err := c.securityCookieAuth(ctx, BeginRuntimeSlotOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1746,7 +1760,7 @@ func (c *Client) sendBeginDaemonRuntimeSlot(ctx context.Context, request OptBegi
 	}()
 
 	stage = "DecodeResponse"
-	result, err := decodeBeginDaemonRuntimeSlotResponse(resp)
+	result, err := decodeBeginRuntimeSlotResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -5898,21 +5912,21 @@ func (c *Client) sendFailTask(ctx context.Context, request *FailTaskReq, params 
 	return result, nil
 }
 
-// FindDaemonRuntimeProducerSlot invokes findDaemonRuntimeProducerSlot operation.
+// FindRuntimeProducerSlot invokes findRuntimeProducerSlot operation.
 //
 // Find the latest team-scoped producer slot for a task attempt.
 //
-// GET /daemon-runtime-slots/producer
-func (c *Client) FindDaemonRuntimeProducerSlot(ctx context.Context, params FindDaemonRuntimeProducerSlotParams) (FindDaemonRuntimeProducerSlotRes, error) {
-	res, err := c.sendFindDaemonRuntimeProducerSlot(ctx, params)
+// GET /runtime-slots/producer
+func (c *Client) FindRuntimeProducerSlot(ctx context.Context, params FindRuntimeProducerSlotParams) (FindRuntimeProducerSlotRes, error) {
+	res, err := c.sendFindRuntimeProducerSlot(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendFindDaemonRuntimeProducerSlot(ctx context.Context, params FindDaemonRuntimeProducerSlotParams) (res FindDaemonRuntimeProducerSlotRes, err error) {
+func (c *Client) sendFindRuntimeProducerSlot(ctx context.Context, params FindRuntimeProducerSlotParams) (res FindRuntimeProducerSlotRes, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("findDaemonRuntimeProducerSlot"),
+		otelogen.OperationID("findRuntimeProducerSlot"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/daemon-runtime-slots/producer"),
+		semconv.URLTemplateKey.String("/runtime-slots/producer"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -5928,7 +5942,7 @@ func (c *Client) sendFindDaemonRuntimeProducerSlot(ctx context.Context, params F
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, FindDaemonRuntimeProducerSlotOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, FindRuntimeProducerSlotOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -5946,25 +5960,11 @@ func (c *Client) sendFindDaemonRuntimeProducerSlot(ctx context.Context, params F
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
 	var pathParts [1]string
-	pathParts[0] = "/daemon-runtime-slots/producer"
+	pathParts[0] = "/runtime-slots/producer"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeQueryParams"
 	q := uri.NewQueryEncoder()
-	{
-		// Encode "teamId" parameter.
-		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "teamId",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.UUIDToString(params.TeamId))
-		}); err != nil {
-			return res, errors.Wrap(err, "encode query")
-		}
-	}
 	{
 		// Encode "taskId" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
@@ -6001,12 +6001,26 @@ func (c *Client) sendFindDaemonRuntimeProducerSlot(ctx context.Context, params F
 		return res, errors.Wrap(err, "create request")
 	}
 
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
 	{
 		type bitset = [1]uint8
 		var satisfied bitset
 		{
 			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, FindDaemonRuntimeProducerSlotOperation, r); {
+			switch err := c.securityBearerAuth(ctx, FindRuntimeProducerSlotOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6017,7 +6031,7 @@ func (c *Client) sendFindDaemonRuntimeProducerSlot(ctx context.Context, params F
 		}
 		{
 			stage = "Security:SessionAuth"
-			switch err := c.securitySessionAuth(ctx, FindDaemonRuntimeProducerSlotOperation, r); {
+			switch err := c.securitySessionAuth(ctx, FindRuntimeProducerSlotOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 1
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6028,7 +6042,7 @@ func (c *Client) sendFindDaemonRuntimeProducerSlot(ctx context.Context, params F
 		}
 		{
 			stage = "Security:CookieAuth"
-			switch err := c.securityCookieAuth(ctx, FindDaemonRuntimeProducerSlotOperation, r); {
+			switch err := c.securityCookieAuth(ctx, FindRuntimeProducerSlotOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6073,7 +6087,7 @@ func (c *Client) sendFindDaemonRuntimeProducerSlot(ctx context.Context, params F
 	}()
 
 	stage = "DecodeResponse"
-	result, err := decodeFindDaemonRuntimeProducerSlotResponse(resp)
+	result, err := decodeFindRuntimeProducerSlotResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -6081,21 +6095,21 @@ func (c *Client) sendFindDaemonRuntimeProducerSlot(ctx context.Context, params F
 	return result, nil
 }
 
-// FinishDaemonRuntimeSlot invokes finishDaemonRuntimeSlot operation.
+// FinishRuntimeSlot invokes finishRuntimeSlot operation.
 //
-// Mark a team-scoped daemon runtime slot idle without deleting it.
+// Mark a team-scoped runtime slot idle without deleting it.
 //
-// POST /daemon-runtime-slots/finish
-func (c *Client) FinishDaemonRuntimeSlot(ctx context.Context, request OptFinishDaemonRuntimeSlotBody) (FinishDaemonRuntimeSlotRes, error) {
-	res, err := c.sendFinishDaemonRuntimeSlot(ctx, request)
+// POST /runtime-slots/finish
+func (c *Client) FinishRuntimeSlot(ctx context.Context, request *FinishRuntimeSlotReq, params FinishRuntimeSlotParams) (FinishRuntimeSlotRes, error) {
+	res, err := c.sendFinishRuntimeSlot(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendFinishDaemonRuntimeSlot(ctx context.Context, request OptFinishDaemonRuntimeSlotBody) (res FinishDaemonRuntimeSlotRes, err error) {
+func (c *Client) sendFinishRuntimeSlot(ctx context.Context, request *FinishRuntimeSlotReq, params FinishRuntimeSlotParams) (res FinishRuntimeSlotRes, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("finishDaemonRuntimeSlot"),
+		otelogen.OperationID("finishRuntimeSlot"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/daemon-runtime-slots/finish"),
+		semconv.URLTemplateKey.String("/runtime-slots/finish"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -6111,7 +6125,7 @@ func (c *Client) sendFinishDaemonRuntimeSlot(ctx context.Context, request OptFin
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, FinishDaemonRuntimeSlotOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, FinishRuntimeSlotOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -6129,7 +6143,7 @@ func (c *Client) sendFinishDaemonRuntimeSlot(ctx context.Context, request OptFin
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
 	var pathParts [1]string
-	pathParts[0] = "/daemon-runtime-slots/finish"
+	pathParts[0] = "/runtime-slots/finish"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeRequest"
@@ -6137,8 +6151,22 @@ func (c *Client) sendFinishDaemonRuntimeSlot(ctx context.Context, request OptFin
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
 	}
-	if err := encodeFinishDaemonRuntimeSlotRequest(request, r); err != nil {
+	if err := encodeFinishRuntimeSlotRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -6146,7 +6174,7 @@ func (c *Client) sendFinishDaemonRuntimeSlot(ctx context.Context, request OptFin
 		var satisfied bitset
 		{
 			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, FinishDaemonRuntimeSlotOperation, r); {
+			switch err := c.securityBearerAuth(ctx, FinishRuntimeSlotOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6157,7 +6185,7 @@ func (c *Client) sendFinishDaemonRuntimeSlot(ctx context.Context, request OptFin
 		}
 		{
 			stage = "Security:SessionAuth"
-			switch err := c.securitySessionAuth(ctx, FinishDaemonRuntimeSlotOperation, r); {
+			switch err := c.securitySessionAuth(ctx, FinishRuntimeSlotOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 1
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6168,7 +6196,7 @@ func (c *Client) sendFinishDaemonRuntimeSlot(ctx context.Context, request OptFin
 		}
 		{
 			stage = "Security:CookieAuth"
-			switch err := c.securityCookieAuth(ctx, FinishDaemonRuntimeSlotOperation, r); {
+			switch err := c.securityCookieAuth(ctx, FinishRuntimeSlotOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6213,7 +6241,7 @@ func (c *Client) sendFinishDaemonRuntimeSlot(ctx context.Context, request OptFin
 	}()
 
 	stage = "DecodeResponse"
-	result, err := decodeFinishDaemonRuntimeSlotResponse(resp)
+	result, err := decodeFinishRuntimeSlotResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

@@ -33,20 +33,20 @@ import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  createApiDaemonRuntimeSlotStore,
-  resolveDaemonRuntimeId,
-} from '../src/lib/daemon-runtime-slots.js';
 import type { DaemonSlotIdentity } from '../src/lib/daemon-slot-identity.js';
 import {
   createExecutionPlanCache,
-  type DaemonRuntimeSlotStore,
+  type RuntimeSlotStore,
 } from '../src/lib/execution-plan-cache.js';
 import { finalizeTask } from '../src/lib/finalize.js';
 import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../src/lib/runtime-profile.js';
+import {
+  createApiRuntimeSlotStore,
+  resolveDaemonId,
+} from '../src/lib/runtime-slots.js';
 import { resolveLatestPiSessionPath } from '../src/lib/session-files.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
@@ -134,7 +134,7 @@ describe('Agent daemon (e2e)', () => {
       diaryId,
       correlationId,
       input: {
-        brief: 'Exercise daemon slot persistence in e2e',
+        brief: 'Exercise runtime slot persistence in e2e',
         scopeHint: 'daemon-e2e',
       },
     });
@@ -619,14 +619,14 @@ describe('Agent daemon (e2e)', () => {
     expect(requeued.cancelReason).toBeFalsy();
   }, 30_000);
 
-  it('reuses remote daemon slot resources across fulfill_brief tasks', async () => {
+  it('reuses remote runtime slot resources across fulfill_brief tasks', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-slot-e2e-'));
     tempRoots.push(mountRoot);
 
     const stateDirs = ensureDaemonStateDirs(mountRoot);
-    const slotStore = createApiDaemonRuntimeSlotStore({
+    const slotStore = createApiRuntimeSlotStore({
       agent,
-      daemonId: resolveDaemonRuntimeId(stateDirs.rootDir, randomUUID()),
+      daemonId: resolveDaemonId(stateDirs.rootDir, randomUUID()),
     });
     const slotIdentity: DaemonSlotIdentity = {
       agentName: 'e2e-daemon',
@@ -713,9 +713,9 @@ describe('Agent daemon (e2e)', () => {
       tempRoots.push(mountRoot);
 
       const stateDirs = ensureDaemonStateDirs(mountRoot);
-      const slotStore = createApiDaemonRuntimeSlotStore({
+      const slotStore = createApiRuntimeSlotStore({
         agent,
-        daemonId: resolveDaemonRuntimeId(stateDirs.rootDir, randomUUID()),
+        daemonId: resolveDaemonId(stateDirs.rootDir, randomUUID()),
       });
       const slotIdentity: DaemonSlotIdentity = {
         agentName: 'e2e-daemon',
@@ -1048,7 +1048,7 @@ interface StubbedSlotAwareTaskArgs {
   taskId: string;
   mountRoot: string;
   stateDirs: ReturnType<typeof ensureDaemonStateDirs>;
-  slotStore: DaemonRuntimeSlotStore;
+  slotStore: RuntimeSlotStore;
   slotIdentity: DaemonSlotIdentity;
   warmSessionTtlSec: number;
 }
@@ -1233,7 +1233,7 @@ async function buildStubbedTaskOutput(
         commits: [],
         pullRequestUrl: null,
         diaryEntryIds: [],
-        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
+        summary: `stubbed runtime slot e2e output for ${claimedTask.task.id}`,
         verification: buildProducerVerification(claimedTask.task.inputCid),
       };
     case 'curate_pack':
@@ -1248,7 +1248,7 @@ async function buildStubbedTaskOutput(
           },
         ],
         recipeParams: {},
-        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
+        summary: `stubbed runtime slot e2e output for ${claimedTask.task.id}`,
         verification: buildProducerVerification(claimedTask.task.inputCid),
       };
     case 'judge_eval_attempt':
@@ -1270,7 +1270,7 @@ async function buildStubbedTaskOutput(
         commits: [],
         pullRequestUrl: null,
         diaryEntryIds: [],
-        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
+        summary: `stubbed runtime slot e2e output for ${claimedTask.task.id}`,
       };
   }
 }

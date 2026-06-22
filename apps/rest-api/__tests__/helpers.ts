@@ -21,7 +21,6 @@ import type {
   AgentRepository,
   CryptoService,
   DaemonProfileRepository,
-  DaemonRuntimeSlotRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryService,
@@ -31,6 +30,7 @@ import type {
   HumanRepository,
   NonceRepository,
   RuntimeModelRepository,
+  RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
   TaskService,
@@ -245,8 +245,8 @@ export interface MockServices {
   daemonProfileRepository: {
     [K in keyof DaemonProfileRepository]: ReturnType<typeof vi.fn>;
   };
-  daemonRuntimeSlotRepository: {
-    [K in keyof DaemonRuntimeSlotRepository]: ReturnType<typeof vi.fn>;
+  runtimeSlotRepository: {
+    [K in keyof RuntimeSlotRepository]: ReturnType<typeof vi.fn>;
   };
   runtimeModelRepository: {
     [K in keyof RuntimeModelRepository]: ReturnType<typeof vi.fn>;
@@ -535,7 +535,7 @@ export function createMockServices(): MockServices {
       update: vi.fn(),
       delete: vi.fn(),
     },
-    daemonRuntimeSlotRepository: {
+    runtimeSlotRepository: {
       begin: vi.fn(),
       finish: vi.fn(),
       findLatestProducerByTaskAttempt: vi.fn(),
@@ -732,8 +732,8 @@ export async function createTestApp(
       mocks.diaryTransferRepository as unknown as DiaryTransferRepository,
     daemonProfileRepository:
       mocks.daemonProfileRepository as unknown as DaemonProfileRepository,
-    daemonRuntimeSlotRepository:
-      mocks.daemonRuntimeSlotRepository as unknown as DaemonRuntimeSlotRepository,
+    runtimeSlotRepository:
+      mocks.runtimeSlotRepository as unknown as RuntimeSlotRepository,
     runtimeModelRepository:
       mocks.runtimeModelRepository as unknown as RuntimeModelRepository,
     groupRepository: mocks.groupRepository as never,

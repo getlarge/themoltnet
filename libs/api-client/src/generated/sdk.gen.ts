@@ -18,9 +18,9 @@ import type {
   AppendTaskMessagesData,
   AppendTaskMessagesErrors,
   AppendTaskMessagesResponses,
-  BeginDaemonRuntimeSlotData,
-  BeginDaemonRuntimeSlotErrors,
-  BeginDaemonRuntimeSlotResponses,
+  BeginRuntimeSlotData,
+  BeginRuntimeSlotErrors,
+  BeginRuntimeSlotResponses,
   CancelTaskData,
   CancelTaskErrors,
   CancelTaskResponses,
@@ -99,12 +99,12 @@ import type {
   FailTaskData,
   FailTaskErrors,
   FailTaskResponses,
-  FindDaemonRuntimeProducerSlotData,
-  FindDaemonRuntimeProducerSlotErrors,
-  FindDaemonRuntimeProducerSlotResponses,
-  FinishDaemonRuntimeSlotData,
-  FinishDaemonRuntimeSlotErrors,
-  FinishDaemonRuntimeSlotResponses,
+  FindRuntimeProducerSlotData,
+  FindRuntimeProducerSlotErrors,
+  FindRuntimeProducerSlotResponses,
+  FinishRuntimeSlotData,
+  FinishRuntimeSlotErrors,
+  FinishRuntimeSlotResponses,
   GetAgentProfileData,
   GetAgentProfileErrors,
   GetAgentProfileResponses,
@@ -614,88 +614,6 @@ export const verifyCryptoSignature = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
-  });
-
-/**
- * Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.
- */
-export const beginDaemonRuntimeSlot = <ThrowOnError extends boolean = false>(
-  options?: Options<BeginDaemonRuntimeSlotData, ThrowOnError>,
-) =>
-  (options?.client ?? client).post<
-    BeginDaemonRuntimeSlotResponses,
-    BeginDaemonRuntimeSlotErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/daemon-runtime-slots/begin',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-
-/**
- * Mark a team-scoped daemon runtime slot idle without deleting it.
- */
-export const finishDaemonRuntimeSlot = <ThrowOnError extends boolean = false>(
-  options?: Options<FinishDaemonRuntimeSlotData, ThrowOnError>,
-) =>
-  (options?.client ?? client).post<
-    FinishDaemonRuntimeSlotResponses,
-    FinishDaemonRuntimeSlotErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/daemon-runtime-slots/finish',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-
-/**
- * Find the latest team-scoped producer slot for a task attempt.
- */
-export const findDaemonRuntimeProducerSlot = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<FindDaemonRuntimeProducerSlotData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    FindDaemonRuntimeProducerSlotResponses,
-    FindDaemonRuntimeProducerSlotErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/daemon-runtime-slots/producer',
-    ...options,
   });
 
 /**
@@ -2209,6 +2127,86 @@ export const updateRuntimeProfile = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
+ */
+export const beginRuntimeSlot = <ThrowOnError extends boolean = false>(
+  options: Options<BeginRuntimeSlotData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    BeginRuntimeSlotResponses,
+    BeginRuntimeSlotErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-slots/begin',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Mark a team-scoped runtime slot idle without deleting it.
+ */
+export const finishRuntimeSlot = <ThrowOnError extends boolean = false>(
+  options: Options<FinishRuntimeSlotData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    FinishRuntimeSlotResponses,
+    FinishRuntimeSlotErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-slots/finish',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Find the latest team-scoped producer slot for a task attempt.
+ */
+export const findRuntimeProducerSlot = <ThrowOnError extends boolean = false>(
+  options: Options<FindRuntimeProducerSlotData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    FindRuntimeProducerSlotResponses,
+    FindRuntimeProducerSlotErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-slots/producer',
+    ...options,
   });
 
 /**

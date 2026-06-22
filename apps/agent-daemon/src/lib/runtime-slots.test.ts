@@ -1,14 +1,11 @@
 import type { Agent } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  createApiDaemonRuntimeSlotStore,
-  resolveDaemonRuntimeId,
-} from './daemon-runtime-slots.js';
+import { createApiRuntimeSlotStore, resolveDaemonId } from './runtime-slots.js';
 
-describe('daemon runtime slots', () => {
+describe('runtime slots', () => {
   it('uses the configured daemon id when present', () => {
-    expect(resolveDaemonRuntimeId('/tmp/state', 'daemon-a')).toBe('daemon-a');
+    expect(resolveDaemonId('/tmp/state', 'daemon-a')).toBe('daemon-a');
   });
 
   it('writes and resolves team-scoped runtime slots through the SDK', async () => {
@@ -28,9 +25,9 @@ describe('daemon runtime slots', () => {
       },
     });
     const agent = {
-      daemonRuntimeSlots: { begin, findProducer, finish },
+      runtimeSlots: { begin, findProducer, finish },
     } as unknown as Agent;
-    const store = createApiDaemonRuntimeSlotStore({
+    const store = createApiRuntimeSlotStore({
       agent,
       daemonId: 'daemon-a',
       daemonProfileId: 'dddddddd-0000-0000-0000-000000000004',
@@ -76,22 +73,24 @@ describe('daemon runtime slots', () => {
       expect.objectContaining({
         daemonId: 'daemon-a',
         daemonProfileId: 'dddddddd-0000-0000-0000-000000000004',
-        teamId: 'bbbbbbbb-0000-0000-0000-000000000002',
       }),
+      { teamId: 'bbbbbbbb-0000-0000-0000-000000000002' },
     );
     expect(finish).toHaveBeenCalledWith(
       expect.objectContaining({
         attemptN: 1,
         daemonId: 'daemon-a',
         taskId: 'aaaaaaaa-0000-0000-0000-000000000001',
-        teamId: 'bbbbbbbb-0000-0000-0000-000000000002',
       }),
+      { teamId: 'bbbbbbbb-0000-0000-0000-000000000002' },
     );
-    expect(findProducer).toHaveBeenCalledWith({
-      attemptN: 1,
-      taskId: 'aaaaaaaa-0000-0000-0000-000000000001',
-      teamId: 'bbbbbbbb-0000-0000-0000-000000000002',
-    });
+    expect(findProducer).toHaveBeenCalledWith(
+      {
+        attemptN: 1,
+        taskId: 'aaaaaaaa-0000-0000-0000-000000000001',
+      },
+      { teamId: 'bbbbbbbb-0000-0000-0000-000000000002' },
+    );
     expect(resolved).toEqual({
       session: {
         sessionDir: '/tmp/session',

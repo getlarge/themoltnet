@@ -1218,24 +1218,24 @@ func (s *Server) handleAppendTaskMessagesRequest(args [2]string, argsEscaped boo
 	}
 }
 
-// handleBeginDaemonRuntimeSlotRequest handles beginDaemonRuntimeSlot operation.
+// handleBeginRuntimeSlotRequest handles beginRuntimeSlot operation.
 //
-// Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.
+// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
 //
-// POST /daemon-runtime-slots/begin
-func (s *Server) handleBeginDaemonRuntimeSlotRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// POST /runtime-slots/begin
+func (s *Server) handleBeginRuntimeSlotRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("beginDaemonRuntimeSlot"),
+		otelogen.OperationID("beginRuntimeSlot"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/daemon-runtime-slots/begin"),
+		semconv.HTTPRouteKey.String("/runtime-slots/begin"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), BeginDaemonRuntimeSlotOperation,
+	ctx, span := s.cfg.Tracer.Start(r.Context(), BeginRuntimeSlotOperation,
 		trace.WithAttributes(otelAttrs...),
 		serverSpanKind,
 	)
@@ -1290,15 +1290,15 @@ func (s *Server) handleBeginDaemonRuntimeSlotRequest(args [0]string, argsEscaped
 		}
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: BeginDaemonRuntimeSlotOperation,
-			ID:   "beginDaemonRuntimeSlot",
+			Name: BeginRuntimeSlotOperation,
+			ID:   "beginRuntimeSlot",
 		}
 	)
 	{
 		type bitset = [1]uint8
 		var satisfied bitset
 		{
-			sctx, ok, err := s.securityBearerAuth(ctx, BeginDaemonRuntimeSlotOperation, r)
+			sctx, ok, err := s.securityBearerAuth(ctx, BeginRuntimeSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -1315,7 +1315,7 @@ func (s *Server) handleBeginDaemonRuntimeSlotRequest(args [0]string, argsEscaped
 			}
 		}
 		{
-			sctx, ok, err := s.securitySessionAuth(ctx, BeginDaemonRuntimeSlotOperation, r)
+			sctx, ok, err := s.securitySessionAuth(ctx, BeginRuntimeSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -1332,7 +1332,7 @@ func (s *Server) handleBeginDaemonRuntimeSlotRequest(args [0]string, argsEscaped
 			}
 		}
 		{
-			sctx, ok, err := s.securityCookieAuth(ctx, BeginDaemonRuntimeSlotOperation, r)
+			sctx, ok, err := s.securityCookieAuth(ctx, BeginRuntimeSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -1374,9 +1374,19 @@ func (s *Server) handleBeginDaemonRuntimeSlotRequest(args [0]string, argsEscaped
 			return
 		}
 	}
+	params, err := decodeBeginRuntimeSlotParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
 
 	var rawBody []byte
-	request, rawBody, close, err := s.decodeBeginDaemonRuntimeSlotRequest(r)
+	request, rawBody, close, err := s.decodeBeginRuntimeSlotRequest(r)
 	if err != nil {
 		err = &ogenerrors.DecodeRequestError{
 			OperationContext: opErrContext,
@@ -1392,23 +1402,28 @@ func (s *Server) handleBeginDaemonRuntimeSlotRequest(args [0]string, argsEscaped
 		}
 	}()
 
-	var response BeginDaemonRuntimeSlotRes
+	var response BeginRuntimeSlotRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    BeginDaemonRuntimeSlotOperation,
+			OperationName:    BeginRuntimeSlotOperation,
 			OperationSummary: "",
-			OperationID:      "beginDaemonRuntimeSlot",
+			OperationID:      "beginRuntimeSlot",
 			Body:             request,
 			RawBody:          rawBody,
-			Params:           middleware.Parameters{},
-			Raw:              r,
+			Params: middleware.Parameters{
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
+			},
+			Raw: r,
 		}
 
 		type (
-			Request  = OptBeginDaemonRuntimeSlotBody
-			Params   = struct{}
-			Response = BeginDaemonRuntimeSlotRes
+			Request  = *BeginRuntimeSlotReq
+			Params   = BeginRuntimeSlotParams
+			Response = BeginRuntimeSlotRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -1417,14 +1432,14 @@ func (s *Server) handleBeginDaemonRuntimeSlotRequest(args [0]string, argsEscaped
 		](
 			m,
 			mreq,
-			nil,
+			unpackBeginRuntimeSlotParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.BeginDaemonRuntimeSlot(ctx, request)
+				response, err = s.h.BeginRuntimeSlot(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.BeginDaemonRuntimeSlot(ctx, request)
+		response, err = s.h.BeginRuntimeSlot(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -1432,7 +1447,7 @@ func (s *Server) handleBeginDaemonRuntimeSlotRequest(args [0]string, argsEscaped
 		return
 	}
 
-	if err := encodeBeginDaemonRuntimeSlotResponse(response, w, span); err != nil {
+	if err := encodeBeginRuntimeSlotResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -7462,24 +7477,24 @@ func (s *Server) handleFailTaskRequest(args [2]string, argsEscaped bool, w http.
 	}
 }
 
-// handleFindDaemonRuntimeProducerSlotRequest handles findDaemonRuntimeProducerSlot operation.
+// handleFindRuntimeProducerSlotRequest handles findRuntimeProducerSlot operation.
 //
 // Find the latest team-scoped producer slot for a task attempt.
 //
-// GET /daemon-runtime-slots/producer
-func (s *Server) handleFindDaemonRuntimeProducerSlotRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// GET /runtime-slots/producer
+func (s *Server) handleFindRuntimeProducerSlotRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("findDaemonRuntimeProducerSlot"),
+		otelogen.OperationID("findRuntimeProducerSlot"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/daemon-runtime-slots/producer"),
+		semconv.HTTPRouteKey.String("/runtime-slots/producer"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), FindDaemonRuntimeProducerSlotOperation,
+	ctx, span := s.cfg.Tracer.Start(r.Context(), FindRuntimeProducerSlotOperation,
 		trace.WithAttributes(otelAttrs...),
 		serverSpanKind,
 	)
@@ -7534,15 +7549,15 @@ func (s *Server) handleFindDaemonRuntimeProducerSlotRequest(args [0]string, args
 		}
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: FindDaemonRuntimeProducerSlotOperation,
-			ID:   "findDaemonRuntimeProducerSlot",
+			Name: FindRuntimeProducerSlotOperation,
+			ID:   "findRuntimeProducerSlot",
 		}
 	)
 	{
 		type bitset = [1]uint8
 		var satisfied bitset
 		{
-			sctx, ok, err := s.securityBearerAuth(ctx, FindDaemonRuntimeProducerSlotOperation, r)
+			sctx, ok, err := s.securityBearerAuth(ctx, FindRuntimeProducerSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -7559,7 +7574,7 @@ func (s *Server) handleFindDaemonRuntimeProducerSlotRequest(args [0]string, args
 			}
 		}
 		{
-			sctx, ok, err := s.securitySessionAuth(ctx, FindDaemonRuntimeProducerSlotOperation, r)
+			sctx, ok, err := s.securitySessionAuth(ctx, FindRuntimeProducerSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -7576,7 +7591,7 @@ func (s *Server) handleFindDaemonRuntimeProducerSlotRequest(args [0]string, args
 			}
 		}
 		{
-			sctx, ok, err := s.securityCookieAuth(ctx, FindDaemonRuntimeProducerSlotOperation, r)
+			sctx, ok, err := s.securityCookieAuth(ctx, FindRuntimeProducerSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -7618,7 +7633,7 @@ func (s *Server) handleFindDaemonRuntimeProducerSlotRequest(args [0]string, args
 			return
 		}
 	}
-	params, err := decodeFindDaemonRuntimeProducerSlotParams(args, argsEscaped, r)
+	params, err := decodeFindRuntimeProducerSlotParams(args, argsEscaped, r)
 	if err != nil {
 		err = &ogenerrors.DecodeParamsError{
 			OperationContext: opErrContext,
@@ -7631,20 +7646,16 @@ func (s *Server) handleFindDaemonRuntimeProducerSlotRequest(args [0]string, args
 
 	var rawBody []byte
 
-	var response FindDaemonRuntimeProducerSlotRes
+	var response FindRuntimeProducerSlotRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    FindDaemonRuntimeProducerSlotOperation,
+			OperationName:    FindRuntimeProducerSlotOperation,
 			OperationSummary: "",
-			OperationID:      "findDaemonRuntimeProducerSlot",
+			OperationID:      "findRuntimeProducerSlot",
 			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
-				{
-					Name: "teamId",
-					In:   "query",
-				}: params.TeamId,
 				{
 					Name: "taskId",
 					In:   "query",
@@ -7653,14 +7664,18 @@ func (s *Server) handleFindDaemonRuntimeProducerSlotRequest(args [0]string, args
 					Name: "attemptN",
 					In:   "query",
 				}: params.AttemptN,
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
 			},
 			Raw: r,
 		}
 
 		type (
 			Request  = struct{}
-			Params   = FindDaemonRuntimeProducerSlotParams
-			Response = FindDaemonRuntimeProducerSlotRes
+			Params   = FindRuntimeProducerSlotParams
+			Response = FindRuntimeProducerSlotRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -7669,14 +7684,14 @@ func (s *Server) handleFindDaemonRuntimeProducerSlotRequest(args [0]string, args
 		](
 			m,
 			mreq,
-			unpackFindDaemonRuntimeProducerSlotParams,
+			unpackFindRuntimeProducerSlotParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.FindDaemonRuntimeProducerSlot(ctx, params)
+				response, err = s.h.FindRuntimeProducerSlot(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.FindDaemonRuntimeProducerSlot(ctx, params)
+		response, err = s.h.FindRuntimeProducerSlot(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -7684,7 +7699,7 @@ func (s *Server) handleFindDaemonRuntimeProducerSlotRequest(args [0]string, args
 		return
 	}
 
-	if err := encodeFindDaemonRuntimeProducerSlotResponse(response, w, span); err != nil {
+	if err := encodeFindRuntimeProducerSlotResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -7693,24 +7708,24 @@ func (s *Server) handleFindDaemonRuntimeProducerSlotRequest(args [0]string, args
 	}
 }
 
-// handleFinishDaemonRuntimeSlotRequest handles finishDaemonRuntimeSlot operation.
+// handleFinishRuntimeSlotRequest handles finishRuntimeSlot operation.
 //
-// Mark a team-scoped daemon runtime slot idle without deleting it.
+// Mark a team-scoped runtime slot idle without deleting it.
 //
-// POST /daemon-runtime-slots/finish
-func (s *Server) handleFinishDaemonRuntimeSlotRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// POST /runtime-slots/finish
+func (s *Server) handleFinishRuntimeSlotRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("finishDaemonRuntimeSlot"),
+		otelogen.OperationID("finishRuntimeSlot"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/daemon-runtime-slots/finish"),
+		semconv.HTTPRouteKey.String("/runtime-slots/finish"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), FinishDaemonRuntimeSlotOperation,
+	ctx, span := s.cfg.Tracer.Start(r.Context(), FinishRuntimeSlotOperation,
 		trace.WithAttributes(otelAttrs...),
 		serverSpanKind,
 	)
@@ -7765,15 +7780,15 @@ func (s *Server) handleFinishDaemonRuntimeSlotRequest(args [0]string, argsEscape
 		}
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: FinishDaemonRuntimeSlotOperation,
-			ID:   "finishDaemonRuntimeSlot",
+			Name: FinishRuntimeSlotOperation,
+			ID:   "finishRuntimeSlot",
 		}
 	)
 	{
 		type bitset = [1]uint8
 		var satisfied bitset
 		{
-			sctx, ok, err := s.securityBearerAuth(ctx, FinishDaemonRuntimeSlotOperation, r)
+			sctx, ok, err := s.securityBearerAuth(ctx, FinishRuntimeSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -7790,7 +7805,7 @@ func (s *Server) handleFinishDaemonRuntimeSlotRequest(args [0]string, argsEscape
 			}
 		}
 		{
-			sctx, ok, err := s.securitySessionAuth(ctx, FinishDaemonRuntimeSlotOperation, r)
+			sctx, ok, err := s.securitySessionAuth(ctx, FinishRuntimeSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -7807,7 +7822,7 @@ func (s *Server) handleFinishDaemonRuntimeSlotRequest(args [0]string, argsEscape
 			}
 		}
 		{
-			sctx, ok, err := s.securityCookieAuth(ctx, FinishDaemonRuntimeSlotOperation, r)
+			sctx, ok, err := s.securityCookieAuth(ctx, FinishRuntimeSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -7849,9 +7864,19 @@ func (s *Server) handleFinishDaemonRuntimeSlotRequest(args [0]string, argsEscape
 			return
 		}
 	}
+	params, err := decodeFinishRuntimeSlotParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
 
 	var rawBody []byte
-	request, rawBody, close, err := s.decodeFinishDaemonRuntimeSlotRequest(r)
+	request, rawBody, close, err := s.decodeFinishRuntimeSlotRequest(r)
 	if err != nil {
 		err = &ogenerrors.DecodeRequestError{
 			OperationContext: opErrContext,
@@ -7867,23 +7892,28 @@ func (s *Server) handleFinishDaemonRuntimeSlotRequest(args [0]string, argsEscape
 		}
 	}()
 
-	var response FinishDaemonRuntimeSlotRes
+	var response FinishRuntimeSlotRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    FinishDaemonRuntimeSlotOperation,
+			OperationName:    FinishRuntimeSlotOperation,
 			OperationSummary: "",
-			OperationID:      "finishDaemonRuntimeSlot",
+			OperationID:      "finishRuntimeSlot",
 			Body:             request,
 			RawBody:          rawBody,
-			Params:           middleware.Parameters{},
-			Raw:              r,
+			Params: middleware.Parameters{
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
+			},
+			Raw: r,
 		}
 
 		type (
-			Request  = OptFinishDaemonRuntimeSlotBody
-			Params   = struct{}
-			Response = FinishDaemonRuntimeSlotRes
+			Request  = *FinishRuntimeSlotReq
+			Params   = FinishRuntimeSlotParams
+			Response = FinishRuntimeSlotRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -7892,14 +7922,14 @@ func (s *Server) handleFinishDaemonRuntimeSlotRequest(args [0]string, argsEscape
 		](
 			m,
 			mreq,
-			nil,
+			unpackFinishRuntimeSlotParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.FinishDaemonRuntimeSlot(ctx, request)
+				response, err = s.h.FinishRuntimeSlot(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.FinishDaemonRuntimeSlot(ctx, request)
+		response, err = s.h.FinishRuntimeSlot(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -7907,7 +7937,7 @@ func (s *Server) handleFinishDaemonRuntimeSlotRequest(args [0]string, argsEscape
 		return
 	}
 
-	if err := encodeFinishDaemonRuntimeSlotResponse(response, w, span); err != nil {
+	if err := encodeFinishRuntimeSlotResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)

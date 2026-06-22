@@ -1,36 +1,37 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import type {
-  DaemonRuntimeSlot,
-  DaemonRuntimeSlotSession,
-  DaemonRuntimeWorkspace,
-  ResolvedDaemonRuntimeSlot,
+  ResolvedRuntimeSlot,
+  RuntimeSlot,
+  RuntimeSlotSession,
+  RuntimeWorkspace,
 } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
+  TeamHeaderRequiredSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
+import {
+  BeginRuntimeSlotBody as BeginRuntimeSlotBodySchema,
+  FindRuntimeProducerSlotQuery as FindRuntimeProducerSlotQuerySchema,
+  FinishRuntimeSlotBody as FinishRuntimeSlotBodySchema,
+  ResolvedRuntimeSlot as ResolvedRuntimeSlotSchema,
+  RuntimeSlot as RuntimeSlotSchema,
+} from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
-import { type Static, Type } from 'typebox';
 
 import {
   createConflictProblem,
   createProblem,
   createValidationProblem,
 } from '../problems/index.js';
-import {
-  BeginDaemonRuntimeSlotBodySchema,
-  DaemonRuntimeSlotSchema,
-  FindDaemonRuntimeProducerSlotQuerySchema,
-  FinishDaemonRuntimeSlotBodySchema,
-  ResolvedDaemonRuntimeSlotSchema,
-} from '../schemas.js';
 
 function authSubject(request: {
   authContext: {
     identityId: string;
     subjectType: 'agent' | 'human';
+    currentTeamId: string | null;
   } | null;
 }) {
   const auth = request.authContext;
@@ -45,7 +46,20 @@ function authSubject(request: {
   };
 }
 
-function serializeSlot(slot: DaemonRuntimeSlot) {
+function requireCurrentTeamId(request: {
+  authContext: { currentTeamId: string | null } | null;
+}): string {
+  const teamId = request.authContext?.currentTeamId;
+  if (!teamId) {
+    throw createProblem(
+      'validation-failed',
+      `${TEAM_HEADER} header is required: runtime slots are team-scoped`,
+    );
+  }
+  return teamId;
+}
+
+function serializeSlot(slot: RuntimeSlot) {
   return {
     id: slot.id,
     teamId: slot.teamId,
@@ -66,7 +80,7 @@ function serializeSlot(slot: DaemonRuntimeSlot) {
   };
 }
 
-function serializeSession(session: DaemonRuntimeSlotSession | null) {
+function serializeSession(session: RuntimeSlotSession | null) {
   if (!session) return null;
   return {
     slotId: session.slotId,
@@ -75,7 +89,7 @@ function serializeSession(session: DaemonRuntimeSlotSession | null) {
   };
 }
 
-function serializeWorkspace(workspace: DaemonRuntimeWorkspace | null) {
+function serializeWorkspace(workspace: RuntimeWorkspace | null) {
   if (!workspace) return null;
   return {
     id: workspace.id,
@@ -89,7 +103,7 @@ function serializeWorkspace(workspace: DaemonRuntimeWorkspace | null) {
   };
 }
 
-function serializeResolved(resolved: ResolvedDaemonRuntimeSlot) {
+function serializeResolved(resolved: ResolvedRuntimeSlot) {
   return {
     session: serializeSession(resolved.session),
     slot: serializeSlot(resolved.slot),
@@ -125,7 +139,7 @@ async function assertTaskInTeam(
           message: `Task ${taskId} does not resolve in team ${teamId}`,
         },
       ],
-      'daemon slot task does not resolve in team',
+      'runtime slot task does not resolve in team',
     );
   }
 }
@@ -146,7 +160,7 @@ async function assertTaskAttemptInTeam(
           message: `Task ${taskId} attempt ${attemptN} does not exist`,
         },
       ],
-      'daemon slot task attempt does not exist',
+      'runtime slot task attempt does not exist',
     );
   }
 }
@@ -166,32 +180,33 @@ async function assertProfileInTeam(
           message: `Daemon profile ${profileId} does not resolve in team ${teamId}`,
         },
       ],
-      'daemon slot profile does not resolve in team',
+      'runtime slot profile does not resolve in team',
     );
   }
 }
 
-export async function daemonRuntimeSlotRoutes(fastify: FastifyInstance) {
+export async function runtimeSlotRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
 
   server.post(
-    '/daemon-runtime-slots/begin',
+    '/runtime-slots/begin',
     {
       schema: {
-        operationId: 'beginDaemonRuntimeSlot',
-        tags: ['daemon-runtime-slots'],
+        operationId: 'beginRuntimeSlot',
+        tags: ['runtime-slots'],
         description:
-          'Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.',
+          'Upsert a team-scoped runtime slot for audit and continuation affinity lookup.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        body: Type.Ref(BeginDaemonRuntimeSlotBodySchema.$id),
+        headers: TeamHeaderRequiredSchema,
+        body: BeginRuntimeSlotBodySchema,
         response: {
-          200: Type.Ref(DaemonRuntimeSlotSchema.$id),
-          400: Type.Ref(ValidationProblemDetailsSchema.$id),
-          401: Type.Ref(ProblemDetailsSchema.$id),
-          403: Type.Ref(ProblemDetailsSchema.$id),
-          404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+          200: RuntimeSlotSchema,
+          400: ValidationProblemDetailsSchema,
+          401: ProblemDetailsSchema,
+          403: ProblemDetailsSchema,
+          404: ProblemDetailsSchema,
+          409: ConflictProblemDetailsSchema,
         },
       },
     },
@@ -200,22 +215,22 @@ export async function daemonRuntimeSlotRoutes(fastify: FastifyInstance) {
       if (subjectType !== 'agent') {
         throw createProblem(
           'forbidden',
-          'Daemon slots can only be written by agents',
+          'Runtime slots can only be written by agents',
         );
       }
-      const body = request.body as Static<
-        typeof BeginDaemonRuntimeSlotBodySchema
-      >;
-      await requireTeamAccess(fastify, body.teamId, identityId, subjectNs);
+      const body = request.body;
+      const teamId = requireCurrentTeamId(request);
+      await requireTeamAccess(fastify, teamId, identityId, subjectNs);
       await assertTaskAttemptInTeam(
         fastify,
         body.lastTaskId,
         body.lastAttemptN,
-        body.teamId,
+        teamId,
       );
-      await assertProfileInTeam(fastify, body.daemonProfileId, body.teamId);
-      const slot = await fastify.daemonRuntimeSlotRepository.begin({
+      await assertProfileInTeam(fastify, body.daemonProfileId, teamId);
+      const slot = await fastify.runtimeSlotRepository.begin({
         ...body,
+        teamId,
         daemonProfileId: body.daemonProfileId ?? null,
         sessionDir: body.sessionDir ?? null,
         sessionPath: body.sessionPath ?? null,
@@ -228,22 +243,23 @@ export async function daemonRuntimeSlotRoutes(fastify: FastifyInstance) {
   );
 
   server.post(
-    '/daemon-runtime-slots/finish',
+    '/runtime-slots/finish',
     {
       schema: {
-        operationId: 'finishDaemonRuntimeSlot',
-        tags: ['daemon-runtime-slots'],
+        operationId: 'finishRuntimeSlot',
+        tags: ['runtime-slots'],
         description:
-          'Mark a team-scoped daemon runtime slot idle without deleting it.',
+          'Mark a team-scoped runtime slot idle without deleting it.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        body: Type.Ref(FinishDaemonRuntimeSlotBodySchema.$id),
+        headers: TeamHeaderRequiredSchema,
+        body: FinishRuntimeSlotBodySchema,
         response: {
-          200: Type.Ref(DaemonRuntimeSlotSchema.$id),
-          400: Type.Ref(ValidationProblemDetailsSchema.$id),
-          401: Type.Ref(ProblemDetailsSchema.$id),
-          403: Type.Ref(ProblemDetailsSchema.$id),
-          404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+          200: RuntimeSlotSchema,
+          400: ValidationProblemDetailsSchema,
+          401: ProblemDetailsSchema,
+          403: ProblemDetailsSchema,
+          404: ProblemDetailsSchema,
+          409: ConflictProblemDetailsSchema,
         },
       },
     },
@@ -252,67 +268,64 @@ export async function daemonRuntimeSlotRoutes(fastify: FastifyInstance) {
       if (subjectType !== 'agent') {
         throw createProblem(
           'forbidden',
-          'Daemon slots can only be written by agents',
+          'Runtime slots can only be written by agents',
         );
       }
-      const body = request.body as Static<
-        typeof FinishDaemonRuntimeSlotBodySchema
-      >;
-      await requireTeamAccess(fastify, body.teamId, identityId, subjectNs);
+      const body = request.body;
+      const teamId = requireCurrentTeamId(request);
+      await requireTeamAccess(fastify, teamId, identityId, subjectNs);
       await assertTaskAttemptInTeam(
         fastify,
         body.taskId,
         body.attemptN,
-        body.teamId,
+        teamId,
       );
-      const slot = await fastify.daemonRuntimeSlotRepository.finish({
+      const slot = await fastify.runtimeSlotRepository.finish({
         ...body,
+        teamId,
         sessionPath: body.sessionPath ?? null,
       });
       if (!slot) {
-        throw createConflictProblem(
-          'Daemon runtime slot changed before finish',
-          {
-            target: {
-              keys: { slotKey: body.slotKey },
-              resource: 'daemon-runtime-slot',
-            },
+        throw createConflictProblem('Runtime slot changed before finish', {
+          target: {
+            keys: { slotKey: body.slotKey },
+            resource: 'runtime-slot',
           },
-        );
+        });
       }
       return serializeSlot(slot);
     },
   );
 
   server.get(
-    '/daemon-runtime-slots/producer',
+    '/runtime-slots/producer',
     {
       config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
-        operationId: 'findDaemonRuntimeProducerSlot',
-        tags: ['daemon-runtime-slots'],
+        operationId: 'findRuntimeProducerSlot',
+        tags: ['runtime-slots'],
         description:
           'Find the latest team-scoped producer slot for a task attempt.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        querystring: Type.Ref(FindDaemonRuntimeProducerSlotQuerySchema.$id),
+        headers: TeamHeaderRequiredSchema,
+        querystring: FindRuntimeProducerSlotQuerySchema,
         response: {
-          200: Type.Ref(ResolvedDaemonRuntimeSlotSchema.$id),
-          400: Type.Ref(ValidationProblemDetailsSchema.$id),
-          401: Type.Ref(ProblemDetailsSchema.$id),
-          403: Type.Ref(ProblemDetailsSchema.$id),
-          404: Type.Ref(ProblemDetailsSchema.$id),
+          200: ResolvedRuntimeSlotSchema,
+          400: ValidationProblemDetailsSchema,
+          401: ProblemDetailsSchema,
+          403: ProblemDetailsSchema,
+          404: ProblemDetailsSchema,
         },
       },
     },
     async (request) => {
       const { identityId, subjectNs } = authSubject(request);
-      const { teamId, taskId, attemptN } = request.query as Static<
-        typeof FindDaemonRuntimeProducerSlotQuerySchema
-      >;
+      const teamId = requireCurrentTeamId(request);
+      const { taskId, attemptN } = request.query;
       await requireTeamAccess(fastify, teamId, identityId, subjectNs);
       await assertTaskAttemptInTeam(fastify, taskId, attemptN, teamId);
       const resolved =
-        await fastify.daemonRuntimeSlotRepository.findLatestProducerByTaskAttempt(
+        await fastify.runtimeSlotRepository.findLatestProducerByTaskAttempt(
           teamId,
           taskId,
           attemptN,

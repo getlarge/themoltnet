@@ -1,7 +1,7 @@
 import type {
-  DaemonRuntimeSlot,
-  DaemonRuntimeSlotSession,
-  DaemonRuntimeWorkspace,
+  RuntimeSlot,
+  RuntimeSlotSession,
+  RuntimeWorkspace,
 } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -18,10 +18,12 @@ const TASK_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
 const PROFILE_ID = 'dddddddd-0000-0000-0000-000000000004';
 const SLOT_ID = 'eeeeeeee-0000-0000-0000-000000000005';
 const WORKSPACE_ROW_ID = 'ffffffff-0000-0000-0000-000000000006';
+const TEAM_HEADERS = {
+  authorization: 'Bearer test-token',
+  'x-moltnet-team-id': TEAM_ID,
+};
 
-function mockSlot(
-  overrides: Partial<DaemonRuntimeSlot> = {},
-): DaemonRuntimeSlot {
+function mockSlot(overrides: Partial<RuntimeSlot> = {}): RuntimeSlot {
   return {
     id: SLOT_ID,
     teamId: TEAM_ID,
@@ -46,8 +48,8 @@ function mockSlot(
 }
 
 function mockSession(
-  overrides: Partial<DaemonRuntimeSlotSession> = {},
-): DaemonRuntimeSlotSession {
+  overrides: Partial<RuntimeSlotSession> = {},
+): RuntimeSlotSession {
   return {
     slotId: SLOT_ID,
     sessionDir: '/tmp/session',
@@ -59,8 +61,8 @@ function mockSession(
 }
 
 function mockWorkspace(
-  overrides: Partial<DaemonRuntimeWorkspace> = {},
-): DaemonRuntimeWorkspace {
+  overrides: Partial<RuntimeWorkspace> = {},
+): RuntimeWorkspace {
   return {
     id: WORKSPACE_ROW_ID,
     teamId: TEAM_ID,
@@ -76,7 +78,7 @@ function mockWorkspace(
   };
 }
 
-describe('daemon runtime slot routes', () => {
+describe('runtime slot routes', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
@@ -98,15 +100,14 @@ describe('daemon runtime slot routes', () => {
     });
   });
 
-  it('begins a team-scoped daemon slot for the authenticated agent', async () => {
-    mocks.daemonRuntimeSlotRepository.begin.mockResolvedValue(mockSlot());
+  it('begins a team-scoped runtime slot for the authenticated agent', async () => {
+    mocks.runtimeSlotRepository.begin.mockResolvedValue(mockSlot());
 
     const response = await app.inject({
       method: 'POST',
-      url: '/daemon-runtime-slots/begin',
-      headers: { authorization: 'Bearer test-token' },
+      url: '/runtime-slots/begin',
+      headers: TEAM_HEADERS,
       payload: {
-        teamId: TEAM_ID,
         daemonId: 'daemon-a',
         agentName: 'legreffier',
         daemonProfileId: PROFILE_ID,
@@ -134,7 +135,7 @@ describe('daemon runtime slot routes', () => {
       daemonProfileId: PROFILE_ID,
       state: 'active',
     });
-    expect(mocks.daemonRuntimeSlotRepository.begin).toHaveBeenCalledWith(
+    expect(mocks.runtimeSlotRepository.begin).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
         daemonId: 'daemon-a',
@@ -153,10 +154,9 @@ describe('daemon runtime slot routes', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/daemon-runtime-slots/begin',
-      headers: { authorization: 'Bearer test-token' },
+      url: '/runtime-slots/begin',
+      headers: TEAM_HEADERS,
       payload: {
-        teamId: TEAM_ID,
         daemonId: 'daemon-a',
         agentName: 'legreffier',
         provider: 'anthropic',
@@ -170,7 +170,7 @@ describe('daemon runtime slot routes', () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(mocks.daemonRuntimeSlotRepository.begin).not.toHaveBeenCalled();
+    expect(mocks.runtimeSlotRepository.begin).not.toHaveBeenCalled();
   });
 
   it('rejects a slot whose task attempt does not exist', async () => {
@@ -178,10 +178,9 @@ describe('daemon runtime slot routes', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/daemon-runtime-slots/begin',
-      headers: { authorization: 'Bearer test-token' },
+      url: '/runtime-slots/begin',
+      headers: TEAM_HEADERS,
       payload: {
-        teamId: TEAM_ID,
         daemonId: 'daemon-a',
         agentName: 'legreffier',
         provider: 'anthropic',
@@ -203,11 +202,11 @@ describe('daemon runtime slot routes', () => {
         },
       ],
     });
-    expect(mocks.daemonRuntimeSlotRepository.begin).not.toHaveBeenCalled();
+    expect(mocks.runtimeSlotRepository.begin).not.toHaveBeenCalled();
   });
 
   it('finds the latest producer slot scoped to team and attempt', async () => {
-    mocks.daemonRuntimeSlotRepository.findLatestProducerByTaskAttempt.mockResolvedValue(
+    mocks.runtimeSlotRepository.findLatestProducerByTaskAttempt.mockResolvedValue(
       {
         session: mockSession(),
         slot: mockSlot({ state: 'idle' }),
@@ -217,8 +216,8 @@ describe('daemon runtime slot routes', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: `/daemon-runtime-slots/producer?teamId=${TEAM_ID}&taskId=${TASK_ID}&attemptN=1`,
-      headers: { authorization: 'Bearer test-token' },
+      url: `/runtime-slots/producer?taskId=${TASK_ID}&attemptN=1`,
+      headers: TEAM_HEADERS,
     });
 
     expect(response.statusCode).toBe(200);
@@ -234,21 +233,20 @@ describe('daemon runtime slot routes', () => {
       workspace: { workspaceId: 'workspace-a' },
     });
     expect(
-      mocks.daemonRuntimeSlotRepository.findLatestProducerByTaskAttempt,
+      mocks.runtimeSlotRepository.findLatestProducerByTaskAttempt,
     ).toHaveBeenCalledWith(TEAM_ID, TASK_ID, 1);
   });
 
   it('finishes only the slot currently tied to the provided task attempt', async () => {
-    mocks.daemonRuntimeSlotRepository.finish.mockResolvedValue(
+    mocks.runtimeSlotRepository.finish.mockResolvedValue(
       mockSlot({ state: 'idle' }),
     );
 
     const response = await app.inject({
       method: 'POST',
-      url: '/daemon-runtime-slots/finish',
-      headers: { authorization: 'Bearer test-token' },
+      url: '/runtime-slots/finish',
+      headers: TEAM_HEADERS,
       payload: {
-        teamId: TEAM_ID,
         daemonId: 'daemon-a',
         agentName: 'legreffier',
         provider: 'anthropic',
@@ -262,7 +260,7 @@ describe('daemon runtime slot routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(mocks.daemonRuntimeSlotRepository.finish).toHaveBeenCalledWith(
+    expect(mocks.runtimeSlotRepository.finish).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
         taskId: TASK_ID,
@@ -273,14 +271,13 @@ describe('daemon runtime slot routes', () => {
   });
 
   it('returns 409 when finish races with a newer task attempt on the slot', async () => {
-    mocks.daemonRuntimeSlotRepository.finish.mockResolvedValue(null);
+    mocks.runtimeSlotRepository.finish.mockResolvedValue(null);
 
     const response = await app.inject({
       method: 'POST',
-      url: '/daemon-runtime-slots/finish',
-      headers: { authorization: 'Bearer test-token' },
+      url: '/runtime-slots/finish',
+      headers: TEAM_HEADERS,
       payload: {
-        teamId: TEAM_ID,
         daemonId: 'daemon-a',
         agentName: 'legreffier',
         provider: 'anthropic',
@@ -298,7 +295,7 @@ describe('daemon runtime slot routes', () => {
       conflict: {
         target: {
           keys: { slotKey: 'freeform:correlation:test' },
-          resource: 'daemon-runtime-slot',
+          resource: 'runtime-slot',
         },
       },
     });

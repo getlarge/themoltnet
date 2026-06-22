@@ -385,9 +385,9 @@ func encodeAppendTaskMessagesResponse(response AppendTaskMessagesRes, w http.Res
 	}
 }
 
-func encodeBeginDaemonRuntimeSlotResponse(response BeginDaemonRuntimeSlotRes, w http.ResponseWriter, span trace.Span) error {
+func encodeBeginRuntimeSlotResponse(response BeginRuntimeSlotRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
-	case *DaemonRuntimeSlot:
+	case *BeginRuntimeSlotOK:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
 
@@ -399,7 +399,7 @@ func encodeBeginDaemonRuntimeSlotResponse(response BeginDaemonRuntimeSlotRes, w 
 
 		return nil
 
-	case *ValidationProblemDetails:
+	case *BeginRuntimeSlotBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 
@@ -411,7 +411,7 @@ func encodeBeginDaemonRuntimeSlotResponse(response BeginDaemonRuntimeSlotRes, w 
 
 		return nil
 
-	case *BeginDaemonRuntimeSlotUnauthorized:
+	case *BeginRuntimeSlotUnauthorized:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(401)
 
@@ -423,7 +423,7 @@ func encodeBeginDaemonRuntimeSlotResponse(response BeginDaemonRuntimeSlotRes, w 
 
 		return nil
 
-	case *BeginDaemonRuntimeSlotForbidden:
+	case *BeginRuntimeSlotForbidden:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(403)
 
@@ -435,7 +435,7 @@ func encodeBeginDaemonRuntimeSlotResponse(response BeginDaemonRuntimeSlotRes, w 
 
 		return nil
 
-	case *BeginDaemonRuntimeSlotNotFound:
+	case *BeginRuntimeSlotNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
 
@@ -447,7 +447,7 @@ func encodeBeginDaemonRuntimeSlotResponse(response BeginDaemonRuntimeSlotRes, w 
 
 		return nil
 
-	case *ConflictProblemDetails:
+	case *BeginRuntimeSlotConflict:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -2388,9 +2388,9 @@ func encodeFailTaskResponse(response FailTaskRes, w http.ResponseWriter, span tr
 	}
 }
 
-func encodeFindDaemonRuntimeProducerSlotResponse(response FindDaemonRuntimeProducerSlotRes, w http.ResponseWriter, span trace.Span) error {
+func encodeFindRuntimeProducerSlotResponse(response FindRuntimeProducerSlotRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
-	case *ResolvedDaemonRuntimeSlot:
+	case *FindRuntimeProducerSlotOK:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
 
@@ -2402,7 +2402,7 @@ func encodeFindDaemonRuntimeProducerSlotResponse(response FindDaemonRuntimeProdu
 
 		return nil
 
-	case *ValidationProblemDetails:
+	case *FindRuntimeProducerSlotBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 
@@ -2414,7 +2414,7 @@ func encodeFindDaemonRuntimeProducerSlotResponse(response FindDaemonRuntimeProdu
 
 		return nil
 
-	case *FindDaemonRuntimeProducerSlotUnauthorized:
+	case *FindRuntimeProducerSlotUnauthorized:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(401)
 
@@ -2426,7 +2426,7 @@ func encodeFindDaemonRuntimeProducerSlotResponse(response FindDaemonRuntimeProdu
 
 		return nil
 
-	case *FindDaemonRuntimeProducerSlotForbidden:
+	case *FindRuntimeProducerSlotForbidden:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(403)
 
@@ -2438,7 +2438,7 @@ func encodeFindDaemonRuntimeProducerSlotResponse(response FindDaemonRuntimeProdu
 
 		return nil
 
-	case *FindDaemonRuntimeProducerSlotNotFound:
+	case *FindRuntimeProducerSlotNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
 
@@ -2455,9 +2455,9 @@ func encodeFindDaemonRuntimeProducerSlotResponse(response FindDaemonRuntimeProdu
 	}
 }
 
-func encodeFinishDaemonRuntimeSlotResponse(response FinishDaemonRuntimeSlotRes, w http.ResponseWriter, span trace.Span) error {
+func encodeFinishRuntimeSlotResponse(response FinishRuntimeSlotRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
-	case *DaemonRuntimeSlot:
+	case *FinishRuntimeSlotOK:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
 
@@ -2469,7 +2469,7 @@ func encodeFinishDaemonRuntimeSlotResponse(response FinishDaemonRuntimeSlotRes, 
 
 		return nil
 
-	case *ValidationProblemDetails:
+	case *FinishRuntimeSlotBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 
@@ -2481,7 +2481,7 @@ func encodeFinishDaemonRuntimeSlotResponse(response FinishDaemonRuntimeSlotRes, 
 
 		return nil
 
-	case *FinishDaemonRuntimeSlotUnauthorized:
+	case *FinishRuntimeSlotUnauthorized:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(401)
 
@@ -2493,7 +2493,7 @@ func encodeFinishDaemonRuntimeSlotResponse(response FinishDaemonRuntimeSlotRes, 
 
 		return nil
 
-	case *FinishDaemonRuntimeSlotForbidden:
+	case *FinishRuntimeSlotForbidden:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(403)
 
@@ -2505,7 +2505,7 @@ func encodeFinishDaemonRuntimeSlotResponse(response FinishDaemonRuntimeSlotRes, 
 
 		return nil
 
-	case *FinishDaemonRuntimeSlotNotFound:
+	case *FinishRuntimeSlotNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
 
@@ -2517,7 +2517,7 @@ func encodeFinishDaemonRuntimeSlotResponse(response FinishDaemonRuntimeSlotRes, 
 
 		return nil
 
-	case *ConflictProblemDetails:
+	case *FinishRuntimeSlotConflict:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 

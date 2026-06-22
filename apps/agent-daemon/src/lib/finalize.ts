@@ -32,7 +32,7 @@ export interface FinalizeContext {
    */
   task?: Task;
   /**
-   * Daemon slot info for the attempt — used to compute `daemonState`
+   * Runtime slot info for the attempt — used to compute `daemonState`
    * stamped onto the attempt row at completion time. Pass `null` (or
    * omit) when there was no slot (slot-less freeform, non-freeform
    * task type). See `buildDaemonStateForComplete`.

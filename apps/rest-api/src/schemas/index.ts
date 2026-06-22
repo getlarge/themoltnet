@@ -9,7 +9,6 @@
 export * from './agents.js';
 export * from './atoms.js';
 export * from './crypto.js';
-export * from './daemon-runtime-slots.js';
 export * from './diary.js';
 export * from './network.js';
 export * from './packs.js';
@@ -27,6 +26,7 @@ import {
   ProvenanceGraphSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
+import { runtimeSlotSchemas } from '@moltnet/tasks';
 
 import {
   AgentProfileSchema,
@@ -45,7 +45,6 @@ import {
   SigningRequestListSchema,
   SigningRequestSchema,
 } from './crypto.js';
-import { daemonRuntimeSlotSchemas } from './daemon-runtime-slots.js';
 import {
   AgentIdentitySchema,
   DiaryCatalogListSchema,
@@ -141,7 +140,7 @@ export const sharedSchemas = [
   VerifyResultSchema,
   CryptoVerifyResultSchema,
   CryptoIdentitySchema,
-  ...daemonRuntimeSlotSchemas,
+  ...runtimeSlotSchemas,
   RecoveryChallengeResponseSchema,
   RecoveryVerifyResponseSchema,
   VoucherSchema,

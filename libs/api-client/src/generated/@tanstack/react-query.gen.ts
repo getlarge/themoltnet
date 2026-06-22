@@ -15,7 +15,7 @@ import {
   acceptTransfer,
   addGroupMember,
   appendTaskMessages,
-  beginDaemonRuntimeSlot,
+  beginRuntimeSlot,
   cancelTask,
   claimTask,
   completeTask,
@@ -42,8 +42,8 @@ import {
   diffContextPacksByCid,
   diffContextPacksById,
   failTask,
-  findDaemonRuntimeProducerSlot,
-  finishDaemonRuntimeSlot,
+  findRuntimeProducerSlot,
+  finishRuntimeSlot,
   getAgentProfile,
   getContextPackById,
   getContextPackProvenanceByCid,
@@ -142,9 +142,9 @@ import type {
   AppendTaskMessagesData,
   AppendTaskMessagesError,
   AppendTaskMessagesResponse,
-  BeginDaemonRuntimeSlotData,
-  BeginDaemonRuntimeSlotError,
-  BeginDaemonRuntimeSlotResponse,
+  BeginRuntimeSlotData,
+  BeginRuntimeSlotError,
+  BeginRuntimeSlotResponse,
   CancelTaskData,
   CancelTaskError,
   CancelTaskResponse,
@@ -223,12 +223,12 @@ import type {
   FailTaskData,
   FailTaskError,
   FailTaskResponse,
-  FindDaemonRuntimeProducerSlotData,
-  FindDaemonRuntimeProducerSlotError,
-  FindDaemonRuntimeProducerSlotResponse,
-  FinishDaemonRuntimeSlotData,
-  FinishDaemonRuntimeSlotError,
-  FinishDaemonRuntimeSlotResponse,
+  FindRuntimeProducerSlotData,
+  FindRuntimeProducerSlotError,
+  FindRuntimeProducerSlotResponse,
+  FinishRuntimeSlotData,
+  FinishRuntimeSlotError,
+  FinishRuntimeSlotResponse,
   GetAgentProfileData,
   GetAgentProfileError,
   GetAgentProfileResponse,
@@ -910,88 +910,6 @@ export const verifyCryptoSignatureMutation = (
   };
   return mutationOptions;
 };
-
-/**
- * Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.
- */
-export const beginDaemonRuntimeSlotMutation = (
-  options?: Partial<Options<BeginDaemonRuntimeSlotData>>,
-): UseMutationOptions<
-  BeginDaemonRuntimeSlotResponse,
-  BeginDaemonRuntimeSlotError,
-  Options<BeginDaemonRuntimeSlotData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    BeginDaemonRuntimeSlotResponse,
-    BeginDaemonRuntimeSlotError,
-    Options<BeginDaemonRuntimeSlotData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await beginDaemonRuntimeSlot({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Mark a team-scoped daemon runtime slot idle without deleting it.
- */
-export const finishDaemonRuntimeSlotMutation = (
-  options?: Partial<Options<FinishDaemonRuntimeSlotData>>,
-): UseMutationOptions<
-  FinishDaemonRuntimeSlotResponse,
-  FinishDaemonRuntimeSlotError,
-  Options<FinishDaemonRuntimeSlotData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    FinishDaemonRuntimeSlotResponse,
-    FinishDaemonRuntimeSlotError,
-    Options<FinishDaemonRuntimeSlotData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await finishDaemonRuntimeSlot({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const findDaemonRuntimeProducerSlotQueryKey = (
-  options: Options<FindDaemonRuntimeProducerSlotData>,
-) => createQueryKey('findDaemonRuntimeProducerSlot', options);
-
-/**
- * Find the latest team-scoped producer slot for a task attempt.
- */
-export const findDaemonRuntimeProducerSlotOptions = (
-  options: Options<FindDaemonRuntimeProducerSlotData>,
-) =>
-  queryOptions<
-    FindDaemonRuntimeProducerSlotResponse,
-    FindDaemonRuntimeProducerSlotError,
-    FindDaemonRuntimeProducerSlotResponse,
-    ReturnType<typeof findDaemonRuntimeProducerSlotQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await findDaemonRuntimeProducerSlot({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: findDaemonRuntimeProducerSlotQueryKey(options),
-  });
 
 export const listDiariesQueryKey = (options?: Options<ListDiariesData>) =>
   createQueryKey('listDiaries', options);
@@ -3043,6 +2961,88 @@ export const updateRuntimeProfileMutation = (
   };
   return mutationOptions;
 };
+
+/**
+ * Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
+ */
+export const beginRuntimeSlotMutation = (
+  options?: Partial<Options<BeginRuntimeSlotData>>,
+): UseMutationOptions<
+  BeginRuntimeSlotResponse,
+  BeginRuntimeSlotError,
+  Options<BeginRuntimeSlotData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    BeginRuntimeSlotResponse,
+    BeginRuntimeSlotError,
+    Options<BeginRuntimeSlotData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await beginRuntimeSlot({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Mark a team-scoped runtime slot idle without deleting it.
+ */
+export const finishRuntimeSlotMutation = (
+  options?: Partial<Options<FinishRuntimeSlotData>>,
+): UseMutationOptions<
+  FinishRuntimeSlotResponse,
+  FinishRuntimeSlotError,
+  Options<FinishRuntimeSlotData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    FinishRuntimeSlotResponse,
+    FinishRuntimeSlotError,
+    Options<FinishRuntimeSlotData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await finishRuntimeSlot({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const findRuntimeProducerSlotQueryKey = (
+  options: Options<FindRuntimeProducerSlotData>,
+) => createQueryKey('findRuntimeProducerSlot', options);
+
+/**
+ * Find the latest team-scoped producer slot for a task attempt.
+ */
+export const findRuntimeProducerSlotOptions = (
+  options: Options<FindRuntimeProducerSlotData>,
+) =>
+  queryOptions<
+    FindRuntimeProducerSlotResponse,
+    FindRuntimeProducerSlotError,
+    FindRuntimeProducerSlotResponse,
+    ReturnType<typeof findRuntimeProducerSlotQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await findRuntimeProducerSlot({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: findRuntimeProducerSlotQueryKey(options),
+  });
 
 export const listTasksQueryKey = (options: Options<ListTasksData>) =>
   createQueryKey('listTasks', options);

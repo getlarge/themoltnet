@@ -22,7 +22,6 @@ export type {
   AgentRepository,
   ContextPackRepository,
   DaemonProfileRepository,
-  DaemonRuntimeSlotRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryTransferRepository,
@@ -32,6 +31,7 @@ export type {
   NonceRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
+  RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
   TeamRepository,
@@ -52,7 +52,6 @@ import type {
   AgentRepository,
   ContextPackRepository,
   DaemonProfileRepository,
-  DaemonRuntimeSlotRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryTransferRepository,
@@ -61,6 +60,7 @@ import type {
   HumanRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
+  RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
   TeamRepository,
@@ -93,7 +93,7 @@ declare module 'fastify' {
     teamRepository: TeamRepository;
     diaryTransferRepository: DiaryTransferRepository;
     daemonProfileRepository: DaemonProfileRepository;
-    daemonRuntimeSlotRepository: DaemonRuntimeSlotRepository;
+    runtimeSlotRepository: RuntimeSlotRepository;
     runtimeModelRepository: RuntimeModelRepository;
     permissionChecker: PermissionChecker;
     relationshipReader: RelationshipReader;
