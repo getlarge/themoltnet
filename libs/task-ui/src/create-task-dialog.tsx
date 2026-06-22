@@ -32,6 +32,13 @@ export interface DiaryOption {
   name: string;
 }
 
+export interface RuntimeProfileOption {
+  id: string;
+  name: string;
+  provider: string;
+  model: string;
+}
+
 /**
  * Workspace mode the proposer wants the daemon to mount for this freeform
  * task. Mirrors the `input.execution.workspace` surface declared on
@@ -111,6 +118,8 @@ export interface CreateTaskDialogProps {
   candidateTasks: TaskSummary[];
   /** Registered task-type names, forwarded to the depends-on type filter. */
   availableTypes: string[];
+  /** Runtime profiles the proposer may pin this standalone task to. */
+  runtimeProfiles?: RuntimeProfileOption[];
   /**
    * Optional server-backed search for the depends-on picker. The dialog remains
    * API-free; apps provide this when they can query `listTasks`.
@@ -142,6 +151,7 @@ export function CreateTaskDialog({
   diaries,
   candidateTasks,
   availableTypes,
+  runtimeProfiles = [],
   onSearchCandidates,
   onClose,
   onSubmit,
@@ -162,6 +172,7 @@ export function CreateTaskDialog({
   const [workspaceMode, setWorkspaceMode] = useState<
     '' | FreeformWorkspaceMode
   >('');
+  const [runtimeProfileId, setRuntimeProfileId] = useState('');
   const [dependsRows, setDependsRows] = useState<DependsRow[]>([]);
   const [rubric, setRubric] = useState<RubricForm>(EMPTY_RUBRIC_FORM);
   const [evidence, setEvidence] = useState<EvidenceRequirementsForm>(
@@ -225,6 +236,9 @@ export function CreateTaskDialog({
         ...(isContinuation && continueFrom.allowedProfiles?.length
           ? { allowedProfiles: continueFrom.allowedProfiles }
           : {}),
+        ...(!isContinuation && runtimeProfileId
+          ? { allowedProfiles: [{ profileId: runtimeProfileId }] }
+          : {}),
         ...(isContinuation && continueFrom.requiredExecutorTrustLevel
           ? {
               requiredExecutorTrustLevel:
@@ -256,6 +270,7 @@ export function CreateTaskDialog({
       setTags('');
       setExpectedOutput('');
       setWorkspaceMode('');
+      setRuntimeProfileId('');
       setDependsRows([]);
       setRubric(EMPTY_RUBRIC_FORM);
       setEvidence(EMPTY_EVIDENCE_REQUIREMENTS);
@@ -377,6 +392,25 @@ export function CreateTaskDialog({
                 dedicated_worktree — isolated branch, safe to mutate
               </option>
               <option value="none">none — scratch mount, no repo access</option>
+            </select>
+          </Stack>
+        )}
+
+        {isContinuation ? null : (
+          <Stack gap={1}>
+            {labelCaption('Runtime profile (optional)')}
+            <select
+              aria-label="Runtime profile"
+              value={runtimeProfileId}
+              onChange={(event) => setRuntimeProfileId(event.target.value)}
+              style={selectStyle}
+            >
+              <option value="">Any compatible daemon profile</option>
+              {runtimeProfiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.name} — {profile.provider}/{profile.model}
+                </option>
+              ))}
             </select>
           </Stack>
         )}
