@@ -9,11 +9,37 @@
 DROP FUNCTION IF EXISTS diary_search(TEXT, vector(384), INT, UUID[], TEXT[], INT, FLOAT, FLOAT, FLOAT, entry_type[], TEXT[], BOOLEAN, BOOLEAN, TIMESTAMPTZ, TIMESTAMPTZ, UUID[]);--> statement-breakpoint
 ALTER TABLE "diary_entries" ALTER COLUMN "entry_type" SET DATA TYPE text;--> statement-breakpoint
 ALTER TABLE "diary_entries" ALTER COLUMN "entry_type" SET DEFAULT 'semantic'::text;--> statement-breakpoint
+-- This one-time compatibility rewrite changes only the enum label for
+-- historical identity/soul entries. Signed rows must survive it, so bypass the
+-- content immutability trigger for this statement and restore it immediately.
+ALTER TABLE "diary_entries" DISABLE TRIGGER "diary_entries_immutable_content";--> statement-breakpoint
 UPDATE "diary_entries" SET "entry_type" = 'semantic' WHERE "entry_type" IN ('identity', 'soul');--> statement-breakpoint
+ALTER TABLE "diary_entries" ENABLE TRIGGER "diary_entries_immutable_content";--> statement-breakpoint
 DROP TYPE "public"."entry_type";--> statement-breakpoint
 CREATE TYPE "public"."entry_type" AS ENUM('episodic', 'semantic', 'procedural', 'reflection');--> statement-breakpoint
 ALTER TABLE "diary_entries" ALTER COLUMN "entry_type" SET DEFAULT 'semantic'::"public"."entry_type";--> statement-breakpoint
 ALTER TABLE "diary_entries" ALTER COLUMN "entry_type" SET DATA TYPE "public"."entry_type" USING "entry_type"::"public"."entry_type";--> statement-breakpoint
+-- Recompile the signed-content guard after recreating entry_type. The function
+-- body references NEW.entry_type/OLD.entry_type, and existing PL/pgSQL cached
+-- plans can retain the dropped enum type OID.
+CREATE OR REPLACE FUNCTION prevent_signed_content_update()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.content_signature IS NOT NULL THEN
+    IF NEW.title IS DISTINCT FROM OLD.title
+       OR NEW.content IS DISTINCT FROM OLD.content
+       OR NEW.tags IS DISTINCT FROM OLD.tags
+       OR NEW.entry_type IS DISTINCT FROM OLD.entry_type
+       OR NEW.content_hash IS DISTINCT FROM OLD.content_hash
+       OR NEW.content_signature IS DISTINCT FROM OLD.content_signature
+       OR NEW.signing_nonce IS DISTINCT FROM OLD.signing_nonce THEN
+      RAISE EXCEPTION
+        'Cannot modify content of a signed diary entry. Create a new entry and relate it with a supersedes relation.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;--> statement-breakpoint
 -- Recreate diary_search() verbatim (definition from 0013) so it binds to the
 -- recreated entry_type. No behavioral change.
 CREATE OR REPLACE FUNCTION diary_search(
