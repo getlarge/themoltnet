@@ -92,7 +92,9 @@ portable across developers and machines.
 - `--lease-ttl-sec` — daemon-set sliding liveness window. Silence longer than this ends the attempt with `lease_expired`. Also written to `task.claim_expires_at` for external observability. Default 300s.
 - `--heartbeat-interval-ms` — reporter heartbeat cadence. Default 60_000.
 - `--max-batch-size`, `--flush-interval-ms` — message batching for `appendMessages`.
-- `--warm-session-ttl-sec` — how long resumable daemon slots stay in local daemon state after use. A slot owns any persisted Pi session plus any reusable worktree for one agent/provider/model/slot-key combination. `0` disables slot reuse. Default 1800s.
+- `--warm-session-ttl-sec` — resumability window stamped on remote daemon
+  runtime slots after use. A slot records the persisted Pi session path plus any
+  reusable worktree for one provider/model/slot-key combination. Default 1800s.
 - `--profile <uuid|name>` — resolve provider, model, sandbox policy, runtime
   defaults, and profile routing from a remote runtime profile. Cannot be used
   with `--sandbox`.
@@ -432,10 +434,11 @@ Profile name lookup is team-scoped. `poll` and `drain` already require `--team`,
 so `--profile github-linear` resolves inside that team. `once` can run without a
 team id, so use a profile UUID for `once`.
 
-`sessionTtlSec` and `workspaceTtlSec` currently feed the daemon's local
-warm-slot retention default. The daemon has one local reuse timer covering both
-persisted Pi session history and reusable workspaces, so it uses the smaller of
-the two profile TTLs unless `--warm-session-ttl-sec` is passed explicitly.
+`sessionTtlSec` and `workspaceTtlSec` currently feed the daemon's default
+resumability window for remote runtime slots. The daemon has one window covering
+both persisted Pi session history and reusable workspaces, so it uses the
+smaller of the two profile TTLs unless `--warm-session-ttl-sec` is passed
+explicitly.
 
 Profile `context` entries are reserved for a follow-up integration. They are
 stored and returned by the API, but this daemon does not yet inject them as
@@ -483,14 +486,14 @@ the daemon interprets that policy locally.
 Current daemon behavior:
 
 - `correlationId` remains the task-system audit/query key. The daemon derives
-  its own local `slotKey` for reuse and scopes the durable slot by agent,
+  its own `slotKey` for reuse and scopes the remote durable slot by team,
   provider, and model before mapping it to runtime state.
 - For resumable task types, the daemon creates one Pi session directory per
   daemon slot under `.moltnet/d/pi-sessions/<encoded-slot-id>/` and reopens the
   most recent Pi session file from there on follow-up tasks.
-- The daemon tracks those slots in a local SQLite database at
-  `.moltnet/d/daemon-state.sqlite`, with separate slot, slot-session, and
-  slot-workspace records plus expiry metadata for cleanup.
+- The daemon records slot metadata through the REST API. The slot row keeps the
+  local session/workspace paths needed for affinity and resume, while the files
+  themselves still live on the daemon host.
 - For `dedicated_worktree` + `workspaceScope: session`, the daemon reuses a
   stable worktree path under `.worktrees/session-<encoded-slot-id>` instead
   of creating a fresh `.worktrees/task-<task-id>` checkout every attempt.
@@ -513,13 +516,11 @@ Current daemon behavior:
   `input.execution.workspace`. When that field is `none`, the daemon runs the
   producer in a `scratch_mount`; when it is `dedicated_worktree`, the daemon
   provisions an isolated worktree for that producer attempt.
-- `judge_eval_attempt` only resolves if that producer slot is still live when
-  the judge is claimed. If it is, the daemon immediately forks the producer Pi
-  session and copies the producer workspace into fresh judge-owned scratch
-  state. If the producer slot has already been reaped, the judge fails with
-  `producer_context_missing`.
-- Expired registry rows are reaped before the next task run, which also removes
-  the persisted Pi session directory and the reusable session-scoped worktree.
+- `judge_eval_attempt` only resolves if the producer slot metadata and local
+  session/workspace files are available when the judge is claimed. If they are,
+  the daemon immediately forks the producer Pi session and copies the producer
+  workspace into fresh judge-owned scratch state. If the daemon cannot resolve
+  that context, the judge fails with `producer_context_missing`.
 - Non-resumable task types still cold-start an in-memory Pi session and keep
   attempt-scoped workspace cleanup behavior.
 
@@ -534,7 +535,7 @@ The policy and continuation behavior above is covered by source-of-truth tests:
 - `apps/agent-daemon/src/lib/task-execution-plan.test.ts`,
   `apps/agent-daemon/src/lib/execution-plan-cache.test.ts`, and
   `apps/agent-daemon/e2e/daemon.e2e.test.ts` for daemon workspace planning,
-  warm-slot attachment, and continuation affinity.
+  runtime-slot attachment, and continuation affinity.
 
 ## Identity and sandbox model
 

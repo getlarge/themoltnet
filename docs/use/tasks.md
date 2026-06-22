@@ -33,13 +33,13 @@ Current built-in policy from `@moltnet/tasks`:
 
 Current daemon behavior:
 
-- `correlationId` stays the audit/query key. Local reuse is driven by a daemon
-  `slotKey`, then scoped by agent/provider/model into one durable daemon slot.
+- `correlationId` stays the audit/query key. Runtime reuse is driven by a daemon
+  `slotKey`, then scoped by team/provider/model into one durable daemon slot.
 - Resumable task types may persist Pi conversation history under
   `.moltnet/d/pi-sessions/<encoded-slot-id>/` and reopen the most recent
   session file on follow-up tasks.
-- The daemon also records slot metadata in `.moltnet/d/daemon-state.sqlite`,
-  including dedicated slot-session rows with the persisted Pi session path.
+- The daemon records slot metadata through the REST API, including the local Pi
+  session path and any reusable worktree path needed for affinity and resume.
 - `workspaceScope: session` means the daemon may keep local runtime state alive
   across related tasks keyed by the same daemon slot. For
   `dedicated_worktree`, that means a reusable worktree; for `run_eval`, it
@@ -53,9 +53,10 @@ shared_mount`, but each task instance can also carry
 - `freeform.input.continueFrom` creates a warm continuation of a completed
   freeform attempt. Continuations inherit the parent slot's workspace mode and
   cannot set `input.execution.workspace` on the continuation task.
-- `judge_eval_attempt` resolves only against a still-live producer slot; if it
-  claims in time, it immediately forks the producer session and copies the
-  producer workspace into judge-owned scratch state before executing.
+- `judge_eval_attempt` resolves only against an available producer slot; if it
+  claims with producer context available, it immediately forks the producer
+  session and copies the producer workspace into judge-owned scratch state
+  before executing.
 - Task types with `resumable: no` still run as cold attempt-scoped sessions.
 
 ## Typed and freeform work
@@ -99,14 +100,15 @@ forward); they differ only on the branch:
 | git branch    | parent's branch (shared)                     | NEW branch cut from the parent's tip |
 | PR effect     | same PR                                      | a separate, divergent PR             |
 | Pi session    | copied from parent                           | copied from parent                   |
-| workspace     | parent's (refcounted)                        | a fresh workspace                    |
+| workspace     | parent's workspace                           | a fresh workspace                    |
 | cross-profile | yes — a different agent profile may continue | n/a (own branch)                     |
 
-Use `extend` to keep building the same change — including handing the work to a
-**different agent profile** on the same PR (the daemon-state workspace is
-refcounted, so two profiles can resume the same branch without colliding). Use
-`fork` to explore a divergent alternative that should land as its own PR; the
-fork branch is `<parent-branch>-fork-<attemptN>`.
+Use `extend` to keep building the same change, including handing the work to a
+different compatible daemon profile on the same PR. The continuation resolves
+the parent slot through the remote runtime-slot record, then reuses the parent
+branch/workspace when that local path is still available. Use `fork` to explore
+a divergent alternative that should land as its own PR; the fork branch is
+`<parent-branch>-fork-<attemptN>`.
 
 ```mermaid
 flowchart TD
@@ -163,7 +165,7 @@ Source-of-truth tests for this contract:
 - `apps/agent-daemon/src/lib/task-execution-plan.test.ts`,
   `apps/agent-daemon/src/lib/execution-plan-cache.test.ts`, and
   `apps/agent-daemon/e2e/daemon.e2e.test.ts` cover daemon workspace planning,
-  warm-slot attachment, and continuation affinity.
+  runtime-slot attachment, and continuation affinity.
 
 ## Operations
 

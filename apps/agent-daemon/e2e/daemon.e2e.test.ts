@@ -700,13 +700,13 @@ describe('Agent daemon (e2e)', () => {
     expect(finalSecond.status).toBe('completed');
   }, 60_000);
 
-  describe('freeform tasks_continue warm-slot affinity', () => {
-    // Canonical fake-parent scenario for #1287: seed a freeform warm
+  describe('freeform tasks_continue runtime-slot affinity', () => {
+    // Canonical fake-parent scenario for #1287: seed a freeform runtime
     // slot via the stub harness (real task row + remote runtime slot rows,
     // no LLM, no Pi boot), then create a continuation. The affinity filter
     // claims when the remote slot points at a local session directory.
 
-    it('claims a continuation when the warm slot is alive on this daemon', async () => {
+    it('claims a continuation when the runtime slot is available to this daemon', async () => {
       const mountRoot = mkdtempSync(
         join(tmpdir(), 'daemon-continue-claim-e2e-'),
       );
@@ -779,7 +779,7 @@ describe('Agent daemon (e2e)', () => {
           { taskId: parent.id, attemptN: parentRun.output.attemptN },
         );
 
-        // 3. Drive a PollingApiTaskSource WITH the warm slot registry.
+        // 3. Drive a PollingApiTaskSource WITH the runtime slot store.
         //    The affinity filter should let this claim through.
         const claimingSource = new PollingApiTaskSource({
           agent,
@@ -821,7 +821,7 @@ describe('Agent daemon (e2e)', () => {
 
         // Tidy.
         await agent.tasks.cancel(continuation.id, {
-          reason: 'cleanup after warm-slot continuation claim assertion',
+          reason: 'cleanup after runtime-slot continuation claim assertion',
         });
       } finally {
         await slotStore.close();
@@ -1170,7 +1170,7 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   const outputs = await runtime.start();
   expect(outputs).toHaveLength(1);
   const [output] = outputs;
-  // Mirror the production daemon: forward the warm-slot expiry through to
+  // Mirror the production daemon: forward the runtime-slot expiry through to
   // /complete so freeform attempts report a non-null `slotResumableUntil`,
   // which is what `validateFreeformInputAsync` requires for continuation
   // tasks to pass create-time async validation.

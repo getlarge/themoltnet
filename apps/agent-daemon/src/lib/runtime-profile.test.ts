@@ -127,7 +127,7 @@ describe('resolveRuntimeProfile', () => {
     ).rejects.toThrow(/belongs to team team-2/);
   });
 
-  it('uses the smaller session/workspace TTL for local warm-slot retention', () => {
+  it('uses the smaller session/workspace TTL for runtime-slot resumability', () => {
     expect(resolveProfileWarmSessionTtlSec(profile)).toBe(300);
     expect(
       resolveProfileWarmSessionTtlSec({

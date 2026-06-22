@@ -261,7 +261,7 @@ describe('createExecutionPlanCache', () => {
     await slotStore.close();
   });
 
-  it('attaches warm-slot context for freeform continuations', async () => {
+  it('attaches runtime-slot context for freeform continuations', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-cont-'));
     tempRoots.push(mountRoot);
     const stateDirs = {

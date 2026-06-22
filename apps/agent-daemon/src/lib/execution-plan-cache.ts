@@ -231,16 +231,14 @@ async function maybeAttachWarmSlotContext(
       };
     }
 
-    // extend (default): share the parent's branch/workspace. Cross-profile safe
-    // now that workspaces are refcounted.
+    // extend (default): share the parent's branch/workspace. The producer slot
+    // has already been resolved and checked against local session state.
     //
     // A null workspace here is legitimate, not a degraded continuation: it
     // means the producer ran in shared_mount (no dedicated worktree), so there
     // is no branch to share and the continuation correctly runs on the shared
-    // mount too. The dangerous case — a live producer slot whose workspace was
-    // reaped out from under it — cannot happen: reap deletes the slot and
-    // releases its workspace in one transaction, so a resolved (live) slot
-    // always still has its workspace row (refcount >= 1).
+    // mount too. Dedicated worktree producers must still resolve to a recorded
+    // workspace path before this point.
     return {
       ...basePlan,
       workspaceMode: 'dedicated_worktree',

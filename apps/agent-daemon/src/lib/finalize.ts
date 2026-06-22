@@ -44,7 +44,7 @@ export interface FinalizeContext {
 
 /**
  * Build the `daemonState` payload for a `/complete` call. Only freeform
- * attempts that ran with a warm slot are eligible for continuation
+ * attempts that ran with a runtime slot are eligible for continuation
  * (`tasks_continue`, see issue #1287). Other task types and slot-less
  * freeform completions report `null` for `slotResumableUntil`, which
  * the server persists verbatim — continuations against such attempts

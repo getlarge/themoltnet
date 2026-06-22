@@ -197,35 +197,33 @@ callers cannot override it on the continuation task.
 
 #### Daemon slot & workspace lifecycle
 
-The daemon keeps a local **slot registry** (`@themoltnet/agent-daemon-state`) so
-related tasks can reuse a warm Pi session and its git worktree. A slot is keyed
-by `(agentName, provider, model, slotKey)` — so the **same logical task can hold
-several slots, one per agent profile**.
+The daemon records **runtime slots** through the REST API so related tasks can
+reuse a warm Pi session and its git worktree. A slot is keyed by team, provider,
+model, and slot key. The row stores the local session/workspace paths and is
+linked to attempts for audit; the files still live on the daemon host.
 
-The worktree/scratch **workspace** a slot uses is a separate, refcounted entity
-(`daemon_workspaces`), not owned by any single slot. `beginSlot` increments the
-referenced workspace's refcount; reap (TTL expiry) decrements it and removes the
-on-disk artifact — `git worktree remove` for `origin`/`fork` worktrees, `rm` for
-`scratch` dirs — **only when the count reaches zero**. This is what lets a
-continuation under a _different_ profile share the parent's branch: both slots
-reference one workspace, and the branch survives until the last referrer evicts.
+Continuation is intentionally profile-agnostic. A daemon that can claim the
+task may resolve the parent slot through the API, verify that the recorded local
+session path still exists, and then reuse or fork the parent workspace according
+to `continueFrom.mode`. This is what lets a continuation under a different
+compatible profile share the parent's branch when the local workspace is still
+available.
 
 ```mermaid
 sequenceDiagram
-    participant A as slot (profile A)
-    participant W as workspace ws-x (refcount)
-    participant B as slot (profile B)
-    A->>W: beginSlot → refcount 1 (create worktree)
-    B->>W: beginSlot (extend, shared branch) → refcount 2
-    Note over A: profile A slot TTL expires
-    A->>W: reap → refcount 1 (worktree kept)
-    Note over B: profile B slot TTL expires
-    B->>W: reap → refcount 0 (git worktree remove)
+    participant A as producer daemon
+    participant API as REST API
+    participant B as continuation daemon
+    participant W as local workspace/session
+    A->>API: upsert runtime slot for attempt
+    A->>W: write Pi session + workspace
+    B->>API: resolve latest producer slot(taskId, attemptN)
+    B->>W: verify recorded session/workspace path
+    B->>W: extend reuses branch, fork copies into new workspace
 ```
 
-A `fork` continuation does not share: it gets its own workspace (refcount 1,
-`kind = fork`) on a new branch cut from the parent tip, so it evicts
-independently.
+A `fork` continuation does not share: it gets its own workspace on a new branch
+cut from the parent tip, so it can diverge independently.
 
 #### Judgment tasks fetch their target themselves
 
