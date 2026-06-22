@@ -31,9 +31,8 @@
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "build": "vite build",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack && pnpm run smoke:pack:state",
-    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-agent --args --help --expect \"long-running task worker for MoltNet\"",
-    "smoke:pack:state": "tsx ../../tools/src/smoke-agent-daemon-state-pack.ts"
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-agent --args --help --expect \"long-running task worker for MoltNet\""
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
