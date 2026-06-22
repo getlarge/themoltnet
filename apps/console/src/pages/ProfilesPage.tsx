@@ -17,6 +17,7 @@ import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../api.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useTeam } from '../team/useTeam.js';
 
 interface ProfileFormState {
@@ -53,6 +54,7 @@ const EMPTY_FORM: ProfileFormState = {
 
 export function ProfilesPage() {
   const theme = useTheme();
+  const isMobile = useIsMobile();
   const { selectedTeam, error: teamError, refreshTeams } = useTeam();
   const teamId = selectedTeam?.id;
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
@@ -88,6 +90,26 @@ export function ProfilesPage() {
   );
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
   const isEditing = selectedProfile !== undefined;
+
+  useEffect(() => {
+    setSelectedProfileId(null);
+    setForm(EMPTY_FORM);
+    setFormError(null);
+  }, [teamId]);
+
+  useEffect(() => {
+    if (
+      profilesQuery.data &&
+      selectedProfileId &&
+      !profiles.some((profile) => profile.id === selectedProfileId)
+    ) {
+      setSelectedProfileId(profiles[0]?.id ?? null);
+      if (profiles.length === 0) {
+        setForm(EMPTY_FORM);
+        setFormError(null);
+      }
+    }
+  }, [profiles, profilesQuery.data, selectedProfileId]);
 
   useEffect(() => {
     if (!selectedProfileId && profiles.length > 0) {
@@ -152,8 +174,9 @@ export function ProfilesPage() {
       if (result.error || !result.data) {
         throw new Error(getApiErrorDetail(result.error));
       }
-      setSelectedProfileId(result.data.id);
       await profilesQuery.refetch();
+      setSelectedProfileId(result.data.id);
+      setForm(profileToForm(result.data));
     } catch (err) {
       setFormError(
         err instanceof Error ? err.message : 'Failed to save runtime profile',
@@ -232,7 +255,9 @@ export function ProfilesPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(260px, 360px) minmax(0, 1fr)',
+          gridTemplateColumns: isMobile
+            ? 'minmax(0, 1fr)'
+            : 'minmax(260px, 360px) minmax(0, 1fr)',
           gap: theme.spacing[4],
           alignItems: 'start',
         }}
