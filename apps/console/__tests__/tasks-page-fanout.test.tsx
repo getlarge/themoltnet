@@ -58,6 +58,10 @@ vi.mock('@moltnet/api-client/query', () => ({
     queryKey: ['listTaskSchemas'],
     queryFn: async () => ({ items: [] }),
   }),
+  listRuntimeProfilesOptions: () => ({
+    queryKey: ['listRuntimeProfiles'],
+    queryFn: async () => ({ items: [] }),
+  }),
   getTaskOptions: () => ({
     queryKey: ['getTask'],
     queryFn: async () => null,

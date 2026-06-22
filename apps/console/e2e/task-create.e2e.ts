@@ -1,6 +1,11 @@
 import { randomBytes } from 'node:crypto';
 
-import { createDiary, listTasks, listTeams } from '@moltnet/api-client';
+import {
+  createDiary,
+  createRuntimeProfile,
+  listTasks,
+  listTeams,
+} from '@moltnet/api-client';
 import { expect, type Page, test } from '@playwright/test';
 
 import {
@@ -17,6 +22,8 @@ test.describe.serial('Create task from console', () => {
   const nonce = randomBytes(3).toString('hex');
   let teamId: string;
   let sessionToken: string;
+  let runtimeProfileId: string;
+  const runtimeProfileName = `task-create-profile-${nonce}`;
 
   /**
    * Log in (each serial test gets a fresh browser context, so the session from
@@ -52,6 +59,23 @@ test.describe.serial('Create task from console', () => {
       headers: { 'x-moltnet-team-id': teamId },
       body: { name: `task-create-diary-${nonce}`, visibility: 'private' },
     });
+    const profile = await createRuntimeProfile({
+      client,
+      headers: { 'x-moltnet-team-id': teamId },
+      body: {
+        name: runtimeProfileName,
+        runtimeKind: 'gondolin_pi',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        sandbox: {},
+      },
+    });
+    if (!profile.data?.id) {
+      throw new Error(
+        `createRuntimeProfile failed: ${JSON.stringify(profile.error)}`,
+      );
+    }
+    runtimeProfileId = profile.data.id;
   });
 
   test('creates a freeform task via the New task dialog', async ({ page }) => {
@@ -66,6 +90,57 @@ test.describe.serial('Create task from console', () => {
       page.getByText('Pending', { exact: false }).first(),
     ).toBeVisible();
     await expect(page.getByText('Freeform').first()).toBeVisible();
+  });
+
+  test('creates a task pinned to a runtime profile', async ({ page }) => {
+    await openCreateDialog(page);
+
+    const brief = `Profile pinned task ${nonce}`;
+    await page.getByLabel(/brief/i).fill(brief);
+    const runtimeProfileSelect = page.getByLabel(/runtime profile/i);
+    await runtimeProfileSelect.selectOption(runtimeProfileId);
+    await expect(runtimeProfileSelect).toHaveValue(runtimeProfileId);
+    await page.getByRole('button', { name: /create task/i }).click();
+
+    const client = createTokenSessionApiClient(sessionToken);
+    await expect
+      .poll(async () => {
+        const items =
+          (await listTasks({ client, query: { teamId } })).data?.items ?? [];
+        const task = items.find(
+          (candidate) =>
+            typeof candidate.input === 'object' &&
+            candidate.input !== null &&
+            (candidate.input as Record<string, unknown>).brief === brief,
+        );
+        return task?.allowedProfiles ?? null;
+      })
+      .toEqual([{ profileId: runtimeProfileId }]);
+  });
+
+  test('omits profile pinning when no runtime profile is selected', async ({
+    page,
+  }) => {
+    await openCreateDialog(page);
+
+    const brief = `Unpinned task ${nonce}`;
+    await page.getByLabel(/brief/i).fill(brief);
+    await page.getByRole('button', { name: /create task/i }).click();
+
+    const client = createTokenSessionApiClient(sessionToken);
+    await expect
+      .poll(async () => {
+        const items =
+          (await listTasks({ client, query: { teamId } })).data?.items ?? [];
+        const task = items.find(
+          (candidate) =>
+            typeof candidate.input === 'object' &&
+            candidate.input !== null &&
+            (candidate.input as Record<string, unknown>).brief === brief,
+        );
+        return task?.allowedProfiles ?? null;
+      })
+      .toEqual([]);
   });
 
   test('disables submit until a brief is entered', async ({ page }) => {

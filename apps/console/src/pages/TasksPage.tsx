@@ -1,6 +1,7 @@
 import { createTask, type TaskStatus } from '@moltnet/api-client';
 import {
   getTaskOptions,
+  listRuntimeProfilesOptions,
   listTaskAttemptsOptions,
   listTaskMessagesOptions,
   listTaskSchemasOptions,
@@ -135,6 +136,24 @@ export function TasksPage() {
   const registeredTaskTypes = useMemo(
     () => (schemasQuery.data?.items ?? []).map((d) => d.taskType),
     [schemasQuery.data],
+  );
+
+  const runtimeProfilesQuery = useQuery({
+    ...listRuntimeProfilesOptions({
+      client: getApiClient(),
+      headers: { 'x-moltnet-team-id': teamId ?? '' },
+    }),
+    enabled,
+  });
+  const runtimeProfileOptions = useMemo(
+    () =>
+      (runtimeProfilesQuery.data?.items ?? []).map((profile) => ({
+        id: profile.id,
+        name: profile.name,
+        provider: profile.provider,
+        model: profile.model,
+      })),
+    [runtimeProfilesQuery.data],
   );
 
   // Dedicated candidate set for the depends-on picker — scoped to selectable
@@ -467,6 +486,7 @@ export function TasksPage() {
           diaries={diaryOptions}
           candidateTasks={pickerCandidates}
           availableTypes={registeredTaskTypes}
+          runtimeProfiles={runtimeProfileOptions}
           onSearchCandidates={searchPickerCandidates}
           successCriteriaDocsHref={SUCCESS_CRITERIA_DOCS_HREF}
           onClose={() => setShowCreate(false)}
