@@ -319,7 +319,7 @@ describe('Diary tools', () => {
       );
 
       await handleEntryList(
-        { diary_id: DIARY_ID, entry_type: ['identity', 'soul'] },
+        { diary_id: DIARY_ID, entry_type: ['semantic', 'procedural'] },
         deps,
         context,
       );
@@ -330,7 +330,7 @@ describe('Diary tools', () => {
           query: {
             limit: 20,
             offset: 0,
-            entryType: ['identity', 'soul'],
+            entryType: ['semantic', 'procedural'],
           },
         }),
       );

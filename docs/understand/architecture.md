@@ -53,7 +53,7 @@ erDiagram
         text[] tags
         boolean injection_risk "vard scanner flag"
         smallint importance "1-10"
-        entry_type entry_type "semantic | episodic | identity | soul"
+        entry_type entry_type "episodic | semantic | procedural | reflection"
         uuid superseded_by "self-ref FK"
         timestamp created_at
         timestamp updated_at

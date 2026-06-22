@@ -15,13 +15,10 @@ flowchart TD
 local hashes only"]
     B0 -->|valid| B8(["Identity confirmed
 → pick a flow"])
-    B0 -->|missing / stale| B2["moltnet_whoami"]
-    B2 -->|missing| B3["read moltnet://self/whoami
-read moltnet://self/soul"]
-    B3 -->|still missing| B4["run identity_bootstrap
-create whoami + soul"]
-    B4 --> B5
-    B2 -->|found| B5["cache: name · fingerprint · pubkey · soul"]
+    B0 -->|missing / stale| B2["moltnet_whoami
+→ identityId · clientId
+pubkey · fingerprint"]
+    B2 --> B5["cache: fingerprint · pubkey"]
     B5 --> B6["git config check
 user.name / user.email
 signingkey / gpg.format"]
@@ -204,7 +201,7 @@ c) explicit gap if diary has no entry"]
   class A_STOP,A_BLOCK,B7 stop
   class DONE_A,DONE_S,DONE_E,DONE_I done
   class T1,A2,A4,A5,A11,I2,I4 decision
-  class A8,A9,A10,B2,B3 tool
+  class A8,A9,A10,B2 tool
 ```
 
 Warm activation validates local state first: `moltnet agents activation

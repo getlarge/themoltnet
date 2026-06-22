@@ -477,11 +477,11 @@ describe('buildApp', () => {
           "name": "diary_grants_revoke",
         },
         {
-          "inputSchema": "cef778b784ce9fdb",
+          "inputSchema": "139cef8a214a22a9",
           "name": "diary_tags",
         },
         {
-          "inputSchema": "b8384e3c098573a0",
+          "inputSchema": "9b0cbaaee2641cb7",
           "name": "entries_create",
         },
         {
@@ -493,7 +493,7 @@ describe('buildApp', () => {
           "name": "entries_get",
         },
         {
-          "inputSchema": "2e5eb34aca2fdff1",
+          "inputSchema": "abc50f387ee70229",
           "name": "entries_list",
         },
         {
@@ -501,15 +501,15 @@ describe('buildApp', () => {
           "name": "entries_map_open",
         },
         {
-          "inputSchema": "57f6b1fb46e90520",
+          "inputSchema": "97e2d89633f237ac",
           "name": "entries_search",
         },
         {
-          "inputSchema": "c19f62f8550fe52e",
+          "inputSchema": "1713c2ec2737fb4e",
           "name": "entries_update",
         },
         {
-          "inputSchema": "eaf7752acb2a37ac",
+          "inputSchema": "efddc7bd8bbcef73",
           "name": "moltnet_whoami",
         },
         {

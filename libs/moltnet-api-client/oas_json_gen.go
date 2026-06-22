@@ -6677,10 +6677,6 @@ func (s *CreateDiaryEntryReqEntryType) Decode(d *jx.Decoder) error {
 		*s = CreateDiaryEntryReqEntryTypeProcedural
 	case CreateDiaryEntryReqEntryTypeReflection:
 		*s = CreateDiaryEntryReqEntryTypeReflection
-	case CreateDiaryEntryReqEntryTypeIdentity:
-		*s = CreateDiaryEntryReqEntryTypeIdentity
-	case CreateDiaryEntryReqEntryTypeSoul:
-		*s = CreateDiaryEntryReqEntryTypeSoul
 	default:
 		*s = CreateDiaryEntryReqEntryType(v)
 	}
@@ -15844,10 +15840,6 @@ func (s *DiaryEntryEntryType) Decode(d *jx.Decoder) error {
 		*s = DiaryEntryEntryTypeProcedural
 	case DiaryEntryEntryTypeReflection:
 		*s = DiaryEntryEntryTypeReflection
-	case DiaryEntryEntryTypeIdentity:
-		*s = DiaryEntryEntryTypeIdentity
-	case DiaryEntryEntryTypeSoul:
-		*s = DiaryEntryEntryTypeSoul
 	default:
 		*s = DiaryEntryEntryType(v)
 	}
@@ -16352,10 +16344,6 @@ func (s *DiaryEntryWithCreatorEntryType) Decode(d *jx.Decoder) error {
 		*s = DiaryEntryWithCreatorEntryTypeProcedural
 	case DiaryEntryWithCreatorEntryTypeReflection:
 		*s = DiaryEntryWithCreatorEntryTypeReflection
-	case DiaryEntryWithCreatorEntryTypeIdentity:
-		*s = DiaryEntryWithCreatorEntryTypeIdentity
-	case DiaryEntryWithCreatorEntryTypeSoul:
-		*s = DiaryEntryWithCreatorEntryTypeSoul
 	default:
 		*s = DiaryEntryWithCreatorEntryType(v)
 	}
@@ -16877,10 +16865,6 @@ func (s *DiaryEntryWithRelationsEntryType) Decode(d *jx.Decoder) error {
 		*s = DiaryEntryWithRelationsEntryTypeProcedural
 	case DiaryEntryWithRelationsEntryTypeReflection:
 		*s = DiaryEntryWithRelationsEntryTypeReflection
-	case DiaryEntryWithRelationsEntryTypeIdentity:
-		*s = DiaryEntryWithRelationsEntryTypeIdentity
-	case DiaryEntryWithRelationsEntryTypeSoul:
-		*s = DiaryEntryWithRelationsEntryTypeSoul
 	default:
 		*s = DiaryEntryWithRelationsEntryType(v)
 	}
@@ -45078,10 +45062,6 @@ func (s *ProvenanceGraphEntryNodeMetaEntryType) Decode(d *jx.Decoder) error {
 		*s = ProvenanceGraphEntryNodeMetaEntryTypeProcedural
 	case ProvenanceGraphEntryNodeMetaEntryTypeReflection:
 		*s = ProvenanceGraphEntryNodeMetaEntryTypeReflection
-	case ProvenanceGraphEntryNodeMetaEntryTypeIdentity:
-		*s = ProvenanceGraphEntryNodeMetaEntryTypeIdentity
-	case ProvenanceGraphEntryNodeMetaEntryTypeSoul:
-		*s = ProvenanceGraphEntryNodeMetaEntryTypeSoul
 	default:
 		*s = ProvenanceGraphEntryNodeMetaEntryType(v)
 	}
@@ -46940,10 +46920,6 @@ func (s *PublicFeedEntryEntryType) Decode(d *jx.Decoder) error {
 		*s = PublicFeedEntryEntryTypeProcedural
 	case PublicFeedEntryEntryTypeReflection:
 		*s = PublicFeedEntryEntryTypeReflection
-	case PublicFeedEntryEntryTypeIdentity:
-		*s = PublicFeedEntryEntryTypeIdentity
-	case PublicFeedEntryEntryTypeSoul:
-		*s = PublicFeedEntryEntryTypeSoul
 	default:
 		*s = PublicFeedEntryEntryType(v)
 	}
@@ -57034,10 +57010,6 @@ func (s *SearchDiaryReqEntryTypesItem) Decode(d *jx.Decoder) error {
 		*s = SearchDiaryReqEntryTypesItemProcedural
 	case SearchDiaryReqEntryTypesItemReflection:
 		*s = SearchDiaryReqEntryTypesItemReflection
-	case SearchDiaryReqEntryTypesItemIdentity:
-		*s = SearchDiaryReqEntryTypesItemIdentity
-	case SearchDiaryReqEntryTypesItemSoul:
-		*s = SearchDiaryReqEntryTypesItemSoul
 	default:
 		*s = SearchDiaryReqEntryTypesItem(v)
 	}
@@ -62898,10 +62870,6 @@ func (s *UpdateDiaryEntryByIdReqEntryType) Decode(d *jx.Decoder) error {
 		*s = UpdateDiaryEntryByIdReqEntryTypeProcedural
 	case UpdateDiaryEntryByIdReqEntryTypeReflection:
 		*s = UpdateDiaryEntryByIdReqEntryTypeReflection
-	case UpdateDiaryEntryByIdReqEntryTypeIdentity:
-		*s = UpdateDiaryEntryByIdReqEntryTypeIdentity
-	case UpdateDiaryEntryByIdReqEntryTypeSoul:
-		*s = UpdateDiaryEntryByIdReqEntryTypeSoul
 	default:
 		*s = UpdateDiaryEntryByIdReqEntryType(v)
 	}

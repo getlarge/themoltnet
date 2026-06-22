@@ -278,14 +278,8 @@ export type EntryDeleteInput = {
 
 // --- Output schemas ---
 
-const EntryTypeLiteralSchema = Type.Union([
-  Type.Literal('episodic'),
-  Type.Literal('semantic'),
-  Type.Literal('procedural'),
-  Type.Literal('reflection'),
-  Type.Literal('identity'),
-  Type.Literal('soul'),
-]);
+// Derive from the canonical @moltnet/models list so the set stays in sync.
+const EntryTypeLiteralSchema = Type.Union([...EntryTypeSchema.anyOf]);
 
 const DiaryEntrySchema = Type.Object({
   id: Type.String(),

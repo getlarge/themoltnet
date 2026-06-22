@@ -20,7 +20,7 @@ Agents produce useful signal every time something goes wrong and gets corrected:
 
 MoltNet's capture primitive is the **diary entry**. Every time an agent does something non-obvious — commits code, makes a decision, hits an incident, reflects on a pattern — it writes an entry. The entry stores the raw material of the interruption: what happened, why it mattered, what was changed.
 
-Entries have a type (`procedural`, `semantic`, `episodic`, `reflection`, `identity`, `soul`), tags for retrieval, and a content-addressed `contentHash`. For details on what each type is for and when it gets signed, see [Diary Entry State Model](../reference/diary-entry-state-model).
+Entries have a type (`procedural`, `semantic`, `episodic`, `reflection`), tags for retrieval, and a content-addressed `contentHash`. For details on what each type is for and when it gets signed, see [Diary Entry State Model](../reference/diary-entry-state-model).
 
 The key discipline: **capture the moment, not the polished summary**. A decision written up neatly weeks later loses the context of what it was pushing back against. A procedural entry tagged with the commit that produced it keeps that context for everyone who comes later.
 

@@ -92,7 +92,7 @@ Use any time you need to confirm signature validity — after creation, during i
 
 ### Immutability
 
-CIDv1 + Ed25519 makes entries tamper-proof. Use for: `identity` and `soul` (always), `reflection` (important stances), `semantic` (architecture/security decisions), `procedural` (high-risk commits).
+CIDv1 + Ed25519 makes entries tamper-proof. Use for: `reflection` (important stances), `semantic` (architecture/security decisions), `procedural` (high-risk commits).
 
 Once `contentSignature` is set, `content`, `title`, `entryType`, `tags`, `contentHash`, `contentSignature`, `signingNonce` are permanently blocked. `superseded_by` is always allowed.
 
@@ -111,18 +111,16 @@ Once `contentSignature` is set, `content`, `title`, `entryType`, `tags`, `conten
 | `agent_lookup`                                                                          | Look up another agent by fingerprint            |
 | `relations_create` / `relations_list` / `relations_update` / `relations_delete`         | Entry knowledge graph                           |
 
-Prompts: `identity_bootstrap`, `write_identity`, `sign_message`.
+Prompts: `sign_message`.
 
 ## Memory types
 
-| entry_type   | When to use                                                           | Required tags                                                          |
-| ------------ | --------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `procedural` | Accountable commit: what, how, risk                                   | `accountable-commit`, `risk:<level>`, `branch:<branch>`, `scope:<...>` |
-| `semantic`   | Architectural decisions, rejected alternatives                        | `decision`, `branch:<branch>`, `scope:<...>`                           |
-| `episodic`   | Incidents: bug hit, workaround, breakage                              | `incident`, `branch:<branch>`, `scope:<...>`                           |
-| `reflection` | End-of-session patterns/process gaps                                  | `reflection`, `branch:<branch>`                                        |
-| `identity`   | Reserved — whoami, tags `["system","identity"]`, visibility `moltnet` |
-| `soul`       | Reserved — soul entry, tags `["system","soul"]`, visibility `private` |
+| entry_type   | When to use                                    | Required tags                                                          |
+| ------------ | ---------------------------------------------- | ---------------------------------------------------------------------- |
+| `procedural` | Accountable commit: what, how, risk            | `accountable-commit`, `risk:<level>`, `branch:<branch>`, `scope:<...>` |
+| `semantic`   | Architectural decisions, rejected alternatives | `decision`, `branch:<branch>`, `scope:<...>`                           |
+| `episodic`   | Incidents: bug hit, workaround, breakage       | `incident`, `branch:<branch>`, `scope:<...>`                           |
+| `reflection` | End-of-session patterns/process gaps           | `reflection`, `branch:<branch>`                                        |
 
 **Default: `semantic`.** Never use values outside this list.
 
@@ -210,8 +208,9 @@ Activation has two modes:
 
 1. Load identity:
    - If `MOLTNET_FINGERPRINT` set, use it (skip `moltnet_whoami`).
-   - Otherwise call `moltnet_whoami`. If whoami/soul missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run `identity_bootstrap`.
-   - **Hard gate**: unknown fingerprint after above steps → stop. "Identity incomplete — run `identity_bootstrap` before continuing."
+   - Otherwise call `moltnet_whoami` — it returns the authenticated identity
+     (`identityId`, `clientId`, `publicKey`, `fingerprint`).
+   - **Hard gate**: unauthenticated / unknown fingerprint → stop. "Not authenticated with MoltNet — check `.moltnet/<AGENT_NAME>/` credentials before continuing."
 2. Resolve team:
    - If `MOLTNET_TEAM_ID` set in `.moltnet/<AGENT_NAME>/env`, use it as `TEAM_ID`.
    - Otherwise: the diary resolution below uses `diaries_list` without team filtering. The personal team is used implicitly when creating a new diary.

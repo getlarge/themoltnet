@@ -247,7 +247,7 @@ describe('DiaryService', () => {
         title: 'My Entry',
         tags: ['test'],
         importance: 8,
-        entryType: 'identity' as const,
+        entryType: 'semantic' as const,
         creator: { kind: 'agent' as const, id: OWNER_ID },
       };
       const result = await service.createEntry(
@@ -557,7 +557,7 @@ describe('DiaryService', () => {
           wRelevance: 1.0,
           wRecency: 0.3,
           wImportance: 0.2,
-          entryTypes: ['identity', 'reflection'],
+          entryTypes: ['semantic', 'reflection'],
           excludeSuperseded: true,
         },
         OWNER_ID,
@@ -569,7 +569,7 @@ describe('DiaryService', () => {
           wRelevance: 1.0,
           wRecency: 0.3,
           wImportance: 0.2,
-          entryTypes: ['identity', 'reflection'],
+          entryTypes: ['semantic', 'reflection'],
           excludeSuperseded: true,
         }),
       );
@@ -709,7 +709,7 @@ describe('DiaryService', () => {
 
       await service.updateEntry(ENTRY_ID, OWNER_ID, KetoNamespace.Agent, {
         importance: 9,
-        entryType: 'soul',
+        entryType: 'semantic',
       });
 
       expect(repo.findById).toHaveBeenCalledWith(ENTRY_ID);
@@ -717,7 +717,7 @@ describe('DiaryService', () => {
         ENTRY_ID,
         expect.objectContaining({
           importance: 9,
-          entryType: 'soul',
+          entryType: 'semantic',
           contentHash: expect.any(String),
         }),
         existing.content,
@@ -737,22 +737,6 @@ describe('DiaryService', () => {
       await expect(
         service.updateEntry(ENTRY_ID, OWNER_ID, KetoNamespace.Agent, {
           content: 'New content',
-        }),
-      ).rejects.toThrow(DiaryServiceError);
-    });
-
-    it('rejects tags/importance changes on signed identity entries', async () => {
-      const signed = createMockEntry({
-        entryType: 'identity',
-        contentHash: 'bafkreitest',
-        contentSignature: 'sig123',
-      });
-      permissions.canEditEntry.mockResolvedValue(true);
-      repo.findById.mockResolvedValue(signed);
-
-      await expect(
-        service.updateEntry(ENTRY_ID, OWNER_ID, KetoNamespace.Agent, {
-          importance: 10,
         }),
       ).rejects.toThrow(DiaryServiceError);
     });

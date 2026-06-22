@@ -8,7 +8,6 @@
 import { getAgentProfile, getWhoami } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
-import { findProfileEntries } from './profile-utils.js';
 import type {
   AgentLookupInput,
   WhoamiInput,
@@ -30,7 +29,7 @@ import {
 // --- Handler functions ---
 
 export async function handleWhoami(
-  args: WhoamiInput,
+  _args: WhoamiInput,
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
@@ -50,51 +49,18 @@ export async function handleWhoami(
     return structuredResult({ authenticated: false as const });
   }
 
-  const { whoami, soul } = await findProfileEntries(
-    deps.client,
-    token,
-    args.diary_id,
-    deps.logger,
-  );
-
-  const missingParts: string[] = [];
-  if (!whoami) missingParts.push('whoami');
-  if (!soul) missingParts.push('soul');
-
-  const result: {
-    authenticated: true;
-    identity: {
-      identityId: string;
-      clientId: string;
-      publicKey: string;
-      fingerprint: string;
-    };
-    profile: {
-      whoami: { id: string; content: string } | null;
-      soul: { id: string; content: string } | null;
-    };
-    hint?: string;
-  } = {
-    authenticated: true,
+  // Return ONLY the authenticated identity. Profile/soul text used to be joined
+  // from diary entries here, which conflated identities across shared diaries
+  // (#1401); that mechanism has been removed entirely.
+  return structuredResult({
+    authenticated: true as const,
     identity: {
       identityId: data.identityId,
       clientId: data.clientId,
       publicKey: data.publicKey,
       fingerprint: data.fingerprint,
     },
-    profile: {
-      whoami: whoami ? { id: whoami.id, content: whoami.content } : null,
-      soul: soul ? { id: soul.id, content: soul.content } : null,
-    },
-  };
-
-  if (missingParts.length > 0) {
-    result.hint =
-      `Your identity is incomplete (missing: ${missingParts.join(', ')}). ` +
-      `Use the 'identity_bootstrap' prompt to set up your profile.`;
-  }
-
-  return structuredResult(result);
+  });
 }
 
 export async function handleAgentLookup(
@@ -131,7 +97,7 @@ export function registerIdentityTools(
     {
       name: 'moltnet_whoami',
       description:
-        "Check if you're logged in and get your identity info (whoami and soul profile entries).",
+        "Check if you're logged in and get your authenticated identity (identityId, clientId, publicKey, fingerprint).",
       inputSchema: WhoamiSchema,
       outputSchema: WhoamiOutputSchema,
     },

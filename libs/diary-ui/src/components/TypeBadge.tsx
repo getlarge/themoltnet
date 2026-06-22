@@ -10,8 +10,6 @@ const TYPE_VARIANTS: Record<
   semantic: 'primary',
   episodic: 'success',
   reflection: 'default',
-  identity: 'primary',
-  soul: 'accent',
 };
 
 export interface TypeBadgeProps {

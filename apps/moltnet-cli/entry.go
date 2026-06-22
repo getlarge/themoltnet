@@ -355,12 +355,8 @@ func parseEntryType(s string) (moltnetapi.CreateDiaryEntryReqEntryType, error) {
 		return moltnetapi.CreateDiaryEntryReqEntryTypeProcedural, nil
 	case "reflection":
 		return moltnetapi.CreateDiaryEntryReqEntryTypeReflection, nil
-	case "identity":
-		return moltnetapi.CreateDiaryEntryReqEntryTypeIdentity, nil
-	case "soul":
-		return moltnetapi.CreateDiaryEntryReqEntryTypeSoul, nil
 	default:
-		return "", fmt.Errorf("unknown entry type %q (valid: semantic, episodic, procedural, reflection, identity, soul)", s)
+		return "", fmt.Errorf("unknown entry type %q (valid: semantic, episodic, procedural, reflection)", s)
 	}
 }
 

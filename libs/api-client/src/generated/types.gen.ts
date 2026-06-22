@@ -573,13 +573,7 @@ export type DiaryEntry = {
         kind: 'human';
       };
   diaryId: string;
-  entryType:
-    | 'episodic'
-    | 'semantic'
-    | 'procedural'
-    | 'reflection'
-    | 'identity'
-    | 'soul';
+  entryType: 'episodic' | 'semantic' | 'procedural' | 'reflection';
   id: string;
   importance: number;
   injectionRisk: boolean;
@@ -620,13 +614,7 @@ export type DiaryEntryWithCreator = {
         kind: 'human';
       };
   diaryId: string;
-  entryType:
-    | 'episodic'
-    | 'semantic'
-    | 'procedural'
-    | 'reflection'
-    | 'identity'
-    | 'soul';
+  entryType: 'episodic' | 'semantic' | 'procedural' | 'reflection';
   id: string;
   importance: number;
   injectionRisk: boolean;
@@ -667,13 +655,7 @@ export type DiaryEntryWithRelations = {
         kind: 'human';
       };
   diaryId: string;
-  entryType:
-    | 'episodic'
-    | 'semantic'
-    | 'procedural'
-    | 'reflection'
-    | 'identity'
-    | 'soul';
+  entryType: 'episodic' | 'semantic' | 'procedural' | 'reflection';
   id: string;
   importance: number;
   injectionRisk: boolean;
@@ -760,13 +742,7 @@ export type EntryRelationWithDepth = {
   parentRelationId: string | null;
 };
 
-export type EntryType =
-  | 'episodic'
-  | 'semantic'
-  | 'procedural'
-  | 'reflection'
-  | 'identity'
-  | 'soul';
+export type EntryType = 'episodic' | 'semantic' | 'procedural' | 'reflection';
 
 export type EntryVerifyResult = {
   agentFingerprint: string | null;
@@ -1240,13 +1216,7 @@ export type ProvenanceGraph = {
           /**
            * Entry memory type
            */
-          entryType:
-            | 'episodic'
-            | 'semantic'
-            | 'procedural'
-            | 'reflection'
-            | 'identity'
-            | 'soul';
+          entryType: 'episodic' | 'semantic' | 'procedural' | 'reflection';
           signed: boolean;
           tags: Array<string>;
           title: string | null;
@@ -1319,13 +1289,7 @@ export type PublicFeedEntry = {
   };
   content: string;
   createdAt: string;
-  entryType:
-    | 'episodic'
-    | 'semantic'
-    | 'procedural'
-    | 'reflection'
-    | 'identity'
-    | 'soul';
+  entryType: 'episodic' | 'semantic' | 'procedural' | 'reflection';
   id: string;
   injectionRisk: boolean;
   tags: Array<string> | null;
@@ -2699,14 +2663,7 @@ export type CreateDiaryResponse =
 export type SearchDiaryData = {
   body?: {
     diaryId?: string;
-    entryTypes?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
+    entryTypes?: Array<'episodic' | 'semantic' | 'procedural' | 'reflection'>;
     excludeSuperseded?: boolean;
     excludeTags?: Array<string>;
     limit?: number;
@@ -2773,16 +2730,9 @@ export type ListDiaryEntriesData = {
      */
     excludeTags?: Array<string>;
     /**
-     * Repeated entry type filter (e.g. entryType=identity&entryType=soul). Single value also accepted.
+     * Repeated entry type filter (e.g. entryType=semantic&entryType=episodic). Single value also accepted.
      */
-    entryType?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
+    entryType?: Array<'episodic' | 'semantic' | 'procedural' | 'reflection'>;
   };
   url: '/diaries/{diaryId}/entries';
 };
@@ -2826,13 +2776,7 @@ export type CreateDiaryEntryData = {
      * CIDv1 content identifier (base32lower). Only allowed together with signingRequestId — the server computes it from entry fields. If provided, it is validated against the computed CID.
      */
     contentHash?: string;
-    entryType?:
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul';
+    entryType?: 'episodic' | 'semantic' | 'procedural' | 'reflection';
     importance?: number;
     /**
      * ID of a completed signing request. The server computes the CID from entry fields and verifies it matches the signing request message.
@@ -2907,14 +2851,7 @@ export type ListDiaryTagsData = {
     /**
      * Repeated entry types to scope the tag count. Single value also accepted.
      */
-    entryTypes?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
+    entryTypes?: Array<'episodic' | 'semantic' | 'procedural' | 'reflection'>;
   };
   url: '/diaries/{diaryId}/tags';
 };
@@ -3705,13 +3642,7 @@ export type UpdateDiaryEntryByIdData = {
    */
   body?: {
     content?: string;
-    entryType?:
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul';
+    entryType?: 'episodic' | 'semantic' | 'procedural' | 'reflection';
     importance?: number;
     tags?: Array<string>;
     title?: string;
@@ -4620,13 +4551,7 @@ export type GetContextPackProvenanceByCidResponses = {
             /**
              * Entry memory type
              */
-            entryType:
-              | 'episodic'
-              | 'semantic'
-              | 'procedural'
-              | 'reflection'
-              | 'identity'
-              | 'soul';
+            entryType: 'episodic' | 'semantic' | 'procedural' | 'reflection';
             signed: boolean;
             tags: Array<string>;
             title: string | null;
@@ -5281,14 +5206,7 @@ export type SearchPublicFeedData = {
     /**
      * Repeated entry type filter. Single value also accepted.
      */
-    entryTypes?: Array<
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul'
-    >;
+    entryTypes?: Array<'episodic' | 'semantic' | 'procedural' | 'reflection'>;
     excludeSuperseded?: boolean;
     includeSuspicious?: boolean;
   };

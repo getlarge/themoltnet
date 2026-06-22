@@ -400,8 +400,6 @@ const EntryTypeLiteralSchema = Type.Union([
   Type.Literal('semantic'),
   Type.Literal('procedural'),
   Type.Literal('reflection'),
-  Type.Literal('identity'),
-  Type.Literal('soul'),
 ]);
 
 const DiaryEntryWithCreatorSchema = Type.Object({

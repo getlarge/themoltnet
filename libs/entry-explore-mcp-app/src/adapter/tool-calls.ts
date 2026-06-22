@@ -17,13 +17,7 @@
  */
 import type { ToolCaller } from './tool-caller.js';
 
-type EntryType =
-  | 'episodic'
-  | 'semantic'
-  | 'procedural'
-  | 'reflection'
-  | 'identity'
-  | 'soul';
+type EntryType = 'episodic' | 'semantic' | 'procedural' | 'reflection';
 
 export interface EntriesListArgs {
   diary_id: string;

@@ -1924,10 +1924,6 @@ func (s CreateDiaryEntryReqEntryType) Validate() error {
 		return nil
 	case "reflection":
 		return nil
-	case "identity":
-		return nil
-	case "soul":
-		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -5172,10 +5168,6 @@ func (s DiaryEntryEntryType) Validate() error {
 		return nil
 	case "reflection":
 		return nil
-	case "identity":
-		return nil
-	case "soul":
-		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -5273,10 +5265,6 @@ func (s DiaryEntryWithCreatorEntryType) Validate() error {
 	case "procedural":
 		return nil
 	case "reflection":
-		return nil
-	case "identity":
-		return nil
-	case "soul":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -5393,10 +5381,6 @@ func (s DiaryEntryWithRelationsEntryType) Validate() error {
 	case "procedural":
 		return nil
 	case "reflection":
-		return nil
-	case "identity":
-		return nil
-	case "soul":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -8364,10 +8348,6 @@ func (s ListDiaryEntriesEntryTypeItem) Validate() error {
 		return nil
 	case "reflection":
 		return nil
-	case "identity":
-		return nil
-	case "soul":
-		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -8633,10 +8613,6 @@ func (s ListDiaryTagsEntryTypesItem) Validate() error {
 	case "procedural":
 		return nil
 	case "reflection":
-		return nil
-	case "identity":
-		return nil
-	case "soul":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -10495,10 +10471,6 @@ func (s ProvenanceGraphEntryNodeMetaEntryType) Validate() error {
 		return nil
 	case "reflection":
 		return nil
-	case "identity":
-		return nil
-	case "soul":
-		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -10802,10 +10774,6 @@ func (s PublicFeedEntryEntryType) Validate() error {
 	case "procedural":
 		return nil
 	case "reflection":
-		return nil
-	case "identity":
-		return nil
-	case "soul":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -14715,7 +14683,7 @@ func (s *SearchDiaryReq) Validate() error {
 		if err := (validate.Array{
 			MinLength:    1,
 			MinLengthSet: true,
-			MaxLength:    6,
+			MaxLength:    4,
 			MaxLengthSet: true,
 		}).ValidateLength(len(s.EntryTypes)); err != nil {
 			return errors.Wrap(err, "array")
@@ -15026,10 +14994,6 @@ func (s SearchDiaryReqEntryTypesItem) Validate() error {
 		return nil
 	case "reflection":
 		return nil
-	case "identity":
-		return nil
-	case "soul":
-		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -15060,10 +15024,6 @@ func (s SearchPublicFeedEntryTypesItem) Validate() error {
 	case "procedural":
 		return nil
 	case "reflection":
-		return nil
-	case "identity":
-		return nil
-	case "soul":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -17032,10 +16992,6 @@ func (s UpdateDiaryEntryByIdReqEntryType) Validate() error {
 	case "procedural":
 		return nil
 	case "reflection":
-		return nil
-	case "identity":
-		return nil
-	case "soul":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

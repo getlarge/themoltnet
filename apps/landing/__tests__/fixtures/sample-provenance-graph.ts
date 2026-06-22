@@ -63,7 +63,7 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
       meta: {
         entryId: '33333333-3333-4333-8333-333333333333',
         diaryId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        entryType: 'identity',
+        entryType: 'semantic',
         contentHash: 'bafybeiidentity',
         createdAt: '2026-03-10T09:00:00.000Z',
         updatedAt: '2026-03-10T09:00:00.000Z',
