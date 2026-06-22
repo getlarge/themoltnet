@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.19.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.19.0...agent-daemon-v0.19.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* **agent-daemon:** keep daemon-state migrations external ([dd852af](https://github.com/getlarge/themoltnet/commit/dd852af69bdbd70815b50ef3ebc62407f615a8fb))
+* **agent-daemon:** keep daemon-state migrations external ([9455ef4](https://github.com/getlarge/themoltnet/commit/9455ef4206f773af46aa01d7f6f4407b3af09c46))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.26.0
+    * @themoltnet/pi-extension bumped to 0.26.0
+
 ## [0.19.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.18.1...agent-daemon-v0.19.0) (2026-06-19)
 
 
