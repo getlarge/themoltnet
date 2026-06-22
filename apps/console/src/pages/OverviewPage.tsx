@@ -62,6 +62,26 @@ export function OverviewPage() {
             </Stack>
           </Card>
         </button>
+
+        <button
+          type="button"
+          style={{
+            flex: '1 1 280px',
+            cursor: 'pointer',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            textAlign: 'left',
+          }}
+          onClick={() => navigate('/profiles')}
+        >
+          <Card style={{ padding: '1.5rem' }}>
+            <Stack gap={2}>
+              <Text variant="h3">Profiles</Text>
+              <Text color="muted">Manage daemon runtime profiles</Text>
+            </Stack>
+          </Card>
+        </button>
       </Stack>
     </Stack>
   );

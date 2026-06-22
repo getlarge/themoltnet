@@ -9,6 +9,7 @@ import { EntryDetailPage } from './pages/EntryDetailPage.js';
 import { GroupDetailPage } from './pages/GroupDetailPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { OverviewPage } from './pages/OverviewPage.js';
+import { ProfilesPage } from './pages/ProfilesPage.js';
 import { TaskAttemptPage } from './pages/TaskAttemptPage.js';
 import { TaskDetailPage } from './pages/TaskDetailPage.js';
 import { TasksPage } from './pages/TasksPage.js';
@@ -48,6 +49,7 @@ export function App() {
             {(params: { id: string }) => <TaskDetailPage id={params.id} />}
           </Route>
           <Route path="/tasks" component={TasksPage} />
+          <Route path="/profiles" component={ProfilesPage} />
           <Route path="/teams" component={TeamsPage} />
           <Route path="/teams/:id">
             {(params: { id: string }) => <TeamDetailPage id={params.id} />}
