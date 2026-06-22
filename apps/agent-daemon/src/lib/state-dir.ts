@@ -4,7 +4,6 @@ import { join } from 'node:path';
 export interface DaemonStateDirs {
   rootDir: string;
   piSessionsDir: string;
-  registryDbPath: string;
 }
 
 export function ensureDaemonStateDirs(mountPath: string): DaemonStateDirs {
@@ -14,6 +13,5 @@ export function ensureDaemonStateDirs(mountPath: string): DaemonStateDirs {
   return {
     rootDir,
     piSessionsDir,
-    registryDbPath: join(rootDir, 'daemon-state.sqlite'),
   };
 }

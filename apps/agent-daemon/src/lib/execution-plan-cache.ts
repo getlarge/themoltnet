@@ -1,19 +1,66 @@
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import {
-  type DaemonSlotIdentity,
-  type DaemonSlotRegistry,
-  type ResolvedProducerDaemonSlot,
-  resolveLatestPiSessionPath,
-} from '@themoltnet/agent-daemon-state';
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
+import type { DaemonSlotIdentity } from './daemon-slot-identity.js';
+import { resolveLatestPiSessionPath } from './session-files.js';
 import type { DaemonStateDirs } from './state-dir.js';
 import {
   buildDaemonTaskExecutionPlan,
   type DaemonTaskExecutionPlan,
 } from './task-execution-plan.js';
+
+export interface ResolvedDaemonRuntimeSlotContext {
+  slot: {
+    expiresAtMs: number;
+  };
+  session: {
+    sessionDir: string;
+    sessionPath: string | null;
+  } | null;
+  workspace: {
+    workspaceId: string;
+    worktreePath: string;
+    worktreeBranch: string | null;
+    kind: 'origin' | 'fork' | 'scratch';
+  } | null;
+}
+
+export interface DaemonRuntimeSlotStore {
+  beginSlot(input: {
+    teamId: string;
+    agentName: string;
+    provider: string;
+    model: string;
+    slotKey: string;
+    taskType: string;
+    sessionDir: string | null;
+    sessionPath: string | null;
+    workspaceId: string | null;
+    worktreePath: string | null;
+    worktreeBranch: string | null;
+    workspaceKind?: 'origin' | 'fork' | 'scratch';
+    lastTaskId: string;
+    lastAttemptN: number;
+    ttlSec: number;
+  }): Promise<void>;
+  finishSlot(
+    teamId: string,
+    taskId: string,
+    attemptN: number,
+    identity: DaemonSlotIdentity,
+    slotKey: string,
+    ttlSec: number,
+    sessionPath: string | null,
+  ): Promise<void>;
+  findLatestProducerSlotByTaskAttempt(
+    teamId: string,
+    taskId: string,
+    attemptN: number,
+  ): Promise<ResolvedDaemonRuntimeSlotContext | null>;
+  close(): Promise<void>;
+}
 
 type CachedTask = Pick<ClaimedTask, 'task' | 'attemptN'>;
 
@@ -33,7 +80,7 @@ export function createExecutionPlanCache(args: {
   stateDirs: DaemonStateDirs;
   slotIdentity: DaemonSlotIdentity;
   warmSessionTtlSec: number;
-  slotRegistry: DaemonSlotRegistry;
+  slotRegistry: DaemonRuntimeSlotStore;
 }): ExecutionPlanCache {
   const cache = new Map<string, DaemonTaskExecutionPlan>();
 
@@ -73,7 +120,7 @@ function buildClaimedTaskKey(task: CachedTask): string {
 type WarmSlotResolution =
   | {
       kind: 'found';
-      producerSlot: ResolvedProducerDaemonSlot;
+      producerSlot: ResolvedDaemonRuntimeSlotContext;
       sessionPath: string;
       workspacePath: string;
     }
@@ -81,13 +128,15 @@ type WarmSlotResolution =
   | { kind: 'no-session-path' };
 
 async function resolveWarmSlot(
-  slotRegistry: DaemonSlotRegistry,
+  slotRegistry: DaemonRuntimeSlotStore,
+  teamId: string,
   sourceTaskId: string,
   sourceAttemptN: number,
   stateDirs: DaemonStateDirs,
 ): Promise<WarmSlotResolution> {
   const producerContext =
     await slotRegistry.findLatestProducerSlotByTaskAttempt(
+      teamId,
       sourceTaskId,
       sourceAttemptN,
     );
@@ -113,7 +162,7 @@ async function maybeAttachWarmSlotContext(
   claimedTask: CachedTask,
   basePlan: DaemonTaskExecutionPlan,
   stateDirs: DaemonStateDirs,
-  slotRegistry: DaemonSlotRegistry,
+  slotRegistry: DaemonRuntimeSlotStore,
 ): Promise<DaemonTaskExecutionPlan> {
   if (claimedTask.task.taskType === 'freeform') {
     const continueFrom = (
@@ -130,6 +179,7 @@ async function maybeAttachWarmSlotContext(
 
     const resolution = await resolveWarmSlot(
       slotRegistry,
+      claimedTask.task.teamId,
       continueFrom.taskId,
       continueFrom.attemptN,
       stateDirs,
@@ -228,6 +278,7 @@ async function maybeAttachWarmSlotContext(
 
   const resolution = await resolveWarmSlot(
     slotRegistry,
+    claimedTask.task.teamId,
     targetTaskId,
     targetAttemptN,
     stateDirs,
@@ -261,7 +312,7 @@ async function maybeAttachWarmSlotContext(
 }
 
 function resolveProducerSessionPath(
-  producer: ResolvedProducerDaemonSlot,
+  producer: ResolvedDaemonRuntimeSlotContext,
 ): string | null {
   const explicit = producer.session?.sessionPath ?? null;
   if (explicit && existsSync(explicit)) return explicit;
@@ -274,7 +325,7 @@ function resolveProducerSessionPath(
 }
 
 function resolveProducerWorkspaceCopySource(
-  producer: ResolvedProducerDaemonSlot,
+  producer: ResolvedDaemonRuntimeSlotContext,
   stateDirs: DaemonStateDirs,
 ): string {
   const workspacePath = producer.workspace?.worktreePath ?? null;
@@ -299,7 +350,7 @@ function resolveProducerWorkspaceCopySource(
 }
 
 function recoverScratchWorkspacePath(
-  producer: ResolvedProducerDaemonSlot,
+  producer: ResolvedDaemonRuntimeSlotContext,
   stateDirs: DaemonStateDirs,
 ): string | null {
   if (producer.workspace?.worktreeBranch) return null;

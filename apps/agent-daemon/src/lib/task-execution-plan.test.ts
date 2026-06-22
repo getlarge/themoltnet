@@ -21,7 +21,6 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         rootDir: '/repo/.moltnet/d',
         piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
       },
       identity,
       1800,
@@ -69,7 +68,6 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         rootDir: '/repo/.moltnet/d',
         piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
       },
       identity,
       1800,
@@ -92,7 +90,6 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         rootDir: '/repo/.moltnet/d',
         piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
       },
       identity,
       0,
@@ -126,7 +123,6 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         rootDir: '/repo/.moltnet/d',
         piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
       },
       identity,
       1800,
@@ -167,7 +163,6 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         rootDir: '/repo/.moltnet/d',
         piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
       },
       identity,
       1800,
@@ -200,7 +195,6 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         rootDir: '/repo/.moltnet/d',
         piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
       },
       identity,
       1800,
@@ -226,7 +220,6 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         rootDir: '/repo/.moltnet/d',
         piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
       },
       identity,
       1800,
@@ -252,7 +245,6 @@ describe('buildDaemonTaskExecutionPlan', () => {
       {
         rootDir: '/repo/.moltnet/d',
         piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-        registryDbPath: '/repo/.moltnet/d/daemon-state.sqlite',
       },
       identity,
       1800,

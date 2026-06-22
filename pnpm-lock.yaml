@@ -574,9 +574,6 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: 'catalog:'
         version: 1.39.0
-      '@themoltnet/agent-daemon-state':
-        specifier: workspace:*
-        version: link:../../libs/agent-daemon-state
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../../libs/agent-runtime

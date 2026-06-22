@@ -10,25 +10,24 @@ export interface DaemonConfig {
   otelEndpoint: string;
   /** Pino log level override; empty = per-mode default (info, or debug with --debug). */
   logLevel: string;
-  /** Optional daemon-state database URL. Empty = per-sandbox SQLite file. */
-  agentDaemonStateDatabaseUrl: string;
   /** Process environment visible to profile prerequisite checks. */
   profilePrerequisiteEnv: NodeJS.ProcessEnv;
   /** PATH used when resolving profile requiredTools. */
   profilePrerequisitePath: string;
   /** Optional Pi agent dir override. Empty = daemon defaults to repo-local .pi. */
   piCodingAgentDir: string;
+  /** Optional stable id for team-scoped daemon runtime slots. */
+  daemonRuntimeId: string;
 }
 
 export function loadConfig(): DaemonConfig {
   return {
-    agentDaemonStateDatabaseUrl:
-      process.env['MOLTNET_AGENT_DAEMON_STATE_DATABASE_URL'] ?? '',
     otelEndpoint: process.env['MOLTNET_OTEL_ENDPOINT'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
     profilePrerequisiteEnv: process.env,
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
+    daemonRuntimeId: process.env['MOLTNET_AGENT_DAEMON_ID'] ?? '',
   };
 }
 

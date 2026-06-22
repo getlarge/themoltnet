@@ -2,12 +2,6 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
-  type DaemonSlotIdentity,
-  DaemonSlotRegistry,
-  resolveDaemonStateStorageConfig,
-  resolveLatestPiSessionPath,
-} from '@themoltnet/agent-daemon-state';
-import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
@@ -24,6 +18,11 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
+import {
+  createApiDaemonRuntimeSlotStore,
+  resolveDaemonRuntimeId,
+} from '../lib/daemon-runtime-slots.js';
+import type { DaemonSlotIdentity } from '../lib/daemon-slot-identity.js';
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
@@ -45,6 +44,7 @@ import {
   validateRuntimeProfilePrerequisites,
 } from '../lib/runtime-profile.js';
 import { resolveSandbox } from '../lib/sandbox.js';
+import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
@@ -133,12 +133,15 @@ export async function runOnce(argv: string[]): Promise<number> {
   const piAgentDir = ensurePiAgentDir(sandbox.rootDir, cfg.piCodingAgentDir);
   activatePiCodingAgentDir(piAgentDir.path);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
-  const slotRegistry = new DaemonSlotRegistry(
-    resolveDaemonStateStorageConfig(
-      stateDirs.registryDbPath,
-      cfg.agentDaemonStateDatabaseUrl,
-    ),
+  const daemonId = resolveDaemonRuntimeId(
+    stateDirs.rootDir,
+    cfg.daemonRuntimeId,
   );
+  const slotRegistry = createApiDaemonRuntimeSlotStore({
+    agent: ctx.agent,
+    daemonId,
+    daemonProfileId: profile?.id ?? null,
+  });
   const slotIdentity: DaemonSlotIdentity = {
     agentName: opts.agent,
     provider,
@@ -176,6 +179,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     ...(profile
       ? { daemonProfileId: profile.id, daemonProfileName: profile.name }
       : {}),
+    daemonId,
   });
 
   rootLogger.info(
@@ -267,26 +271,6 @@ export async function runOnce(argv: string[]): Promise<number> {
       maxBashTimeouts: opts.maxBashTimeouts,
     });
     const executeTask: TaskExecutor = async (claimedTask, reporter) => {
-      try {
-        const expired = await slotRegistry.reapExpiredSlots();
-        if (expired.length > 0) {
-          rootLogger.info(
-            {
-              expiredCount: expired.length,
-              slotKeys: expired.map((item) => item.slot.slotKey),
-            },
-            'agent-daemon.daemon_slots_reaped',
-          );
-        }
-      } catch (err) {
-        rootLogger.error(
-          {
-            phase: 'daemon_slot_reap',
-            err: err instanceof Error ? err.message : String(err),
-          },
-          'agent-daemon.daemon_slot_reap_failed',
-        );
-      }
       let executionPlan: Awaited<ReturnType<typeof executionPlans.getOrCreate>>;
       try {
         executionPlan = await executionPlans.getOrCreate(claimedTask);
@@ -321,6 +305,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       if (executionPlan.slotKey && executionPlan.sessionPersistence) {
         await slotRegistry.beginSlot({
           ...slotIdentity,
+          teamId: claimedTask.task.teamId,
           slotKey: executionPlan.slotKey,
           taskType: claimedTask.task.taskType,
           sessionDir: executionPlan.sessionPersistence.sessionDir,
@@ -351,6 +336,9 @@ export async function runOnce(argv: string[]): Promise<number> {
         executionPlans.delete(claimedTask);
         if (executionPlan.slotKey) {
           await slotRegistry.finishSlot(
+            claimedTask.task.teamId,
+            claimedTask.task.id,
+            claimedTask.attemptN,
             slotIdentity,
             executionPlan.slotKey,
             opts.warmSessionTtlSec,
@@ -395,6 +383,7 @@ export async function runOnce(argv: string[]): Promise<number> {
         // exactly the `slotResumableUntil` window we want stamped on
         // the attempt row.
         const resolved = await slotRegistry.findLatestProducerSlotByTaskAttempt(
+          claimedTask.task.teamId,
           claimedTask.task.id,
           claimedTask.attemptN,
         );
