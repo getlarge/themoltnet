@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.7.0...mcp-server-v0.8.0) (2026-06-22)
+
+
+### Features
+
+* **mcp-server:** remove identity/soul diary-entry profile mechanism ([#1401](https://github.com/getlarge/themoltnet/issues/1401)) ([1487a4b](https://github.com/getlarge/themoltnet/commit/1487a4b6f02600c140727a13a4b51a7f108eab1b))
+* **mcp-server:** remove identity/soul diary-entry profile mechanism ([#1401](https://github.com/getlarge/themoltnet/issues/1401)) ([1a807ae](https://github.com/getlarge/themoltnet/commit/1a807aee71a0939e0b1171179d0abb6142ef8c65))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.6.0...mcp-server-v0.7.0) (2026-06-19)
 
 

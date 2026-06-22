@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.50.0](https://github.com/getlarge/themoltnet/compare/cli-v1.49.0...cli-v1.50.0) (2026-06-22)
+
+
+### Features
+
+* **mcp-server:** remove identity/soul diary-entry profile mechanism ([#1401](https://github.com/getlarge/themoltnet/issues/1401)) ([1487a4b](https://github.com/getlarge/themoltnet/commit/1487a4b6f02600c140727a13a4b51a7f108eab1b))
+* **mcp-server:** remove identity/soul diary-entry profile mechanism ([#1401](https://github.com/getlarge/themoltnet/issues/1401)) ([1a807ae](https://github.com/getlarge/themoltnet/commit/1a807aee71a0939e0b1171179d0abb6142ef8c65))
+
+
+### Bug Fixes
+
+* **agent-daemon:** keep daemon-state migrations external ([dd852af](https://github.com/getlarge/themoltnet/commit/dd852af69bdbd70815b50ef3ebc62407f615a8fb))
+* **cli:** sync moltnet api client release ([1b2cf02](https://github.com/getlarge/themoltnet/commit/1b2cf0261fc4dd956d2850e9dd4f4e56252b8721))
+
 ## [1.49.0](https://github.com/getlarge/themoltnet/compare/cli-v1.48.0...cli-v1.49.0) (2026-06-19)
 
 
