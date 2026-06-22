@@ -231,6 +231,59 @@ describe('CreateTaskDialog', () => {
       workspace: 'dedicated_worktree',
     });
   });
+
+  it('emits the selected runtime profile as an allowlist', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('task-1');
+    renderDialog({
+      onSubmit,
+      runtimeProfiles: [
+        {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          name: 'github-linear',
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+        },
+      ],
+    });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'profile pinned task' },
+    });
+    fireEvent.change(screen.getByLabelText(/runtime profile/i), {
+      target: { value: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.allowedProfiles).toEqual([
+      { profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+    ]);
+  });
+
+  it('omits profile allowlist when no runtime profile is selected', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('task-1');
+    renderDialog({
+      onSubmit,
+      runtimeProfiles: [
+        {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          name: 'github-linear',
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+        },
+      ],
+    });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'unrestricted task' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.allowedProfiles).toBeUndefined();
+  });
 });
 
 describe('CreateTaskDialog continuation mode', () => {
@@ -263,6 +316,7 @@ describe('CreateTaskDialog continuation mode', () => {
   it('hides workspace and depends-on fields', () => {
     renderDialog({ continueFrom });
     expect(screen.queryByLabelText(/workspace/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/runtime profile/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/depends on/i)).not.toBeInTheDocument();
   });
 

@@ -13,6 +13,7 @@ export {
   type CreateTaskDialogProps,
   type CreateTaskRequest,
   type DiaryOption,
+  type RuntimeProfileOption,
 } from './create-task-dialog.js';
 export {
   DependsOnBuilder,
