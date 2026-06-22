@@ -161,6 +161,13 @@
       "when": 1781552724250,
       "tag": "0022_freezing_slipstream",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1782103075990,
+      "tag": "0023_dark_wild_pack",
+      "breakpoints": true
     }
   ],
   "version": "7"

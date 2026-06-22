@@ -65,6 +65,13 @@ export {
   type UpdateDaemonProfileInput,
 } from './repositories/daemon-profile.repository.js';
 export {
+  type BeginDaemonRuntimeSlotInput,
+  createDaemonRuntimeSlotRepository,
+  type DaemonRuntimeSlotRepository,
+  type FinishDaemonRuntimeSlotInput,
+  type ResolvedDaemonRuntimeSlot,
+} from './repositories/daemon-runtime-slot.repository.js';
+export {
   createDiaryRepository,
   type DiaryRepository,
 } from './repositories/diary.repository.js';

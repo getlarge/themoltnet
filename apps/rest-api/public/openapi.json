@@ -127,6 +127,116 @@
         ],
         "type": "object"
       },
+      "BeginDaemonRuntimeSlotBody": {
+        "additionalProperties": false,
+        "properties": {
+          "agentName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "daemonId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "daemonProfileId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastAttemptN": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "lastTaskId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "provider": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sessionDir": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sessionPath": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "slotKey": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "taskType": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ttlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workspaceId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "workspaceKind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "origin"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "fork"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "scratch"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "worktreeBranch": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "worktreePath": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId",
+          "daemonId",
+          "agentName",
+          "provider",
+          "model",
+          "slotKey",
+          "taskType",
+          "lastTaskId",
+          "lastAttemptN",
+          "ttlSec"
+        ],
+        "type": "object"
+      },
       "CancelTaskBody": {
         "properties": {
           "reason": {
@@ -1822,6 +1932,230 @@
         ],
         "type": "object"
       },
+      "DaemonRuntimeSlot": {
+        "properties": {
+          "agentIdentityId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "agentName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "createdAtMs": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "daemonId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "daemonProfileId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiresAtMs": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastAttemptN": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "lastTaskId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastUsedAtMs": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "model": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "provider": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "slotKey": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "active"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "idle"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "taskType": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceRowId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "teamId",
+          "daemonId",
+          "agentName",
+          "agentIdentityId",
+          "daemonProfileId",
+          "provider",
+          "model",
+          "slotKey",
+          "taskType",
+          "state",
+          "lastTaskId",
+          "lastAttemptN",
+          "workspaceRowId",
+          "createdAtMs",
+          "lastUsedAtMs",
+          "expiresAtMs"
+        ],
+        "type": "object"
+      },
+      "DaemonRuntimeSlotSession": {
+        "properties": {
+          "sessionDir": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sessionPath": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "slotId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slotId",
+          "sessionDir",
+          "sessionPath"
+        ],
+        "type": "object"
+      },
+      "DaemonRuntimeWorkspace": {
+        "properties": {
+          "createdAtMs": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "origin"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "fork"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "scratch"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "lastUsedAtMs": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "worktreeBranch": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "worktreePath": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "teamId",
+          "workspaceId",
+          "worktreePath",
+          "worktreeBranch",
+          "kind",
+          "createdAtMs",
+          "lastUsedAtMs"
+        ],
+        "type": "object"
+      },
       "DaemonState": {
         "additionalProperties": false,
         "properties": {
@@ -3193,6 +3527,91 @@
         },
         "required": [
           "error"
+        ],
+        "type": "object"
+      },
+      "FindDaemonRuntimeProducerSlotQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "attemptN": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId",
+          "taskId",
+          "attemptN"
+        ],
+        "type": "object"
+      },
+      "FinishDaemonRuntimeSlotBody": {
+        "additionalProperties": false,
+        "properties": {
+          "agentName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "attemptN": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "daemonId": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "provider": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sessionPath": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "slotKey": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ttlSec": {
+            "maximum": 86400,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "teamId",
+          "daemonId",
+          "agentName",
+          "provider",
+          "model",
+          "slotKey",
+          "taskId",
+          "attemptN",
+          "ttlSec"
         ],
         "type": "object"
       },
@@ -5848,6 +6267,39 @@
           "expiresAt",
           "createdAt",
           "description"
+        ],
+        "type": "object"
+      },
+      "ResolvedDaemonRuntimeSlot": {
+        "properties": {
+          "session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DaemonRuntimeSlotSession"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "slot": {
+            "$ref": "#/components/schemas/DaemonRuntimeSlot"
+          },
+          "workspace": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DaemonRuntimeWorkspace"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "slot",
+          "session",
+          "workspace"
         ],
         "type": "object"
       },
@@ -10172,6 +10624,289 @@
         },
         "tags": [
           "crypto"
+        ]
+      }
+    },
+    "/daemon-runtime-slots/begin": {
+      "post": {
+        "description": "Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.",
+        "operationId": "beginDaemonRuntimeSlot",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BeginDaemonRuntimeSlotBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DaemonRuntimeSlot"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "daemon-runtime-slots"
+        ]
+      }
+    },
+    "/daemon-runtime-slots/finish": {
+      "post": {
+        "description": "Mark a team-scoped daemon runtime slot idle without deleting it.",
+        "operationId": "finishDaemonRuntimeSlot",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinishDaemonRuntimeSlotBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DaemonRuntimeSlot"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "daemon-runtime-slots"
+        ]
+      }
+    },
+    "/daemon-runtime-slots/producer": {
+      "get": {
+        "description": "Find the latest team-scoped producer slot for a task attempt.",
+        "operationId": "findDaemonRuntimeProducerSlot",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "attemptN",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedDaemonRuntimeSlot"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "daemon-runtime-slots"
         ]
       }
     },

@@ -16,6 +16,7 @@ import type { ClaimedTask, TaskSource } from './types.js';
  */
 export interface ContinuationSlotRegistry {
   findLatestProducerSlotByTaskAttempt(
+    teamId: string,
     taskId: string,
     attemptN: number,
   ):
@@ -38,7 +39,10 @@ export interface ContinuationSlotRegistry {
  * Pure predicate over `(task, slotRegistry)` — no side effects.
  */
 export async function isContinuationClaimableByThisDaemon(
-  task: { input?: { continueFrom?: { taskId: string; attemptN: number } } },
+  task: {
+    teamId: string;
+    input?: { continueFrom?: { taskId: string; attemptN: number } };
+  },
   slotRegistry: ContinuationSlotRegistry,
 ): Promise<
   | { claimable: true }
@@ -52,6 +56,7 @@ export async function isContinuationClaimableByThisDaemon(
   const cf = task.input?.continueFrom;
   if (!cf) return { claimable: true };
   const slot = await slotRegistry.findLatestProducerSlotByTaskAttempt(
+    task.teamId,
     cf.taskId,
     cf.attemptN,
   );

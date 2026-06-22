@@ -35,6 +35,7 @@ import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
+import { daemonRuntimeSlotRoutes } from './routes/daemon-runtime-slots.js';
 import { diaryRoutes } from './routes/diary.js';
 import { diaryEntryRoutes } from './routes/diary-entries.js';
 import { entryRelationRoutes } from './routes/entry-relations.js';
@@ -61,6 +62,7 @@ import type {
   ContextPackService,
   CryptoService,
   DaemonProfileRepository,
+  DaemonRuntimeSlotRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryService,
@@ -148,6 +150,7 @@ export interface AppOptions {
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
   daemonProfileRepository: DaemonProfileRepository;
+  daemonRuntimeSlotRepository: DaemonRuntimeSlotRepository;
   runtimeModelRepository: RuntimeModelRepository;
   taskRepository: TaskRepository;
   taskService: TaskService;
@@ -349,6 +352,10 @@ export async function registerApiRoutes(
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
   decorateSafe('daemonProfileRepository', options.daemonProfileRepository);
+  decorateSafe(
+    'daemonRuntimeSlotRepository',
+    options.daemonRuntimeSlotRepository,
+  );
   decorateSafe('runtimeModelRepository', options.runtimeModelRepository);
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
@@ -392,6 +399,7 @@ export async function registerApiRoutes(
   await app.register(registrationRoutes);
   await app.register(teamRoutes);
   await app.register(groupRoutes);
+  await app.register(daemonRuntimeSlotRoutes);
   await app.register(runtimeProfileRoutes);
   await app.register(runtimeModelRoutes);
   await app.register(vouchRoutes);

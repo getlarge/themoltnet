@@ -55,6 +55,26 @@ export type AppendMessagesResponse = {
   count: number;
 };
 
+export type BeginDaemonRuntimeSlotBody = {
+  agentName: string;
+  daemonId: string;
+  daemonProfileId?: string;
+  lastAttemptN: number;
+  lastTaskId: string;
+  model: string;
+  provider: string;
+  sessionDir?: string;
+  sessionPath?: string;
+  slotKey: string;
+  taskType: string;
+  teamId: string;
+  ttlSec: number;
+  workspaceId?: string;
+  workspaceKind?: 'origin' | 'fork' | 'scratch';
+  worktreeBranch?: string;
+  worktreePath?: string;
+};
+
 export type CancelTaskBody = {
   reason: string;
 };
@@ -499,6 +519,43 @@ export type CustomPackResult = {
   };
 };
 
+export type DaemonRuntimeSlot = {
+  agentIdentityId: string;
+  agentName: string;
+  createdAtMs: number;
+  daemonId: string;
+  daemonProfileId: string | null;
+  expiresAtMs: number;
+  id: string;
+  lastAttemptN: number;
+  lastTaskId: string;
+  lastUsedAtMs: number;
+  model: string;
+  provider: string;
+  slotKey: string;
+  state: 'active' | 'idle';
+  taskType: string;
+  teamId: string;
+  workspaceRowId: string | null;
+};
+
+export type DaemonRuntimeSlotSession = {
+  sessionDir: string;
+  sessionPath: string | null;
+  slotId: string;
+};
+
+export type DaemonRuntimeWorkspace = {
+  createdAtMs: number;
+  id: string;
+  kind: 'origin' | 'fork' | 'scratch';
+  lastUsedAtMs: number;
+  teamId: string;
+  workspaceId: string;
+  worktreeBranch: string | null;
+  worktreePath: string;
+};
+
 export type DaemonState = {
   reportedAt: string;
   slotResumableUntil: string | null;
@@ -784,6 +841,25 @@ export type ExpandedRelations = {
 
 export type FailTaskBody = {
   error: TaskError;
+};
+
+export type FindDaemonRuntimeProducerSlotQuery = {
+  attemptN: number;
+  taskId: string;
+  teamId: string;
+};
+
+export type FinishDaemonRuntimeSlotBody = {
+  agentName: string;
+  attemptN: number;
+  daemonId: string;
+  model: string;
+  provider: string;
+  sessionPath?: string;
+  slotKey: string;
+  taskId: string;
+  teamId: string;
+  ttlSec: number;
 };
 
 export type Health = {
@@ -1494,6 +1570,12 @@ export type RenderedPackWithContent = {
   sourcePackId: string;
   totalTokens: number;
   verifiedTaskId?: string | null;
+};
+
+export type ResolvedDaemonRuntimeSlot = {
+  session: DaemonRuntimeSlotSession | null;
+  slot: DaemonRuntimeSlot;
+  workspace: DaemonRuntimeWorkspace | null;
 };
 
 export type RotateSecretResponse = {
@@ -2576,6 +2658,135 @@ export type VerifyCryptoSignatureResponses = {
 
 export type VerifyCryptoSignatureResponse =
   VerifyCryptoSignatureResponses[keyof VerifyCryptoSignatureResponses];
+
+export type BeginDaemonRuntimeSlotData = {
+  body?: BeginDaemonRuntimeSlotBody;
+  path?: never;
+  query?: never;
+  url: '/daemon-runtime-slots/begin';
+};
+
+export type BeginDaemonRuntimeSlotErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type BeginDaemonRuntimeSlotError =
+  BeginDaemonRuntimeSlotErrors[keyof BeginDaemonRuntimeSlotErrors];
+
+export type BeginDaemonRuntimeSlotResponses = {
+  /**
+   * Default Response
+   */
+  200: DaemonRuntimeSlot;
+};
+
+export type BeginDaemonRuntimeSlotResponse =
+  BeginDaemonRuntimeSlotResponses[keyof BeginDaemonRuntimeSlotResponses];
+
+export type FinishDaemonRuntimeSlotData = {
+  body?: FinishDaemonRuntimeSlotBody;
+  path?: never;
+  query?: never;
+  url: '/daemon-runtime-slots/finish';
+};
+
+export type FinishDaemonRuntimeSlotErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type FinishDaemonRuntimeSlotError =
+  FinishDaemonRuntimeSlotErrors[keyof FinishDaemonRuntimeSlotErrors];
+
+export type FinishDaemonRuntimeSlotResponses = {
+  /**
+   * Default Response
+   */
+  200: DaemonRuntimeSlot;
+};
+
+export type FinishDaemonRuntimeSlotResponse =
+  FinishDaemonRuntimeSlotResponses[keyof FinishDaemonRuntimeSlotResponses];
+
+export type FindDaemonRuntimeProducerSlotData = {
+  body?: never;
+  path?: never;
+  query: {
+    teamId: string;
+    taskId: string;
+    attemptN: number;
+  };
+  url: '/daemon-runtime-slots/producer';
+};
+
+export type FindDaemonRuntimeProducerSlotErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type FindDaemonRuntimeProducerSlotError =
+  FindDaemonRuntimeProducerSlotErrors[keyof FindDaemonRuntimeProducerSlotErrors];
+
+export type FindDaemonRuntimeProducerSlotResponses = {
+  /**
+   * Default Response
+   */
+  200: ResolvedDaemonRuntimeSlot;
+};
+
+export type FindDaemonRuntimeProducerSlotResponse =
+  FindDaemonRuntimeProducerSlotResponses[keyof FindDaemonRuntimeProducerSlotResponses];
 
 export type ListDiariesData = {
   body?: never;

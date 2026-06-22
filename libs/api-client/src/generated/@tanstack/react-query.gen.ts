@@ -15,6 +15,7 @@ import {
   acceptTransfer,
   addGroupMember,
   appendTaskMessages,
+  beginDaemonRuntimeSlot,
   cancelTask,
   claimTask,
   completeTask,
@@ -41,6 +42,8 @@ import {
   diffContextPacksByCid,
   diffContextPacksById,
   failTask,
+  findDaemonRuntimeProducerSlot,
+  finishDaemonRuntimeSlot,
   getAgentProfile,
   getContextPackById,
   getContextPackProvenanceByCid,
@@ -139,6 +142,9 @@ import type {
   AppendTaskMessagesData,
   AppendTaskMessagesError,
   AppendTaskMessagesResponse,
+  BeginDaemonRuntimeSlotData,
+  BeginDaemonRuntimeSlotError,
+  BeginDaemonRuntimeSlotResponse,
   CancelTaskData,
   CancelTaskError,
   CancelTaskResponse,
@@ -217,6 +223,12 @@ import type {
   FailTaskData,
   FailTaskError,
   FailTaskResponse,
+  FindDaemonRuntimeProducerSlotData,
+  FindDaemonRuntimeProducerSlotError,
+  FindDaemonRuntimeProducerSlotResponse,
+  FinishDaemonRuntimeSlotData,
+  FinishDaemonRuntimeSlotError,
+  FinishDaemonRuntimeSlotResponse,
   GetAgentProfileData,
   GetAgentProfileError,
   GetAgentProfileResponse,
@@ -898,6 +910,88 @@ export const verifyCryptoSignatureMutation = (
   };
   return mutationOptions;
 };
+
+/**
+ * Upsert a team-scoped daemon runtime slot for audit and continuation affinity lookup.
+ */
+export const beginDaemonRuntimeSlotMutation = (
+  options?: Partial<Options<BeginDaemonRuntimeSlotData>>,
+): UseMutationOptions<
+  BeginDaemonRuntimeSlotResponse,
+  BeginDaemonRuntimeSlotError,
+  Options<BeginDaemonRuntimeSlotData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    BeginDaemonRuntimeSlotResponse,
+    BeginDaemonRuntimeSlotError,
+    Options<BeginDaemonRuntimeSlotData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await beginDaemonRuntimeSlot({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Mark a team-scoped daemon runtime slot idle without deleting it.
+ */
+export const finishDaemonRuntimeSlotMutation = (
+  options?: Partial<Options<FinishDaemonRuntimeSlotData>>,
+): UseMutationOptions<
+  FinishDaemonRuntimeSlotResponse,
+  FinishDaemonRuntimeSlotError,
+  Options<FinishDaemonRuntimeSlotData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    FinishDaemonRuntimeSlotResponse,
+    FinishDaemonRuntimeSlotError,
+    Options<FinishDaemonRuntimeSlotData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await finishDaemonRuntimeSlot({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const findDaemonRuntimeProducerSlotQueryKey = (
+  options: Options<FindDaemonRuntimeProducerSlotData>,
+) => createQueryKey('findDaemonRuntimeProducerSlot', options);
+
+/**
+ * Find the latest team-scoped producer slot for a task attempt.
+ */
+export const findDaemonRuntimeProducerSlotOptions = (
+  options: Options<FindDaemonRuntimeProducerSlotData>,
+) =>
+  queryOptions<
+    FindDaemonRuntimeProducerSlotResponse,
+    FindDaemonRuntimeProducerSlotError,
+    FindDaemonRuntimeProducerSlotResponse,
+    ReturnType<typeof findDaemonRuntimeProducerSlotQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await findDaemonRuntimeProducerSlot({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: findDaemonRuntimeProducerSlotQueryKey(options),
+  });
 
 export const listDiariesQueryKey = (options?: Options<ListDiariesData>) =>
   createQueryKey('listDiaries', options);
