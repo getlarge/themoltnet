@@ -9,7 +9,8 @@
     "version": ">=5.0.0",
     "nodes": {
       "moltnet-agent": "dist/nodes/agent.js",
-      "moltnet-tasks-create": "dist/nodes/tasks-create.js"
+      "moltnet-tasks-create": "dist/nodes/tasks-create.js",
+      "moltnet-workflow-status": "dist/nodes/workflow-status.js"
     }
   },
   "engines": {
@@ -27,7 +28,8 @@
     "vite": "catalog:"
   },
   "files": [
-    "dist"
+    "dist",
+    "examples"
   ],
   "nx": {
     "tags": [
