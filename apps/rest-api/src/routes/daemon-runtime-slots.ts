@@ -51,7 +51,6 @@ function serializeSlot(slot: DaemonRuntimeSlot) {
     teamId: slot.teamId,
     daemonId: slot.daemonId,
     agentName: slot.agentName,
-    agentIdentityId: slot.agentIdentityId,
     daemonProfileId: slot.daemonProfileId ?? null,
     provider: slot.provider,
     model: slot.model,
@@ -217,7 +216,6 @@ export async function daemonRuntimeSlotRoutes(fastify: FastifyInstance) {
       await assertProfileInTeam(fastify, body.daemonProfileId, body.teamId);
       const slot = await fastify.daemonRuntimeSlotRepository.begin({
         ...body,
-        agentIdentityId: identityId,
         daemonProfileId: body.daemonProfileId ?? null,
         sessionDir: body.sessionDir ?? null,
         sessionPath: body.sessionPath ?? null,

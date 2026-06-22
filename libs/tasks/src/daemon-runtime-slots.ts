@@ -46,7 +46,6 @@ export const DaemonRuntimeSlot = Type.Object(
     teamId: Type.String({ format: 'uuid' }),
     daemonId: Type.String({ minLength: 1, maxLength: 200 }),
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
-    agentIdentityId: Type.String({ format: 'uuid' }),
     daemonProfileId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),

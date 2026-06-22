@@ -5162,7 +5162,6 @@ func (s *CustomPackResultParams) init() CustomPackResultParams {
 
 // Ref: #/components/schemas/DaemonRuntimeSlot
 type DaemonRuntimeSlot struct {
-	AgentIdentityId uuid.UUID              `json:"agentIdentityId"`
 	AgentName       string                 `json:"agentName"`
 	CreatedAtMs     int                    `json:"createdAtMs"`
 	DaemonId        string                 `json:"daemonId"`
@@ -5179,11 +5178,6 @@ type DaemonRuntimeSlot struct {
 	TaskType        string                 `json:"taskType"`
 	TeamId          uuid.UUID              `json:"teamId"`
 	WorkspaceRowId  NilUUID                `json:"workspaceRowId"`
-}
-
-// GetAgentIdentityId returns the value of AgentIdentityId.
-func (s *DaemonRuntimeSlot) GetAgentIdentityId() uuid.UUID {
-	return s.AgentIdentityId
 }
 
 // GetAgentName returns the value of AgentName.
@@ -5264,11 +5258,6 @@ func (s *DaemonRuntimeSlot) GetTeamId() uuid.UUID {
 // GetWorkspaceRowId returns the value of WorkspaceRowId.
 func (s *DaemonRuntimeSlot) GetWorkspaceRowId() NilUUID {
 	return s.WorkspaceRowId
-}
-
-// SetAgentIdentityId sets the value of AgentIdentityId.
-func (s *DaemonRuntimeSlot) SetAgentIdentityId(val uuid.UUID) {
-	s.AgentIdentityId = val
 }
 
 // SetAgentName sets the value of AgentName.

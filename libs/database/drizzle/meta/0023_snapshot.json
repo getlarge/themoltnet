@@ -1063,12 +1063,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "agent_identity_id": {
-          "name": "agent_identity_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "daemon_profile_id": {
           "name": "daemon_profile_id",
           "type": "uuid",
@@ -1278,19 +1272,6 @@
           ],
           "columnsTo": [
             "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "daemon_runtime_slots_agent_identity_id_agents_identity_id_fk": {
-          "name": "daemon_runtime_slots_agent_identity_id_agents_identity_id_fk",
-          "tableFrom": "daemon_runtime_slots",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "agent_identity_id"
-          ],
-          "columnsTo": [
-            "identity_id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"

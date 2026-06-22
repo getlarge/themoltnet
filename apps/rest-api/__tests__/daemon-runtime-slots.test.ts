@@ -9,7 +9,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createMockServices,
   createTestApp,
-  OWNER_ID,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
@@ -28,7 +27,6 @@ function mockSlot(
     teamId: TEAM_ID,
     daemonId: 'daemon-a',
     agentName: 'legreffier',
-    agentIdentityId: OWNER_ID,
     daemonProfileId: PROFILE_ID,
     provider: 'anthropic',
     model: 'claude-sonnet-4-5',
@@ -133,7 +131,6 @@ describe('daemon runtime slot routes', () => {
       id: SLOT_ID,
       teamId: TEAM_ID,
       daemonId: 'daemon-a',
-      agentIdentityId: OWNER_ID,
       daemonProfileId: PROFILE_ID,
       state: 'active',
     });
@@ -141,7 +138,6 @@ describe('daemon runtime slot routes', () => {
       expect.objectContaining({
         teamId: TEAM_ID,
         daemonId: 'daemon-a',
-        agentIdentityId: OWNER_ID,
         daemonProfileId: PROFILE_ID,
         lastTaskId: TASK_ID,
         lastAttemptN: 1,

@@ -17,7 +17,6 @@ export interface BeginDaemonRuntimeSlotInput {
   teamId: string;
   daemonId: string;
   agentName: string;
-  agentIdentityId: string;
   daemonProfileId?: string | null;
   provider: string;
   model: string;
@@ -63,7 +62,6 @@ export function createDaemonRuntimeSlotRepository(db: Database) {
       const [slot] = await getExecutor(db)
         .insert(daemonRuntimeSlots)
         .values({
-          agentIdentityId: input.agentIdentityId,
           agentName: input.agentName,
           createdAtMs: now,
           daemonId: input.daemonId,
@@ -82,7 +80,6 @@ export function createDaemonRuntimeSlotRepository(db: Database) {
         })
         .onConflictDoUpdate({
           set: {
-            agentIdentityId: sql`excluded.agent_identity_id`,
             daemonProfileId: sql`excluded.daemon_profile_id`,
             expiresAtMs: sql`excluded.expires_at_ms`,
             lastAttemptN: sql`excluded.last_attempt_n`,

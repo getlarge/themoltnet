@@ -1366,9 +1366,6 @@ export const daemonRuntimeSlots = pgTable(
       .references(() => teams.id, { onDelete: 'restrict' }),
     daemonId: varchar('daemon_id', { length: 200 }).notNull(),
     agentName: varchar('agent_name', { length: 100 }).notNull(),
-    agentIdentityId: uuid('agent_identity_id')
-      .notNull()
-      .references(() => agents.identityId, { onDelete: 'restrict' }),
     daemonProfileId: uuid('daemon_profile_id').references(
       () => daemonProfiles.id,
       { onDelete: 'set null' },

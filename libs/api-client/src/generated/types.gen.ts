@@ -520,7 +520,6 @@ export type CustomPackResult = {
 };
 
 export type DaemonRuntimeSlot = {
-  agentIdentityId: string;
   agentName: string;
   createdAtMs: number;
   daemonId: string;

@@ -13,7 +13,6 @@ CREATE TABLE "daemon_runtime_slots" (
 	"team_id" uuid NOT NULL,
 	"daemon_id" varchar(200) NOT NULL,
 	"agent_name" varchar(100) NOT NULL,
-	"agent_identity_id" uuid NOT NULL,
 	"daemon_profile_id" uuid,
 	"provider" varchar(100) NOT NULL,
 	"model" varchar(200) NOT NULL,
@@ -45,7 +44,6 @@ CREATE TABLE "daemon_runtime_workspaces" (
 --> statement-breakpoint
 ALTER TABLE "daemon_runtime_slot_sessions" ADD CONSTRAINT "daemon_runtime_slot_sessions_slot_id_daemon_runtime_slots_id_fk" FOREIGN KEY ("slot_id") REFERENCES "public"."daemon_runtime_slots"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "daemon_runtime_slots" ADD CONSTRAINT "daemon_runtime_slots_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "daemon_runtime_slots" ADD CONSTRAINT "daemon_runtime_slots_agent_identity_id_agents_identity_id_fk" FOREIGN KEY ("agent_identity_id") REFERENCES "public"."agents"("identity_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "daemon_runtime_slots" ADD CONSTRAINT "daemon_runtime_slots_daemon_profile_id_daemon_profiles_id_fk" FOREIGN KEY ("daemon_profile_id") REFERENCES "public"."daemon_profiles"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "daemon_runtime_slots" ADD CONSTRAINT "daemon_runtime_slots_last_task_id_tasks_id_fk" FOREIGN KEY ("last_task_id") REFERENCES "public"."tasks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "daemon_runtime_slots" ADD CONSTRAINT "daemon_runtime_slots_workspace_row_id_daemon_runtime_workspaces_id_fk" FOREIGN KEY ("workspace_row_id") REFERENCES "public"."daemon_runtime_workspaces"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint

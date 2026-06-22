@@ -1934,10 +1934,6 @@
       },
       "DaemonRuntimeSlot": {
         "properties": {
-          "agentIdentityId": {
-            "format": "uuid",
-            "type": "string"
-          },
           "agentName": {
             "maxLength": 100,
             "minLength": 1,
@@ -2039,7 +2035,6 @@
           "teamId",
           "daemonId",
           "agentName",
-          "agentIdentityId",
           "daemonProfileId",
           "provider",
           "model",

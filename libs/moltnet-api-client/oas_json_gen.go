@@ -13766,10 +13766,6 @@ func (s *DaemonRuntimeSlot) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *DaemonRuntimeSlot) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("agentIdentityId")
-		json.EncodeUUID(e, s.AgentIdentityId)
-	}
-	{
 		e.FieldStart("agentName")
 		e.Str(s.AgentName)
 	}
@@ -13835,24 +13831,23 @@ func (s *DaemonRuntimeSlot) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDaemonRuntimeSlot = [17]string{
-	0:  "agentIdentityId",
-	1:  "agentName",
-	2:  "createdAtMs",
-	3:  "daemonId",
-	4:  "daemonProfileId",
-	5:  "expiresAtMs",
-	6:  "id",
-	7:  "lastAttemptN",
-	8:  "lastTaskId",
-	9:  "lastUsedAtMs",
-	10: "model",
-	11: "provider",
-	12: "slotKey",
-	13: "state",
-	14: "taskType",
-	15: "teamId",
-	16: "workspaceRowId",
+var jsonFieldsNameOfDaemonRuntimeSlot = [16]string{
+	0:  "agentName",
+	1:  "createdAtMs",
+	2:  "daemonId",
+	3:  "daemonProfileId",
+	4:  "expiresAtMs",
+	5:  "id",
+	6:  "lastAttemptN",
+	7:  "lastTaskId",
+	8:  "lastUsedAtMs",
+	9:  "model",
+	10: "provider",
+	11: "slotKey",
+	12: "state",
+	13: "taskType",
+	14: "teamId",
+	15: "workspaceRowId",
 }
 
 // Decode decodes DaemonRuntimeSlot from json.
@@ -13860,24 +13855,12 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode DaemonRuntimeSlot to nil")
 	}
-	var requiredBitSet [3]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "agentIdentityId":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.AgentIdentityId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"agentIdentityId\"")
-			}
 		case "agentName":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.AgentName = string(v)
@@ -13889,7 +13872,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"agentName\"")
 			}
 		case "createdAtMs":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Int()
 				s.CreatedAtMs = int(v)
@@ -13901,7 +13884,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"createdAtMs\"")
 			}
 		case "daemonId":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.DaemonId = string(v)
@@ -13913,7 +13896,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"daemonId\"")
 			}
 		case "daemonProfileId":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.DaemonProfileId.Decode(d); err != nil {
 					return err
@@ -13923,7 +13906,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"daemonProfileId\"")
 			}
 		case "expiresAtMs":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.ExpiresAtMs = int(v)
@@ -13935,7 +13918,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAtMs\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -13947,7 +13930,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "lastAttemptN":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.LastAttemptN = int(v)
@@ -13959,7 +13942,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAttemptN\"")
 			}
 		case "lastTaskId":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LastTaskId = v
@@ -13971,7 +13954,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastTaskId\"")
 			}
 		case "lastUsedAtMs":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Int()
 				s.LastUsedAtMs = int(v)
@@ -13983,7 +13966,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -13995,7 +13978,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -14007,7 +13990,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "slotKey":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.SlotKey = string(v)
@@ -14019,7 +14002,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"slotKey\"")
 			}
 		case "state":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				if err := s.State.Decode(d); err != nil {
 					return err
@@ -14029,7 +14012,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"state\"")
 			}
 		case "taskType":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -14041,7 +14024,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
 		case "teamId":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -14053,7 +14036,7 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "workspaceRowId":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				if err := s.WorkspaceRowId.Decode(d); err != nil {
 					return err
@@ -14071,10 +14054,9 @@ func (s *DaemonRuntimeSlot) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [3]uint8{
+	for i, mask := range [2]uint8{
 		0b11111111,
 		0b11111111,
-		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
