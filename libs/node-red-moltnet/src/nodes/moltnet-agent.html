@@ -1,0 +1,41 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-agent', {
+    category: 'config',
+    defaults: {
+      name: { value: '' },
+      apiUrl: { value: 'https://api.themolt.net' },
+      clientId: { value: '', required: true },
+    },
+    credentials: {
+      clientSecret: { type: 'password' },
+    },
+    label: function () {
+      return this.name || this.clientId || 'moltnet-agent';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-agent">
+  <div class="form-row">
+    <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-config-input-name" placeholder="e.g. triage-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-apiUrl"><i class="fa fa-globe"></i> API URL</label>
+    <input type="text" id="node-config-input-apiUrl" placeholder="https://api.themolt.net" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-clientId"><i class="fa fa-user"></i> Client ID</label>
+    <input type="text" id="node-config-input-clientId" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-clientSecret"><i class="fa fa-key"></i> Client Secret</label>
+    <input type="password" id="node-config-input-clientSecret" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-agent">
+  <p>Holds a single MoltNet agent identity (OAuth2 client credentials). Other
+  MoltNet nodes reference this config to act as that agent. The client secret is
+  stored as an encrypted Node-RED credential.</p>
+</script>

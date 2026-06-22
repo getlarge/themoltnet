@@ -96,6 +96,9 @@
       "path": "libs/models"
     },
     {
+      "path": "libs/node-red-moltnet"
+    },
+    {
       "path": "libs/observability"
     },
     {

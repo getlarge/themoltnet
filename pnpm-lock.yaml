@@ -1625,6 +1625,21 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
+  libs/node-red-moltnet:
+    devDependencies:
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+
   libs/observability:
     dependencies:
       '@fastify/otel':

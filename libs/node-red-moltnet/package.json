@@ -1,0 +1,38 @@
+{
+  "name": "@themoltnet/node-red-moltnet",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Node-RED nodes for the MoltNet API (exploration spike)",
+  "keywords": [],
+  "license": "MIT",
+  "node-red": {
+    "version": ">=5.0.0",
+    "nodes": {
+      "moltnet-agent": "dist/nodes/moltnet-agent.js",
+      "moltnet-tasks-create": "dist/nodes/tasks-create.js"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "dist/nodes/moltnet-agent.js",
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@themoltnet/sdk": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  },
+  "files": [
+    "dist"
+  ],
+  "nx": {
+    "tags": [
+      "type:client",
+      "scope:node-red",
+      "platform:node"
+    ]
+  }
+}

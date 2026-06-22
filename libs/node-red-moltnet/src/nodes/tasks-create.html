@@ -1,0 +1,44 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-tasks-create', {
+    category: 'moltnet',
+    color: '#87b7d4',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      taskType: { value: 'freeform' },
+      teamId: { value: '' },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-plus-square',
+    label: function () {
+      return this.name || 'tasks: create';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-tasks-create">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
+    <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-taskType"><i class="fa fa-cube"></i> Task type</label>
+    <input type="text" id="node-input-taskType" placeholder="freeform" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-teamId"><i class="fa fa-users"></i> Team ID</label>
+    <input type="text" id="node-input-teamId" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-tasks-create">
+  <p>Creates a MoltNet task as the referenced agent. If <code>msg.payload</code>
+  is an object it is used as the task body; otherwise a minimal body is built
+  from this node's config. The created task is returned on
+  <code>msg.payload</code>.</p>
+</script>

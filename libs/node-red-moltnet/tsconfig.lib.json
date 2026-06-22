@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "declarationDir": "out-tsc",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "outDir": "out-tsc",
+    "rootDir": "src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "types": ["node"]
+  },
+  "exclude": ["node_modules", "dist", "out-tsc"],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../sdk/tsconfig.lib.json" }]
+}
