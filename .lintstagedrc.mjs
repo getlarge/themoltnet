@@ -15,6 +15,7 @@
 // `nx format:write --files` formats the given files directly; the eslint pass
 // uses `--files` so Nx scopes `affected` to just the projects those files touch.
 
+import { readdirSync } from 'node:fs';
 import { relative } from 'node:path';
 
 // lint-staged passes absolute paths, but `nx affected --files` /
@@ -24,11 +25,41 @@ import { relative } from 'node:path';
 const list = (files) =>
   files.map((file) => relative(process.cwd(), file)).join(',');
 
+const actionlintTargets = (files) =>
+  Array.from(
+    new Set(
+      files.flatMap((file) => {
+        const relativeFile = relative(process.cwd(), file).replaceAll(
+          '\\',
+          '/',
+        );
+        if (/^\.github\/workflows\/[^/]+\.ya?ml$/.test(relativeFile)) {
+          return [relativeFile];
+        }
+        if (relativeFile === 'packages/agent-daemon-action/action.yml') {
+          return readdirSync('.github/workflows')
+            .filter((workflow) => /\.ya?ml$/.test(workflow))
+            .map((workflow) => `.github/workflows/${workflow}`);
+        }
+        return [];
+      }),
+    ),
+  );
+
 export default {
+  '*.{yaml,yml}': (files) => {
+    const targets = actionlintTargets(files);
+    return [
+      `nx format:write --files=${list(files)}`,
+      ...(targets.length > 0
+        ? [`github-actionlint -shellcheck= -pyflakes= ${targets.join(' ')}`]
+        : []),
+    ];
+  },
   '*.{ts,tsx}': (files) => [
     `nx affected -t lint --fix --files=${list(files)}`,
     `nx format:write --files=${list(files)}`,
   ],
-  '*.{json,md,yaml,yml}': (files) => [`nx format:write --files=${list(files)}`],
+  '*.{json,md}': (files) => [`nx format:write --files=${list(files)}`],
   '*.go': ['gofmt -w'],
 };

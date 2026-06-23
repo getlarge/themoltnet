@@ -8,8 +8,8 @@ permissions: {}
 
 # Manually triggered only (issue #121). Drop a PR comment containing
 # `@legreffier /security-review` to kick off a security-focused review.
-# Reuses the legreffier-run-task composite action; the only difference
-# from the complexity workflow is the composer + rubric + skill.
+# Reuses the published daemon action; the only difference from the
+# complexity workflow is the composer + rubric + skill.
 jobs:
   security-review:
     if: |
@@ -71,7 +71,7 @@ jobs:
           echo "task-spec-path=$task_spec_path" >> "$GITHUB_OUTPUT"
 
       - name: Run task
-        uses: ./.github/actions/legreffier-run-task
+        uses: ./packages/agent-daemon-action
         with:
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
           # Flip to 'false' once the deployed `pr_review` schema includes

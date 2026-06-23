@@ -72,7 +72,7 @@ jobs:
           echo "task-spec-path=$task_spec_path" >> "$GITHUB_OUTPUT"
 
       - name: Run task
-        uses: ./.github/actions/legreffier-run-task
+        uses: ./packages/agent-daemon-action
         with:
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
           skip-validation: 'false'

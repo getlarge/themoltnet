@@ -2,14 +2,19 @@
 
 GitHub composite action that runs
 [`@themoltnet/agent-daemon`](../../apps/agent-daemon) against a MoltNet task.
-Two modes:
+Three modes:
 
 1. **Mention-driven dispatch** _(default)_ — leave `task-id` empty. On an
    `issue_comment` trigger the action parses the comment for
    `@moltnet-fulfill` (issue) or `@moltnet-assess` (PR), resolves the
    `correlationId` from anchors on the PR (when applicable), creates the
    task, and runs it.
-2. **Explicit task** — supply `task-id`. The action skips the dispatcher
+2. **Task spec** — supply `task-spec-path`. The action creates a task from
+   `{ taskType, correlationId, input }` JSON using the caller's
+   `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID`, then runs the daemon against the
+   created task. This is the path used by LeGreffier PR review workflows whose
+   composers must stay credential-free.
+3. **Explicit task** — supply `task-id`. The action skips task creation
    and runs the daemon against the provided id.
 
 ## Usage
@@ -18,6 +23,8 @@ Two modes:
 - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
   with:
     task-id: ${{ inputs.task-id }} # optional
+    task-spec-path: ${{ steps.compose.outputs.task-spec-path }} # optional
+    skip-validation: 'false' # only applies with task-spec-path
     mode: once # once | drain (poll disallowed in CI)
     daemon-version: latest
     # Required — runtime profile UUID or team-scoped name.
@@ -36,6 +43,26 @@ Two modes:
     MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
     MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+For workflows that use GitHub Environments, bind the environment on the caller
+job, not inside this action. Composite actions cannot select an environment for
+their caller:
+
+```yaml
+jobs:
+  review:
+    environment: legreffier
+    env:
+      MOLTNET_AGENT_PROFILE: ${{ vars.MOLTNET_AGENT_PROFILE }}
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
+      # ...the rest of the MOLTNET_* and provider credential env...
+    steps:
+      - uses: actions/checkout@v6
+      - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+        with:
+          task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
 ```
 
 A copy-paste workflow template lives at
@@ -70,6 +97,10 @@ agent and can require manual approval for cost control. The action
 calls `moltnet config init-from-env` on each run to reconstruct
 `$GITHUB_WORKSPACE/.moltnet/<agent>/` from these env vars.
 
+The caller workflow owns the `environment:` binding and maps environment
+variables/secrets into `env:`. This action only consumes the inherited process
+environment; it does not and cannot choose a GitHub Environment.
+
 The exception is `MOLTNET_AGENT_ALLOWLIST` — see [Multi-agent
 routing](#multi-agent-routing) below.
 
@@ -96,6 +127,12 @@ routing](#multi-agent-routing) below.
 | `ANTHROPIC_API_KEY` _(or other [Pi env-var provider](https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts))_ | secret   | Provider API key. Cheapest, stateless. Pi reads it natively from env.                                                                                                                                                                             |
 | `OLLAMA_API_KEY`                                                                                                                      | secret   | Optional provider API key when the selected runtime profile and Pi model registry use Ollama. Pi resolves the key from env.                                                                                                                       |
 | `PI_AUTH_JSON`                                                                                                                        | secret   | _Alternative to API keys._ Contents of `~/.pi/agent/auth.json` produced by `pi /login` on a developer machine. Use when you want subscription-billed runs (Claude Pro/Max, ChatGPT Plus/Pro Codex, GitHub Copilot). See "Pi provider auth" below. |
+
+Provider/model are intentionally not environment variables. Runtime selection
+is profile-based: the selected remote runtime profile carries provider, model,
+sandbox policy, runtime defaults, and prerequisite env names. The GitHub
+Environment supplies only the secret material those prerequisites reference
+(for example `PI_AUTH_JSON`, `ANTHROPIC_API_KEY`, or `OLLAMA_API_KEY`).
 
 ## Multi-agent routing
 
@@ -259,10 +296,10 @@ PR explaining there's nothing machine-verifiable to judge.
 
 ## Outputs
 
-| Output           | Description                                       |
-| ---------------- | ------------------------------------------------- |
-| `task-id`        | The MoltNet task id that was executed.            |
-| `correlation-id` | correlationId (only set when the dispatcher ran). |
+| Output           | Description                                      |
+| ---------------- | ------------------------------------------------ |
+| `task-id`        | The MoltNet task id that was executed.           |
+| `correlation-id` | correlationId when this action created the task. |
 
 ## v1 limitations
 
