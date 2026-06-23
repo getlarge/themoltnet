@@ -481,10 +481,19 @@ runs:
           exit 1
         fi
         echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
-        npx -y @themoltnet/agent-daemon@${{ inputs.daemon-version }} \
-          ${{ inputs.mode }} --task-id "$TASK_ID" \
-          --agent "$MOLTNET_AGENT_NAME" \
+
+        daemon_args=(
+          "${{ inputs.mode }}"
+          --task-id "$TASK_ID"
+          --agent "$MOLTNET_AGENT_NAME"
           --profile "$PROFILE"
+        )
+        if [ -n "${MOLTNET_TEAM_ID:-}" ]; then
+          daemon_args+=(--team "$MOLTNET_TEAM_ID")
+        fi
+
+        npx -y @themoltnet/agent-daemon@${{ inputs.daemon-version }} \
+          "${daemon_args[@]}"
 
     # Save the gondolin snapshot built by the daemon. `if: always()`
     # so we still upload the snapshot when the LLM call fails post-

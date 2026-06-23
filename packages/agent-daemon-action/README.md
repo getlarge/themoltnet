@@ -133,6 +133,9 @@ is profile-based: the selected remote runtime profile carries provider, model,
 sandbox policy, runtime defaults, and prerequisite env names. The GitHub
 Environment supplies only the secret material those prerequisites reference
 (for example `PI_AUTH_JSON`, `ANTHROPIC_API_KEY`, or `OLLAMA_API_KEY`).
+When `MOLTNET_AGENT_PROFILE` is a profile name instead of a UUID,
+`MOLTNET_TEAM_ID` must also be set so the action can pass `--team` to the
+daemon for team-scoped profile resolution.
 
 ## Multi-agent routing
 
