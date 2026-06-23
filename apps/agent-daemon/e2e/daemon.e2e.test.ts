@@ -194,6 +194,22 @@ describe('Agent daemon (e2e)', () => {
     });
   }
 
+  function createRuntimeProfile(name: string) {
+    return agent.runtimeProfiles.create(
+      {
+        name,
+        runtimeKind: 'gondolin_pi',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        leaseTtlSec: 900,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 10,
+        sandbox: {},
+      },
+      { teamId },
+    );
+  }
+
   it('PollingApiTaskSource claims a queued task and exits drain mode when empty', async () => {
     const created = await proposeCuratePackTask();
 
@@ -624,10 +640,12 @@ describe('Agent daemon (e2e)', () => {
     const slotStore = createApiRuntimeSlotStore({
       agent,
     });
+    const runtimeProfile = await createRuntimeProfile(
+      `slot-reuse-${randomUUID()}`,
+    );
     const slotIdentity: DaemonSlotIdentity = {
       agentName: 'e2e-daemon',
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
+      runtimeProfileId: runtimeProfile.id,
     };
     const correlationId = randomUUID();
     const warmSessionTtlSec = 60;
@@ -640,6 +658,8 @@ describe('Agent daemon (e2e)', () => {
       stateDirs,
       slotStore,
       slotIdentity,
+      provider: runtimeProfile.provider,
+      model: runtimeProfile.model,
       warmSessionTtlSec,
     });
     expect(firstOutput.output.status).toBe('completed');
@@ -664,6 +684,8 @@ describe('Agent daemon (e2e)', () => {
       stateDirs,
       slotStore,
       slotIdentity,
+      provider: runtimeProfile.provider,
+      model: runtimeProfile.model,
       warmSessionTtlSec,
     });
     expect(secondOutput.output.status).toBe('completed');
@@ -712,10 +734,12 @@ describe('Agent daemon (e2e)', () => {
       const slotStore = createApiRuntimeSlotStore({
         agent,
       });
+      const runtimeProfile = await createRuntimeProfile(
+        `slot-continue-${randomUUID()}`,
+      );
       const slotIdentity: DaemonSlotIdentity = {
         agentName: 'e2e-daemon',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        runtimeProfileId: runtimeProfile.id,
       };
       const correlationId = randomUUID();
       // Long TTL so the affinity filter's existsSync(sessionDir) check
@@ -737,6 +761,8 @@ describe('Agent daemon (e2e)', () => {
           stateDirs,
           slotStore,
           slotIdentity,
+          provider: runtimeProfile.provider,
+          model: runtimeProfile.model,
           warmSessionTtlSec,
         });
         expect(parentRun.output.status).toBe('completed');
@@ -1045,6 +1071,8 @@ interface StubbedSlotAwareTaskArgs {
   stateDirs: ReturnType<typeof ensureDaemonStateDirs>;
   slotStore: RuntimeSlotStore;
   slotIdentity: DaemonSlotIdentity;
+  provider: string;
+  model: string;
   warmSessionTtlSec: number;
 }
 
@@ -1109,6 +1137,8 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
         await args.slotStore.beginSlot({
           ...args.slotIdentity,
           teamId: claimedTask.task.teamId,
+          provider: args.provider,
+          model: args.model,
           slotKey: executionPlan.slotKey,
           taskType: claimedTask.task.taskType,
           sessionDir: executionPlan.sessionPersistence.sessionDir,
@@ -1148,6 +1178,8 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
           claimedTask.attemptN,
           args.slotIdentity,
           executionPlan.slotKey,
+          args.provider,
+          args.model,
           executionPlan.sessionPersistence
             ? resolveLatestPiSessionPath(
                 executionPlan.sessionPersistence.sessionDir,
