@@ -87,7 +87,6 @@ routing](#multi-agent-routing) below.
 | `MOLTNET_API_URL`                                                                                                                     | variable | _Optional._ Defaults to `https://api.themolt.net`.                                                                                                                                                                                                |
 | `MOLTNET_AGENT_ALLOWLIST`                                                                                                             | variable | **Required, repo-level (not per-environment).** Comma-separated agent names allowed to receive `@moltnet-*` mentions. See [Multi-agent routing](#multi-agent-routing).                                                                            |
 | `MOLTNET_AGENT_PROFILE`                                                                                                               | variable | **Required.** Runtime profile UUID or team-scoped profile name. Equivalent to the `profile` action input. The profile supplies provider, model, sandbox policy, and runtime defaults.                                                             |
-| `MOLTNET_AGENT_PROVIDER`                                                                                                              | variable | _Optional._ Set to `ollama` only when the action should materialize Ollama Pi model files before daemon startup. Runtime provider still comes from the selected profile.                                                                          |
 | `MOLTNET_GITHUB_APP_ID`                                                                                                               | variable | _Optional._ GitHub App id for bot-attributed gh ops.                                                                                                                                                                                              |
 | `MOLTNET_GITHUB_APP_INSTALLATION_ID`                                                                                                  | variable | _Optional._ Installation id for the App.                                                                                                                                                                                                          |
 | `MOLTNET_GITHUB_APP_SLUG`                                                                                                             | variable | _Optional._ Slug; PEM is written to `<slug>.pem`.                                                                                                                                                                                                 |
@@ -95,7 +94,7 @@ routing](#multi-agent-routing) below.
 | `MOLTNET_GIT_NAME`                                                                                                                    | variable | _Optional._ Override the git author name (default: agent name).                                                                                                                                                                                   |
 | `MOLTNET_GIT_EMAIL`                                                                                                                   | variable | _Optional._ Override the git author email.                                                                                                                                                                                                        |
 | `ANTHROPIC_API_KEY` _(or other [Pi env-var provider](https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts))_ | secret   | Provider API key. Cheapest, stateless. Pi reads it natively from env.                                                                                                                                                                             |
-| `OLLAMA_API_KEY`                                                                                                                      | secret   | Required when `MOLTNET_AGENT_PROVIDER=ollama`. The action materializes host-side `models.json` and `settings.json` entries for `qwen3.5:cloud`, `qwen3-coder:480b-cloud`, and `glm-5.1:cloud`; Pi resolves the key from env.                      |
+| `OLLAMA_API_KEY`                                                                                                                      | secret   | Optional provider API key when the selected runtime profile and Pi model registry use Ollama. Pi resolves the key from env.                                                                                                                       |
 | `PI_AUTH_JSON`                                                                                                                        | secret   | _Alternative to API keys._ Contents of `~/.pi/agent/auth.json` produced by `pi /login` on a developer machine. Use when you want subscription-billed runs (Claude Pro/Max, ChatGPT Plus/Pro Codex, GitHub Copilot). See "Pi provider auth" below. |
 
 ## Multi-agent routing
@@ -160,11 +159,9 @@ Pi picks it up via `process.env`. Charges go to the API account that
 owns the key. No rotation needed — the key just keeps working until
 you revoke it.
 
-If `MOLTNET_AGENT_PROVIDER=ollama`, also set `OLLAMA_API_KEY`. The
-action creates host-side `models.json` and `settings.json` entries for
-the Ollama provider before the daemon starts so Pi can resolve
-`qwen3.5:cloud`, `qwen3-coder:480b-cloud`, and `glm-5.1:cloud` from
-its model registry and enabled-model list.
+If the selected runtime profile uses Ollama, set `OLLAMA_API_KEY` and make sure
+the runner's Pi model registry includes the matching provider/model. The action
+does not derive or materialize model config from provider/model env vars.
 
 ### Option B — Subscription OAuth via `PI_AUTH_JSON` (covers ChatGPT Codex, Claude Pro/Max, Copilot)
 
