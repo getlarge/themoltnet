@@ -320,7 +320,7 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       query: { attemptN, taskId },
     });
-    expect(notMemberFind.response.status).toBe(404);
+    expect(notMemberFind.response.status).toBe(403);
 
     const notMemberFinish = await finishRuntimeSlot({
       client,
@@ -338,7 +338,7 @@ describe('Runtime slots API', () => {
         ttlSec: 1800,
       },
     });
-    expect(notMemberFinish.response.status).toBe(404);
+    expect(notMemberFinish.response.status).toBe(403);
 
     const current = await findRuntimeProducerSlot({
       client,
