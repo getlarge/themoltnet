@@ -72,7 +72,25 @@ Three layers, increasing fidelity:
    and assert real task creation/listing. Mirrors the repo's stack-based e2e
    pattern.
 
-## Local smoke test (throwaway Node-RED 5 harness)
+## Run Node-RED with these nodes (one command)
+
+```bash
+pnpm --filter @themoltnet/node-red-moltnet dev      # → http://localhost:1880
+PORT=1881 pnpm --filter @themoltnet/node-red-moltnet dev
+```
+
+`scripts/dev.mjs` builds the nodes, links this package into a local
+`.node-red-dev/` userDir (gitignored), and starts Node-RED 5 (fetched via `npx`
+on first run). The three MoltNet nodes appear under the **moltnet** palette
+category. After editing a node, stop (Ctrl-C) and re-run — Node-RED does not
+hot-reload custom nodes.
+
+Open the editor, drag in `moltnet-agent` + `moltnet-tasks-create`/`moltnet-workflow-status`,
+or import [`examples/cockpit.flow.json`](./examples/cockpit.flow.json), then fill
+the agent's `clientId`/`clientSecret`.
+
+<details>
+<summary>Manual harness (if you prefer to drive it yourself)</summary>
 
 ```bash
 mkdir -p /tmp/nr && cd /tmp/nr && npm init -y && npm install node-red@5
@@ -80,8 +98,10 @@ mkdir -p userDir/node_modules/@themoltnet/node-red-moltnet
 cp -r <repo>/libs/node-red-moltnet/{package.json,dist} \
   userDir/node_modules/@themoltnet/node-red-moltnet/
 ./node_modules/.bin/node-red --userDir ./userDir -p 1880
-# then GET /nodes should list red-module:@themoltnet/node-red-moltnet/moltnet-agent
+# GET /nodes should list red-module:@themoltnet/node-red-moltnet/moltnet-agent
 ```
+
+</details>
 
 ## Not done yet (next steps)
 
