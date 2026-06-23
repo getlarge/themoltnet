@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.13.0...rest-api-v0.14.0) (2026-06-23)
+
+
+### Features
+
+* **agent-daemon:** make runtime selection profile-first ([7e4ad77](https://github.com/getlarge/themoltnet/commit/7e4ad77f9d775e4322c13c381ded6788ffc7bb5c))
+* **agent-daemon:** make runtime selection profile-first ([bc5655b](https://github.com/getlarge/themoltnet/commit/bc5655b29512576485a7627b174019164a74a9f1))
+
+
+### Bug Fixes
+
+* **runtime:** align profile naming across slots ([10b2e7d](https://github.com/getlarge/themoltnet/commit/10b2e7dc0e1a09d514eaafe747516f3f19d7b98d))
+
 ## [0.13.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.12.0...rest-api-v0.13.0) (2026-06-23)
 
 

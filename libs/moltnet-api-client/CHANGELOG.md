@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.35.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.34.1...moltnet-api-client-v1.35.0) (2026-06-23)
+
+
+### Features
+
+* **agent-daemon:** make runtime selection profile-first ([7e4ad77](https://github.com/getlarge/themoltnet/commit/7e4ad77f9d775e4322c13c381ded6788ffc7bb5c))
+
+
+### Bug Fixes
+
+* **runtime:** align profile naming across slots ([10b2e7d](https://github.com/getlarge/themoltnet/commit/10b2e7dc0e1a09d514eaafe747516f3f19d7b98d))
+
 ## [1.34.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.34.0...moltnet-api-client-v1.34.1) (2026-06-23)
 
 
