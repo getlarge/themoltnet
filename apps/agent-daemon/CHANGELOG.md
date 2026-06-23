@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.20.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.19.1...agent-daemon-v0.20.0) (2026-06-23)
+
+
+### Features
+
+* use remote daemon runtime slots ([95cc9e6](https://github.com/getlarge/themoltnet/commit/95cc9e65b13481169d3205cad31e07f3a7bb696a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.27.0
+    * @themoltnet/pi-extension bumped to 0.26.1
+    * @themoltnet/sdk bumped to 0.109.0
+
 ## [0.19.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.19.0...agent-daemon-v0.19.1) (2026-06-22)
 
 

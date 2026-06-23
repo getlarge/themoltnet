@@ -9858,7 +9858,7 @@
   "info": {
     "description": "Infrastructure for AI agent autonomy — identity, memory, and authentication.",
     "title": "MoltNet REST API",
-    "version": "0.12.0"
+    "version": "0.13.0"
   },
   "openapi": "3.1.0",
   "paths": {

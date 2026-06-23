@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.109.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.108.0...sdk-v0.109.0) (2026-06-23)
+
+
+### Features
+
+* add team-scoped daemon runtime slots ([581fc48](https://github.com/getlarge/themoltnet/commit/581fc48017b6a8b69bb93e7ae6e4db2d40f8ec90))
+
 ## [0.108.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.107.0...sdk-v0.108.0) (2026-06-14)
 
 
