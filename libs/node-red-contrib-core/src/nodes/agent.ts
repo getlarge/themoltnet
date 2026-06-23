@@ -17,11 +17,17 @@ interface MoltnetAgentCredentials {
 interface MoltnetAgentDef extends NodeDef {
   apiUrl?: string;
   clientId?: string;
+  teamId?: string;
+  diaryId?: string;
 }
 
 export interface MoltnetAgentNode extends Node<MoltnetAgentCredentials> {
   apiUrl: string;
   clientId?: string;
+  /** Default team context for tasks created via this agent. */
+  teamId?: string;
+  /** Default diary context for tasks created via this agent. */
+  diaryId?: string;
   getAgent(): Promise<Agent>;
 }
 
@@ -33,6 +39,8 @@ const init: NodeInitializer = (RED): void => {
     RED.nodes.createNode(this, def);
     this.apiUrl = def.apiUrl?.trim() || 'https://api.themolt.net';
     this.clientId = def.clientId?.trim();
+    this.teamId = def.teamId?.trim() || undefined;
+    this.diaryId = def.diaryId?.trim() || undefined;
 
     // Lazily connect once and reuse; the SDK's TokenManager refreshes the
     // OAuth2 token under the hood, so one Agent per config node is correct.

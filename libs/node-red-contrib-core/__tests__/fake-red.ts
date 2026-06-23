@@ -50,6 +50,12 @@ export class FakeRed {
     getNode: (id: string): FakeNode | null => this.instances.get(id) ?? null,
   };
 
+  /** Minimal `RED.util` slice. `cloneMessage` is used by multi-emit nodes. */
+  readonly util = {
+    cloneMessage: (msg: Record<string, unknown>): Record<string, unknown> =>
+      structuredClone(msg),
+  };
+
   /** Run a node's initializer to register its type(s). */
   load(init: NodeInitializer): void {
     (init as unknown as (RED: FakeRed) => void)(this);

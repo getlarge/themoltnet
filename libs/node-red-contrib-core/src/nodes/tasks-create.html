@@ -1,12 +1,13 @@
 <script type="text/javascript">
   RED.nodes.registerType('moltnet-tasks-create', {
     category: 'moltnet',
-    color: '#87b7d4',
+    color: '#00d4c8',
+    paletteLabel: 'tasks: create',
     defaults: {
       name: { value: '' },
       agent: { value: '', type: 'moltnet-agent', required: true },
       taskType: { value: 'freeform' },
-      teamId: { value: '' },
+      generateCorrelationId: { value: false },
     },
     inputs: 1,
     outputs: 1,
@@ -30,19 +31,54 @@
     <label for="node-input-taskType"
       ><i class="fa fa-cube"></i> Task type</label
     >
-    <input type="text" id="node-input-taskType" placeholder="freeform" />
+    <select id="node-input-taskType" style="width: 70%">
+      <option value="freeform">freeform</option>
+      <option value="fulfill_brief">fulfill_brief</option>
+      <option value="assess_brief">assess_brief</option>
+      <option value="pr_review">pr_review</option>
+      <option value="curate_pack">curate_pack</option>
+      <option value="render_pack">render_pack</option>
+      <option value="judge_pack">judge_pack</option>
+      <option value="run_eval">run_eval</option>
+      <option value="judge_eval_attempt">judge_eval_attempt</option>
+    </select>
   </div>
   <div class="form-row">
-    <label for="node-input-teamId"><i class="fa fa-users"></i> Team ID</label>
-    <input type="text" id="node-input-teamId" />
+    <label for="node-input-generateCorrelationId"
+      ><i class="fa fa-link"></i> Correlation</label
+    >
+    <input
+      type="checkbox"
+      id="node-input-generateCorrelationId"
+      style="display: inline-block; width: auto; vertical-align: top"
+    />
+    <span>Mint a new correlationId if the message has none</span>
   </div>
 </script>
 
 <script type="text/html" data-help-name="moltnet-tasks-create">
   <p>
-    Creates a MoltNet task as the referenced agent. If <code>msg.payload</code>
-    is an object it is used as the task body; otherwise a minimal body is built
-    from this node's config. The created task is returned on
-    <code>msg.payload</code>.
+    Creates a MoltNet task as the referenced <b>agent</b>. The task body is
+    taken from <code>msg.payload</code> when it is an object, otherwise a
+    minimal body is built from this node's <b>Task type</b>. The created task is
+    returned on <code>msg.payload</code>.
+  </p>
+  <h3>Team &amp; diary context</h3>
+  <p>
+    <code>teamId</code> and <code>diaryId</code> come from the
+    <b>agent</b> config node, not this node — the agent establishes which team
+    and diary you act in. A <code>msg.payload.teamId</code> /
+    <code>msg.payload.diaryId</code> overrides the agent default.
+  </p>
+  <h3>correlationId (workflow runs)</h3>
+  <p>
+    A <code>correlationId</code> threads a workflow run across tasks (mandatory
+    for a workflow). It is resolved from
+    <code>msg.payload.correlationId</code> then <code>msg.correlationId</code>.
+    Enable <b>Correlation</b> on the first <code>tasks: create</code> of a run
+    to mint a fresh id when the message has none. The resolved id is written
+    back to <code>msg.correlationId</code>, so downstream
+    <code>task: wait</code> / <code>tasks: create</code> /
+    <code>workflow: status</code> nodes inherit the same run.
   </p>
 </script>

@@ -9,7 +9,13 @@ const here = dirname(fileURLToPath(import.meta.url));
 // Node-RED node sets: each runtime .js is paired with a sibling .html editor
 // file. We bundle the .js (inlining @themoltnet/sdk so the published node is
 // self-contained) and copy the .html alongside it.
-const nodes = ['agent', 'tasks-create', 'workflow-status'];
+const nodes = [
+  'agent',
+  'tasks-create',
+  'task-get',
+  'task-wait',
+  'workflow-status',
+];
 
 export default defineConfig({
   build: {
@@ -24,6 +30,11 @@ export default defineConfig({
       output: {
         format: 'es',
         entryFileNames: '[name].js',
+        // Each Node-RED node loads as a standalone module; inline shared
+        // helpers (task-snapshot) into every entry so there is no
+        // cross-referenced chunk under assets/ to ship and resolve.
+        manualChunks: undefined,
+        chunkFileNames: 'nodes/[name].js',
       },
     },
   },

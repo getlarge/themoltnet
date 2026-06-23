@@ -11,11 +11,16 @@ export default tseslint.config(
       '**/dist/**',
       '**/out-tsc/**',
       '**/node_modules/**',
+      // Local Node-RED dev userDir created by the dev runner (runtime artifact).
+      '**/.node-red-dev/**',
       'libs/api-client/src/generated/**',
       'infra/ory/permissions.ts',
       // Standalone node script invoked from a Dockerfile; not part of the
       // typed source graph and lacks the Node globals declared for src/.
       'tools/download-embedding-model.mjs',
+      // Standalone node dev script (spins up a local Node-RED for the
+      // node-red-contrib-core nodes); same rationale as above.
+      'libs/node-red-contrib-core/scripts/dev.mjs',
     ],
   },
 

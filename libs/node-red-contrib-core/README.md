@@ -15,8 +15,9 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   package carries no private-package runtime dependency. `@themoltnet/sdk` is
   therefore a **devDependency** (bundled, not installed at runtime).
 - The `.html` editor files are copied to `dist/nodes/` as assets (not compiled).
-- Both a **config node** (`moltnet-agent`) and an **action node**
-  (`moltnet-tasks-create`) register and appear in the palette.
+- A **config node** (`moltnet-agent`) and four **action nodes**
+  (`moltnet-tasks-create`, `moltnet-task-get`, `moltnet-task-wait`,
+  `moltnet-workflow-status`) register and appear in the palette.
 
 ## Nodes
 
@@ -24,13 +25,43 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   credentials, Plane B). Client secret stored as an encrypted Node-RED
   credential. Exposes `getAgent()` returning a connected, token-managed SDK
   agent.
-- **`moltnet-tasks-create`** — creates a task as the referenced agent. Uses
-  `msg.payload` as the task body when it is an object, else builds a minimal
-  body from config. Holds no SDK import — the SDK lives only in the config node.
-- **`moltnet-workflow-status`** — reads the tasks of one workflow run (by
-  `correlationId`) and emits a table-shaped `msg.payload` (array of
-  `{ taskId, type, title, status, queuedAt, completedAt }`) plus
+- **`moltnet-tasks-create`** (palette: _tasks: create_) — creates a task as the
+  referenced agent. Uses `msg.payload` as the task body when it is an object,
+  else builds a minimal body from config. Holds no SDK import — the SDK lives
+  only in the config node.
+- **`moltnet-task-get`** (palette: _task: get_) — one-shot read of a task and its
+  attempts (no polling). Emits a normalized **snapshot** on `msg.payload`:
+  `{ taskId, status, terminal, accepted, acceptedAttemptN, state, attempt,
+attempts, error, task }`. `state` is the accepted attempt's output artifact
+  (the lifecycle "phase" payload) or `null`. For switch/branch logic.
+- **`moltnet-task-wait`** (palette: _task: wait_) — polls a task until it settles,
+  in one loop doing double duty like the CLI's `task tail`. **Two outputs:**
+  output 1 (_tail_) emits each new task message as it arrives (gated by a `tail`
+  checkbox, optional `kinds` filter); output 2 (_result_) emits the terminal
+  snapshot once. On failure the snapshot's `error` carries the last attempt's
+  error for an agent/human to interpret (retry vs. escalate) — the same hook the
+  `issue-lifecycle` supervisor uses.
+- **`moltnet-workflow-status`** (palette: _workflow: status_) — reads the tasks of
+  one workflow run (by `correlationId`) and emits a table-shaped `msg.payload`
+  (array of `{ taskId, type, title, status, queuedAt, completedAt }`) plus
   `msg.workflow = { correlationId, total }`. The cockpit **source** node.
+
+All nodes register a long, collision-safe `type` (`moltnet-*`) but show a short
+`paletteLabel` under the **moltnet** category, so the palette is not crowded by
+the prefix.
+
+## Reproducing the issue-lifecycle shape
+
+[`examples/issue-lifecycle.flow.json`](./examples/issue-lifecycle.flow.json)
+reproduces the `apps/issue-lifecycle` orchestration in Node-RED: each step is
+`tasks: create` → `task: wait` → stock **`switch`** on `payload.state.phase` /
+`payload.state.decision` / `payload.accepted` → next step. The `task: wait` tail
+output streams live messages to a debug node; failures route to an "interpret
+failure" node — the seam where an agent/human decides the next move. Durability
+is coarse (re-run from top with idempotent steps), inherited from the MoltNet
+tasks tier — Node-RED is the authoring/cockpit surface, not the durable engine
+(see #1422). Branching and loops use stock Node-RED nodes by design; no custom
+gate node.
 
 ## Cockpit (Dashboard 2.0, stock widgets)
 
@@ -81,13 +112,14 @@ PORT=1881 pnpm --filter @themoltnet/node-red-contrib-core dev
 
 `scripts/dev.mjs` builds the nodes, links this package into a local
 `.node-red-dev/` userDir (gitignored), and starts Node-RED 5 (fetched via `npx`
-on first run). The three MoltNet nodes appear under the **moltnet** palette
-category. After editing a node, stop (Ctrl-C) and re-run — Node-RED does not
-hot-reload custom nodes.
+on first run). The MoltNet nodes appear under the **moltnet** palette category.
+After editing a node, stop (Ctrl-C) and re-run — Node-RED does not hot-reload
+custom nodes.
 
-Open the editor, drag in `moltnet-agent` + `moltnet-tasks-create`/`moltnet-workflow-status`,
-or import [`examples/cockpit.flow.json`](./examples/cockpit.flow.json), then fill
-the agent's `clientId`/`clientSecret`.
+Open the editor, drag in `agent` + the task nodes, or import
+[`examples/issue-lifecycle.flow.json`](./examples/issue-lifecycle.flow.json) or
+[`examples/cockpit.flow.json`](./examples/cockpit.flow.json), then fill the
+agent's `clientId`/`clientSecret`.
 
 <details>
 <summary>Manual harness (if you prefer to drive it yourself)</summary>
@@ -105,7 +137,7 @@ cp -r <repo>/libs/node-red-contrib-core/{package.json,dist} \
 
 ## Not done yet (next steps)
 
-- More SDK nodes (`tasks-get`, `tasks-continue`).
+- More SDK nodes (`tasks-continue`, diary/entries nodes).
 - `workflow_instance` cursor (resume + visualization) as a thin server-side record.
 - Optional custom Dashboard 2.0 Vue widget (bigger footprint — stock `ui-table`
   covers the cockpit for now).
