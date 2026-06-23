@@ -47,6 +47,8 @@ import {
 } from './crypto.js';
 import {
   AgentIdentitySchema,
+  BatchDeleteEntriesBodySchema,
+  BatchDeleteResponseSchema,
   DiaryCatalogListSchema,
   DiaryCatalogSchema,
   DiaryEntrySchema,
@@ -125,6 +127,8 @@ export const sharedSchemas = [
   DiaryListSchema,
   DiaryTagsResponseSchema,
   DiarySearchResultSchema,
+  BatchDeleteEntriesBodySchema,
+  BatchDeleteResponseSchema,
   ExpandedPackEntrySchema,
   ContextPackSchema,
   ContextPackExpandedSchema,

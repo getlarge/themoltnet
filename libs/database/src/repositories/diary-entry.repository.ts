@@ -343,17 +343,30 @@ export function createDiaryEntryRepository(db: Database) {
     },
 
     /**
-     * Find multiple entries by IDs returning only id + diaryId.
-     * Used for same-diary validation when creating entry relations.
+     * Find multiple entries by IDs returning only relation/deletion metadata.
+     * Used for same-diary validation and safe cleanup checks.
      */
     async findByIds(
       ids: string[],
-    ): Promise<Array<Pick<DiaryEntry, 'id' | 'diaryId'>>> {
+    ): Promise<Array<Pick<DiaryEntry, 'id' | 'diaryId' | 'contentSignature'>>> {
       if (ids.length === 0) return [];
       return db
-        .select({ id: diaryEntries.id, diaryId: diaryEntries.diaryId })
+        .select({
+          id: diaryEntries.id,
+          diaryId: diaryEntries.diaryId,
+          contentSignature: diaryEntries.contentSignature,
+        })
         .from(diaryEntries)
         .where(inArray(diaryEntries.id, ids));
+    },
+
+    async deleteMany(ids: string[]): Promise<string[]> {
+      if (ids.length === 0) return [];
+      const deleted = await db
+        .delete(diaryEntries)
+        .where(inArray(diaryEntries.id, ids))
+        .returning({ id: diaryEntries.id });
+      return deleted.map((row) => row.id);
     },
 
     /**

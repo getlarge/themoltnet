@@ -100,6 +100,7 @@ export interface RelationshipWriter {
   // Task relations
   grantTaskParent(taskId: string, diaryId: string): Promise<void>;
   grantTaskClaimant(taskId: string, agentId: string): Promise<void>;
+  removeTaskRelations(taskId: string): Promise<void>;
   removeTaskClaimant(taskId: string, agentId: string): Promise<void>;
 }
 
@@ -488,6 +489,13 @@ export function createRelationshipWriter(
             relation: '',
           },
         },
+      });
+    },
+
+    async removeTaskRelations(taskId: string): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.Task,
+        object: taskId,
       });
     },
 

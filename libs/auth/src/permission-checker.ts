@@ -62,6 +62,11 @@ export interface PermissionChecker {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
+  canDeleteEntries(
+    entryIds: string[],
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<Map<string, boolean>>;
   canEditAnyEntry(
     entryIds: string[],
     subjectId: string,
@@ -142,6 +147,11 @@ export interface PermissionChecker {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
+  canCancelTasks(
+    taskIds: string[],
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<Map<string, boolean>>;
   canReportTask(
     taskId: string,
     subjectId: string,
@@ -324,6 +334,29 @@ export function createPermissionChecker(
         subjectNs,
         subjectId,
         log,
+      );
+    },
+
+    async canDeleteEntries(
+      entryIds: string[],
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<Map<string, boolean>> {
+      const results = await batchCheckPermissions(
+        permissionApi,
+        entryIds.map((entryId) => ({
+          namespace: KetoNamespace.DiaryEntry,
+          object: entryId,
+          relation: DiaryEntryPermission.Delete,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
+        })),
+      );
+      return new Map(
+        entryIds.map((entryId, index) => [entryId, results[index] ?? false]),
       );
     },
 
@@ -602,6 +635,29 @@ export function createPermissionChecker(
         subjectNs,
         subjectId,
         log,
+      );
+    },
+
+    async canCancelTasks(
+      taskIds: string[],
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<Map<string, boolean>> {
+      const results = await batchCheckPermissions(
+        permissionApi,
+        taskIds.map((taskId) => ({
+          namespace: KetoNamespace.Task,
+          object: taskId,
+          relation: TaskPermission.Cancel,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
+        })),
+      );
+      return new Map(
+        taskIds.map((taskId, index) => [taskId, results[index] ?? false]),
       );
     },
 

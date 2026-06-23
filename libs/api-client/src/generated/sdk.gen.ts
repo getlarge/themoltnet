@@ -18,6 +18,12 @@ import type {
   AppendTaskMessagesData,
   AppendTaskMessagesErrors,
   AppendTaskMessagesResponses,
+  BatchDeleteDiaryEntriesData,
+  BatchDeleteDiaryEntriesErrors,
+  BatchDeleteDiaryEntriesResponses,
+  BatchDeleteTasksData,
+  BatchDeleteTasksErrors,
+  BatchDeleteTasksResponses,
   BeginRuntimeSlotData,
   BeginRuntimeSlotErrors,
   BeginRuntimeSlotResponses,
@@ -1053,6 +1059,34 @@ export const initiateTransfer = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/diaries/{id}/transfer',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.
+ */
+export const batchDeleteDiaryEntries = <ThrowOnError extends boolean = false>(
+  options: Options<BatchDeleteDiaryEntriesData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    BatchDeleteDiaryEntriesResponses,
+    BatchDeleteDiaryEntriesErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/entries',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -2209,6 +2243,34 @@ export const findLatestRuntimeSlotForAttempt = <
     ],
     url: '/runtime-slots/latest',
     ...options,
+  });
+
+/**
+ * Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+ */
+export const batchDeleteTasks = <ThrowOnError extends boolean = false>(
+  options: Options<BatchDeleteTasksData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    BatchDeleteTasksResponses,
+    BatchDeleteTasksErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

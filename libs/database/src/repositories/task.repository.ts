@@ -16,6 +16,7 @@ import { alias } from 'drizzle-orm/pg-core';
 import type { Database } from '../db.js';
 import {
   type ExecutorManifest,
+  correlationSeals,
   executorManifests,
   type ExecutorManifestVerification,
   executorManifestVerifications,
@@ -196,6 +197,31 @@ export function createTaskRepository(db: Database) {
     async findByIds(ids: string[]): Promise<Task[]> {
       if (ids.length === 0) return [];
       return getExecutor(db).select().from(tasks).where(inArray(tasks.id, ids));
+    },
+
+    async findSealedTaskIds(ids: string[]): Promise<string[]> {
+      if (ids.length === 0) return [];
+      const rows = await getExecutor(db)
+        .select({ taskId: correlationSeals.sealedByTaskId })
+        .from(correlationSeals)
+        .where(inArray(correlationSeals.sealedByTaskId, ids));
+      return rows.map((row) => row.taskId);
+    },
+
+    async deleteCorrelationSealsForTasks(ids: string[]): Promise<void> {
+      if (ids.length === 0) return;
+      await getExecutor(db)
+        .delete(correlationSeals)
+        .where(inArray(correlationSeals.sealedByTaskId, ids));
+    },
+
+    async deleteMany(ids: string[]): Promise<string[]> {
+      if (ids.length === 0) return [];
+      const deleted = await getExecutor(db)
+        .delete(tasks)
+        .where(inArray(tasks.id, ids))
+        .returning({ id: tasks.id });
+      return deleted.map((row) => row.id);
     },
 
     async updateMetadata(

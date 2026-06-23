@@ -55,6 +55,21 @@ export type AppendMessagesResponse = {
   count: number;
 };
 
+export type BatchDeleteEntriesBody = {
+  ids: Array<string>;
+};
+
+export type BatchDeleteResponse = {
+  deleted: Array<string>;
+  skipped: Array<string>;
+};
+
+export type BatchDeleteTasksBody = {
+  ids: Array<string>;
+  mode?: 'safe' | 'accept-risk';
+  reason?: string;
+};
+
 export type BeginRuntimeSlotBody = {
   agentName: string;
   lastAttemptN: number;
@@ -3632,6 +3647,43 @@ export type InitiateTransferResponses = {
 
 export type InitiateTransferResponse =
   InitiateTransferResponses[keyof InitiateTransferResponses];
+
+export type BatchDeleteDiaryEntriesData = {
+  body: {
+    ids: Array<string>;
+  };
+  path?: never;
+  query?: never;
+  url: '/entries';
+};
+
+export type BatchDeleteDiaryEntriesErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type BatchDeleteDiaryEntriesError =
+  BatchDeleteDiaryEntriesErrors[keyof BatchDeleteDiaryEntriesErrors];
+
+export type BatchDeleteDiaryEntriesResponses = {
+  /**
+   * Default Response
+   */
+  200: BatchDeleteResponse;
+};
+
+export type BatchDeleteDiaryEntriesResponse =
+  BatchDeleteDiaryEntriesResponses[keyof BatchDeleteDiaryEntriesResponses];
 
 export type DeleteDiaryEntryByIdData = {
   body?: never;
@@ -7311,6 +7363,49 @@ export type FindLatestRuntimeSlotForAttemptResponses = {
 
 export type FindLatestRuntimeSlotForAttemptResponse =
   FindLatestRuntimeSlotForAttemptResponses[keyof FindLatestRuntimeSlotForAttemptResponses];
+
+export type BatchDeleteTasksData = {
+  body: {
+    ids: Array<string>;
+    mode?: 'safe' | 'accept-risk';
+    reason?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/tasks';
+};
+
+export type BatchDeleteTasksErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type BatchDeleteTasksError =
+  BatchDeleteTasksErrors[keyof BatchDeleteTasksErrors];
+
+export type BatchDeleteTasksResponses = {
+  /**
+   * Default Response
+   */
+  200: BatchDeleteResponse;
+};
+
+export type BatchDeleteTasksResponse =
+  BatchDeleteTasksResponses[keyof BatchDeleteTasksResponses];
 
 export type ListTasksData = {
   body?: never;

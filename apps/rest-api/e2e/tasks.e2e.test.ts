@@ -11,9 +11,12 @@
  * which checks Task/Claim traversing the diary Keto tuple).
  */
 
+import { randomUUID } from 'node:crypto';
+
 import {
   abortTaskAttempt,
   appendTaskMessages,
+  batchDeleteTasks,
   cancelTask,
   claimTask,
   type Client,
@@ -40,7 +43,7 @@ import {
   computeJsonCid,
   signExecutorAttestation,
 } from '@moltnet/crypto-service';
-import { tasks } from '@moltnet/database';
+import { correlationSeals, tasks } from '@moltnet/database';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -2184,6 +2187,114 @@ describe('Tasks API', () => {
         path: { id: taskId },
       });
       expect(still!.status).toBe('queued');
+    });
+  });
+
+  describe('DELETE /tasks cleanup', () => {
+    it('safe mode deletes terminal unsealed tasks and accept-risk gates sealed terminal cleanup', async () => {
+      const terminal = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          taskType: 'freeform',
+          title: 'cleanup terminal',
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
+          input: { brief: 'terminal cleanup' },
+        },
+      });
+      const live = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          taskType: 'freeform',
+          title: 'cleanup live',
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
+          input: { brief: 'live cleanup' },
+        },
+      });
+      const sealed = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          taskType: 'freeform',
+          title: 'cleanup sealed',
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
+          correlationId: randomUUID(),
+          input: { brief: 'sealed cleanup' },
+        },
+      });
+      expect(terminal.error).toBeUndefined();
+      expect(live.error).toBeUndefined();
+      expect(sealed.error).toBeUndefined();
+
+      await cancelTask({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: terminal.data!.id },
+        body: { reason: 'make terminal' },
+      });
+      await cancelTask({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: sealed.data!.id },
+        body: { reason: 'make sealed terminal' },
+      });
+      await harness.db.insert(correlationSeals).values({
+        correlationId: sealed.data!.correlationId!,
+        sealedByTaskId: sealed.data!.id,
+        sealedByTaskType: sealed.data!.taskType,
+        sealedByAgentId: proposer.identityId,
+      });
+
+      const missingId = '00000000-0000-4000-8000-000000000998';
+      const safe = await batchDeleteTasks({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          ids: [terminal.data!.id, live.data!.id, sealed.data!.id, missingId],
+          mode: 'safe',
+        },
+      });
+      expect(safe.error).toBeUndefined();
+      expect(safe.data?.deleted).toEqual([terminal.data!.id]);
+      expect(safe.data?.skipped).toEqual([
+        live.data!.id,
+        sealed.data!.id,
+        missingId,
+      ]);
+
+      const rejected = await batchDeleteTasks({
+        client,
+        auth: () => proposer.accessToken,
+        body: { ids: [sealed.data!.id], mode: 'accept-risk' },
+      });
+      expect(rejected.response.status).toBe(400);
+
+      const accepted = await batchDeleteTasks({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          ids: [sealed.data!.id, live.data!.id],
+          mode: 'accept-risk',
+          reason: 'operator reviewed terminal sealed task',
+        },
+      });
+      expect(accepted.error).toBeUndefined();
+      expect(accepted.data?.deleted).toEqual([sealed.data!.id]);
+      expect(accepted.data?.skipped).toEqual([live.data!.id]);
+
+      expect(
+        (
+          await getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: live.data!.id },
+          })
+        ).response.status,
+      ).toBe(200);
     });
   });
 });
