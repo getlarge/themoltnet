@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.34.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.34.0...moltnet-api-client-v1.34.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* align daemon slot schema with task access ([0915e3d](https://github.com/getlarge/themoltnet/commit/0915e3dacead426a9fc79636280eb12807337626))
+
+
+### Codegen
+
+* refresh generated daemon slot artifacts ([dd79fa6](https://github.com/getlarge/themoltnet/commit/dd79fa624911d83b6d607264c52d1dd259a06c0e))
+
 ## [1.34.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.33.0...moltnet-api-client-v1.34.0) (2026-06-22)
 
 

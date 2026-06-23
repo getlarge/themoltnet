@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.27.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.26.0...agent-runtime-v0.27.0) (2026-06-23)
+
+
+### Features
+
+* add team-scoped daemon runtime slots ([581fc48](https://github.com/getlarge/themoltnet/commit/581fc48017b6a8b69bb93e7ae6e4db2d40f8ec90))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.109.0
+
 ## [0.26.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.25.0...agent-runtime-v0.26.0) (2026-06-22)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.12.0...rest-api-v0.13.0) (2026-06-23)
+
+
+### Features
+
+* add team-scoped daemon runtime slots ([581fc48](https://github.com/getlarge/themoltnet/commit/581fc48017b6a8b69bb93e7ae6e4db2d40f8ec90))
+
+
+### Bug Fixes
+
+* align daemon slot schema with task access ([0915e3d](https://github.com/getlarge/themoltnet/commit/0915e3dacead426a9fc79636280eb12807337626))
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.11.0...rest-api-v0.12.0) (2026-06-22)
 
 
