@@ -692,9 +692,9 @@ jobs:
             exit 1
           fi
 
-  # E2E jobs gate on `orchestrator` (lint+typecheck+test+build via Nx
-  # Cloud DTE) and the docker images they consume. They manage their own
-  # docker compose stack and stay outside DTE per issue #985 scope.
+  # E2E jobs gate on the docker images they consume, but do not wait for
+  # `orchestrator` (lint+typecheck+test+build via Nx Cloud DTE). They manage
+  # their own docker compose stack and stay outside DTE per issue #985 scope.
   e2e-node:
     name: E2E Tests (Node)
     runs-on: ubuntu-latest
@@ -702,7 +702,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, orchestrator, build-and-push]
+    needs: [affected, build-and-push]
     if: needs.affected.outputs.e2e-node == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
@@ -767,7 +767,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, orchestrator, build-and-push]
+    needs: [affected, build-and-push]
     if: needs.affected.outputs.e2e-browser == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
@@ -843,7 +843,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, orchestrator, build-and-push]
+    needs: [affected, build-and-push]
     if: needs.affected.outputs.e2e-mcp == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
@@ -926,7 +926,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, orchestrator, build-and-push]
+    needs: [affected, build-and-push]
     if: needs.affected.outputs.e2e-go-cli == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
