@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.28.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.27.0...agent-runtime-v0.28.0) (2026-06-23)
+
+
+### Features
+
+* **agent-daemon:** make runtime selection profile-first ([7e4ad77](https://github.com/getlarge/themoltnet/commit/7e4ad77f9d775e4322c13c381ded6788ffc7bb5c))
+* **agent-daemon:** make runtime selection profile-first ([bc5655b](https://github.com/getlarge/themoltnet/commit/bc5655b29512576485a7627b174019164a74a9f1))
+
+
+### Bug Fixes
+
+* **agent-daemon:** complete profile-first runtime wiring ([5be2bd1](https://github.com/getlarge/themoltnet/commit/5be2bd1dc4c2893ab45098e8d246f5045d830ade))
+
 ## [0.27.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.26.0...agent-runtime-v0.27.0) (2026-06-23)
 
 

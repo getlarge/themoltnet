@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.21.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.20.0...agent-daemon-v0.21.0) (2026-06-23)
+
+
+### Features
+
+* **agent-daemon:** make runtime selection profile-first ([7e4ad77](https://github.com/getlarge/themoltnet/commit/7e4ad77f9d775e4322c13c381ded6788ffc7bb5c))
+* **agent-daemon:** make runtime selection profile-first ([bc5655b](https://github.com/getlarge/themoltnet/commit/bc5655b29512576485a7627b174019164a74a9f1))
+
+
+### Bug Fixes
+
+* **agent-daemon:** complete profile-first runtime wiring ([5be2bd1](https://github.com/getlarge/themoltnet/commit/5be2bd1dc4c2893ab45098e8d246f5045d830ade))
+* **agent-daemon:** drop provider model option compatibility ([7bd8c5d](https://github.com/getlarge/themoltnet/commit/7bd8c5d24dd63dbaa73b01feb316c24f5c522e0d))
+* **runtime:** align profile naming across slots ([10b2e7d](https://github.com/getlarge/themoltnet/commit/10b2e7dc0e1a09d514eaafe747516f3f19d7b98d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.28.0
+    * @themoltnet/pi-extension bumped to 0.26.2
+
 ## [0.20.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.19.1...agent-daemon-v0.20.0) (2026-06-23)
 
 
