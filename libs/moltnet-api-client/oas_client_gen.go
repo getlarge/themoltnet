@@ -61,6 +61,18 @@ type Invoker interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/messages
 	AppendTaskMessages(ctx context.Context, request *AppendTaskMessagesReq, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
+	// BatchDeleteDiaryEntries invokes batchDeleteDiaryEntries operation.
+	//
+	// Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.
+	//
+	// DELETE /entries
+	BatchDeleteDiaryEntries(ctx context.Context, request *BatchDeleteDiaryEntriesReq) (BatchDeleteDiaryEntriesRes, error)
+	// BatchDeleteTasks invokes batchDeleteTasks operation.
+	//
+	// Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+	//
+	// DELETE /tasks
+	BatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq) (BatchDeleteTasksRes, error)
 	// BeginRuntimeSlot invokes beginRuntimeSlot operation.
 	//
 	// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
@@ -1607,6 +1619,286 @@ func (c *Client) sendAppendTaskMessages(ctx context.Context, request *AppendTask
 
 	stage = "DecodeResponse"
 	result, err := decodeAppendTaskMessagesResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// BatchDeleteDiaryEntries invokes batchDeleteDiaryEntries operation.
+//
+// Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.
+//
+// DELETE /entries
+func (c *Client) BatchDeleteDiaryEntries(ctx context.Context, request *BatchDeleteDiaryEntriesReq) (BatchDeleteDiaryEntriesRes, error) {
+	res, err := c.sendBatchDeleteDiaryEntries(ctx, request)
+	return res, err
+}
+
+func (c *Client) sendBatchDeleteDiaryEntries(ctx context.Context, request *BatchDeleteDiaryEntriesReq) (res BatchDeleteDiaryEntriesRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("batchDeleteDiaryEntries"),
+		semconv.HTTPRequestMethodKey.String("DELETE"),
+		semconv.URLTemplateKey.String("/entries"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, BatchDeleteDiaryEntriesOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/entries"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "DELETE", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeBatchDeleteDiaryEntriesRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, BatchDeleteDiaryEntriesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+		{
+			stage = "Security:SessionAuth"
+			switch err := c.securitySessionAuth(ctx, BatchDeleteDiaryEntriesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionAuth\"")
+			}
+		}
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, BatchDeleteDiaryEntriesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 2
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{0b00000010},
+				{0b00000100},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeBatchDeleteDiaryEntriesResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// BatchDeleteTasks invokes batchDeleteTasks operation.
+//
+// Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+//
+// DELETE /tasks
+func (c *Client) BatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq) (BatchDeleteTasksRes, error) {
+	res, err := c.sendBatchDeleteTasks(ctx, request)
+	return res, err
+}
+
+func (c *Client) sendBatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq) (res BatchDeleteTasksRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("batchDeleteTasks"),
+		semconv.HTTPRequestMethodKey.String("DELETE"),
+		semconv.URLTemplateKey.String("/tasks"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, BatchDeleteTasksOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/tasks"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "DELETE", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeBatchDeleteTasksRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, BatchDeleteTasksOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+		{
+			stage = "Security:SessionAuth"
+			switch err := c.securitySessionAuth(ctx, BatchDeleteTasksOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionAuth\"")
+			}
+		}
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, BatchDeleteTasksOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 2
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{0b00000010},
+				{0b00000100},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeBatchDeleteTasksResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

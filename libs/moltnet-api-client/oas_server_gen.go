@@ -40,6 +40,18 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/messages
 	AppendTaskMessages(ctx context.Context, req *AppendTaskMessagesReq, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
+	// BatchDeleteDiaryEntries implements batchDeleteDiaryEntries operation.
+	//
+	// Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.
+	//
+	// DELETE /entries
+	BatchDeleteDiaryEntries(ctx context.Context, req *BatchDeleteDiaryEntriesReq) (BatchDeleteDiaryEntriesRes, error)
+	// BatchDeleteTasks implements batchDeleteTasks operation.
+	//
+	// Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+	//
+	// DELETE /tasks
+	BatchDeleteTasks(ctx context.Context, req *BatchDeleteTasksReq) (BatchDeleteTasksRes, error)
 	// BeginRuntimeSlot implements beginRuntimeSlot operation.
 	//
 	// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.

@@ -28789,6 +28789,32 @@ var initiateTransfer = (options) => (options.client ?? client).post({
 	}
 });
 /**
+* Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.
+*/
+var batchDeleteDiaryEntries = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/entries",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
 * Delete a diary entry.
 */
 var deleteDiaryEntryById = (options) => (options.client ?? client).delete({
@@ -29396,6 +29422,32 @@ var findLatestRuntimeSlotForAttempt = (options) => (options.client ?? client).ge
 	],
 	url: "/runtime-slots/latest",
 	...options
+});
+/**
+* Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+*/
+var batchDeleteTasks = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
 });
 /**
 * List tasks for a team with optional filters.
@@ -32193,6 +32245,13 @@ function createEntriesNamespace(context) {
 				path: { entryId }
 			}));
 		},
+		async deleteMany(body) {
+			return unwrapResult(await batchDeleteDiaryEntries({
+				client,
+				auth,
+				body
+			}));
+		},
 		async search(body) {
 			return unwrapResult(await searchDiary({
 				client,
@@ -32669,6 +32728,13 @@ function createTasksNamespace(context) {
 				client,
 				auth,
 				path: { id },
+				body
+			}));
+		},
+		async deleteMany(body) {
+			return unwrapResult(await batchDeleteTasks({
+				client,
+				auth,
 				body
 			}));
 		},

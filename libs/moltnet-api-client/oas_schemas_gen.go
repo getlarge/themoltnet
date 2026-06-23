@@ -519,6 +519,150 @@ type AppendTaskMessagesUnauthorized ProblemDetails
 
 func (*AppendTaskMessagesUnauthorized) appendTaskMessagesRes() {}
 
+type BatchDeleteDiaryEntriesBadRequest ProblemDetails
+
+func (*BatchDeleteDiaryEntriesBadRequest) batchDeleteDiaryEntriesRes() {}
+
+type BatchDeleteDiaryEntriesInternalServerError ProblemDetails
+
+func (*BatchDeleteDiaryEntriesInternalServerError) batchDeleteDiaryEntriesRes() {}
+
+type BatchDeleteDiaryEntriesReq struct {
+	Ids []uuid.UUID `json:"ids"`
+}
+
+// GetIds returns the value of Ids.
+func (s *BatchDeleteDiaryEntriesReq) GetIds() []uuid.UUID {
+	return s.Ids
+}
+
+// SetIds sets the value of Ids.
+func (s *BatchDeleteDiaryEntriesReq) SetIds(val []uuid.UUID) {
+	s.Ids = val
+}
+
+type BatchDeleteDiaryEntriesUnauthorized ProblemDetails
+
+func (*BatchDeleteDiaryEntriesUnauthorized) batchDeleteDiaryEntriesRes() {}
+
+// Ref: #/components/schemas/BatchDeleteResponse
+type BatchDeleteResponse struct {
+	Deleted []uuid.UUID `json:"deleted"`
+	Skipped []uuid.UUID `json:"skipped"`
+}
+
+// GetDeleted returns the value of Deleted.
+func (s *BatchDeleteResponse) GetDeleted() []uuid.UUID {
+	return s.Deleted
+}
+
+// GetSkipped returns the value of Skipped.
+func (s *BatchDeleteResponse) GetSkipped() []uuid.UUID {
+	return s.Skipped
+}
+
+// SetDeleted sets the value of Deleted.
+func (s *BatchDeleteResponse) SetDeleted(val []uuid.UUID) {
+	s.Deleted = val
+}
+
+// SetSkipped sets the value of Skipped.
+func (s *BatchDeleteResponse) SetSkipped(val []uuid.UUID) {
+	s.Skipped = val
+}
+
+func (*BatchDeleteResponse) batchDeleteDiaryEntriesRes() {}
+func (*BatchDeleteResponse) batchDeleteTasksRes()        {}
+
+type BatchDeleteTasksForbidden ProblemDetails
+
+func (*BatchDeleteTasksForbidden) batchDeleteTasksRes() {}
+
+type BatchDeleteTasksInternalServerError ProblemDetails
+
+func (*BatchDeleteTasksInternalServerError) batchDeleteTasksRes() {}
+
+type BatchDeleteTasksReq struct {
+	Ids    []uuid.UUID                `json:"ids"`
+	Mode   OptBatchDeleteTasksReqMode `json:"mode"`
+	Reason OptString                  `json:"reason"`
+}
+
+// GetIds returns the value of Ids.
+func (s *BatchDeleteTasksReq) GetIds() []uuid.UUID {
+	return s.Ids
+}
+
+// GetMode returns the value of Mode.
+func (s *BatchDeleteTasksReq) GetMode() OptBatchDeleteTasksReqMode {
+	return s.Mode
+}
+
+// GetReason returns the value of Reason.
+func (s *BatchDeleteTasksReq) GetReason() OptString {
+	return s.Reason
+}
+
+// SetIds sets the value of Ids.
+func (s *BatchDeleteTasksReq) SetIds(val []uuid.UUID) {
+	s.Ids = val
+}
+
+// SetMode sets the value of Mode.
+func (s *BatchDeleteTasksReq) SetMode(val OptBatchDeleteTasksReqMode) {
+	s.Mode = val
+}
+
+// SetReason sets the value of Reason.
+func (s *BatchDeleteTasksReq) SetReason(val OptString) {
+	s.Reason = val
+}
+
+type BatchDeleteTasksReqMode string
+
+const (
+	BatchDeleteTasksReqModeSafe       BatchDeleteTasksReqMode = "safe"
+	BatchDeleteTasksReqModeAcceptRisk BatchDeleteTasksReqMode = "accept-risk"
+)
+
+// AllValues returns all BatchDeleteTasksReqMode values.
+func (BatchDeleteTasksReqMode) AllValues() []BatchDeleteTasksReqMode {
+	return []BatchDeleteTasksReqMode{
+		BatchDeleteTasksReqModeSafe,
+		BatchDeleteTasksReqModeAcceptRisk,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s BatchDeleteTasksReqMode) MarshalText() ([]byte, error) {
+	switch s {
+	case BatchDeleteTasksReqModeSafe:
+		return []byte(s), nil
+	case BatchDeleteTasksReqModeAcceptRisk:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *BatchDeleteTasksReqMode) UnmarshalText(data []byte) error {
+	switch BatchDeleteTasksReqMode(data) {
+	case BatchDeleteTasksReqModeSafe:
+		*s = BatchDeleteTasksReqModeSafe
+		return nil
+	case BatchDeleteTasksReqModeAcceptRisk:
+		*s = BatchDeleteTasksReqModeAcceptRisk
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type BatchDeleteTasksUnauthorized ProblemDetails
+
+func (*BatchDeleteTasksUnauthorized) batchDeleteTasksRes() {}
+
 type BearerAuth struct {
 	Token string
 	Roles []string
@@ -20276,6 +20420,52 @@ func (o OptAddGroupMemberReqSubjectNs) Or(d AddGroupMemberReqSubjectNs) AddGroup
 	return d
 }
 
+// NewOptBatchDeleteTasksReqMode returns new OptBatchDeleteTasksReqMode with value set to v.
+func NewOptBatchDeleteTasksReqMode(v BatchDeleteTasksReqMode) OptBatchDeleteTasksReqMode {
+	return OptBatchDeleteTasksReqMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptBatchDeleteTasksReqMode is optional BatchDeleteTasksReqMode.
+type OptBatchDeleteTasksReqMode struct {
+	Value BatchDeleteTasksReqMode
+	Set   bool
+}
+
+// IsSet returns true if OptBatchDeleteTasksReqMode was set.
+func (o OptBatchDeleteTasksReqMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptBatchDeleteTasksReqMode) Reset() {
+	var v BatchDeleteTasksReqMode
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptBatchDeleteTasksReqMode) SetTo(v BatchDeleteTasksReqMode) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptBatchDeleteTasksReqMode) Get() (v BatchDeleteTasksReqMode, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptBatchDeleteTasksReqMode) Or(d BatchDeleteTasksReqMode) BatchDeleteTasksReqMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptBeginRuntimeSlotConflictConflictTarget returns new OptBeginRuntimeSlotConflictConflictTarget with value set to v.
 func NewOptBeginRuntimeSlotConflictConflictTarget(v BeginRuntimeSlotConflictConflictTarget) OptBeginRuntimeSlotConflictConflictTarget {
 	return OptBeginRuntimeSlotConflictConflictTarget{
@@ -35068,6 +35258,7 @@ func (s *ValidationProblemDetails) SetAdditionalProps(val ValidationProblemDetai
 	s.AdditionalProps = val
 }
 
+func (*ValidationProblemDetails) batchDeleteTasksRes()   {}
 func (*ValidationProblemDetails) completeTaskRes()       {}
 func (*ValidationProblemDetails) createTaskRes()         {}
 func (*ValidationProblemDetails) listTasksRes()          {}

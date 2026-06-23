@@ -21,6 +21,14 @@ type AppendTaskMessagesRes interface {
 	appendTaskMessagesRes()
 }
 
+type BatchDeleteDiaryEntriesRes interface {
+	batchDeleteDiaryEntriesRes()
+}
+
+type BatchDeleteTasksRes interface {
+	batchDeleteTasksRes()
+}
+
 type BeginRuntimeSlotRes interface {
 	beginRuntimeSlotRes()
 }

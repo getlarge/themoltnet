@@ -11,6 +11,8 @@ const (
 	AcceptTransferOperation                  OperationName = "AcceptTransfer"
 	AddGroupMemberOperation                  OperationName = "AddGroupMember"
 	AppendTaskMessagesOperation              OperationName = "AppendTaskMessages"
+	BatchDeleteDiaryEntriesOperation         OperationName = "BatchDeleteDiaryEntries"
+	BatchDeleteTasksOperation                OperationName = "BatchDeleteTasks"
 	BeginRuntimeSlotOperation                OperationName = "BeginRuntimeSlot"
 	CancelTaskOperation                      OperationName = "CancelTask"
 	ClaimTaskOperation                       OperationName = "ClaimTask"

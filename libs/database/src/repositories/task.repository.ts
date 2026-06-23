@@ -15,8 +15,8 @@ import { alias } from 'drizzle-orm/pg-core';
 
 import type { Database } from '../db.js';
 import {
-  type ExecutorManifest,
   correlationSeals,
+  type ExecutorManifest,
   executorManifests,
   type ExecutorManifestVerification,
   executorManifestVerifications,

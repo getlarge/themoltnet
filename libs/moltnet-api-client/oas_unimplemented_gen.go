@@ -60,6 +60,24 @@ func (UnimplementedHandler) AppendTaskMessages(ctx context.Context, req *AppendT
 	return r, ht.ErrNotImplemented
 }
 
+// BatchDeleteDiaryEntries implements batchDeleteDiaryEntries operation.
+//
+// Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.
+//
+// DELETE /entries
+func (UnimplementedHandler) BatchDeleteDiaryEntries(ctx context.Context, req *BatchDeleteDiaryEntriesReq) (r BatchDeleteDiaryEntriesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// BatchDeleteTasks implements batchDeleteTasks operation.
+//
+// Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+//
+// DELETE /tasks
+func (UnimplementedHandler) BatchDeleteTasks(ctx context.Context, req *BatchDeleteTasksReq) (r BatchDeleteTasksRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // BeginRuntimeSlot implements beginRuntimeSlot operation.
 //
 // Upsert a team-scoped runtime slot for audit and continuation affinity lookup.

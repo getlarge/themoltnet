@@ -3,6 +3,14 @@
 package moltnetapi
 
 // setDefaults set default value of fields.
+func (s *BatchDeleteTasksReq) setDefaults() {
+	{
+		val := BatchDeleteTasksReqMode("safe")
+		s.Mode.SetTo(val)
+	}
+}
+
+// setDefaults set default value of fields.
 func (s *ClaimTaskReq) setDefaults() {
 	{
 		val := int(300)
