@@ -47,6 +47,31 @@ pnpm exec nx run @themoltnet/node-red-moltnet:build      # vite build → dist/n
 pnpm exec nx run @themoltnet/node-red-moltnet:typecheck  # tsc -b --emitDeclarationOnly
 ```
 
+## Testing
+
+Three layers, increasing fidelity:
+
+1. **Unit** (`pnpm exec nx run @themoltnet/node-red-moltnet:test`) — Vitest with a
+   tiny in-memory `RED` harness ([`__tests__/fake-red.ts`](./__tests__/fake-red.ts))
+   that drives the real node constructors. The `moltnet-agent` config node is
+   replaced by a stub whose `getAgent()` returns a fake SDK agent, so tests are
+   fast and offline. This is where `tasks-create` / `workflow-status` logic is
+   asserted (output shape, body fallback, error paths).
+
+   > Note: `node-red-node-test-helper` (the usual integration helper) resolves
+   > Node-RED's internal submodules through npm's flat layout and **breaks under
+   > pnpm's symlinked store** (`Cannot find module @node-red/registry/lib/util`).
+   > Hence the lightweight harness for unit tests.
+
+2. **Manual / local** — see the smoke test below. Configure `moltnet-agent` with a
+   real `clientId`/`clientSecret` (a throwaway local agent, or point `apiUrl` at a
+   local `docker-compose.e2e.yaml` rest-api) and drive a flow against live data.
+
+3. **E2E** (future) — run the MoltNet e2e Docker stack + a real Node-RED 5 with
+   this package installed, deploy a flow via Node-RED's admin HTTP API, inject,
+   and assert real task creation/listing. Mirrors the repo's stack-based e2e
+   pattern.
+
 ## Local smoke test (throwaway Node-RED 5 harness)
 
 ```bash
