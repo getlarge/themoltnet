@@ -79,14 +79,15 @@ const init: NodeInitializer = (RED): void => {
             completedAt: t.completedAt ?? '',
           }));
 
-          msg.payload = rows;
-          msg.workflow = { correlationId, total: res.total };
+          const out = RED.util.cloneMessage(msg);
+          out.payload = rows;
+          out.workflow = { correlationId, total: res.total };
           this.status({
             fill: 'green',
             shape: 'dot',
             text: `${rows.length} task(s)`,
           });
-          send(msg);
+          send(out);
           done();
         } catch (err) {
           this.status({ fill: 'red', shape: 'ring', text: 'error' });

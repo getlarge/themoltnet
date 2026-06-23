@@ -49,13 +49,14 @@ const init: NodeInitializer = (RED): void => {
           ]);
           const snapshot = buildTaskSnapshot(task, attempts);
 
-          msg.payload = snapshot;
+          const out = RED.util.cloneMessage(msg);
+          out.payload = snapshot;
           this.status({
             fill: snapshot.accepted ? 'green' : 'grey',
             shape: 'dot',
             text: `${snapshot.status}${snapshot.accepted ? ' ✓' : ''}`,
           });
-          send(msg);
+          send(out);
           done();
         } catch (err) {
           this.status({ fill: 'red', shape: 'ring', text: 'error' });

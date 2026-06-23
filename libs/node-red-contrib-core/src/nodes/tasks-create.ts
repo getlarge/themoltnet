@@ -99,19 +99,22 @@ const init: NodeInitializer = (RED): void => {
             base.correlationId,
             def.generateCorrelationId === true,
           );
-          if (correlationId) {
-            base.correlationId = correlationId;
-            msg.correlationId = correlationId;
-          }
+          if (correlationId) base.correlationId = correlationId;
 
           const task = await agent.tasks.create(base as CreateTaskBody);
-          msg.payload = task;
+
+          // Emit on a clone so fan-out wires don't share a mutated message.
+          // The resolved correlationId is echoed onto msg.correlationId so
+          // downstream task: wait / tasks: create / workflow: status inherit it.
+          const out = RED.util.cloneMessage(msg);
+          if (correlationId) out.correlationId = correlationId;
+          out.payload = task;
           this.status({
             fill: 'green',
             shape: 'dot',
             text: `task ${task.id ?? 'created'}`,
           });
-          send(msg);
+          send(out);
           done();
         } catch (err) {
           this.status({ fill: 'red', shape: 'ring', text: 'error' });

@@ -41,7 +41,7 @@
     "tags": [
       "type:client",
       "scope:node-red",
-      "platform:node"
+      "platform:server"
     ]
   }
 }

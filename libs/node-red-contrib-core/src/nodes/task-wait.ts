@@ -161,14 +161,23 @@ async function drainMessages(args: {
   const latest = attempts.reduce((max, a) =>
     a.attemptN > max.attemptN ? a : max,
   );
-  const messages = await agent.tasks.listMessages(taskId, latest.attemptN, {
-    afterSeq,
-    limit: 100,
-  } as Parameters<AgentApi['tasks']['listMessages']>[2]);
-  for (const m of messages) {
-    if (afterSeq === undefined || m.seq > afterSeq) afterSeq = m.seq;
-    if (kindAllow && !kindAllow.has(m.kind)) continue;
-    emit(m);
+
+  // Drain in pages: a single poll may have produced more than one page of new
+  // messages. Keep fetching until a page comes back short of `limit`, advancing
+  // the cursor across pages, so nothing is dropped regardless of how many
+  // messages arrived since the last poll.
+  const limit = 100;
+  for (;;) {
+    const messages = await agent.tasks.listMessages(taskId, latest.attemptN, {
+      afterSeq,
+      limit,
+    });
+    for (const m of messages) {
+      if (afterSeq === undefined || m.seq > afterSeq) afterSeq = m.seq;
+      if (kindAllow && !kindAllow.has(m.kind)) continue;
+      emit(m);
+    }
+    if (messages.length < limit) break;
   }
   return afterSeq;
 }
