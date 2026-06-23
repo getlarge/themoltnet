@@ -89,6 +89,7 @@ export interface EntriesResult {
   hasNextPage: boolean;
   fetchNextPage: () => void;
   isFetchingNextPage: boolean;
+  refetch: () => Promise<unknown>;
 }
 
 export function useEntries(
@@ -166,6 +167,7 @@ export function useEntries(
         void listInfinite.fetchNextPage();
       },
       isFetchingNextPage: listInfinite.isFetchingNextPage,
+      refetch: listInfinite.refetch,
     };
   }
 
@@ -178,6 +180,7 @@ export function useEntries(
     hasNextPage: false,
     fetchNextPage: () => {},
     isFetchingNextPage: false,
+    refetch: searchQuery.refetch,
   };
 }
 

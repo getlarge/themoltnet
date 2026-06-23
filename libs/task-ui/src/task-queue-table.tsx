@@ -8,8 +8,11 @@ export interface TaskQueueTableProps {
   tasks: TaskSummary[];
   now?: Date;
   selectedTaskId?: string;
+  selectedTaskIds?: Set<string>;
   renderDiaryLabel?: TaskLabelRenderer;
   renderAgentLabel?: TaskLabelRenderer;
+  onToggleTask?: (task: TaskSummary, selected: boolean) => void;
+  onToggleVisible?: (selected: boolean) => void;
   onSelectTask?: (task: TaskSummary) => void;
   onOpenTask?: (task: TaskSummary) => void;
 }
@@ -18,8 +21,11 @@ export function TaskQueueTable({
   tasks,
   now,
   selectedTaskId,
+  selectedTaskIds,
   renderDiaryLabel,
   renderAgentLabel,
+  onToggleTask,
+  onToggleVisible,
   onSelectTask,
   onOpenTask,
 }: TaskQueueTableProps) {
@@ -41,8 +47,10 @@ export function TaskQueueTable({
     );
   }
 
-  const columns =
-    'minmax(190px, 1.3fr) minmax(110px, .7fr) minmax(170px, 1fr) minmax(190px, 1.4fr) minmax(120px, .9fr) minmax(130px, 1fr) minmax(90px, .6fr) minmax(70px, .5fr)';
+  const selectable = Boolean(onToggleTask);
+  const visibleSelected =
+    tasks.length > 0 && tasks.every((task) => selectedTaskIds?.has(task.id));
+  const columns = `${selectable ? '40px ' : ''}minmax(190px, 1.3fr) minmax(110px, .7fr) minmax(170px, 1fr) minmax(190px, 1.4fr) minmax(120px, .9fr) minmax(130px, 1fr) minmax(90px, .6fr) minmax(70px, .5fr)`;
 
   return (
     <div
@@ -66,6 +74,14 @@ export function TaskQueueTable({
             textTransform: 'uppercase',
           }}
         >
+          {selectable ? (
+            <input
+              type="checkbox"
+              aria-label="Select visible tasks"
+              checked={visibleSelected}
+              onChange={(event) => onToggleVisible?.(event.target.checked)}
+            />
+          ) : null}
           <span>Task</span>
           <span>Status</span>
           <span>Tags</span>
@@ -77,14 +93,10 @@ export function TaskQueueTable({
         </div>
         {tasks.map((task) => {
           const selected = task.id === selectedTaskId;
+          const checked = selectedTaskIds?.has(task.id) ?? false;
           return (
-            <button
+            <div
               key={task.id}
-              type="button"
-              onClick={() => {
-                onSelectTask?.(task);
-                onOpenTask?.(task);
-              }}
               style={{
                 display: 'grid',
                 gridTemplateColumns: columns,
@@ -96,23 +108,48 @@ export function TaskQueueTable({
                   ? theme.color.primary.subtle
                   : theme.color.bg.surface,
                 color: theme.color.text.DEFAULT,
-                cursor: onSelectTask || onOpenTask ? 'pointer' : 'default',
                 font: 'inherit',
                 padding: `${theme.spacing[3]} ${theme.spacing[3]}`,
                 textAlign: 'left',
               }}
             >
+              {selectable ? (
+                <span>
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${task.title || humanizeToken(task.taskType)}`}
+                    checked={checked}
+                    onChange={(event) =>
+                      onToggleTask?.(task, event.target.checked)
+                    }
+                  />
+                </span>
+              ) : null}
               <span style={{ minWidth: 0 }}>
-                <Text
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelectTask?.(task);
+                    onOpenTask?.(task);
+                  }}
                   style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'inherit',
+                    cursor: onSelectTask || onOpenTask ? 'pointer' : 'default',
+                    display: 'block',
+                    font: 'inherit',
                     fontWeight: theme.font.weight.semibold,
                     overflow: 'hidden',
+                    padding: 0,
+                    textAlign: 'left',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    width: '100%',
                   }}
                 >
                   {task.title || humanizeToken(task.taskType)}
-                </Text>
+                </button>
                 <Text
                   variant="caption"
                   color="muted"
@@ -171,7 +208,7 @@ export function TaskQueueTable({
                 {formatRelativeAge(task.queuedAt, now)}
               </span>
               <span>{task.acceptedAttemptN ?? '—'}</span>
-            </button>
+            </div>
           );
         })}
       </div>

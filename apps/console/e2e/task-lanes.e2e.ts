@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 
 import {
+  cancelTask,
   createDiary,
   createTask,
   listTasks,
@@ -47,6 +48,7 @@ test.describe.serial('Task lanes board', () => {
           teamId,
           diaryId,
           taskType: 'curate_pack',
+          title: `${label} ${nonce}`,
           input: { diaryId, taskPrompt: `${label} ${nonce}` },
         },
       });
@@ -170,6 +172,40 @@ test.describe.serial('Task lanes board', () => {
       page.getByText('Pending', { exact: false }).first(),
     ).toBeVisible();
     await expect(page.getByText(String(expectedPending)).first()).toBeVisible();
+  });
+
+  test('table cleanup deletes terminal tasks and skips live tasks', async ({
+    page,
+  }) => {
+    const terminal = await seedTask('cleanup-terminal');
+    const live = await seedTask('cleanup-live');
+    const client = createTokenSessionApiClient(sessionToken);
+
+    const cancelled = await cancelTask({
+      client,
+      path: { id: terminal.id },
+      body: { reason: 'console cleanup e2e terminal fixture' },
+    });
+    expect(cancelled.error).toBeUndefined();
+
+    await loginViaBrowser(page, user);
+    await page.goto(`${CONSOLE_URL}/tasks`);
+    await page.getByRole('button', { name: 'Table' }).click();
+
+    await expect(page.getByText(terminal.id.slice(0, 8))).toBeVisible();
+    await expect(page.getByText(live.id.slice(0, 8))).toBeVisible();
+
+    await page.getByLabel(`Select ${terminal.title ?? 'Curate pack'}`).check();
+    await page.getByLabel(`Select ${live.title ?? 'Curate pack'}`).check();
+    await page.getByRole('button', { name: 'Delete selected' }).click();
+    await expect(
+      page.getByRole('dialog', { name: 'Delete selected tasks' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Delete', exact: true }).click();
+
+    await expect(page.getByText('1 deleted, 1 skipped')).toBeVisible();
+    await expect(page.getByText(terminal.id.slice(0, 8))).not.toBeVisible();
+    await expect(page.getByText(live.id.slice(0, 8))).toBeVisible();
   });
 });
 
