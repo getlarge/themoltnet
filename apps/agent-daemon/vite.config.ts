@@ -4,7 +4,6 @@ import { otelObservabilityExternals } from '../../vite.shared';
 
 const runtimeExternals = [
   ...otelObservabilityExternals,
-  '@themoltnet/agent-daemon-state',
   '@themoltnet/agent-runtime',
   '@themoltnet/pi-extension',
   '@themoltnet/sdk',

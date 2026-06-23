@@ -20,14 +20,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 
 import { computeJsonCid } from '@moltnet/crypto-service';
-import {
-  type DaemonSlotIdentity,
-  DaemonSlotRegistry,
-  resolveLatestPiSessionPath,
-} from '@themoltnet/agent-daemon-state';
 import {
   AgentRuntime,
   type AgentRuntimeLogger,
@@ -39,12 +33,18 @@ import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { createExecutionPlanCache } from '../src/lib/execution-plan-cache.js';
+import type { DaemonSlotIdentity } from '../src/lib/daemon-slot-identity.js';
+import {
+  createExecutionPlanCache,
+  type RuntimeSlotStore,
+} from '../src/lib/execution-plan-cache.js';
 import { finalizeTask } from '../src/lib/finalize.js';
 import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../src/lib/runtime-profile.js';
+import { createApiRuntimeSlotStore } from '../src/lib/runtime-slots.js';
+import { resolveLatestPiSessionPath } from '../src/lib/session-files.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
@@ -131,7 +131,7 @@ describe('Agent daemon (e2e)', () => {
       diaryId,
       correlationId,
       input: {
-        brief: 'Exercise daemon slot persistence in e2e',
+        brief: 'Exercise runtime slot persistence in e2e',
         scopeHint: 'daemon-e2e',
       },
     });
@@ -150,57 +150,6 @@ describe('Agent daemon (e2e)', () => {
       input: {
         brief: 'Exercise freeform tasks_continue warm-resume path in e2e',
         ...(continueFrom ? { continueFrom } : {}),
-      },
-    });
-  }
-
-  function proposeRunEvalTask(
-    correlationId: string,
-    variantLabel = 'baseline',
-  ) {
-    return agent.tasks.create({
-      taskType: 'run_eval',
-      teamId,
-      diaryId,
-      correlationId,
-      input: {
-        scenario: { prompt: 'e2e eval scenario' },
-        variantLabel,
-        execution: { mode: 'vitro', workspace: 'none' },
-        context: [],
-        successCriteria: { version: 1 },
-      },
-    });
-  }
-
-  function proposeJudgeEvalAttemptTask(
-    correlationId: string,
-    targetTaskId: string,
-  ) {
-    return agent.tasks.create({
-      taskType: 'judge_eval_attempt',
-      teamId,
-      diaryId,
-      correlationId,
-      input: {
-        targetTaskId,
-        targetAttemptN: 1,
-        successCriteria: {
-          version: 1,
-          rubric: {
-            rubricId: 'e2e-judge-attach',
-            version: 'v1',
-            scope: 'eval',
-            criteria: [
-              {
-                id: 'c1',
-                description: 'judge can inspect the attempt',
-                weight: 1,
-                scoring: 'llm_score',
-              },
-            ],
-          },
-        },
       },
     });
   }
@@ -667,12 +616,14 @@ describe('Agent daemon (e2e)', () => {
     expect(requeued.cancelReason).toBeFalsy();
   }, 30_000);
 
-  it('reuses daemon slot resources across fulfill_brief tasks and reaps them on expiry', async () => {
+  it('reuses remote runtime slot resources across fulfill_brief tasks', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-slot-e2e-'));
     tempRoots.push(mountRoot);
 
     const stateDirs = ensureDaemonStateDirs(mountRoot);
-    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+    const slotStore = createApiRuntimeSlotStore({
+      agent,
+    });
     const slotIdentity: DaemonSlotIdentity = {
       agentName: 'e2e-daemon',
       provider: 'anthropic',
@@ -681,166 +632,86 @@ describe('Agent daemon (e2e)', () => {
     const correlationId = randomUUID();
     const warmSessionTtlSec = 60;
 
-    try {
-      const first = await proposeFulfillBriefTask(correlationId);
-      const firstOutput = await runStubbedSlotAwareTask({
-        agent,
-        taskId: first.id,
-        mountRoot,
-        stateDirs,
-        slotRegistry,
-        slotIdentity,
-        warmSessionTtlSec,
-      });
-      expect(firstOutput.output.status).toBe('completed');
+    const first = await proposeFulfillBriefTask(correlationId);
+    const firstOutput = await runStubbedSlotAwareTask({
+      agent,
+      taskId: first.id,
+      mountRoot,
+      stateDirs,
+      slotStore,
+      slotIdentity,
+      warmSessionTtlSec,
+    });
+    expect(firstOutput.output.status).toBe('completed');
 
-      const afterFirst = readDaemonSlotState(stateDirs.registryDbPath);
-      expect(afterFirst.slots).toHaveLength(1);
-      expect(afterFirst.sessions).toHaveLength(1);
-      expect(afterFirst.workspaces).toHaveLength(1);
-      expect(afterFirst.slots[0]?.taskType).toBe('fulfill_brief');
-      expect(afterFirst.slots[0]?.state).toBe('idle');
-      expect(afterFirst.slots[0]?.lastTaskId).toBe(first.id);
+    const firstSlot = await slotStore.findLatestSlotByTaskAttempt(
+      teamId,
+      first.id,
+      firstOutput.output.attemptN,
+    );
+    expect(firstSlot?.session?.sessionDir).toBeTruthy();
+    expect(firstSlot?.session?.sessionPath).toBeTruthy();
+    expect(firstSlot?.workspace?.worktreePath).toBeTruthy();
+    expect(existsSync(firstSlot!.session!.sessionDir)).toBe(true);
+    expect(existsSync(firstSlot!.session!.sessionPath!)).toBe(true);
+    expect(existsSync(firstSlot!.workspace!.worktreePath)).toBe(true);
 
-      const firstSessionDir = afterFirst.sessions[0]?.sessionDir;
-      const firstSessionPath = afterFirst.sessions[0]?.sessionPath;
-      const firstWorktreePath = afterFirst.workspaces[0]?.worktreePath;
-      expect(firstSessionDir).toBeTruthy();
-      expect(firstSessionPath).toBeTruthy();
-      expect(firstWorktreePath).toBeTruthy();
-      expect(existsSync(firstSessionDir!)).toBe(true);
-      expect(existsSync(firstSessionPath!)).toBe(true);
-      expect(existsSync(firstWorktreePath!)).toBe(true);
+    const second = await proposeFulfillBriefTask(correlationId);
+    const secondOutput = await runStubbedSlotAwareTask({
+      agent,
+      taskId: second.id,
+      mountRoot,
+      stateDirs,
+      slotStore,
+      slotIdentity,
+      warmSessionTtlSec,
+    });
+    expect(secondOutput.output.status).toBe('completed');
 
-      const second = await proposeFulfillBriefTask(correlationId);
-      const secondOutput = await runStubbedSlotAwareTask({
-        agent,
-        taskId: second.id,
-        mountRoot,
-        stateDirs,
-        slotRegistry,
-        slotIdentity,
-        warmSessionTtlSec,
-      });
-      expect(secondOutput.output.status).toBe('completed');
+    const secondSlot = await slotStore.findLatestSlotByTaskAttempt(
+      teamId,
+      second.id,
+      secondOutput.output.attemptN,
+    );
+    expect(secondSlot?.session?.sessionDir).toBe(
+      firstSlot!.session!.sessionDir,
+    );
+    expect(secondSlot?.session?.sessionPath).toBe(
+      firstSlot!.session!.sessionPath,
+    );
+    expect(secondSlot?.workspace?.worktreePath).toBe(
+      firstSlot!.workspace!.worktreePath,
+    );
 
-      const afterSecond = readDaemonSlotState(stateDirs.registryDbPath);
-      expect(afterSecond.slots).toHaveLength(1);
-      expect(afterSecond.sessions).toHaveLength(1);
-      expect(afterSecond.workspaces).toHaveLength(1);
-      expect(afterSecond.slots[0]?.slotKey).toBe(afterFirst.slots[0]?.slotKey);
-      expect(afterSecond.sessions[0]?.sessionDir).toBe(firstSessionDir);
-      expect(afterSecond.sessions[0]?.sessionPath).toBe(firstSessionPath);
-      expect(afterSecond.workspaces[0]?.worktreePath).toBe(firstWorktreePath);
-      expect(afterSecond.slots[0]?.lastTaskId).toBe(second.id);
+    const persistedSessionLog = readFileSync(
+      firstSlot!.session!.sessionPath!,
+      'utf8',
+    );
+    expect(persistedSessionLog).toContain(first.id);
+    expect(persistedSessionLog).toContain(second.id);
 
-      const persistedSessionLog = readFileSync(firstSessionPath!, 'utf8');
-      expect(persistedSessionLog).toContain(first.id);
-      expect(persistedSessionLog).toContain(second.id);
-
-      const finalFirst = await agent.tasks.get(first.id);
-      const finalSecond = await agent.tasks.get(second.id);
-      expect(finalFirst.status).toBe('completed');
-      expect(finalSecond.status).toBe('completed');
-
-      const expired = await slotRegistry.reapExpiredSlots(Date.now() + 120_000);
-      expect(expired).toHaveLength(1);
-      expect(expired[0]?.slot.slotKey).toBe(afterSecond.slots[0]?.slotKey);
-      expect(existsSync(firstSessionDir!)).toBe(false);
-      expect(existsSync(firstWorktreePath!)).toBe(false);
-
-      const afterReap = readDaemonSlotState(stateDirs.registryDbPath);
-      expect(afterReap.slots).toHaveLength(0);
-      expect(afterReap.sessions).toHaveLength(0);
-      expect(afterReap.workspaces).toHaveLength(0);
-    } finally {
-      await slotRegistry.close();
-    }
+    const finalFirst = await agent.tasks.get(first.id);
+    const finalSecond = await agent.tasks.get(second.id);
+    expect(finalFirst.status).toBe('completed');
+    expect(finalSecond.status).toBe('completed');
   }, 60_000);
 
-  it('fails judge_eval_attempt after producer warm-slot reap', async () => {
-    const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-judge-attach-e2e-'));
-    tempRoots.push(mountRoot);
+  describe('freeform tasks_continue runtime-slot affinity', () => {
+    // Canonical fake-parent scenario for #1287: seed a freeform runtime
+    // slot via the stub harness (real task row + remote runtime slot rows,
+    // no LLM, no Pi boot), then create a continuation. The affinity filter
+    // claims when the remote slot points at a local session directory.
 
-    const stateDirs = ensureDaemonStateDirs(mountRoot);
-    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
-    const slotIdentity: DaemonSlotIdentity = {
-      agentName: 'e2e-daemon',
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
-    };
-    const correlationId = randomUUID();
-    const warmSessionTtlSec = 60;
-    try {
-      const producer = await proposeRunEvalTask(correlationId);
-      const producerRun = await runStubbedSlotAwareTask({
-        agent,
-        taskId: producer.id,
-        mountRoot,
-        stateDirs,
-        slotRegistry,
-        slotIdentity,
-        warmSessionTtlSec,
-      });
-      expect(producerRun.output.status).toBe('completed');
-      expect(producerRun.executionPlan.workspaceMode).toBe('scratch_mount');
-
-      const afterProducer = readDaemonSlotState(stateDirs.registryDbPath);
-      expect(afterProducer.slots).toHaveLength(1);
-      expect(afterProducer.sessions).toHaveLength(1);
-      expect(afterProducer.workspaces).toHaveLength(1);
-
-      const producerSessionPath = afterProducer.sessions[0]?.sessionPath;
-      const producerWorkspacePath = afterProducer.workspaces[0]?.worktreePath;
-      expect(producerSessionPath).toBeTruthy();
-      expect(producerWorkspacePath).toBeTruthy();
-      expect(existsSync(producerSessionPath!)).toBe(true);
-      expect(existsSync(producerWorkspacePath!)).toBe(true);
-      const expired = await slotRegistry.reapExpiredSlots(Date.now() + 120_000);
-      expect(expired).toHaveLength(1);
-      expect(existsSync(producerSessionPath!)).toBe(false);
-      expect(existsSync(producerWorkspacePath!)).toBe(false);
-
-      const judge = await proposeJudgeEvalAttemptTask(
-        correlationId,
-        producer.id,
-      );
-      const judgeRun = await runStubbedSlotAwareTask({
-        agent,
-        taskId: judge.id,
-        mountRoot,
-        stateDirs,
-        slotRegistry,
-        slotIdentity,
-        warmSessionTtlSec,
-      });
-
-      expect(judgeRun.output.status).toBe('failed');
-      expect(judgeRun.output.error?.code).toBe('executor_threw');
-      expect(judgeRun.output.error?.message).toContain(
-        'No live producer daemon slot found',
-      );
-      expect(judgeRun.executionPlan).toBeNull();
-    } finally {
-      await slotRegistry.close();
-    }
-  }, 60_000);
-
-  describe('freeform tasks_continue warm-slot affinity', () => {
-    // Canonical fake-parent scenario for #1287: seed a freeform warm
-    // slot via the stub harness (real task row + slot registry rows,
-    // no LLM, no Pi boot), then create a continuation. Affinity filter
-    // claims on the daemon that owns the slot; skips on the daemon
-    // that doesn't.
-
-    it('claims a continuation when the warm slot is alive on this daemon', async () => {
+    it('claims a continuation when the runtime slot is available to this daemon', async () => {
       const mountRoot = mkdtempSync(
         join(tmpdir(), 'daemon-continue-claim-e2e-'),
       );
       tempRoots.push(mountRoot);
 
       const stateDirs = ensureDaemonStateDirs(mountRoot);
-      const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+      const slotStore = createApiRuntimeSlotStore({
+        agent,
+      });
       const slotIdentity: DaemonSlotIdentity = {
         agentName: 'e2e-daemon',
         provider: 'anthropic',
@@ -864,16 +735,18 @@ describe('Agent daemon (e2e)', () => {
           taskId: parent.id,
           mountRoot,
           stateDirs,
-          slotRegistry,
+          slotStore,
           slotIdentity,
           warmSessionTtlSec,
         });
         expect(parentRun.output.status).toBe('completed');
 
-        const seeded = readDaemonSlotState(stateDirs.registryDbPath);
-        expect(seeded.slots).toHaveLength(1);
-        expect(seeded.sessions).toHaveLength(1);
-        const seededSessionPath = seeded.sessions[0]?.sessionPath as string;
+        const seeded = await slotStore.findLatestSlotByTaskAttempt(
+          teamId,
+          parent.id,
+          parentRun.output.attemptN,
+        );
+        const seededSessionPath = seeded?.session?.sessionPath as string;
         expect(seededSessionPath).toBeTruthy();
         expect(existsSync(seededSessionPath)).toBe(true);
         // Stamp a distinctive marker into the seeded JSONL so we can
@@ -901,7 +774,7 @@ describe('Agent daemon (e2e)', () => {
           { taskId: parent.id, attemptN: parentRun.output.attemptN },
         );
 
-        // 3. Drive a PollingApiTaskSource WITH the warm slot registry.
+        // 3. Drive a PollingApiTaskSource WITH the runtime slot store.
         //    The affinity filter should let this claim through.
         const claimingSource = new PollingApiTaskSource({
           agent,
@@ -909,7 +782,7 @@ describe('Agent daemon (e2e)', () => {
           taskTypes: ['freeform'],
           leaseTtlSec: 60,
           stopWhenEmpty: true,
-          slotRegistry,
+          slotRegistry: slotStore,
           logger: silentLogger,
         });
         const claimed = await claimingSource.claim();
@@ -921,7 +794,7 @@ describe('Agent daemon (e2e)', () => {
           stateDirs,
           slotIdentity,
           warmSessionTtlSec,
-          slotRegistry,
+          slotRegistry: slotStore,
         });
         const continuationPlan = await planCache.getOrCreate(claimed!);
         expect(continuationPlan.workspaceMode).toBe('dedicated_worktree');
@@ -943,85 +816,10 @@ describe('Agent daemon (e2e)', () => {
 
         // Tidy.
         await agent.tasks.cancel(continuation.id, {
-          reason: 'cleanup after warm-slot continuation claim assertion',
+          reason: 'cleanup after runtime-slot continuation claim assertion',
         });
       } finally {
-        await slotRegistry.close();
-      }
-    }, 60_000);
-
-    it('skips a continuation when this daemon has no slot for it', async () => {
-      // Two registries: one ("owner") seeds a parent; the other
-      // ("stranger") simulates a daemon that never ran the parent.
-      // The stranger's affinity filter should refuse to claim.
-      const ownerRoot = mkdtempSync(join(tmpdir(), 'daemon-continue-owner-'));
-      const strangerRoot = mkdtempSync(
-        join(tmpdir(), 'daemon-continue-stranger-'),
-      );
-      tempRoots.push(ownerRoot, strangerRoot);
-
-      const ownerStateDirs = ensureDaemonStateDirs(ownerRoot);
-      const strangerStateDirs = ensureDaemonStateDirs(strangerRoot);
-      const ownerRegistry = new DaemonSlotRegistry(
-        ownerStateDirs.registryDbPath,
-      );
-      const strangerRegistry = new DaemonSlotRegistry(
-        strangerStateDirs.registryDbPath,
-      );
-      const slotIdentity: DaemonSlotIdentity = {
-        agentName: 'e2e-daemon',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
-      };
-      const correlationId = randomUUID();
-      const warmSessionTtlSec = 600;
-
-      try {
-        const parent = await proposeFreeformTask(correlationId);
-        const parentRun = await runStubbedSlotAwareTask({
-          agent,
-          taskId: parent.id,
-          mountRoot: ownerRoot,
-          stateDirs: ownerStateDirs,
-          slotRegistry: ownerRegistry,
-          slotIdentity,
-          warmSessionTtlSec,
-        });
-        expect(parentRun.output.status).toBe('completed');
-
-        const continuationCorrelationId = randomUUID();
-        const continuation = await proposeFreeformTask(
-          continuationCorrelationId,
-          { taskId: parent.id, attemptN: parentRun.output.attemptN },
-        );
-
-        // Stranger source: drain mode + empty slot registry. The
-        // affinity filter sees no slot for the source attempt and
-        // refuses to claim; the source returns null instead of looping.
-        const strangerSource = new PollingApiTaskSource({
-          agent,
-          teamId,
-          taskTypes: ['freeform'],
-          leaseTtlSec: 60,
-          stopWhenEmpty: true,
-          slotRegistry: strangerRegistry,
-          logger: silentLogger,
-        });
-        const claimed = await strangerSource.claim();
-        expect(claimed).toBeNull();
-
-        // The continuation row remains queued — no attempt was opened
-        // against it by the stranger.
-        const continuationRow = await agent.tasks.get(continuation.id);
-        expect(continuationRow.status).toBe('queued');
-
-        // Tidy.
-        await agent.tasks.cancel(continuation.id, {
-          reason: 'cleanup after warm-slot continuation skip assertion',
-        });
-      } finally {
-        await ownerRegistry.close();
-        await strangerRegistry.close();
+        await slotStore.close();
       }
     }, 60_000);
   });
@@ -1245,7 +1043,7 @@ interface StubbedSlotAwareTaskArgs {
   taskId: string;
   mountRoot: string;
   stateDirs: ReturnType<typeof ensureDaemonStateDirs>;
-  slotRegistry: DaemonSlotRegistry;
+  slotStore: RuntimeSlotStore;
   slotIdentity: DaemonSlotIdentity;
   warmSessionTtlSec: number;
 }
@@ -1255,7 +1053,7 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
     stateDirs: args.stateDirs,
     slotIdentity: args.slotIdentity,
     warmSessionTtlSec: args.warmSessionTtlSec,
-    slotRegistry: args.slotRegistry,
+    slotRegistry: args.slotStore,
   });
   let usedExecutionPlan: Awaited<
     ReturnType<typeof executionPlans.getOrCreate>
@@ -1274,7 +1072,6 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
         heartbeatIntervalMs: 0,
       }),
     executeTask: async (claimedTask, reporter) => {
-      await args.slotRegistry.reapExpiredSlots();
       const executionPlan = await executionPlans.getOrCreate(claimedTask);
       usedExecutionPlan = executionPlan;
       const worktreePath = resolveRecordedWorkspacePath(
@@ -1309,8 +1106,9 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
           );
         }
 
-        await args.slotRegistry.beginSlot({
+        await args.slotStore.beginSlot({
           ...args.slotIdentity,
+          teamId: claimedTask.task.teamId,
           slotKey: executionPlan.slotKey,
           taskType: claimedTask.task.taskType,
           sessionDir: executionPlan.sessionPersistence.sessionDir,
@@ -1320,7 +1118,6 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
           worktreeBranch: executionPlan.worktreeBranch,
           lastTaskId: claimedTask.task.id,
           lastAttemptN: claimedTask.attemptN,
-          ttlSec: args.warmSessionTtlSec,
         });
       }
 
@@ -1345,10 +1142,12 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
       await reporter.finalize(output.usage);
       await reporter.close();
       if (executionPlan.slotKey) {
-        await args.slotRegistry.finishSlot(
+        await args.slotStore.finishSlot(
+          claimedTask.task.teamId,
+          claimedTask.task.id,
+          claimedTask.attemptN,
           args.slotIdentity,
           executionPlan.slotKey,
-          args.warmSessionTtlSec,
           executionPlan.sessionPersistence
             ? resolveLatestPiSessionPath(
                 executionPlan.sessionPersistence.sessionDir,
@@ -1364,7 +1163,7 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   const outputs = await runtime.start();
   expect(outputs).toHaveLength(1);
   const [output] = outputs;
-  // Mirror the production daemon: forward the warm-slot expiry through to
+  // Mirror the production daemon: forward the runtime-slot expiry through to
   // /complete so freeform attempts report a non-null `slotResumableUntil`,
   // which is what `validateFreeformInputAsync` requires for continuation
   // tasks to pass create-time async validation.
@@ -1374,7 +1173,8 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   const slotForCtx =
     plan && plan.slotKey
       ? ((
-          await args.slotRegistry.findLatestProducerSlotByTaskAttempt(
+          await args.slotStore.findLatestSlotByTaskAttempt(
+            taskForCtx.teamId,
             args.taskId,
             output.attemptN,
           )
@@ -1426,7 +1226,7 @@ async function buildStubbedTaskOutput(
         commits: [],
         pullRequestUrl: null,
         diaryEntryIds: [],
-        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
+        summary: `stubbed runtime slot e2e output for ${claimedTask.task.id}`,
         verification: buildProducerVerification(claimedTask.task.inputCid),
       };
     case 'curate_pack':
@@ -1441,7 +1241,7 @@ async function buildStubbedTaskOutput(
           },
         ],
         recipeParams: {},
-        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
+        summary: `stubbed runtime slot e2e output for ${claimedTask.task.id}`,
         verification: buildProducerVerification(claimedTask.task.inputCid),
       };
     case 'judge_eval_attempt':
@@ -1463,45 +1263,8 @@ async function buildStubbedTaskOutput(
         commits: [],
         pullRequestUrl: null,
         diaryEntryIds: [],
-        summary: `stubbed daemon slot e2e output for ${claimedTask.task.id}`,
+        summary: `stubbed runtime slot e2e output for ${claimedTask.task.id}`,
       };
-  }
-}
-
-interface DaemonSlotState {
-  slots: Array<Record<string, unknown>>;
-  sessions: Array<Record<string, unknown>>;
-  workspaces: Array<Record<string, unknown>>;
-}
-
-function readDaemonSlotState(dbPath: string): DaemonSlotState {
-  const db = new DatabaseSync(dbPath);
-  try {
-    return {
-      slots: db
-        .prepare(
-          'SELECT slot_key as slotKey, task_type as taskType, state, last_task_id as lastTaskId FROM daemon_slots',
-        )
-        .all() as unknown as Array<Record<string, unknown>>,
-      sessions: db
-        .prepare(
-          'SELECT slot_key as slotKey, session_dir as sessionDir, session_path as sessionPath FROM daemon_slot_sessions',
-        )
-        .all() as unknown as Array<Record<string, unknown>>,
-      // Workspaces are refcounted entities referenced by daemon_slots; join
-      // back to keep the per-slot (slotKey → workspace) shape the assertions
-      // expect. A slot with no workspace_id contributes no row.
-      workspaces: db
-        .prepare(
-          `SELECT s.slot_key as slotKey, w.workspace_id as workspaceId,
-                  w.worktree_path as worktreePath
-             FROM daemon_slots s
-             JOIN daemon_workspaces w ON w.workspace_id = s.workspace_id`,
-        )
-        .all() as unknown as Array<Record<string, unknown>>,
-    };
-  } finally {
-    db.close();
   }
 }
 

@@ -55,6 +55,23 @@ export type AppendMessagesResponse = {
   count: number;
 };
 
+export type BeginRuntimeSlotBody = {
+  agentName: string;
+  daemonProfileId?: string;
+  lastAttemptN: number;
+  lastTaskId: string;
+  model: string;
+  provider: string;
+  sessionDir?: string;
+  sessionPath?: string;
+  slotKey: string;
+  taskType: string;
+  workspaceId?: string;
+  workspaceKind?: 'origin' | 'fork' | 'scratch';
+  worktreeBranch?: string;
+  worktreePath?: string;
+};
+
 export type CancelTaskBody = {
   reason: string;
 };
@@ -786,6 +803,21 @@ export type FailTaskBody = {
   error: TaskError;
 };
 
+export type FindLatestRuntimeSlotForAttemptQuery = {
+  attemptN: number;
+  taskId: string;
+};
+
+export type FinishRuntimeSlotBody = {
+  agentName: string;
+  attemptN: number;
+  model: string;
+  provider: string;
+  sessionPath?: string;
+  slotKey: string;
+  taskId: string;
+};
+
 export type Health = {
   status: string;
   timestamp: string;
@@ -1496,6 +1528,38 @@ export type RenderedPackWithContent = {
   verifiedTaskId?: string | null;
 };
 
+export type ResolvedRuntimeSlot = {
+  slot: {
+    agentName: string;
+    createdAtMs: number;
+    daemonProfileId: string | null;
+    expiresAtMs: number;
+    id: string;
+    lastAttemptN: number;
+    lastTaskId: string;
+    lastUsedAtMs: number;
+    model: string;
+    provider: string;
+    sessionDir: string | null;
+    sessionPath: string | null;
+    slotKey: string;
+    state: 'active' | 'idle';
+    taskType: string;
+    teamId: string;
+    workspaceRowId: string | null;
+  };
+  workspace: {
+    createdAtMs: number;
+    id: string;
+    kind: 'origin' | 'fork' | 'scratch';
+    lastUsedAtMs: number;
+    teamId: string;
+    workspaceId: string;
+    worktreeBranch: string | null;
+    worktreePath: string;
+  } | null;
+};
+
 export type RotateSecretResponse = {
   clientId: string;
   clientSecret: string;
@@ -1714,6 +1778,37 @@ export type RuntimeProfileSandbox = {
     shadow?: Array<string>;
     shadowMode?: 'deny' | 'tmpfs';
   };
+};
+
+export type RuntimeSlot = {
+  agentName: string;
+  createdAtMs: number;
+  daemonProfileId: string | null;
+  expiresAtMs: number;
+  id: string;
+  lastAttemptN: number;
+  lastTaskId: string;
+  lastUsedAtMs: number;
+  model: string;
+  provider: string;
+  sessionDir: string | null;
+  sessionPath: string | null;
+  slotKey: string;
+  state: 'active' | 'idle';
+  taskType: string;
+  teamId: string;
+  workspaceRowId: string | null;
+};
+
+export type RuntimeWorkspace = {
+  createdAtMs: number;
+  id: string;
+  kind: 'origin' | 'fork' | 'scratch';
+  lastUsedAtMs: number;
+  teamId: string;
+  workspaceId: string;
+  worktreeBranch: string | null;
+  worktreePath: string;
 };
 
 export type SigningRequest = {
@@ -6015,6 +6110,1205 @@ export type UpdateRuntimeProfileResponses = {
 
 export type UpdateRuntimeProfileResponse =
   UpdateRuntimeProfileResponses[keyof UpdateRuntimeProfileResponses];
+
+export type BeginRuntimeSlotData = {
+  body: {
+    agentName: string;
+    daemonProfileId?: string;
+    lastAttemptN: number;
+    lastTaskId: string;
+    model: string;
+    provider: string;
+    sessionDir?: string;
+    sessionPath?: string;
+    slotKey: string;
+    taskType: string;
+    workspaceId?: string;
+    workspaceKind?: 'origin' | 'fork' | 'scratch';
+    worktreeBranch?: string;
+    worktreePath?: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/runtime-slots/begin';
+};
+
+export type BeginRuntimeSlotErrors = {
+  /**
+   * Default Response
+   */
+  400: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  } & {
+    errors: Array<{
+      code?: string;
+      field: string;
+      message: string;
+    }>;
+  };
+  /**
+   * Default Response
+   */
+  401: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  };
+  /**
+   * Default Response
+   */
+  403: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  };
+  /**
+   * Default Response
+   */
+  404: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  };
+  /**
+   * Default Response
+   */
+  409: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  } & {
+    conflict: {
+      constraint?: string;
+      target?: {
+        id?: string;
+        keys?: {
+          [key: string]: string;
+        };
+        resource: string;
+      };
+    };
+  };
+};
+
+export type BeginRuntimeSlotError =
+  BeginRuntimeSlotErrors[keyof BeginRuntimeSlotErrors];
+
+export type BeginRuntimeSlotResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    agentName: string;
+    createdAtMs: number;
+    daemonProfileId: string | null;
+    expiresAtMs: number;
+    id: string;
+    lastAttemptN: number;
+    lastTaskId: string;
+    lastUsedAtMs: number;
+    model: string;
+    provider: string;
+    sessionDir: string | null;
+    sessionPath: string | null;
+    slotKey: string;
+    state: 'active' | 'idle';
+    taskType: string;
+    teamId: string;
+    workspaceRowId: string | null;
+  };
+};
+
+export type BeginRuntimeSlotResponse =
+  BeginRuntimeSlotResponses[keyof BeginRuntimeSlotResponses];
+
+export type FinishRuntimeSlotData = {
+  body: {
+    agentName: string;
+    attemptN: number;
+    model: string;
+    provider: string;
+    sessionPath?: string;
+    slotKey: string;
+    taskId: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/runtime-slots/finish';
+};
+
+export type FinishRuntimeSlotErrors = {
+  /**
+   * Default Response
+   */
+  400: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  } & {
+    errors: Array<{
+      code?: string;
+      field: string;
+      message: string;
+    }>;
+  };
+  /**
+   * Default Response
+   */
+  401: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  };
+  /**
+   * Default Response
+   */
+  403: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  };
+  /**
+   * Default Response
+   */
+  404: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  };
+  /**
+   * Default Response
+   */
+  409: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  } & {
+    conflict: {
+      constraint?: string;
+      target?: {
+        id?: string;
+        keys?: {
+          [key: string]: string;
+        };
+        resource: string;
+      };
+    };
+  };
+};
+
+export type FinishRuntimeSlotError =
+  FinishRuntimeSlotErrors[keyof FinishRuntimeSlotErrors];
+
+export type FinishRuntimeSlotResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    agentName: string;
+    createdAtMs: number;
+    daemonProfileId: string | null;
+    expiresAtMs: number;
+    id: string;
+    lastAttemptN: number;
+    lastTaskId: string;
+    lastUsedAtMs: number;
+    model: string;
+    provider: string;
+    sessionDir: string | null;
+    sessionPath: string | null;
+    slotKey: string;
+    state: 'active' | 'idle';
+    taskType: string;
+    teamId: string;
+    workspaceRowId: string | null;
+  };
+};
+
+export type FinishRuntimeSlotResponse =
+  FinishRuntimeSlotResponses[keyof FinishRuntimeSlotResponses];
+
+export type FindLatestRuntimeSlotForAttemptData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query: {
+    taskId: string;
+    attemptN: number;
+  };
+  url: '/runtime-slots/latest';
+};
+
+export type FindLatestRuntimeSlotForAttemptErrors = {
+  /**
+   * Default Response
+   */
+  400: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  } & {
+    errors: Array<{
+      code?: string;
+      field: string;
+      message: string;
+    }>;
+  };
+  /**
+   * Default Response
+   */
+  401: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  };
+  /**
+   * Default Response
+   */
+  403: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  };
+  /**
+   * Default Response
+   */
+  404: {
+    code:
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+    detail?: string;
+    instance?: string;
+    status: number;
+    title: string;
+    type: string;
+    [key: string]:
+      | unknown
+      | 'UNAUTHORIZED'
+      | 'FORBIDDEN'
+      | 'NOT_FOUND'
+      | 'CONFLICT'
+      | 'VALIDATION_FAILED'
+      | 'INVALID_CHALLENGE'
+      | 'INVALID_SIGNATURE'
+      | 'VOUCHER_LIMIT'
+      | 'RATE_LIMIT_EXCEEDED'
+      | 'SERIALIZATION_EXHAUSTED'
+      | 'SIGNING_REQUEST_EXPIRED'
+      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+      | 'REGISTRATION_FAILED'
+      | 'UPSTREAM_ERROR'
+      | 'SERVICE_UNAVAILABLE'
+      | 'INTERNAL_SERVER_ERROR'
+      | 'TEAM_PERSONAL_IMMUTABLE'
+      | 'TEAM_NOT_ACTIVE'
+      | 'INVITE_EXPIRED'
+      | 'INVITE_EXHAUSTED'
+      | 'TEAM_LAST_OWNER'
+      | 'TEAM_ALREADY_ACTIVE'
+      | 'TEAM_NOT_FOUNDING'
+      | 'FOUNDING_ALREADY_ACCEPTED'
+      | 'DIARY_TRANSFER_PENDING'
+      | 'DIARY_TRANSFER_NOT_FOUND'
+      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+      | string
+      | number
+      | undefined;
+  };
+};
+
+export type FindLatestRuntimeSlotForAttemptError =
+  FindLatestRuntimeSlotForAttemptErrors[keyof FindLatestRuntimeSlotForAttemptErrors];
+
+export type FindLatestRuntimeSlotForAttemptResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    slot: {
+      agentName: string;
+      createdAtMs: number;
+      daemonProfileId: string | null;
+      expiresAtMs: number;
+      id: string;
+      lastAttemptN: number;
+      lastTaskId: string;
+      lastUsedAtMs: number;
+      model: string;
+      provider: string;
+      sessionDir: string | null;
+      sessionPath: string | null;
+      slotKey: string;
+      state: 'active' | 'idle';
+      taskType: string;
+      teamId: string;
+      workspaceRowId: string | null;
+    };
+    workspace: {
+      createdAtMs: number;
+      id: string;
+      kind: 'origin' | 'fork' | 'scratch';
+      lastUsedAtMs: number;
+      teamId: string;
+      workspaceId: string;
+      worktreeBranch: string | null;
+      worktreePath: string;
+    } | null;
+  };
+};
+
+export type FindLatestRuntimeSlotForAttemptResponse =
+  FindLatestRuntimeSlotForAttemptResponses[keyof FindLatestRuntimeSlotForAttemptResponses];
 
 export type ListTasksData = {
   body?: never;

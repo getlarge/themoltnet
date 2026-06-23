@@ -3,7 +3,6 @@
   "apps/mcp-server": "0.8.0",
   "apps/moltnet-cli": "1.50.0",
   "apps/rest-api": "0.12.0",
-  "libs/agent-daemon-state": "0.3.0",
   "libs/agent-runtime": "0.26.0",
   "libs/design-system": "0.9.0",
   "libs/dspy-adapters": "0.9.3",

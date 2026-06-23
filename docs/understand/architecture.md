@@ -863,16 +863,17 @@ sequenceDiagram
 ### Continuation resolution (warm resume)
 
 A freeform task carrying `input.continueFrom` is a continuation. After it is
-claimed, the daemon resolves warm-slot context locally before running Pi:
+claimed, the daemon resolves runtime-slot context through the runtime-slot API
+before running Pi:
 
 1. **Affinity filter** (claim time) — the daemon only claims a continuation if
-   it holds the producer slot for `(taskId, attemptN)` and the parent session
-   still exists on disk. The lookup is profile-agnostic, so a different agent
-   profile can pick up the work.
+   the producer slot for `(taskId, attemptN)` resolves and the recorded parent
+   session still exists on disk. The lookup is profile-agnostic, so a different
+   compatible daemon profile can pick up the work.
 2. **Plan** (`maybeAttachWarmSlotContext`) — branches on `continueFrom.mode`:
-   `extend` reuses the parent's workspace + branch (refcount++); `fork` allocates
-   a fresh workspace and a new branch derived from the parent, passing the parent
-   branch as the worktree base ref.
+   `extend` reuses the parent's workspace + branch; `fork` allocates a fresh
+   workspace and a new branch derived from the parent, passing the parent branch
+   as the worktree base ref.
 3. **Worktree** (`prepareTaskWorkspace`) — `extend` checks out the shared branch;
    `fork` runs `git worktree add -b <fork-branch> <dir> <parent-branch>`, cutting
    the new branch from the parent tip.
@@ -882,16 +883,16 @@ claimed, the daemon resolves warm-slot context locally before running Pi:
 ```mermaid
 sequenceDiagram
     participant D as Daemon
-    participant R as Slot registry
+    participant R as Runtime slot API
     participant G as git
     participant Pi as Pi session
     D->>R: findLatestProducerSlot(taskId, attemptN)
     alt mode = extend (default)
         D->>G: reuse parent branch (shared worktree)
-        R->>R: workspace refcount++
+        D->>Pi: fork session from recorded parent path
     else mode = fork
         D->>G: worktree add -b <branch>-fork-N <dir> <parentBranch>
-        R->>R: new workspace (refcount 1, kind=fork)
+        D->>Pi: fork session from recorded parent path
     end
     D->>Pi: forkFrom(parent session) → new sessionDir (cwd = worktree)
 ```

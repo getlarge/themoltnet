@@ -15,6 +15,7 @@ import {
   acceptTransfer,
   addGroupMember,
   appendTaskMessages,
+  beginRuntimeSlot,
   cancelTask,
   claimTask,
   completeTask,
@@ -41,6 +42,8 @@ import {
   diffContextPacksByCid,
   diffContextPacksById,
   failTask,
+  findLatestRuntimeSlotForAttempt,
+  finishRuntimeSlot,
   getAgentProfile,
   getContextPackById,
   getContextPackProvenanceByCid,
@@ -139,6 +142,9 @@ import type {
   AppendTaskMessagesData,
   AppendTaskMessagesError,
   AppendTaskMessagesResponse,
+  BeginRuntimeSlotData,
+  BeginRuntimeSlotError,
+  BeginRuntimeSlotResponse,
   CancelTaskData,
   CancelTaskError,
   CancelTaskResponse,
@@ -217,6 +223,12 @@ import type {
   FailTaskData,
   FailTaskError,
   FailTaskResponse,
+  FindLatestRuntimeSlotForAttemptData,
+  FindLatestRuntimeSlotForAttemptError,
+  FindLatestRuntimeSlotForAttemptResponse,
+  FinishRuntimeSlotData,
+  FinishRuntimeSlotError,
+  FinishRuntimeSlotResponse,
   GetAgentProfileData,
   GetAgentProfileError,
   GetAgentProfileResponse,
@@ -2949,6 +2961,88 @@ export const updateRuntimeProfileMutation = (
   };
   return mutationOptions;
 };
+
+/**
+ * Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
+ */
+export const beginRuntimeSlotMutation = (
+  options?: Partial<Options<BeginRuntimeSlotData>>,
+): UseMutationOptions<
+  BeginRuntimeSlotResponse,
+  BeginRuntimeSlotError,
+  Options<BeginRuntimeSlotData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    BeginRuntimeSlotResponse,
+    BeginRuntimeSlotError,
+    Options<BeginRuntimeSlotData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await beginRuntimeSlot({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Mark a team-scoped runtime slot idle without deleting it.
+ */
+export const finishRuntimeSlotMutation = (
+  options?: Partial<Options<FinishRuntimeSlotData>>,
+): UseMutationOptions<
+  FinishRuntimeSlotResponse,
+  FinishRuntimeSlotError,
+  Options<FinishRuntimeSlotData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    FinishRuntimeSlotResponse,
+    FinishRuntimeSlotError,
+    Options<FinishRuntimeSlotData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await finishRuntimeSlot({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const findLatestRuntimeSlotForAttemptQueryKey = (
+  options: Options<FindLatestRuntimeSlotForAttemptData>,
+) => createQueryKey('findLatestRuntimeSlotForAttempt', options);
+
+/**
+ * Find the latest team-scoped runtime slot for a task attempt.
+ */
+export const findLatestRuntimeSlotForAttemptOptions = (
+  options: Options<FindLatestRuntimeSlotForAttemptData>,
+) =>
+  queryOptions<
+    FindLatestRuntimeSlotForAttemptResponse,
+    FindLatestRuntimeSlotForAttemptError,
+    FindLatestRuntimeSlotForAttemptResponse,
+    ReturnType<typeof findLatestRuntimeSlotForAttemptQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await findLatestRuntimeSlotForAttempt({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: findLatestRuntimeSlotForAttemptQueryKey(options),
+  });
 
 export const listTasksQueryKey = (options: Options<ListTasksData>) =>
   createQueryKey('listTasks', options);

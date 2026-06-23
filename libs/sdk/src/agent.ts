@@ -3,6 +3,7 @@ import type {
   AcceptTransferResponses,
   AgentProfile,
   AppendTaskMessagesData,
+  BeginRuntimeSlotData,
   CancelTaskData,
   ClaimTaskData,
   ClaimTaskResponse,
@@ -34,6 +35,8 @@ import type {
   DiaryTagsResponse,
   EntryVerifyResult,
   FailTaskData,
+  FindLatestRuntimeSlotForAttemptData,
+  FinishRuntimeSlotData,
   GetContextPackByIdData,
   GetContextPackProvenanceByCidData,
   GetContextPackProvenanceByIdData,
@@ -83,11 +86,13 @@ import type {
   RenderedPackResult,
   RenderedPackWithContent,
   RequestRecoveryChallengeData,
+  ResolvedRuntimeSlot,
   RevokeDiaryGrantData,
   RevokeDiaryGrantResponse,
   RotateSecretResponse,
   RuntimeProfile,
   RuntimeProfileListResponse,
+  RuntimeSlot,
   SearchDiaryData,
   SearchPublicFeedData,
   SigningRequest,
@@ -126,6 +131,7 @@ import { createProblemsNamespace } from './namespaces/problems.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRecoveryNamespace } from './namespaces/recovery.js';
 import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
+import { createRuntimeSlotsNamespace } from './namespaces/runtime-slots.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
@@ -505,6 +511,27 @@ export interface TasksNamespace {
   ): Promise<{ count: number }>;
 }
 
+export interface RuntimeSlotsNamespace {
+  begin(
+    body: NonNullable<BeginRuntimeSlotData['body']>,
+    options: RuntimeSlotRequestOptions,
+  ): Promise<RuntimeSlot>;
+
+  finish(
+    body: NonNullable<FinishRuntimeSlotData['body']>,
+    options: RuntimeSlotRequestOptions,
+  ): Promise<RuntimeSlot>;
+
+  findLatestForAttempt(
+    query: FindLatestRuntimeSlotForAttemptData['query'],
+    options: RuntimeSlotRequestOptions,
+  ): Promise<ResolvedRuntimeSlot | null>;
+}
+
+export interface RuntimeSlotRequestOptions {
+  teamId: string;
+}
+
 // ---------------------------------------------------------------------------
 // Agent facade type
 // ---------------------------------------------------------------------------
@@ -526,6 +553,7 @@ export interface Agent {
   teams: TeamsNamespace;
   runtimeProfiles: RuntimeProfilesNamespace;
   tasks: TasksNamespace;
+  runtimeSlots: RuntimeSlotsNamespace;
 
   /** Return the underlying hey-api client for advanced use. */
   readonly client: Client;
@@ -565,6 +593,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const teams = createTeamsNamespace(context);
   const runtimeProfiles = createRuntimeProfilesNamespace(context);
   const tasks = createTasksNamespace(context);
+  const runtimeSlots = createRuntimeSlotsNamespace(context);
 
   return {
     diaries,
@@ -583,6 +612,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     teams,
     runtimeProfiles,
     tasks,
+    runtimeSlots,
     client,
     getToken: () => tokenManager.getToken(),
   };

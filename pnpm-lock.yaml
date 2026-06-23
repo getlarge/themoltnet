@@ -574,9 +574,6 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: 'catalog:'
         version: 1.39.0
-      '@themoltnet/agent-daemon-state':
-        specifier: workspace:*
-        version: link:../../libs/agent-daemon-state
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../../libs/agent-runtime
@@ -1151,31 +1148,6 @@ importers:
       vue:
         specifier: 'catalog:'
         version: 3.5.33(typescript@5.9.3)
-
-  libs/agent-daemon-state:
-    dependencies:
-      drizzle-orm:
-        specifier: 'catalog:'
-        version: 0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
-      pg:
-        specifier: 'catalog:'
-        version: 8.18.0
-    devDependencies:
-      '@testcontainers/postgresql':
-        specifier: 'catalog:'
-        version: 11.12.0
-      '@types/pg':
-        specifier: 'catalog:'
-        version: 8.16.0
-      drizzle-kit:
-        specifier: 'catalog:'
-        version: 0.31.10
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   libs/agent-runtime:
     dependencies:

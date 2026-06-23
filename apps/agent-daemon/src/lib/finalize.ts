@@ -32,7 +32,7 @@ export interface FinalizeContext {
    */
   task?: Task;
   /**
-   * Daemon slot info for the attempt — used to compute `daemonState`
+   * Runtime slot info for the attempt — used to compute `daemonState`
    * stamped onto the attempt row at completion time. Pass `null` (or
    * omit) when there was no slot (slot-less freeform, non-freeform
    * task type). See `buildDaemonStateForComplete`.
@@ -44,7 +44,7 @@ export interface FinalizeContext {
 
 /**
  * Build the `daemonState` payload for a `/complete` call. Only freeform
- * attempts that ran with a warm slot are eligible for continuation
+ * attempts that ran with a runtime slot are eligible for continuation
  * (`tasks_continue`, see issue #1287). Other task types and slot-less
  * freeform completions report `null` for `slotResumableUntil`, which
  * the server persists verbatim — continuations against such attempts

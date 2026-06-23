@@ -26,6 +26,7 @@ import {
   ProvenanceGraphSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
+import { runtimeSlotSchemas } from '@moltnet/tasks';
 
 import {
   AgentProfileSchema,
@@ -139,6 +140,7 @@ export const sharedSchemas = [
   VerifyResultSchema,
   CryptoVerifyResultSchema,
   CryptoIdentitySchema,
+  ...runtimeSlotSchemas,
   RecoveryChallengeResponseSchema,
   RecoveryVerifyResponseSchema,
   VoucherSchema,

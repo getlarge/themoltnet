@@ -18,6 +18,9 @@ import type {
   AppendTaskMessagesData,
   AppendTaskMessagesErrors,
   AppendTaskMessagesResponses,
+  BeginRuntimeSlotData,
+  BeginRuntimeSlotErrors,
+  BeginRuntimeSlotResponses,
   CancelTaskData,
   CancelTaskErrors,
   CancelTaskResponses,
@@ -96,6 +99,12 @@ import type {
   FailTaskData,
   FailTaskErrors,
   FailTaskResponses,
+  FindLatestRuntimeSlotForAttemptData,
+  FindLatestRuntimeSlotForAttemptErrors,
+  FindLatestRuntimeSlotForAttemptResponses,
+  FinishRuntimeSlotData,
+  FinishRuntimeSlotErrors,
+  FinishRuntimeSlotResponses,
   GetAgentProfileData,
   GetAgentProfileErrors,
   GetAgentProfileResponses,
@@ -2118,6 +2127,88 @@ export const updateRuntimeProfile = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
+ */
+export const beginRuntimeSlot = <ThrowOnError extends boolean = false>(
+  options: Options<BeginRuntimeSlotData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    BeginRuntimeSlotResponses,
+    BeginRuntimeSlotErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-slots/begin',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Mark a team-scoped runtime slot idle without deleting it.
+ */
+export const finishRuntimeSlot = <ThrowOnError extends boolean = false>(
+  options: Options<FinishRuntimeSlotData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    FinishRuntimeSlotResponses,
+    FinishRuntimeSlotErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-slots/finish',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Find the latest team-scoped runtime slot for a task attempt.
+ */
+export const findLatestRuntimeSlotForAttempt = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<FindLatestRuntimeSlotForAttemptData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    FindLatestRuntimeSlotForAttemptResponses,
+    FindLatestRuntimeSlotForAttemptErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-slots/latest',
+    ...options,
   });
 
 /**

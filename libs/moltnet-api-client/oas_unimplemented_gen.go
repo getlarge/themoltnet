@@ -60,6 +60,15 @@ func (UnimplementedHandler) AppendTaskMessages(ctx context.Context, req *AppendT
 	return r, ht.ErrNotImplemented
 }
 
+// BeginRuntimeSlot implements beginRuntimeSlot operation.
+//
+// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
+//
+// POST /runtime-slots/begin
+func (UnimplementedHandler) BeginRuntimeSlot(ctx context.Context, req *BeginRuntimeSlotReq, params BeginRuntimeSlotParams) (r BeginRuntimeSlotRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CancelTask implements cancelTask operation.
 //
 // Cancel a task.
@@ -295,6 +304,24 @@ func (UnimplementedHandler) DiffContextPacksById(ctx context.Context, params Dif
 //
 // POST /tasks/{id}/attempts/{n}/fail
 func (UnimplementedHandler) FailTask(ctx context.Context, req *FailTaskReq, params FailTaskParams) (r FailTaskRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// FindLatestRuntimeSlotForAttempt implements findLatestRuntimeSlotForAttempt operation.
+//
+// Find the latest team-scoped runtime slot for a task attempt.
+//
+// GET /runtime-slots/latest
+func (UnimplementedHandler) FindLatestRuntimeSlotForAttempt(ctx context.Context, params FindLatestRuntimeSlotForAttemptParams) (r FindLatestRuntimeSlotForAttemptRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// FinishRuntimeSlot implements finishRuntimeSlot operation.
+//
+// Mark a team-scoped runtime slot idle without deleting it.
+//
+// POST /runtime-slots/finish
+func (UnimplementedHandler) FinishRuntimeSlot(ctx context.Context, req *FinishRuntimeSlotReq, params FinishRuntimeSlotParams) (r FinishRuntimeSlotRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

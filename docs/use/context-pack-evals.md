@@ -42,8 +42,8 @@ Use `run_eval,judge_eval_attempt` together. `run_eval` producers keep a live
 session slot per correlation and variant. `judge_eval_attempt` resolves against
 that live producer slot, forks its session, and copies the producer workspace
 into judge-owned scratch state. Create judge tasks soon after producers finish;
-if the producer slot is reaped first, the judge fails with
-`producer_context_missing`.
+if the producer slot or its local session/workspace files cannot be resolved,
+the judge fails with `producer_context_missing`.
 
 ## Create Producer Tasks
 

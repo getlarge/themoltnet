@@ -38,6 +38,7 @@ import {
   createNonceRepository,
   createRenderedPackRepository,
   createRuntimeModelRepository,
+  createRuntimeSlotRepository,
   createSigningRequestRepository,
   createTaskRepository,
   createTeamRepository,
@@ -245,6 +246,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const daemonProfileRepository = createDaemonProfileRepository(
     dbConnection.db,
   );
+  const runtimeSlotRepository = createRuntimeSlotRepository(dbConnection.db);
   const runtimeModelRepository = createRuntimeModelRepository(dbConnection.db);
   const groupRepository = createGroupRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
@@ -504,6 +506,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     teamRepository,
     diaryTransferRepository,
     daemonProfileRepository,
+    runtimeSlotRepository,
     runtimeModelRepository,
     taskRepository,
     taskService,

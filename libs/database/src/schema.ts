@@ -11,6 +11,7 @@ import {
   bigint,
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -165,6 +166,17 @@ export const daemonProfileStorageModeEnum = pgEnum(
   'daemon_profile_storage_mode',
   ['local'],
 );
+
+export const runtimeSlotStateEnum = pgEnum('runtime_slot_state', [
+  'active',
+  'idle',
+]);
+
+export const runtimeWorkspaceKindEnum = pgEnum('runtime_workspace_kind', [
+  'origin',
+  'fork',
+  'scratch',
+]);
 
 /**
  * Diaries Table
@@ -1311,6 +1323,110 @@ export const taskAttempts = pgTable(
 
 export type TaskAttempt = typeof taskAttempts.$inferSelect;
 export type NewTaskAttempt = typeof taskAttempts.$inferInsert;
+
+// ── Team-scoped runtime slots ──────────────────────────────
+
+export const runtimeWorkspaces = pgTable(
+  'runtime_workspaces',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    workspaceId: text('workspace_id').notNull(),
+    worktreePath: text('worktree_path').notNull(),
+    worktreeBranch: text('worktree_branch'),
+    kind: runtimeWorkspaceKindEnum('kind').notNull(),
+    createdAtMs: bigint('created_at_ms', { mode: 'number' }).notNull(),
+    lastUsedAtMs: bigint('last_used_at_ms', { mode: 'number' }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('runtime_workspaces_team_workspace_idx').on(
+      table.teamId,
+      table.workspaceId,
+    ),
+    index('runtime_workspaces_team_idx').on(table.teamId),
+    index('runtime_workspaces_branch_idx')
+      .on(table.teamId, table.worktreeBranch)
+      .where(sql`worktree_branch IS NOT NULL`),
+  ],
+);
+
+export const runtimeSlots = pgTable(
+  'runtime_slots',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    agentName: varchar('agent_name', { length: 100 }).notNull(),
+    daemonProfileId: uuid('daemon_profile_id').references(
+      () => daemonProfiles.id,
+      { onDelete: 'set null' },
+    ),
+    provider: varchar('provider', { length: 100 }).notNull(),
+    model: varchar('model', { length: 200 }).notNull(),
+    slotKey: text('slot_key').notNull(),
+    taskType: varchar('task_type', { length: 100 }).notNull(),
+    state: runtimeSlotStateEnum('state').notNull(),
+    lastTaskId: uuid('last_task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    lastAttemptN: integer('last_attempt_n').notNull(),
+    sessionDir: text('session_dir'),
+    sessionPath: text('session_path'),
+    workspaceRowId: uuid('workspace_row_id').references(
+      () => runtimeWorkspaces.id,
+      { onDelete: 'set null' },
+    ),
+    createdAtMs: bigint('created_at_ms', { mode: 'number' }).notNull(),
+    lastUsedAtMs: bigint('last_used_at_ms', { mode: 'number' }).notNull(),
+    expiresAtMs: bigint('expires_at_ms', { mode: 'number' }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('runtime_slots_identity_idx').on(
+      table.teamId,
+      table.agentName,
+      table.provider,
+      table.model,
+      table.slotKey,
+    ),
+    index('runtime_slots_team_idx').on(table.teamId),
+    index('runtime_slots_profile_idx')
+      .on(table.daemonProfileId)
+      .where(sql`daemon_profile_id IS NOT NULL`),
+    index('runtime_slots_task_attempt_idx').on(
+      table.teamId,
+      table.lastTaskId,
+      table.lastAttemptN,
+      table.lastUsedAtMs.desc(),
+    ),
+    index('runtime_slots_session_path_idx')
+      .on(table.sessionPath)
+      .where(sql`session_path IS NOT NULL`),
+    foreignKey({
+      columns: [table.lastTaskId, table.lastAttemptN],
+      foreignColumns: [taskAttempts.taskId, taskAttempts.attemptN],
+    }).onDelete('cascade'),
+  ],
+);
+
+export type RuntimeWorkspace = typeof runtimeWorkspaces.$inferSelect;
+export type NewRuntimeWorkspace = typeof runtimeWorkspaces.$inferInsert;
+export type RuntimeSlot = typeof runtimeSlots.$inferSelect;
+export type NewRuntimeSlot = typeof runtimeSlots.$inferInsert;
 
 // ── Task Messages ──────────────────────────────────────────
 

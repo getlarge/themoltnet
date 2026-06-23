@@ -3,13 +3,106 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { Task } from '@moltnet/tasks';
-import { DaemonSlotRegistry } from '@themoltnet/agent-daemon-state';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
+  type ResolvedRuntimeSlotContext,
+  type RuntimeSlotStore,
 } from './execution-plan-cache.js';
+
+const TEAM_ID = '99999999-9999-4999-8999-999999999999';
+const SLOT_TTL_MS = 300_000;
+
+type BeginSlotInput = Parameters<RuntimeSlotStore['beginSlot']>[0];
+
+class InMemoryRuntimeSlotStore implements RuntimeSlotStore {
+  private readonly slotsByAttempt = new Map<
+    string,
+    ResolvedRuntimeSlotContext
+  >();
+
+  async beginSlot(input: BeginSlotInput): Promise<void> {
+    this.slotsByAttempt.set(
+      attemptKey(input.teamId, input.lastTaskId, input.lastAttemptN),
+      {
+        slot: {
+          expiresAtMs: Date.now() + SLOT_TTL_MS,
+        },
+        session: input.sessionDir
+          ? {
+              sessionDir: input.sessionDir,
+              sessionPath: input.sessionPath,
+            }
+          : null,
+        workspace:
+          input.workspaceId && input.worktreePath
+            ? {
+                kind: input.workspaceKind ?? 'origin',
+                workspaceId: input.workspaceId,
+                worktreeBranch: input.worktreeBranch,
+                worktreePath: input.worktreePath,
+              }
+            : null,
+      },
+    );
+  }
+
+  async finishSlot(
+    teamId: string,
+    taskId: string,
+    attemptN: number,
+    _identity: Parameters<RuntimeSlotStore['finishSlot']>[3],
+    _slotKey: string,
+    sessionPath: string | null,
+  ): Promise<void> {
+    const slot = this.slotsByAttempt.get(attemptKey(teamId, taskId, attemptN));
+    if (!slot) return;
+
+    slot.slot.expiresAtMs = Date.now() + SLOT_TTL_MS;
+    if (slot.session) {
+      slot.session.sessionPath = sessionPath;
+    }
+  }
+
+  async findLatestSlotByTaskAttempt(
+    teamId: string,
+    taskId: string,
+    attemptN: number,
+  ): Promise<ResolvedRuntimeSlotContext | null> {
+    return (
+      this.slotsByAttempt.get(attemptKey(teamId, taskId, attemptN)) ?? null
+    );
+  }
+
+  async close(): Promise<void> {
+    // Test fake has no external resources.
+  }
+}
+
+function attemptKey(teamId: string, taskId: string, attemptN: number): string {
+  return `${teamId}:${taskId}:${attemptN}`;
+}
+
+async function finishProducerSlot(
+  slotStore: RuntimeSlotStore,
+  args: {
+    taskId: string;
+    identity: Parameters<RuntimeSlotStore['finishSlot']>[3];
+    slotKey: string;
+    sessionPath: string;
+  },
+): Promise<void> {
+  await slotStore.finishSlot(
+    TEAM_ID,
+    args.taskId,
+    1,
+    args.identity,
+    args.slotKey,
+    args.sessionPath,
+  );
+}
 
 describe('createExecutionPlanCache', () => {
   const tempRoots: string[] = [];
@@ -26,7 +119,6 @@ describe('createExecutionPlanCache', () => {
     const stateDirs = {
       rootDir: join(mountRoot, '.moltnet', 'd'),
       piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
-      registryDbPath: join(mountRoot, '.moltnet', 'd', 'daemon-state.sqlite'),
     };
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
@@ -43,8 +135,9 @@ describe('createExecutionPlanCache', () => {
     const producerSessionPath = join(producerSessionDir, 'session-a.jsonl');
     writeFileSync(producerSessionPath, '[]\n', 'utf8');
 
-    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
-    await slotRegistry.beginSlot({
+    const slotStore = new InMemoryRuntimeSlotStore();
+    await slotStore.beginSlot({
+      teamId: TEAM_ID,
       agentName: 'local-eval-943',
       provider: 'ollama-cloud',
       model: 'qwen3.5',
@@ -57,18 +150,17 @@ describe('createExecutionPlanCache', () => {
       worktreeBranch: null,
       lastTaskId: '11111111-1111-4111-8111-111111111111',
       lastAttemptN: 1,
-      ttlSec: 300,
     });
-    await slotRegistry.finishSlot(
-      {
+    await finishProducerSlot(slotStore, {
+      taskId: '11111111-1111-4111-8111-111111111111',
+      identity: {
         agentName: 'local-eval-943',
         provider: 'ollama-cloud',
         model: 'qwen3.5',
       },
-      'run_eval:correlation:test:variant:baseline',
-      300,
-      producerSessionPath,
-    );
+      slotKey: 'run_eval:correlation:test:variant:baseline',
+      sessionPath: producerSessionPath,
+    });
 
     const cache = createExecutionPlanCache({
       stateDirs,
@@ -78,13 +170,14 @@ describe('createExecutionPlanCache', () => {
         model: 'qwen3.5',
       },
       warmSessionTtlSec: 300,
-      slotRegistry,
+      slotRegistry: slotStore,
     });
 
     const plan = await cache.getOrCreate({
       attemptN: 1,
       task: {
         id: '22222222-2222-4222-8222-222222222222',
+        teamId: TEAM_ID,
         taskType: 'judge_eval_attempt',
         correlationId: '33333333-3333-4333-8333-333333333333',
         input: {
@@ -122,7 +215,7 @@ describe('createExecutionPlanCache', () => {
     expect(plan.slotKey).toBeNull();
     expect(plan.workspaceId).toBeNull();
 
-    await slotRegistry.close();
+    await slotStore.close();
   });
 
   it('fails clearly when a judge task cannot resolve producer daemon state', async () => {
@@ -131,11 +224,10 @@ describe('createExecutionPlanCache', () => {
     const stateDirs = {
       rootDir: join(mountRoot, '.moltnet', 'd'),
       piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
-      registryDbPath: join(mountRoot, '.moltnet', 'd', 'daemon-state.sqlite'),
     };
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
-    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+    const slotStore = new InMemoryRuntimeSlotStore();
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: {
@@ -144,7 +236,7 @@ describe('createExecutionPlanCache', () => {
         model: 'qwen3.5',
       },
       warmSessionTtlSec: 300,
-      slotRegistry,
+      slotRegistry: slotStore,
     });
 
     await expect(
@@ -152,6 +244,7 @@ describe('createExecutionPlanCache', () => {
         attemptN: 1,
         task: {
           id: '22222222-2222-4222-8222-222222222222',
+          teamId: TEAM_ID,
           taskType: 'judge_eval_attempt',
           correlationId: '33333333-3333-4333-8333-333333333333',
           input: {
@@ -163,16 +256,15 @@ describe('createExecutionPlanCache', () => {
       }),
     ).rejects.toThrow(ProducerContextResolutionError);
 
-    await slotRegistry.close();
+    await slotStore.close();
   });
 
-  it('attaches warm-slot context for freeform continuations', async () => {
+  it('attaches runtime-slot context for freeform continuations', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-cont-'));
     tempRoots.push(mountRoot);
     const stateDirs = {
       rootDir: join(mountRoot, '.moltnet', 'd'),
       piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
-      registryDbPath: join(mountRoot, '.moltnet', 'd', 'daemon-state.sqlite'),
     };
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
@@ -193,8 +285,9 @@ describe('createExecutionPlanCache', () => {
       'utf8',
     );
 
-    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
-    await slotRegistry.beginSlot({
+    const slotStore = new InMemoryRuntimeSlotStore();
+    await slotStore.beginSlot({
+      teamId: TEAM_ID,
       agentName: 'a',
       provider: 'p',
       model: 'm',
@@ -207,26 +300,26 @@ describe('createExecutionPlanCache', () => {
       worktreeBranch: 'feat/parent',
       lastTaskId: '11111111-1111-4111-8111-111111111111',
       lastAttemptN: 1,
-      ttlSec: 300,
     });
-    await slotRegistry.finishSlot(
-      { agentName: 'a', provider: 'p', model: 'm' },
-      'freeform:correlation:abc',
-      300,
-      producerSessionPath,
-    );
+    await finishProducerSlot(slotStore, {
+      taskId: '11111111-1111-4111-8111-111111111111',
+      identity: { agentName: 'a', provider: 'p', model: 'm' },
+      slotKey: 'freeform:correlation:abc',
+      sessionPath: producerSessionPath,
+    });
 
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', provider: 'p', model: 'm' },
       warmSessionTtlSec: 300,
-      slotRegistry,
+      slotRegistry: slotStore,
     });
 
     const plan = await cache.getOrCreate({
       attemptN: 1,
       task: {
         id: '22222222-2222-4222-8222-222222222222',
+        teamId: TEAM_ID,
         taskType: 'freeform',
         correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         input: {
@@ -250,7 +343,7 @@ describe('createExecutionPlanCache', () => {
     );
     expect(plan.workspaceSeed).toBeUndefined();
 
-    await slotRegistry.close();
+    await slotStore.close();
   });
 
   it('forks onto a new branch from the parent tip for mode=fork', async () => {
@@ -259,7 +352,6 @@ describe('createExecutionPlanCache', () => {
     const stateDirs = {
       rootDir: join(mountRoot, '.moltnet', 'd'),
       piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
-      registryDbPath: join(mountRoot, '.moltnet', 'd', 'daemon-state.sqlite'),
     };
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
@@ -276,8 +368,9 @@ describe('createExecutionPlanCache', () => {
     const producerSessionPath = join(producerSessionDir, 'session-1.jsonl');
     writeFileSync(producerSessionPath, '{"role":"system"}\n', 'utf8');
 
-    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
-    await slotRegistry.beginSlot({
+    const slotStore = new InMemoryRuntimeSlotStore();
+    await slotStore.beginSlot({
+      teamId: TEAM_ID,
       agentName: 'a',
       provider: 'p',
       model: 'm',
@@ -290,26 +383,26 @@ describe('createExecutionPlanCache', () => {
       worktreeBranch: 'feat/parent',
       lastTaskId: '11111111-1111-4111-8111-111111111111',
       lastAttemptN: 1,
-      ttlSec: 300,
     });
-    await slotRegistry.finishSlot(
-      { agentName: 'a', provider: 'p', model: 'm' },
-      'freeform:correlation:abc',
-      300,
-      producerSessionPath,
-    );
+    await finishProducerSlot(slotStore, {
+      taskId: '11111111-1111-4111-8111-111111111111',
+      identity: { agentName: 'a', provider: 'p', model: 'm' },
+      slotKey: 'freeform:correlation:abc',
+      sessionPath: producerSessionPath,
+    });
 
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', provider: 'p', model: 'm' },
       warmSessionTtlSec: 300,
-      slotRegistry,
+      slotRegistry: slotStore,
     });
 
     const plan = await cache.getOrCreate({
       attemptN: 1,
       task: {
         id: '22222222-2222-4222-8222-222222222222',
+        teamId: TEAM_ID,
         taskType: 'freeform',
         correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         input: {
@@ -340,7 +433,7 @@ describe('createExecutionPlanCache', () => {
     );
     expect(plan.workspaceSeed).toBeUndefined();
 
-    await slotRegistry.close();
+    await slotStore.close();
   });
 
   it('throws when freeform continueFrom cannot resolve a producer slot', async () => {
@@ -351,16 +444,15 @@ describe('createExecutionPlanCache', () => {
     const stateDirs = {
       rootDir: join(mountRoot, '.moltnet', 'd'),
       piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
-      registryDbPath: join(mountRoot, '.moltnet', 'd', 'daemon-state.sqlite'),
     };
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
-    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
+    const slotStore = new InMemoryRuntimeSlotStore();
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', provider: 'p', model: 'm' },
       warmSessionTtlSec: 300,
-      slotRegistry,
+      slotRegistry: slotStore,
     });
 
     await expect(
@@ -368,6 +460,7 @@ describe('createExecutionPlanCache', () => {
         attemptN: 1,
         task: {
           id: '22222222-2222-4222-8222-222222222222',
+          teamId: TEAM_ID,
           taskType: 'freeform',
           correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
           input: {
@@ -381,7 +474,7 @@ describe('createExecutionPlanCache', () => {
       }),
     ).rejects.toThrow(ProducerContextResolutionError);
 
-    await slotRegistry.close();
+    await slotStore.close();
   });
 
   it('uses the shared mount root as the judge copy source for shared-mount producers', async () => {
@@ -390,7 +483,6 @@ describe('createExecutionPlanCache', () => {
     const stateDirs = {
       rootDir: join(mountRoot, '.moltnet', 'd'),
       piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
-      registryDbPath: join(mountRoot, '.moltnet', 'd', 'daemon-state.sqlite'),
     };
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
@@ -399,8 +491,9 @@ describe('createExecutionPlanCache', () => {
     const producerSessionPath = join(producerSessionDir, 'session-a.jsonl');
     writeFileSync(producerSessionPath, '[]\n', 'utf8');
 
-    const slotRegistry = new DaemonSlotRegistry(stateDirs.registryDbPath);
-    await slotRegistry.beginSlot({
+    const slotStore = new InMemoryRuntimeSlotStore();
+    await slotStore.beginSlot({
+      teamId: TEAM_ID,
       agentName: 'local-eval-943',
       provider: 'ollama-cloud',
       model: 'qwen3.5',
@@ -413,18 +506,17 @@ describe('createExecutionPlanCache', () => {
       worktreeBranch: null,
       lastTaskId: '11111111-1111-4111-8111-111111111111',
       lastAttemptN: 1,
-      ttlSec: 300,
     });
-    await slotRegistry.finishSlot(
-      {
+    await finishProducerSlot(slotStore, {
+      taskId: '11111111-1111-4111-8111-111111111111',
+      identity: {
         agentName: 'local-eval-943',
         provider: 'ollama-cloud',
         model: 'qwen3.5',
       },
-      'run_eval:correlation:test:variant:baseline',
-      300,
-      producerSessionPath,
-    );
+      slotKey: 'run_eval:correlation:test:variant:baseline',
+      sessionPath: producerSessionPath,
+    });
 
     const cache = createExecutionPlanCache({
       stateDirs,
@@ -434,13 +526,14 @@ describe('createExecutionPlanCache', () => {
         model: 'qwen3.5',
       },
       warmSessionTtlSec: 300,
-      slotRegistry,
+      slotRegistry: slotStore,
     });
 
     const plan = await cache.getOrCreate({
       attemptN: 1,
       task: {
         id: '22222222-2222-4222-8222-222222222222',
+        teamId: TEAM_ID,
         taskType: 'judge_eval_attempt',
         correlationId: '33333333-3333-4333-8333-333333333333',
         input: {
@@ -456,6 +549,6 @@ describe('createExecutionPlanCache', () => {
       source: 'producer',
     });
 
-    await slotRegistry.close();
+    await slotStore.close();
   });
 });

@@ -118,6 +118,13 @@ export {
   type UpdateRuntimeModelInput,
 } from './repositories/runtime-models.repository.js';
 export {
+  type BeginRuntimeSlotInput,
+  createRuntimeSlotRepository,
+  type FinishRuntimeSlotInput,
+  type ResolvedRuntimeSlot,
+  type RuntimeSlotRepository,
+} from './repositories/runtime-slot.repository.js';
+export {
   createSigningRequestRepository,
   parseStatusFilter,
   type SigningRequestRepository,

@@ -1,6 +1,6 @@
-import type { DaemonSlotIdentity } from '@themoltnet/agent-daemon-state';
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
+import type { DaemonSlotIdentity } from './daemon-slot-identity.js';
 import {
   deriveTaskSessionDescriptor,
   type TaskSessionDescriptor,

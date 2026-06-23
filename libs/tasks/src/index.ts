@@ -5,6 +5,7 @@ export * from './context.js';
 export * from './rubric.js';
 export * from './runtime-models.js';
 export * from './runtime-profiles.js';
+export * from './runtime-slots.js';
 export * from './success-criteria.js';
 export * from './task-type-registry.js';
 export * from './task-types/index.js';

@@ -61,6 +61,12 @@ type Invoker interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/messages
 	AppendTaskMessages(ctx context.Context, request *AppendTaskMessagesReq, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
+	// BeginRuntimeSlot invokes beginRuntimeSlot operation.
+	//
+	// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
+	//
+	// POST /runtime-slots/begin
+	BeginRuntimeSlot(ctx context.Context, request *BeginRuntimeSlotReq, params BeginRuntimeSlotParams) (BeginRuntimeSlotRes, error)
 	// CancelTask invokes cancelTask operation.
 	//
 	// Cancel a task.
@@ -221,6 +227,18 @@ type Invoker interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/fail
 	FailTask(ctx context.Context, request *FailTaskReq, params FailTaskParams) (FailTaskRes, error)
+	// FindLatestRuntimeSlotForAttempt invokes findLatestRuntimeSlotForAttempt operation.
+	//
+	// Find the latest team-scoped runtime slot for a task attempt.
+	//
+	// GET /runtime-slots/latest
+	FindLatestRuntimeSlotForAttempt(ctx context.Context, params FindLatestRuntimeSlotForAttemptParams) (FindLatestRuntimeSlotForAttemptRes, error)
+	// FinishRuntimeSlot invokes finishRuntimeSlot operation.
+	//
+	// Mark a team-scoped runtime slot idle without deleting it.
+	//
+	// POST /runtime-slots/finish
+	FinishRuntimeSlot(ctx context.Context, request *FinishRuntimeSlotReq, params FinishRuntimeSlotParams) (FinishRuntimeSlotRes, error)
 	// GetAgentProfile invokes getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -1589,6 +1607,160 @@ func (c *Client) sendAppendTaskMessages(ctx context.Context, request *AppendTask
 
 	stage = "DecodeResponse"
 	result, err := decodeAppendTaskMessagesResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// BeginRuntimeSlot invokes beginRuntimeSlot operation.
+//
+// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
+//
+// POST /runtime-slots/begin
+func (c *Client) BeginRuntimeSlot(ctx context.Context, request *BeginRuntimeSlotReq, params BeginRuntimeSlotParams) (BeginRuntimeSlotRes, error) {
+	res, err := c.sendBeginRuntimeSlot(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendBeginRuntimeSlot(ctx context.Context, request *BeginRuntimeSlotReq, params BeginRuntimeSlotParams) (res BeginRuntimeSlotRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("beginRuntimeSlot"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/runtime-slots/begin"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, BeginRuntimeSlotOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/runtime-slots/begin"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeBeginRuntimeSlotRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, BeginRuntimeSlotOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+		{
+			stage = "Security:SessionAuth"
+			switch err := c.securitySessionAuth(ctx, BeginRuntimeSlotOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionAuth\"")
+			}
+		}
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, BeginRuntimeSlotOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 2
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{0b00000010},
+				{0b00000100},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeBeginRuntimeSlotResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -5733,6 +5905,343 @@ func (c *Client) sendFailTask(ctx context.Context, request *FailTaskReq, params 
 
 	stage = "DecodeResponse"
 	result, err := decodeFailTaskResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// FindLatestRuntimeSlotForAttempt invokes findLatestRuntimeSlotForAttempt operation.
+//
+// Find the latest team-scoped runtime slot for a task attempt.
+//
+// GET /runtime-slots/latest
+func (c *Client) FindLatestRuntimeSlotForAttempt(ctx context.Context, params FindLatestRuntimeSlotForAttemptParams) (FindLatestRuntimeSlotForAttemptRes, error) {
+	res, err := c.sendFindLatestRuntimeSlotForAttempt(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendFindLatestRuntimeSlotForAttempt(ctx context.Context, params FindLatestRuntimeSlotForAttemptParams) (res FindLatestRuntimeSlotForAttemptRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("findLatestRuntimeSlotForAttempt"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/runtime-slots/latest"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, FindLatestRuntimeSlotForAttemptOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/runtime-slots/latest"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "taskId" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "taskId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.TaskId))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "attemptN" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "attemptN",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.IntToString(params.AttemptN))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+		{
+			stage = "Security:SessionAuth"
+			switch err := c.securitySessionAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionAuth\"")
+			}
+		}
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 2
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{0b00000010},
+				{0b00000100},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeFindLatestRuntimeSlotForAttemptResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// FinishRuntimeSlot invokes finishRuntimeSlot operation.
+//
+// Mark a team-scoped runtime slot idle without deleting it.
+//
+// POST /runtime-slots/finish
+func (c *Client) FinishRuntimeSlot(ctx context.Context, request *FinishRuntimeSlotReq, params FinishRuntimeSlotParams) (FinishRuntimeSlotRes, error) {
+	res, err := c.sendFinishRuntimeSlot(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendFinishRuntimeSlot(ctx context.Context, request *FinishRuntimeSlotReq, params FinishRuntimeSlotParams) (res FinishRuntimeSlotRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("finishRuntimeSlot"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/runtime-slots/finish"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, FinishRuntimeSlotOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/runtime-slots/finish"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeFinishRuntimeSlotRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, FinishRuntimeSlotOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+		{
+			stage = "Security:SessionAuth"
+			switch err := c.securitySessionAuth(ctx, FinishRuntimeSlotOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionAuth\"")
+			}
+		}
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, FinishRuntimeSlotOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 2
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{0b00000010},
+				{0b00000100},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeFinishRuntimeSlotResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

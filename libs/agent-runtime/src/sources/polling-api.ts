@@ -9,13 +9,14 @@ import type { AgentRuntimeLogger } from '../runtime.js';
 import type { ClaimedTask, TaskSource } from './types.js';
 
 /**
- * Structural shape of the slot registry needed by the affinity filter.
+ * Structural shape of the runtime slot store needed by the affinity filter.
  * Declared here so `libs/agent-runtime` does not depend on
- * `apps/agent-daemon`. The daemon's concrete `DaemonSlotRegistry`
+ * `apps/agent-daemon`. The daemon's concrete remote slot store
  * satisfies this by duck typing.
  */
 export interface ContinuationSlotRegistry {
-  findLatestProducerSlotByTaskAttempt(
+  findLatestSlotByTaskAttempt(
+    teamId: string,
     taskId: string,
     attemptN: number,
   ):
@@ -28,17 +29,20 @@ export interface ContinuationSlotRegistry {
  * Claim-time affinity filter for warm-resume continuations.
  *
  * - No `continueFrom` → claimable (true).
- * - `continueFrom` set + no slot in registry → not claimable (some other
- *   daemon owns the warm slot, or it's been reaped).
+ * - `continueFrom` set + no slot in the store → not claimable (the producer
+ *   context is unavailable to this daemon).
  * - `continueFrom` set + slot exists but its `sessionDir` is missing on
- *   disk → not claimable (stale registry row, slot directory was wiped).
+ *   disk → not claimable (stale slot row, slot directory was wiped).
  * - `continueFrom` set + slot exists + `sessionDir` present on disk →
  *   claimable.
  *
  * Pure predicate over `(task, slotRegistry)` — no side effects.
  */
 export async function isContinuationClaimableByThisDaemon(
-  task: { input?: { continueFrom?: { taskId: string; attemptN: number } } },
+  task: {
+    teamId: string;
+    input?: { continueFrom?: { taskId: string; attemptN: number } };
+  },
   slotRegistry: ContinuationSlotRegistry,
 ): Promise<
   | { claimable: true }
@@ -51,7 +55,8 @@ export async function isContinuationClaimableByThisDaemon(
 > {
   const cf = task.input?.continueFrom;
   if (!cf) return { claimable: true };
-  const slot = await slotRegistry.findLatestProducerSlotByTaskAttempt(
+  const slot = await slotRegistry.findLatestSlotByTaskAttempt(
+    task.teamId,
     cf.taskId,
     cf.attemptN,
   );
@@ -118,11 +123,11 @@ export interface PollingApiTaskSourceOptions {
    */
   stopWhenEmpty?: boolean;
   /**
-   * Slot registry used for the claim-time affinity filter on
+   * Runtime slot store used for the claim-time affinity filter on
    * `freeform.continueFrom` tasks. When omitted, the affinity filter is a
    * no-op (continuations are always claimable) — appropriate for
    * non-pi daemon entry points (e.g. drain/e2e harnesses) that don't
-   * manage warm slots.
+   * manage runtime slots.
    */
   slotRegistry?: ContinuationSlotRegistry;
   /** Logger; defaults to a self-named pino instance. */
@@ -258,10 +263,9 @@ export class PollingApiTaskSource implements TaskSource {
         ) {
           continue;
         }
-        // Warm-resume affinity filter — skip continuations targeting a
-        // warm slot this daemon doesn't own (or whose sessionDir is
-        // gone). Other daemons skip too if they also don't own it; the
-        // task lingers queued until the original daemon polls or the
+        // Warm-resume affinity filter — skip continuations whose producer
+        // slot cannot be resolved to a local sessionDir on this daemon. The
+        // task lingers queued until a daemon with that context polls or the
         // server's dispatch_timeout_sec fires. See #1287, #1299.
         if (this.opts.slotRegistry) {
           const affinity = await isContinuationClaimableByThisDaemon(

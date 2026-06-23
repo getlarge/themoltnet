@@ -42,9 +42,6 @@
       "path": "apps/rest-api"
     },
     {
-      "path": "libs/agent-daemon-state"
-    },
-    {
       "path": "libs/agent-runtime"
     },
     {

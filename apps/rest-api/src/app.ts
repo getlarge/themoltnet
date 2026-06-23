@@ -50,6 +50,7 @@ import { registrationRoutes } from './routes/registration.js';
 import { renderedPackRoutes } from './routes/rendered-packs.js';
 import { runtimeModelRoutes } from './routes/runtime-models.js';
 import { runtimeProfileRoutes } from './routes/runtime-profiles.js';
+import { runtimeSlotRoutes } from './routes/runtime-slots.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
 import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
@@ -72,6 +73,7 @@ import type {
   NonceRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
+  RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
   TaskService,
@@ -148,6 +150,7 @@ export interface AppOptions {
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
   daemonProfileRepository: DaemonProfileRepository;
+  runtimeSlotRepository: RuntimeSlotRepository;
   runtimeModelRepository: RuntimeModelRepository;
   taskRepository: TaskRepository;
   taskService: TaskService;
@@ -349,6 +352,7 @@ export async function registerApiRoutes(
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
   decorateSafe('daemonProfileRepository', options.daemonProfileRepository);
+  decorateSafe('runtimeSlotRepository', options.runtimeSlotRepository);
   decorateSafe('runtimeModelRepository', options.runtimeModelRepository);
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
@@ -392,6 +396,7 @@ export async function registerApiRoutes(
   await app.register(registrationRoutes);
   await app.register(teamRoutes);
   await app.register(groupRoutes);
+  await app.register(runtimeSlotRoutes);
   await app.register(runtimeProfileRoutes);
   await app.register(runtimeModelRoutes);
   await app.register(vouchRoutes);
