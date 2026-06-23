@@ -95,7 +95,9 @@ export async function runOnce(argv: string[]): Promise<number> {
   }
   const cfg = loadConfig();
   const initialOpts = opts;
-  const ctx = await resolveAgentContext(initialOpts.agent);
+  const ctx = await resolveAgentContext(initialOpts.agent, {
+    agentRootDir: process.cwd(),
+  });
   const profile = await resolveRuntimeProfile({
     agent: ctx.agent,
     profile: values.profile,

@@ -18,6 +18,7 @@ import {
   vi,
 } from 'vitest';
 
+import { runOnce } from '../src/cli/once.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const { createPiTaskExecutorMock } = vi.hoisted(() => ({
@@ -34,8 +35,6 @@ vi.mock('@themoltnet/pi-extension', async (importOriginal) => {
     }),
   };
 });
-
-const { runOnce } = await import('../src/cli/once.js');
 
 createPiTaskExecutorMock.mockImplementation(
   (_options: ExecutePiTaskOptions) =>

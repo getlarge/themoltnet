@@ -154,7 +154,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   }
 
   const cfg = loadConfig();
-  const ctx = await resolveAgentContext(baseCommon.agent);
+  const ctx = await resolveAgentContext(baseCommon.agent, {
+    agentRootDir: process.cwd(),
+  });
   const profiles = await resolveRuntimeProfiles({
     agent: ctx.agent,
     profiles: profileValues,
