@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.22.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.21.0...agent-daemon-v0.22.0) (2026-06-23)
+
+
+### Features
+
+* add daemon agent-root flag ([1831ef4](https://github.com/getlarge/themoltnet/commit/1831ef4e466b565d2a958f61b4c97dbfc8036f1a))
+
+
+### Bug Fixes
+
+* **agent-daemon:** use resolved agent root for pi ([afe1542](https://github.com/getlarge/themoltnet/commit/afe1542730e809ccefe4d026d02f096e0fa68e68))
+* harden daemon credential discovery ([38951e4](https://github.com/getlarge/themoltnet/commit/38951e4dea3fd5e5a3de2eb925bfa5f50147b4ea))
+* support repo-free daemon tasks ([fbe82a2](https://github.com/getlarge/themoltnet/commit/fbe82a2cb5a1b2704ddaa23382793afe3395c489))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-extension bumped to 0.26.3
+
 ## [0.21.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.20.0...agent-daemon-v0.21.0) (2026-06-23)
 
 
