@@ -148,11 +148,9 @@ jobs:
           MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
           MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
           MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-          # LLM (required) — daemon refuses to start without both.
-          # `provider` is a Pi provider key (anthropic, openai, bedrock,
-          # …); `model` is a model id understood by that provider.
-          MOLTNET_AGENT_PROVIDER: ${{ vars.MOLTNET_AGENT_PROVIDER }}
-          MOLTNET_AGENT_MODEL: ${{ vars.MOLTNET_AGENT_MODEL }}
+          # Runtime profile (required). The profile supplies provider,
+          # model, sandbox policy, prerequisites, and runtime defaults.
+          MOLTNET_AGENT_PROFILE: ${{ vars.MOLTNET_AGENT_PROFILE }}
           # GitHub App (optional but recommended — when set, the agent's
           # gh operations appear as the bot identity)
           MOLTNET_GITHUB_APP_ID: ${{ vars.MOLTNET_GITHUB_APP_ID }}

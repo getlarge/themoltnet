@@ -3997,10 +3997,6 @@ func (s *BeginRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 		e.Int(s.CreatedAtMs)
 	}
 	{
-		e.FieldStart("daemonProfileId")
-		s.DaemonProfileId.Encode(e)
-	}
-	{
 		e.FieldStart("expiresAtMs")
 		e.Int(s.ExpiresAtMs)
 	}
@@ -4027,6 +4023,10 @@ func (s *BeginRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("provider")
 		e.Str(s.Provider)
+	}
+	{
+		e.FieldStart("runtimeProfileId")
+		s.RuntimeProfileId.Encode(e)
 	}
 	{
 		e.FieldStart("sessionDir")
@@ -4061,14 +4061,14 @@ func (s *BeginRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 var jsonFieldsNameOfBeginRuntimeSlotOK = [17]string{
 	0:  "agentName",
 	1:  "createdAtMs",
-	2:  "daemonProfileId",
-	3:  "expiresAtMs",
-	4:  "id",
-	5:  "lastAttemptN",
-	6:  "lastTaskId",
-	7:  "lastUsedAtMs",
-	8:  "model",
-	9:  "provider",
+	2:  "expiresAtMs",
+	3:  "id",
+	4:  "lastAttemptN",
+	5:  "lastTaskId",
+	6:  "lastUsedAtMs",
+	7:  "model",
+	8:  "provider",
+	9:  "runtimeProfileId",
 	10: "sessionDir",
 	11: "sessionPath",
 	12: "slotKey",
@@ -4111,18 +4111,8 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAtMs\"")
 			}
-		case "daemonProfileId":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				if err := s.DaemonProfileId.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonProfileId\"")
-			}
 		case "expiresAtMs":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.ExpiresAtMs = int(v)
@@ -4134,7 +4124,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAtMs\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -4146,7 +4136,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "lastAttemptN":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.LastAttemptN = int(v)
@@ -4158,7 +4148,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAttemptN\"")
 			}
 		case "lastTaskId":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LastTaskId = v
@@ -4170,7 +4160,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastTaskId\"")
 			}
 		case "lastUsedAtMs":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.LastUsedAtMs = int(v)
@@ -4182,7 +4172,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -4194,7 +4184,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -4204,6 +4194,16 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "runtimeProfileId":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				if err := s.RuntimeProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeProfileId\"")
 			}
 		case "sessionDir":
 			requiredBitSet[1] |= 1 << 2
@@ -4393,12 +4393,6 @@ func (s *BeginRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.AgentName)
 	}
 	{
-		if s.DaemonProfileId.Set {
-			e.FieldStart("daemonProfileId")
-			s.DaemonProfileId.Encode(e)
-		}
-	}
-	{
 		e.FieldStart("lastAttemptN")
 		e.Int(s.LastAttemptN)
 	}
@@ -4413,6 +4407,10 @@ func (s *BeginRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("provider")
 		e.Str(s.Provider)
+	}
+	{
+		e.FieldStart("runtimeProfileId")
+		json.EncodeUUID(e, s.RuntimeProfileId)
 	}
 	{
 		if s.SessionDir.Set {
@@ -4462,11 +4460,11 @@ func (s *BeginRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 
 var jsonFieldsNameOfBeginRuntimeSlotReq = [14]string{
 	0:  "agentName",
-	1:  "daemonProfileId",
-	2:  "lastAttemptN",
-	3:  "lastTaskId",
-	4:  "model",
-	5:  "provider",
+	1:  "lastAttemptN",
+	2:  "lastTaskId",
+	3:  "model",
+	4:  "provider",
+	5:  "runtimeProfileId",
 	6:  "sessionDir",
 	7:  "sessionPath",
 	8:  "slotKey",
@@ -4498,18 +4496,8 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"agentName\"")
 			}
-		case "daemonProfileId":
-			if err := func() error {
-				s.DaemonProfileId.Reset()
-				if err := s.DaemonProfileId.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonProfileId\"")
-			}
 		case "lastAttemptN":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Int()
 				s.LastAttemptN = int(v)
@@ -4521,7 +4509,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAttemptN\"")
 			}
 		case "lastTaskId":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LastTaskId = v
@@ -4533,7 +4521,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastTaskId\"")
 			}
 		case "model":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -4545,7 +4533,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "provider":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -4555,6 +4543,18 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "runtimeProfileId":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.RuntimeProfileId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeProfileId\"")
 			}
 		case "sessionDir":
 			if err := func() error {
@@ -4650,7 +4650,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b00111101,
+		0b00111111,
 		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
@@ -27225,10 +27225,6 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) encodeFields(e *jx.Encoder) {
 		e.Int(s.CreatedAtMs)
 	}
 	{
-		e.FieldStart("daemonProfileId")
-		s.DaemonProfileId.Encode(e)
-	}
-	{
 		e.FieldStart("expiresAtMs")
 		e.Int(s.ExpiresAtMs)
 	}
@@ -27255,6 +27251,10 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("provider")
 		e.Str(s.Provider)
+	}
+	{
+		e.FieldStart("runtimeProfileId")
+		s.RuntimeProfileId.Encode(e)
 	}
 	{
 		e.FieldStart("sessionDir")
@@ -27289,14 +27289,14 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) encodeFields(e *jx.Encoder) {
 var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptOKSlot = [17]string{
 	0:  "agentName",
 	1:  "createdAtMs",
-	2:  "daemonProfileId",
-	3:  "expiresAtMs",
-	4:  "id",
-	5:  "lastAttemptN",
-	6:  "lastTaskId",
-	7:  "lastUsedAtMs",
-	8:  "model",
-	9:  "provider",
+	2:  "expiresAtMs",
+	3:  "id",
+	4:  "lastAttemptN",
+	5:  "lastTaskId",
+	6:  "lastUsedAtMs",
+	7:  "model",
+	8:  "provider",
+	9:  "runtimeProfileId",
 	10: "sessionDir",
 	11: "sessionPath",
 	12: "slotKey",
@@ -27339,18 +27339,8 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAtMs\"")
 			}
-		case "daemonProfileId":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				if err := s.DaemonProfileId.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonProfileId\"")
-			}
 		case "expiresAtMs":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.ExpiresAtMs = int(v)
@@ -27362,7 +27352,7 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAtMs\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -27374,7 +27364,7 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "lastAttemptN":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.LastAttemptN = int(v)
@@ -27386,7 +27376,7 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAttemptN\"")
 			}
 		case "lastTaskId":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LastTaskId = v
@@ -27398,7 +27388,7 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastTaskId\"")
 			}
 		case "lastUsedAtMs":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.LastUsedAtMs = int(v)
@@ -27410,7 +27400,7 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -27422,7 +27412,7 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -27432,6 +27422,16 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "runtimeProfileId":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				if err := s.RuntimeProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeProfileId\"")
 			}
 		case "sessionDir":
 			requiredBitSet[1] |= 1 << 2
@@ -30046,10 +30046,6 @@ func (s *FinishRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 		e.Int(s.CreatedAtMs)
 	}
 	{
-		e.FieldStart("daemonProfileId")
-		s.DaemonProfileId.Encode(e)
-	}
-	{
 		e.FieldStart("expiresAtMs")
 		e.Int(s.ExpiresAtMs)
 	}
@@ -30076,6 +30072,10 @@ func (s *FinishRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("provider")
 		e.Str(s.Provider)
+	}
+	{
+		e.FieldStart("runtimeProfileId")
+		s.RuntimeProfileId.Encode(e)
 	}
 	{
 		e.FieldStart("sessionDir")
@@ -30110,14 +30110,14 @@ func (s *FinishRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 var jsonFieldsNameOfFinishRuntimeSlotOK = [17]string{
 	0:  "agentName",
 	1:  "createdAtMs",
-	2:  "daemonProfileId",
-	3:  "expiresAtMs",
-	4:  "id",
-	5:  "lastAttemptN",
-	6:  "lastTaskId",
-	7:  "lastUsedAtMs",
-	8:  "model",
-	9:  "provider",
+	2:  "expiresAtMs",
+	3:  "id",
+	4:  "lastAttemptN",
+	5:  "lastTaskId",
+	6:  "lastUsedAtMs",
+	7:  "model",
+	8:  "provider",
+	9:  "runtimeProfileId",
 	10: "sessionDir",
 	11: "sessionPath",
 	12: "slotKey",
@@ -30160,18 +30160,8 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAtMs\"")
 			}
-		case "daemonProfileId":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				if err := s.DaemonProfileId.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonProfileId\"")
-			}
 		case "expiresAtMs":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.ExpiresAtMs = int(v)
@@ -30183,7 +30173,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAtMs\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -30195,7 +30185,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "lastAttemptN":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.LastAttemptN = int(v)
@@ -30207,7 +30197,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAttemptN\"")
 			}
 		case "lastTaskId":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LastTaskId = v
@@ -30219,7 +30209,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastTaskId\"")
 			}
 		case "lastUsedAtMs":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.LastUsedAtMs = int(v)
@@ -30231,7 +30221,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -30243,7 +30233,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -30253,6 +30243,16 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "runtimeProfileId":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				if err := s.RuntimeProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeProfileId\"")
 			}
 		case "sessionDir":
 			requiredBitSet[1] |= 1 << 2
@@ -30454,6 +30454,10 @@ func (s *FinishRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.Provider)
 	}
 	{
+		e.FieldStart("runtimeProfileId")
+		json.EncodeUUID(e, s.RuntimeProfileId)
+	}
+	{
 		if s.SessionPath.Set {
 			e.FieldStart("sessionPath")
 			s.SessionPath.Encode(e)
@@ -30469,14 +30473,15 @@ func (s *FinishRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFinishRuntimeSlotReq = [7]string{
+var jsonFieldsNameOfFinishRuntimeSlotReq = [8]string{
 	0: "agentName",
 	1: "attemptN",
 	2: "model",
 	3: "provider",
-	4: "sessionPath",
-	5: "slotKey",
-	6: "taskId",
+	4: "runtimeProfileId",
+	5: "sessionPath",
+	6: "slotKey",
+	7: "taskId",
 }
 
 // Decode decodes FinishRuntimeSlotReq from json.
@@ -30536,6 +30541,18 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
+		case "runtimeProfileId":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.RuntimeProfileId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeProfileId\"")
+			}
 		case "sessionPath":
 			if err := func() error {
 				s.SessionPath.Reset()
@@ -30547,7 +30564,7 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionPath\"")
 			}
 		case "slotKey":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.SlotKey = string(v)
@@ -30559,7 +30576,7 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"slotKey\"")
 			}
 		case "taskId":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TaskId = v
@@ -30580,7 +30597,7 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01101111,
+		0b11011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

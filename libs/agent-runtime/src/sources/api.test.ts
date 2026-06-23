@@ -106,11 +106,12 @@ describe('ApiTaskSource', () => {
       profileId,
     });
 
-    await src.claim();
+    await expect(src.claim()).resolves.toMatchObject({ profileId });
 
     expect(claimMock).toHaveBeenCalledWith(task.id, {
       leaseTtlSec: 120,
       profileId,
     });
+    await expect(src.claim()).resolves.toBeNull();
   });
 });

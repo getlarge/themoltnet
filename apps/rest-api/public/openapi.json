@@ -135,10 +135,6 @@
             "minLength": 1,
             "type": "string"
           },
-          "daemonProfileId": {
-            "format": "uuid",
-            "type": "string"
-          },
           "lastAttemptN": {
             "minimum": 1,
             "type": "integer"
@@ -155,6 +151,10 @@
           "provider": {
             "maxLength": 100,
             "minLength": 1,
+            "type": "string"
+          },
+          "runtimeProfileId": {
+            "format": "uuid",
             "type": "string"
           },
           "sessionDir": {
@@ -211,6 +211,7 @@
         },
         "required": [
           "agentName",
+          "runtimeProfileId",
           "provider",
           "model",
           "slotKey",
@@ -3329,6 +3330,10 @@
             "minLength": 1,
             "type": "string"
           },
+          "runtimeProfileId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "sessionPath": {
             "minLength": 1,
             "type": "string"
@@ -3344,6 +3349,7 @@
         },
         "required": [
           "agentName",
+          "runtimeProfileId",
           "provider",
           "model",
           "slotKey",
@@ -6020,17 +6026,6 @@
                 "minimum": 0,
                 "type": "integer"
               },
-              "daemonProfileId": {
-                "anyOf": [
-                  {
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
               "expiresAtMs": {
                 "minimum": 0,
                 "type": "integer"
@@ -6060,6 +6055,17 @@
                 "maxLength": 100,
                 "minLength": 1,
                 "type": "string"
+              },
+              "runtimeProfileId": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "sessionDir": {
                 "anyOf": [
@@ -6128,7 +6134,7 @@
               "id",
               "teamId",
               "agentName",
-              "daemonProfileId",
+              "runtimeProfileId",
               "provider",
               "model",
               "slotKey",
@@ -7557,17 +7563,6 @@
             "minimum": 0,
             "type": "integer"
           },
-          "daemonProfileId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "expiresAtMs": {
             "minimum": 0,
             "type": "integer"
@@ -7597,6 +7592,17 @@
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
+          },
+          "runtimeProfileId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "sessionDir": {
             "anyOf": [
@@ -7665,7 +7671,7 @@
           "id",
           "teamId",
           "agentName",
-          "daemonProfileId",
+          "runtimeProfileId",
           "provider",
           "model",
           "slotKey",
@@ -19580,10 +19586,6 @@
                     "minLength": 1,
                     "type": "string"
                   },
-                  "daemonProfileId": {
-                    "format": "uuid",
-                    "type": "string"
-                  },
                   "lastAttemptN": {
                     "minimum": 1,
                     "type": "integer"
@@ -19600,6 +19602,10 @@
                   "provider": {
                     "maxLength": 100,
                     "minLength": 1,
+                    "type": "string"
+                  },
+                  "runtimeProfileId": {
+                    "format": "uuid",
                     "type": "string"
                   },
                   "sessionDir": {
@@ -19656,6 +19662,7 @@
                 },
                 "required": [
                   "agentName",
+                  "runtimeProfileId",
                   "provider",
                   "model",
                   "slotKey",
@@ -19683,17 +19690,6 @@
                     "createdAtMs": {
                       "minimum": 0,
                       "type": "integer"
-                    },
-                    "daemonProfileId": {
-                      "anyOf": [
-                        {
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
                     },
                     "expiresAtMs": {
                       "minimum": 0,
@@ -19724,6 +19720,17 @@
                       "maxLength": 100,
                       "minLength": 1,
                       "type": "string"
+                    },
+                    "runtimeProfileId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "sessionDir": {
                       "anyOf": [
@@ -19792,7 +19799,7 @@
                     "id",
                     "teamId",
                     "agentName",
-                    "daemonProfileId",
+                    "runtimeProfileId",
                     "provider",
                     "model",
                     "slotKey",
@@ -20963,6 +20970,10 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "runtimeProfileId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "sessionPath": {
                     "minLength": 1,
                     "type": "string"
@@ -20978,6 +20989,7 @@
                 },
                 "required": [
                   "agentName",
+                  "runtimeProfileId",
                   "provider",
                   "model",
                   "slotKey",
@@ -21004,17 +21016,6 @@
                     "createdAtMs": {
                       "minimum": 0,
                       "type": "integer"
-                    },
-                    "daemonProfileId": {
-                      "anyOf": [
-                        {
-                          "format": "uuid",
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
                     },
                     "expiresAtMs": {
                       "minimum": 0,
@@ -21045,6 +21046,17 @@
                       "maxLength": 100,
                       "minLength": 1,
                       "type": "string"
+                    },
+                    "runtimeProfileId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "sessionDir": {
                       "anyOf": [
@@ -21113,7 +21125,7 @@
                     "id",
                     "teamId",
                     "agentName",
-                    "daemonProfileId",
+                    "runtimeProfileId",
                     "provider",
                     "model",
                     "slotKey",
@@ -22294,17 +22306,6 @@
                           "minimum": 0,
                           "type": "integer"
                         },
-                        "daemonProfileId": {
-                          "anyOf": [
-                            {
-                              "format": "uuid",
-                              "type": "string"
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
-                        },
                         "expiresAtMs": {
                           "minimum": 0,
                           "type": "integer"
@@ -22334,6 +22335,17 @@
                           "maxLength": 100,
                           "minLength": 1,
                           "type": "string"
+                        },
+                        "runtimeProfileId": {
+                          "anyOf": [
+                            {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         },
                         "sessionDir": {
                           "anyOf": [
@@ -22402,7 +22414,7 @@
                         "id",
                         "teamId",
                         "agentName",
-                        "daemonProfileId",
+                        "runtimeProfileId",
                         "provider",
                         "model",
                         "slotKey",

@@ -33,7 +33,10 @@ export const RuntimeSlot = Type.Object(
     id: Type.String({ format: 'uuid' }),
     teamId: Type.String({ format: 'uuid' }),
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
-    daemonProfileId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    runtimeProfileId: Type.Union([
+      Type.String({ format: 'uuid' }),
+      Type.Null(),
+    ]),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
     slotKey: Type.String({ minLength: 1 }),
@@ -64,7 +67,7 @@ export type ResolvedRuntimeSlot = Static<typeof ResolvedRuntimeSlot>;
 export const BeginRuntimeSlotBody = Type.Object(
   {
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
-    daemonProfileId: Type.Optional(Type.String({ format: 'uuid' })),
+    runtimeProfileId: Type.String({ format: 'uuid' }),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
     slotKey: Type.String({ minLength: 1 }),
@@ -85,6 +88,7 @@ export type BeginRuntimeSlotBody = Static<typeof BeginRuntimeSlotBody>;
 export const FinishRuntimeSlotBody = Type.Object(
   {
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
+    runtimeProfileId: Type.String({ format: 'uuid' }),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
     slotKey: Type.String({ minLength: 1 }),

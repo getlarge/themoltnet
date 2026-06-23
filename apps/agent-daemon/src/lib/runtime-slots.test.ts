@@ -23,13 +23,11 @@ describe('runtime slots', () => {
     const agent = {
       runtimeSlots: { begin, findLatestForAttempt, finish },
     } as unknown as Agent;
-    const store = createApiRuntimeSlotStore({
-      agent,
-      daemonProfileId: 'dddddddd-0000-0000-0000-000000000004',
-    });
+    const store = createApiRuntimeSlotStore({ agent });
 
     await store.beginSlot({
       agentName: 'legreffier',
+      runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
       lastAttemptN: 1,
       lastTaskId: 'aaaaaaaa-0000-0000-0000-000000000001',
       model: 'claude-sonnet-4-5',
@@ -50,10 +48,11 @@ describe('runtime slots', () => {
       1,
       {
         agentName: 'legreffier',
-        model: 'claude-sonnet-4-5',
-        provider: 'anthropic',
+        runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
       },
       'freeform:correlation:test',
+      'anthropic',
+      'claude-sonnet-4-5',
       '/tmp/session/2.jsonl',
     );
     const resolved = await store.findLatestSlotByTaskAttempt(
@@ -64,13 +63,14 @@ describe('runtime slots', () => {
 
     expect(begin).toHaveBeenCalledWith(
       expect.objectContaining({
-        daemonProfileId: 'dddddddd-0000-0000-0000-000000000004',
+        runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
       }),
       { teamId: 'bbbbbbbb-0000-0000-0000-000000000002' },
     );
     expect(finish).toHaveBeenCalledWith(
       expect.objectContaining({
         attemptN: 1,
+        runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
         taskId: 'aaaaaaaa-0000-0000-0000-000000000001',
       }),
       { teamId: 'bbbbbbbb-0000-0000-0000-000000000002' },

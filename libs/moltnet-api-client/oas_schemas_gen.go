@@ -1913,23 +1913,23 @@ func (s *BeginRuntimeSlotNotFoundCode) UnmarshalText(data []byte) error {
 }
 
 type BeginRuntimeSlotOK struct {
-	AgentName       string                  `json:"agentName"`
-	CreatedAtMs     int                     `json:"createdAtMs"`
-	DaemonProfileId NilUUID                 `json:"daemonProfileId"`
-	ExpiresAtMs     int                     `json:"expiresAtMs"`
-	ID              uuid.UUID               `json:"id"`
-	LastAttemptN    int                     `json:"lastAttemptN"`
-	LastTaskId      uuid.UUID               `json:"lastTaskId"`
-	LastUsedAtMs    int                     `json:"lastUsedAtMs"`
-	Model           string                  `json:"model"`
-	Provider        string                  `json:"provider"`
-	SessionDir      NilString               `json:"sessionDir"`
-	SessionPath     NilString               `json:"sessionPath"`
-	SlotKey         string                  `json:"slotKey"`
-	State           BeginRuntimeSlotOKState `json:"state"`
-	TaskType        string                  `json:"taskType"`
-	TeamId          uuid.UUID               `json:"teamId"`
-	WorkspaceRowId  NilUUID                 `json:"workspaceRowId"`
+	AgentName        string                  `json:"agentName"`
+	CreatedAtMs      int                     `json:"createdAtMs"`
+	ExpiresAtMs      int                     `json:"expiresAtMs"`
+	ID               uuid.UUID               `json:"id"`
+	LastAttemptN     int                     `json:"lastAttemptN"`
+	LastTaskId       uuid.UUID               `json:"lastTaskId"`
+	LastUsedAtMs     int                     `json:"lastUsedAtMs"`
+	Model            string                  `json:"model"`
+	Provider         string                  `json:"provider"`
+	RuntimeProfileId NilUUID                 `json:"runtimeProfileId"`
+	SessionDir       NilString               `json:"sessionDir"`
+	SessionPath      NilString               `json:"sessionPath"`
+	SlotKey          string                  `json:"slotKey"`
+	State            BeginRuntimeSlotOKState `json:"state"`
+	TaskType         string                  `json:"taskType"`
+	TeamId           uuid.UUID               `json:"teamId"`
+	WorkspaceRowId   NilUUID                 `json:"workspaceRowId"`
 }
 
 // GetAgentName returns the value of AgentName.
@@ -1940,11 +1940,6 @@ func (s *BeginRuntimeSlotOK) GetAgentName() string {
 // GetCreatedAtMs returns the value of CreatedAtMs.
 func (s *BeginRuntimeSlotOK) GetCreatedAtMs() int {
 	return s.CreatedAtMs
-}
-
-// GetDaemonProfileId returns the value of DaemonProfileId.
-func (s *BeginRuntimeSlotOK) GetDaemonProfileId() NilUUID {
-	return s.DaemonProfileId
 }
 
 // GetExpiresAtMs returns the value of ExpiresAtMs.
@@ -1980,6 +1975,11 @@ func (s *BeginRuntimeSlotOK) GetModel() string {
 // GetProvider returns the value of Provider.
 func (s *BeginRuntimeSlotOK) GetProvider() string {
 	return s.Provider
+}
+
+// GetRuntimeProfileId returns the value of RuntimeProfileId.
+func (s *BeginRuntimeSlotOK) GetRuntimeProfileId() NilUUID {
+	return s.RuntimeProfileId
 }
 
 // GetSessionDir returns the value of SessionDir.
@@ -2027,11 +2027,6 @@ func (s *BeginRuntimeSlotOK) SetCreatedAtMs(val int) {
 	s.CreatedAtMs = val
 }
 
-// SetDaemonProfileId sets the value of DaemonProfileId.
-func (s *BeginRuntimeSlotOK) SetDaemonProfileId(val NilUUID) {
-	s.DaemonProfileId = val
-}
-
 // SetExpiresAtMs sets the value of ExpiresAtMs.
 func (s *BeginRuntimeSlotOK) SetExpiresAtMs(val int) {
 	s.ExpiresAtMs = val
@@ -2065,6 +2060,11 @@ func (s *BeginRuntimeSlotOK) SetModel(val string) {
 // SetProvider sets the value of Provider.
 func (s *BeginRuntimeSlotOK) SetProvider(val string) {
 	s.Provider = val
+}
+
+// SetRuntimeProfileId sets the value of RuntimeProfileId.
+func (s *BeginRuntimeSlotOK) SetRuntimeProfileId(val NilUUID) {
+	s.RuntimeProfileId = val
 }
 
 // SetSessionDir sets the value of SessionDir.
@@ -2146,30 +2146,25 @@ func (s *BeginRuntimeSlotOKState) UnmarshalText(data []byte) error {
 }
 
 type BeginRuntimeSlotReq struct {
-	AgentName       string                              `json:"agentName"`
-	DaemonProfileId OptUUID                             `json:"daemonProfileId"`
-	LastAttemptN    int                                 `json:"lastAttemptN"`
-	LastTaskId      uuid.UUID                           `json:"lastTaskId"`
-	Model           string                              `json:"model"`
-	Provider        string                              `json:"provider"`
-	SessionDir      OptString                           `json:"sessionDir"`
-	SessionPath     OptString                           `json:"sessionPath"`
-	SlotKey         string                              `json:"slotKey"`
-	TaskType        string                              `json:"taskType"`
-	WorkspaceId     OptString                           `json:"workspaceId"`
-	WorkspaceKind   OptBeginRuntimeSlotReqWorkspaceKind `json:"workspaceKind"`
-	WorktreeBranch  OptString                           `json:"worktreeBranch"`
-	WorktreePath    OptString                           `json:"worktreePath"`
+	AgentName        string                              `json:"agentName"`
+	LastAttemptN     int                                 `json:"lastAttemptN"`
+	LastTaskId       uuid.UUID                           `json:"lastTaskId"`
+	Model            string                              `json:"model"`
+	Provider         string                              `json:"provider"`
+	RuntimeProfileId uuid.UUID                           `json:"runtimeProfileId"`
+	SessionDir       OptString                           `json:"sessionDir"`
+	SessionPath      OptString                           `json:"sessionPath"`
+	SlotKey          string                              `json:"slotKey"`
+	TaskType         string                              `json:"taskType"`
+	WorkspaceId      OptString                           `json:"workspaceId"`
+	WorkspaceKind    OptBeginRuntimeSlotReqWorkspaceKind `json:"workspaceKind"`
+	WorktreeBranch   OptString                           `json:"worktreeBranch"`
+	WorktreePath     OptString                           `json:"worktreePath"`
 }
 
 // GetAgentName returns the value of AgentName.
 func (s *BeginRuntimeSlotReq) GetAgentName() string {
 	return s.AgentName
-}
-
-// GetDaemonProfileId returns the value of DaemonProfileId.
-func (s *BeginRuntimeSlotReq) GetDaemonProfileId() OptUUID {
-	return s.DaemonProfileId
 }
 
 // GetLastAttemptN returns the value of LastAttemptN.
@@ -2190,6 +2185,11 @@ func (s *BeginRuntimeSlotReq) GetModel() string {
 // GetProvider returns the value of Provider.
 func (s *BeginRuntimeSlotReq) GetProvider() string {
 	return s.Provider
+}
+
+// GetRuntimeProfileId returns the value of RuntimeProfileId.
+func (s *BeginRuntimeSlotReq) GetRuntimeProfileId() uuid.UUID {
+	return s.RuntimeProfileId
 }
 
 // GetSessionDir returns the value of SessionDir.
@@ -2237,11 +2237,6 @@ func (s *BeginRuntimeSlotReq) SetAgentName(val string) {
 	s.AgentName = val
 }
 
-// SetDaemonProfileId sets the value of DaemonProfileId.
-func (s *BeginRuntimeSlotReq) SetDaemonProfileId(val OptUUID) {
-	s.DaemonProfileId = val
-}
-
 // SetLastAttemptN sets the value of LastAttemptN.
 func (s *BeginRuntimeSlotReq) SetLastAttemptN(val int) {
 	s.LastAttemptN = val
@@ -2260,6 +2255,11 @@ func (s *BeginRuntimeSlotReq) SetModel(val string) {
 // SetProvider sets the value of Provider.
 func (s *BeginRuntimeSlotReq) SetProvider(val string) {
 	s.Provider = val
+}
+
+// SetRuntimeProfileId sets the value of RuntimeProfileId.
+func (s *BeginRuntimeSlotReq) SetRuntimeProfileId(val uuid.UUID) {
+	s.RuntimeProfileId = val
 }
 
 // SetSessionDir sets the value of SessionDir.
@@ -12076,23 +12076,23 @@ func (s *FindLatestRuntimeSlotForAttemptOK) SetWorkspace(val NilFindLatestRuntim
 func (*FindLatestRuntimeSlotForAttemptOK) findLatestRuntimeSlotForAttemptRes() {}
 
 type FindLatestRuntimeSlotForAttemptOKSlot struct {
-	AgentName       string                                     `json:"agentName"`
-	CreatedAtMs     int                                        `json:"createdAtMs"`
-	DaemonProfileId NilUUID                                    `json:"daemonProfileId"`
-	ExpiresAtMs     int                                        `json:"expiresAtMs"`
-	ID              uuid.UUID                                  `json:"id"`
-	LastAttemptN    int                                        `json:"lastAttemptN"`
-	LastTaskId      uuid.UUID                                  `json:"lastTaskId"`
-	LastUsedAtMs    int                                        `json:"lastUsedAtMs"`
-	Model           string                                     `json:"model"`
-	Provider        string                                     `json:"provider"`
-	SessionDir      NilString                                  `json:"sessionDir"`
-	SessionPath     NilString                                  `json:"sessionPath"`
-	SlotKey         string                                     `json:"slotKey"`
-	State           FindLatestRuntimeSlotForAttemptOKSlotState `json:"state"`
-	TaskType        string                                     `json:"taskType"`
-	TeamId          uuid.UUID                                  `json:"teamId"`
-	WorkspaceRowId  NilUUID                                    `json:"workspaceRowId"`
+	AgentName        string                                     `json:"agentName"`
+	CreatedAtMs      int                                        `json:"createdAtMs"`
+	ExpiresAtMs      int                                        `json:"expiresAtMs"`
+	ID               uuid.UUID                                  `json:"id"`
+	LastAttemptN     int                                        `json:"lastAttemptN"`
+	LastTaskId       uuid.UUID                                  `json:"lastTaskId"`
+	LastUsedAtMs     int                                        `json:"lastUsedAtMs"`
+	Model            string                                     `json:"model"`
+	Provider         string                                     `json:"provider"`
+	RuntimeProfileId NilUUID                                    `json:"runtimeProfileId"`
+	SessionDir       NilString                                  `json:"sessionDir"`
+	SessionPath      NilString                                  `json:"sessionPath"`
+	SlotKey          string                                     `json:"slotKey"`
+	State            FindLatestRuntimeSlotForAttemptOKSlotState `json:"state"`
+	TaskType         string                                     `json:"taskType"`
+	TeamId           uuid.UUID                                  `json:"teamId"`
+	WorkspaceRowId   NilUUID                                    `json:"workspaceRowId"`
 }
 
 // GetAgentName returns the value of AgentName.
@@ -12103,11 +12103,6 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetAgentName() string {
 // GetCreatedAtMs returns the value of CreatedAtMs.
 func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetCreatedAtMs() int {
 	return s.CreatedAtMs
-}
-
-// GetDaemonProfileId returns the value of DaemonProfileId.
-func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetDaemonProfileId() NilUUID {
-	return s.DaemonProfileId
 }
 
 // GetExpiresAtMs returns the value of ExpiresAtMs.
@@ -12143,6 +12138,11 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetModel() string {
 // GetProvider returns the value of Provider.
 func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetProvider() string {
 	return s.Provider
+}
+
+// GetRuntimeProfileId returns the value of RuntimeProfileId.
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetRuntimeProfileId() NilUUID {
+	return s.RuntimeProfileId
 }
 
 // GetSessionDir returns the value of SessionDir.
@@ -12190,11 +12190,6 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetCreatedAtMs(val int) {
 	s.CreatedAtMs = val
 }
 
-// SetDaemonProfileId sets the value of DaemonProfileId.
-func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetDaemonProfileId(val NilUUID) {
-	s.DaemonProfileId = val
-}
-
 // SetExpiresAtMs sets the value of ExpiresAtMs.
 func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetExpiresAtMs(val int) {
 	s.ExpiresAtMs = val
@@ -12228,6 +12223,11 @@ func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetModel(val string) {
 // SetProvider sets the value of Provider.
 func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetProvider(val string) {
 	s.Provider = val
+}
+
+// SetRuntimeProfileId sets the value of RuntimeProfileId.
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetRuntimeProfileId(val NilUUID) {
+	s.RuntimeProfileId = val
 }
 
 // SetSessionDir sets the value of SessionDir.
@@ -14123,23 +14123,23 @@ func (s *FinishRuntimeSlotNotFoundCode) UnmarshalText(data []byte) error {
 }
 
 type FinishRuntimeSlotOK struct {
-	AgentName       string                   `json:"agentName"`
-	CreatedAtMs     int                      `json:"createdAtMs"`
-	DaemonProfileId NilUUID                  `json:"daemonProfileId"`
-	ExpiresAtMs     int                      `json:"expiresAtMs"`
-	ID              uuid.UUID                `json:"id"`
-	LastAttemptN    int                      `json:"lastAttemptN"`
-	LastTaskId      uuid.UUID                `json:"lastTaskId"`
-	LastUsedAtMs    int                      `json:"lastUsedAtMs"`
-	Model           string                   `json:"model"`
-	Provider        string                   `json:"provider"`
-	SessionDir      NilString                `json:"sessionDir"`
-	SessionPath     NilString                `json:"sessionPath"`
-	SlotKey         string                   `json:"slotKey"`
-	State           FinishRuntimeSlotOKState `json:"state"`
-	TaskType        string                   `json:"taskType"`
-	TeamId          uuid.UUID                `json:"teamId"`
-	WorkspaceRowId  NilUUID                  `json:"workspaceRowId"`
+	AgentName        string                   `json:"agentName"`
+	CreatedAtMs      int                      `json:"createdAtMs"`
+	ExpiresAtMs      int                      `json:"expiresAtMs"`
+	ID               uuid.UUID                `json:"id"`
+	LastAttemptN     int                      `json:"lastAttemptN"`
+	LastTaskId       uuid.UUID                `json:"lastTaskId"`
+	LastUsedAtMs     int                      `json:"lastUsedAtMs"`
+	Model            string                   `json:"model"`
+	Provider         string                   `json:"provider"`
+	RuntimeProfileId NilUUID                  `json:"runtimeProfileId"`
+	SessionDir       NilString                `json:"sessionDir"`
+	SessionPath      NilString                `json:"sessionPath"`
+	SlotKey          string                   `json:"slotKey"`
+	State            FinishRuntimeSlotOKState `json:"state"`
+	TaskType         string                   `json:"taskType"`
+	TeamId           uuid.UUID                `json:"teamId"`
+	WorkspaceRowId   NilUUID                  `json:"workspaceRowId"`
 }
 
 // GetAgentName returns the value of AgentName.
@@ -14150,11 +14150,6 @@ func (s *FinishRuntimeSlotOK) GetAgentName() string {
 // GetCreatedAtMs returns the value of CreatedAtMs.
 func (s *FinishRuntimeSlotOK) GetCreatedAtMs() int {
 	return s.CreatedAtMs
-}
-
-// GetDaemonProfileId returns the value of DaemonProfileId.
-func (s *FinishRuntimeSlotOK) GetDaemonProfileId() NilUUID {
-	return s.DaemonProfileId
 }
 
 // GetExpiresAtMs returns the value of ExpiresAtMs.
@@ -14190,6 +14185,11 @@ func (s *FinishRuntimeSlotOK) GetModel() string {
 // GetProvider returns the value of Provider.
 func (s *FinishRuntimeSlotOK) GetProvider() string {
 	return s.Provider
+}
+
+// GetRuntimeProfileId returns the value of RuntimeProfileId.
+func (s *FinishRuntimeSlotOK) GetRuntimeProfileId() NilUUID {
+	return s.RuntimeProfileId
 }
 
 // GetSessionDir returns the value of SessionDir.
@@ -14237,11 +14237,6 @@ func (s *FinishRuntimeSlotOK) SetCreatedAtMs(val int) {
 	s.CreatedAtMs = val
 }
 
-// SetDaemonProfileId sets the value of DaemonProfileId.
-func (s *FinishRuntimeSlotOK) SetDaemonProfileId(val NilUUID) {
-	s.DaemonProfileId = val
-}
-
 // SetExpiresAtMs sets the value of ExpiresAtMs.
 func (s *FinishRuntimeSlotOK) SetExpiresAtMs(val int) {
 	s.ExpiresAtMs = val
@@ -14275,6 +14270,11 @@ func (s *FinishRuntimeSlotOK) SetModel(val string) {
 // SetProvider sets the value of Provider.
 func (s *FinishRuntimeSlotOK) SetProvider(val string) {
 	s.Provider = val
+}
+
+// SetRuntimeProfileId sets the value of RuntimeProfileId.
+func (s *FinishRuntimeSlotOK) SetRuntimeProfileId(val NilUUID) {
+	s.RuntimeProfileId = val
 }
 
 // SetSessionDir sets the value of SessionDir.
@@ -14356,13 +14356,14 @@ func (s *FinishRuntimeSlotOKState) UnmarshalText(data []byte) error {
 }
 
 type FinishRuntimeSlotReq struct {
-	AgentName   string    `json:"agentName"`
-	AttemptN    int       `json:"attemptN"`
-	Model       string    `json:"model"`
-	Provider    string    `json:"provider"`
-	SessionPath OptString `json:"sessionPath"`
-	SlotKey     string    `json:"slotKey"`
-	TaskId      uuid.UUID `json:"taskId"`
+	AgentName        string    `json:"agentName"`
+	AttemptN         int       `json:"attemptN"`
+	Model            string    `json:"model"`
+	Provider         string    `json:"provider"`
+	RuntimeProfileId uuid.UUID `json:"runtimeProfileId"`
+	SessionPath      OptString `json:"sessionPath"`
+	SlotKey          string    `json:"slotKey"`
+	TaskId           uuid.UUID `json:"taskId"`
 }
 
 // GetAgentName returns the value of AgentName.
@@ -14383,6 +14384,11 @@ func (s *FinishRuntimeSlotReq) GetModel() string {
 // GetProvider returns the value of Provider.
 func (s *FinishRuntimeSlotReq) GetProvider() string {
 	return s.Provider
+}
+
+// GetRuntimeProfileId returns the value of RuntimeProfileId.
+func (s *FinishRuntimeSlotReq) GetRuntimeProfileId() uuid.UUID {
+	return s.RuntimeProfileId
 }
 
 // GetSessionPath returns the value of SessionPath.
@@ -14418,6 +14424,11 @@ func (s *FinishRuntimeSlotReq) SetModel(val string) {
 // SetProvider sets the value of Provider.
 func (s *FinishRuntimeSlotReq) SetProvider(val string) {
 	s.Provider = val
+}
+
+// SetRuntimeProfileId sets the value of RuntimeProfileId.
+func (s *FinishRuntimeSlotReq) SetRuntimeProfileId(val uuid.UUID) {
+	s.RuntimeProfileId = val
 }
 
 // SetSessionPath sets the value of SessionPath.

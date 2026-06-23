@@ -31,8 +31,7 @@ description: |
          MOLTNET_GITHUB_APP_ID, MOLTNET_GITHUB_APP_INSTALLATION_ID,
          MOLTNET_GITHUB_APP_SLUG, MOLTNET_GITHUB_APP_PRIVATE_KEY.
 
-       Optional job env (provider-specific):
-         OLLAMA_API_KEY (when provider=ollama),
+       Optional job env:
          PI_AUTH_JSON (Pi/Codex auth dump, single-line JSON OK as input
          but kept here for symmetry).
 
@@ -51,11 +50,8 @@ inputs:
       false.
     required: false
     default: 'false'
-  provider:
-    description: Agent runtime provider (e.g. `ollama`, `openai`).
-    required: true
-  model:
-    description: Agent runtime model id.
+  profile:
+    description: Runtime profile UUID or team-scoped name.
     required: true
 
 runs:
@@ -232,69 +228,22 @@ runs:
       shell: bash
       env:
         TASK_ID: ${{ steps.create-task.outputs.task-id }}
-        MOLTNET_AGENT_PROVIDER: ${{ inputs.provider }}
-        MOLTNET_AGENT_MODEL: ${{ inputs.model }}
+        MOLTNET_AGENT_PROFILE: ${{ inputs.profile }}
       run: |
         set -euo pipefail
         if [ -z "$TASK_ID" ]; then
           echo "::error::TASK_ID is empty after create-task step"
           exit 1
         fi
-        PROVIDER="$MOLTNET_AGENT_PROVIDER"
-        MODEL="$MOLTNET_AGENT_MODEL"
-        if [ -z "$PROVIDER" ]; then
-          echo "::error::provider input is required" >&2
+        PROFILE="$MOLTNET_AGENT_PROFILE"
+        if [ -z "$PROFILE" ]; then
+          echo "::error::profile input is required" >&2
           exit 1
-        fi
-        if [ -z "$MODEL" ]; then
-          echo "::error::model input is required" >&2
-          exit 1
-        fi
-        PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
-        if [ "$PROVIDER" = "ollama" ]; then
-          if [ -z "${OLLAMA_API_KEY:-}" ]; then
-            echo "::error::OLLAMA_API_KEY env var is required when provider=ollama" >&2
-            exit 1
-          fi
-          export PI_CODING_AGENT_DIR="$PI_AGENT_DIR"
-          mkdir -p "$PI_AGENT_DIR"
-          PI_MODELS_PATH="$PI_AGENT_DIR/models.json"
-          jq -n '
-            {
-              providers: {
-                ollama: {
-                  baseUrl: "https://ollama.com/v1",
-                  api: "openai-completions",
-                  apiKey: "OLLAMA_API_KEY",
-                  models: [
-                    { id: "qwen3.5:cloud" },
-                    { id: "qwen3-coder:480b-cloud" },
-                    { id: "glm-5.1:cloud" }
-                  ]
-                }
-              }
-            }
-          ' > "$PI_MODELS_PATH"
-          chmod 600 "$PI_MODELS_PATH"
-          echo "::notice::Pi models.json materialized at $PI_MODELS_PATH for ollama"
-          PI_SETTINGS_PATH="$PI_AGENT_DIR/settings.json"
-          jq -n '
-            {
-              enabledModels: [
-                "ollama/qwen3.5:cloud",
-                "ollama/qwen3-coder:480b-cloud",
-                "ollama/glm-5.1:cloud"
-              ]
-            }
-          ' > "$PI_SETTINGS_PATH"
-          chmod 600 "$PI_SETTINGS_PATH"
-          echo "::notice::Pi settings.json materialized at $PI_SETTINGS_PATH for ollama"
         fi
         npx -y @themoltnet/agent-daemon \
           once --task-id "$TASK_ID" \
           --agent "$MOLTNET_AGENT_NAME" \
-          --provider "$PROVIDER" \
-          --model "$MODEL"
+          --profile "$PROFILE"
 
     - name: Save gondolin snapshot cache
       if: |

@@ -34,7 +34,7 @@ Current built-in policy from `@moltnet/tasks`:
 Current daemon behavior:
 
 - `correlationId` stays the audit/query key. Runtime reuse is driven by a daemon
-  `slotKey`, then scoped by team/provider/model into one durable daemon slot.
+  `slotKey`, then scoped by team/agent/profile into one durable daemon slot.
 - Resumable task types may persist Pi conversation history under
   `.moltnet/d/pi-sessions/<encoded-slot-id>/` and reopen the most recent
   session file on follow-up tasks.
@@ -104,7 +104,7 @@ forward); they differ only on the branch:
 | cross-profile | yes — a different agent profile may continue | n/a (own branch)                     |
 
 Use `extend` to keep building the same change, including handing the work to a
-different compatible daemon profile on the same PR. The continuation resolves
+different compatible runtime profile on the same PR. The continuation resolves
 the parent slot through the remote runtime-slot record, then reuses the parent
 branch/workspace when that local path is still available. Use `fork` to explore
 a divergent alternative that should land as its own PR; the fork branch is
@@ -345,6 +345,7 @@ moltnet task list --team-id <team-id>
 
 # Filter examples.
 moltnet task list --team-id <team-id> --task-types curate_pack,fulfill_brief
+# Historical/runtime metadata filters.
 moltnet task list --team-id <team-id> --provider openai --model gpt-5.1
 moltnet task list --team-id <team-id> --status completed --has-attempts=true
 ```

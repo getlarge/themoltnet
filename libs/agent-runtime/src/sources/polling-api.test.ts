@@ -185,6 +185,210 @@ describe('PollingApiTaskSource', () => {
     );
   });
 
+  it('uses ordered profiles as priority for unrestricted tasks', async () => {
+    const firstProfile = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const secondProfile = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const task = makeFulfillBriefTask({
+      id: '44444444-4444-4444-8444-444444444444',
+      status: 'queued',
+      allowedProfiles: [],
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValueOnce({ items: [task], total: 1 })
+      .mockResolvedValueOnce({ items: [task], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      profiles: [
+        { profileId: firstProfile, leaseTtlSec: 30 },
+        { profileId: secondProfile, leaseTtlSec: 90 },
+      ],
+      stopWhenEmpty: true,
+    });
+
+    const result = await src.claim();
+
+    expect(result?.profileId).toBe(firstProfile);
+    expect(claim).toHaveBeenCalledWith(task.id, {
+      leaseTtlSec: 30,
+      profileId: firstProfile,
+    });
+  });
+
+  it('claims pinned tasks with the first configured allowed profile', async () => {
+    const firstProfile = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const secondProfile = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const pinned = makeFulfillBriefTask({
+      id: '55555555-5555-4555-8555-555555555555',
+      status: 'queued',
+      allowedProfiles: [{ profileId: secondProfile }],
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValueOnce({ items: [], total: 0 })
+      .mockResolvedValueOnce({ items: [pinned], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task: pinned,
+      attempt: { taskId: pinned.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      profiles: [
+        { profileId: firstProfile, leaseTtlSec: 30 },
+        { profileId: secondProfile, leaseTtlSec: 90 },
+      ],
+      stopWhenEmpty: true,
+    });
+
+    const result = await src.claim();
+
+    expect(result?.profileId).toBe(secondProfile);
+    expect(claim).toHaveBeenCalledWith(pinned.id, {
+      leaseTtlSec: 90,
+      profileId: secondProfile,
+    });
+  });
+
+  it('continues pagination when multiple profiles are configured', async () => {
+    const firstProfile = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const secondProfile = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const skipped = makeFulfillBriefTask({
+      id: '66666666-6666-4666-8666-666666666666',
+      status: 'queued',
+      diaryId: null,
+    });
+    const task = makeFulfillBriefTask({
+      id: '77777777-7777-4777-8777-777777777777',
+      status: 'queued',
+      diaryId: '88888888-8888-4888-8888-888888888888',
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValueOnce({
+        items: [skipped],
+        nextCursor: 'next-page',
+        total: 2,
+      })
+      .mockResolvedValueOnce({ items: [], total: 0 })
+      .mockResolvedValueOnce({ items: [task], total: 1 })
+      .mockResolvedValueOnce({ items: [], total: 0 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      diaryIds: ['88888888-8888-4888-8888-888888888888'],
+      leaseTtlSec: 60,
+      profiles: [
+        { profileId: firstProfile, leaseTtlSec: 30 },
+        { profileId: secondProfile, leaseTtlSec: 90 },
+      ],
+      stopWhenEmpty: true,
+    });
+
+    const result = await src.claim();
+
+    expect(result?.task.id).toBe(task.id);
+    expect(list).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        cursor: 'next-page',
+        profileId: firstProfile,
+      }),
+    );
+  });
+
+  it('tracks pagination cursors independently per configured profile', async () => {
+    const firstProfile = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const secondProfile = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const skippedA = makeFulfillBriefTask({
+      id: '88888888-8888-4888-8888-888888888888',
+      status: 'queued',
+      diaryId: null,
+    });
+    const skippedB = makeFulfillBriefTask({
+      id: '99999999-9999-4999-8999-999999999999',
+      status: 'queued',
+      diaryId: null,
+    });
+    const task = makeFulfillBriefTask({
+      id: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+      status: 'queued',
+      diaryId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      allowedProfiles: [{ profileId: secondProfile }],
+    });
+    const list = vi.fn<TasksNamespace['list']>().mockImplementation((query) => {
+      if (query.profileId === firstProfile && !query.cursor) {
+        return Promise.resolve({
+          items: [skippedA],
+          nextCursor: 'cursor-a',
+          total: 2,
+        });
+      }
+      if (query.profileId === secondProfile && !query.cursor) {
+        return Promise.resolve({
+          items: [skippedB],
+          nextCursor: 'cursor-b',
+          total: 2,
+        });
+      }
+      if (query.profileId === firstProfile && query.cursor === 'cursor-a') {
+        return Promise.resolve({ items: [], total: 0 });
+      }
+      if (query.profileId === secondProfile && query.cursor === 'cursor-b') {
+        return Promise.resolve({ items: [task], total: 1 });
+      }
+      return Promise.resolve({ items: [], total: 0 });
+    });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      diaryIds: ['dddddddd-dddd-4ddd-8ddd-dddddddddddd'],
+      leaseTtlSec: 60,
+      profiles: [
+        { profileId: firstProfile, leaseTtlSec: 30 },
+        { profileId: secondProfile, leaseTtlSec: 90 },
+      ],
+      stopWhenEmpty: true,
+    });
+
+    const result = await src.claim();
+
+    expect(result?.task.id).toBe(task.id);
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cursor: 'cursor-b',
+        profileId: secondProfile,
+      }),
+    );
+    expect(claim).toHaveBeenCalledWith(task.id, {
+      leaseTtlSec: 90,
+      profileId: secondProfile,
+    });
+  });
+
   it('issues one list call with all task types when multiple are configured', async () => {
     const list = vi
       .fn<TasksNamespace['list']>()

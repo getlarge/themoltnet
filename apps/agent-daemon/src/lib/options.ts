@@ -1,13 +1,11 @@
-// No defaults for agent/provider/model — those values are operator-specific
-// and silently misconfigure on any other machine. Required, not optional.
+// No default for agent — it is operator-specific and silently
+// misconfigures on any other machine. Required, not optional.
 import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 
 import { knownTaskTypesList } from './help.js';
 
 export interface CommonOptions {
   agent: string;
-  provider?: string;
-  model?: string;
   leaseTtlSec: number;
   heartbeatIntervalMs: number;
   maxBatchSize: number;
@@ -34,8 +32,6 @@ export interface CommonOptions {
 
 export interface CommonRawArgs {
   agent?: string;
-  provider?: string;
-  model?: string;
   'lease-ttl-sec'?: string;
   'heartbeat-interval-ms'?: string;
   'max-batch-size'?: string;
@@ -47,7 +43,6 @@ export interface CommonRawArgs {
 }
 
 export interface ParseCommonOptionsOptions {
-  requireProviderModel?: boolean;
   runtimeDefaults?: Partial<
     Pick<
       CommonOptions,
@@ -86,7 +81,6 @@ export function parseCommonOptions(
   args: CommonRawArgs,
   options: ParseCommonOptionsOptions = {},
 ): CommonOptions {
-  const requireProviderModel = options.requireProviderModel ?? true;
   const runtimeDefaults = {
     leaseTtlSec: options.runtimeDefaults?.leaseTtlSec ?? DEFAULTS.leaseTtlSec,
     heartbeatIntervalMs:
@@ -98,12 +92,6 @@ export function parseCommonOptions(
       options.runtimeDefaults?.warmSessionTtlSec ?? DEFAULTS.warmSessionTtlSec,
   };
   if (!args.agent) throw new MissingRequiredOptionError('agent');
-  if (requireProviderModel && !args.provider) {
-    throw new MissingRequiredOptionError('provider');
-  }
-  if (requireProviderModel && !args.model) {
-    throw new MissingRequiredOptionError('model');
-  }
 
   if (!/^[a-zA-Z0-9_-]+$/.test(args.agent)) {
     throw new Error(
@@ -112,8 +100,6 @@ export function parseCommonOptions(
   }
   const opts: CommonOptions = {
     agent: args.agent,
-    ...(args.provider ? { provider: args.provider } : {}),
-    ...(args.model ? { model: args.model } : {}),
     leaseTtlSec: parsePositiveInt(
       args['lease-ttl-sec'],
       'lease-ttl-sec',
@@ -185,8 +171,6 @@ function parseNonNegativeInt(
 export function commonOptionDefs() {
   return {
     agent: { type: 'string', short: 'a' },
-    model: { type: 'string', short: 'm' },
-    provider: { type: 'string', short: 'p' },
     'lease-ttl-sec': { type: 'string' },
     'heartbeat-interval-ms': { type: 'string' },
     'max-batch-size': { type: 'string' },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  commonOptionDefs,
   MissingRequiredOptionError,
   parseCommonOptions,
   validateTaskTypes,
@@ -9,8 +10,6 @@ import {
 describe('parseCommonOptions', () => {
   const valid = {
     agent: 'legreffier',
-    provider: 'anthropic',
-    model: 'claude-sonnet-4-5',
   };
 
   it('throws MissingRequiredOptionError when --agent is missing', () => {
@@ -25,35 +24,11 @@ describe('parseCommonOptions', () => {
     }
   });
 
-  it('throws MissingRequiredOptionError when --provider is missing', () => {
-    try {
-      parseCommonOptions({ ...valid, provider: undefined });
-      expect.fail('expected throw');
-    } catch (err) {
-      expect(err).toBeInstanceOf(MissingRequiredOptionError);
-      expect((err as MissingRequiredOptionError).flag).toBe('provider');
-    }
-  });
+  it('does not accept provider/model as common daemon options', () => {
+    const defs = commonOptionDefs();
 
-  it('throws MissingRequiredOptionError when --model is missing', () => {
-    try {
-      parseCommonOptions({ ...valid, model: undefined });
-      expect.fail('expected throw');
-    } catch (err) {
-      expect(err).toBeInstanceOf(MissingRequiredOptionError);
-      expect((err as MissingRequiredOptionError).flag).toBe('model');
-    }
-  });
-
-  it('allows provider/model to be omitted when profile mode supplies them', () => {
-    const result = parseCommonOptions(
-      { agent: 'legreffier' },
-      { requireProviderModel: false },
-    );
-
-    expect(result.agent).toBe('legreffier');
-    expect(result.provider).toBeUndefined();
-    expect(result.model).toBeUndefined();
+    expect(defs).not.toHaveProperty('provider');
+    expect(defs).not.toHaveProperty('model');
   });
 
   it('rejects --agent with traversal-unsafe characters', () => {
@@ -69,8 +44,6 @@ describe('parseCommonOptions', () => {
     const result = parseCommonOptions(valid);
     expect(result).toEqual({
       agent: 'legreffier',
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
       leaseTtlSec: 300,
       heartbeatIntervalMs: 60_000,
       maxBatchSize: 50,

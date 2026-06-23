@@ -78,7 +78,7 @@ describe('unique violation helpers', () => {
 
     expect(
       translateUniqueViolation(pgError, {
-        constraint: 'daemon_profiles_team_name_idx',
+        constraint: 'runtime_profiles_team_name_idx',
       }),
     ).toBeNull();
   });

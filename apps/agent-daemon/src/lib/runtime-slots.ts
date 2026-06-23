@@ -8,16 +8,15 @@ import type {
 
 export function createApiRuntimeSlotStore(args: {
   agent: Agent;
-  daemonProfileId?: string | null;
 }): RuntimeSlotStore {
-  const { agent, daemonProfileId } = args;
+  const { agent } = args;
 
   return {
     async beginSlot(input) {
       await agent.runtimeSlots.begin(
         {
           agentName: input.agentName,
-          daemonProfileId: daemonProfileId ?? undefined,
+          runtimeProfileId: input.runtimeProfileId,
           lastAttemptN: input.lastAttemptN,
           lastTaskId: input.lastTaskId,
           model: input.model,
@@ -43,14 +42,17 @@ export function createApiRuntimeSlotStore(args: {
       attemptN: number,
       identity: DaemonSlotIdentity,
       slotKey: string,
+      provider: string,
+      model: string,
       sessionPath: string | null,
     ) {
       await agent.runtimeSlots.finish(
         {
           agentName: identity.agentName,
           attemptN,
-          model: identity.model,
-          provider: identity.provider,
+          runtimeProfileId: identity.runtimeProfileId,
+          model,
+          provider,
           sessionPath: sessionPath ?? undefined,
           slotKey,
           taskId,

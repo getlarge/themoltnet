@@ -2,21 +2,21 @@ import { and, eq, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
-  type DaemonProfile,
-  daemonProfiles,
-  type NewDaemonProfile,
+  type NewRuntimeProfile,
+  type RuntimeProfile,
+  runtimeProfiles,
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 import { translateUniqueViolation } from '../unique-violation.js';
 
-export type CreateDaemonProfileInput = Omit<
-  NewDaemonProfile,
+export type CreateRuntimeProfileInput = Omit<
+  NewRuntimeProfile,
   'id' | 'createdAt' | 'updatedAt' | 'revision'
 >;
 
-export type UpdateDaemonProfileInput = Partial<
+export type UpdateRuntimeProfileInput = Partial<
   Pick<
-    NewDaemonProfile,
+    NewRuntimeProfile,
     | 'name'
     | 'description'
     | 'provider'
@@ -37,19 +37,19 @@ export type UpdateDaemonProfileInput = Partial<
   >
 >;
 
-export function createDaemonProfileRepository(db: Database) {
+export function createRuntimeProfileRepository(db: Database) {
   return {
-    async create(input: CreateDaemonProfileInput): Promise<DaemonProfile> {
+    async create(input: CreateRuntimeProfileInput): Promise<RuntimeProfile> {
       try {
         const [row] = await getExecutor(db)
-          .insert(daemonProfiles)
+          .insert(runtimeProfiles)
           .values(input)
           .returning();
         return row;
       } catch (err) {
         throw (
           translateUniqueViolation(err, {
-            constraint: 'daemon_profiles_team_name_idx',
+            constraint: 'runtime_profiles_team_name_idx',
             target: {
               resource: 'runtime-profile',
               keys: {
@@ -62,11 +62,11 @@ export function createDaemonProfileRepository(db: Database) {
       }
     },
 
-    async findById(id: string): Promise<DaemonProfile | null> {
+    async findById(id: string): Promise<RuntimeProfile | null> {
       const [row] = await getExecutor(db)
         .select()
-        .from(daemonProfiles)
-        .where(eq(daemonProfiles.id, id))
+        .from(runtimeProfiles)
+        .where(eq(runtimeProfiles.id, id))
         .limit(1);
       return row ?? null;
     },
@@ -74,44 +74,47 @@ export function createDaemonProfileRepository(db: Database) {
     async findByTeamAndName(
       teamId: string,
       name: string,
-    ): Promise<DaemonProfile | null> {
+    ): Promise<RuntimeProfile | null> {
       const [row] = await getExecutor(db)
         .select()
-        .from(daemonProfiles)
+        .from(runtimeProfiles)
         .where(
-          and(eq(daemonProfiles.teamId, teamId), eq(daemonProfiles.name, name)),
+          and(
+            eq(runtimeProfiles.teamId, teamId),
+            eq(runtimeProfiles.name, name),
+          ),
         )
         .limit(1);
       return row ?? null;
     },
 
-    async listByTeamId(teamId: string): Promise<DaemonProfile[]> {
+    async listByTeamId(teamId: string): Promise<RuntimeProfile[]> {
       return getExecutor(db)
         .select()
-        .from(daemonProfiles)
-        .where(eq(daemonProfiles.teamId, teamId))
-        .orderBy(daemonProfiles.name);
+        .from(runtimeProfiles)
+        .where(eq(runtimeProfiles.teamId, teamId))
+        .orderBy(runtimeProfiles.name);
     },
 
     async update(
       id: string,
-      patch: UpdateDaemonProfileInput,
-    ): Promise<DaemonProfile | null> {
+      patch: UpdateRuntimeProfileInput,
+    ): Promise<RuntimeProfile | null> {
       try {
         const [row] = await getExecutor(db)
-          .update(daemonProfiles)
+          .update(runtimeProfiles)
           .set({
             ...patch,
-            revision: sql`${daemonProfiles.revision} + 1`,
+            revision: sql`${runtimeProfiles.revision} + 1`,
             updatedAt: sql`now()`,
           })
-          .where(eq(daemonProfiles.id, id))
+          .where(eq(runtimeProfiles.id, id))
           .returning();
         return row ?? null;
       } catch (err) {
         throw (
           translateUniqueViolation(err, {
-            constraint: 'daemon_profiles_team_name_idx',
+            constraint: 'runtime_profiles_team_name_idx',
             target: {
               resource: 'runtime-profile',
               id,
@@ -123,14 +126,14 @@ export function createDaemonProfileRepository(db: Database) {
 
     async delete(id: string): Promise<boolean> {
       const rows = await getExecutor(db)
-        .delete(daemonProfiles)
-        .where(eq(daemonProfiles.id, id))
-        .returning({ id: daemonProfiles.id });
+        .delete(runtimeProfiles)
+        .where(eq(runtimeProfiles.id, id))
+        .returning({ id: runtimeProfiles.id });
       return rows.length > 0;
     },
   };
 }
 
-export type DaemonProfileRepository = ReturnType<
-  typeof createDaemonProfileRepository
+export type RuntimeProfileRepository = ReturnType<
+  typeof createRuntimeProfileRepository
 >;

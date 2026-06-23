@@ -21,7 +21,6 @@ export type { CryptoService } from '@moltnet/crypto-service';
 export type {
   AgentRepository,
   ContextPackRepository,
-  DaemonProfileRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryTransferRepository,
@@ -31,6 +30,7 @@ export type {
   NonceRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
+  RuntimeProfileRepository,
   RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
@@ -51,7 +51,6 @@ import type { CryptoService } from '@moltnet/crypto-service';
 import type {
   AgentRepository,
   ContextPackRepository,
-  DaemonProfileRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryTransferRepository,
@@ -60,6 +59,7 @@ import type {
   HumanRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
+  RuntimeProfileRepository,
   RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
@@ -92,7 +92,7 @@ declare module 'fastify' {
     groupRepository: GroupRepository;
     teamRepository: TeamRepository;
     diaryTransferRepository: DiaryTransferRepository;
-    daemonProfileRepository: DaemonProfileRepository;
+    runtimeProfileRepository: RuntimeProfileRepository;
     runtimeSlotRepository: RuntimeSlotRepository;
     runtimeModelRepository: RuntimeModelRepository;
     permissionChecker: PermissionChecker;

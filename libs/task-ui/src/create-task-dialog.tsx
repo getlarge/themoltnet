@@ -405,7 +405,7 @@ export function CreateTaskDialog({
               onChange={(event) => setRuntimeProfileId(event.target.value)}
               style={selectStyle}
             >
-              <option value="">Any compatible daemon profile</option>
+              <option value="">Any compatible runtime profile</option>
               {runtimeProfiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.name} — {profile.provider}/{profile.model}

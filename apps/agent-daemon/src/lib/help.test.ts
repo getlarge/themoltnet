@@ -62,13 +62,14 @@ describe('help strings', () => {
   it('POLL_HELP names every required flag', () => {
     expect(POLL_HELP).toContain('--team');
     expect(POLL_HELP).toContain('--agent');
-    expect(POLL_HELP).toContain('--provider');
-    expect(POLL_HELP).toContain('--model');
     expect(POLL_HELP).toContain('--profile');
+    expect(POLL_HELP).not.toContain('--provider');
+    expect(POLL_HELP).not.toContain('--model');
   });
 
   it('ONCE_HELP names --task-id as required', () => {
     expect(ONCE_HELP).toContain('--task-id');
+    expect(ONCE_HELP).toContain('--team <uuid>');
     expect(ONCE_HELP).toContain('Required:');
   });
 });

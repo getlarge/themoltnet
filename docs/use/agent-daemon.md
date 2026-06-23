@@ -25,14 +25,14 @@ npx @themoltnet/agent-daemon --help
 
 ```bash
 # Long-running worker — claim queued tasks until SIGINT/SIGTERM.
-npx @themoltnet/agent-daemon poll --team <team-uuid> --agent <name> --provider <p> --model <m> [...]
+npx @themoltnet/agent-daemon poll --team <team-uuid> --agent <name> --profile <uuid|name> [...]
 
 # Execute one specific queued task by id, then exit.
-npx @themoltnet/agent-daemon once --task-id <uuid> --agent <name> --provider <p> --model <m>
+npx @themoltnet/agent-daemon once --task-id <uuid> --agent <name> --profile <uuid>
 
 # Poll until the queue has nothing claimable, then exit. Useful for
 # batch eval runs and demos.
-npx @themoltnet/agent-daemon drain --team <team-uuid> --agent <name> --provider <p> --model <m> [...]
+npx @themoltnet/agent-daemon drain --team <team-uuid> --agent <name> --profile <uuid|name> [...]
 ```
 
 Run `npx @themoltnet/agent-daemon <command> --help` for full per-subcommand
@@ -50,8 +50,10 @@ For an end-to-end smoke-test walkthrough against the local Docker stack — prov
 ### Required flags (all subcommands)
 
 - `--agent <name>` — directory under `<repo>/.moltnet/<name>/` to read credentials from. No default — operator-specific.
-- `--provider <id>` — LLM provider id (e.g. `anthropic`, `openai-codex`). Required unless `--profile` is set.
-- `--model <id>` — LLM model id for that provider (e.g. `claude-sonnet-4-5`). Required unless `--profile` is set.
+- `--profile <uuid|name>` — remote runtime profile that supplies provider,
+  model, sandbox policy, prerequisites, and runtime defaults. `poll` and
+  `drain` require `--team`, so profile names resolve inside that team. `once`
+  can use a profile UUID without `--team`, or a profile name with `--team`.
 
 ### Pi model and auth config
 
@@ -67,18 +69,18 @@ Use this split:
 | `.pi/models.json`   | yes     | Provider/model registry. Reference keys by env var name, e.g. `"apiKey": "OLLAMA_API_KEY"`. |
 | `.pi/auth.json`     | no      | Local subscription OAuth/API-key auth blob. Keep gitignored.                                |
 
-This means `--provider ollama-cloud --model gemma4:31b-cloud` only works when
-repo-local `.pi/models.json` defines the `ollama-cloud` provider and that
-model. If `.pi/auth.json` is absent, Pi resolves the provider key from the
-environment variable named in `.pi/models.json`, for example:
+This means a runtime profile using `provider: "ollama-cloud"` and
+`model: "gemma4:31b-cloud"` only works when repo-local `.pi/models.json`
+defines that provider/model pair. If `.pi/auth.json` is absent, Pi resolves the
+provider key from the environment variable named in `.pi/models.json`, for
+example:
 
 ```bash
 export OLLAMA_API_KEY=...
 npx @themoltnet/agent-daemon poll \
   --team "$MOLTNET_TEAM_ID" \
   --agent legreffier \
-  --provider ollama-cloud \
-  --model gemma4:31b-cloud \
+  --profile ollama-cloud-gemma4 \
   --task-types freeform
 ```
 
@@ -94,13 +96,14 @@ portable across developers and machines.
 - `--max-batch-size`, `--flush-interval-ms` — message batching for `appendMessages`.
 - `--warm-session-ttl-sec` — resumability window stamped on remote daemon
   runtime slots after use. A slot records the persisted Pi session path plus any
-  reusable worktree for one provider/model/slot-key combination. Default 1800s.
-- `--profile <uuid|name>` — resolve provider, model, sandbox policy, runtime
-  defaults, and profile routing from a remote runtime profile. Cannot be used
-  with `--sandbox`.
+  reusable worktree for one profile/slot-key combination. Default comes from
+  the profile session/workspace TTL minimum, unless explicitly overridden.
 
 `poll` and `drain` add:
 
+- `--profile <uuid|name>` — repeatable. The flag order is the daemon's
+  priority order: unrestricted tasks use the first configured profile; tasks
+  with `allowedProfiles` use the first configured profile that is allowed.
 - `--task-types <csv>` — whitelist; daemon only lists/claims these. Empty list means "any registered type" (use with care).
 - `--diary-ids <csv>` — additional client-side filter on top of the team filter.
 - `--poll-interval-ms`, `--max-poll-interval-ms` — idle backoff window.
@@ -110,7 +113,8 @@ Constraints today:
 
 - **Local only.** One process = one VM-per-task = one agent identity. Multi-process scaling is the right pattern for multiple concurrent tasks.
 - **Single team.** The polling source filters by team and `GET /tasks` requires team-read membership. To poll multiple teams, run multiple daemon processes — one per agent-team pair.
-- **`sandbox.json` required.** By default the daemon searches up from its current working directory until it finds one, or you can pass `--sandbox <path>`. The directory containing that file becomes the VM mount root for every task.
+- **Profile sandbox required.** The runtime profile carries the sandbox policy.
+  `--sandbox` is rejected by the daemon.
 - **Credentials** come from `<repo>/.moltnet/<agent>/moltnet.json`. Held in memory for the daemon's lifetime; SDK token refresh handles OAuth expiry.
 
 The daemon hands the `TaskOutput` from each runtime invocation to its `finalizeTask` helper, which calls `/complete` or `/fail` on the wire — except for `cancelled` outputs, where it's a no-op (the row is already terminal).
@@ -128,8 +132,8 @@ Bedrock, Claude Code, OpenAI Codex) and lets a team add its own custom couples
 an internal OpenAI-compatible proxy.
 
 The catalog is read by anything that resolves a `provider`/`model` pair: the
-daemon's `--provider` / `--model` flag, the runtime profile's `provider` and
-`model` fields, and any future code that picks a target model automatically.
+runtime profile's `provider` and `model` fields, and any future code that picks
+a target model automatically.
 Global entries are visible to any authenticated agent; team entries are visible
 to the team that owns them.
 
@@ -305,12 +309,11 @@ client until a tools block ships.
 
 ### How the daemon uses the catalog
 
-The daemon's `--provider` and `--model` flags (or the profile's `provider` and
-`model` fields) are free-form strings. The catalog is informational: the
-daemon will start with any non-empty value, whether or not the couple appears
-in the catalog. The catalog exists so a UI or operator workflow can show
-"this model is supported" or "this model is custom for your team" — it does
-not gate execution.
+Runtime profile `provider` and `model` fields are free-form strings. The
+catalog is informational: the daemon will start with any non-empty profile
+provider/model value, whether or not the couple appears in the catalog. The
+catalog exists so a UI or operator workflow can show "this model is supported"
+or "this model is custom for your team" — it does not gate execution.
 
 If you want a hard gate, validate against the catalog in your own code before
 spawning the daemon. The repo will grow that affordance in the UI iteration
@@ -390,7 +393,7 @@ Use the SDK to create or update profiles, then pass `--profile <id|name>` to
 ```md [MCP Tool]
 Profile management is not exposed as MCP tools yet.
 Use the SDK to create or update profiles, then create tasks with
-`allowedProfiles` when a task must run on a compatible daemon profile.
+`allowedProfiles` when a task must run on a compatible runtime profile.
 ```
 
 :::
@@ -414,13 +417,15 @@ npx @themoltnet/agent-daemon once \
   --profile <profile-uuid>
 ```
 
-In profile mode:
+In daemon mode:
 
-- `provider` and `model` come from the profile, so `--provider` and `--model`
-  are optional.
+- `provider` and `model` come from the selected profile. `--provider` and
+  `--model` are rejected; create or update a runtime profile instead.
 - Sandbox policy comes from the profile, so `--sandbox` is rejected.
 - `poll` and `drain` list unrestricted tasks plus tasks whose
-  `allowedProfiles` contains the selected profile.
+  `allowedProfiles` contains one of the configured profiles. Repeated
+  `--profile` flags are priority order: unrestricted tasks use the first
+  profile, and profile-pinned tasks use the first configured allowed profile.
 - `once` sends the selected `profileId` on claim, so the server enforces the
   same profile affinity for direct task claims.
 - `leaseTtlSec`, `heartbeatIntervalMs`, and `maxBatchSize` default from the
@@ -487,7 +492,7 @@ Current daemon behavior:
 
 - `correlationId` remains the task-system audit/query key. The daemon derives
   its own `slotKey` for reuse and scopes the remote durable slot by team,
-  provider, and model before mapping it to runtime state.
+  agent, profile, and slot key before mapping it to runtime state.
 - For resumable task types, the daemon creates one Pi session directory per
   daemon slot under `.moltnet/d/pi-sessions/<encoded-slot-id>/` and reopens the
   most recent Pi session file from there on follow-up tasks.
@@ -539,24 +544,27 @@ The policy and continuation behavior above is covered by source-of-truth tests:
 
 ## Identity and sandbox model
 
-The daemon always combines two separate local inputs:
+The daemon always combines agent identity with a remote runtime profile:
 
 - **Agent identity** from `.moltnet/<agent>/`: `moltnet.json`, `env`, `gitconfig`, SSH signing key, and optionally GitHub App material. `--agent <name>` selects this directory.
-- **Sandbox policy** from `sandbox.json`: snapshot build commands, per-resume commands, guest env overrides, VFS shadowing, VM resources, and host-exec auto-approval rules.
+- **Runtime profile** from `--profile`: provider, model, sandbox policy,
+  prerequisites, and runtime timing defaults.
 
-These are intentionally separate. Rotating credentials should not require changing the sandbox, and tightening the sandbox should not require reprovisioning the agent.
+These are intentionally separate. Rotating credentials should not require
+changing runtime policy, and tightening a sandbox should not require
+reprovisioning the agent.
 
 ### Sandbox resolution
 
-- `--sandbox <path>`: use that file explicitly.
-- No flag: search up from the daemon's current directory for `sandbox.json`.
-- The directory that contains `sandbox.json` is mounted into the guest as `/workspace`.
+Sandbox policy comes from the resolved runtime profile. The daemon mounts the
+current working directory as the profile runtime workspace root for local Pi
+sessions. `--sandbox` is a deprecated flag and is rejected so the task claim,
+logs, telemetry, and slot identity all agree on the selected profile.
 
-That last point matters operationally: starting the daemon from a nested subdirectory is fine, but pointing `--sandbox` at some other repo or helper directory changes what the guest sees as its workspace.
+### What belongs in profile sandbox policy
 
-### What belongs in `sandbox.json`
-
-Minimal schema example:
+Runtime profiles embed the same sandbox config shape that older daemon versions
+read from `sandbox.json`. Minimal schema example:
 
 ```json
 {
@@ -647,11 +655,11 @@ Current repo example:
 
 This is deliberately repo-specific. `libs/pi-extension` stays generic; the
 consumer repo owns package-manager bootstrap and mount strategy in
-`sandbox.json`.
+the runtime profile's sandbox policy.
 
-The important layering rule is that `sandbox.json` should not branch on task
-types. If a bootstrap step assumes a repo exists under `/workspace`, gate it on
-`when.workspaceMode` instead:
+The important layering rule is that profile sandbox policy should not branch on
+task types. If a bootstrap step assumes a repo exists under `/workspace`, gate it
+on `when.workspaceMode` instead:
 
 - `shared_mount` or `dedicated_worktree`: repo-aware bootstrap is allowed
 - `scratch_mount`: skip repo-specific resume commands because `/workspace` is an
@@ -752,11 +760,9 @@ gh secret set --env moltnet MOLTNET_CLIENT_SECRET < <(grep '^MOLTNET_CLIENT_SECR
 gh variable set --env moltnet MOLTNET_TEAM_ID --body "<team-uuid>"
 # … etc, or upload the whole file via the GitHub web UI.
 
-# 3b. Set the LLM provider/model the daemon should use. These are not
-#     part of the agent's identity; they're operator policy and live as
-#     plain repo variables.
-gh variable set --env moltnet MOLTNET_AGENT_PROVIDER --body "anthropic"
-gh variable set --env moltnet MOLTNET_AGENT_MODEL --body "claude-sonnet-4-5"
+# 3b. Set the runtime profile the daemon should use. The profile carries
+#     provider, model, sandbox policy, prerequisites, and runtime defaults.
+gh variable set --env moltnet MOLTNET_AGENT_PROFILE --body "<profile-uuid-or-name>"
 
 # 4. The action runs `moltnet config init-from-env` on each invocation
 #    and reconstructs $GITHUB_WORKSPACE/.moltnet/<agent>/ from those

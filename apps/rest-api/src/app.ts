@@ -61,7 +61,6 @@ import type {
   ContextPackRepository,
   ContextPackService,
   CryptoService,
-  DaemonProfileRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryService,
@@ -73,6 +72,7 @@ import type {
   NonceRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
+  RuntimeProfileRepository,
   RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
@@ -149,7 +149,7 @@ export interface AppOptions {
   groupRepository: GroupRepository;
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
-  daemonProfileRepository: DaemonProfileRepository;
+  runtimeProfileRepository: RuntimeProfileRepository;
   runtimeSlotRepository: RuntimeSlotRepository;
   runtimeModelRepository: RuntimeModelRepository;
   taskRepository: TaskRepository;
@@ -351,7 +351,7 @@ export async function registerApiRoutes(
   decorateSafe('groupRepository', options.groupRepository);
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
-  decorateSafe('daemonProfileRepository', options.daemonProfileRepository);
+  decorateSafe('runtimeProfileRepository', options.runtimeProfileRepository);
   decorateSafe('runtimeSlotRepository', options.runtimeSlotRepository);
   decorateSafe('runtimeModelRepository', options.runtimeModelRepository);
   decorateSafe('relationshipReader', options.relationshipReader);

@@ -5,8 +5,7 @@ import { buildDaemonTaskExecutionPlan } from './task-execution-plan.js';
 describe('buildDaemonTaskExecutionPlan', () => {
   const identity = {
     agentName: 'legreffier',
-    provider: 'anthropic',
-    model: 'claude-sonnet-4-5',
+    runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
   } as const;
 
   it('maps resumable fulfill_brief tasks to a persistent Pi session dir', () => {
@@ -30,15 +29,15 @@ describe('buildDaemonTaskExecutionPlan', () => {
       'fulfill_brief:correlation:22222222-2222-4222-8222-222222222222',
     );
     expect(out.slotId).toBe(
-      'agent:legreffier:provider:anthropic:model:claude-sonnet-4-5:key:fulfill_brief:correlation:22222222-2222-4222-8222-222222222222',
+      'agent:legreffier:profile:dddddddd-0000-4000-8000-000000000004:key:fulfill_brief:correlation:22222222-2222-4222-8222-222222222222',
     );
     expect(out.workspaceScope).toBe('session');
     expect(out.workspaceId).toBe(
-      'session-agent%3Alegreffier%3Aprovider%3Aanthropic%3Amodel%3Aclaude-sonnet-4-5%3Akey%3Afulfill_brief%3Acorrelation%3A22222222-2222-4222-8222-222222222222',
+      'session-agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Afulfill_brief%3Acorrelation%3A22222222-2222-4222-8222-222222222222',
     );
     expect(out.sessionPersistence).toEqual({
       sessionDir:
-        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprovider%3Aanthropic%3Amodel%3Aclaude-sonnet-4-5%3Akey%3Afulfill_brief%3Acorrelation%3A22222222-2222-4222-8222-222222222222',
+        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Afulfill_brief%3Acorrelation%3A22222222-2222-4222-8222-222222222222',
     });
   });
 
@@ -133,11 +132,11 @@ describe('buildDaemonTaskExecutionPlan', () => {
     );
     expect(out.sessionPersistence).toEqual({
       sessionDir:
-        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprovider%3Aanthropic%3Amodel%3Aclaude-sonnet-4-5%3Akey%3Arun_eval%3Acorrelation%3A66666666-6666-4666-8666-666666666666%3Avariant%3Awith-skill',
+        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Arun_eval%3Acorrelation%3A66666666-6666-4666-8666-666666666666%3Avariant%3Awith-skill',
     });
     expect(out.workspaceMode).toBe('dedicated_worktree');
     expect(out.workspaceId).toBe(
-      'session-agent%3Alegreffier%3Aprovider%3Aanthropic%3Amodel%3Aclaude-sonnet-4-5%3Akey%3Arun_eval%3Acorrelation%3A66666666-6666-4666-8666-666666666666%3Avariant%3Awith-skill',
+      'session-agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Arun_eval%3Acorrelation%3A66666666-6666-4666-8666-666666666666%3Avariant%3Awith-skill',
     );
     expect(out.worktreeBranch).toBe('task/run-eval-55555555');
     expect(out.workspaceScope).toBe('session');
@@ -173,11 +172,11 @@ describe('buildDaemonTaskExecutionPlan', () => {
     );
     expect(out.sessionPersistence).toEqual({
       sessionDir:
-        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprovider%3Aanthropic%3Amodel%3Aclaude-sonnet-4-5%3Akey%3Arun_eval%3Acorrelation%3A88888888-8888-4888-8888-888888888888%3Avariant%3Abaseline',
+        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Arun_eval%3Acorrelation%3A88888888-8888-4888-8888-888888888888%3Avariant%3Abaseline',
     });
     expect(out.workspaceMode).toBe('scratch_mount');
     expect(out.workspaceId).toBe(
-      'session-agent%3Alegreffier%3Aprovider%3Aanthropic%3Amodel%3Aclaude-sonnet-4-5%3Akey%3Arun_eval%3Acorrelation%3A88888888-8888-4888-8888-888888888888%3Avariant%3Abaseline',
+      'session-agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Arun_eval%3Acorrelation%3A88888888-8888-4888-8888-888888888888%3Avariant%3Abaseline',
     );
     expect(out.worktreeBranch).toBeNull();
     expect(out.workspaceScope).toBe('session');

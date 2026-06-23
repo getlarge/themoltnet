@@ -24,7 +24,7 @@ function mockSlot(overrides: Partial<RuntimeSlot> = {}): RuntimeSlot {
     id: SLOT_ID,
     teamId: TEAM_ID,
     agentName: 'legreffier',
-    daemonProfileId: PROFILE_ID,
+    runtimeProfileId: PROFILE_ID,
     provider: 'anthropic',
     model: 'claude-sonnet-4-5',
     slotKey: 'freeform:correlation:test',
@@ -78,7 +78,7 @@ describe('runtime slot routes', () => {
       attemptN: 1,
       taskId: TASK_ID,
     });
-    mocks.daemonProfileRepository.findById.mockResolvedValue({
+    mocks.runtimeProfileRepository.findById.mockResolvedValue({
       id: PROFILE_ID,
       teamId: TEAM_ID,
     });
@@ -93,7 +93,7 @@ describe('runtime slot routes', () => {
       headers: TEAM_HEADERS,
       payload: {
         agentName: 'legreffier',
-        daemonProfileId: PROFILE_ID,
+        runtimeProfileId: PROFILE_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',
@@ -113,14 +113,14 @@ describe('runtime slot routes', () => {
     expect(response.json()).toMatchObject({
       id: SLOT_ID,
       teamId: TEAM_ID,
-      daemonProfileId: PROFILE_ID,
+      runtimeProfileId: PROFILE_ID,
       sessionPath: '/tmp/session/0001.jsonl',
       state: 'active',
     });
     expect(mocks.runtimeSlotRepository.begin).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
-        daemonProfileId: PROFILE_ID,
+        runtimeProfileId: PROFILE_ID,
         lastTaskId: TASK_ID,
         lastAttemptN: 1,
       }),
@@ -139,6 +139,7 @@ describe('runtime slot routes', () => {
       headers: TEAM_HEADERS,
       payload: {
         agentName: 'legreffier',
+        runtimeProfileId: PROFILE_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',
@@ -161,6 +162,7 @@ describe('runtime slot routes', () => {
       headers: TEAM_HEADERS,
       payload: {
         agentName: 'legreffier',
+        runtimeProfileId: PROFILE_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',
@@ -222,6 +224,7 @@ describe('runtime slot routes', () => {
       headers: TEAM_HEADERS,
       payload: {
         agentName: 'legreffier',
+        runtimeProfileId: PROFILE_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',
@@ -251,6 +254,7 @@ describe('runtime slot routes', () => {
       headers: TEAM_HEADERS,
       payload: {
         agentName: 'legreffier',
+        runtimeProfileId: PROFILE_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',

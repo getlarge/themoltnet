@@ -20,7 +20,6 @@ import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
   AgentRepository,
   CryptoService,
-  DaemonProfileRepository,
   DataSource,
   DiaryEntryRepository,
   DiaryService,
@@ -30,6 +29,7 @@ import type {
   HumanRepository,
   NonceRepository,
   RuntimeModelRepository,
+  RuntimeProfileRepository,
   RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
@@ -242,8 +242,8 @@ export interface MockServices {
     updateStatus: ReturnType<typeof vi.fn>;
     listPendingByDestinationTeam: ReturnType<typeof vi.fn>;
   };
-  daemonProfileRepository: {
-    [K in keyof DaemonProfileRepository]: ReturnType<typeof vi.fn>;
+  runtimeProfileRepository: {
+    [K in keyof RuntimeProfileRepository]: ReturnType<typeof vi.fn>;
   };
   runtimeSlotRepository: {
     [K in keyof RuntimeSlotRepository]: ReturnType<typeof vi.fn>;
@@ -527,7 +527,7 @@ export function createMockServices(): MockServices {
       updateStatus: vi.fn(),
       listPendingByDestinationTeam: vi.fn().mockResolvedValue([]),
     },
-    daemonProfileRepository: {
+    runtimeProfileRepository: {
       create: vi.fn(),
       findById: vi.fn(),
       findByTeamAndName: vi.fn(),
@@ -730,8 +730,8 @@ export async function createTestApp(
     taskService: mocks.taskService as unknown as TaskService,
     diaryTransferRepository:
       mocks.diaryTransferRepository as unknown as DiaryTransferRepository,
-    daemonProfileRepository:
-      mocks.daemonProfileRepository as unknown as DaemonProfileRepository,
+    runtimeProfileRepository:
+      mocks.runtimeProfileRepository as unknown as RuntimeProfileRepository,
     runtimeSlotRepository:
       mocks.runtimeSlotRepository as unknown as RuntimeSlotRepository,
     runtimeModelRepository:

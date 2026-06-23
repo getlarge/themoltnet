@@ -236,7 +236,7 @@ describe('POST /tasks', () => {
   });
 
   it('validates allowed profiles before creating the task', async () => {
-    mocks.daemonProfileRepository.findById.mockResolvedValue({
+    mocks.runtimeProfileRepository.findById.mockResolvedValue({
       id: PROFILE_ID,
       teamId: TEAM_ID,
     });
@@ -255,7 +255,7 @@ describe('POST /tasks', () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(mocks.daemonProfileRepository.findById).toHaveBeenCalledWith(
+    expect(mocks.runtimeProfileRepository.findById).toHaveBeenCalledWith(
       PROFILE_ID,
     );
     expect(mocks.taskService.create).toHaveBeenCalledWith(
@@ -266,7 +266,7 @@ describe('POST /tasks', () => {
   });
 
   it('rejects allowed profiles outside the task team', async () => {
-    mocks.daemonProfileRepository.findById.mockResolvedValue({
+    mocks.runtimeProfileRepository.findById.mockResolvedValue({
       id: PROFILE_ID,
       teamId: 'eeeeeeee-0000-0000-0000-000000000005',
     });

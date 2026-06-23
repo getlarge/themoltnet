@@ -29,8 +29,8 @@ import {
 // Drizzle doesn't have native vector support, so we use customType
 import { customType } from 'drizzle-orm/pg-core';
 
-import { defineDaemonProfilesTable } from './schema/daemon-profiles.js';
 import { defineRuntimeModelsTable } from './schema/runtime-models.js';
+import { defineRuntimeProfilesTable } from './schema/runtime-profiles.js';
 
 const vector = customType<{ data: number[]; driverData: string }>({
   dataType() {
@@ -157,13 +157,13 @@ export const taskMessageKindEnum = pgEnum('task_message_kind', [
 
 export const outputKindEnum = pgEnum('output_kind', ['artifact', 'judgment']);
 
-export const daemonProfileRuntimeKindEnum = pgEnum(
-  'daemon_profile_runtime_kind',
+export const runtimeProfileRuntimeKindEnum = pgEnum(
+  'runtime_profile_runtime_kind',
   ['gondolin_pi'],
 );
 
-export const daemonProfileStorageModeEnum = pgEnum(
-  'daemon_profile_storage_mode',
+export const runtimeProfileStorageModeEnum = pgEnum(
+  'runtime_profile_storage_mode',
   ['local'],
 );
 
@@ -1191,18 +1191,18 @@ export const correlationSeals = pgTable(
 export type CorrelationSeal = typeof correlationSeals.$inferSelect;
 export type NewCorrelationSeal = typeof correlationSeals.$inferInsert;
 
-// ── Daemon Profiles ───────────────────────────────────────────
+// ── Runtime Profiles ───────────────────────────────────────────
 
-export const daemonProfiles = defineDaemonProfilesTable({
+export const runtimeProfiles = defineRuntimeProfilesTable({
   agents,
   humans,
   teams,
-  runtimeKindEnum: daemonProfileRuntimeKindEnum,
-  storageModeEnum: daemonProfileStorageModeEnum,
+  runtimeKindEnum: runtimeProfileRuntimeKindEnum,
+  storageModeEnum: runtimeProfileStorageModeEnum,
 });
 
-export type DaemonProfile = typeof daemonProfiles.$inferSelect;
-export type NewDaemonProfile = typeof daemonProfiles.$inferInsert;
+export type RuntimeProfile = typeof runtimeProfiles.$inferSelect;
+export type NewRuntimeProfile = typeof runtimeProfiles.$inferInsert;
 
 // ── Runtime Models ───────────────────────────────────────────
 
@@ -1366,8 +1366,8 @@ export const runtimeSlots = pgTable(
       .notNull()
       .references(() => teams.id, { onDelete: 'restrict' }),
     agentName: varchar('agent_name', { length: 100 }).notNull(),
-    daemonProfileId: uuid('daemon_profile_id').references(
-      () => daemonProfiles.id,
+    runtimeProfileId: uuid('runtime_profile_id').references(
+      () => runtimeProfiles.id,
       { onDelete: 'set null' },
     ),
     provider: varchar('provider', { length: 100 }).notNull(),
@@ -1399,14 +1399,13 @@ export const runtimeSlots = pgTable(
     uniqueIndex('runtime_slots_identity_idx').on(
       table.teamId,
       table.agentName,
-      table.provider,
-      table.model,
+      table.runtimeProfileId,
       table.slotKey,
     ),
     index('runtime_slots_team_idx').on(table.teamId),
     index('runtime_slots_profile_idx')
-      .on(table.daemonProfileId)
-      .where(sql`daemon_profile_id IS NOT NULL`),
+      .on(table.runtimeProfileId)
+      .where(sql`runtime_profile_id IS NOT NULL`),
     index('runtime_slots_task_attempt_idx').on(
       table.teamId,
       table.lastTaskId,

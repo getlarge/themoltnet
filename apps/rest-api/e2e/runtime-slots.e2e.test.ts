@@ -15,6 +15,7 @@ import {
   createClient,
   createDiary,
   createDiaryGrant,
+  createRuntimeProfile,
   createTask,
   createTeam,
   createTeamInvite,
@@ -35,6 +36,7 @@ describe('Runtime slots API', () => {
   let outsider: TestAgent;
   let teamId: string;
   let diaryId: string;
+  let profileId: string;
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -101,6 +103,24 @@ describe('Runtime slots API', () => {
       },
     });
     expect(grantError).toBeUndefined();
+
+    const { data: profile, error: profileError } = await createRuntimeProfile({
+      client,
+      auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': teamId },
+      body: {
+        name: `runtime-slots-${randomUUID()}`,
+        description: 'Runtime slot e2e profile',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        sandbox: {
+          hostExec: { autoApprove: false },
+          resources: { cpus: 2, memory: '2G' },
+        },
+      },
+    });
+    expect(profileError).toBeUndefined();
+    profileId = profile!.id;
   });
 
   afterAll(async () => {
@@ -155,6 +175,7 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       body: {
         agentName: 'legreffier',
+        runtimeProfileId: profileId,
         lastAttemptN: attemptN,
         lastTaskId: taskId,
         model: 'claude-sonnet-4-5',
@@ -191,6 +212,7 @@ describe('Runtime slots API', () => {
       body: {
         agentName: 'legreffier',
         attemptN,
+        runtimeProfileId: profileId,
         model: 'claude-sonnet-4-5',
         provider: 'anthropic',
         sessionPath: '/tmp/moltnet/e2e-sessions/producer-finished.jsonl',
@@ -244,6 +266,7 @@ describe('Runtime slots API', () => {
       body: {
         agentName: 'legreffier',
         attemptN: first.attemptN,
+        runtimeProfileId: profileId,
         model: 'claude-sonnet-4-5',
         provider: 'anthropic',
         sessionPath: '/tmp/moltnet/e2e-sessions/stale-overwrite.jsonl',
@@ -278,6 +301,7 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       body: {
         agentName: 'legreffier',
+        runtimeProfileId: profileId,
         lastAttemptN: 1,
         lastTaskId: taskId,
         model: 'claude-sonnet-4-5',
@@ -321,6 +345,7 @@ describe('Runtime slots API', () => {
       body: {
         agentName: 'legreffier',
         attemptN,
+        runtimeProfileId: profileId,
         model: 'claude-sonnet-4-5',
         provider: 'anthropic',
         sessionPath: '/tmp/moltnet/e2e-sessions/non-member-overwrite.jsonl',
@@ -353,6 +378,7 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': outsider.personalTeamId },
       body: {
         agentName: 'legreffier',
+        runtimeProfileId: profileId,
         lastAttemptN: attemptN,
         lastTaskId: taskId,
         model: 'claude-sonnet-4-5',

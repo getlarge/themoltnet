@@ -168,6 +168,13 @@
       "when": 1782197813159,
       "tag": "0023_organic_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1782230693072,
+      "tag": "0024_tense_captain_marvel",
+      "breakpoints": true
     }
   ],
   "version": "7"

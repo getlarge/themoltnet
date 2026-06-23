@@ -869,7 +869,7 @@ before running Pi:
 1. **Affinity filter** (claim time) — the daemon only claims a continuation if
    the producer slot for `(taskId, attemptN)` resolves and the recorded parent
    session still exists on disk. The lookup is profile-agnostic, so a different
-   compatible daemon profile can pick up the work.
+   compatible runtime profile can pick up the work.
 2. **Plan** (`maybeAttachWarmSlotContext`) — branches on `continueFrom.mode`:
    `extend` reuses the parent's workspace + branch; `fork` allocates a fresh
    workspace and a new branch derived from the parent, passing the parent branch
