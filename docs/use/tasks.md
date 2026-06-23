@@ -34,7 +34,7 @@ Current built-in policy from `@moltnet/tasks`:
 Current daemon behavior:
 
 - `correlationId` stays the audit/query key. Runtime reuse is driven by a daemon
-  `slotKey`, then scoped by team/provider/model into one durable daemon slot.
+  `slotKey`, then scoped by team/agent/profile into one durable daemon slot.
 - Resumable task types may persist Pi conversation history under
   `.moltnet/d/pi-sessions/<encoded-slot-id>/` and reopen the most recent
   session file on follow-up tasks.
@@ -345,6 +345,7 @@ moltnet task list --team-id <team-id>
 
 # Filter examples.
 moltnet task list --team-id <team-id> --task-types curate_pack,fulfill_brief
+# Historical/runtime metadata filters.
 moltnet task list --team-id <team-id> --provider openai --model gpt-5.1
 moltnet task list --team-id <team-id> --status completed --has-attempts=true
 ```

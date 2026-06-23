@@ -28,6 +28,7 @@ export class ApiTaskSource implements TaskSource {
     return {
       task: result.task,
       attemptN: result.attempt.attemptN,
+      ...(profileId ? { profileId } : {}),
       traceHeaders: result.traceHeaders,
     };
   }

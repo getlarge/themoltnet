@@ -139,6 +139,7 @@ describe('runtime slot routes', () => {
       headers: TEAM_HEADERS,
       payload: {
         agentName: 'legreffier',
+        daemonProfileId: PROFILE_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',
@@ -161,6 +162,7 @@ describe('runtime slot routes', () => {
       headers: TEAM_HEADERS,
       payload: {
         agentName: 'legreffier',
+        daemonProfileId: PROFILE_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',
@@ -222,6 +224,7 @@ describe('runtime slot routes', () => {
       headers: TEAM_HEADERS,
       payload: {
         agentName: 'legreffier',
+        daemonProfileId: PROFILE_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',
@@ -251,6 +254,7 @@ describe('runtime slot routes', () => {
       headers: TEAM_HEADERS,
       payload: {
         agentName: 'legreffier',
+        daemonProfileId: PROFILE_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',

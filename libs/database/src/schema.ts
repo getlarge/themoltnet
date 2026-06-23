@@ -1399,8 +1399,7 @@ export const runtimeSlots = pgTable(
     uniqueIndex('runtime_slots_identity_idx').on(
       table.teamId,
       table.agentName,
-      table.provider,
-      table.model,
+      table.daemonProfileId,
       table.slotKey,
     ),
     index('runtime_slots_team_idx').on(table.teamId),

@@ -17,7 +17,7 @@ export type RuntimeWorkspaceKind = 'origin' | 'fork' | 'scratch';
 export interface BeginRuntimeSlotInput {
   teamId: string;
   agentName: string;
-  daemonProfileId?: string | null;
+  daemonProfileId: string;
   provider: string;
   model: string;
   slotKey: string;
@@ -35,6 +35,7 @@ export interface BeginRuntimeSlotInput {
 export interface FinishRuntimeSlotInput {
   teamId: string;
   agentName: string;
+  daemonProfileId: string;
   provider: string;
   model: string;
   slotKey: string;
@@ -61,7 +62,7 @@ export function createRuntimeSlotRepository(db: Database) {
         .values({
           agentName: input.agentName,
           createdAtMs: now,
-          daemonProfileId: input.daemonProfileId ?? null,
+          daemonProfileId: input.daemonProfileId,
           expiresAtMs: now + slotLifetimeSec * 1000,
           lastAttemptN: input.lastAttemptN,
           lastTaskId: input.lastTaskId,
@@ -77,24 +78,11 @@ export function createRuntimeSlotRepository(db: Database) {
           workspaceRowId,
         })
         .onConflictDoUpdate({
-          set: {
-            daemonProfileId: sql`excluded.daemon_profile_id`,
-            expiresAtMs: sql`excluded.expires_at_ms`,
-            lastAttemptN: sql`excluded.last_attempt_n`,
-            lastTaskId: sql`excluded.last_task_id`,
-            lastUsedAtMs: sql`excluded.last_used_at_ms`,
-            sessionDir: sql`excluded.session_dir`,
-            sessionPath: sql`excluded.session_path`,
-            state: 'active',
-            taskType: sql`excluded.task_type`,
-            updatedAt: sql`now()`,
-            workspaceRowId: sql`excluded.workspace_row_id`,
-          },
+          set: runtimeSlotUpsertSet(),
           target: [
             runtimeSlots.teamId,
             runtimeSlots.agentName,
-            runtimeSlots.provider,
-            runtimeSlots.model,
+            runtimeSlots.daemonProfileId,
             runtimeSlots.slotKey,
           ],
         })
@@ -159,9 +147,8 @@ export function createRuntimeSlotRepository(db: Database) {
   };
 
   async function resolveSlotLifetimeSec(
-    daemonProfileId: string | null | undefined,
+    daemonProfileId: string,
   ): Promise<number> {
-    if (!daemonProfileId) return DEFAULT_RUNTIME_SLOT_TTL_SEC;
     const [profile] = await getExecutor(db)
       .select({ sessionTtlSec: daemonProfiles.sessionTtlSec })
       .from(daemonProfiles)
@@ -184,7 +171,9 @@ export function createRuntimeSlotRepository(db: Database) {
         ),
       )
       .limit(1);
-    return resolveSlotLifetimeSec(slot?.daemonProfileId);
+    return slot?.daemonProfileId
+      ? resolveSlotLifetimeSec(slot.daemonProfileId)
+      : DEFAULT_RUNTIME_SLOT_TTL_SEC;
   }
 
   async function upsertWorkspace(
@@ -231,6 +220,7 @@ export function createRuntimeSlotRepository(db: Database) {
 function slotIdentityWhere(input: {
   teamId: string;
   agentName: string;
+  daemonProfileId: string;
   provider: string;
   model: string;
   slotKey: string;
@@ -238,10 +228,27 @@ function slotIdentityWhere(input: {
   return and(
     eq(runtimeSlots.teamId, input.teamId),
     eq(runtimeSlots.agentName, input.agentName),
-    eq(runtimeSlots.provider, input.provider),
-    eq(runtimeSlots.model, input.model),
+    eq(runtimeSlots.daemonProfileId, input.daemonProfileId),
     eq(runtimeSlots.slotKey, input.slotKey),
   );
+}
+
+function runtimeSlotUpsertSet() {
+  return {
+    daemonProfileId: sql`excluded.daemon_profile_id`,
+    expiresAtMs: sql`excluded.expires_at_ms`,
+    lastAttemptN: sql`excluded.last_attempt_n`,
+    lastTaskId: sql`excluded.last_task_id`,
+    lastUsedAtMs: sql`excluded.last_used_at_ms`,
+    model: sql`excluded.model`,
+    provider: sql`excluded.provider`,
+    sessionDir: sql`excluded.session_dir`,
+    sessionPath: sql`excluded.session_path`,
+    state: 'active' as const,
+    taskType: sql`excluded.task_type`,
+    updatedAt: sql`now()`,
+    workspaceRowId: sql`excluded.workspace_row_id`,
+  };
 }
 
 export type RuntimeSlotRepository = ReturnType<

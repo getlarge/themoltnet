@@ -31,6 +31,7 @@ export interface RuntimeSlotStore {
   beginSlot(input: {
     teamId: string;
     agentName: string;
+    daemonProfileId: string;
     provider: string;
     model: string;
     slotKey: string;
@@ -50,6 +51,8 @@ export interface RuntimeSlotStore {
     attemptN: number,
     identity: DaemonSlotIdentity,
     slotKey: string,
+    provider: string,
+    model: string,
     sessionPath: string | null,
   ): Promise<void>;
   findLatestSlotByTaskAttempt(

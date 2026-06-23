@@ -57,7 +57,7 @@ export type AppendMessagesResponse = {
 
 export type BeginRuntimeSlotBody = {
   agentName: string;
-  daemonProfileId?: string;
+  daemonProfileId: string;
   lastAttemptN: number;
   lastTaskId: string;
   model: string;
@@ -811,6 +811,7 @@ export type FindLatestRuntimeSlotForAttemptQuery = {
 export type FinishRuntimeSlotBody = {
   agentName: string;
   attemptN: number;
+  daemonProfileId: string;
   model: string;
   provider: string;
   sessionPath?: string;
@@ -6114,7 +6115,7 @@ export type UpdateRuntimeProfileResponse =
 export type BeginRuntimeSlotData = {
   body: {
     agentName: string;
-    daemonProfileId?: string;
+    daemonProfileId: string;
     lastAttemptN: number;
     lastTaskId: string;
     model: string;
@@ -6544,6 +6545,7 @@ export type FinishRuntimeSlotData = {
   body: {
     agentName: string;
     attemptN: number;
+    daemonProfileId: string;
     model: string;
     provider: string;
     sessionPath?: string;

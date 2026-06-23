@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  DeprecatedRuntimeOptionError,
   MissingRequiredOptionError,
   parseCommonOptions,
   validateTaskTypes,
@@ -9,8 +10,6 @@ import {
 describe('parseCommonOptions', () => {
   const valid = {
     agent: 'legreffier',
-    provider: 'anthropic',
-    model: 'claude-sonnet-4-5',
   };
 
   it('throws MissingRequiredOptionError when --agent is missing', () => {
@@ -25,35 +24,13 @@ describe('parseCommonOptions', () => {
     }
   });
 
-  it('throws MissingRequiredOptionError when --provider is missing', () => {
-    try {
-      parseCommonOptions({ ...valid, provider: undefined });
-      expect.fail('expected throw');
-    } catch (err) {
-      expect(err).toBeInstanceOf(MissingRequiredOptionError);
-      expect((err as MissingRequiredOptionError).flag).toBe('provider');
-    }
-  });
-
-  it('throws MissingRequiredOptionError when --model is missing', () => {
-    try {
-      parseCommonOptions({ ...valid, model: undefined });
-      expect.fail('expected throw');
-    } catch (err) {
-      expect(err).toBeInstanceOf(MissingRequiredOptionError);
-      expect((err as MissingRequiredOptionError).flag).toBe('model');
-    }
-  });
-
-  it('allows provider/model to be omitted when profile mode supplies them', () => {
-    const result = parseCommonOptions(
-      { agent: 'legreffier' },
-      { requireProviderModel: false },
-    );
-
-    expect(result.agent).toBe('legreffier');
-    expect(result.provider).toBeUndefined();
-    expect(result.model).toBeUndefined();
+  it('rejects deprecated provider/model flags', () => {
+    expect(() =>
+      parseCommonOptions({ ...valid, provider: 'anthropic' }),
+    ).toThrow(DeprecatedRuntimeOptionError);
+    expect(() =>
+      parseCommonOptions({ ...valid, model: 'claude-sonnet-4-5' }),
+    ).toThrow(/--model is no longer supported/);
   });
 
   it('rejects --agent with traversal-unsafe characters', () => {
@@ -69,8 +46,6 @@ describe('parseCommonOptions', () => {
     const result = parseCommonOptions(valid);
     expect(result).toEqual({
       agent: 'legreffier',
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
       leaseTtlSec: 300,
       heartbeatIntervalMs: 60_000,
       maxBatchSize: 50,

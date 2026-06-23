@@ -81,6 +81,28 @@ export async function resolveRuntimeProfile(options: {
   };
 }
 
+export async function resolveRuntimeProfiles(options: {
+  agent: Agent;
+  profiles: readonly string[];
+  teamId?: string;
+  cwd: string;
+}): Promise<ResolvedRuntimeProfile[]> {
+  const seen = new Set<string>();
+  const out: ResolvedRuntimeProfile[] = [];
+  for (const profile of options.profiles) {
+    const resolved = await resolveRuntimeProfile({
+      agent: options.agent,
+      profile,
+      teamId: options.teamId,
+      cwd: options.cwd,
+    });
+    if (seen.has(resolved.id)) continue;
+    seen.add(resolved.id);
+    out.push(resolved);
+  }
+  return out;
+}
+
 export function validateRuntimeProfilePrerequisites(
   profile: Pick<
     ResolvedRuntimeProfile,

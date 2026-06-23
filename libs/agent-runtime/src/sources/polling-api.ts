@@ -98,6 +98,12 @@ export interface PollingApiTaskSourceOptions {
    */
   profileId?: string;
   /**
+   * Ordered runtime profiles this source can claim with. The first profile
+   * that sees a task wins, so unrestricted tasks use the first profile and
+   * profile-pinned tasks use the first configured allowed profile.
+   */
+  profiles?: { profileId: string; leaseTtlSec?: number }[];
+  /**
    * Optional further filter applied client-side after listing. Useful when
    * an agent should only act on tasks tied to specific diaries. Server has
    * no diary filter on `GET /tasks`, so this is post-filtered.
@@ -218,118 +224,130 @@ export class PollingApiTaskSource implements TaskSource {
   }
 
   private async listCandidates(cursor?: string): Promise<{
-    candidates: Task[];
+    candidates: CandidateTask[];
     hadListError: boolean;
     nextCursor?: string;
   }> {
     const seen = new Set<string>();
-    const out: Task[] = [];
+    const out: CandidateTask[] = [];
     let hadListError = false;
     let nextCursor: string | undefined;
     if (this.aborted()) return { candidates: out, hadListError };
-    try {
-      const taskTypes =
-        this.opts.taskTypes && this.opts.taskTypes.length > 0
-          ? this.opts.taskTypes
-          : undefined;
-      const result = await this.opts.agent.tasks.list({
-        teamId: this.opts.teamId,
-        status: 'queued' satisfies TaskStatus,
-        ...(taskTypes ? { taskTypes } : {}),
-        ...(this.opts.profileId ? { profileId: this.opts.profileId } : {}),
-        ...(cursor ? { cursor } : {}),
-        limit: this.listLimit,
-      });
-      nextCursor = result.nextCursor;
-      if (this.opts.debug) {
-        this.logger.debug(
-          { taskTypes, total: result.total, returned: result.items.length },
-          'polling-api.list_ok',
-        );
-      }
-      for (const item of result.items) {
-        if (seen.has(item.id)) continue;
-        if (
-          this.opts.taskTypes &&
-          this.opts.taskTypes.length > 0 &&
-          !this.opts.taskTypes.includes(item.taskType)
-        ) {
-          continue;
-        }
-        if (
-          this.opts.diaryIds &&
-          this.opts.diaryIds.length > 0 &&
-          (item.diaryId === null || !this.opts.diaryIds.includes(item.diaryId))
-        ) {
-          continue;
-        }
-        // Warm-resume affinity filter — skip continuations whose producer
-        // slot cannot be resolved to a local sessionDir on this daemon. The
-        // task lingers queued until a daemon with that context polls or the
-        // server's dispatch_timeout_sec fires. See #1287, #1299.
-        if (this.opts.slotRegistry) {
-          const affinity = await isContinuationClaimableByThisDaemon(
-            item,
-            this.opts.slotRegistry,
+    const profiles = this.profileCandidates();
+    for (const profile of profiles) {
+      if (this.aborted()) break;
+      try {
+        const taskTypes =
+          this.opts.taskTypes && this.opts.taskTypes.length > 0
+            ? this.opts.taskTypes
+            : undefined;
+        const result = await this.opts.agent.tasks.list({
+          teamId: this.opts.teamId,
+          status: 'queued' satisfies TaskStatus,
+          ...(taskTypes ? { taskTypes } : {}),
+          ...(profile.profileId ? { profileId: profile.profileId } : {}),
+          ...(cursor ? { cursor } : {}),
+          limit: this.listLimit,
+        });
+        nextCursor ??= result.nextCursor;
+        if (this.opts.debug) {
+          this.logger.debug(
+            {
+              taskTypes,
+              profileId: profile.profileId,
+              total: result.total,
+              returned: result.items.length,
+            },
+            'polling-api.list_ok',
           );
-          if (!affinity.claimable) {
-            this.logger.debug(
-              {
-                taskId: item.id,
-                taskType: item.taskType,
-                reason: affinity.reason,
-                continueFrom: affinity.continueFrom,
-                sessionDir: affinity.sessionDir,
-              },
-              'polling-api.continuation_skipped',
-            );
-            continue;
-          }
         }
-        // Belt-and-braces profile filter — silently skip profile-pinned
-        // tasks whose allowedProfiles does not include this daemon's
-        // selected profile. Empty array = no restriction.
-        if (this.opts.profileId) {
-          const allowed = item.allowedProfiles ?? [];
+        for (const item of result.items) {
+          if (seen.has(item.id)) continue;
           if (
-            allowed.length > 0 &&
-            !allowed.some((p) => p.profileId === this.opts.profileId)
+            this.opts.taskTypes &&
+            this.opts.taskTypes.length > 0 &&
+            !this.opts.taskTypes.includes(item.taskType)
           ) {
             continue;
           }
+          if (
+            this.opts.diaryIds &&
+            this.opts.diaryIds.length > 0 &&
+            (item.diaryId === null ||
+              !this.opts.diaryIds.includes(item.diaryId))
+          ) {
+            continue;
+          }
+          // Warm-resume affinity filter — skip continuations whose producer
+          // slot cannot be resolved to a local sessionDir on this daemon. The
+          // task lingers queued until a daemon with that context polls or the
+          // server's dispatch_timeout_sec fires. See #1287, #1299.
+          if (this.opts.slotRegistry) {
+            const affinity = await isContinuationClaimableByThisDaemon(
+              item,
+              this.opts.slotRegistry,
+            );
+            if (!affinity.claimable) {
+              this.logger.debug(
+                {
+                  taskId: item.id,
+                  taskType: item.taskType,
+                  reason: affinity.reason,
+                  continueFrom: affinity.continueFrom,
+                  sessionDir: affinity.sessionDir,
+                },
+                'polling-api.continuation_skipped',
+              );
+              continue;
+            }
+          }
+          // Belt-and-braces profile filter — silently skip profile-pinned
+          // tasks whose allowedProfiles does not include this daemon's
+          // selected profile. Empty array = no restriction.
+          if (profile.profileId) {
+            const allowed = item.allowedProfiles ?? [];
+            if (
+              allowed.length > 0 &&
+              !allowed.some((p) => p.profileId === profile.profileId)
+            ) {
+              continue;
+            }
+          }
+          // Defensive: re-check status in case the server didn't honour the
+          // filter, or the task moved between list and read.
+          if (item.status !== 'queued') continue;
+          seen.add(item.id);
+          out.push({ task: item, profile });
         }
-        // Defensive: re-check status in case the server didn't honour the
-        // filter, or the task moved between list and read.
-        if (item.status !== 'queued') continue;
-        seen.add(item.id);
-        out.push(item);
+      } catch (err) {
+        // List failures (e.g. 5xx) are transient. Log + signal the caller
+        // so drain-mode doesn't misread an empty result as a drained
+        // queue. The poll loop backs off and retries; a real exit only
+        // happens when the list call succeeded and returned nothing.
+        hadListError = true;
+        this.logger.warn(
+          {
+            err,
+            taskTypes: this.opts.taskTypes,
+            profileId: profile.profileId,
+          },
+          'polling-api.list_failed',
+        );
       }
-    } catch (err) {
-      // List failures (e.g. 5xx) are transient. Log + signal the caller
-      // so drain-mode doesn't misread an empty result as a drained
-      // queue. The poll loop backs off and retries; a real exit only
-      // happens when the list call succeeded and returned nothing.
-      hadListError = true;
-      this.logger.warn(
-        {
-          err,
-          taskTypes: this.opts.taskTypes,
-        },
-        'polling-api.list_failed',
-      );
     }
     return { candidates: out, hadListError, nextCursor };
   }
 
   private async tryClaimOne(
-    candidates: readonly Task[],
+    candidates: readonly CandidateTask[],
   ): Promise<ClaimedTask | null> {
-    for (const task of candidates) {
+    for (const candidate of candidates) {
       if (this.aborted()) return null;
+      const { task, profile } = candidate;
       try {
         const result = await this.opts.agent.tasks.claim(task.id, {
-          leaseTtlSec: this.opts.leaseTtlSec,
-          ...(this.opts.profileId ? { profileId: this.opts.profileId } : {}),
+          leaseTtlSec: profile.leaseTtlSec ?? this.opts.leaseTtlSec,
+          ...(profile.profileId ? { profileId: profile.profileId } : {}),
         });
         if (this.opts.debug) {
           this.logger.debug(
@@ -344,6 +362,7 @@ export class PollingApiTaskSource implements TaskSource {
         return {
           task: result.task,
           attemptN: result.attempt.attemptN,
+          ...(profile.profileId ? { profileId: profile.profileId } : {}),
           traceHeaders: result.traceHeaders,
         };
       } catch (err) {
@@ -365,6 +384,18 @@ export class PollingApiTaskSource implements TaskSource {
     return null;
   }
 
+  private profileCandidates(): CandidateProfile[] {
+    if (this.opts.profiles && this.opts.profiles.length > 0) {
+      return this.opts.profiles;
+    }
+    return [
+      {
+        ...(this.opts.profileId ? { profileId: this.opts.profileId } : {}),
+        leaseTtlSec: this.opts.leaseTtlSec,
+      },
+    ];
+  }
+
   private async sleepWithBackoff(): Promise<void> {
     const base = this.currentBackoffMs;
     // Full jitter: random in [base/2, base * 1.5). Avoids thundering-herd
@@ -377,6 +408,16 @@ export class PollingApiTaskSource implements TaskSource {
       this.currentBackoffMs * 2,
     );
   }
+}
+
+interface CandidateProfile {
+  profileId?: string;
+  leaseTtlSec?: number;
+}
+
+interface CandidateTask {
+  task: Task;
+  profile: CandidateProfile;
 }
 
 function statusOf(err: unknown): number | undefined {

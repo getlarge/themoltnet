@@ -5,6 +5,8 @@ export interface ClaimedTask {
   task: Task;
   /** Attempt number assigned by the source/queue. */
   attemptN: number;
+  /** Runtime profile id selected by the source when claim routing is profile-scoped. */
+  profileId?: string;
   /** W3C trace headers from the claim response for OTel context propagation. */
   traceHeaders: Record<string, string>;
 }

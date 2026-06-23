@@ -211,6 +211,7 @@
         },
         "required": [
           "agentName",
+          "daemonProfileId",
           "provider",
           "model",
           "slotKey",
@@ -3319,6 +3320,10 @@
             "minimum": 1,
             "type": "integer"
           },
+          "daemonProfileId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "model": {
             "maxLength": 200,
             "minLength": 1,
@@ -3344,6 +3349,7 @@
         },
         "required": [
           "agentName",
+          "daemonProfileId",
           "provider",
           "model",
           "slotKey",
@@ -19656,6 +19662,7 @@
                 },
                 "required": [
                   "agentName",
+                  "daemonProfileId",
                   "provider",
                   "model",
                   "slotKey",
@@ -20953,6 +20960,10 @@
                     "minimum": 1,
                     "type": "integer"
                   },
+                  "daemonProfileId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "model": {
                     "maxLength": 200,
                     "minLength": 1,
@@ -20978,6 +20989,7 @@
                 },
                 "required": [
                   "agentName",
+                  "daemonProfileId",
                   "provider",
                   "model",
                   "slotKey",

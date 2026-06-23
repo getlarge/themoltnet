@@ -2,25 +2,15 @@ import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 
 export const COMMON_REQUIRED_FLAGS = `\
   -a, --agent <name>          MoltNet agent identity. Reads credentials
-                              from <repo-root>/.moltnet/<name>/moltnet.json.`;
-
-export const COMMON_MODEL_FLAGS = `\
-  -p, --provider <id>         LLM provider id (e.g. anthropic, openai-codex).
-  -m, --model <id>            LLM model id for the provider (e.g.
-                              claude-sonnet-4-5, gpt-5.3-codex). Required
-                              unless --profile is set.`;
+                              from <repo-root>/.moltnet/<name>/moltnet.json.
+  --profile <uuid|name>       Remote runtime profile. Repeat for poll/drain
+                              to declare priority order. Provider, model,
+                              sandbox policy, prerequisites, and runtime
+                              defaults come from the selected profile.`;
 
 export const COMMON_OPTIONAL_FLAGS = `\
-  --sandbox <path>            Path to sandbox.json. Default: search up from
-                              the daemon's CWD until found. The directory
-                              containing sandbox.json is also used as the
-                              VM mountPath. Cannot be used with --profile.
-  --profile <uuid|name>       Remote runtime profile. When set, provider,
-                              model, and sandbox policy come from the
-                              profile; task listing/claiming is restricted
-                              to unrestricted tasks plus tasks allowing this
-                              profile. requiredEnv/requiredTools are checked
-                              before claiming. Name lookup is team-scoped.
+  --sandbox <path>            Deprecated. Remote runtime profiles define
+                              sandbox policy.
   --lease-ttl-sec <n>         Sliding liveness window. Silence longer than
                               this ends the attempt with lease_expired.
                               Default: 300.
@@ -64,10 +54,8 @@ Run \`agent-daemon <command> --help\` for command-specific flags.
 
 Prerequisites (all subcommands):
   - <repo-root>/.moltnet/<agent>/moltnet.json — credentials (see --agent)
-  - sandbox.json or --profile — local sandbox config is resolved by
-    searching up from CWD, or pass --sandbox <path>. With --profile, the
-    remote runtime profile supplies provider/model/sandbox policy and CWD
-    is used as the VM mountPath.
+  - --profile — remote runtime profile supplies provider/model/sandbox
+    policy and CWD is used as the VM mountPath.
 
 Registered task types: ${knownTaskTypesList()}`;
 
@@ -75,13 +63,12 @@ export const POLL_HELP = `\
 agent-daemon poll — long-running task worker.
 
 Usage:
-  agent-daemon poll --team <uuid> --agent <name> --provider <p> --model <m> [...]
+  agent-daemon poll --team <uuid> --agent <name> --profile <uuid|name> [...]
 
 Required:
   --team <uuid>               Team whose queue to serve. The daemon must be
                               a member of this team (canAccessTeam permit).
 ${COMMON_REQUIRED_FLAGS}
-${COMMON_MODEL_FLAGS}
 
 Optional:
   --task-types <csv>          Whitelist of task types to claim. Default:
@@ -98,8 +85,8 @@ Example:
     --team 6743b4b1-6b93-46e2-a048-19490f04f91a \\
     --task-types curate_pack,fulfill_brief \\
     --agent legreffier \\
-    --provider anthropic \\
-    --model claude-sonnet-4-5
+    --profile github-linear \\
+    --profile local-fallback
 
 Stops cleanly on SIGINT/SIGTERM (drains the in-flight task before exit).`;
 
@@ -107,13 +94,12 @@ export const ONCE_HELP = `\
 agent-daemon once — execute one specific queued task by id, then exit.
 
 Usage:
-  agent-daemon once --task-id <uuid> --agent <name> --provider <p> --model <m> [...]
+  agent-daemon once --task-id <uuid> --agent <name> --profile <uuid|name> [...]
 
 Required:
   -t, --task-id <uuid>        Task to claim and execute. Must already be
                               in 'queued' status.
 ${COMMON_REQUIRED_FLAGS}
-${COMMON_MODEL_FLAGS}
 
 Optional:
 ${COMMON_OPTIONAL_FLAGS}
@@ -122,8 +108,7 @@ Example:
   agent-daemon once \\
     --task-id 26004a77-bc10-43ef-a79f-c8e62faf59b1 \\
     --agent legreffier \\
-    --provider anthropic \\
-    --model claude-sonnet-4-5
+    --profile github-linear
 
 Exits 0 on completed, 1 on failed/cancelled/runtime-error.`;
 
@@ -131,7 +116,7 @@ export const DRAIN_HELP = `\
 agent-daemon drain — poll until the queue is empty, then exit.
 
 Usage:
-  agent-daemon drain --team <uuid> --agent <name> --provider <p> --model <m> [...]
+  agent-daemon drain --team <uuid> --agent <name> --profile <uuid|name> [...]
 
 Same flags as \`poll\`. The only behavioural difference: \`drain\` exits
 when a list call confirms no claimable tasks remain (vs \`poll\` which
@@ -140,7 +125,6 @@ sleeps and retries forever).
 Required:
   --team <uuid>               Team whose queue to drain.
 ${COMMON_REQUIRED_FLAGS}
-${COMMON_MODEL_FLAGS}
 
 Optional:
   --task-types <csv>          Whitelist. Known types: ${knownTaskTypesList()}
@@ -155,8 +139,7 @@ Example:
     --team 6743b4b1-6b93-46e2-a048-19490f04f91a \\
     --task-types judge_pack \\
     --agent legreffier \\
-    --provider anthropic \\
-    --model claude-sonnet-4-5`;
+    --profile eval-judge`;
 
 export function isHelpFlag(args: readonly string[]): boolean {
   return args.includes('--help') || args.includes('-h');

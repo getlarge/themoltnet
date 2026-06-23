@@ -29,18 +29,19 @@ import { createRootLogger } from '../lib/logger.js';
 import {
   commonOptionDefs,
   type CommonOptions,
+  DeprecatedRuntimeOptionError,
   MissingRequiredOptionError,
   parseCommonOptions,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { ensurePiAgentDir } from '../lib/pi-agent-dir.js';
+import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import {
   resolveProfileWarmSessionTtlSec,
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../lib/runtime-profile.js';
 import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
-import { resolveSandbox } from '../lib/sandbox.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
@@ -69,22 +70,28 @@ export async function runOnce(argv: string[]): Promise<number> {
   }
 
   const taskId = values['task-id'];
+  if (!values.profile) {
+    console.error('Missing required flag: --profile\n');
+    console.error(ONCE_HELP);
+    return 1;
+  }
   let opts: CommonOptions;
   try {
-    opts = parseCommonOptions(values, {
-      requireProviderModel: !values.profile,
-    });
+    opts = parseCommonOptions(values);
   } catch (err) {
-    if (err instanceof MissingRequiredOptionError) {
+    if (
+      err instanceof MissingRequiredOptionError ||
+      err instanceof DeprecatedRuntimeOptionError
+    ) {
       console.error(`${err.message}\n`);
       console.error(ONCE_HELP);
       return 1;
     }
     throw err;
   }
-  if (values.profile && values.sandbox) {
+  if (values.sandbox) {
     console.error(
-      'Cannot use --sandbox with --profile. ' +
+      'Cannot use --sandbox. ' +
         'Remote runtime profiles define sandbox policy.',
     );
     return 1;
@@ -92,52 +99,36 @@ export async function runOnce(argv: string[]): Promise<number> {
   const cfg = loadConfig();
   const initialOpts = opts;
   const ctx = await resolveAgentContext(initialOpts.agent);
-  const profile = values.profile
-    ? await resolveRuntimeProfile({
-        agent: ctx.agent,
-        profile: values.profile,
-        cwd: process.cwd(),
-      })
-    : null;
-  if (profile) {
-    validateRuntimeProfilePrerequisites(
-      profile,
-      cfg.profilePrerequisiteEnv,
-      cfg.profilePrerequisitePath,
-    );
-    opts = parseCommonOptions(values, {
-      requireProviderModel: false,
-      runtimeDefaults: {
-        leaseTtlSec: profile.leaseTtlSec,
-        heartbeatIntervalMs: profile.heartbeatIntervalMs,
-        maxBatchSize: profile.maxBatchSize,
-        warmSessionTtlSec: resolveProfileWarmSessionTtlSec(profile),
-      },
-    });
-  }
-  const provider = profile?.provider ?? opts.provider;
-  const model = profile?.model ?? opts.model;
-  if (!provider || !model) {
-    throw new Error('provider/model missing after runtime profile resolution');
-  }
-  const sandbox = profile
-    ? {
-        config: profile.sandboxConfig,
-        rootDir: profile.mountPath,
-        path: profile.source,
-      }
-    : resolveSandbox(process.cwd(), values.sandbox);
+  const profile = await resolveRuntimeProfile({
+    agent: ctx.agent,
+    profile: values.profile,
+    cwd: process.cwd(),
+  });
+  validateRuntimeProfilePrerequisites(
+    profile,
+    cfg.profilePrerequisiteEnv,
+    cfg.profilePrerequisitePath,
+  );
+  opts = parseCommonOptions(values, {
+    runtimeDefaults: {
+      leaseTtlSec: profile.leaseTtlSec,
+      heartbeatIntervalMs: profile.heartbeatIntervalMs,
+      maxBatchSize: profile.maxBatchSize,
+      warmSessionTtlSec: resolveProfileWarmSessionTtlSec(profile),
+    },
+  });
+  const sandbox = {
+    config: profile.sandboxConfig,
+    rootDir: profile.mountPath,
+    path: profile.source,
+  };
   const piAgentDir = ensurePiAgentDir(sandbox.rootDir, cfg.piCodingAgentDir);
   activatePiCodingAgentDir(piAgentDir.path);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
-  const slotRegistry = createApiRuntimeSlotStore({
-    agent: ctx.agent,
-    daemonProfileId: profile?.id ?? null,
-  });
+  const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const slotIdentity: DaemonSlotIdentity = {
     agentName: opts.agent,
-    provider,
-    model,
+    daemonProfileId: profile.id,
   };
   const mainRepo = findMainWorktree();
   const executionPlans = createExecutionPlanCache({
@@ -153,9 +144,9 @@ export async function runOnce(argv: string[]): Promise<number> {
     resourceAttributes: {
       'moltnet.task.id': taskId,
       'moltnet.agent.name': opts.agent,
-      'moltnet.llm.provider': provider,
-      'moltnet.llm.model': model,
-      ...(profile ? { 'moltnet.daemon_profile.id': profile.id } : {}),
+      'moltnet.llm.provider': profile.provider,
+      'moltnet.llm.model': profile.model,
+      'moltnet.daemon_profile.id': profile.id,
     },
   });
 
@@ -166,11 +157,10 @@ export async function runOnce(argv: string[]): Promise<number> {
   const rootLogger = logger.child({
     mode: 'once',
     agent: opts.agent,
-    provider,
-    model,
-    ...(profile
-      ? { daemonProfileId: profile.id, daemonProfileName: profile.name }
-      : {}),
+    provider: profile.provider,
+    model: profile.model,
+    daemonProfileId: profile.id,
+    daemonProfileName: profile.name,
   });
 
   rootLogger.info(
@@ -180,13 +170,9 @@ export async function runOnce(argv: string[]): Promise<number> {
       leaseTtlSec: opts.leaseTtlSec,
       heartbeatIntervalMs: opts.heartbeatIntervalMs,
       warmSessionTtlSec: opts.warmSessionTtlSec,
-      ...(profile
-        ? {
-            profileId: profile.id,
-            profileSessionTtlSec: profile.sessionTtlSec,
-            profileWorkspaceTtlSec: profile.workspaceTtlSec,
-          }
-        : {}),
+      profileId: profile.id,
+      profileSessionTtlSec: profile.sessionTtlSec,
+      profileWorkspaceTtlSec: profile.workspaceTtlSec,
       piAgentDir: piAgentDir.path,
       piAgentDirSource: piAgentDir.source,
     },
@@ -252,8 +238,8 @@ export async function runOnce(argv: string[]): Promise<number> {
     const rawExecuteTask = createPiTaskExecutor({
       agentName: opts.agent,
       mountPath: sandbox.rootDir,
-      provider,
-      model,
+      provider: profile.provider,
+      model: profile.model,
       sandboxConfig: sandbox.config,
       makeExecutionPlan: (claimedTask) =>
         executionPlans.getOrCreate(claimedTask),
@@ -296,6 +282,9 @@ export async function runOnce(argv: string[]): Promise<number> {
       if (executionPlan.slotKey && executionPlan.sessionPersistence) {
         await slotRegistry.beginSlot({
           ...slotIdentity,
+          daemonProfileId: profile.id,
+          provider: profile.provider,
+          model: profile.model,
           teamId: claimedTask.task.teamId,
           slotKey: executionPlan.slotKey,
           taskType: claimedTask.task.taskType,
@@ -320,7 +309,15 @@ export async function runOnce(argv: string[]): Promise<number> {
       // signal arriving after the executor returns finds no live attempt.
       activeAttemptN = claimedTask.attemptN;
       try {
-        return await rawExecuteTask(claimedTask, reporter);
+        return await runWithDaemonRuntimeContext(
+          {
+            profileId: profile.id,
+            profileName: profile.name,
+            provider: profile.provider,
+            model: profile.model,
+          },
+          () => rawExecuteTask(claimedTask, reporter),
+        );
       } finally {
         activeAttemptN = null;
         executionPlans.delete(claimedTask);
@@ -331,6 +328,8 @@ export async function runOnce(argv: string[]): Promise<number> {
             claimedTask.attemptN,
             slotIdentity,
             executionPlan.slotKey,
+            profile.provider,
+            profile.model,
             executionPlan.sessionPersistence
               ? resolveLatestPiSessionPath(
                   executionPlan.sessionPersistence.sessionDir,
@@ -352,7 +351,7 @@ export async function runOnce(argv: string[]): Promise<number> {
         agent: ctx.agent,
         taskId,
         leaseTtlSec: opts.leaseTtlSec,
-        ...(profile ? { profileId: profile.id } : {}),
+        profileId: profile.id,
       }),
       makeReporter: () =>
         new ApiTaskReporter({

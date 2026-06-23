@@ -64,7 +64,7 @@ export type ResolvedRuntimeSlot = Static<typeof ResolvedRuntimeSlot>;
 export const BeginRuntimeSlotBody = Type.Object(
   {
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
-    daemonProfileId: Type.Optional(Type.String({ format: 'uuid' })),
+    daemonProfileId: Type.String({ format: 'uuid' }),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
     slotKey: Type.String({ minLength: 1 }),
@@ -85,6 +85,7 @@ export type BeginRuntimeSlotBody = Static<typeof BeginRuntimeSlotBody>;
 export const FinishRuntimeSlotBody = Type.Object(
   {
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
+    daemonProfileId: Type.String({ format: 'uuid' }),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
     slotKey: Type.String({ minLength: 1 }),

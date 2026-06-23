@@ -33,8 +33,7 @@ Run a daemon that only claims eval producer and judge tasks:
 npx @themoltnet/agent-daemon@latest poll \
   --agent "$MOLTNET_AGENT_NAME" \
   --team "$MOLTNET_TEAM_ID" \
-  --provider openai-codex \
-  --model gpt-5.4 \
+  --profile eval-runner \
   --task-types run_eval,judge_eval_attempt
 ```
 
@@ -397,8 +396,7 @@ as the efficiency evals above.
 npx @themoltnet/agent-daemon@latest poll \
   --agent "$MOLTNET_AGENT_NAME" \
   --team "$MOLTNET_TEAM_ID" \
-  --provider openai-codex \
-  --model gpt-5.4 \
+  --profile pack-judge \
   --task-types judge_pack
 ```
 

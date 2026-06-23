@@ -157,10 +157,9 @@ async function assertTaskAttemptInTeam(
 
 async function assertProfileInTeam(
   fastify: FastifyInstance,
-  profileId: string | undefined,
+  profileId: string,
   teamId: string,
 ) {
-  if (!profileId) return;
   const profile = await fastify.daemonProfileRepository.findById(profileId);
   if (!profile || profile.teamId !== teamId) {
     throw createValidationProblem(
@@ -221,7 +220,6 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
       const slot = await fastify.runtimeSlotRepository.begin({
         ...body,
         teamId,
-        daemonProfileId: body.daemonProfileId ?? null,
         sessionDir: body.sessionDir ?? null,
         sessionPath: body.sessionPath ?? null,
         workspaceId: body.workspaceId ?? null,
@@ -270,6 +268,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
         body.attemptN,
         teamId,
       );
+      await assertProfileInTeam(fastify, body.daemonProfileId, teamId);
       const slot = await fastify.runtimeSlotRepository.finish({
         ...body,
         teamId,
