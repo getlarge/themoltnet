@@ -42,9 +42,8 @@ export function prepareTaskWorkspace(
   }
 
   if (workspaceMode === 'scratch_mount') {
-    const mainRepo = findMainWorktree();
     const workspaceId = executionPlan?.workspaceId ?? `task-${task.id}`;
-    const scratchDir = resolveTaskScratchPath(mainRepo, workspaceId);
+    const scratchDir = resolveTaskScratchPath(requestedMountPath, workspaceId);
     const keepWorkspace =
       executionPlan?.workspaceScope === 'session' &&
       executionPlan.sessionKey !== null;
@@ -83,7 +82,7 @@ export function prepareTaskWorkspace(
     };
   }
 
-  const mainRepo = findMainWorktree();
+  const mainRepo = findMainWorktreeForDedicatedTask();
   const workspaceId = executionPlan?.workspaceId ?? `task-${task.id}`;
   const worktreeDir = resolveTaskWorktreePath(mainRepo, workspaceId);
 
@@ -129,10 +128,10 @@ export function resolveTaskWorktreePath(
 }
 
 export function resolveTaskScratchPath(
-  mainRepo: string,
+  stateRoot: string,
   workspaceId: string,
 ): string {
-  return join(mainRepo, '.moltnet', 'd', 'task-workspaces', workspaceId);
+  return join(stateRoot, '.moltnet', 'd', 'task-workspaces', workspaceId);
 }
 
 function ensureReusableTaskWorktree(
@@ -213,6 +212,17 @@ function gitRefExists(mainRepo: string, ref: string): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+function findMainWorktreeForDedicatedTask(): string {
+  try {
+    return findMainWorktree();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Dedicated worktree tasks require a git repository: ${message}`,
+    );
   }
 }
 

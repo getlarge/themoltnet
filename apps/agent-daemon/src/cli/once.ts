@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
@@ -95,7 +95,13 @@ export async function runOnce(argv: string[]): Promise<number> {
   }
   const cfg = loadConfig();
   const initialOpts = opts;
-  const ctx = await resolveAgentContext(initialOpts.agent);
+  const agentRootDir = resolve(
+    process.cwd(),
+    values['agent-root'] ?? process.cwd(),
+  );
+  const ctx = await resolveAgentContext(initialOpts.agent, {
+    agentRootDir,
+  });
   const profile = await resolveRuntimeProfile({
     agent: ctx.agent,
     profile: values.profile,
@@ -128,7 +134,6 @@ export async function runOnce(argv: string[]): Promise<number> {
     agentName: opts.agent,
     runtimeProfileId: profile.id,
   };
-  const mainRepo = findMainWorktree();
   const executionPlans = createExecutionPlanCache({
     stateDirs,
     slotIdentity,
@@ -235,6 +240,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   try {
     const rawExecuteTask = createPiTaskExecutor({
       agentName: opts.agent,
+      agentRootDir: ctx.agentRootDir,
       mountPath: sandbox.rootDir,
       provider: profile.provider,
       model: profile.model,
@@ -292,7 +298,6 @@ export async function runOnce(argv: string[]): Promise<number> {
           ),
           workspaceId: executionPlan.workspaceId,
           worktreePath: resolveRecordedWorkspacePath(
-            mainRepo,
             stateDirs.rootDir,
             executionPlan,
           ),
@@ -401,7 +406,6 @@ export async function runOnce(argv: string[]): Promise<number> {
 }
 
 function resolveRecordedWorkspacePath(
-  mainRepo: string,
   stateRootDir: string,
   executionPlan: {
     workspaceId: string | null;
@@ -411,5 +415,5 @@ function resolveRecordedWorkspacePath(
   if (!executionPlan.workspaceId) return null;
   return executionPlan.workspaceMode === 'scratch_mount'
     ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
-    : join(mainRepo, '.worktrees', executionPlan.workspaceId);
+    : join(findMainWorktree(), '.worktrees', executionPlan.workspaceId);
 }

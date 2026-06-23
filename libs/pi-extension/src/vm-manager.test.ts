@@ -21,6 +21,7 @@ import { describe, expect, it } from 'vitest';
 import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
   loadCredentials,
+  resolveVmAgentDir,
   rewriteGitconfigPaths,
   rewriteMoltnetJsonPaths,
   shouldRunResumeCommand,
@@ -246,6 +247,22 @@ describe('rewriteGitconfigPaths', () => {
     expect(out).toContain('name = LeGreffier');
     expect(out).toContain(`signingKey = ${vmSshDir}/id_ed25519`);
     expect(out).not.toContain('credential-helper');
+  });
+});
+
+describe('resolveVmAgentDir', () => {
+  it('uses the explicit agent root without touching git discovery', () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), 'pi-agent-root-'));
+    try {
+      expect(
+        resolveVmAgentDir({
+          agentName: 'legreffier',
+          agentRootDir: rootDir,
+        }),
+      ).toBe(path.join(rootDir, '.moltnet', 'legreffier'));
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -647,7 +664,7 @@ describe('dedicated worktree mount topology', () => {
     }
   });
 
-  it('creates and cleans up scratch workspaces for repo-free eval runs', () => {
+  it('creates and cleans up scratch workspaces outside a git repository', () => {
     const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-scratch-repro-'));
     const oldCwd = process.cwd();
     let workspace: {
@@ -657,13 +674,6 @@ describe('dedicated worktree mount topology', () => {
     } | null = null;
 
     try {
-      runGit(repoRoot, ['init']);
-      runGit(repoRoot, ['config', 'user.name', 'Test User']);
-      runGit(repoRoot, ['config', 'user.email', 'test@example.com']);
-      writeFileSync(path.join(repoRoot, 'README.md'), 'seed\n', 'utf8');
-      runGit(repoRoot, ['add', 'README.md']);
-      runGit(repoRoot, ['commit', '-m', 'seed']);
-
       process.chdir(repoRoot);
       const task = {
         id: 'task-2',
@@ -705,9 +715,6 @@ describe('dedicated worktree mount topology', () => {
       expect(workspace.mountPath).not.toContain(
         `${path.sep}.worktrees${path.sep}`,
       );
-      expect(readFileSync(path.join(repoRoot, 'README.md'), 'utf8')).toBe(
-        'seed\n',
-      );
     } finally {
       process.chdir(oldCwd);
       const scratchPath = workspace?.mountPath ?? null;
@@ -716,6 +723,63 @@ describe('dedicated worktree mount topology', () => {
         expect(existsSync(scratchPath)).toBe(false);
       }
       rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps shared mounts repo-free', () => {
+    const sandboxRoot = mkdtempSync(path.join(tmpdir(), 'pi-shared-repro-'));
+    const oldCwd = process.cwd();
+
+    try {
+      process.chdir(sandboxRoot);
+      const task = {
+        id: 'task-shared',
+        taskType: 'freeform',
+        input: { brief: 'research only' },
+      } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
+
+      const workspace = prepareTaskWorkspace(task, sandboxRoot, {
+        workspaceMode: 'shared_mount',
+        sessionKey: null,
+        workspaceId: null,
+        worktreeBranch: null,
+        workspaceScope: 'attempt',
+      });
+
+      expect(workspace.mountPath).toBe(sandboxRoot);
+      expect(workspace.cwdPath).toBe(sandboxRoot);
+      expect(workspace.mode).toBe('shared_mount');
+      workspace.cleanup();
+    } finally {
+      process.chdir(oldCwd);
+      rmSync(sandboxRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('fails clearly for dedicated worktrees outside a git repository', () => {
+    const sandboxRoot = mkdtempSync(path.join(tmpdir(), 'pi-worktree-none-'));
+    const oldCwd = process.cwd();
+
+    try {
+      process.chdir(sandboxRoot);
+      const task = {
+        id: 'task-worktree',
+        taskType: 'fulfill_brief',
+        input: { brief: 'change code' },
+      } as unknown as Parameters<typeof prepareTaskWorkspace>[0];
+
+      expect(() =>
+        prepareTaskWorkspace(task, sandboxRoot, {
+          workspaceMode: 'dedicated_worktree',
+          sessionKey: null,
+          workspaceId: 'task-worktree',
+          worktreeBranch: 'task/worktree',
+          workspaceScope: 'attempt',
+        }),
+      ).toThrow(/Dedicated worktree tasks require a git repository/);
+    } finally {
+      process.chdir(oldCwd);
+      rmSync(sandboxRoot, { recursive: true, force: true });
     }
   });
 

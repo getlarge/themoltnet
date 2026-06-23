@@ -1,5 +1,5 @@
 // Shared poll-loop runner for `poll` and `drain` (only difference: stopWhenEmpty).
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import type { TaskOutput } from '@moltnet/tasks';
@@ -154,7 +154,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   }
 
   const cfg = loadConfig();
-  const ctx = await resolveAgentContext(baseCommon.agent);
+  const agentRootDir = resolve(
+    process.cwd(),
+    values['agent-root'] ?? process.cwd(),
+  );
+  const ctx = await resolveAgentContext(baseCommon.agent, {
+    agentRootDir,
+  });
   const profiles = await resolveRuntimeProfiles({
     agent: ctx.agent,
     profiles: profileValues,
@@ -169,7 +175,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     );
   }
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
-  const mainRepo = findMainWorktree();
   const runtimes = new Map<string, ProfileRuntime>();
   for (const profile of profiles) {
     const common = parseCommonOptions(values, {
@@ -499,7 +504,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             ),
             workspaceId: executionPlan.workspaceId,
             worktreePath: resolveRecordedWorkspacePath(
-              mainRepo,
               stateDirs.rootDir,
               executionPlan,
             ),
@@ -511,6 +515,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         }
         const rawExecuteTask = createPiTaskExecutor({
           agentName: common.agent,
+          agentRootDir: ctx.agentRootDir,
           mountPath: sandbox.rootDir,
           provider: profile.provider,
           model: profile.model,
@@ -571,7 +576,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 }
 
 function resolveRecordedWorkspacePath(
-  mainRepo: string,
   stateRootDir: string,
   executionPlan: {
     workspaceId: string | null;
@@ -581,7 +585,7 @@ function resolveRecordedWorkspacePath(
   if (!executionPlan.workspaceId) return null;
   return executionPlan.workspaceMode === 'scratch_mount'
     ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
-    : join(mainRepo, '.worktrees', executionPlan.workspaceId);
+    : join(findMainWorktree(), '.worktrees', executionPlan.workspaceId);
 }
 
 function runtimeForClaimedTask(

@@ -43,6 +43,13 @@ export interface VmConfig {
   checkpointPath: string;
   /** MoltNet agent name (used to resolve credentials). */
   agentName: string;
+  /**
+   * Host root that owns `.moltnet/<agentName>/`.
+   *
+   * Defaults to the main git worktree for backwards compatibility. Daemon
+   * callers pass the sandbox root so non-git scratch/shared tasks can boot.
+   */
+  agentRootDir?: string;
   /** Host directory to mount into the VM. */
   mountPath: string;
   /** Effective workspace shape selected by the caller. */
@@ -106,9 +113,18 @@ export function shouldRunResumeCommand(
  * only exists in the main worktree, not in git worktrees).
  */
 export function findMainWorktree(): string {
-  const output = execFileSync('git', ['worktree', 'list', '--porcelain'], {
-    encoding: 'utf8',
-  });
+  let output: string;
+  try {
+    output = execFileSync('git', ['worktree', 'list', '--porcelain'], {
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Git worktree discovery requires a git repository: ${message}`,
+    );
+  }
   for (const block of output.split('\n\n')) {
     const lines = block.split('\n');
     const wt = lines.find((l) => l.startsWith('worktree '));
@@ -116,6 +132,14 @@ export function findMainWorktree(): string {
       return wt.replace('worktree ', '');
   }
   throw new Error('Could not find main git worktree');
+}
+
+export function resolveVmAgentDir(config: {
+  agentName: string;
+  agentRootDir?: string;
+}): string {
+  const rootDir = config.agentRootDir ?? findMainWorktree();
+  return path.join(rootDir, '.moltnet', config.agentName);
 }
 
 export function loadCredentials(agentDir: string): VmCredentials {
@@ -269,8 +293,7 @@ function nonErrorMessage(err: unknown): string {
  */
 export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   throwIfAborted(config.signal, 'VM resume');
-  const mainRepo = findMainWorktree();
-  const agentDir = path.join(mainRepo, '.moltnet', config.agentName);
+  const agentDir = resolveVmAgentDir(config);
   const guestWorkspace = path.resolve(config.mountPath);
 
   if (!existsSync(agentDir)) {
