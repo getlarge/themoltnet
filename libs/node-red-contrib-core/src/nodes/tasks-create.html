@@ -27,7 +27,9 @@
     <input type="text" id="node-input-agent" />
   </div>
   <div class="form-row">
-    <label for="node-input-taskType"><i class="fa fa-cube"></i> Task type</label>
+    <label for="node-input-taskType"
+      ><i class="fa fa-cube"></i> Task type</label
+    >
     <input type="text" id="node-input-taskType" placeholder="freeform" />
   </div>
   <div class="form-row">
@@ -37,8 +39,10 @@
 </script>
 
 <script type="text/html" data-help-name="moltnet-tasks-create">
-  <p>Creates a MoltNet task as the referenced agent. If <code>msg.payload</code>
-  is an object it is used as the task body; otherwise a minimal body is built
-  from this node's config. The created task is returned on
-  <code>msg.payload</code>.</p>
+  <p>
+    Creates a MoltNet task as the referenced agent. If <code>msg.payload</code>
+    is an object it is used as the task body; otherwise a minimal body is built
+    from this node's config. The created task is returned on
+    <code>msg.payload</code>.
+  </p>
 </script>

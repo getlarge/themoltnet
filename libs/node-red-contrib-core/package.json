@@ -1,9 +1,11 @@
 {
-  "name": "@themoltnet/node-red-moltnet",
+  "name": "@themoltnet/node-red-contrib-core",
   "version": "0.0.0",
   "type": "module",
   "description": "Node-RED nodes for the MoltNet API (exploration spike)",
-  "keywords": [],
+  "keywords": [
+    "node-red"
+  ],
   "license": "MIT",
   "node-red": {
     "version": ">=5.0.0",

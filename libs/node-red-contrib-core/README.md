@@ -1,4 +1,4 @@
-# @themoltnet/node-red-moltnet (exploration spike)
+# @themoltnet/node-red-contrib-core (exploration spike)
 
 Node-RED nodes for the MoltNet API. **Status: spike** — validates that the
 MoltNet SDK can be driven from Node-RED as a visual authoring + cockpit layer.
@@ -43,15 +43,15 @@ widget. A starter flow is in [`examples/cockpit.flow.json`](./examples/cockpit.f
 ## Build
 
 ```bash
-pnpm exec nx run @themoltnet/node-red-moltnet:build      # vite build → dist/nodes/*.{js,html}
-pnpm exec nx run @themoltnet/node-red-moltnet:typecheck  # tsc -b --emitDeclarationOnly
+pnpm exec nx run @themoltnet/node-red-contrib-core:build      # vite build → dist/nodes/*.{js,html}
+pnpm exec nx run @themoltnet/node-red-contrib-core:typecheck  # tsc -b --emitDeclarationOnly
 ```
 
 ## Testing
 
 Three layers, increasing fidelity:
 
-1. **Unit** (`pnpm exec nx run @themoltnet/node-red-moltnet:test`) — Vitest with a
+1. **Unit** (`pnpm exec nx run @themoltnet/node-red-contrib-core:test`) — Vitest with a
    tiny in-memory `RED` harness ([`__tests__/fake-red.ts`](./__tests__/fake-red.ts))
    that drives the real node constructors. The `moltnet-agent` config node is
    replaced by a stub whose `getAgent()` returns a fake SDK agent, so tests are
@@ -75,8 +75,8 @@ Three layers, increasing fidelity:
 ## Run Node-RED with these nodes (one command)
 
 ```bash
-pnpm --filter @themoltnet/node-red-moltnet dev      # → http://localhost:1880
-PORT=1881 pnpm --filter @themoltnet/node-red-moltnet dev
+pnpm --filter @themoltnet/node-red-contrib-core dev      # → http://localhost:1880
+PORT=1881 pnpm --filter @themoltnet/node-red-contrib-core dev
 ```
 
 `scripts/dev.mjs` builds the nodes, links this package into a local
@@ -94,11 +94,11 @@ the agent's `clientId`/`clientSecret`.
 
 ```bash
 mkdir -p /tmp/nr && cd /tmp/nr && npm init -y && npm install node-red@5
-mkdir -p userDir/node_modules/@themoltnet/node-red-moltnet
-cp -r <repo>/libs/node-red-moltnet/{package.json,dist} \
-  userDir/node_modules/@themoltnet/node-red-moltnet/
+mkdir -p userDir/node_modules/@themoltnet/node-red-contrib-core
+cp -r <repo>/libs/node-red-contrib-core/{package.json,dist} \
+  userDir/node_modules/@themoltnet/node-red-contrib-core/
 ./node_modules/.bin/node-red --userDir ./userDir -p 1880
-# GET /nodes should list red-module:@themoltnet/node-red-moltnet/moltnet-agent
+# GET /nodes should list red-module:@themoltnet/node-red-contrib-core/moltnet-agent
 ```
 
 </details>

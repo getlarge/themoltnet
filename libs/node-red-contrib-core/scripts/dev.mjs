@@ -3,8 +3,8 @@
  * Dev runner: build the nodes, link this package into a local Node-RED
  * userDir, and start Node-RED 5 with the MoltNet nodes loaded.
  *
- *   pnpm --filter @themoltnet/node-red-moltnet dev      # http://localhost:1880
- *   PORT=1881 pnpm --filter @themoltnet/node-red-moltnet dev
+ *   pnpm --filter @themoltnet/node-red-contrib-core dev      # http://localhost:1880
+ *   PORT=1881 pnpm --filter @themoltnet/node-red-contrib-core dev
  *
  * The nodes are self-contained (SDK bundled), so no extra install is needed in
  * the userDir. After editing a node, stop (Ctrl-C) and re-run to rebuild +
@@ -35,7 +35,7 @@ mkdirSync(userDir, { recursive: true });
 writeFileSync(
   resolve(userDir, 'package.json'),
   JSON.stringify(
-    { name: 'node-red-moltnet-dev', private: true, type: 'commonjs' },
+    { name: 'node-red-contrib-core-dev', private: true, type: 'commonjs' },
     null,
     2,
   ),
@@ -43,11 +43,11 @@ writeFileSync(
 
 // 3. Link this package into the userDir so Node-RED discovers it
 const scope = resolve(userDir, 'node_modules', '@themoltnet');
-const link = resolve(scope, 'node-red-moltnet');
+const link = resolve(scope, 'node-red-contrib-core');
 mkdirSync(scope, { recursive: true });
 if (existsSync(link)) rmSync(link, { recursive: true, force: true });
 symlinkSync(pkgDir, link, 'dir');
-console.log(`▸ linked @themoltnet/node-red-moltnet → ${userDir}`);
+console.log(`▸ linked @themoltnet/node-red-contrib-core → ${userDir}`);
 
 // 4. Run Node-RED 5 (downloaded on first run via npx, then cached)
 console.log(`▸ starting Node-RED on http://localhost:${port} …`);
