@@ -6,6 +6,7 @@
     defaults: {
       name: { value: '' },
       agent: { value: '', type: 'moltnet-agent', required: true },
+      runtimeProfile: { value: '', type: 'moltnet-runtime-profile' },
       taskType: { value: 'freeform' },
       title: { value: '' },
       tags: { value: '' },
@@ -30,6 +31,12 @@
   <div class="form-row">
     <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
     <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-runtimeProfile"
+      ><i class="fa fa-microchip"></i> Profile</label
+    >
+    <input type="text" id="node-input-runtimeProfile" />
   </div>
   <div class="form-row">
     <label for="node-input-taskType"
