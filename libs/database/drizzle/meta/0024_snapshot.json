@@ -1,5 +1,5 @@
 {
-  "id": "10e55802-806e-4bbf-b311-2a6a5157b8e8",
+  "id": "e7712d52-2d12-40e1-a29a-3b6c07d47c02",
   "prevId": "fd800991-1cdb-49d1-a984-82534a30128f",
   "version": "7",
   "dialect": "postgresql",
@@ -2919,8 +2919,8 @@
         }
       },
       "indexes": {
-        "runtime_slots_profile_identity_idx": {
-          "name": "runtime_slots_profile_identity_idx",
+        "runtime_slots_identity_idx": {
+          "name": "runtime_slots_identity_idx",
           "columns": [
             {
               "expression": "team_id",
@@ -2948,47 +2948,6 @@
             }
           ],
           "isUnique": true,
-          "where": "daemon_profile_id IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "runtime_slots_legacy_identity_idx": {
-          "name": "runtime_slots_legacy_identity_idx",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "agent_name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "provider",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "model",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "slot_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "daemon_profile_id IS NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
