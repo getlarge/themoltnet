@@ -192,18 +192,19 @@ export class PollingApiTaskSource implements TaskSource {
 
   async claim(): Promise<ClaimedTask | null> {
     while (!this.aborted()) {
-      let cursor: string | undefined;
+      const profiles = this.profileCandidates();
+      const cursors = new Map<string, string | undefined>();
+      const exhausted = new Set<string>();
       let hadListError = false;
       do {
-        const page = await this.listCandidates(cursor);
+        const page = await this.listCandidates(profiles, cursors, exhausted);
         hadListError = hadListError || page.hadListError;
         const claimed = await this.tryClaimOne(page.candidates);
         if (claimed) {
           this.currentBackoffMs = this.minBackoffMs;
           return claimed;
         }
-        cursor = page.nextCursor;
-      } while (cursor && !this.aborted());
+      } while (exhausted.size < profiles.length && !this.aborted());
       // Drain mode bails out only when the queue is *known* empty —
       // i.e. every list call this round succeeded and returned no
       // claimable candidates. A transient list failure is indeterminate;
@@ -223,18 +224,22 @@ export class PollingApiTaskSource implements TaskSource {
     return this.opts.signal?.aborted === true;
   }
 
-  private async listCandidates(cursor?: string): Promise<{
+  private async listCandidates(
+    profiles: readonly CandidateProfile[],
+    cursors: Map<string, string | undefined>,
+    exhausted: Set<string>,
+  ): Promise<{
     candidates: CandidateTask[];
     hadListError: boolean;
-    nextCursor?: string;
   }> {
     const seen = new Set<string>();
     const out: CandidateTask[] = [];
     let hadListError = false;
-    let nextCursor: string | undefined;
     if (this.aborted()) return { candidates: out, hadListError };
-    const profiles = this.profileCandidates();
-    for (const profile of profiles) {
+    for (let i = 0; i < profiles.length; i += 1) {
+      const profile = profiles[i];
+      const key = profileKey(profile, i);
+      if (exhausted.has(key)) continue;
       if (this.aborted()) break;
       try {
         const taskTypes =
@@ -246,10 +251,14 @@ export class PollingApiTaskSource implements TaskSource {
           status: 'queued' satisfies TaskStatus,
           ...(taskTypes ? { taskTypes } : {}),
           ...(profile.profileId ? { profileId: profile.profileId } : {}),
-          ...(cursor ? { cursor } : {}),
+          ...(cursors.get(key) ? { cursor: cursors.get(key) } : {}),
           limit: this.listLimit,
         });
-        nextCursor ??= result.nextCursor;
+        if (result.nextCursor) {
+          cursors.set(key, result.nextCursor);
+        } else {
+          exhausted.add(key);
+        }
         if (this.opts.debug) {
           this.logger.debug(
             {
@@ -325,6 +334,7 @@ export class PollingApiTaskSource implements TaskSource {
         // queue. The poll loop backs off and retries; a real exit only
         // happens when the list call succeeded and returned nothing.
         hadListError = true;
+        exhausted.add(key);
         this.logger.warn(
           {
             err,
@@ -335,7 +345,7 @@ export class PollingApiTaskSource implements TaskSource {
         );
       }
     }
-    return { candidates: out, hadListError, nextCursor };
+    return { candidates: out, hadListError };
   }
 
   private async tryClaimOne(
@@ -418,6 +428,10 @@ interface CandidateProfile {
 interface CandidateTask {
   task: Task;
   profile: CandidateProfile;
+}
+
+function profileKey(profile: CandidateProfile, index: number): string {
+  return profile.profileId ?? `legacy:${index}`;
 }
 
 function statusOf(err: unknown): number | undefined {

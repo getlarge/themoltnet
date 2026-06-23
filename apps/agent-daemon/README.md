@@ -80,8 +80,8 @@ To force a non-repo Pi directory, set
 
 ### Host command auto-approval
 
-The daemon reads `sandbox.json` through `--sandbox` or by searching up from the
-current directory. Configure host-side auto-approval there, not in task data:
+The daemon reads host-side auto-approval from the selected remote runtime
+profile's sandbox policy. Configure it in the profile, not in task data:
 
 ```json
 {
@@ -143,12 +143,11 @@ registered task type; unknown task-type names remain invalid.
   gitignored. For API-key auth, keep `.pi/auth.json` absent and export the
   provider key referenced by `.pi/models.json`, for example `OLLAMA_API_KEY`.
 - `ssh-keygen` on `PATH`.
-- A `sandbox.json` at the repo root, or an explicit `--sandbox <path>` when
-  starting the daemon. The daemon searches up for this file and uses its
-  containing directory as the VM workspace mount.
+- A runtime profile in the target team. The profile supplies provider, model,
+  sandbox policy, and runtime defaults. The daemon mounts the current working
+  directory as the VM workspace root.
 
-For `themoltnet`, prefer the checked-in repo `sandbox.json` as-is — it carries
-the current pnpm/VFS workaround. A minimal `sandbox.json` for another repo:
+For `themoltnet`, prefer a profile sandbox equivalent to this minimal policy:
 
 ```json
 {
@@ -251,18 +250,14 @@ pnpm --filter @themoltnet/agent-daemon dev poll \
   --agent local-dev \
   --team "$MOLTNET_TEAM_ID" \
   --task-types fulfill_brief \
-  --provider openai-codex \
-  --model gpt-5.4-codex \
+  --profile "$MOLTNET_AGENT_PROFILE" \
   --debug
 ```
 
-- If you're starting from a directory without `sandbox.json` at or above it,
-  pass `--sandbox <repo-root>/sandbox.json`.
 - `--task-types fulfill_brief` scopes the queue. Omit to accept any
   registered type.
-- Pick provider/model that matches your pi auth credits. Common choices:
-  `--provider openai-codex --model gpt-5.4-codex`, or
-  `--provider anthropic --model claude-sonnet-4-6`.
+- Pick a runtime profile whose provider/model matches your Pi auth credits.
+  Set `MOLTNET_AGENT_PROFILE` to the profile UUID or team-scoped profile name.
 - `dev` (= `tsx watch src/main.ts`) is fine for local. Use `cli` for a
   one-shot run without watch.
 
@@ -333,8 +328,7 @@ pnpm --filter @themoltnet/agent-daemon dev poll \
   --agent local-dev \
   --team "$MOLTNET_TEAM_ID" \
   --task-types pr_review \
-  --provider openai-codex \
-  --model gpt-5.4-codex \
+  --profile "$MOLTNET_AGENT_PROFILE" \
   --debug
 ```
 
@@ -396,7 +390,7 @@ snapshot. The cheap parts of the runtime contract (prompt assembly, tool-side
 tests in `libs/pi-extension`. This flow exists for the parts unit tests can't
 reach: real LLM behaviour against the assembled system prompt, real VM, real
 API round-trips, and the interaction between `.moltnet/<agent>/` identity
-material and the active `sandbox.json`.
+material and the selected runtime profile.
 
 ## License
 

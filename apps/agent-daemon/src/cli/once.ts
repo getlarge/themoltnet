@@ -58,6 +58,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     options: {
       ...commonOptionDefs(),
       'task-id': { type: 'string', short: 't' },
+      team: { type: 'string' },
       sandbox: { type: 'string' },
       profile: { type: 'string' },
     },
@@ -102,6 +103,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   const profile = await resolveRuntimeProfile({
     agent: ctx.agent,
     profile: values.profile,
+    teamId: values.team,
     cwd: process.cwd(),
   });
   validateRuntimeProfilePrerequisites(

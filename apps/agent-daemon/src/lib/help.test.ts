@@ -69,6 +69,7 @@ describe('help strings', () => {
 
   it('ONCE_HELP names --task-id as required', () => {
     expect(ONCE_HELP).toContain('--task-id');
+    expect(ONCE_HELP).toContain('--team <uuid>');
     expect(ONCE_HELP).toContain('Required:');
   });
 });

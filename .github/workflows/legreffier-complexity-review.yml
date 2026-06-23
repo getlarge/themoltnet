@@ -76,5 +76,4 @@ jobs:
         with:
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
           skip-validation: 'false'
-          provider: ${{ vars.MOLTNET_AGENT_PROVIDER }}
-          model: ${{ vars.MOLTNET_AGENT_MODEL }}
+          profile: ${{ vars.MOLTNET_AGENT_PROFILE }}

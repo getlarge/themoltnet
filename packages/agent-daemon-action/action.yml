@@ -22,20 +22,10 @@ inputs:
     description: 'Daemon mode: once | drain. poll is disallowed in CI for cost reasons.'
     required: false
     default: 'once'
-  provider:
+  profile:
     description: >
-      LLM provider key (e.g. `anthropic`, `openai`, `bedrock`).
-      Forwarded to `agent-daemon --provider`. No default — operator-specific
-      and silently misconfigures on any other machine, so the daemon refuses
-      to start without it. Falls back to the MOLTNET_AGENT_PROVIDER env var
-      when this input is empty.
-    required: false
-    default: ''
-  model:
-    description: >
-      Model id understood by the chosen provider (e.g. `claude-sonnet-4-5`,
-      `gpt-4o-mini`). Forwarded to `agent-daemon --model`. Falls back to the
-      MOLTNET_AGENT_MODEL env var when this input is empty.
+      Runtime profile UUID or name. Forwarded to `agent-daemon --profile`.
+      Falls back to the MOLTNET_AGENT_PROFILE env var when this input is empty.
     required: false
     default: ''
   daemon-version:
@@ -380,8 +370,7 @@ runs:
       shell: bash
       env:
         TASK_ID: ${{ inputs.task-id != '' && inputs.task-id || steps.dispatch.outputs.task-id }}
-        PROVIDER_OVERRIDE: ${{ inputs.provider }}
-        MODEL_OVERRIDE: ${{ inputs.model }}
+        PROFILE_OVERRIDE: ${{ inputs.profile }}
       run: |
         set -euo pipefail
         if [ -z "${TASK_ID:-}" ]; then
@@ -389,26 +378,18 @@ runs:
           echo "task-id=" >> "$GITHUB_OUTPUT"
           exit 0
         fi
-        # Resolve provider/model: prefer explicit input, fall back to
-        # MOLTNET_AGENT_PROVIDER / MOLTNET_AGENT_MODEL inherited from
-        # the caller step's env. The daemon refuses to start when either
-        # is missing — fail fast here with a clear error instead of
-        # letting it surface through npx.
-        PROVIDER="${PROVIDER_OVERRIDE:-${MOLTNET_AGENT_PROVIDER:-}}"
-        MODEL="${MODEL_OVERRIDE:-${MOLTNET_AGENT_MODEL:-}}"
-        if [ -z "$PROVIDER" ]; then
-          echo "::error::provider is required (set the action's \`provider\` input or MOLTNET_AGENT_PROVIDER env)" >&2
-          exit 1
-        fi
-        if [ -z "$MODEL" ]; then
-          echo "::error::model is required (set the action's \`model\` input or MOLTNET_AGENT_MODEL env)" >&2
+        # Resolve runtime profile: prefer explicit input, fall back to
+        # MOLTNET_AGENT_PROFILE inherited from the caller step's env.
+        PROFILE="${PROFILE_OVERRIDE:-${MOLTNET_AGENT_PROFILE:-}}"
+        if [ -z "$PROFILE" ]; then
+          echo "::error::profile is required (set the action's \`profile\` input or MOLTNET_AGENT_PROFILE env)" >&2
           exit 1
         fi
         PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
-        if [ "$PROVIDER" = "ollama" ]; then
+        if [ "${MOLTNET_AGENT_PROVIDER:-}" = "ollama" ]; then
           # Ollama CI runs need a model registry entry as well as an API
           # key. Pi reads the key from env, and this host-side registry is
-          # what makes the cloud models available to `--model`.
+          # what makes the cloud models available to the selected profile.
           if [ -z "${OLLAMA_API_KEY:-}" ]; then
             echo "::error::OLLAMA_API_KEY is required when provider is ollama" >&2
             exit 1
@@ -457,8 +438,7 @@ runs:
         npx -y @themoltnet/agent-daemon@${{ inputs.daemon-version }} \
           ${{ inputs.mode }} --task-id "$TASK_ID" \
           --agent "$MOLTNET_AGENT_NAME" \
-          --provider "$PROVIDER" \
-          --model "$MODEL"
+          --profile "$PROFILE"
 
     # Save the gondolin snapshot built by the daemon. `if: always()`
     # so we still upload the snapshot when the LLM call fails post-

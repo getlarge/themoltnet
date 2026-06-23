@@ -32,7 +32,7 @@ description: |
          MOLTNET_GITHUB_APP_SLUG, MOLTNET_GITHUB_APP_PRIVATE_KEY.
 
        Optional job env (provider-specific):
-         OLLAMA_API_KEY (when provider=ollama),
+         MOLTNET_AGENT_PROVIDER=ollama plus OLLAMA_API_KEY for Ollama Pi setup,
          PI_AUTH_JSON (Pi/Codex auth dump, single-line JSON OK as input
          but kept here for symmetry).
 
@@ -51,11 +51,8 @@ inputs:
       false.
     required: false
     default: 'false'
-  provider:
-    description: Agent runtime provider (e.g. `ollama`, `openai`).
-    required: true
-  model:
-    description: Agent runtime model id.
+  profile:
+    description: Runtime profile UUID or team-scoped name.
     required: true
 
 runs:
@@ -232,28 +229,22 @@ runs:
       shell: bash
       env:
         TASK_ID: ${{ steps.create-task.outputs.task-id }}
-        MOLTNET_AGENT_PROVIDER: ${{ inputs.provider }}
-        MOLTNET_AGENT_MODEL: ${{ inputs.model }}
+        MOLTNET_AGENT_PROFILE: ${{ inputs.profile }}
       run: |
         set -euo pipefail
         if [ -z "$TASK_ID" ]; then
           echo "::error::TASK_ID is empty after create-task step"
           exit 1
         fi
-        PROVIDER="$MOLTNET_AGENT_PROVIDER"
-        MODEL="$MOLTNET_AGENT_MODEL"
-        if [ -z "$PROVIDER" ]; then
-          echo "::error::provider input is required" >&2
-          exit 1
-        fi
-        if [ -z "$MODEL" ]; then
-          echo "::error::model input is required" >&2
+        PROFILE="$MOLTNET_AGENT_PROFILE"
+        if [ -z "$PROFILE" ]; then
+          echo "::error::profile input is required" >&2
           exit 1
         fi
         PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
-        if [ "$PROVIDER" = "ollama" ]; then
+        if [ "${MOLTNET_AGENT_PROVIDER:-}" = "ollama" ]; then
           if [ -z "${OLLAMA_API_KEY:-}" ]; then
-            echo "::error::OLLAMA_API_KEY env var is required when provider=ollama" >&2
+            echo "::error::OLLAMA_API_KEY env var is required when MOLTNET_AGENT_PROVIDER=ollama" >&2
             exit 1
           fi
           export PI_CODING_AGENT_DIR="$PI_AGENT_DIR"
@@ -293,8 +284,7 @@ runs:
         npx -y @themoltnet/agent-daemon \
           once --task-id "$TASK_ID" \
           --agent "$MOLTNET_AGENT_NAME" \
-          --provider "$PROVIDER" \
-          --model "$MODEL"
+          --profile "$PROFILE"
 
     - name: Save gondolin snapshot cache
       if: |

@@ -51,8 +51,9 @@ For an end-to-end smoke-test walkthrough against the local Docker stack — prov
 
 - `--agent <name>` — directory under `<repo>/.moltnet/<name>/` to read credentials from. No default — operator-specific.
 - `--profile <uuid|name>` — remote runtime profile that supplies provider,
-  model, sandbox policy, prerequisites, and runtime defaults. `once` should use
-  a profile UUID because it does not have a team-scoped profile list.
+  model, sandbox policy, prerequisites, and runtime defaults. `poll` and
+  `drain` require `--team`, so profile names resolve inside that team. `once`
+  can use a profile UUID without `--team`, or a profile name with `--team`.
 
 ### Pi model and auth config
 
@@ -131,8 +132,8 @@ Bedrock, Claude Code, OpenAI Codex) and lets a team add its own custom couples
 an internal OpenAI-compatible proxy.
 
 The catalog is read by anything that resolves a `provider`/`model` pair: the
-daemon's `--provider` / `--model` flag, the runtime profile's `provider` and
-`model` fields, and any future code that picks a target model automatically.
+runtime profile's `provider` and `model` fields, and any future code that picks
+a target model automatically.
 Global entries are visible to any authenticated agent; team entries are visible
 to the team that owns them.
 
@@ -560,9 +561,10 @@ current working directory as the profile runtime workspace root for local Pi
 sessions. `--sandbox` is a deprecated flag and is rejected so the task claim,
 logs, telemetry, and slot identity all agree on the selected profile.
 
-### What belongs in `sandbox.json`
+### What belongs in profile sandbox policy
 
-Minimal schema example:
+Runtime profiles embed the same sandbox config shape that older daemon versions
+read from `sandbox.json`. Minimal schema example:
 
 ```json
 {
@@ -653,11 +655,11 @@ Current repo example:
 
 This is deliberately repo-specific. `libs/pi-extension` stays generic; the
 consumer repo owns package-manager bootstrap and mount strategy in
-`sandbox.json`.
+the runtime profile's sandbox policy.
 
-The important layering rule is that `sandbox.json` should not branch on task
-types. If a bootstrap step assumes a repo exists under `/workspace`, gate it on
-`when.workspaceMode` instead:
+The important layering rule is that profile sandbox policy should not branch on
+task types. If a bootstrap step assumes a repo exists under `/workspace`, gate it
+on `when.workspaceMode` instead:
 
 - `shared_mount` or `dedicated_worktree`: repo-aware bootstrap is allowed
 - `scratch_mount`: skip repo-specific resume commands because `/workspace` is an

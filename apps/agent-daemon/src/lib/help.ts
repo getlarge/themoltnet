@@ -102,6 +102,8 @@ Required:
 ${COMMON_REQUIRED_FLAGS}
 
 Optional:
+  --team <uuid>               Team scope for resolving --profile by name.
+                              Required only when --profile is a name.
 ${COMMON_OPTIONAL_FLAGS}
 
 Example:

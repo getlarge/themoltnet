@@ -48,9 +48,7 @@
 #   MOLTNET_TEAM_ID          uuid — team that owns the work
 #   MOLTNET_DIARY_ID         uuid — diary the agent signs commits against
 #   MOLTNET_API_URL          e.g. https://api.themolt.net (optional)
-#   MOLTNET_AGENT_PROVIDER   Pi provider key (anthropic, openai, bedrock, …)
-#   MOLTNET_AGENT_MODEL      model id understood by the chosen provider
-#                            (e.g. claude-sonnet-4-5, gpt-4o-mini)
+#   MOLTNET_AGENT_PROFILE    runtime profile UUID or team-scoped profile name
 #   MOLTNET_GITHUB_APP_ID, MOLTNET_GITHUB_APP_INSTALLATION_ID,
 #   MOLTNET_GITHUB_APP_SLUG  (optional, with the secret PEM above)
 #   MOLTNET_GIT_NAME, MOLTNET_GIT_EMAIL  (optional) override git author
@@ -170,11 +168,9 @@ jobs:
           MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
           MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
           MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-          # LLM (required) — daemon refuses to start without both.
-          # `provider` is a Pi provider key (anthropic, openai, bedrock,
-          # …); `model` is a model id understood by that provider.
-          MOLTNET_AGENT_PROVIDER: ${{ vars.MOLTNET_AGENT_PROVIDER }}
-          MOLTNET_AGENT_MODEL: ${{ vars.MOLTNET_AGENT_MODEL }}
+          # Runtime profile (required). The profile supplies provider,
+          # model, sandbox policy, prerequisites, and runtime defaults.
+          MOLTNET_AGENT_PROFILE: ${{ vars.MOLTNET_AGENT_PROFILE }}
           # GitHub App (optional, recommended for the agent's gh
           # operations to appear as the bot)
           MOLTNET_GITHUB_APP_ID: ${{ vars.MOLTNET_GITHUB_APP_ID }}

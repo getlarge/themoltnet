@@ -20,11 +20,9 @@ Two modes:
     task-id: ${{ inputs.task-id }} # optional
     mode: once # once | drain (poll disallowed in CI)
     daemon-version: latest
-    # Required — pick a provider/model the daemon is configured for.
-    # Equivalently set MOLTNET_AGENT_PROVIDER / MOLTNET_AGENT_MODEL on
-    # `env:` below; either form works.
-    provider: anthropic
-    model: claude-sonnet-4-5
+    # Required — runtime profile UUID or team-scoped name.
+    # Equivalently set MOLTNET_AGENT_PROFILE on `env:` below.
+    profile: github-linear
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
@@ -88,8 +86,8 @@ routing](#multi-agent-routing) below.
 | `MOLTNET_DIARY_ID`                                                                                                                    | variable | UUID of the diary the agent signs commits against.                                                                                                                                                                                                |
 | `MOLTNET_API_URL`                                                                                                                     | variable | _Optional._ Defaults to `https://api.themolt.net`.                                                                                                                                                                                                |
 | `MOLTNET_AGENT_ALLOWLIST`                                                                                                             | variable | **Required, repo-level (not per-environment).** Comma-separated agent names allowed to receive `@moltnet-*` mentions. See [Multi-agent routing](#multi-agent-routing).                                                                            |
-| `MOLTNET_AGENT_PROVIDER`                                                                                                              | variable | **Required.** Pi provider key (`anthropic`, `openai`, `bedrock`, …). Equivalent to the `provider` action input — set whichever is more convenient. The daemon refuses to start without one.                                                       |
-| `MOLTNET_AGENT_MODEL`                                                                                                                 | variable | **Required.** Model id understood by the chosen provider (e.g. `claude-sonnet-4-5`, `gpt-4o-mini`). Equivalent to the `model` action input.                                                                                                       |
+| `MOLTNET_AGENT_PROFILE`                                                                                                               | variable | **Required.** Runtime profile UUID or team-scoped profile name. Equivalent to the `profile` action input. The profile supplies provider, model, sandbox policy, and runtime defaults.                                                             |
+| `MOLTNET_AGENT_PROVIDER`                                                                                                              | variable | _Optional._ Set to `ollama` only when the action should materialize Ollama Pi model files before daemon startup. Runtime provider still comes from the selected profile.                                                                          |
 | `MOLTNET_GITHUB_APP_ID`                                                                                                               | variable | _Optional._ GitHub App id for bot-attributed gh ops.                                                                                                                                                                                              |
 | `MOLTNET_GITHUB_APP_INSTALLATION_ID`                                                                                                  | variable | _Optional._ Installation id for the App.                                                                                                                                                                                                          |
 | `MOLTNET_GITHUB_APP_SLUG`                                                                                                             | variable | _Optional._ Slug; PEM is written to `<slug>.pem`.                                                                                                                                                                                                 |
