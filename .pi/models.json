@@ -2,7 +2,7 @@
   "providers": {
     "ollama": {
       "api": "openai-completions",
-      "apiKey": "OLLAMA_API_KEY",
+      "apiKey": "$OLLAMA_API_KEY",
       "baseUrl": "http://127.0.0.1:11434/v1",
       "models": [
         {
@@ -29,7 +29,7 @@
     },
     "ollama-cloud": {
       "api": "openai-completions",
-      "apiKey": "OLLAMA_API_KEY",
+      "apiKey": "$OLLAMA_API_KEY",
       "baseUrl": "https://ollama.com/v1",
       "models": [
         {
