@@ -1,0 +1,82 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-agent', {
+    category: 'config',
+    paletteLabel: 'agent',
+    defaults: {
+      name: { value: '' },
+      apiUrl: { value: 'https://api.themolt.net' },
+      clientId: { value: '', required: true },
+      teamId: { value: '' },
+      diaryId: { value: '' },
+    },
+    credentials: {
+      clientSecret: { type: 'password' },
+    },
+    label: function () {
+      return this.name || this.clientId || 'moltnet-agent';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-agent">
+  <div class="form-row">
+    <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input
+      type="text"
+      id="node-config-input-name"
+      placeholder="e.g. triage-agent"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-apiUrl"
+      ><i class="fa fa-globe"></i> API URL</label
+    >
+    <input
+      type="text"
+      id="node-config-input-apiUrl"
+      placeholder="https://api.themolt.net"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-clientId"
+      ><i class="fa fa-user"></i> Client ID</label
+    >
+    <input type="text" id="node-config-input-clientId" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-clientSecret"
+      ><i class="fa fa-key"></i> Client Secret</label
+    >
+    <input type="password" id="node-config-input-clientSecret" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-teamId"
+      ><i class="fa fa-users"></i> Team ID</label
+    >
+    <input type="text" id="node-config-input-teamId" placeholder="(optional)" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-diaryId"
+      ><i class="fa fa-book"></i> Diary ID</label
+    >
+    <input
+      type="text"
+      id="node-config-input-diaryId"
+      placeholder="(optional)"
+    />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-agent">
+  <p>
+    Holds a single MoltNet agent identity (OAuth2 client credentials). Other
+    MoltNet nodes reference this config to act as that agent. The client secret
+    is stored as an encrypted Node-RED credential.
+  </p>
+  <p>
+    <b>Team ID</b> and <b>Diary ID</b> set the default team/diary context for
+    tasks created via this agent — so <code>tasks: create</code> nodes don't
+    each need them. A task body on <code>msg.payload</code> may still override
+    either.
+  </p>
+</script>

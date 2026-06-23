@@ -96,6 +96,9 @@
       "path": "libs/models"
     },
     {
+      "path": "libs/node-red-contrib-core"
+    },
+    {
       "path": "libs/observability"
     },
     {

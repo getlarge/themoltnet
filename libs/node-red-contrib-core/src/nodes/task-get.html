@@ -1,0 +1,55 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-task-get', {
+    category: 'moltnet',
+    color: '#00d4c8',
+    paletteLabel: 'task: get',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      taskId: { value: '' },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-search',
+    label: function () {
+      return this.name || 'task: get';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-task-get">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
+    <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-taskId"><i class="fa fa-hashtag"></i> Task ID</label>
+    <input
+      type="text"
+      id="node-input-taskId"
+      placeholder="msg.payload.taskId"
+    />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-task-get">
+  <p>
+    Reads a MoltNet task and its attempts once (no polling). The task id is
+    taken from <code>msg.taskId</code>, <code>msg.payload.taskId</code>, or
+    <code>msg.payload.id</code> (the shape <code>tasks: create</code> emits),
+    falling back to the configured Task ID.
+  </p>
+  <p>
+    Emits a normalized snapshot on <code>msg.payload</code>:
+    <code
+      >{ taskId, status, terminal, accepted, acceptedAttemptN, state, attempt,
+      attempts, error, task }</code
+    >. <code>state</code> is the accepted attempt's output artifact, or
+    <code>null</code> when not yet accepted.
+  </p>
+  <p>For "block until the run settles", use <code>task: wait</code> instead.</p>
+</script>

@@ -1,0 +1,58 @@
+[
+  {
+    "disabled": false,
+    "id": "moltnet_cockpit_tab",
+    "info": "Inject a correlationId, read the workflow's tasks, view as a table.\nAdd a Dashboard 2.0 ui-table on the output of moltnet-workflow-status to visualize.",
+    "label": "MoltNet Cockpit (example)",
+    "type": "tab"
+  },
+  {
+    "apiUrl": "https://api.themolt.net",
+    "clientId": "",
+    "id": "moltnet_agent_cfg",
+    "name": "my-agent",
+    "type": "moltnet-agent"
+  },
+  {
+    "id": "inject_correlation",
+    "name": "set correlationId",
+    "once": false,
+    "props": [
+      {
+        "p": "correlationId",
+        "v": "00000000-0000-0000-0000-000000000000",
+        "vt": "str"
+      }
+    ],
+    "topic": "",
+    "type": "inject",
+    "wires": [["workflow_status"]],
+    "x": 180,
+    "y": 120,
+    "z": "moltnet_cockpit_tab"
+  },
+  {
+    "agent": "moltnet_agent_cfg",
+    "correlationId": "",
+    "id": "workflow_status",
+    "limit": 50,
+    "name": "",
+    "type": "moltnet-workflow-status",
+    "wires": [["debug_rows"]],
+    "x": 430,
+    "y": 120,
+    "z": "moltnet_cockpit_tab"
+  },
+  {
+    "active": true,
+    "complete": "payload",
+    "console": false,
+    "id": "debug_rows",
+    "name": "rows",
+    "type": "debug",
+    "wires": [],
+    "x": 650,
+    "y": 120,
+    "z": "moltnet_cockpit_tab"
+  }
+]

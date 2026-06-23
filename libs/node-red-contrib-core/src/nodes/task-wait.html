@@ -1,0 +1,166 @@
+<script type="text/javascript">
+  const MN_MESSAGE_KINDS = [
+    'text_delta',
+    'tool_call_start',
+    'tool_call_end',
+    'turn_end',
+    'error',
+    'info',
+  ];
+  RED.nodes.registerType('moltnet-task-wait', {
+    category: 'moltnet',
+    color: '#00d4c8',
+    paletteLabel: 'task: wait',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      taskId: { value: '' },
+      pollIntervalSec: { value: 5, validate: RED.validators.number() },
+      timeoutSec: { value: 1800, validate: RED.validators.number() },
+      tail: { value: false },
+      kinds: { value: '' },
+    },
+    inputs: 1,
+    outputs: 2,
+    outputLabels: ['tail', 'result'],
+    icon: 'font-awesome/fa-hourglass-half',
+    label: function () {
+      return this.name || 'task: wait';
+    },
+    oneditprepare: function () {
+      // Render one checkbox per message kind. `kinds` is stored as a
+      // comma-separated string (the runtime contract); empty = all kinds.
+      const selected = (this.kinds || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const container = $('#node-input-kinds-list').empty();
+      MN_MESSAGE_KINDS.forEach((kind) => {
+        const checked = selected.length === 0 || selected.indexOf(kind) !== -1;
+        container.append(
+          '<label style="display:inline-block;width:auto;margin-right:12px;font-weight:normal">' +
+            '<input type="checkbox" class="mn-kind" value="' +
+            kind +
+            '" ' +
+            (checked ? 'checked' : '') +
+            ' style="display:inline-block;width:auto;vertical-align:baseline;margin-right:4px"/>' +
+            kind +
+            '</label>',
+        );
+      });
+      // Show the kinds row only when tailing is enabled.
+      const toggle = () => {
+        $('#node-row-kinds').toggle($('#node-input-tail').is(':checked'));
+      };
+      $('#node-input-tail').on('change', toggle);
+      toggle();
+    },
+    oneditsave: function () {
+      const all = $('.mn-kind').length;
+      const checked = $('.mn-kind:checked')
+        .map(function () {
+          return this.value;
+        })
+        .get();
+      // All (or none) checked = no filter → empty string forwards every kind.
+      this.kinds = checked.length === all ? '' : checked.join(',');
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-task-wait">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
+    <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-taskId"><i class="fa fa-hashtag"></i> Task ID</label>
+    <input
+      type="text"
+      id="node-input-taskId"
+      placeholder="msg.payload.taskId"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-pollIntervalSec"
+      ><i class="fa fa-clock-o"></i> Poll (s)</label
+    >
+    <input type="text" id="node-input-pollIntervalSec" placeholder="5" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-timeoutSec"
+      ><i class="fa fa-hourglass-end"></i> Timeout (s)</label
+    >
+    <input
+      type="text"
+      id="node-input-timeoutSec"
+      placeholder="1800 (0 = none)"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-tail"><i class="fa fa-stream"></i> Tail</label>
+    <input
+      type="checkbox"
+      id="node-input-tail"
+      style="display: inline-block; width: auto; vertical-align: top"
+    />
+    <span>Emit live task messages on output 1</span>
+  </div>
+  <div class="form-row" id="node-row-kinds" style="margin-bottom: 0">
+    <label style="vertical-align: top"
+      ><i class="fa fa-filter"></i> Kinds</label
+    >
+    <div
+      id="node-input-kinds-list"
+      style="display: inline-block; width: 70%; vertical-align: top"
+    ></div>
+  </div>
+  <div class="form-tips" id="node-tip-kinds">
+    Tail forwards only the checked message kinds. All checked = forward every
+    kind.
+  </div>
+  <input type="hidden" id="node-input-kinds" />
+</script>
+
+<script type="text/html" data-help-name="moltnet-task-wait">
+  <p>
+    Polls a MoltNet task until it reaches a terminal status, in one loop that
+    does double duty (like the CLI's <code>task tail</code>).
+  </p>
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt>taskId<span class="property-type">string</span></dt>
+    <dd>
+      From <code>msg.taskId</code>, <code>msg.payload.taskId</code>, or
+      <code>msg.payload.id</code>, falling back to the configured Task ID.
+    </dd>
+  </dl>
+  <h3>Outputs</h3>
+  <ol class="node-ports">
+    <li>
+      <b>tail</b> — each new task message (<code>text_delta</code>,
+      <code>tool_call_start/end</code>, <code>turn_end</code>,
+      <code>error</code>, <code>info</code>) as it arrives, on
+      <code>msg.payload</code>. Only emitted when <b>Tail</b> is enabled; the
+      optional <b>Kinds</b> filter forwards just those kinds (cursor still
+      advances past the rest). Fires many times.
+    </li>
+    <li>
+      <b>result</b> — the terminal snapshot on <code>msg.payload</code>:
+      <code
+        >{ status, terminal, accepted, state, attempt, attempts, error, task
+        }</code
+      >. Fires once. On failure, <code>error</code> carries the last attempt's
+      error for an agent/human to interpret.
+    </li>
+  </ol>
+  <p>
+    Terminal status is checked after draining each message page, so trailing
+    messages land on the tail output before the result fires. A
+    <b>Timeout</b> of <code>0</code> waits indefinitely.
+  </p>
+</script>

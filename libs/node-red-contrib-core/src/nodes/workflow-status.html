@@ -1,0 +1,55 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-workflow-status', {
+    category: 'moltnet',
+    color: '#00d4c8',
+    paletteLabel: 'workflow: status',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      correlationId: { value: '' },
+      limit: { value: 50, validate: RED.validators.number() },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-list',
+    label: function () {
+      return this.name || 'workflow: status';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-workflow-status">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
+    <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-correlationId"
+      ><i class="fa fa-link"></i> Correlation ID</label
+    >
+    <input
+      type="text"
+      id="node-input-correlationId"
+      placeholder="msg.correlationId overrides"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-limit"><i class="fa fa-hashtag"></i> Limit</label>
+    <input type="number" id="node-input-limit" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-workflow-status">
+  <p>
+    Reads the tasks of one workflow run (by <code>correlationId</code>) and
+    emits a table-shaped <code>msg.payload</code> (array of rows) for a stock
+    Dashboard 2.0 <code>ui-table</code>. The correlation id comes from
+    <code>msg.correlationId</code>, <code>msg.payload.correlationId</code>, or
+    the node config, in that order. <code>msg.workflow</code> carries
+    <code>{ correlationId, total }</code>.
+  </p>
+</script>
