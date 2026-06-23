@@ -128,7 +128,6 @@ export async function runOnce(argv: string[]): Promise<number> {
     agentName: opts.agent,
     runtimeProfileId: profile.id,
   };
-  const mainRepo = findMainWorktree();
   const executionPlans = createExecutionPlanCache({
     stateDirs,
     slotIdentity,
@@ -235,6 +234,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   try {
     const rawExecuteTask = createPiTaskExecutor({
       agentName: opts.agent,
+      agentRootDir: sandbox.rootDir,
       mountPath: sandbox.rootDir,
       provider: profile.provider,
       model: profile.model,
@@ -292,7 +292,6 @@ export async function runOnce(argv: string[]): Promise<number> {
           ),
           workspaceId: executionPlan.workspaceId,
           worktreePath: resolveRecordedWorkspacePath(
-            mainRepo,
             stateDirs.rootDir,
             executionPlan,
           ),
@@ -401,7 +400,6 @@ export async function runOnce(argv: string[]): Promise<number> {
 }
 
 function resolveRecordedWorkspacePath(
-  mainRepo: string,
   stateRootDir: string,
   executionPlan: {
     workspaceId: string | null;
@@ -411,5 +409,5 @@ function resolveRecordedWorkspacePath(
   if (!executionPlan.workspaceId) return null;
   return executionPlan.workspaceMode === 'scratch_mount'
     ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
-    : join(mainRepo, '.worktrees', executionPlan.workspaceId);
+    : join(findMainWorktree(), '.worktrees', executionPlan.workspaceId);
 }

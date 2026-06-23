@@ -18,16 +18,20 @@ export interface DaemonAgentContext {
  */
 export async function resolveAgentContext(
   agentName: string,
+  options: { agentRootDir?: string } = {},
 ): Promise<DaemonAgentContext> {
   if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
     throw new Error(
       `Invalid agent name "${agentName}": must match /^[a-zA-Z0-9_-]+$/`,
     );
   }
-  const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
-    encoding: 'utf8',
-  }).trim();
-  const agentDir = join(repoRoot, '.moltnet', agentName);
+  const rootDir =
+    options.agentRootDir ??
+    execFileSync('git', ['rev-parse', '--show-toplevel'], {
+      encoding: 'utf8',
+      stdio: 'pipe',
+    }).trim();
+  const agentDir = join(rootDir, '.moltnet', agentName);
   if (!existsSync(join(agentDir, 'moltnet.json'))) {
     throw new Error(
       `Missing credentials at ${agentDir}/moltnet.json. ` +

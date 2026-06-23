@@ -56,7 +56,7 @@ import {
   createGondolinReadOps,
   createGondolinWriteOps,
 } from '../tool-operations.js';
-import { activateAgentEnv, findMainWorktree, resumeVm } from '../vm-manager.js';
+import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
 import type { PiTaskExecutionPlanFactory } from './execution-plan.js';
 import { injectTaskContext } from './inject-task-context.js';
@@ -111,6 +111,13 @@ const noopTurnEventHandler: TurnEventHandler = () => {};
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
   agentName: string;
+  /**
+   * Host root that owns `.moltnet/<agentName>/`.
+   *
+   * Defaults to `mountPath`, but callers that mount scratch workspaces should
+   * pass the stable sandbox root.
+   */
+  agentRootDir?: string;
   /** Host cwd that the VM mounts into the guest (defaults to `process.cwd()`). */
   mountPath?: string;
   /** LLM selection. */
@@ -264,6 +271,7 @@ export async function executePiTask(
   const attemptN = claimedTask.attemptN;
   const startTime = Date.now();
   const requestedMountPath = opts.mountPath ?? process.cwd();
+  const agentRootDir = opts.agentRootDir ?? requestedMountPath;
   const executionPlan = (await opts.makeExecutionPlan?.(claimedTask)) ?? null;
   let workspace: Awaited<ReturnType<typeof prepareTaskWorkspace>> | null = null;
   let mountPath = requestedMountPath;
@@ -421,6 +429,7 @@ export async function executePiTask(
       managed = await resumeVm({
         checkpointPath,
         agentName: opts.agentName,
+        agentRootDir,
         mountPath,
         workspaceMode: workspace.mode,
         extraAllowedHosts: opts.extraAllowedHosts,
@@ -441,8 +450,7 @@ export async function executePiTask(
 
     const diaryId = task.diaryId ?? '';
     const taskTeamId = task.teamId ?? '';
-    const mainRepo = findMainWorktree();
-    activateAgentEnv(managed.credentials.agentEnv, mainRepo);
+    activateAgentEnv(managed.credentials.agentEnv, agentRootDir);
     const activeWorkspace = workspace;
     if (!activeWorkspace) {
       throw new Error('task workspace not prepared');
