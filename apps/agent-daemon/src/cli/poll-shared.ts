@@ -515,7 +515,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         }
         const rawExecuteTask = createPiTaskExecutor({
           agentName: common.agent,
-          agentRootDir,
+          agentRootDir: ctx.agentRootDir,
           mountPath: sandbox.rootDir,
           provider: profile.provider,
           model: profile.model,

@@ -41,6 +41,7 @@ describe('resolveAgentContext', () => {
 
       const agentDir = join(root, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
+      expect(ctx.agentRootDir).toBe(root);
       expect(connectMock).toHaveBeenCalledWith({ configDir: agentDir });
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -61,6 +62,7 @@ describe('resolveAgentContext', () => {
 
       const agentDir = join(gitRoot, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
+      expect(ctx.agentRootDir).toBe(gitRoot);
       expect(connectMock).toHaveBeenCalledWith({ configDir: agentDir });
     } finally {
       rmSync(sandboxRoot, { recursive: true, force: true });

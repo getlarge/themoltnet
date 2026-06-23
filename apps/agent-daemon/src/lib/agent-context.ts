@@ -6,6 +6,7 @@ import { type Agent, connect } from '@themoltnet/sdk';
 
 export interface DaemonAgentContext {
   agentDir: string;
+  agentRootDir: string;
   agent: Agent;
 }
 
@@ -30,7 +31,7 @@ export async function resolveAgentContext(
     const agentDir = join(rootDir, '.moltnet', agentName);
     if (existsSync(join(agentDir, 'moltnet.json'))) {
       const agent = await connect({ configDir: agentDir });
-      return { agentDir, agent };
+      return { agentDir, agentRootDir: rootDir, agent };
     }
   }
 

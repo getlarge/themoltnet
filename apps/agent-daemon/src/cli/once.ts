@@ -240,7 +240,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   try {
     const rawExecuteTask = createPiTaskExecutor({
       agentName: opts.agent,
-      agentRootDir,
+      agentRootDir: ctx.agentRootDir,
       mountPath: sandbox.rootDir,
       provider: profile.provider,
       model: profile.model,
