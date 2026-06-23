@@ -5,7 +5,7 @@ import { buildDaemonTaskExecutionPlan } from './task-execution-plan.js';
 describe('buildDaemonTaskExecutionPlan', () => {
   const identity = {
     agentName: 'legreffier',
-    daemonProfileId: 'dddddddd-0000-4000-8000-000000000004',
+    runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
   } as const;
 
   it('maps resumable fulfill_brief tasks to a persistent Pi session dir', () => {

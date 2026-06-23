@@ -63,7 +63,7 @@ function serializeSlot(slot: RuntimeSlot) {
     id: slot.id,
     teamId: slot.teamId,
     agentName: slot.agentName,
-    daemonProfileId: slot.daemonProfileId ?? null,
+    runtimeProfileId: slot.runtimeProfileId ?? null,
     provider: slot.provider,
     model: slot.model,
     slotKey: slot.slotKey,
@@ -160,13 +160,13 @@ async function assertProfileInTeam(
   profileId: string,
   teamId: string,
 ) {
-  const profile = await fastify.daemonProfileRepository.findById(profileId);
+  const profile = await fastify.runtimeProfileRepository.findById(profileId);
   if (!profile || profile.teamId !== teamId) {
     throw createValidationProblem(
       [
         {
-          field: 'daemonProfileId',
-          message: `Daemon profile ${profileId} does not resolve in team ${teamId}`,
+          field: 'runtimeProfileId',
+          message: `Runtime profile ${profileId} does not resolve in team ${teamId}`,
         },
       ],
       'runtime slot profile does not resolve in team',
@@ -216,7 +216,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
         body.lastAttemptN,
         teamId,
       );
-      await assertProfileInTeam(fastify, body.daemonProfileId, teamId);
+      await assertProfileInTeam(fastify, body.runtimeProfileId, teamId);
       const slot = await fastify.runtimeSlotRepository.begin({
         ...body,
         teamId,
@@ -268,7 +268,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
         body.attemptN,
         teamId,
       );
-      await assertProfileInTeam(fastify, body.daemonProfileId, teamId);
+      await assertProfileInTeam(fastify, body.runtimeProfileId, teamId);
       const slot = await fastify.runtimeSlotRepository.finish({
         ...body,
         teamId,

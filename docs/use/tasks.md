@@ -104,7 +104,7 @@ forward); they differ only on the branch:
 | cross-profile | yes — a different agent profile may continue | n/a (own branch)                     |
 
 Use `extend` to keep building the same change, including handing the work to a
-different compatible daemon profile on the same PR. The continuation resolves
+different compatible runtime profile on the same PR. The continuation resolves
 the parent slot through the remote runtime-slot record, then reuses the parent
 branch/workspace when that local path is still available. Use `fork` to explore
 a divergent alternative that should land as its own PR; the fork branch is

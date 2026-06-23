@@ -16,7 +16,7 @@ export function createApiRuntimeSlotStore(args: {
       await agent.runtimeSlots.begin(
         {
           agentName: input.agentName,
-          daemonProfileId: input.daemonProfileId,
+          runtimeProfileId: input.runtimeProfileId,
           lastAttemptN: input.lastAttemptN,
           lastTaskId: input.lastTaskId,
           model: input.model,
@@ -50,7 +50,7 @@ export function createApiRuntimeSlotStore(args: {
         {
           agentName: identity.agentName,
           attemptN,
-          daemonProfileId: identity.daemonProfileId,
+          runtimeProfileId: identity.runtimeProfileId,
           model,
           provider,
           sessionPath: sessionPath ?? undefined,

@@ -144,7 +144,7 @@ describe('createExecutionPlanCache', () => {
     await slotStore.beginSlot({
       teamId: TEAM_ID,
       agentName: 'local-eval-943',
-      daemonProfileId: PROFILE_ID,
+      runtimeProfileId: PROFILE_ID,
       provider: 'ollama-cloud',
       model: 'qwen3.5',
       slotKey: 'run_eval:correlation:test:variant:baseline',
@@ -161,7 +161,7 @@ describe('createExecutionPlanCache', () => {
       taskId: '11111111-1111-4111-8111-111111111111',
       identity: {
         agentName: 'local-eval-943',
-        daemonProfileId: PROFILE_ID,
+        runtimeProfileId: PROFILE_ID,
       },
       slotKey: 'run_eval:correlation:test:variant:baseline',
       sessionPath: producerSessionPath,
@@ -171,7 +171,7 @@ describe('createExecutionPlanCache', () => {
       stateDirs,
       slotIdentity: {
         agentName: 'local-eval-943',
-        daemonProfileId: PROFILE_ID,
+        runtimeProfileId: PROFILE_ID,
       },
       warmSessionTtlSec: 300,
       slotRegistry: slotStore,
@@ -236,7 +236,7 @@ describe('createExecutionPlanCache', () => {
       stateDirs,
       slotIdentity: {
         agentName: 'local-eval-943',
-        daemonProfileId: PROFILE_ID,
+        runtimeProfileId: PROFILE_ID,
       },
       warmSessionTtlSec: 300,
       slotRegistry: slotStore,
@@ -292,7 +292,7 @@ describe('createExecutionPlanCache', () => {
     await slotStore.beginSlot({
       teamId: TEAM_ID,
       agentName: 'a',
-      daemonProfileId: PROFILE_ID,
+      runtimeProfileId: PROFILE_ID,
       provider: 'p',
       model: 'm',
       slotKey: 'freeform:correlation:abc',
@@ -307,14 +307,14 @@ describe('createExecutionPlanCache', () => {
     });
     await finishProducerSlot(slotStore, {
       taskId: '11111111-1111-4111-8111-111111111111',
-      identity: { agentName: 'a', daemonProfileId: PROFILE_ID },
+      identity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
       slotKey: 'freeform:correlation:abc',
       sessionPath: producerSessionPath,
     });
 
     const cache = createExecutionPlanCache({
       stateDirs,
-      slotIdentity: { agentName: 'a', daemonProfileId: PROFILE_ID },
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
       warmSessionTtlSec: 300,
       slotRegistry: slotStore,
     });
@@ -376,7 +376,7 @@ describe('createExecutionPlanCache', () => {
     await slotStore.beginSlot({
       teamId: TEAM_ID,
       agentName: 'a',
-      daemonProfileId: PROFILE_ID,
+      runtimeProfileId: PROFILE_ID,
       provider: 'p',
       model: 'm',
       slotKey: 'freeform:correlation:abc',
@@ -391,14 +391,14 @@ describe('createExecutionPlanCache', () => {
     });
     await finishProducerSlot(slotStore, {
       taskId: '11111111-1111-4111-8111-111111111111',
-      identity: { agentName: 'a', daemonProfileId: PROFILE_ID },
+      identity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
       slotKey: 'freeform:correlation:abc',
       sessionPath: producerSessionPath,
     });
 
     const cache = createExecutionPlanCache({
       stateDirs,
-      slotIdentity: { agentName: 'a', daemonProfileId: PROFILE_ID },
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
       warmSessionTtlSec: 300,
       slotRegistry: slotStore,
     });
@@ -455,7 +455,7 @@ describe('createExecutionPlanCache', () => {
     const slotStore = new InMemoryRuntimeSlotStore();
     const cache = createExecutionPlanCache({
       stateDirs,
-      slotIdentity: { agentName: 'a', daemonProfileId: PROFILE_ID },
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
       warmSessionTtlSec: 300,
       slotRegistry: slotStore,
     });
@@ -500,7 +500,7 @@ describe('createExecutionPlanCache', () => {
     await slotStore.beginSlot({
       teamId: TEAM_ID,
       agentName: 'local-eval-943',
-      daemonProfileId: PROFILE_ID,
+      runtimeProfileId: PROFILE_ID,
       provider: 'ollama-cloud',
       model: 'qwen3.5',
       slotKey: 'run_eval:correlation:test:variant:baseline',
@@ -517,7 +517,7 @@ describe('createExecutionPlanCache', () => {
       taskId: '11111111-1111-4111-8111-111111111111',
       identity: {
         agentName: 'local-eval-943',
-        daemonProfileId: PROFILE_ID,
+        runtimeProfileId: PROFILE_ID,
       },
       slotKey: 'run_eval:correlation:test:variant:baseline',
       sessionPath: producerSessionPath,
@@ -527,7 +527,7 @@ describe('createExecutionPlanCache', () => {
       stateDirs,
       slotIdentity: {
         agentName: 'local-eval-943',
-        daemonProfileId: PROFILE_ID,
+        runtimeProfileId: PROFILE_ID,
       },
       warmSessionTtlSec: 300,
       slotRegistry: slotStore,

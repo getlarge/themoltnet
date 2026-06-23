@@ -14,7 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { PgEnum } from 'drizzle-orm/pg-core/columns/enum';
 
-interface DaemonProfileSchemaDeps {
+interface RuntimeProfileSchemaDeps {
   agents: { identityId: AnyPgColumn };
   humans: { id: AnyPgColumn };
   teams: { id: AnyPgColumn };
@@ -22,15 +22,15 @@ interface DaemonProfileSchemaDeps {
   storageModeEnum: PgEnum<['local']>;
 }
 
-export function defineDaemonProfilesTable({
+export function defineRuntimeProfilesTable({
   agents,
   humans,
   teams,
   runtimeKindEnum,
   storageModeEnum,
-}: DaemonProfileSchemaDeps) {
+}: RuntimeProfileSchemaDeps) {
   return pgTable(
-    'daemon_profiles',
+    'runtime_profiles',
     {
       id: uuid('id').defaultRandom().primaryKey(),
       teamId: uuid('team_id')
@@ -88,23 +88,29 @@ export function defineDaemonProfilesTable({
         .defaultNow(),
     },
     (table) => [
-      uniqueIndex('daemon_profiles_team_name_idx').on(table.teamId, table.name),
-      index('daemon_profiles_team_idx').on(table.teamId),
+      uniqueIndex('runtime_profiles_team_name_idx').on(
+        table.teamId,
+        table.name,
+      ),
+      index('runtime_profiles_team_idx').on(table.teamId),
       check(
-        'daemon_profiles_creator_xor',
+        'runtime_profiles_creator_xor',
         sql`(created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL)`,
       ),
-      check('daemon_profiles_session_ttl_positive', sql`session_ttl_sec > 0`),
+      check('runtime_profiles_session_ttl_positive', sql`session_ttl_sec > 0`),
       check(
-        'daemon_profiles_workspace_ttl_positive',
+        'runtime_profiles_workspace_ttl_positive',
         sql`workspace_ttl_sec > 0`,
       ),
-      check('daemon_profiles_lease_ttl_positive', sql`lease_ttl_sec > 0`),
+      check('runtime_profiles_lease_ttl_positive', sql`lease_ttl_sec > 0`),
       check(
-        'daemon_profiles_heartbeat_interval_non_negative',
+        'runtime_profiles_heartbeat_interval_non_negative',
         sql`heartbeat_interval_ms >= 0`,
       ),
-      check('daemon_profiles_max_batch_size_positive', sql`max_batch_size > 0`),
+      check(
+        'runtime_profiles_max_batch_size_positive',
+        sql`max_batch_size > 0`,
+      ),
     ],
   );
 }

@@ -1,7 +1,7 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
-import type { DaemonProfile as RuntimeProfile } from '@moltnet/database';
+import type { RuntimeProfile as RuntimeProfile } from '@moltnet/database';
 import { UniqueViolationError } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
@@ -164,7 +164,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
-      const rows = await fastify.daemonProfileRepository.listByTeamId(teamId);
+      const rows = await fastify.runtimeProfileRepository.listByTeamId(teamId);
       return { items: rows.map(serializeProfile) };
     },
   );
@@ -206,7 +206,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       >;
       const definitionCid = await computeProfileDefinitionCid(body);
       try {
-        const row = await fastify.daemonProfileRepository.create({
+        const row = await fastify.runtimeProfileRepository.create({
           teamId,
           name: body.name,
           description: body.description ?? null,
@@ -262,7 +262,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const row = await fastify.daemonProfileRepository.findById(
+      const row = await fastify.runtimeProfileRepository.findById(
         request.params.profileId,
       );
       if (!row) throw createProblem('not-found');
@@ -298,7 +298,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const existing = await fastify.daemonProfileRepository.findById(
+      const existing = await fastify.runtimeProfileRepository.findById(
         request.params.profileId,
       );
       if (!existing) throw createProblem('not-found');
@@ -338,7 +338,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       };
       const definitionCid = await computeProfileDefinitionCid(next);
       try {
-        const row = await fastify.daemonProfileRepository.update(existing.id, {
+        const row = await fastify.runtimeProfileRepository.update(existing.id, {
           ...next,
           definitionCid,
         });
@@ -377,7 +377,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const row = await fastify.daemonProfileRepository.findById(
+      const row = await fastify.runtimeProfileRepository.findById(
         request.params.profileId,
       );
       if (!row) throw createProblem('not-found');
@@ -388,7 +388,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
-      await fastify.daemonProfileRepository.delete(row.id);
+      await fastify.runtimeProfileRepository.delete(row.id);
       return reply.status(204).send(null);
     },
   );

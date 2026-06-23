@@ -59,12 +59,6 @@ export {
   createCorrelationSealRepository,
 } from './repositories/correlation-seal.repository.js';
 export {
-  type CreateDaemonProfileInput,
-  createDaemonProfileRepository,
-  type DaemonProfileRepository,
-  type UpdateDaemonProfileInput,
-} from './repositories/daemon-profile.repository.js';
-export {
   createDiaryRepository,
   type DiaryRepository,
 } from './repositories/diary.repository.js';
@@ -117,6 +111,12 @@ export {
   type RuntimeModelRepository,
   type UpdateRuntimeModelInput,
 } from './repositories/runtime-models.repository.js';
+export {
+  type CreateRuntimeProfileInput,
+  createRuntimeProfileRepository,
+  type RuntimeProfileRepository,
+  type UpdateRuntimeProfileInput,
+} from './repositories/runtime-profile.repository.js';
 export {
   type BeginRuntimeSlotInput,
   createRuntimeSlotRepository,

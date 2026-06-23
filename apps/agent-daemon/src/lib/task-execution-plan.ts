@@ -91,7 +91,7 @@ export function buildDaemonSlotId(
     'agent',
     slugSlotIdentityComponent(identity.agentName),
     'profile',
-    slugSlotIdentityComponent(identity.daemonProfileId),
+    slugSlotIdentityComponent(identity.runtimeProfileId),
     'key',
     slotKey,
   ].join(':');

@@ -86,13 +86,13 @@ async function validateAllowedProfiles(
     ...new Set((allowedProfiles ?? []).map((p) => p.profileId)),
   ];
   for (const profileId of profileIds) {
-    const profile = await fastify.daemonProfileRepository.findById(profileId);
+    const profile = await fastify.runtimeProfileRepository.findById(profileId);
     if (!profile || profile.teamId !== teamId) {
       throw createValidationProblem(
         [
           {
             field: 'allowedProfiles',
-            message: `Daemon profile ${profileId} does not resolve in team ${teamId}`,
+            message: `Runtime profile ${profileId} does not resolve in team ${teamId}`,
           },
         ],
         'allowedProfiles contains an unknown profile',

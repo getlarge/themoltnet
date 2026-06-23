@@ -189,7 +189,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
     const slotIdentity: DaemonSlotIdentity = {
       agentName: common.agent,
-      daemonProfileId: profile.id,
+      runtimeProfileId: profile.id,
     };
     const executionPlans = createExecutionPlanCache({
       stateDirs,
@@ -220,8 +220,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     resourceAttributes: {
       'moltnet.team.id': teamId,
       'moltnet.agent.name': baseCommon.agent,
-      'moltnet.daemon_profile.count': String(profiles.length),
-      'moltnet.daemon_profile.ids': profiles.map((p) => p.id).join(','),
+      'moltnet.runtime_profile.count': String(profiles.length),
+      'moltnet.runtime_profile.ids': profiles.map((p) => p.id).join(','),
     },
   });
 
@@ -233,8 +233,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     mode: opts.modeLabel,
     agent: baseCommon.agent,
     teamId,
-    daemonProfileIds: profiles.map((p) => p.id),
-    daemonProfileNames: profiles.map((p) => p.name),
+    runtimeProfileIds: profiles.map((p) => p.id),
+    runtimeProfileNames: profiles.map((p) => p.name),
   });
 
   const abort = new AbortController();
@@ -362,8 +362,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           writeCorrelationAnchors: makePrBodyAnchorWriter({
             gh: createGhCliClient(),
             logger: rootLogger.child({
-              daemonProfileId: selected.profile.id,
-              daemonProfileName: selected.profile.name,
+              runtimeProfileId: selected.profile.id,
+              runtimeProfileName: selected.profile.name,
             }),
           }),
           log: (msg, err) => rootLogger.warn({ err }, msg),
@@ -380,8 +380,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           stateDirs,
         } = selected;
         const taskLogger = rootLogger.child({
-          daemonProfileId: profile.id,
-          daemonProfileName: profile.name,
+          runtimeProfileId: profile.id,
+          runtimeProfileName: profile.name,
           provider: profile.provider,
           model: profile.model,
         });
@@ -487,7 +487,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         if (executionPlan.slotKey && executionPlan.sessionPersistence) {
           await slotRegistry.beginSlot({
             ...slotIdentity,
-            daemonProfileId: profile.id,
+            runtimeProfileId: profile.id,
             provider: profile.provider,
             model: profile.model,
             teamId: claimedTask.task.teamId,

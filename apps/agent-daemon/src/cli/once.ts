@@ -126,7 +126,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const slotIdentity: DaemonSlotIdentity = {
     agentName: opts.agent,
-    daemonProfileId: profile.id,
+    runtimeProfileId: profile.id,
   };
   const mainRepo = findMainWorktree();
   const executionPlans = createExecutionPlanCache({
@@ -144,7 +144,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       'moltnet.agent.name': opts.agent,
       'moltnet.llm.provider': profile.provider,
       'moltnet.llm.model': profile.model,
-      'moltnet.daemon_profile.id': profile.id,
+      'moltnet.runtime_profile.id': profile.id,
     },
   });
 
@@ -157,8 +157,8 @@ export async function runOnce(argv: string[]): Promise<number> {
     agent: opts.agent,
     provider: profile.provider,
     model: profile.model,
-    daemonProfileId: profile.id,
-    daemonProfileName: profile.name,
+    runtimeProfileId: profile.id,
+    runtimeProfileName: profile.name,
   });
 
   rootLogger.info(
@@ -280,7 +280,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       if (executionPlan.slotKey && executionPlan.sessionPersistence) {
         await slotRegistry.beginSlot({
           ...slotIdentity,
-          daemonProfileId: profile.id,
+          runtimeProfileId: profile.id,
           provider: profile.provider,
           model: profile.model,
           teamId: claimedTask.task.teamId,

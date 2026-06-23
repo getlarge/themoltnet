@@ -57,11 +57,11 @@ export type AppendMessagesResponse = {
 
 export type BeginRuntimeSlotBody = {
   agentName: string;
-  daemonProfileId: string;
   lastAttemptN: number;
   lastTaskId: string;
   model: string;
   provider: string;
+  runtimeProfileId: string;
   sessionDir?: string;
   sessionPath?: string;
   slotKey: string;
@@ -811,9 +811,9 @@ export type FindLatestRuntimeSlotForAttemptQuery = {
 export type FinishRuntimeSlotBody = {
   agentName: string;
   attemptN: number;
-  daemonProfileId: string;
   model: string;
   provider: string;
+  runtimeProfileId: string;
   sessionPath?: string;
   slotKey: string;
   taskId: string;
@@ -1533,7 +1533,6 @@ export type ResolvedRuntimeSlot = {
   slot: {
     agentName: string;
     createdAtMs: number;
-    daemonProfileId: string | null;
     expiresAtMs: number;
     id: string;
     lastAttemptN: number;
@@ -1541,6 +1540,7 @@ export type ResolvedRuntimeSlot = {
     lastUsedAtMs: number;
     model: string;
     provider: string;
+    runtimeProfileId: string | null;
     sessionDir: string | null;
     sessionPath: string | null;
     slotKey: string;
@@ -1784,7 +1784,6 @@ export type RuntimeProfileSandbox = {
 export type RuntimeSlot = {
   agentName: string;
   createdAtMs: number;
-  daemonProfileId: string | null;
   expiresAtMs: number;
   id: string;
   lastAttemptN: number;
@@ -1792,6 +1791,7 @@ export type RuntimeSlot = {
   lastUsedAtMs: number;
   model: string;
   provider: string;
+  runtimeProfileId: string | null;
   sessionDir: string | null;
   sessionPath: string | null;
   slotKey: string;
@@ -6115,11 +6115,11 @@ export type UpdateRuntimeProfileResponse =
 export type BeginRuntimeSlotData = {
   body: {
     agentName: string;
-    daemonProfileId: string;
     lastAttemptN: number;
     lastTaskId: string;
     model: string;
     provider: string;
+    runtimeProfileId: string;
     sessionDir?: string;
     sessionPath?: string;
     slotKey: string;
@@ -6520,7 +6520,6 @@ export type BeginRuntimeSlotResponses = {
   200: {
     agentName: string;
     createdAtMs: number;
-    daemonProfileId: string | null;
     expiresAtMs: number;
     id: string;
     lastAttemptN: number;
@@ -6528,6 +6527,7 @@ export type BeginRuntimeSlotResponses = {
     lastUsedAtMs: number;
     model: string;
     provider: string;
+    runtimeProfileId: string | null;
     sessionDir: string | null;
     sessionPath: string | null;
     slotKey: string;
@@ -6545,9 +6545,9 @@ export type FinishRuntimeSlotData = {
   body: {
     agentName: string;
     attemptN: number;
-    daemonProfileId: string;
     model: string;
     provider: string;
+    runtimeProfileId: string;
     sessionPath?: string;
     slotKey: string;
     taskId: string;
@@ -6943,7 +6943,6 @@ export type FinishRuntimeSlotResponses = {
   200: {
     agentName: string;
     createdAtMs: number;
-    daemonProfileId: string | null;
     expiresAtMs: number;
     id: string;
     lastAttemptN: number;
@@ -6951,6 +6950,7 @@ export type FinishRuntimeSlotResponses = {
     lastUsedAtMs: number;
     model: string;
     provider: string;
+    runtimeProfileId: string | null;
     sessionDir: string | null;
     sessionPath: string | null;
     slotKey: string;
@@ -7280,7 +7280,6 @@ export type FindLatestRuntimeSlotForAttemptResponses = {
     slot: {
       agentName: string;
       createdAtMs: number;
-      daemonProfileId: string | null;
       expiresAtMs: number;
       id: string;
       lastAttemptN: number;
@@ -7288,6 +7287,7 @@ export type FindLatestRuntimeSlotForAttemptResponses = {
       lastUsedAtMs: number;
       model: string;
       provider: string;
+      runtimeProfileId: string | null;
       sessionDir: string | null;
       sessionPath: string | null;
       slotKey: string;

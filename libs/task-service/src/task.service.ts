@@ -14,12 +14,12 @@ import {
   type AgentRepository,
   type ContextPackRepository,
   type CorrelationSealRepository,
-  type DaemonProfileRepository,
   DBOS,
   type DiaryRepository,
   type NewTask,
   type NewTaskMessage,
   type RenderedPackRepository,
+  type RuntimeProfileRepository,
   type Task as DbTask,
   type TaskRepository,
   taskWorkflows,
@@ -202,7 +202,7 @@ interface TaskServiceDeps {
   taskRepository: TaskRepository;
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
-  daemonProfileRepository: DaemonProfileRepository;
+  runtimeProfileRepository: RuntimeProfileRepository;
   /** Used to resolve `context_packs` in async validators (#1096). */
   contextPackRepository: ContextPackRepository;
   /** Used to resolve `rendered_packs` in async validators (#1096). */
@@ -247,7 +247,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     taskRepository,
     diaryRepository,
     agentRepository,
-    daemonProfileRepository,
+    runtimeProfileRepository,
     contextPackRepository,
     renderedPackRepository,
     correlationSealRepository,
@@ -1090,7 +1090,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         }
 
         const selectedProfile =
-          await daemonProfileRepository.findById(selectedProfileId);
+          await runtimeProfileRepository.findById(selectedProfileId);
         if (!selectedProfile || selectedProfile.teamId !== row.teamId) {
           throw new TaskServiceError(
             'forbidden',

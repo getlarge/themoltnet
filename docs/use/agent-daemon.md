@@ -393,7 +393,7 @@ Use the SDK to create or update profiles, then pass `--profile <id|name>` to
 ```md [MCP Tool]
 Profile management is not exposed as MCP tools yet.
 Use the SDK to create or update profiles, then create tasks with
-`allowedProfiles` when a task must run on a compatible daemon profile.
+`allowedProfiles` when a task must run on a compatible runtime profile.
 ```
 
 :::

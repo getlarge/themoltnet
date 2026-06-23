@@ -175,7 +175,7 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       body: {
         agentName: 'legreffier',
-        daemonProfileId: profileId,
+        runtimeProfileId: profileId,
         lastAttemptN: attemptN,
         lastTaskId: taskId,
         model: 'claude-sonnet-4-5',
@@ -212,7 +212,7 @@ describe('Runtime slots API', () => {
       body: {
         agentName: 'legreffier',
         attemptN,
-        daemonProfileId: profileId,
+        runtimeProfileId: profileId,
         model: 'claude-sonnet-4-5',
         provider: 'anthropic',
         sessionPath: '/tmp/moltnet/e2e-sessions/producer-finished.jsonl',
@@ -266,7 +266,7 @@ describe('Runtime slots API', () => {
       body: {
         agentName: 'legreffier',
         attemptN: first.attemptN,
-        daemonProfileId: profileId,
+        runtimeProfileId: profileId,
         model: 'claude-sonnet-4-5',
         provider: 'anthropic',
         sessionPath: '/tmp/moltnet/e2e-sessions/stale-overwrite.jsonl',
@@ -301,7 +301,7 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       body: {
         agentName: 'legreffier',
-        daemonProfileId: profileId,
+        runtimeProfileId: profileId,
         lastAttemptN: 1,
         lastTaskId: taskId,
         model: 'claude-sonnet-4-5',
@@ -345,7 +345,7 @@ describe('Runtime slots API', () => {
       body: {
         agentName: 'legreffier',
         attemptN,
-        daemonProfileId: profileId,
+        runtimeProfileId: profileId,
         model: 'claude-sonnet-4-5',
         provider: 'anthropic',
         sessionPath: '/tmp/moltnet/e2e-sessions/non-member-overwrite.jsonl',
@@ -378,7 +378,7 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': outsider.personalTeamId },
       body: {
         agentName: 'legreffier',
-        daemonProfileId: profileId,
+        runtimeProfileId: profileId,
         lastAttemptN: attemptN,
         lastTaskId: taskId,
         model: 'claude-sonnet-4-5',

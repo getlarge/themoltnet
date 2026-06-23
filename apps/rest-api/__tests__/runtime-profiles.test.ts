@@ -1,4 +1,4 @@
-import { type DaemonProfile, UniqueViolationError } from '@moltnet/database';
+import { type RuntimeProfile, UniqueViolationError } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -12,7 +12,7 @@ import {
 const TEAM_ID = 'bbbbbbbb-0000-0000-0000-000000000002';
 const PROFILE_ID = 'dddddddd-0000-0000-0000-000000000004';
 
-function mockProfile(overrides: Partial<DaemonProfile> = {}): DaemonProfile {
+function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
   return {
     id: PROFILE_ID,
     teamId: TEAM_ID,
@@ -61,7 +61,7 @@ describe('runtime profile routes', () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
-    mocks.daemonProfileRepository.create.mockResolvedValue(mockProfile());
+    mocks.runtimeProfileRepository.create.mockResolvedValue(mockProfile());
 
     const response = await app.inject({
       method: 'POST',
@@ -110,7 +110,7 @@ describe('runtime profile routes', () => {
       heartbeatIntervalMs: 60_000,
       maxBatchSize: 50,
     });
-    expect(mocks.daemonProfileRepository.create).toHaveBeenCalledWith(
+    expect(mocks.runtimeProfileRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
         provider: 'anthropic',
@@ -127,7 +127,7 @@ describe('runtime profile routes', () => {
 
   it('lists runtime profiles when the caller can access the team', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
-    mocks.daemonProfileRepository.listByTeamId.mockResolvedValue([
+    mocks.runtimeProfileRepository.listByTeamId.mockResolvedValue([
       mockProfile(),
     ]);
 
@@ -169,16 +169,16 @@ describe('runtime profile routes', () => {
     });
 
     expect(response.statusCode).toBe(400);
-    expect(mocks.daemonProfileRepository.create).not.toHaveBeenCalled();
+    expect(mocks.runtimeProfileRepository.create).not.toHaveBeenCalled();
   });
 
   it('returns typed conflict details for duplicate profile names', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
-    mocks.daemonProfileRepository.create.mockRejectedValue(
+    mocks.runtimeProfileRepository.create.mockRejectedValue(
       new UniqueViolationError({
-        constraint: 'daemon_profiles_team_name_idx',
+        constraint: 'runtime_profiles_team_name_idx',
         target: {
           resource: 'runtime-profile',
           keys: {
@@ -217,7 +217,7 @@ describe('runtime profile routes', () => {
     expect(response.json()).toMatchObject({
       code: 'CONFLICT',
       conflict: {
-        constraint: 'daemon_profiles_team_name_idx',
+        constraint: 'runtime_profiles_team_name_idx',
         target: {
           resource: 'runtime-profile',
           keys: {
@@ -231,10 +231,10 @@ describe('runtime profile routes', () => {
 
   it('returns typed conflict details for duplicate profile names on update', async () => {
     mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
-    mocks.daemonProfileRepository.findById.mockResolvedValue(mockProfile());
-    mocks.daemonProfileRepository.update.mockRejectedValue(
+    mocks.runtimeProfileRepository.findById.mockResolvedValue(mockProfile());
+    mocks.runtimeProfileRepository.update.mockRejectedValue(
       new UniqueViolationError({
-        constraint: 'daemon_profiles_team_name_idx',
+        constraint: 'runtime_profiles_team_name_idx',
         target: {
           resource: 'runtime-profile',
           keys: {
@@ -258,7 +258,7 @@ describe('runtime profile routes', () => {
     expect(response.json()).toMatchObject({
       code: 'CONFLICT',
       conflict: {
-        constraint: 'daemon_profiles_team_name_idx',
+        constraint: 'runtime_profiles_team_name_idx',
         target: {
           resource: 'runtime-profile',
           keys: {
@@ -268,7 +268,7 @@ describe('runtime profile routes', () => {
         },
       },
     });
-    expect(mocks.daemonProfileRepository.update).toHaveBeenCalledWith(
+    expect(mocks.runtimeProfileRepository.update).toHaveBeenCalledWith(
       PROFILE_ID,
       expect.objectContaining({
         name: 'deploy-bot',

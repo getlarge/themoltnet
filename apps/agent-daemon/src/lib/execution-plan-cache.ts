@@ -31,7 +31,7 @@ export interface RuntimeSlotStore {
   beginSlot(input: {
     teamId: string;
     agentName: string;
-    daemonProfileId: string;
+    runtimeProfileId: string;
     provider: string;
     model: string;
     slotKey: string;

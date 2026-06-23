@@ -27,7 +27,7 @@ describe('runtime slots', () => {
 
     await store.beginSlot({
       agentName: 'legreffier',
-      daemonProfileId: 'dddddddd-0000-4000-8000-000000000004',
+      runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
       lastAttemptN: 1,
       lastTaskId: 'aaaaaaaa-0000-0000-0000-000000000001',
       model: 'claude-sonnet-4-5',
@@ -48,7 +48,7 @@ describe('runtime slots', () => {
       1,
       {
         agentName: 'legreffier',
-        daemonProfileId: 'dddddddd-0000-4000-8000-000000000004',
+        runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
       },
       'freeform:correlation:test',
       'anthropic',
@@ -63,14 +63,14 @@ describe('runtime slots', () => {
 
     expect(begin).toHaveBeenCalledWith(
       expect.objectContaining({
-        daemonProfileId: 'dddddddd-0000-4000-8000-000000000004',
+        runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
       }),
       { teamId: 'bbbbbbbb-0000-0000-0000-000000000002' },
     );
     expect(finish).toHaveBeenCalledWith(
       expect.objectContaining({
         attemptN: 1,
-        daemonProfileId: 'dddddddd-0000-4000-8000-000000000004',
+        runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
         taskId: 'aaaaaaaa-0000-0000-0000-000000000001',
       }),
       { teamId: 'bbbbbbbb-0000-0000-0000-000000000002' },
