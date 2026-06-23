@@ -1,4 +1,5 @@
 import {
+  batchDeleteDiaryEntries,
   createDiaryEntry,
   createSigningRequest,
   deleteDiaryEntryById,
@@ -71,6 +72,16 @@ export function createEntriesNamespace(
           client,
           auth,
           path: { entryId },
+        }),
+      );
+    },
+
+    async deleteMany(body) {
+      return unwrapResult(
+        await batchDeleteDiaryEntries({
+          client,
+          auth,
+          body,
         }),
       );
     },

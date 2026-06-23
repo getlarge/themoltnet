@@ -3,6 +3,9 @@ import type {
   AcceptTransferResponses,
   AgentProfile,
   AppendTaskMessagesData,
+  BatchDeleteDiaryEntriesData,
+  BatchDeleteResponse,
+  BatchDeleteTasksData,
   BeginRuntimeSlotData,
   CancelTaskData,
   ClaimTaskData,
@@ -187,6 +190,10 @@ export interface EntriesNamespace {
   ): Promise<DiaryEntry>;
 
   delete(entryId: string): Promise<Success>;
+
+  deleteMany(
+    body: NonNullable<BatchDeleteDiaryEntriesData['body']>,
+  ): Promise<BatchDeleteResponse>;
 
   search(body: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
@@ -495,6 +502,10 @@ export interface TasksNamespace {
   ): Promise<Task>;
 
   cancel(id: string, body: CancelTaskData['body']): Promise<Task>;
+
+  deleteMany(
+    body: NonNullable<BatchDeleteTasksData['body']>,
+  ): Promise<BatchDeleteResponse>;
 
   listAttempts(id: string): Promise<TaskAttempt[]>;
 
