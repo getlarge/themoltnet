@@ -46,7 +46,8 @@ describe('moltnet-tasks-create', () => {
 
     expect(outputs).toHaveLength(1);
     expect(outputs[0].payload).toMatchObject({ id: 'task-123' });
-    expect(created).toEqual([{ foo: 'bar' }]);
+    // Payload is preserved and the configured taskType is merged in.
+    expect(created).toEqual([{ foo: 'bar', taskType: 'freeform' }]);
   });
 
   it('falls back to config taskType and inherits team/diary from the agent', async () => {
@@ -80,6 +81,45 @@ describe('moltnet-tasks-create', () => {
       teamId: 'team-1',
       diaryId: 'diary-1',
     });
+  });
+
+  it('builds body from node fields (tags/profiles/maxAttempts/title); payload wins', async () => {
+    const created: Record<string, unknown>[] = [];
+    const agent = {
+      tasks: {
+        create: (body: Record<string, unknown>) => {
+          created.push(body);
+          return Promise.resolve({ id: 't' });
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(tasksCreate);
+    red.create('moltnet-agent', 'a1');
+    const node = red.create('moltnet-tasks-create', 'n1', {
+      agent: 'a1',
+      taskType: 'fulfill_brief',
+      title: 'node title',
+      tags: 'triage, issue-1',
+      allowedProfiles: 'prof-a, prof-b',
+      maxAttempts: 3,
+    });
+
+    // payload carries input + overrides the title; node fills the rest.
+    const { outputs } = await red.input(node, {
+      payload: { input: { brief: 'go' }, title: 'payload title' },
+    });
+
+    expect(created[0]).toMatchObject({
+      taskType: 'fulfill_brief',
+      title: 'payload title',
+      tags: ['triage', 'issue-1'],
+      allowedProfiles: [{ profileId: 'prof-a' }, { profileId: 'prof-b' }],
+      maxAttempts: 3,
+      input: { brief: 'go' },
+    });
+    expect(outputs).toHaveLength(1);
   });
 
   it('threads correlationId: mints when configured and echoes onto msg', async () => {

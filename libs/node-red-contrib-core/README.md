@@ -26,9 +26,11 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   credential. Exposes `getAgent()` returning a connected, token-managed SDK
   agent.
 - **`moltnet-tasks-create`** (palette: _tasks: create_) — creates a task as the
-  referenced agent. Uses `msg.payload` as the task body when it is an object,
-  else builds a minimal body from config. Holds no SDK import — the SDK lives
-  only in the config node.
+  referenced agent. Merges node fields (`taskType`, `title`, `tags`,
+  `allowedProfiles`, `maxAttempts`) with `msg.payload` (payload wins). The task
+  `input` and advanced fields come from `msg.payload`. See
+  [Building the task request](#building-the-task-request). Holds no SDK import —
+  the SDK lives only in the config node.
 - **`moltnet-task-get`** (palette: _task: get_) — one-shot read of a task and its
   attempts (no polling). Emits a normalized **snapshot** on `msg.payload`:
   `{ taskId, status, terminal, accepted, acceptedAttemptN, state, attempt,
@@ -49,6 +51,45 @@ attempts, error, task }`. `state` is the accepted attempt's output artifact
 All nodes register a long, collision-safe `type` (`moltnet-*`) but show a short
 `paletteLabel` under the **moltnet** category, so the palette is not crowded by
 the prefix.
+
+## Building the task request
+
+`tasks: create` assembles the `POST /tasks` body by merging **node fields** with
+**`msg.payload`** — `msg.payload` wins, node fields fill the gaps. Auto-filled:
+`teamId`/`diaryId` (from the `agent` config node) and `correlationId` (threaded
+through the run, see below).
+
+| Field              | Source                  | Notes                                             |
+| ------------------ | ----------------------- | ------------------------------------------------- |
+| `taskType`         | node select / payload   | one of the 9 server task types                    |
+| `title`            | node / payload          |                                                   |
+| `tags`             | node (CSV) / payload    | `"a,b"` → `["a","b"]`                             |
+| `allowedProfiles`  | node (CSV) / payload    | `"p1,p2"` → `[{profileId:"p1"},{profileId:"p2"}]` |
+| `maxAttempts`      | node / payload          | per-task retry budget                             |
+| `input`            | **`msg.payload` only**  | the brief/params; shape depends on `taskType`     |
+| `teamId`/`diaryId` | agent config (override) |                                                   |
+| `correlationId`    | minted/threaded         |                                                   |
+
+The task **`input`** (and advanced fields like `references`, `claimCondition`,
+`successCriteria`, timeouts) is not a node field — set it on `msg.payload` with
+an upstream `function`/`change` node. The `input` shape is **per task type**:
+
+- **`GET /tasks/schemas`** returns each type's `inputSchema` (the SDK exposes it
+  as `agent.tasks.schemas()`). E.g. `fulfill_brief` requires `{ brief: string }`.
+- The **[OpenAPI spec](https://api.themolt.net/openapi.json)** (`CreateTask`)
+  documents the full body.
+- Repo references: [`docs/reference/tasks.md`](../../docs/reference/tasks.md),
+  [`docs/start/first-task.md`](../../docs/start/first-task.md), and the daemon
+  walkthrough in [`apps/agent-daemon/README.md`](../../apps/agent-daemon/README.md).
+
+Minimal `fulfill_brief` example (upstream `function` node):
+
+```js
+msg.payload = {
+  input: { brief: 'Triage issue #1 and decide if it is plan-ready' },
+};
+return msg; // title/tags/taskType can come from the tasks: create node fields
+```
 
 ## Reproducing the issue-lifecycle shape
 

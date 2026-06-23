@@ -33,6 +33,10 @@ import type { MoltnetAgentNode } from './agent.js';
 interface TasksCreateDef extends NodeDef {
   agent?: string; // id of the referenced moltnet-agent config node
   taskType?: string;
+  title?: string;
+  tags?: string; // comma-separated
+  allowedProfiles?: string; // comma-separated runtime profileIds
+  maxAttempts?: number;
   generateCorrelationId?: boolean;
 }
 
@@ -55,11 +59,30 @@ const init: NodeInitializer = (RED): void => {
           this.status({ fill: 'blue', shape: 'dot', text: 'creating…' });
           const agent = await agentNode.getAgent();
 
-          const base = (
+          // msg.payload (programmatic) wins; node fields fill the gaps.
+          const base: Record<string, unknown> =
             msg.payload && typeof msg.payload === 'object'
               ? { ...(msg.payload as Record<string, unknown>) }
-              : { taskType: def.taskType || 'freeform' }
-          ) as Record<string, unknown>;
+              : {};
+
+          if (!base.taskType) base.taskType = def.taskType || 'freeform';
+          if (!base.title && def.title?.trim()) base.title = def.title.trim();
+          if (!base.tags) {
+            const tags = parseCsv(def.tags);
+            if (tags.length > 0) base.tags = tags;
+          }
+          if (!base.allowedProfiles) {
+            const profiles = parseCsv(def.allowedProfiles).map((profileId) => ({
+              profileId,
+            }));
+            if (profiles.length > 0) base.allowedProfiles = profiles;
+          }
+          if (
+            base.maxAttempts === undefined &&
+            typeof def.maxAttempts === 'number'
+          ) {
+            base.maxAttempts = def.maxAttempts;
+          }
 
           // Team/diary context comes from the agent unless the payload overrides
           // with a non-empty value.
@@ -108,6 +131,15 @@ const init: NodeInitializer = (RED): void => {
  * Returns `undefined` when none is available and generation is off (the task is
  * then created without one — valid for ad-hoc, non-workflow tasks).
  */
+/** Split a comma-separated config string into trimmed, non-empty values. */
+function parseCsv(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function resolveCorrelationId(
   msg: NodeMessageInFlow,
   fromPayload: unknown,

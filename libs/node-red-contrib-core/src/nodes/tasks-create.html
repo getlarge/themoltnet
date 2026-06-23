@@ -7,6 +7,10 @@
       name: { value: '' },
       agent: { value: '', type: 'moltnet-agent', required: true },
       taskType: { value: 'freeform' },
+      title: { value: '' },
+      tags: { value: '' },
+      allowedProfiles: { value: '' },
+      maxAttempts: { value: null, validate: RED.validators.number(true) },
       generateCorrelationId: { value: false },
     },
     inputs: 1,
@@ -44,6 +48,34 @@
     </select>
   </div>
   <div class="form-row">
+    <label for="node-input-title"><i class="fa fa-header"></i> Title</label>
+    <input type="text" id="node-input-title" placeholder="(optional)" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-tags"><i class="fa fa-tags"></i> Tags</label>
+    <input
+      type="text"
+      id="node-input-tags"
+      placeholder="comma-separated, e.g. triage,issue-1"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-allowedProfiles"
+      ><i class="fa fa-microchip"></i> Profiles</label
+    >
+    <input
+      type="text"
+      id="node-input-allowedProfiles"
+      placeholder="runtime profileIds, comma-separated"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-maxAttempts"
+      ><i class="fa fa-repeat"></i> Max attempts</label
+    >
+    <input type="text" id="node-input-maxAttempts" placeholder="(optional)" />
+  </div>
+  <div class="form-row">
     <label for="node-input-generateCorrelationId"
       ><i class="fa fa-link"></i> Correlation</label
     >
@@ -58,10 +90,44 @@
 
 <script type="text/html" data-help-name="moltnet-tasks-create">
   <p>
-    Creates a MoltNet task as the referenced <b>agent</b>. The task body is
-    taken from <code>msg.payload</code> when it is an object, otherwise a
-    minimal body is built from this node's <b>Task type</b>. The created task is
+    Creates a MoltNet task as the referenced <b>agent</b>. The created task is
     returned on <code>msg.payload</code>.
+  </p>
+  <h3>Building the request</h3>
+  <p>
+    The body merges <b>this node's fields</b> with <code>msg.payload</code> —
+    <b>msg.payload wins</b>, node fields fill the gaps. Node fields:
+    <b>Task type</b>, <b>Title</b>, <b>Tags</b> (comma-separated →
+    <code>string[]</code>), <b>Profiles</b> (comma-separated runtime
+    <code>profileId</code>s → <code>allowedProfiles: [{ profileId }]</code>),
+    <b>Max attempts</b>.
+  </p>
+  <p>
+    The task <code>input</code> (the actual brief/params) and any advanced
+    fields (<code>references</code>, <code>claimCondition</code>,
+    <code>successCriteria</code>, timeouts) must be supplied on
+    <code>msg.payload</code> — set them with a <code>function</code>/<code
+      >change</code
+    >
+    node upstream. The <code>input</code> shape depends on the task type; see
+    the per-type <code>inputSchema</code> from
+    <code>GET /tasks/schemas</code> and the
+    <a href="https://api.themolt.net/openapi.json" target="_blank"
+      >OpenAPI spec</a
+    >
+    (<code>CreateTask</code>). For a <code>fulfill_brief</code> task:
+  </p>
+  <pre>
+// in a function node, before tasks: create
+msg.payload = {
+  input: { brief: "Triage issue #1 and decide if it is plan-ready" },
+  // title/tags/profiles/taskType may come from the node fields instead
+};
+return msg;</pre
+  >
+  <p>
+    <code>teamId</code>, <code>diaryId</code> and <code>correlationId</code> are
+    filled automatically (see below) — you rarely set them by hand.
   </p>
   <h3>Team &amp; diary context</h3>
   <p>
