@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
@@ -95,8 +95,12 @@ export async function runOnce(argv: string[]): Promise<number> {
   }
   const cfg = loadConfig();
   const initialOpts = opts;
+  const agentRootDir = resolve(
+    process.cwd(),
+    values['agent-root'] ?? process.cwd(),
+  );
   const ctx = await resolveAgentContext(initialOpts.agent, {
-    agentRootDir: process.cwd(),
+    agentRootDir,
   });
   const profile = await resolveRuntimeProfile({
     agent: ctx.agent,
@@ -236,7 +240,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   try {
     const rawExecuteTask = createPiTaskExecutor({
       agentName: opts.agent,
-      agentRootDir: sandbox.rootDir,
+      agentRootDir,
       mountPath: sandbox.rootDir,
       provider: profile.provider,
       model: profile.model,

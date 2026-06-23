@@ -32,6 +32,7 @@ export interface CommonOptions {
 
 export interface CommonRawArgs {
   agent?: string;
+  'agent-root'?: string;
   'lease-ttl-sec'?: string;
   'heartbeat-interval-ms'?: string;
   'max-batch-size'?: string;
@@ -171,6 +172,7 @@ function parseNonNegativeInt(
 export function commonOptionDefs() {
   return {
     agent: { type: 'string', short: 'a' },
+    'agent-root': { type: 'string' },
     'lease-ttl-sec': { type: 'string' },
     'heartbeat-interval-ms': { type: 'string' },
     'max-batch-size': { type: 'string' },

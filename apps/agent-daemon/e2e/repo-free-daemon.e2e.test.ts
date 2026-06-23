@@ -101,10 +101,11 @@ describe('Agent daemon repo-free execution (e2e)', () => {
 
   it('runs a workspace:none freeform task from a sandbox root that is not a git repository', async () => {
     const sandboxRoot = mkdtempSync(join(tmpdir(), 'daemon-repo-free-e2e-'));
+    const agentRoot = mkdtempSync(join(tmpdir(), 'daemon-agent-root-e2e-'));
     tempRoots.push(sandboxRoot);
-    writeRepoFreeSandbox(sandboxRoot);
+    tempRoots.push(agentRoot);
     writeAgentCredentials({
-      sandboxRoot,
+      agentRoot,
       agentName,
       clientId,
       clientSecret,
@@ -121,6 +122,23 @@ describe('Agent daemon repo-free execution (e2e)', () => {
         execution: { workspace: 'none' },
       },
     });
+    const profile = await agent.runtimeProfiles.create(
+      {
+        name: `repo-free-daemon-${randomUUID()}`,
+        runtimeKind: 'gondolin_pi',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        leaseTtlSec: 300,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 10,
+        sandbox: {
+          snapshot: {
+            resume: [],
+          },
+        },
+      },
+      { teamId },
+    );
 
     const oldCwd = process.cwd();
     try {
@@ -130,22 +148,21 @@ describe('Agent daemon repo-free execution (e2e)', () => {
         created.id,
         '--agent',
         agentName,
-        '--provider',
-        'e2e',
-        '--model',
-        'stub',
-        '--sandbox',
-        join(sandboxRoot, 'sandbox.json'),
+        '--profile',
+        profile.id,
+        '--agent-root',
+        agentRoot,
       ]);
       expect(exitCode).toBe(0);
     } finally {
       process.chdir(oldCwd);
+      await agent.runtimeProfiles.delete(profile.id);
     }
 
     expect(createPiTaskExecutorMock).toHaveBeenCalledTimes(1);
     expect(createPiTaskExecutorMock.mock.calls[0][0]).toMatchObject({
       agentName,
-      agentRootDir: sandboxRoot,
+      agentRootDir: agentRoot,
       mountPath: sandboxRoot,
     });
 
@@ -170,30 +187,14 @@ function buildProducerVerification(inputCid: string) {
   };
 }
 
-function writeRepoFreeSandbox(root: string): void {
-  writeFileSync(
-    join(root, 'sandbox.json'),
-    JSON.stringify(
-      {
-        snapshot: {
-          resume: [],
-        },
-      },
-      null,
-      2,
-    ) + '\n',
-    'utf8',
-  );
-}
-
 function writeAgentCredentials(input: {
-  sandboxRoot: string;
+  agentRoot: string;
   agentName: string;
   clientId: string;
   clientSecret: string;
   apiUrl: string;
 }): void {
-  const agentDir = join(input.sandboxRoot, '.moltnet', input.agentName);
+  const agentDir = join(input.agentRoot, '.moltnet', input.agentName);
   mkdirSync(agentDir, { recursive: true });
   writeFileSync(
     join(agentDir, 'moltnet.json'),

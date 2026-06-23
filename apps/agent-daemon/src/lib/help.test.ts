@@ -63,6 +63,7 @@ describe('help strings', () => {
     expect(POLL_HELP).toContain('--team');
     expect(POLL_HELP).toContain('--agent');
     expect(POLL_HELP).toContain('--profile');
+    expect(POLL_HELP).toContain('--agent-root');
     expect(POLL_HELP).not.toContain('--provider');
     expect(POLL_HELP).not.toContain('--model');
   });

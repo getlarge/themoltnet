@@ -2,7 +2,7 @@ import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 
 export const COMMON_REQUIRED_FLAGS = `\
   -a, --agent <name>          MoltNet agent identity. Reads credentials
-                              from <repo-root>/.moltnet/<name>/moltnet.json.
+                              from <agent-root>/.moltnet/<name>/moltnet.json.
   --profile <uuid|name>       Remote runtime profile. Repeat for poll/drain
                               to declare priority order. Provider, model,
                               sandbox policy, prerequisites, and runtime
@@ -11,6 +11,8 @@ export const COMMON_REQUIRED_FLAGS = `\
 export const COMMON_OPTIONAL_FLAGS = `\
   --sandbox <path>            Deprecated. Remote runtime profiles define
                               sandbox policy.
+  --agent-root <path>         Directory that owns .moltnet/<agent>. Default:
+                              CWD, with git root fallback when available.
   --lease-ttl-sec <n>         Sliding liveness window. Silence longer than
                               this ends the attempt with lease_expired.
                               Default: 300.
@@ -53,7 +55,7 @@ Commands:
 Run \`agent-daemon <command> --help\` for command-specific flags.
 
 Prerequisites (all subcommands):
-  - <repo-root>/.moltnet/<agent>/moltnet.json — credentials (see --agent)
+  - <agent-root>/.moltnet/<agent>/moltnet.json — credentials (see --agent-root)
   - --profile — remote runtime profile supplies provider/model/sandbox
     policy and CWD is used as the VM mountPath.
 

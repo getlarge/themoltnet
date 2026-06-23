@@ -1,5 +1,5 @@
 // Shared poll-loop runner for `poll` and `drain` (only difference: stopWhenEmpty).
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import type { TaskOutput } from '@moltnet/tasks';
@@ -154,8 +154,12 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   }
 
   const cfg = loadConfig();
+  const agentRootDir = resolve(
+    process.cwd(),
+    values['agent-root'] ?? process.cwd(),
+  );
   const ctx = await resolveAgentContext(baseCommon.agent, {
-    agentRootDir: process.cwd(),
+    agentRootDir,
   });
   const profiles = await resolveRuntimeProfiles({
     agent: ctx.agent,
@@ -511,6 +515,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         }
         const rawExecuteTask = createPiTaskExecutor({
           agentName: common.agent,
+          agentRootDir,
           mountPath: sandbox.rootDir,
           provider: profile.provider,
           model: profile.model,
