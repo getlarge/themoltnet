@@ -42,7 +42,7 @@ import {
   diffContextPacksByCid,
   diffContextPacksById,
   failTask,
-  findRuntimeProducerSlot,
+  findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
   getAgentProfile,
   getContextPackById,
@@ -223,9 +223,9 @@ import type {
   FailTaskData,
   FailTaskError,
   FailTaskResponse,
-  FindRuntimeProducerSlotData,
-  FindRuntimeProducerSlotError,
-  FindRuntimeProducerSlotResponse,
+  FindLatestRuntimeSlotForAttemptData,
+  FindLatestRuntimeSlotForAttemptError,
+  FindLatestRuntimeSlotForAttemptResponse,
   FinishRuntimeSlotData,
   FinishRuntimeSlotError,
   FinishRuntimeSlotResponse,
@@ -3016,24 +3016,24 @@ export const finishRuntimeSlotMutation = (
   return mutationOptions;
 };
 
-export const findRuntimeProducerSlotQueryKey = (
-  options: Options<FindRuntimeProducerSlotData>,
-) => createQueryKey('findRuntimeProducerSlot', options);
+export const findLatestRuntimeSlotForAttemptQueryKey = (
+  options: Options<FindLatestRuntimeSlotForAttemptData>,
+) => createQueryKey('findLatestRuntimeSlotForAttempt', options);
 
 /**
- * Find the latest team-scoped producer slot for a task attempt.
+ * Find the latest team-scoped runtime slot for a task attempt.
  */
-export const findRuntimeProducerSlotOptions = (
-  options: Options<FindRuntimeProducerSlotData>,
+export const findLatestRuntimeSlotForAttemptOptions = (
+  options: Options<FindLatestRuntimeSlotForAttemptData>,
 ) =>
   queryOptions<
-    FindRuntimeProducerSlotResponse,
-    FindRuntimeProducerSlotError,
-    FindRuntimeProducerSlotResponse,
-    ReturnType<typeof findRuntimeProducerSlotQueryKey>
+    FindLatestRuntimeSlotForAttemptResponse,
+    FindLatestRuntimeSlotForAttemptError,
+    FindLatestRuntimeSlotForAttemptResponse,
+    ReturnType<typeof findLatestRuntimeSlotForAttemptQueryKey>
   >({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await findRuntimeProducerSlot({
+      const { data } = await findLatestRuntimeSlotForAttempt({
         ...options,
         ...queryKey[0],
         signal,
@@ -3041,7 +3041,7 @@ export const findRuntimeProducerSlotOptions = (
       });
       return data;
     },
-    queryKey: findRuntimeProducerSlotQueryKey(options),
+    queryKey: findLatestRuntimeSlotForAttemptQueryKey(options),
   });
 
 export const listTasksQueryKey = (options: Options<ListTasksData>) =>

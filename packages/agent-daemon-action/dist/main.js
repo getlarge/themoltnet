@@ -29376,9 +29376,9 @@ var finishRuntimeSlot = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Find the latest team-scoped producer slot for a task attempt.
+* Find the latest team-scoped runtime slot for a task attempt.
 */
-var findRuntimeProducerSlot = (options) => (options.client ?? client).get({
+var findLatestRuntimeSlotForAttempt = (options) => (options.client ?? client).get({
 	security: [
 		{
 			scheme: "bearer",
@@ -29394,7 +29394,7 @@ var findRuntimeProducerSlot = (options) => (options.client ?? client).get({
 			type: "apiKey"
 		}
 	],
-	url: "/runtime-slots/producer",
+	url: "/runtime-slots/latest",
 	...options
 });
 /**
@@ -32514,9 +32514,9 @@ function createRuntimeSlotsNamespace(context) {
 				body
 			}));
 		},
-		async findProducer(query, options) {
+		async findLatestForAttempt(query, options) {
 			try {
-				return unwrapResult(await findRuntimeProducerSlot({
+				return unwrapResult(await findLatestRuntimeSlotForAttempt({
 					client,
 					auth,
 					headers: teamHeaders(options),

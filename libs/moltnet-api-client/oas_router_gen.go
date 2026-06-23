@@ -2301,9 +2301,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								return
 							}
 
-						case 'p': // Prefix: "producer"
+						case 'l': // Prefix: "latest"
 
-							if l := len("producer"); len(elem) >= l && elem[0:l] == "producer" {
+							if l := len("latest"); len(elem) >= l && elem[0:l] == "latest" {
 								elem = elem[l:]
 							} else {
 								break
@@ -2313,7 +2313,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								// Leaf node.
 								switch r.Method {
 								case "GET":
-									s.handleFindRuntimeProducerSlotRequest([0]string{}, elemIsEscaped, w, r)
+									s.handleFindLatestRuntimeSlotForAttemptRequest([0]string{}, elemIsEscaped, w, r)
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "GET",
@@ -5399,9 +5399,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 								}
 							}
 
-						case 'p': // Prefix: "producer"
+						case 'l': // Prefix: "latest"
 
-							if l := len("producer"); len(elem) >= l && elem[0:l] == "producer" {
+							if l := len("latest"); len(elem) >= l && elem[0:l] == "latest" {
 								elem = elem[l:]
 							} else {
 								break
@@ -5411,11 +5411,11 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 								// Leaf node.
 								switch method {
 								case "GET":
-									r.name = FindRuntimeProducerSlotOperation
+									r.name = FindLatestRuntimeSlotForAttemptOperation
 									r.summary = ""
-									r.operationID = "findRuntimeProducerSlot"
+									r.operationID = "findLatestRuntimeSlotForAttempt"
 									r.operationGroup = ""
-									r.pathPattern = "/runtime-slots/producer"
+									r.pathPattern = "/runtime-slots/latest"
 									r.args = args
 									r.count = 0
 									return r, true

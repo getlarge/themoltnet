@@ -57,7 +57,6 @@ export type AppendMessagesResponse = {
 
 export type BeginRuntimeSlotBody = {
   agentName: string;
-  daemonId: string;
   daemonProfileId?: string;
   lastAttemptN: number;
   lastTaskId: string;
@@ -67,7 +66,6 @@ export type BeginRuntimeSlotBody = {
   sessionPath?: string;
   slotKey: string;
   taskType: string;
-  ttlSec: number;
   workspaceId?: string;
   workspaceKind?: 'origin' | 'fork' | 'scratch';
   worktreeBranch?: string;
@@ -805,7 +803,7 @@ export type FailTaskBody = {
   error: TaskError;
 };
 
-export type FindRuntimeProducerSlotQuery = {
+export type FindLatestRuntimeSlotForAttemptQuery = {
   attemptN: number;
   taskId: string;
 };
@@ -813,13 +811,11 @@ export type FindRuntimeProducerSlotQuery = {
 export type FinishRuntimeSlotBody = {
   agentName: string;
   attemptN: number;
-  daemonId: string;
   model: string;
   provider: string;
   sessionPath?: string;
   slotKey: string;
   taskId: string;
-  ttlSec: number;
 };
 
 export type Health = {
@@ -1533,15 +1529,9 @@ export type RenderedPackWithContent = {
 };
 
 export type ResolvedRuntimeSlot = {
-  session: {
-    sessionDir: string;
-    sessionPath: string | null;
-    slotId: string;
-  } | null;
   slot: {
     agentName: string;
     createdAtMs: number;
-    daemonId: string;
     daemonProfileId: string | null;
     expiresAtMs: number;
     id: string;
@@ -1550,6 +1540,8 @@ export type ResolvedRuntimeSlot = {
     lastUsedAtMs: number;
     model: string;
     provider: string;
+    sessionDir: string | null;
+    sessionPath: string | null;
     slotKey: string;
     state: 'active' | 'idle';
     taskType: string;
@@ -1791,7 +1783,6 @@ export type RuntimeProfileSandbox = {
 export type RuntimeSlot = {
   agentName: string;
   createdAtMs: number;
-  daemonId: string;
   daemonProfileId: string | null;
   expiresAtMs: number;
   id: string;
@@ -1800,17 +1791,13 @@ export type RuntimeSlot = {
   lastUsedAtMs: number;
   model: string;
   provider: string;
+  sessionDir: string | null;
+  sessionPath: string | null;
   slotKey: string;
   state: 'active' | 'idle';
   taskType: string;
   teamId: string;
   workspaceRowId: string | null;
-};
-
-export type RuntimeSlotSession = {
-  sessionDir: string;
-  sessionPath: string | null;
-  slotId: string;
 };
 
 export type RuntimeWorkspace = {
@@ -6127,7 +6114,6 @@ export type UpdateRuntimeProfileResponse =
 export type BeginRuntimeSlotData = {
   body: {
     agentName: string;
-    daemonId: string;
     daemonProfileId?: string;
     lastAttemptN: number;
     lastTaskId: string;
@@ -6137,7 +6123,6 @@ export type BeginRuntimeSlotData = {
     sessionPath?: string;
     slotKey: string;
     taskType: string;
-    ttlSec: number;
     workspaceId?: string;
     workspaceKind?: 'origin' | 'fork' | 'scratch';
     worktreeBranch?: string;
@@ -6534,7 +6519,6 @@ export type BeginRuntimeSlotResponses = {
   200: {
     agentName: string;
     createdAtMs: number;
-    daemonId: string;
     daemonProfileId: string | null;
     expiresAtMs: number;
     id: string;
@@ -6543,6 +6527,8 @@ export type BeginRuntimeSlotResponses = {
     lastUsedAtMs: number;
     model: string;
     provider: string;
+    sessionDir: string | null;
+    sessionPath: string | null;
     slotKey: string;
     state: 'active' | 'idle';
     taskType: string;
@@ -6558,13 +6544,11 @@ export type FinishRuntimeSlotData = {
   body: {
     agentName: string;
     attemptN: number;
-    daemonId: string;
     model: string;
     provider: string;
     sessionPath?: string;
     slotKey: string;
     taskId: string;
-    ttlSec: number;
   };
   headers: {
     /**
@@ -6957,7 +6941,6 @@ export type FinishRuntimeSlotResponses = {
   200: {
     agentName: string;
     createdAtMs: number;
-    daemonId: string;
     daemonProfileId: string | null;
     expiresAtMs: number;
     id: string;
@@ -6966,6 +6949,8 @@ export type FinishRuntimeSlotResponses = {
     lastUsedAtMs: number;
     model: string;
     provider: string;
+    sessionDir: string | null;
+    sessionPath: string | null;
     slotKey: string;
     state: 'active' | 'idle';
     taskType: string;
@@ -6977,7 +6962,7 @@ export type FinishRuntimeSlotResponses = {
 export type FinishRuntimeSlotResponse =
   FinishRuntimeSlotResponses[keyof FinishRuntimeSlotResponses];
 
-export type FindRuntimeProducerSlotData = {
+export type FindLatestRuntimeSlotForAttemptData = {
   body?: never;
   headers: {
     /**
@@ -6990,10 +6975,10 @@ export type FindRuntimeProducerSlotData = {
     taskId: string;
     attemptN: number;
   };
-  url: '/runtime-slots/producer';
+  url: '/runtime-slots/latest';
 };
 
-export type FindRuntimeProducerSlotErrors = {
+export type FindLatestRuntimeSlotForAttemptErrors = {
   /**
    * Default Response
    */
@@ -7282,23 +7267,17 @@ export type FindRuntimeProducerSlotErrors = {
   };
 };
 
-export type FindRuntimeProducerSlotError =
-  FindRuntimeProducerSlotErrors[keyof FindRuntimeProducerSlotErrors];
+export type FindLatestRuntimeSlotForAttemptError =
+  FindLatestRuntimeSlotForAttemptErrors[keyof FindLatestRuntimeSlotForAttemptErrors];
 
-export type FindRuntimeProducerSlotResponses = {
+export type FindLatestRuntimeSlotForAttemptResponses = {
   /**
    * Default Response
    */
   200: {
-    session: {
-      sessionDir: string;
-      sessionPath: string | null;
-      slotId: string;
-    } | null;
     slot: {
       agentName: string;
       createdAtMs: number;
-      daemonId: string;
       daemonProfileId: string | null;
       expiresAtMs: number;
       id: string;
@@ -7307,6 +7286,8 @@ export type FindRuntimeProducerSlotResponses = {
       lastUsedAtMs: number;
       model: string;
       provider: string;
+      sessionDir: string | null;
+      sessionPath: string | null;
       slotKey: string;
       state: 'active' | 'idle';
       taskType: string;
@@ -7326,8 +7307,8 @@ export type FindRuntimeProducerSlotResponses = {
   };
 };
 
-export type FindRuntimeProducerSlotResponse =
-  FindRuntimeProducerSlotResponses[keyof FindRuntimeProducerSlotResponses];
+export type FindLatestRuntimeSlotForAttemptResponse =
+  FindLatestRuntimeSlotForAttemptResponses[keyof FindLatestRuntimeSlotForAttemptResponses];
 
 export type ListTasksData = {
   body?: never;

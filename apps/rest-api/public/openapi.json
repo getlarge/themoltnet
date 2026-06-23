@@ -135,11 +135,6 @@
             "minLength": 1,
             "type": "string"
           },
-          "daemonId": {
-            "maxLength": 200,
-            "minLength": 1,
-            "type": "string"
-          },
           "daemonProfileId": {
             "format": "uuid",
             "type": "string"
@@ -179,11 +174,6 @@
             "minLength": 1,
             "type": "string"
           },
-          "ttlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
-          },
           "workspaceId": {
             "minLength": 1,
             "type": "string"
@@ -220,15 +210,13 @@
           }
         },
         "required": [
-          "daemonId",
           "agentName",
           "provider",
           "model",
           "slotKey",
           "taskType",
           "lastTaskId",
-          "lastAttemptN",
-          "ttlSec"
+          "lastAttemptN"
         ],
         "type": "object"
       },
@@ -3301,7 +3289,7 @@
         ],
         "type": "object"
       },
-      "FindRuntimeProducerSlotQuery": {
+      "FindLatestRuntimeSlotForAttemptQuery": {
         "additionalProperties": false,
         "properties": {
           "attemptN": {
@@ -3331,11 +3319,6 @@
             "minimum": 1,
             "type": "integer"
           },
-          "daemonId": {
-            "maxLength": 200,
-            "minLength": 1,
-            "type": "string"
-          },
           "model": {
             "maxLength": 200,
             "minLength": 1,
@@ -3357,22 +3340,15 @@
           "taskId": {
             "format": "uuid",
             "type": "string"
-          },
-          "ttlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
           }
         },
         "required": [
-          "daemonId",
           "agentName",
           "provider",
           "model",
           "slotKey",
           "taskId",
-          "attemptN",
-          "ttlSec"
+          "attemptN"
         ],
         "type": "object"
       },
@@ -6033,42 +6009,6 @@
       },
       "ResolvedRuntimeSlot": {
         "properties": {
-          "session": {
-            "anyOf": [
-              {
-                "properties": {
-                  "sessionDir": {
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "sessionPath": {
-                    "anyOf": [
-                      {
-                        "minLength": 1,
-                        "type": "string"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "slotId": {
-                    "format": "uuid",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "slotId",
-                  "sessionDir",
-                  "sessionPath"
-                ],
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "slot": {
             "properties": {
               "agentName": {
@@ -6079,11 +6019,6 @@
               "createdAtMs": {
                 "minimum": 0,
                 "type": "integer"
-              },
-              "daemonId": {
-                "maxLength": 200,
-                "minLength": 1,
-                "type": "string"
               },
               "daemonProfileId": {
                 "anyOf": [
@@ -6125,6 +6060,28 @@
                 "maxLength": 100,
                 "minLength": 1,
                 "type": "string"
+              },
+              "sessionDir": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sessionPath": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "slotKey": {
                 "minLength": 1,
@@ -6170,7 +6127,6 @@
             "required": [
               "id",
               "teamId",
-              "daemonId",
               "agentName",
               "daemonProfileId",
               "provider",
@@ -6180,6 +6136,8 @@
               "state",
               "lastTaskId",
               "lastAttemptN",
+              "sessionDir",
+              "sessionPath",
               "workspaceRowId",
               "createdAtMs",
               "lastUsedAtMs",
@@ -6269,7 +6227,6 @@
         },
         "required": [
           "slot",
-          "session",
           "workspace"
         ],
         "type": "object"
@@ -7600,11 +7557,6 @@
             "minimum": 0,
             "type": "integer"
           },
-          "daemonId": {
-            "maxLength": 200,
-            "minLength": 1,
-            "type": "string"
-          },
           "daemonProfileId": {
             "anyOf": [
               {
@@ -7645,6 +7597,28 @@
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
+          },
+          "sessionDir": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sessionPath": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "slotKey": {
             "minLength": 1,
@@ -7690,7 +7664,6 @@
         "required": [
           "id",
           "teamId",
-          "daemonId",
           "agentName",
           "daemonProfileId",
           "provider",
@@ -7700,39 +7673,12 @@
           "state",
           "lastTaskId",
           "lastAttemptN",
+          "sessionDir",
+          "sessionPath",
           "workspaceRowId",
           "createdAtMs",
           "lastUsedAtMs",
           "expiresAtMs"
-        ],
-        "type": "object"
-      },
-      "RuntimeSlotSession": {
-        "properties": {
-          "sessionDir": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "sessionPath": {
-            "anyOf": [
-              {
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "slotId": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "slotId",
-          "sessionDir",
-          "sessionPath"
         ],
         "type": "object"
       },
@@ -19634,11 +19580,6 @@
                     "minLength": 1,
                     "type": "string"
                   },
-                  "daemonId": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
                   "daemonProfileId": {
                     "format": "uuid",
                     "type": "string"
@@ -19678,11 +19619,6 @@
                     "minLength": 1,
                     "type": "string"
                   },
-                  "ttlSec": {
-                    "maximum": 86400,
-                    "minimum": 1,
-                    "type": "integer"
-                  },
                   "workspaceId": {
                     "minLength": 1,
                     "type": "string"
@@ -19719,15 +19655,13 @@
                   }
                 },
                 "required": [
-                  "daemonId",
                   "agentName",
                   "provider",
                   "model",
                   "slotKey",
                   "taskType",
                   "lastTaskId",
-                  "lastAttemptN",
-                  "ttlSec"
+                  "lastAttemptN"
                 ],
                 "type": "object"
               }
@@ -19749,11 +19683,6 @@
                     "createdAtMs": {
                       "minimum": 0,
                       "type": "integer"
-                    },
-                    "daemonId": {
-                      "maxLength": 200,
-                      "minLength": 1,
-                      "type": "string"
                     },
                     "daemonProfileId": {
                       "anyOf": [
@@ -19795,6 +19724,28 @@
                       "maxLength": 100,
                       "minLength": 1,
                       "type": "string"
+                    },
+                    "sessionDir": {
+                      "anyOf": [
+                        {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "sessionPath": {
+                      "anyOf": [
+                        {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "slotKey": {
                       "minLength": 1,
@@ -19840,7 +19791,6 @@
                   "required": [
                     "id",
                     "teamId",
-                    "daemonId",
                     "agentName",
                     "daemonProfileId",
                     "provider",
@@ -19850,6 +19800,8 @@
                     "state",
                     "lastTaskId",
                     "lastAttemptN",
+                    "sessionDir",
+                    "sessionPath",
                     "workspaceRowId",
                     "createdAtMs",
                     "lastUsedAtMs",
@@ -21001,11 +20953,6 @@
                     "minimum": 1,
                     "type": "integer"
                   },
-                  "daemonId": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
                   "model": {
                     "maxLength": 200,
                     "minLength": 1,
@@ -21027,22 +20974,15 @@
                   "taskId": {
                     "format": "uuid",
                     "type": "string"
-                  },
-                  "ttlSec": {
-                    "maximum": 86400,
-                    "minimum": 1,
-                    "type": "integer"
                   }
                 },
                 "required": [
-                  "daemonId",
                   "agentName",
                   "provider",
                   "model",
                   "slotKey",
                   "taskId",
-                  "attemptN",
-                  "ttlSec"
+                  "attemptN"
                 ],
                 "type": "object"
               }
@@ -21064,11 +21004,6 @@
                     "createdAtMs": {
                       "minimum": 0,
                       "type": "integer"
-                    },
-                    "daemonId": {
-                      "maxLength": 200,
-                      "minLength": 1,
-                      "type": "string"
                     },
                     "daemonProfileId": {
                       "anyOf": [
@@ -21110,6 +21045,28 @@
                       "maxLength": 100,
                       "minLength": 1,
                       "type": "string"
+                    },
+                    "sessionDir": {
+                      "anyOf": [
+                        {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "sessionPath": {
+                      "anyOf": [
+                        {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "slotKey": {
                       "minLength": 1,
@@ -21155,7 +21112,6 @@
                   "required": [
                     "id",
                     "teamId",
-                    "daemonId",
                     "agentName",
                     "daemonProfileId",
                     "provider",
@@ -21165,6 +21121,8 @@
                     "state",
                     "lastTaskId",
                     "lastAttemptN",
+                    "sessionDir",
+                    "sessionPath",
                     "workspaceRowId",
                     "createdAtMs",
                     "lastUsedAtMs",
@@ -22285,10 +22243,10 @@
         ]
       }
     },
-    "/runtime-slots/producer": {
+    "/runtime-slots/latest": {
       "get": {
-        "description": "Find the latest team-scoped producer slot for a task attempt.",
-        "operationId": "findRuntimeProducerSlot",
+        "description": "Find the latest team-scoped runtime slot for a task attempt.",
+        "operationId": "findLatestRuntimeSlotForAttempt",
         "parameters": [
           {
             "in": "query",
@@ -22325,42 +22283,6 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "session": {
-                      "anyOf": [
-                        {
-                          "properties": {
-                            "sessionDir": {
-                              "minLength": 1,
-                              "type": "string"
-                            },
-                            "sessionPath": {
-                              "anyOf": [
-                                {
-                                  "minLength": 1,
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ]
-                            },
-                            "slotId": {
-                              "format": "uuid",
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "slotId",
-                            "sessionDir",
-                            "sessionPath"
-                          ],
-                          "type": "object"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
                     "slot": {
                       "properties": {
                         "agentName": {
@@ -22371,11 +22293,6 @@
                         "createdAtMs": {
                           "minimum": 0,
                           "type": "integer"
-                        },
-                        "daemonId": {
-                          "maxLength": 200,
-                          "minLength": 1,
-                          "type": "string"
                         },
                         "daemonProfileId": {
                           "anyOf": [
@@ -22417,6 +22334,28 @@
                           "maxLength": 100,
                           "minLength": 1,
                           "type": "string"
+                        },
+                        "sessionDir": {
+                          "anyOf": [
+                            {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "sessionPath": {
+                          "anyOf": [
+                            {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         },
                         "slotKey": {
                           "minLength": 1,
@@ -22462,7 +22401,6 @@
                       "required": [
                         "id",
                         "teamId",
-                        "daemonId",
                         "agentName",
                         "daemonProfileId",
                         "provider",
@@ -22472,6 +22410,8 @@
                         "state",
                         "lastTaskId",
                         "lastAttemptN",
+                        "sessionDir",
+                        "sessionPath",
                         "workspaceRowId",
                         "createdAtMs",
                         "lastUsedAtMs",
@@ -22561,7 +22501,6 @@
                   },
                   "required": [
                     "slot",
-                    "session",
                     "workspace"
                   ],
                   "type": "object"

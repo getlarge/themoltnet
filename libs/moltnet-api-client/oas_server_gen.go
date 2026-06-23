@@ -206,12 +206,12 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/fail
 	FailTask(ctx context.Context, req *FailTaskReq, params FailTaskParams) (FailTaskRes, error)
-	// FindRuntimeProducerSlot implements findRuntimeProducerSlot operation.
+	// FindLatestRuntimeSlotForAttempt implements findLatestRuntimeSlotForAttempt operation.
 	//
-	// Find the latest team-scoped producer slot for a task attempt.
+	// Find the latest team-scoped runtime slot for a task attempt.
 	//
-	// GET /runtime-slots/producer
-	FindRuntimeProducerSlot(ctx context.Context, params FindRuntimeProducerSlotParams) (FindRuntimeProducerSlotRes, error)
+	// GET /runtime-slots/latest
+	FindLatestRuntimeSlotForAttempt(ctx context.Context, params FindLatestRuntimeSlotForAttemptParams) (FindLatestRuntimeSlotForAttemptRes, error)
 	// FinishRuntimeSlot implements finishRuntimeSlot operation.
 	//
 	// Mark a team-scoped runtime slot idle without deleting it.

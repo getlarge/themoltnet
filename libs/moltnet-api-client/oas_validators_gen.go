@@ -916,29 +916,6 @@ func (s *BeginRuntimeSlotOK) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     200,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.DaemonId)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "daemonId",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if err := (validate.Int{
 			MinSet:        true,
 			Min:           0,
@@ -1048,6 +1025,66 @@ func (s *BeginRuntimeSlotOK) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.SessionDir.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "sessionDir",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.SessionPath.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "sessionPath",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := (validate.String{
 			MinLength:     1,
 			MinLengthSet:  true,
@@ -1147,29 +1184,6 @@ func (s *BeginRuntimeSlotReq) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "agentName",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     200,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.DaemonId)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "daemonId",
 			Error: err,
 		})
 	}
@@ -1343,27 +1357,6 @@ func (s *BeginRuntimeSlotReq) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "taskType",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        true,
-			Max:           86400,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.TtlSec)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "ttlSec",
 			Error: err,
 		})
 	}
@@ -8106,7 +8099,7 @@ func (s *FailTaskUnauthorized) Validate() error {
 	return nil
 }
 
-func (s *FindRuntimeProducerSlotBadRequest) Validate() error {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -8161,7 +8154,7 @@ func (s *FindRuntimeProducerSlotBadRequest) Validate() error {
 	return nil
 }
 
-func (s FindRuntimeProducerSlotBadRequestCode) Validate() error {
+func (s FindLatestRuntimeSlotForAttemptBadRequestCode) Validate() error {
 	switch s {
 	case "UNAUTHORIZED":
 		return nil
@@ -8222,7 +8215,7 @@ func (s FindRuntimeProducerSlotBadRequestCode) Validate() error {
 	}
 }
 
-func (s *FindRuntimeProducerSlotForbidden) Validate() error {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -8266,7 +8259,7 @@ func (s *FindRuntimeProducerSlotForbidden) Validate() error {
 	return nil
 }
 
-func (s FindRuntimeProducerSlotForbiddenCode) Validate() error {
+func (s FindLatestRuntimeSlotForAttemptForbiddenCode) Validate() error {
 	switch s {
 	case "UNAUTHORIZED":
 		return nil
@@ -8327,7 +8320,7 @@ func (s FindRuntimeProducerSlotForbiddenCode) Validate() error {
 	}
 }
 
-func (s *FindRuntimeProducerSlotNotFound) Validate() error {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -8371,7 +8364,7 @@ func (s *FindRuntimeProducerSlotNotFound) Validate() error {
 	return nil
 }
 
-func (s FindRuntimeProducerSlotNotFoundCode) Validate() error {
+func (s FindLatestRuntimeSlotForAttemptNotFoundCode) Validate() error {
 	switch s {
 	case "UNAUTHORIZED":
 		return nil
@@ -8432,30 +8425,12 @@ func (s FindRuntimeProducerSlotNotFoundCode) Validate() error {
 	}
 }
 
-func (s *FindRuntimeProducerSlotOK) Validate() error {
+func (s *FindLatestRuntimeSlotForAttemptOK) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
 
 	var failures []validate.FieldError
-	if err := func() error {
-		if value, ok := s.Session.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "session",
-			Error: err,
-		})
-	}
 	if err := func() error {
 		if err := s.Slot.Validate(); err != nil {
 			return err
@@ -8491,72 +8466,7 @@ func (s *FindRuntimeProducerSlotOK) Validate() error {
 	return nil
 }
 
-func (s *FindRuntimeProducerSlotOKSession) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     0,
-			MaxLengthSet:  false,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.SessionDir)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionDir",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.SessionPath.Get(); ok {
-			if err := func() error {
-				if err := (validate.String{
-					MinLength:     1,
-					MinLengthSet:  true,
-					MaxLength:     0,
-					MaxLengthSet:  false,
-					Email:         false,
-					Hostname:      false,
-					Regex:         nil,
-					MinNumeric:    0,
-					MinNumericSet: false,
-					MaxNumeric:    0,
-					MaxNumericSet: false,
-				}).Validate(string(value)); err != nil {
-					return errors.Wrap(err, "string")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionPath",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s *FindRuntimeProducerSlotOKSlot) Validate() error {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -8603,29 +8513,6 @@ func (s *FindRuntimeProducerSlotOKSlot) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "createdAtMs",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     200,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.DaemonId)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "daemonId",
 			Error: err,
 		})
 	}
@@ -8739,6 +8626,66 @@ func (s *FindRuntimeProducerSlotOKSlot) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.SessionDir.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "sessionDir",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.SessionPath.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "sessionPath",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := (validate.String{
 			MinLength:     1,
 			MinLengthSet:  true,
@@ -8801,7 +8748,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Validate() error {
 	return nil
 }
 
-func (s FindRuntimeProducerSlotOKSlotState) Validate() error {
+func (s FindLatestRuntimeSlotForAttemptOKSlotState) Validate() error {
 	switch s {
 	case "active":
 		return nil
@@ -8812,7 +8759,7 @@ func (s FindRuntimeProducerSlotOKSlotState) Validate() error {
 	}
 }
 
-func (s *FindRuntimeProducerSlotOKWorkspace) Validate() error {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -8953,7 +8900,7 @@ func (s *FindRuntimeProducerSlotOKWorkspace) Validate() error {
 	return nil
 }
 
-func (s FindRuntimeProducerSlotOKWorkspaceKind) Validate() error {
+func (s FindLatestRuntimeSlotForAttemptOKWorkspaceKind) Validate() error {
 	switch s {
 	case "origin":
 		return nil
@@ -8966,7 +8913,7 @@ func (s FindRuntimeProducerSlotOKWorkspaceKind) Validate() error {
 	}
 }
 
-func (s *FindRuntimeProducerSlotUnauthorized) Validate() error {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -9010,7 +8957,7 @@ func (s *FindRuntimeProducerSlotUnauthorized) Validate() error {
 	return nil
 }
 
-func (s FindRuntimeProducerSlotUnauthorizedCode) Validate() error {
+func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) Validate() error {
 	switch s {
 	case "UNAUTHORIZED":
 		return nil
@@ -9553,29 +9500,6 @@ func (s *FinishRuntimeSlotOK) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     200,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.DaemonId)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "daemonId",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if err := (validate.Int{
 			MinSet:        true,
 			Min:           0,
@@ -9681,6 +9605,66 @@ func (s *FinishRuntimeSlotOK) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "provider",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.SessionDir.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "sessionDir",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.SessionPath.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "sessionPath",
 			Error: err,
 		})
 	}
@@ -9821,29 +9805,6 @@ func (s *FinishRuntimeSlotReq) Validate() error {
 			MinNumericSet: false,
 			MaxNumeric:    0,
 			MaxNumericSet: false,
-		}).Validate(string(s.DaemonId)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "daemonId",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     200,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
 		}).Validate(string(s.Model)); err != nil {
 			return errors.Wrap(err, "string")
 		}
@@ -9927,27 +9888,6 @@ func (s *FinishRuntimeSlotReq) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "slotKey",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        true,
-			Max:           86400,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.TtlSec)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "ttlSec",
 			Error: err,
 		})
 	}

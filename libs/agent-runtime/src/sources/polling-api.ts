@@ -15,7 +15,7 @@ import type { ClaimedTask, TaskSource } from './types.js';
  * satisfies this by duck typing.
  */
 export interface ContinuationSlotRegistry {
-  findLatestProducerSlotByTaskAttempt(
+  findLatestSlotByTaskAttempt(
     teamId: string,
     taskId: string,
     attemptN: number,
@@ -55,7 +55,7 @@ export async function isContinuationClaimableByThisDaemon(
 > {
   const cf = task.input?.continueFrom;
   if (!cf) return { claimable: true };
-  const slot = await slotRegistry.findLatestProducerSlotByTaskAttempt(
+  const slot = await slotRegistry.findLatestSlotByTaskAttempt(
     task.teamId,
     cf.taskId,
     cf.attemptN,

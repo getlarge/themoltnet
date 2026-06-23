@@ -1,6 +1,6 @@
 import {
   beginRuntimeSlot,
-  findRuntimeProducerSlot,
+  findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
 } from '@moltnet/api-client';
 
@@ -40,10 +40,10 @@ export function createRuntimeSlotsNamespace(
       );
     },
 
-    async findProducer(query, options) {
+    async findLatestForAttempt(query, options) {
       try {
         return unwrapResult(
-          await findRuntimeProducerSlot({
+          await findLatestRuntimeSlotForAttempt({
             client,
             auth,
             headers: teamHeaders(options),

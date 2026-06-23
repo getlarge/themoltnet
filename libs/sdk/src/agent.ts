@@ -35,7 +35,7 @@ import type {
   DiaryTagsResponse,
   EntryVerifyResult,
   FailTaskData,
-  FindRuntimeProducerSlotData,
+  FindLatestRuntimeSlotForAttemptData,
   FinishRuntimeSlotData,
   GetContextPackByIdData,
   GetContextPackProvenanceByCidData,
@@ -522,8 +522,8 @@ export interface RuntimeSlotsNamespace {
     options: RuntimeSlotRequestOptions,
   ): Promise<RuntimeSlot>;
 
-  findProducer(
-    query: FindRuntimeProducerSlotData['query'],
+  findLatestForAttempt(
+    query: FindLatestRuntimeSlotForAttemptData['query'],
     options: RuntimeSlotRequestOptions,
   ): Promise<ResolvedRuntimeSlot | null>;
 }

@@ -3997,10 +3997,6 @@ func (s *BeginRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 		e.Int(s.CreatedAtMs)
 	}
 	{
-		e.FieldStart("daemonId")
-		e.Str(s.DaemonId)
-	}
-	{
 		e.FieldStart("daemonProfileId")
 		s.DaemonProfileId.Encode(e)
 	}
@@ -4033,6 +4029,14 @@ func (s *BeginRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 		e.Str(s.Provider)
 	}
 	{
+		e.FieldStart("sessionDir")
+		s.SessionDir.Encode(e)
+	}
+	{
+		e.FieldStart("sessionPath")
+		s.SessionPath.Encode(e)
+	}
+	{
 		e.FieldStart("slotKey")
 		e.Str(s.SlotKey)
 	}
@@ -4054,23 +4058,24 @@ func (s *BeginRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfBeginRuntimeSlotOK = [16]string{
+var jsonFieldsNameOfBeginRuntimeSlotOK = [17]string{
 	0:  "agentName",
 	1:  "createdAtMs",
-	2:  "daemonId",
-	3:  "daemonProfileId",
-	4:  "expiresAtMs",
-	5:  "id",
-	6:  "lastAttemptN",
-	7:  "lastTaskId",
-	8:  "lastUsedAtMs",
-	9:  "model",
-	10: "provider",
-	11: "slotKey",
-	12: "state",
-	13: "taskType",
-	14: "teamId",
-	15: "workspaceRowId",
+	2:  "daemonProfileId",
+	3:  "expiresAtMs",
+	4:  "id",
+	5:  "lastAttemptN",
+	6:  "lastTaskId",
+	7:  "lastUsedAtMs",
+	8:  "model",
+	9:  "provider",
+	10: "sessionDir",
+	11: "sessionPath",
+	12: "slotKey",
+	13: "state",
+	14: "taskType",
+	15: "teamId",
+	16: "workspaceRowId",
 }
 
 // Decode decodes BeginRuntimeSlotOK from json.
@@ -4078,7 +4083,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode BeginRuntimeSlotOK to nil")
 	}
-	var requiredBitSet [2]uint8
+	var requiredBitSet [3]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -4106,20 +4111,8 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAtMs\"")
 			}
-		case "daemonId":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := d.Str()
-				s.DaemonId = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonId\"")
-			}
 		case "daemonProfileId":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.DaemonProfileId.Decode(d); err != nil {
 					return err
@@ -4129,7 +4122,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"daemonProfileId\"")
 			}
 		case "expiresAtMs":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.ExpiresAtMs = int(v)
@@ -4141,7 +4134,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAtMs\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -4153,7 +4146,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "lastAttemptN":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.LastAttemptN = int(v)
@@ -4165,7 +4158,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAttemptN\"")
 			}
 		case "lastTaskId":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LastTaskId = v
@@ -4177,7 +4170,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastTaskId\"")
 			}
 		case "lastUsedAtMs":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.LastUsedAtMs = int(v)
@@ -4189,7 +4182,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -4201,7 +4194,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -4212,8 +4205,28 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
-		case "slotKey":
+		case "sessionDir":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				if err := s.SessionDir.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionDir\"")
+			}
+		case "sessionPath":
 			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				if err := s.SessionPath.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionPath\"")
+			}
+		case "slotKey":
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.SlotKey = string(v)
@@ -4225,7 +4238,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"slotKey\"")
 			}
 		case "state":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				if err := s.State.Decode(d); err != nil {
 					return err
@@ -4235,7 +4248,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"state\"")
 			}
 		case "taskType":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -4247,7 +4260,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
 		case "teamId":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -4259,7 +4272,7 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "workspaceRowId":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				if err := s.WorkspaceRowId.Decode(d); err != nil {
 					return err
@@ -4277,9 +4290,10 @@ func (s *BeginRuntimeSlotOK) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
+	for i, mask := range [3]uint8{
 		0b11111111,
 		0b11111111,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -4379,10 +4393,6 @@ func (s *BeginRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.AgentName)
 	}
 	{
-		e.FieldStart("daemonId")
-		e.Str(s.DaemonId)
-	}
-	{
 		if s.DaemonProfileId.Set {
 			e.FieldStart("daemonProfileId")
 			s.DaemonProfileId.Encode(e)
@@ -4425,10 +4435,6 @@ func (s *BeginRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.TaskType)
 	}
 	{
-		e.FieldStart("ttlSec")
-		e.Int(s.TtlSec)
-	}
-	{
 		if s.WorkspaceId.Set {
 			e.FieldStart("workspaceId")
 			s.WorkspaceId.Encode(e)
@@ -4454,23 +4460,21 @@ func (s *BeginRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfBeginRuntimeSlotReq = [16]string{
+var jsonFieldsNameOfBeginRuntimeSlotReq = [14]string{
 	0:  "agentName",
-	1:  "daemonId",
-	2:  "daemonProfileId",
-	3:  "lastAttemptN",
-	4:  "lastTaskId",
-	5:  "model",
-	6:  "provider",
-	7:  "sessionDir",
-	8:  "sessionPath",
-	9:  "slotKey",
-	10: "taskType",
-	11: "ttlSec",
-	12: "workspaceId",
-	13: "workspaceKind",
-	14: "worktreeBranch",
-	15: "worktreePath",
+	1:  "daemonProfileId",
+	2:  "lastAttemptN",
+	3:  "lastTaskId",
+	4:  "model",
+	5:  "provider",
+	6:  "sessionDir",
+	7:  "sessionPath",
+	8:  "slotKey",
+	9:  "taskType",
+	10: "workspaceId",
+	11: "workspaceKind",
+	12: "worktreeBranch",
+	13: "worktreePath",
 }
 
 // Decode decodes BeginRuntimeSlotReq from json.
@@ -4494,18 +4498,6 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"agentName\"")
 			}
-		case "daemonId":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Str()
-				s.DaemonId = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonId\"")
-			}
 		case "daemonProfileId":
 			if err := func() error {
 				s.DaemonProfileId.Reset()
@@ -4517,7 +4509,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"daemonProfileId\"")
 			}
 		case "lastAttemptN":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.LastAttemptN = int(v)
@@ -4529,7 +4521,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAttemptN\"")
 			}
 		case "lastTaskId":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LastTaskId = v
@@ -4541,7 +4533,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastTaskId\"")
 			}
 		case "model":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -4553,7 +4545,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "provider":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -4585,7 +4577,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionPath\"")
 			}
 		case "slotKey":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.SlotKey = string(v)
@@ -4597,7 +4589,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"slotKey\"")
 			}
 		case "taskType":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -4607,18 +4599,6 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"taskType\"")
-			}
-		case "ttlSec":
-			requiredBitSet[1] |= 1 << 3
-			if err := func() error {
-				v, err := d.Int()
-				s.TtlSec = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"ttlSec\"")
 			}
 		case "workspaceId":
 			if err := func() error {
@@ -4670,8 +4650,8 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b01111011,
-		0b00001110,
+		0b00111101,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -25924,14 +25904,14 @@ func (s *FailTaskUnauthorized) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *FindRuntimeProducerSlotBadRequest) Encode(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FindRuntimeProducerSlotBadRequest) encodeFields(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("code")
 		s.Code.Encode(e)
@@ -25977,7 +25957,7 @@ func (s *FindRuntimeProducerSlotBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFindRuntimeProducerSlotBadRequest = [7]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptBadRequest = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
@@ -25987,10 +25967,10 @@ var jsonFieldsNameOfFindRuntimeProducerSlotBadRequest = [7]string{
 	6: "errors",
 }
 
-// Decode decodes FindRuntimeProducerSlotBadRequest from json.
-func (s *FindRuntimeProducerSlotBadRequest) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptBadRequest from json.
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotBadRequest to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptBadRequest to nil")
 	}
 	var requiredBitSet [1]uint8
 	s.AdditionalProps = map[string]jx.Raw{}
@@ -26066,9 +26046,9 @@ func (s *FindRuntimeProducerSlotBadRequest) Decode(d *jx.Decoder) error {
 		case "errors":
 			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
-				s.Errors = make([]FindRuntimeProducerSlotBadRequestErrorsItem, 0)
+				s.Errors = make([]FindLatestRuntimeSlotForAttemptBadRequestErrorsItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
-					var elem FindRuntimeProducerSlotBadRequestErrorsItem
+					var elem FindLatestRuntimeSlotForAttemptBadRequestErrorsItem
 					if err := elem.Decode(d); err != nil {
 						return err
 					}
@@ -26097,7 +26077,7 @@ func (s *FindRuntimeProducerSlotBadRequest) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotBadRequest")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptBadRequest")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -26114,8 +26094,8 @@ func (s *FindRuntimeProducerSlotBadRequest) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotBadRequest) {
-					name = jsonFieldsNameOfFindRuntimeProducerSlotBadRequest[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFindLatestRuntimeSlotForAttemptBadRequest) {
+					name = jsonFieldsNameOfFindLatestRuntimeSlotForAttemptBadRequest[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -26136,27 +26116,27 @@ func (s *FindRuntimeProducerSlotBadRequest) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FindRuntimeProducerSlotBadRequest) MarshalJSON() ([]byte, error) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotBadRequest) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s FindRuntimeProducerSlotBadRequestAdditional) Encode(e *jx.Encoder) {
+func (s FindLatestRuntimeSlotForAttemptBadRequestAdditional) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields implements json.Marshaler.
-func (s FindRuntimeProducerSlotBadRequestAdditional) encodeFields(e *jx.Encoder) {
+func (s FindLatestRuntimeSlotForAttemptBadRequestAdditional) encodeFields(e *jx.Encoder) {
 	for k, elem := range s {
 		e.FieldStart(k)
 
@@ -26166,10 +26146,10 @@ func (s FindRuntimeProducerSlotBadRequestAdditional) encodeFields(e *jx.Encoder)
 	}
 }
 
-// Decode decodes FindRuntimeProducerSlotBadRequestAdditional from json.
-func (s *FindRuntimeProducerSlotBadRequestAdditional) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptBadRequestAdditional from json.
+func (s *FindLatestRuntimeSlotForAttemptBadRequestAdditional) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotBadRequestAdditional to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptBadRequestAdditional to nil")
 	}
 	m := s.init()
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
@@ -26187,124 +26167,124 @@ func (s *FindRuntimeProducerSlotBadRequestAdditional) Decode(d *jx.Decoder) erro
 		m[string(k)] = elem
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotBadRequestAdditional")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptBadRequestAdditional")
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s FindRuntimeProducerSlotBadRequestAdditional) MarshalJSON() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptBadRequestAdditional) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotBadRequestAdditional) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestAdditional) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FindRuntimeProducerSlotBadRequestCode as json.
-func (s FindRuntimeProducerSlotBadRequestCode) Encode(e *jx.Encoder) {
+// Encode encodes FindLatestRuntimeSlotForAttemptBadRequestCode as json.
+func (s FindLatestRuntimeSlotForAttemptBadRequestCode) Encode(e *jx.Encoder) {
 	e.Str(string(s))
 }
 
-// Decode decodes FindRuntimeProducerSlotBadRequestCode from json.
-func (s *FindRuntimeProducerSlotBadRequestCode) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptBadRequestCode from json.
+func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotBadRequestCode to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptBadRequestCode to nil")
 	}
 	v, err := d.StrBytes()
 	if err != nil {
 		return err
 	}
 	// Try to use constant string.
-	switch FindRuntimeProducerSlotBadRequestCode(v) {
-	case FindRuntimeProducerSlotBadRequestCodeUNAUTHORIZED:
-		*s = FindRuntimeProducerSlotBadRequestCodeUNAUTHORIZED
-	case FindRuntimeProducerSlotBadRequestCodeFORBIDDEN:
-		*s = FindRuntimeProducerSlotBadRequestCodeFORBIDDEN
-	case FindRuntimeProducerSlotBadRequestCodeNOTFOUND:
-		*s = FindRuntimeProducerSlotBadRequestCodeNOTFOUND
-	case FindRuntimeProducerSlotBadRequestCodeCONFLICT:
-		*s = FindRuntimeProducerSlotBadRequestCodeCONFLICT
-	case FindRuntimeProducerSlotBadRequestCodeVALIDATIONFAILED:
-		*s = FindRuntimeProducerSlotBadRequestCodeVALIDATIONFAILED
-	case FindRuntimeProducerSlotBadRequestCodeINVALIDCHALLENGE:
-		*s = FindRuntimeProducerSlotBadRequestCodeINVALIDCHALLENGE
-	case FindRuntimeProducerSlotBadRequestCodeINVALIDSIGNATURE:
-		*s = FindRuntimeProducerSlotBadRequestCodeINVALIDSIGNATURE
-	case FindRuntimeProducerSlotBadRequestCodeVOUCHERLIMIT:
-		*s = FindRuntimeProducerSlotBadRequestCodeVOUCHERLIMIT
-	case FindRuntimeProducerSlotBadRequestCodeRATELIMITEXCEEDED:
-		*s = FindRuntimeProducerSlotBadRequestCodeRATELIMITEXCEEDED
-	case FindRuntimeProducerSlotBadRequestCodeSERIALIZATIONEXHAUSTED:
-		*s = FindRuntimeProducerSlotBadRequestCodeSERIALIZATIONEXHAUSTED
-	case FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTEXPIRED:
-		*s = FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTEXPIRED
-	case FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
-		*s = FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
-	case FindRuntimeProducerSlotBadRequestCodeREGISTRATIONFAILED:
-		*s = FindRuntimeProducerSlotBadRequestCodeREGISTRATIONFAILED
-	case FindRuntimeProducerSlotBadRequestCodeUPSTREAMERROR:
-		*s = FindRuntimeProducerSlotBadRequestCodeUPSTREAMERROR
-	case FindRuntimeProducerSlotBadRequestCodeSERVICEUNAVAILABLE:
-		*s = FindRuntimeProducerSlotBadRequestCodeSERVICEUNAVAILABLE
-	case FindRuntimeProducerSlotBadRequestCodeINTERNALSERVERERROR:
-		*s = FindRuntimeProducerSlotBadRequestCodeINTERNALSERVERERROR
-	case FindRuntimeProducerSlotBadRequestCodeTEAMPERSONALIMMUTABLE:
-		*s = FindRuntimeProducerSlotBadRequestCodeTEAMPERSONALIMMUTABLE
-	case FindRuntimeProducerSlotBadRequestCodeTEAMNOTACTIVE:
-		*s = FindRuntimeProducerSlotBadRequestCodeTEAMNOTACTIVE
-	case FindRuntimeProducerSlotBadRequestCodeINVITEEXPIRED:
-		*s = FindRuntimeProducerSlotBadRequestCodeINVITEEXPIRED
-	case FindRuntimeProducerSlotBadRequestCodeINVITEEXHAUSTED:
-		*s = FindRuntimeProducerSlotBadRequestCodeINVITEEXHAUSTED
-	case FindRuntimeProducerSlotBadRequestCodeTEAMLASTOWNER:
-		*s = FindRuntimeProducerSlotBadRequestCodeTEAMLASTOWNER
-	case FindRuntimeProducerSlotBadRequestCodeTEAMALREADYACTIVE:
-		*s = FindRuntimeProducerSlotBadRequestCodeTEAMALREADYACTIVE
-	case FindRuntimeProducerSlotBadRequestCodeTEAMNOTFOUNDING:
-		*s = FindRuntimeProducerSlotBadRequestCodeTEAMNOTFOUNDING
-	case FindRuntimeProducerSlotBadRequestCodeFOUNDINGALREADYACCEPTED:
-		*s = FindRuntimeProducerSlotBadRequestCodeFOUNDINGALREADYACCEPTED
-	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERPENDING:
-		*s = FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERPENDING
-	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERNOTFOUND:
-		*s = FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERNOTFOUND
-	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
-		*s = FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+	switch FindLatestRuntimeSlotForAttemptBadRequestCode(v) {
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeUNAUTHORIZED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeUNAUTHORIZED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeFORBIDDEN:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeFORBIDDEN
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeUPSTREAMERROR:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeUPSTREAMERROR
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSERVICEUNAVAILABLE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSERVICEUNAVAILABLE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINTERNALSERVERERROR:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINTERNALSERVERERROR
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMPERSONALIMMUTABLE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTACTIVE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXPIRED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMLASTOWNER:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMLASTOWNER
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMALREADYACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMALREADYACTIVE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTFOUNDING:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTFOUNDING
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeFOUNDINGALREADYACCEPTED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERPENDING:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERPENDING
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERNOTFOUND
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERALREADYRESOLVED
 	default:
-		*s = FindRuntimeProducerSlotBadRequestCode(v)
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCode(v)
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s FindRuntimeProducerSlotBadRequestCode) MarshalJSON() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptBadRequestCode) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotBadRequestCode) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) Encode(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) encodeFields(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) encodeFields(e *jx.Encoder) {
 	{
 		if s.Code.Set {
 			e.FieldStart("code")
@@ -26321,16 +26301,16 @@ func (s *FindRuntimeProducerSlotBadRequestErrorsItem) encodeFields(e *jx.Encoder
 	}
 }
 
-var jsonFieldsNameOfFindRuntimeProducerSlotBadRequestErrorsItem = [3]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptBadRequestErrorsItem = [3]string{
 	0: "code",
 	1: "field",
 	2: "message",
 }
 
-// Decode decodes FindRuntimeProducerSlotBadRequestErrorsItem from json.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptBadRequestErrorsItem from json.
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotBadRequestErrorsItem to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptBadRequestErrorsItem to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -26375,7 +26355,7 @@ func (s *FindRuntimeProducerSlotBadRequestErrorsItem) Decode(d *jx.Decoder) erro
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotBadRequestErrorsItem")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptBadRequestErrorsItem")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -26392,8 +26372,8 @@ func (s *FindRuntimeProducerSlotBadRequestErrorsItem) Decode(d *jx.Decoder) erro
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotBadRequestErrorsItem) {
-					name = jsonFieldsNameOfFindRuntimeProducerSlotBadRequestErrorsItem[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFindLatestRuntimeSlotForAttemptBadRequestErrorsItem) {
+					name = jsonFieldsNameOfFindLatestRuntimeSlotForAttemptBadRequestErrorsItem[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -26414,27 +26394,27 @@ func (s *FindRuntimeProducerSlotBadRequestErrorsItem) Decode(d *jx.Decoder) erro
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) MarshalJSON() ([]byte, error) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s *FindRuntimeProducerSlotForbidden) Encode(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FindRuntimeProducerSlotForbidden) encodeFields(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("code")
 		s.Code.Encode(e)
@@ -26472,7 +26452,7 @@ func (s *FindRuntimeProducerSlotForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFindRuntimeProducerSlotForbidden = [6]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptForbidden = [6]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
@@ -26481,10 +26461,10 @@ var jsonFieldsNameOfFindRuntimeProducerSlotForbidden = [6]string{
 	5: "type",
 }
 
-// Decode decodes FindRuntimeProducerSlotForbidden from json.
-func (s *FindRuntimeProducerSlotForbidden) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptForbidden from json.
+func (s *FindLatestRuntimeSlotForAttemptForbidden) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotForbidden to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptForbidden to nil")
 	}
 	var requiredBitSet [1]uint8
 	s.AdditionalProps = map[string]jx.Raw{}
@@ -26573,7 +26553,7 @@ func (s *FindRuntimeProducerSlotForbidden) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotForbidden")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptForbidden")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -26590,8 +26570,8 @@ func (s *FindRuntimeProducerSlotForbidden) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotForbidden) {
-					name = jsonFieldsNameOfFindRuntimeProducerSlotForbidden[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFindLatestRuntimeSlotForAttemptForbidden) {
+					name = jsonFieldsNameOfFindLatestRuntimeSlotForAttemptForbidden[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -26612,27 +26592,27 @@ func (s *FindRuntimeProducerSlotForbidden) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FindRuntimeProducerSlotForbidden) MarshalJSON() ([]byte, error) {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotForbidden) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s FindRuntimeProducerSlotForbiddenAdditional) Encode(e *jx.Encoder) {
+func (s FindLatestRuntimeSlotForAttemptForbiddenAdditional) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields implements json.Marshaler.
-func (s FindRuntimeProducerSlotForbiddenAdditional) encodeFields(e *jx.Encoder) {
+func (s FindLatestRuntimeSlotForAttemptForbiddenAdditional) encodeFields(e *jx.Encoder) {
 	for k, elem := range s {
 		e.FieldStart(k)
 
@@ -26642,10 +26622,10 @@ func (s FindRuntimeProducerSlotForbiddenAdditional) encodeFields(e *jx.Encoder) 
 	}
 }
 
-// Decode decodes FindRuntimeProducerSlotForbiddenAdditional from json.
-func (s *FindRuntimeProducerSlotForbiddenAdditional) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptForbiddenAdditional from json.
+func (s *FindLatestRuntimeSlotForAttemptForbiddenAdditional) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotForbiddenAdditional to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptForbiddenAdditional to nil")
 	}
 	m := s.init()
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
@@ -26663,124 +26643,124 @@ func (s *FindRuntimeProducerSlotForbiddenAdditional) Decode(d *jx.Decoder) error
 		m[string(k)] = elem
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotForbiddenAdditional")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptForbiddenAdditional")
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s FindRuntimeProducerSlotForbiddenAdditional) MarshalJSON() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptForbiddenAdditional) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotForbiddenAdditional) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptForbiddenAdditional) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FindRuntimeProducerSlotForbiddenCode as json.
-func (s FindRuntimeProducerSlotForbiddenCode) Encode(e *jx.Encoder) {
+// Encode encodes FindLatestRuntimeSlotForAttemptForbiddenCode as json.
+func (s FindLatestRuntimeSlotForAttemptForbiddenCode) Encode(e *jx.Encoder) {
 	e.Str(string(s))
 }
 
-// Decode decodes FindRuntimeProducerSlotForbiddenCode from json.
-func (s *FindRuntimeProducerSlotForbiddenCode) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptForbiddenCode from json.
+func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotForbiddenCode to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptForbiddenCode to nil")
 	}
 	v, err := d.StrBytes()
 	if err != nil {
 		return err
 	}
 	// Try to use constant string.
-	switch FindRuntimeProducerSlotForbiddenCode(v) {
-	case FindRuntimeProducerSlotForbiddenCodeUNAUTHORIZED:
-		*s = FindRuntimeProducerSlotForbiddenCodeUNAUTHORIZED
-	case FindRuntimeProducerSlotForbiddenCodeFORBIDDEN:
-		*s = FindRuntimeProducerSlotForbiddenCodeFORBIDDEN
-	case FindRuntimeProducerSlotForbiddenCodeNOTFOUND:
-		*s = FindRuntimeProducerSlotForbiddenCodeNOTFOUND
-	case FindRuntimeProducerSlotForbiddenCodeCONFLICT:
-		*s = FindRuntimeProducerSlotForbiddenCodeCONFLICT
-	case FindRuntimeProducerSlotForbiddenCodeVALIDATIONFAILED:
-		*s = FindRuntimeProducerSlotForbiddenCodeVALIDATIONFAILED
-	case FindRuntimeProducerSlotForbiddenCodeINVALIDCHALLENGE:
-		*s = FindRuntimeProducerSlotForbiddenCodeINVALIDCHALLENGE
-	case FindRuntimeProducerSlotForbiddenCodeINVALIDSIGNATURE:
-		*s = FindRuntimeProducerSlotForbiddenCodeINVALIDSIGNATURE
-	case FindRuntimeProducerSlotForbiddenCodeVOUCHERLIMIT:
-		*s = FindRuntimeProducerSlotForbiddenCodeVOUCHERLIMIT
-	case FindRuntimeProducerSlotForbiddenCodeRATELIMITEXCEEDED:
-		*s = FindRuntimeProducerSlotForbiddenCodeRATELIMITEXCEEDED
-	case FindRuntimeProducerSlotForbiddenCodeSERIALIZATIONEXHAUSTED:
-		*s = FindRuntimeProducerSlotForbiddenCodeSERIALIZATIONEXHAUSTED
-	case FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTEXPIRED:
-		*s = FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTEXPIRED
-	case FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
-		*s = FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
-	case FindRuntimeProducerSlotForbiddenCodeREGISTRATIONFAILED:
-		*s = FindRuntimeProducerSlotForbiddenCodeREGISTRATIONFAILED
-	case FindRuntimeProducerSlotForbiddenCodeUPSTREAMERROR:
-		*s = FindRuntimeProducerSlotForbiddenCodeUPSTREAMERROR
-	case FindRuntimeProducerSlotForbiddenCodeSERVICEUNAVAILABLE:
-		*s = FindRuntimeProducerSlotForbiddenCodeSERVICEUNAVAILABLE
-	case FindRuntimeProducerSlotForbiddenCodeINTERNALSERVERERROR:
-		*s = FindRuntimeProducerSlotForbiddenCodeINTERNALSERVERERROR
-	case FindRuntimeProducerSlotForbiddenCodeTEAMPERSONALIMMUTABLE:
-		*s = FindRuntimeProducerSlotForbiddenCodeTEAMPERSONALIMMUTABLE
-	case FindRuntimeProducerSlotForbiddenCodeTEAMNOTACTIVE:
-		*s = FindRuntimeProducerSlotForbiddenCodeTEAMNOTACTIVE
-	case FindRuntimeProducerSlotForbiddenCodeINVITEEXPIRED:
-		*s = FindRuntimeProducerSlotForbiddenCodeINVITEEXPIRED
-	case FindRuntimeProducerSlotForbiddenCodeINVITEEXHAUSTED:
-		*s = FindRuntimeProducerSlotForbiddenCodeINVITEEXHAUSTED
-	case FindRuntimeProducerSlotForbiddenCodeTEAMLASTOWNER:
-		*s = FindRuntimeProducerSlotForbiddenCodeTEAMLASTOWNER
-	case FindRuntimeProducerSlotForbiddenCodeTEAMALREADYACTIVE:
-		*s = FindRuntimeProducerSlotForbiddenCodeTEAMALREADYACTIVE
-	case FindRuntimeProducerSlotForbiddenCodeTEAMNOTFOUNDING:
-		*s = FindRuntimeProducerSlotForbiddenCodeTEAMNOTFOUNDING
-	case FindRuntimeProducerSlotForbiddenCodeFOUNDINGALREADYACCEPTED:
-		*s = FindRuntimeProducerSlotForbiddenCodeFOUNDINGALREADYACCEPTED
-	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERPENDING:
-		*s = FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERPENDING
-	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERNOTFOUND:
-		*s = FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERNOTFOUND
-	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
-		*s = FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+	switch FindLatestRuntimeSlotForAttemptForbiddenCode(v) {
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeUNAUTHORIZED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeUNAUTHORIZED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeFORBIDDEN:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeFORBIDDEN
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeUPSTREAMERROR:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeUPSTREAMERROR
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSERVICEUNAVAILABLE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSERVICEUNAVAILABLE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINTERNALSERVERERROR:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINTERNALSERVERERROR
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMPERSONALIMMUTABLE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTACTIVE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXPIRED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMLASTOWNER:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMLASTOWNER
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMALREADYACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMALREADYACTIVE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTFOUNDING:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTFOUNDING
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeFOUNDINGALREADYACCEPTED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERPENDING:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERPENDING
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERNOTFOUND
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERALREADYRESOLVED
 	default:
-		*s = FindRuntimeProducerSlotForbiddenCode(v)
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCode(v)
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s FindRuntimeProducerSlotForbiddenCode) MarshalJSON() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptForbiddenCode) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotForbiddenCode) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s *FindRuntimeProducerSlotNotFound) Encode(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FindRuntimeProducerSlotNotFound) encodeFields(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("code")
 		s.Code.Encode(e)
@@ -26818,7 +26798,7 @@ func (s *FindRuntimeProducerSlotNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFindRuntimeProducerSlotNotFound = [6]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptNotFound = [6]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
@@ -26827,10 +26807,10 @@ var jsonFieldsNameOfFindRuntimeProducerSlotNotFound = [6]string{
 	5: "type",
 }
 
-// Decode decodes FindRuntimeProducerSlotNotFound from json.
-func (s *FindRuntimeProducerSlotNotFound) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptNotFound from json.
+func (s *FindLatestRuntimeSlotForAttemptNotFound) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotNotFound to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptNotFound to nil")
 	}
 	var requiredBitSet [1]uint8
 	s.AdditionalProps = map[string]jx.Raw{}
@@ -26919,7 +26899,7 @@ func (s *FindRuntimeProducerSlotNotFound) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotNotFound")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptNotFound")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -26936,8 +26916,8 @@ func (s *FindRuntimeProducerSlotNotFound) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotNotFound) {
-					name = jsonFieldsNameOfFindRuntimeProducerSlotNotFound[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFindLatestRuntimeSlotForAttemptNotFound) {
+					name = jsonFieldsNameOfFindLatestRuntimeSlotForAttemptNotFound[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -26958,27 +26938,27 @@ func (s *FindRuntimeProducerSlotNotFound) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FindRuntimeProducerSlotNotFound) MarshalJSON() ([]byte, error) {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotNotFound) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s FindRuntimeProducerSlotNotFoundAdditional) Encode(e *jx.Encoder) {
+func (s FindLatestRuntimeSlotForAttemptNotFoundAdditional) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields implements json.Marshaler.
-func (s FindRuntimeProducerSlotNotFoundAdditional) encodeFields(e *jx.Encoder) {
+func (s FindLatestRuntimeSlotForAttemptNotFoundAdditional) encodeFields(e *jx.Encoder) {
 	for k, elem := range s {
 		e.FieldStart(k)
 
@@ -26988,10 +26968,10 @@ func (s FindRuntimeProducerSlotNotFoundAdditional) encodeFields(e *jx.Encoder) {
 	}
 }
 
-// Decode decodes FindRuntimeProducerSlotNotFoundAdditional from json.
-func (s *FindRuntimeProducerSlotNotFoundAdditional) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptNotFoundAdditional from json.
+func (s *FindLatestRuntimeSlotForAttemptNotFoundAdditional) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotNotFoundAdditional to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptNotFoundAdditional to nil")
 	}
 	m := s.init()
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
@@ -27009,128 +26989,124 @@ func (s *FindRuntimeProducerSlotNotFoundAdditional) Decode(d *jx.Decoder) error 
 		m[string(k)] = elem
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotNotFoundAdditional")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptNotFoundAdditional")
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s FindRuntimeProducerSlotNotFoundAdditional) MarshalJSON() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptNotFoundAdditional) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotNotFoundAdditional) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptNotFoundAdditional) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FindRuntimeProducerSlotNotFoundCode as json.
-func (s FindRuntimeProducerSlotNotFoundCode) Encode(e *jx.Encoder) {
+// Encode encodes FindLatestRuntimeSlotForAttemptNotFoundCode as json.
+func (s FindLatestRuntimeSlotForAttemptNotFoundCode) Encode(e *jx.Encoder) {
 	e.Str(string(s))
 }
 
-// Decode decodes FindRuntimeProducerSlotNotFoundCode from json.
-func (s *FindRuntimeProducerSlotNotFoundCode) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptNotFoundCode from json.
+func (s *FindLatestRuntimeSlotForAttemptNotFoundCode) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotNotFoundCode to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptNotFoundCode to nil")
 	}
 	v, err := d.StrBytes()
 	if err != nil {
 		return err
 	}
 	// Try to use constant string.
-	switch FindRuntimeProducerSlotNotFoundCode(v) {
-	case FindRuntimeProducerSlotNotFoundCodeUNAUTHORIZED:
-		*s = FindRuntimeProducerSlotNotFoundCodeUNAUTHORIZED
-	case FindRuntimeProducerSlotNotFoundCodeFORBIDDEN:
-		*s = FindRuntimeProducerSlotNotFoundCodeFORBIDDEN
-	case FindRuntimeProducerSlotNotFoundCodeNOTFOUND:
-		*s = FindRuntimeProducerSlotNotFoundCodeNOTFOUND
-	case FindRuntimeProducerSlotNotFoundCodeCONFLICT:
-		*s = FindRuntimeProducerSlotNotFoundCodeCONFLICT
-	case FindRuntimeProducerSlotNotFoundCodeVALIDATIONFAILED:
-		*s = FindRuntimeProducerSlotNotFoundCodeVALIDATIONFAILED
-	case FindRuntimeProducerSlotNotFoundCodeINVALIDCHALLENGE:
-		*s = FindRuntimeProducerSlotNotFoundCodeINVALIDCHALLENGE
-	case FindRuntimeProducerSlotNotFoundCodeINVALIDSIGNATURE:
-		*s = FindRuntimeProducerSlotNotFoundCodeINVALIDSIGNATURE
-	case FindRuntimeProducerSlotNotFoundCodeVOUCHERLIMIT:
-		*s = FindRuntimeProducerSlotNotFoundCodeVOUCHERLIMIT
-	case FindRuntimeProducerSlotNotFoundCodeRATELIMITEXCEEDED:
-		*s = FindRuntimeProducerSlotNotFoundCodeRATELIMITEXCEEDED
-	case FindRuntimeProducerSlotNotFoundCodeSERIALIZATIONEXHAUSTED:
-		*s = FindRuntimeProducerSlotNotFoundCodeSERIALIZATIONEXHAUSTED
-	case FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTEXPIRED:
-		*s = FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTEXPIRED
-	case FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
-		*s = FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
-	case FindRuntimeProducerSlotNotFoundCodeREGISTRATIONFAILED:
-		*s = FindRuntimeProducerSlotNotFoundCodeREGISTRATIONFAILED
-	case FindRuntimeProducerSlotNotFoundCodeUPSTREAMERROR:
-		*s = FindRuntimeProducerSlotNotFoundCodeUPSTREAMERROR
-	case FindRuntimeProducerSlotNotFoundCodeSERVICEUNAVAILABLE:
-		*s = FindRuntimeProducerSlotNotFoundCodeSERVICEUNAVAILABLE
-	case FindRuntimeProducerSlotNotFoundCodeINTERNALSERVERERROR:
-		*s = FindRuntimeProducerSlotNotFoundCodeINTERNALSERVERERROR
-	case FindRuntimeProducerSlotNotFoundCodeTEAMPERSONALIMMUTABLE:
-		*s = FindRuntimeProducerSlotNotFoundCodeTEAMPERSONALIMMUTABLE
-	case FindRuntimeProducerSlotNotFoundCodeTEAMNOTACTIVE:
-		*s = FindRuntimeProducerSlotNotFoundCodeTEAMNOTACTIVE
-	case FindRuntimeProducerSlotNotFoundCodeINVITEEXPIRED:
-		*s = FindRuntimeProducerSlotNotFoundCodeINVITEEXPIRED
-	case FindRuntimeProducerSlotNotFoundCodeINVITEEXHAUSTED:
-		*s = FindRuntimeProducerSlotNotFoundCodeINVITEEXHAUSTED
-	case FindRuntimeProducerSlotNotFoundCodeTEAMLASTOWNER:
-		*s = FindRuntimeProducerSlotNotFoundCodeTEAMLASTOWNER
-	case FindRuntimeProducerSlotNotFoundCodeTEAMALREADYACTIVE:
-		*s = FindRuntimeProducerSlotNotFoundCodeTEAMALREADYACTIVE
-	case FindRuntimeProducerSlotNotFoundCodeTEAMNOTFOUNDING:
-		*s = FindRuntimeProducerSlotNotFoundCodeTEAMNOTFOUNDING
-	case FindRuntimeProducerSlotNotFoundCodeFOUNDINGALREADYACCEPTED:
-		*s = FindRuntimeProducerSlotNotFoundCodeFOUNDINGALREADYACCEPTED
-	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERPENDING:
-		*s = FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERPENDING
-	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERNOTFOUND:
-		*s = FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERNOTFOUND
-	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
-		*s = FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+	switch FindLatestRuntimeSlotForAttemptNotFoundCode(v) {
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeUNAUTHORIZED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeUNAUTHORIZED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeFORBIDDEN:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeFORBIDDEN
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeUPSTREAMERROR:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeUPSTREAMERROR
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSERVICEUNAVAILABLE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSERVICEUNAVAILABLE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINTERNALSERVERERROR:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINTERNALSERVERERROR
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMPERSONALIMMUTABLE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTACTIVE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXPIRED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMLASTOWNER:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMLASTOWNER
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMALREADYACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMALREADYACTIVE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTFOUNDING:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTFOUNDING
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeFOUNDINGALREADYACCEPTED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERPENDING:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERPENDING
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERNOTFOUND
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERALREADYRESOLVED
 	default:
-		*s = FindRuntimeProducerSlotNotFoundCode(v)
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCode(v)
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s FindRuntimeProducerSlotNotFoundCode) MarshalJSON() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptNotFoundCode) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotNotFoundCode) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptNotFoundCode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s *FindRuntimeProducerSlotOK) Encode(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptOK) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FindRuntimeProducerSlotOK) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("session")
-		s.Session.Encode(e)
-	}
+func (s *FindLatestRuntimeSlotForAttemptOK) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("slot")
 		s.Slot.Encode(e)
@@ -27141,33 +27117,22 @@ func (s *FindRuntimeProducerSlotOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFindRuntimeProducerSlotOK = [3]string{
-	0: "session",
-	1: "slot",
-	2: "workspace",
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptOK = [2]string{
+	0: "slot",
+	1: "workspace",
 }
 
-// Decode decodes FindRuntimeProducerSlotOK from json.
-func (s *FindRuntimeProducerSlotOK) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptOK from json.
+func (s *FindLatestRuntimeSlotForAttemptOK) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOK to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptOK to nil")
 	}
 	var requiredBitSet [1]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "session":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				if err := s.Session.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"session\"")
-			}
 		case "slot":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				if err := s.Slot.Decode(d); err != nil {
 					return err
@@ -27177,7 +27142,7 @@ func (s *FindRuntimeProducerSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"slot\"")
 			}
 		case "workspace":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				if err := s.Workspace.Decode(d); err != nil {
 					return err
@@ -27191,12 +27156,12 @@ func (s *FindRuntimeProducerSlotOK) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotOK")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptOK")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -27208,8 +27173,8 @@ func (s *FindRuntimeProducerSlotOK) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotOK) {
-					name = jsonFieldsNameOfFindRuntimeProducerSlotOK[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFindLatestRuntimeSlotForAttemptOK) {
+					name = jsonFieldsNameOfFindLatestRuntimeSlotForAttemptOK[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -27230,155 +27195,27 @@ func (s *FindRuntimeProducerSlotOK) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FindRuntimeProducerSlotOK) MarshalJSON() ([]byte, error) {
+func (s *FindLatestRuntimeSlotForAttemptOK) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotOK) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptOK) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s *FindRuntimeProducerSlotOKSession) Encode(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FindRuntimeProducerSlotOKSession) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("sessionDir")
-		e.Str(s.SessionDir)
-	}
-	{
-		e.FieldStart("sessionPath")
-		s.SessionPath.Encode(e)
-	}
-	{
-		e.FieldStart("slotId")
-		json.EncodeUUID(e, s.SlotId)
-	}
-}
-
-var jsonFieldsNameOfFindRuntimeProducerSlotOKSession = [3]string{
-	0: "sessionDir",
-	1: "sessionPath",
-	2: "slotId",
-}
-
-// Decode decodes FindRuntimeProducerSlotOKSession from json.
-func (s *FindRuntimeProducerSlotOKSession) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOKSession to nil")
-	}
-	var requiredBitSet [1]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "sessionDir":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Str()
-				s.SessionDir = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionDir\"")
-			}
-		case "sessionPath":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				if err := s.SessionPath.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionPath\"")
-			}
-		case "slotId":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.SlotId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"slotId\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotOKSession")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000111,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotOKSession) {
-					name = jsonFieldsNameOfFindRuntimeProducerSlotOKSession[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *FindRuntimeProducerSlotOKSession) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotOKSession) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s *FindRuntimeProducerSlotOKSlot) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *FindRuntimeProducerSlotOKSlot) encodeFields(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("agentName")
 		e.Str(s.AgentName)
@@ -27386,10 +27223,6 @@ func (s *FindRuntimeProducerSlotOKSlot) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("createdAtMs")
 		e.Int(s.CreatedAtMs)
-	}
-	{
-		e.FieldStart("daemonId")
-		e.Str(s.DaemonId)
 	}
 	{
 		e.FieldStart("daemonProfileId")
@@ -27424,6 +27257,14 @@ func (s *FindRuntimeProducerSlotOKSlot) encodeFields(e *jx.Encoder) {
 		e.Str(s.Provider)
 	}
 	{
+		e.FieldStart("sessionDir")
+		s.SessionDir.Encode(e)
+	}
+	{
+		e.FieldStart("sessionPath")
+		s.SessionPath.Encode(e)
+	}
+	{
 		e.FieldStart("slotKey")
 		e.Str(s.SlotKey)
 	}
@@ -27445,31 +27286,32 @@ func (s *FindRuntimeProducerSlotOKSlot) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFindRuntimeProducerSlotOKSlot = [16]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptOKSlot = [17]string{
 	0:  "agentName",
 	1:  "createdAtMs",
-	2:  "daemonId",
-	3:  "daemonProfileId",
-	4:  "expiresAtMs",
-	5:  "id",
-	6:  "lastAttemptN",
-	7:  "lastTaskId",
-	8:  "lastUsedAtMs",
-	9:  "model",
-	10: "provider",
-	11: "slotKey",
-	12: "state",
-	13: "taskType",
-	14: "teamId",
-	15: "workspaceRowId",
+	2:  "daemonProfileId",
+	3:  "expiresAtMs",
+	4:  "id",
+	5:  "lastAttemptN",
+	6:  "lastTaskId",
+	7:  "lastUsedAtMs",
+	8:  "model",
+	9:  "provider",
+	10: "sessionDir",
+	11: "sessionPath",
+	12: "slotKey",
+	13: "state",
+	14: "taskType",
+	15: "teamId",
+	16: "workspaceRowId",
 }
 
-// Decode decodes FindRuntimeProducerSlotOKSlot from json.
-func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptOKSlot from json.
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOKSlot to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptOKSlot to nil")
 	}
-	var requiredBitSet [2]uint8
+	var requiredBitSet [3]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -27497,20 +27339,8 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAtMs\"")
 			}
-		case "daemonId":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := d.Str()
-				s.DaemonId = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonId\"")
-			}
 		case "daemonProfileId":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.DaemonProfileId.Decode(d); err != nil {
 					return err
@@ -27520,7 +27350,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"daemonProfileId\"")
 			}
 		case "expiresAtMs":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.ExpiresAtMs = int(v)
@@ -27532,7 +27362,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAtMs\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -27544,7 +27374,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "lastAttemptN":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.LastAttemptN = int(v)
@@ -27556,7 +27386,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAttemptN\"")
 			}
 		case "lastTaskId":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LastTaskId = v
@@ -27568,7 +27398,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastTaskId\"")
 			}
 		case "lastUsedAtMs":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.LastUsedAtMs = int(v)
@@ -27580,7 +27410,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -27592,7 +27422,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -27603,8 +27433,28 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
-		case "slotKey":
+		case "sessionDir":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				if err := s.SessionDir.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionDir\"")
+			}
+		case "sessionPath":
 			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				if err := s.SessionPath.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionPath\"")
+			}
+		case "slotKey":
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.SlotKey = string(v)
@@ -27616,7 +27466,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"slotKey\"")
 			}
 		case "state":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				if err := s.State.Decode(d); err != nil {
 					return err
@@ -27626,7 +27476,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"state\"")
 			}
 		case "taskType":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -27638,7 +27488,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
 		case "teamId":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -27650,7 +27500,7 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "workspaceRowId":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				if err := s.WorkspaceRowId.Decode(d); err != nil {
 					return err
@@ -27664,13 +27514,14 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotOKSlot")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptOKSlot")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
+	for i, mask := range [3]uint8{
 		0b11111111,
 		0b11111111,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -27682,8 +27533,8 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotOKSlot) {
-					name = jsonFieldsNameOfFindRuntimeProducerSlotOKSlot[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFindLatestRuntimeSlotForAttemptOKSlot) {
+					name = jsonFieldsNameOfFindLatestRuntimeSlotForAttemptOKSlot[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -27704,67 +27555,67 @@ func (s *FindRuntimeProducerSlotOKSlot) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FindRuntimeProducerSlotOKSlot) MarshalJSON() ([]byte, error) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotOKSlot) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FindRuntimeProducerSlotOKSlotState as json.
-func (s FindRuntimeProducerSlotOKSlotState) Encode(e *jx.Encoder) {
+// Encode encodes FindLatestRuntimeSlotForAttemptOKSlotState as json.
+func (s FindLatestRuntimeSlotForAttemptOKSlotState) Encode(e *jx.Encoder) {
 	e.Str(string(s))
 }
 
-// Decode decodes FindRuntimeProducerSlotOKSlotState from json.
-func (s *FindRuntimeProducerSlotOKSlotState) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptOKSlotState from json.
+func (s *FindLatestRuntimeSlotForAttemptOKSlotState) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOKSlotState to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptOKSlotState to nil")
 	}
 	v, err := d.StrBytes()
 	if err != nil {
 		return err
 	}
 	// Try to use constant string.
-	switch FindRuntimeProducerSlotOKSlotState(v) {
-	case FindRuntimeProducerSlotOKSlotStateActive:
-		*s = FindRuntimeProducerSlotOKSlotStateActive
-	case FindRuntimeProducerSlotOKSlotStateIdle:
-		*s = FindRuntimeProducerSlotOKSlotStateIdle
+	switch FindLatestRuntimeSlotForAttemptOKSlotState(v) {
+	case FindLatestRuntimeSlotForAttemptOKSlotStateActive:
+		*s = FindLatestRuntimeSlotForAttemptOKSlotStateActive
+	case FindLatestRuntimeSlotForAttemptOKSlotStateIdle:
+		*s = FindLatestRuntimeSlotForAttemptOKSlotStateIdle
 	default:
-		*s = FindRuntimeProducerSlotOKSlotState(v)
+		*s = FindLatestRuntimeSlotForAttemptOKSlotState(v)
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s FindRuntimeProducerSlotOKSlotState) MarshalJSON() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptOKSlotState) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotOKSlotState) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptOKSlotState) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s *FindRuntimeProducerSlotOKWorkspace) Encode(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FindRuntimeProducerSlotOKWorkspace) encodeFields(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("createdAtMs")
 		e.Int(s.CreatedAtMs)
@@ -27799,7 +27650,7 @@ func (s *FindRuntimeProducerSlotOKWorkspace) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFindRuntimeProducerSlotOKWorkspace = [8]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptOKWorkspace = [8]string{
 	0: "createdAtMs",
 	1: "id",
 	2: "kind",
@@ -27810,10 +27661,10 @@ var jsonFieldsNameOfFindRuntimeProducerSlotOKWorkspace = [8]string{
 	7: "worktreePath",
 }
 
-// Decode decodes FindRuntimeProducerSlotOKWorkspace from json.
-func (s *FindRuntimeProducerSlotOKWorkspace) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptOKWorkspace from json.
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOKWorkspace to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptOKWorkspace to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -27916,7 +27767,7 @@ func (s *FindRuntimeProducerSlotOKWorkspace) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotOKWorkspace")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptOKWorkspace")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -27933,8 +27784,8 @@ func (s *FindRuntimeProducerSlotOKWorkspace) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotOKWorkspace) {
-					name = jsonFieldsNameOfFindRuntimeProducerSlotOKWorkspace[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFindLatestRuntimeSlotForAttemptOKWorkspace) {
+					name = jsonFieldsNameOfFindLatestRuntimeSlotForAttemptOKWorkspace[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -27955,69 +27806,69 @@ func (s *FindRuntimeProducerSlotOKWorkspace) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FindRuntimeProducerSlotOKWorkspace) MarshalJSON() ([]byte, error) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotOKWorkspace) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FindRuntimeProducerSlotOKWorkspaceKind as json.
-func (s FindRuntimeProducerSlotOKWorkspaceKind) Encode(e *jx.Encoder) {
+// Encode encodes FindLatestRuntimeSlotForAttemptOKWorkspaceKind as json.
+func (s FindLatestRuntimeSlotForAttemptOKWorkspaceKind) Encode(e *jx.Encoder) {
 	e.Str(string(s))
 }
 
-// Decode decodes FindRuntimeProducerSlotOKWorkspaceKind from json.
-func (s *FindRuntimeProducerSlotOKWorkspaceKind) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptOKWorkspaceKind from json.
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspaceKind) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotOKWorkspaceKind to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptOKWorkspaceKind to nil")
 	}
 	v, err := d.StrBytes()
 	if err != nil {
 		return err
 	}
 	// Try to use constant string.
-	switch FindRuntimeProducerSlotOKWorkspaceKind(v) {
-	case FindRuntimeProducerSlotOKWorkspaceKindOrigin:
-		*s = FindRuntimeProducerSlotOKWorkspaceKindOrigin
-	case FindRuntimeProducerSlotOKWorkspaceKindFork:
-		*s = FindRuntimeProducerSlotOKWorkspaceKindFork
-	case FindRuntimeProducerSlotOKWorkspaceKindScratch:
-		*s = FindRuntimeProducerSlotOKWorkspaceKindScratch
+	switch FindLatestRuntimeSlotForAttemptOKWorkspaceKind(v) {
+	case FindLatestRuntimeSlotForAttemptOKWorkspaceKindOrigin:
+		*s = FindLatestRuntimeSlotForAttemptOKWorkspaceKindOrigin
+	case FindLatestRuntimeSlotForAttemptOKWorkspaceKindFork:
+		*s = FindLatestRuntimeSlotForAttemptOKWorkspaceKindFork
+	case FindLatestRuntimeSlotForAttemptOKWorkspaceKindScratch:
+		*s = FindLatestRuntimeSlotForAttemptOKWorkspaceKindScratch
 	default:
-		*s = FindRuntimeProducerSlotOKWorkspaceKind(v)
+		*s = FindLatestRuntimeSlotForAttemptOKWorkspaceKind(v)
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s FindRuntimeProducerSlotOKWorkspaceKind) MarshalJSON() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptOKWorkspaceKind) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotOKWorkspaceKind) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspaceKind) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s *FindRuntimeProducerSlotUnauthorized) Encode(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FindRuntimeProducerSlotUnauthorized) encodeFields(e *jx.Encoder) {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("code")
 		s.Code.Encode(e)
@@ -28055,7 +27906,7 @@ func (s *FindRuntimeProducerSlotUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFindRuntimeProducerSlotUnauthorized = [6]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptUnauthorized = [6]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
@@ -28064,10 +27915,10 @@ var jsonFieldsNameOfFindRuntimeProducerSlotUnauthorized = [6]string{
 	5: "type",
 }
 
-// Decode decodes FindRuntimeProducerSlotUnauthorized from json.
-func (s *FindRuntimeProducerSlotUnauthorized) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptUnauthorized from json.
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotUnauthorized to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptUnauthorized to nil")
 	}
 	var requiredBitSet [1]uint8
 	s.AdditionalProps = map[string]jx.Raw{}
@@ -28156,7 +28007,7 @@ func (s *FindRuntimeProducerSlotUnauthorized) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotUnauthorized")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptUnauthorized")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -28173,8 +28024,8 @@ func (s *FindRuntimeProducerSlotUnauthorized) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFindRuntimeProducerSlotUnauthorized) {
-					name = jsonFieldsNameOfFindRuntimeProducerSlotUnauthorized[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFindLatestRuntimeSlotForAttemptUnauthorized) {
+					name = jsonFieldsNameOfFindLatestRuntimeSlotForAttemptUnauthorized[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -28195,27 +28046,27 @@ func (s *FindRuntimeProducerSlotUnauthorized) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FindRuntimeProducerSlotUnauthorized) MarshalJSON() ([]byte, error) {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotUnauthorized) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s FindRuntimeProducerSlotUnauthorizedAdditional) Encode(e *jx.Encoder) {
+func (s FindLatestRuntimeSlotForAttemptUnauthorizedAdditional) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields implements json.Marshaler.
-func (s FindRuntimeProducerSlotUnauthorizedAdditional) encodeFields(e *jx.Encoder) {
+func (s FindLatestRuntimeSlotForAttemptUnauthorizedAdditional) encodeFields(e *jx.Encoder) {
 	for k, elem := range s {
 		e.FieldStart(k)
 
@@ -28225,10 +28076,10 @@ func (s FindRuntimeProducerSlotUnauthorizedAdditional) encodeFields(e *jx.Encode
 	}
 }
 
-// Decode decodes FindRuntimeProducerSlotUnauthorizedAdditional from json.
-func (s *FindRuntimeProducerSlotUnauthorizedAdditional) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptUnauthorizedAdditional from json.
+func (s *FindLatestRuntimeSlotForAttemptUnauthorizedAdditional) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotUnauthorizedAdditional to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptUnauthorizedAdditional to nil")
 	}
 	m := s.init()
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
@@ -28246,111 +28097,111 @@ func (s *FindRuntimeProducerSlotUnauthorizedAdditional) Decode(d *jx.Decoder) er
 		m[string(k)] = elem
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FindRuntimeProducerSlotUnauthorizedAdditional")
+		return errors.Wrap(err, "decode FindLatestRuntimeSlotForAttemptUnauthorizedAdditional")
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s FindRuntimeProducerSlotUnauthorizedAdditional) MarshalJSON() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptUnauthorizedAdditional) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotUnauthorizedAdditional) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorizedAdditional) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FindRuntimeProducerSlotUnauthorizedCode as json.
-func (s FindRuntimeProducerSlotUnauthorizedCode) Encode(e *jx.Encoder) {
+// Encode encodes FindLatestRuntimeSlotForAttemptUnauthorizedCode as json.
+func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) Encode(e *jx.Encoder) {
 	e.Str(string(s))
 }
 
-// Decode decodes FindRuntimeProducerSlotUnauthorizedCode from json.
-func (s *FindRuntimeProducerSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptUnauthorizedCode from json.
+func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FindRuntimeProducerSlotUnauthorizedCode to nil")
+		return errors.New("invalid: unable to decode FindLatestRuntimeSlotForAttemptUnauthorizedCode to nil")
 	}
 	v, err := d.StrBytes()
 	if err != nil {
 		return err
 	}
 	// Try to use constant string.
-	switch FindRuntimeProducerSlotUnauthorizedCode(v) {
-	case FindRuntimeProducerSlotUnauthorizedCodeUNAUTHORIZED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeUNAUTHORIZED
-	case FindRuntimeProducerSlotUnauthorizedCodeFORBIDDEN:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeFORBIDDEN
-	case FindRuntimeProducerSlotUnauthorizedCodeNOTFOUND:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeNOTFOUND
-	case FindRuntimeProducerSlotUnauthorizedCodeCONFLICT:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeCONFLICT
-	case FindRuntimeProducerSlotUnauthorizedCodeVALIDATIONFAILED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeVALIDATIONFAILED
-	case FindRuntimeProducerSlotUnauthorizedCodeINVALIDCHALLENGE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeINVALIDCHALLENGE
-	case FindRuntimeProducerSlotUnauthorizedCodeINVALIDSIGNATURE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeINVALIDSIGNATURE
-	case FindRuntimeProducerSlotUnauthorizedCodeVOUCHERLIMIT:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeVOUCHERLIMIT
-	case FindRuntimeProducerSlotUnauthorizedCodeRATELIMITEXCEEDED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeRATELIMITEXCEEDED
-	case FindRuntimeProducerSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED
-	case FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED
-	case FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
-	case FindRuntimeProducerSlotUnauthorizedCodeREGISTRATIONFAILED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeREGISTRATIONFAILED
-	case FindRuntimeProducerSlotUnauthorizedCodeUPSTREAMERROR:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeUPSTREAMERROR
-	case FindRuntimeProducerSlotUnauthorizedCodeSERVICEUNAVAILABLE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeSERVICEUNAVAILABLE
-	case FindRuntimeProducerSlotUnauthorizedCodeINTERNALSERVERERROR:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeINTERNALSERVERERROR
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTACTIVE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTACTIVE
-	case FindRuntimeProducerSlotUnauthorizedCodeINVITEEXPIRED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeINVITEEXPIRED
-	case FindRuntimeProducerSlotUnauthorizedCodeINVITEEXHAUSTED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeINVITEEXHAUSTED
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMLASTOWNER:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMLASTOWNER
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMALREADYACTIVE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMALREADYACTIVE
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTFOUNDING:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTFOUNDING
-	case FindRuntimeProducerSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED
-	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERPENDING:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERPENDING
-	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND
-	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+	switch FindLatestRuntimeSlotForAttemptUnauthorizedCode(v) {
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNAUTHORIZED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNAUTHORIZED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeFORBIDDEN:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeFORBIDDEN
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUPSTREAMERROR:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeUPSTREAMERROR
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERVICEUNAVAILABLE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINTERNALSERVERERROR:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINTERNALSERVERERROR
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMPERSONALIMMUTABLE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTACTIVE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXPIRED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMLASTOWNER:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMLASTOWNER
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMALREADYACTIVE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTFOUNDING
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeFOUNDINGALREADYACCEPTED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERPENDING
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERNOTFOUND
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
 	default:
-		*s = FindRuntimeProducerSlotUnauthorizedCode(v)
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCode(v)
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s FindRuntimeProducerSlotUnauthorizedCode) MarshalJSON() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FindRuntimeProducerSlotUnauthorizedCode) UnmarshalJSON(data []byte) error {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -30195,10 +30046,6 @@ func (s *FinishRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 		e.Int(s.CreatedAtMs)
 	}
 	{
-		e.FieldStart("daemonId")
-		e.Str(s.DaemonId)
-	}
-	{
 		e.FieldStart("daemonProfileId")
 		s.DaemonProfileId.Encode(e)
 	}
@@ -30231,6 +30078,14 @@ func (s *FinishRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 		e.Str(s.Provider)
 	}
 	{
+		e.FieldStart("sessionDir")
+		s.SessionDir.Encode(e)
+	}
+	{
+		e.FieldStart("sessionPath")
+		s.SessionPath.Encode(e)
+	}
+	{
 		e.FieldStart("slotKey")
 		e.Str(s.SlotKey)
 	}
@@ -30252,23 +30107,24 @@ func (s *FinishRuntimeSlotOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFinishRuntimeSlotOK = [16]string{
+var jsonFieldsNameOfFinishRuntimeSlotOK = [17]string{
 	0:  "agentName",
 	1:  "createdAtMs",
-	2:  "daemonId",
-	3:  "daemonProfileId",
-	4:  "expiresAtMs",
-	5:  "id",
-	6:  "lastAttemptN",
-	7:  "lastTaskId",
-	8:  "lastUsedAtMs",
-	9:  "model",
-	10: "provider",
-	11: "slotKey",
-	12: "state",
-	13: "taskType",
-	14: "teamId",
-	15: "workspaceRowId",
+	2:  "daemonProfileId",
+	3:  "expiresAtMs",
+	4:  "id",
+	5:  "lastAttemptN",
+	6:  "lastTaskId",
+	7:  "lastUsedAtMs",
+	8:  "model",
+	9:  "provider",
+	10: "sessionDir",
+	11: "sessionPath",
+	12: "slotKey",
+	13: "state",
+	14: "taskType",
+	15: "teamId",
+	16: "workspaceRowId",
 }
 
 // Decode decodes FinishRuntimeSlotOK from json.
@@ -30276,7 +30132,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode FinishRuntimeSlotOK to nil")
 	}
-	var requiredBitSet [2]uint8
+	var requiredBitSet [3]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -30304,20 +30160,8 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAtMs\"")
 			}
-		case "daemonId":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := d.Str()
-				s.DaemonId = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonId\"")
-			}
 		case "daemonProfileId":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.DaemonProfileId.Decode(d); err != nil {
 					return err
@@ -30327,7 +30171,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"daemonProfileId\"")
 			}
 		case "expiresAtMs":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.ExpiresAtMs = int(v)
@@ -30339,7 +30183,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAtMs\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -30351,7 +30195,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "lastAttemptN":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.LastAttemptN = int(v)
@@ -30363,7 +30207,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAttemptN\"")
 			}
 		case "lastTaskId":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.LastTaskId = v
@@ -30375,7 +30219,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastTaskId\"")
 			}
 		case "lastUsedAtMs":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.LastUsedAtMs = int(v)
@@ -30387,7 +30231,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastUsedAtMs\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -30399,7 +30243,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -30410,8 +30254,28 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
-		case "slotKey":
+		case "sessionDir":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				if err := s.SessionDir.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionDir\"")
+			}
+		case "sessionPath":
 			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				if err := s.SessionPath.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionPath\"")
+			}
+		case "slotKey":
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.SlotKey = string(v)
@@ -30423,7 +30287,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"slotKey\"")
 			}
 		case "state":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				if err := s.State.Decode(d); err != nil {
 					return err
@@ -30433,7 +30297,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"state\"")
 			}
 		case "taskType":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -30445,7 +30309,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
 		case "teamId":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -30457,7 +30321,7 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "workspaceRowId":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				if err := s.WorkspaceRowId.Decode(d); err != nil {
 					return err
@@ -30475,9 +30339,10 @@ func (s *FinishRuntimeSlotOK) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
+	for i, mask := range [3]uint8{
 		0b11111111,
 		0b11111111,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -30581,10 +30446,6 @@ func (s *FinishRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 		e.Int(s.AttemptN)
 	}
 	{
-		e.FieldStart("daemonId")
-		e.Str(s.DaemonId)
-	}
-	{
 		e.FieldStart("model")
 		e.Str(s.Model)
 	}
@@ -30606,22 +30467,16 @@ func (s *FinishRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 		e.FieldStart("taskId")
 		json.EncodeUUID(e, s.TaskId)
 	}
-	{
-		e.FieldStart("ttlSec")
-		e.Int(s.TtlSec)
-	}
 }
 
-var jsonFieldsNameOfFinishRuntimeSlotReq = [9]string{
+var jsonFieldsNameOfFinishRuntimeSlotReq = [7]string{
 	0: "agentName",
 	1: "attemptN",
-	2: "daemonId",
-	3: "model",
-	4: "provider",
-	5: "sessionPath",
-	6: "slotKey",
-	7: "taskId",
-	8: "ttlSec",
+	2: "model",
+	3: "provider",
+	4: "sessionPath",
+	5: "slotKey",
+	6: "taskId",
 }
 
 // Decode decodes FinishRuntimeSlotReq from json.
@@ -30629,7 +30484,7 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode FinishRuntimeSlotReq to nil")
 	}
-	var requiredBitSet [2]uint8
+	var requiredBitSet [1]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -30657,20 +30512,8 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"attemptN\"")
 			}
-		case "daemonId":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := d.Str()
-				s.DaemonId = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"daemonId\"")
-			}
 		case "model":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -30682,7 +30525,7 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "provider":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -30704,7 +30547,7 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionPath\"")
 			}
 		case "slotKey":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.SlotKey = string(v)
@@ -30716,7 +30559,7 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"slotKey\"")
 			}
 		case "taskId":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TaskId = v
@@ -30727,18 +30570,6 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"taskId\"")
 			}
-		case "ttlSec":
-			requiredBitSet[1] |= 1 << 0
-			if err := func() error {
-				v, err := d.Int()
-				s.TtlSec = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"ttlSec\"")
-			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
@@ -30748,9 +30579,8 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
-		0b11011111,
-		0b00000001,
+	for i, mask := range [1]uint8{
+		0b01101111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -47512,8 +47342,8 @@ func (s *NilDateTime) UnmarshalJSON(data []byte) error {
 	return s.Decode(d, json.DecodeDateTime)
 }
 
-// Encode encodes FindRuntimeProducerSlotOKSession as json.
-func (o NilFindRuntimeProducerSlotOKSession) Encode(e *jx.Encoder) {
+// Encode encodes FindLatestRuntimeSlotForAttemptOKWorkspace as json.
+func (o NilFindLatestRuntimeSlotForAttemptOKWorkspace) Encode(e *jx.Encoder) {
 	if o.Null {
 		e.Null()
 		return
@@ -47521,17 +47351,17 @@ func (o NilFindRuntimeProducerSlotOKSession) Encode(e *jx.Encoder) {
 	o.Value.Encode(e)
 }
 
-// Decode decodes FindRuntimeProducerSlotOKSession from json.
-func (o *NilFindRuntimeProducerSlotOKSession) Decode(d *jx.Decoder) error {
+// Decode decodes FindLatestRuntimeSlotForAttemptOKWorkspace from json.
+func (o *NilFindLatestRuntimeSlotForAttemptOKWorkspace) Decode(d *jx.Decoder) error {
 	if o == nil {
-		return errors.New("invalid: unable to decode NilFindRuntimeProducerSlotOKSession to nil")
+		return errors.New("invalid: unable to decode NilFindLatestRuntimeSlotForAttemptOKWorkspace to nil")
 	}
 	if d.Next() == jx.Null {
 		if err := d.Null(); err != nil {
 			return err
 		}
 
-		var v FindRuntimeProducerSlotOKSession
+		var v FindLatestRuntimeSlotForAttemptOKWorkspace
 		o.Value = v
 		o.Null = true
 		return nil
@@ -47544,58 +47374,14 @@ func (o *NilFindRuntimeProducerSlotOKSession) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s NilFindRuntimeProducerSlotOKSession) MarshalJSON() ([]byte, error) {
+func (s NilFindLatestRuntimeSlotForAttemptOKWorkspace) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilFindRuntimeProducerSlotOKSession) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes FindRuntimeProducerSlotOKWorkspace as json.
-func (o NilFindRuntimeProducerSlotOKWorkspace) Encode(e *jx.Encoder) {
-	if o.Null {
-		e.Null()
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes FindRuntimeProducerSlotOKWorkspace from json.
-func (o *NilFindRuntimeProducerSlotOKWorkspace) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode NilFindRuntimeProducerSlotOKWorkspace to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v FindRuntimeProducerSlotOKWorkspace
-		o.Value = v
-		o.Null = true
-		return nil
-	}
-	o.Null = false
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s NilFindRuntimeProducerSlotOKWorkspace) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilFindRuntimeProducerSlotOKWorkspace) UnmarshalJSON(data []byte) error {
+func (s *NilFindLatestRuntimeSlotForAttemptOKWorkspace) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

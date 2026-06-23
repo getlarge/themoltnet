@@ -1,8 +1,4 @@
-import type {
-  RuntimeSlot,
-  RuntimeSlotSession,
-  RuntimeWorkspace,
-} from '@moltnet/database';
+import type { RuntimeSlot, RuntimeWorkspace } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -27,7 +23,6 @@ function mockSlot(overrides: Partial<RuntimeSlot> = {}): RuntimeSlot {
   return {
     id: SLOT_ID,
     teamId: TEAM_ID,
-    daemonId: 'daemon-a',
     agentName: 'legreffier',
     daemonProfileId: PROFILE_ID,
     provider: 'anthropic',
@@ -37,23 +32,12 @@ function mockSlot(overrides: Partial<RuntimeSlot> = {}): RuntimeSlot {
     state: 'active',
     lastTaskId: TASK_ID,
     lastAttemptN: 1,
+    sessionDir: '/tmp/session',
+    sessionPath: '/tmp/session/0001.jsonl',
     workspaceRowId: WORKSPACE_ROW_ID,
     createdAtMs: 1000,
     lastUsedAtMs: 2000,
     expiresAtMs: 3000,
-    createdAt: new Date('2026-06-22T00:00:00.000Z'),
-    updatedAt: new Date('2026-06-22T00:00:00.000Z'),
-    ...overrides,
-  };
-}
-
-function mockSession(
-  overrides: Partial<RuntimeSlotSession> = {},
-): RuntimeSlotSession {
-  return {
-    slotId: SLOT_ID,
-    sessionDir: '/tmp/session',
-    sessionPath: '/tmp/session/0001.jsonl',
     createdAt: new Date('2026-06-22T00:00:00.000Z'),
     updatedAt: new Date('2026-06-22T00:00:00.000Z'),
     ...overrides,
@@ -108,7 +92,6 @@ describe('runtime slot routes', () => {
       url: '/runtime-slots/begin',
       headers: TEAM_HEADERS,
       payload: {
-        daemonId: 'daemon-a',
         agentName: 'legreffier',
         daemonProfileId: PROFILE_ID,
         provider: 'anthropic',
@@ -123,7 +106,6 @@ describe('runtime slot routes', () => {
         workspaceKind: 'origin',
         lastTaskId: TASK_ID,
         lastAttemptN: 1,
-        ttlSec: 1800,
       },
     });
 
@@ -131,14 +113,13 @@ describe('runtime slot routes', () => {
     expect(response.json()).toMatchObject({
       id: SLOT_ID,
       teamId: TEAM_ID,
-      daemonId: 'daemon-a',
       daemonProfileId: PROFILE_ID,
+      sessionPath: '/tmp/session/0001.jsonl',
       state: 'active',
     });
     expect(mocks.runtimeSlotRepository.begin).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
-        daemonId: 'daemon-a',
         daemonProfileId: PROFILE_ID,
         lastTaskId: TASK_ID,
         lastAttemptN: 1,
@@ -157,7 +138,6 @@ describe('runtime slot routes', () => {
       url: '/runtime-slots/begin',
       headers: TEAM_HEADERS,
       payload: {
-        daemonId: 'daemon-a',
         agentName: 'legreffier',
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
@@ -165,7 +145,6 @@ describe('runtime slot routes', () => {
         taskType: 'freeform',
         lastTaskId: TASK_ID,
         lastAttemptN: 1,
-        ttlSec: 1800,
       },
     });
 
@@ -181,7 +160,6 @@ describe('runtime slot routes', () => {
       url: '/runtime-slots/begin',
       headers: TEAM_HEADERS,
       payload: {
-        daemonId: 'daemon-a',
         agentName: 'legreffier',
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
@@ -189,7 +167,6 @@ describe('runtime slot routes', () => {
         taskType: 'freeform',
         lastTaskId: TASK_ID,
         lastAttemptN: 1,
-        ttlSec: 1800,
       },
     });
 
@@ -205,18 +182,15 @@ describe('runtime slot routes', () => {
     expect(mocks.runtimeSlotRepository.begin).not.toHaveBeenCalled();
   });
 
-  it('finds the latest producer slot scoped to team and attempt', async () => {
-    mocks.runtimeSlotRepository.findLatestProducerByTaskAttempt.mockResolvedValue(
-      {
-        session: mockSession(),
-        slot: mockSlot({ state: 'idle' }),
-        workspace: mockWorkspace(),
-      },
-    );
+  it('finds the latest runtime slot scoped to team and attempt', async () => {
+    mocks.runtimeSlotRepository.findLatestByTaskAttempt.mockResolvedValue({
+      slot: mockSlot({ state: 'idle' }),
+      workspace: mockWorkspace(),
+    });
 
     const response = await app.inject({
       method: 'GET',
-      url: `/runtime-slots/producer?taskId=${TASK_ID}&attemptN=1`,
+      url: `/runtime-slots/latest?taskId=${TASK_ID}&attemptN=1`,
       headers: TEAM_HEADERS,
     });
 
@@ -228,12 +202,12 @@ describe('runtime slot routes', () => {
         state: 'idle',
         lastTaskId: TASK_ID,
         lastAttemptN: 1,
+        sessionPath: '/tmp/session/0001.jsonl',
       },
-      session: { sessionPath: '/tmp/session/0001.jsonl' },
       workspace: { workspaceId: 'workspace-a' },
     });
     expect(
-      mocks.runtimeSlotRepository.findLatestProducerByTaskAttempt,
+      mocks.runtimeSlotRepository.findLatestByTaskAttempt,
     ).toHaveBeenCalledWith(TEAM_ID, TASK_ID, 1);
   });
 
@@ -247,14 +221,12 @@ describe('runtime slot routes', () => {
       url: '/runtime-slots/finish',
       headers: TEAM_HEADERS,
       payload: {
-        daemonId: 'daemon-a',
         agentName: 'legreffier',
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',
         taskId: TASK_ID,
         attemptN: 1,
-        ttlSec: 1800,
         sessionPath: '/tmp/session/0002.jsonl',
       },
     });
@@ -278,14 +250,12 @@ describe('runtime slot routes', () => {
       url: '/runtime-slots/finish',
       headers: TEAM_HEADERS,
       payload: {
-        daemonId: 'daemon-a',
         agentName: 'legreffier',
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         slotKey: 'freeform:correlation:test',
         taskId: TASK_ID,
         attemptN: 1,
-        ttlSec: 1800,
       },
     });
 

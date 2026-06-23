@@ -13,6 +13,7 @@ import {
 } from './execution-plan-cache.js';
 
 const TEAM_ID = '99999999-9999-4999-8999-999999999999';
+const SLOT_TTL_MS = 300_000;
 
 type BeginSlotInput = Parameters<RuntimeSlotStore['beginSlot']>[0];
 
@@ -27,7 +28,7 @@ class InMemoryRuntimeSlotStore implements RuntimeSlotStore {
       attemptKey(input.teamId, input.lastTaskId, input.lastAttemptN),
       {
         slot: {
-          expiresAtMs: Date.now() + input.ttlSec * 1000,
+          expiresAtMs: Date.now() + SLOT_TTL_MS,
         },
         session: input.sessionDir
           ? {
@@ -54,19 +55,18 @@ class InMemoryRuntimeSlotStore implements RuntimeSlotStore {
     attemptN: number,
     _identity: Parameters<RuntimeSlotStore['finishSlot']>[3],
     _slotKey: string,
-    ttlSec: number,
     sessionPath: string | null,
   ): Promise<void> {
     const slot = this.slotsByAttempt.get(attemptKey(teamId, taskId, attemptN));
     if (!slot) return;
 
-    slot.slot.expiresAtMs = Date.now() + ttlSec * 1000;
+    slot.slot.expiresAtMs = Date.now() + SLOT_TTL_MS;
     if (slot.session) {
       slot.session.sessionPath = sessionPath;
     }
   }
 
-  async findLatestProducerSlotByTaskAttempt(
+  async findLatestSlotByTaskAttempt(
     teamId: string,
     taskId: string,
     attemptN: number,
@@ -100,7 +100,6 @@ async function finishProducerSlot(
     1,
     args.identity,
     args.slotKey,
-    300,
     args.sessionPath,
   );
 }
@@ -151,7 +150,6 @@ describe('createExecutionPlanCache', () => {
       worktreeBranch: null,
       lastTaskId: '11111111-1111-4111-8111-111111111111',
       lastAttemptN: 1,
-      ttlSec: 300,
     });
     await finishProducerSlot(slotStore, {
       taskId: '11111111-1111-4111-8111-111111111111',
@@ -302,7 +300,6 @@ describe('createExecutionPlanCache', () => {
       worktreeBranch: 'feat/parent',
       lastTaskId: '11111111-1111-4111-8111-111111111111',
       lastAttemptN: 1,
-      ttlSec: 300,
     });
     await finishProducerSlot(slotStore, {
       taskId: '11111111-1111-4111-8111-111111111111',
@@ -386,7 +383,6 @@ describe('createExecutionPlanCache', () => {
       worktreeBranch: 'feat/parent',
       lastTaskId: '11111111-1111-4111-8111-111111111111',
       lastAttemptN: 1,
-      ttlSec: 300,
     });
     await finishProducerSlot(slotStore, {
       taskId: '11111111-1111-4111-8111-111111111111',
@@ -510,7 +506,6 @@ describe('createExecutionPlanCache', () => {
       worktreeBranch: null,
       lastTaskId: '11111111-1111-4111-8111-111111111111',
       lastAttemptN: 1,
-      ttlSec: 300,
     });
     await finishProducerSlot(slotStore, {
       taskId: '11111111-1111-4111-8111-111111111111',

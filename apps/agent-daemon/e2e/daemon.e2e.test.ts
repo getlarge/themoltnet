@@ -43,10 +43,7 @@ import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../src/lib/runtime-profile.js';
-import {
-  createApiRuntimeSlotStore,
-  resolveDaemonId,
-} from '../src/lib/runtime-slots.js';
+import { createApiRuntimeSlotStore } from '../src/lib/runtime-slots.js';
 import { resolveLatestPiSessionPath } from '../src/lib/session-files.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
@@ -626,7 +623,6 @@ describe('Agent daemon (e2e)', () => {
     const stateDirs = ensureDaemonStateDirs(mountRoot);
     const slotStore = createApiRuntimeSlotStore({
       agent,
-      daemonId: resolveDaemonId(stateDirs.rootDir, randomUUID()),
     });
     const slotIdentity: DaemonSlotIdentity = {
       agentName: 'e2e-daemon',
@@ -648,7 +644,7 @@ describe('Agent daemon (e2e)', () => {
     });
     expect(firstOutput.output.status).toBe('completed');
 
-    const firstSlot = await slotStore.findLatestProducerSlotByTaskAttempt(
+    const firstSlot = await slotStore.findLatestSlotByTaskAttempt(
       teamId,
       first.id,
       firstOutput.output.attemptN,
@@ -672,7 +668,7 @@ describe('Agent daemon (e2e)', () => {
     });
     expect(secondOutput.output.status).toBe('completed');
 
-    const secondSlot = await slotStore.findLatestProducerSlotByTaskAttempt(
+    const secondSlot = await slotStore.findLatestSlotByTaskAttempt(
       teamId,
       second.id,
       secondOutput.output.attemptN,
@@ -715,7 +711,6 @@ describe('Agent daemon (e2e)', () => {
       const stateDirs = ensureDaemonStateDirs(mountRoot);
       const slotStore = createApiRuntimeSlotStore({
         agent,
-        daemonId: resolveDaemonId(stateDirs.rootDir, randomUUID()),
       });
       const slotIdentity: DaemonSlotIdentity = {
         agentName: 'e2e-daemon',
@@ -746,7 +741,7 @@ describe('Agent daemon (e2e)', () => {
         });
         expect(parentRun.output.status).toBe('completed');
 
-        const seeded = await slotStore.findLatestProducerSlotByTaskAttempt(
+        const seeded = await slotStore.findLatestSlotByTaskAttempt(
           teamId,
           parent.id,
           parentRun.output.attemptN,
@@ -1123,7 +1118,6 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
           worktreeBranch: executionPlan.worktreeBranch,
           lastTaskId: claimedTask.task.id,
           lastAttemptN: claimedTask.attemptN,
-          ttlSec: args.warmSessionTtlSec,
         });
       }
 
@@ -1154,7 +1148,6 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
           claimedTask.attemptN,
           args.slotIdentity,
           executionPlan.slotKey,
-          args.warmSessionTtlSec,
           executionPlan.sessionPersistence
             ? resolveLatestPiSessionPath(
                 executionPlan.sessionPersistence.sessionDir,
@@ -1180,7 +1173,7 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   const slotForCtx =
     plan && plan.slotKey
       ? ((
-          await args.slotStore.findLatestProducerSlotByTaskAttempt(
+          await args.slotStore.findLatestSlotByTaskAttempt(
             taskForCtx.teamId,
             args.taskId,
             output.attemptN,

@@ -28,21 +28,10 @@ export const RuntimeWorkspace = Type.Object(
 );
 export type RuntimeWorkspace = Static<typeof RuntimeWorkspace>;
 
-export const RuntimeSlotSession = Type.Object(
-  {
-    slotId: Type.String({ format: 'uuid' }),
-    sessionDir: Type.String({ minLength: 1 }),
-    sessionPath: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
-  },
-  { $id: 'RuntimeSlotSession' },
-);
-export type RuntimeSlotSession = Static<typeof RuntimeSlotSession>;
-
 export const RuntimeSlot = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     teamId: Type.String({ format: 'uuid' }),
-    daemonId: Type.String({ minLength: 1, maxLength: 200 }),
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
     daemonProfileId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
@@ -52,6 +41,8 @@ export const RuntimeSlot = Type.Object(
     state: RuntimeSlotState,
     lastTaskId: Type.String({ format: 'uuid' }),
     lastAttemptN: Type.Integer({ minimum: 1 }),
+    sessionDir: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+    sessionPath: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
     workspaceRowId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     createdAtMs: Type.Integer({ minimum: 0 }),
     lastUsedAtMs: Type.Integer({ minimum: 0 }),
@@ -64,7 +55,6 @@ export type RuntimeSlot = Static<typeof RuntimeSlot>;
 export const ResolvedRuntimeSlot = Type.Object(
   {
     slot: RuntimeSlot,
-    session: Type.Union([RuntimeSlotSession, Type.Null()]),
     workspace: Type.Union([RuntimeWorkspace, Type.Null()]),
   },
   { $id: 'ResolvedRuntimeSlot' },
@@ -73,7 +63,6 @@ export type ResolvedRuntimeSlot = Static<typeof ResolvedRuntimeSlot>;
 
 export const BeginRuntimeSlotBody = Type.Object(
   {
-    daemonId: Type.String({ minLength: 1, maxLength: 200 }),
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
     daemonProfileId: Type.Optional(Type.String({ format: 'uuid' })),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
@@ -88,7 +77,6 @@ export const BeginRuntimeSlotBody = Type.Object(
     workspaceKind: Type.Optional(RuntimeWorkspaceKind),
     lastTaskId: Type.String({ format: 'uuid' }),
     lastAttemptN: Type.Integer({ minimum: 1 }),
-    ttlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
   },
   { $id: 'BeginRuntimeSlotBody', additionalProperties: false },
 );
@@ -96,37 +84,37 @@ export type BeginRuntimeSlotBody = Static<typeof BeginRuntimeSlotBody>;
 
 export const FinishRuntimeSlotBody = Type.Object(
   {
-    daemonId: Type.String({ minLength: 1, maxLength: 200 }),
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
     slotKey: Type.String({ minLength: 1 }),
     taskId: Type.String({ format: 'uuid' }),
     attemptN: Type.Integer({ minimum: 1 }),
-    ttlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
     sessionPath: Type.Optional(Type.String({ minLength: 1 })),
   },
   { $id: 'FinishRuntimeSlotBody', additionalProperties: false },
 );
 export type FinishRuntimeSlotBody = Static<typeof FinishRuntimeSlotBody>;
 
-export const FindRuntimeProducerSlotQuery = Type.Object(
+export const FindLatestRuntimeSlotForAttemptQuery = Type.Object(
   {
     taskId: Type.String({ format: 'uuid' }),
     attemptN: Type.Integer({ minimum: 1 }),
   },
-  { $id: 'FindRuntimeProducerSlotQuery', additionalProperties: false },
+  {
+    $id: 'FindLatestRuntimeSlotForAttemptQuery',
+    additionalProperties: false,
+  },
 );
-export type FindRuntimeProducerSlotQuery = Static<
-  typeof FindRuntimeProducerSlotQuery
+export type FindLatestRuntimeSlotForAttemptQuery = Static<
+  typeof FindLatestRuntimeSlotForAttemptQuery
 >;
 
 export const runtimeSlotSchemas = [
   RuntimeWorkspace,
-  RuntimeSlotSession,
   RuntimeSlot,
   ResolvedRuntimeSlot,
   BeginRuntimeSlotBody,
   FinishRuntimeSlotBody,
-  FindRuntimeProducerSlotQuery,
+  FindLatestRuntimeSlotForAttemptQuery,
 ];

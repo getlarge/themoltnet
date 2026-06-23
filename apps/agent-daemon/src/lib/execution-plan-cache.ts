@@ -43,7 +43,6 @@ export interface RuntimeSlotStore {
     workspaceKind?: 'origin' | 'fork' | 'scratch';
     lastTaskId: string;
     lastAttemptN: number;
-    ttlSec: number;
   }): Promise<void>;
   finishSlot(
     teamId: string,
@@ -51,10 +50,9 @@ export interface RuntimeSlotStore {
     attemptN: number,
     identity: DaemonSlotIdentity,
     slotKey: string,
-    ttlSec: number,
     sessionPath: string | null,
   ): Promise<void>;
-  findLatestProducerSlotByTaskAttempt(
+  findLatestSlotByTaskAttempt(
     teamId: string,
     taskId: string,
     attemptN: number,
@@ -134,12 +132,11 @@ async function resolveWarmSlot(
   sourceAttemptN: number,
   stateDirs: DaemonStateDirs,
 ): Promise<WarmSlotResolution> {
-  const producerContext =
-    await slotRegistry.findLatestProducerSlotByTaskAttempt(
-      teamId,
-      sourceTaskId,
-      sourceAttemptN,
-    );
+  const producerContext = await slotRegistry.findLatestSlotByTaskAttempt(
+    teamId,
+    sourceTaskId,
+    sourceAttemptN,
+  );
   if (!producerContext) return { kind: 'missing' };
 
   const sourceSessionPath = resolveProducerSessionPath(producerContext);

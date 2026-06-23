@@ -41,10 +41,7 @@ import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../lib/runtime-profile.js';
-import {
-  createApiRuntimeSlotStore,
-  resolveDaemonId,
-} from '../lib/runtime-slots.js';
+import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
@@ -178,10 +175,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const piAgentDir = ensurePiAgentDir(sandbox.rootDir, cfg.piCodingAgentDir);
   activatePiCodingAgentDir(piAgentDir.path);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
-  const daemonId = resolveDaemonId(stateDirs.rootDir, cfg.daemonId);
   const slotRegistry = createApiRuntimeSlotStore({
     agent: ctx.agent,
-    daemonId,
     daemonProfileId: profile?.id ?? null,
   });
   const slotIdentity: DaemonSlotIdentity = {
@@ -222,7 +217,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     ...(profile
       ? { daemonProfileId: profile.id, daemonProfileName: profile.name }
       : {}),
-    daemonId,
   });
 
   const abort = new AbortController();
@@ -360,7 +354,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         // by the time we land here, so the slot's `expires_at_ms`
         // reflects the post-completion idle TTL — that's the
         // `slotResumableUntil` window we stamp on the attempt row.
-        const resolved = await slotRegistry.findLatestProducerSlotByTaskAttempt(
+        const resolved = await slotRegistry.findLatestSlotByTaskAttempt(
           claimedTask.task.teamId,
           claimedTask.task.id,
           claimedTask.attemptN,
@@ -495,7 +489,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             workspaceKind: executionPlan.workspaceKind,
             lastTaskId: claimedTask.task.id,
             lastAttemptN: claimedTask.attemptN,
-            ttlSec: common.warmSessionTtlSec,
           });
         }
         try {
@@ -509,7 +502,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               claimedTask.attemptN,
               slotIdentity,
               executionPlan.slotKey,
-              common.warmSessionTtlSec,
               executionPlan.sessionPersistence
                 ? resolveLatestPiSessionPath(
                     executionPlan.sessionPersistence.sessionDir,

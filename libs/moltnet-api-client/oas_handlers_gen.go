@@ -7477,24 +7477,24 @@ func (s *Server) handleFailTaskRequest(args [2]string, argsEscaped bool, w http.
 	}
 }
 
-// handleFindRuntimeProducerSlotRequest handles findRuntimeProducerSlot operation.
+// handleFindLatestRuntimeSlotForAttemptRequest handles findLatestRuntimeSlotForAttempt operation.
 //
-// Find the latest team-scoped producer slot for a task attempt.
+// Find the latest team-scoped runtime slot for a task attempt.
 //
-// GET /runtime-slots/producer
-func (s *Server) handleFindRuntimeProducerSlotRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// GET /runtime-slots/latest
+func (s *Server) handleFindLatestRuntimeSlotForAttemptRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("findRuntimeProducerSlot"),
+		otelogen.OperationID("findLatestRuntimeSlotForAttempt"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/runtime-slots/producer"),
+		semconv.HTTPRouteKey.String("/runtime-slots/latest"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), FindRuntimeProducerSlotOperation,
+	ctx, span := s.cfg.Tracer.Start(r.Context(), FindLatestRuntimeSlotForAttemptOperation,
 		trace.WithAttributes(otelAttrs...),
 		serverSpanKind,
 	)
@@ -7549,15 +7549,15 @@ func (s *Server) handleFindRuntimeProducerSlotRequest(args [0]string, argsEscape
 		}
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: FindRuntimeProducerSlotOperation,
-			ID:   "findRuntimeProducerSlot",
+			Name: FindLatestRuntimeSlotForAttemptOperation,
+			ID:   "findLatestRuntimeSlotForAttempt",
 		}
 	)
 	{
 		type bitset = [1]uint8
 		var satisfied bitset
 		{
-			sctx, ok, err := s.securityBearerAuth(ctx, FindRuntimeProducerSlotOperation, r)
+			sctx, ok, err := s.securityBearerAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -7574,7 +7574,7 @@ func (s *Server) handleFindRuntimeProducerSlotRequest(args [0]string, argsEscape
 			}
 		}
 		{
-			sctx, ok, err := s.securitySessionAuth(ctx, FindRuntimeProducerSlotOperation, r)
+			sctx, ok, err := s.securitySessionAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -7591,7 +7591,7 @@ func (s *Server) handleFindRuntimeProducerSlotRequest(args [0]string, argsEscape
 			}
 		}
 		{
-			sctx, ok, err := s.securityCookieAuth(ctx, FindRuntimeProducerSlotOperation, r)
+			sctx, ok, err := s.securityCookieAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -7633,7 +7633,7 @@ func (s *Server) handleFindRuntimeProducerSlotRequest(args [0]string, argsEscape
 			return
 		}
 	}
-	params, err := decodeFindRuntimeProducerSlotParams(args, argsEscaped, r)
+	params, err := decodeFindLatestRuntimeSlotForAttemptParams(args, argsEscaped, r)
 	if err != nil {
 		err = &ogenerrors.DecodeParamsError{
 			OperationContext: opErrContext,
@@ -7646,13 +7646,13 @@ func (s *Server) handleFindRuntimeProducerSlotRequest(args [0]string, argsEscape
 
 	var rawBody []byte
 
-	var response FindRuntimeProducerSlotRes
+	var response FindLatestRuntimeSlotForAttemptRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    FindRuntimeProducerSlotOperation,
+			OperationName:    FindLatestRuntimeSlotForAttemptOperation,
 			OperationSummary: "",
-			OperationID:      "findRuntimeProducerSlot",
+			OperationID:      "findLatestRuntimeSlotForAttempt",
 			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
@@ -7674,8 +7674,8 @@ func (s *Server) handleFindRuntimeProducerSlotRequest(args [0]string, argsEscape
 
 		type (
 			Request  = struct{}
-			Params   = FindRuntimeProducerSlotParams
-			Response = FindRuntimeProducerSlotRes
+			Params   = FindLatestRuntimeSlotForAttemptParams
+			Response = FindLatestRuntimeSlotForAttemptRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -7684,14 +7684,14 @@ func (s *Server) handleFindRuntimeProducerSlotRequest(args [0]string, argsEscape
 		](
 			m,
 			mreq,
-			unpackFindRuntimeProducerSlotParams,
+			unpackFindLatestRuntimeSlotForAttemptParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.FindRuntimeProducerSlot(ctx, params)
+				response, err = s.h.FindLatestRuntimeSlotForAttempt(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.FindRuntimeProducerSlot(ctx, params)
+		response, err = s.h.FindLatestRuntimeSlotForAttempt(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -7699,7 +7699,7 @@ func (s *Server) handleFindRuntimeProducerSlotRequest(args [0]string, argsEscape
 		return
 	}
 
-	if err := encodeFindRuntimeProducerSlotResponse(response, w, span); err != nil {
+	if err := encodeFindLatestRuntimeSlotForAttemptResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)

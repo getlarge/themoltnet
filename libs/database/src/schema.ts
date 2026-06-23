@@ -1365,7 +1365,6 @@ export const runtimeSlots = pgTable(
     teamId: uuid('team_id')
       .notNull()
       .references(() => teams.id, { onDelete: 'restrict' }),
-    daemonId: varchar('daemon_id', { length: 200 }).notNull(),
     agentName: varchar('agent_name', { length: 100 }).notNull(),
     daemonProfileId: uuid('daemon_profile_id').references(
       () => daemonProfiles.id,
@@ -1380,6 +1379,8 @@ export const runtimeSlots = pgTable(
       .notNull()
       .references(() => tasks.id, { onDelete: 'cascade' }),
     lastAttemptN: integer('last_attempt_n').notNull(),
+    sessionDir: text('session_dir'),
+    sessionPath: text('session_path'),
     workspaceRowId: uuid('workspace_row_id').references(
       () => runtimeWorkspaces.id,
       { onDelete: 'set null' },
@@ -1397,7 +1398,6 @@ export const runtimeSlots = pgTable(
   (table) => [
     uniqueIndex('runtime_slots_identity_idx').on(
       table.teamId,
-      table.daemonId,
       table.agentName,
       table.provider,
       table.model,
@@ -1413,6 +1413,9 @@ export const runtimeSlots = pgTable(
       table.lastAttemptN,
       table.lastUsedAtMs.desc(),
     ),
+    index('runtime_slots_session_path_idx')
+      .on(table.sessionPath)
+      .where(sql`session_path IS NOT NULL`),
     foreignKey({
       columns: [table.lastTaskId, table.lastAttemptN],
       foreignColumns: [taskAttempts.taskId, taskAttempts.attemptN],
@@ -1420,34 +1423,10 @@ export const runtimeSlots = pgTable(
   ],
 );
 
-export const runtimeSlotSessions = pgTable(
-  'runtime_slot_sessions',
-  {
-    slotId: uuid('slot_id')
-      .primaryKey()
-      .references(() => runtimeSlots.id, { onDelete: 'cascade' }),
-    sessionDir: text('session_dir').notNull(),
-    sessionPath: text('session_path'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    index('runtime_slot_sessions_session_path_idx')
-      .on(table.sessionPath)
-      .where(sql`session_path IS NOT NULL`),
-  ],
-);
-
 export type RuntimeWorkspace = typeof runtimeWorkspaces.$inferSelect;
 export type NewRuntimeWorkspace = typeof runtimeWorkspaces.$inferInsert;
 export type RuntimeSlot = typeof runtimeSlots.$inferSelect;
 export type NewRuntimeSlot = typeof runtimeSlots.$inferInsert;
-export type RuntimeSlotSession = typeof runtimeSlotSessions.$inferSelect;
-export type NewRuntimeSlotSession = typeof runtimeSlotSessions.$inferInsert;
 
 // ── Task Messages ──────────────────────────────────────────
 

@@ -378,7 +378,7 @@ describe('PollingApiTaskSource', () => {
       traceHeaders: {},
     });
     const slotRegistry: ContinuationSlotRegistry = {
-      findLatestProducerSlotByTaskAttempt: vi.fn().mockResolvedValue(null),
+      findLatestSlotByTaskAttempt: vi.fn().mockResolvedValue(null),
     };
 
     const src = new PollingApiTaskSource({
@@ -437,7 +437,7 @@ describe('PollingApiTaskSource', () => {
       .mockResolvedValueOnce({ items: [second], total: 2 });
     const claim = vi.fn<TasksNamespace['claim']>();
     const slotRegistry: ContinuationSlotRegistry = {
-      findLatestProducerSlotByTaskAttempt: vi.fn().mockResolvedValue(null),
+      findLatestSlotByTaskAttempt: vi.fn().mockResolvedValue(null),
     };
 
     const src = new PollingApiTaskSource({
@@ -461,7 +461,7 @@ describe('isContinuationClaimableByThisDaemon', () => {
     slot: { session?: { sessionDir?: string } } | null,
   ): ContinuationSlotRegistry {
     return {
-      findLatestProducerSlotByTaskAttempt: vi.fn().mockReturnValue(slot),
+      findLatestSlotByTaskAttempt: vi.fn().mockReturnValue(slot),
     };
   }
 

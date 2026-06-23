@@ -39,10 +39,7 @@ import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../lib/runtime-profile.js';
-import {
-  createApiRuntimeSlotStore,
-  resolveDaemonId,
-} from '../lib/runtime-slots.js';
+import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
 import { resolveSandbox } from '../lib/sandbox.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
@@ -133,10 +130,8 @@ export async function runOnce(argv: string[]): Promise<number> {
   const piAgentDir = ensurePiAgentDir(sandbox.rootDir, cfg.piCodingAgentDir);
   activatePiCodingAgentDir(piAgentDir.path);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
-  const daemonId = resolveDaemonId(stateDirs.rootDir, cfg.daemonId);
   const slotRegistry = createApiRuntimeSlotStore({
     agent: ctx.agent,
-    daemonId,
     daemonProfileId: profile?.id ?? null,
   });
   const slotIdentity: DaemonSlotIdentity = {
@@ -176,7 +171,6 @@ export async function runOnce(argv: string[]): Promise<number> {
     ...(profile
       ? { daemonProfileId: profile.id, daemonProfileName: profile.name }
       : {}),
-    daemonId,
   });
 
   rootLogger.info(
@@ -319,7 +313,6 @@ export async function runOnce(argv: string[]): Promise<number> {
           workspaceKind: executionPlan.workspaceKind,
           lastTaskId: claimedTask.task.id,
           lastAttemptN: claimedTask.attemptN,
-          ttlSec: opts.warmSessionTtlSec,
         });
       }
       // Publish the live attempt number so a SIGINT/SIGTERM `drain` can
@@ -338,7 +331,6 @@ export async function runOnce(argv: string[]): Promise<number> {
             claimedTask.attemptN,
             slotIdentity,
             executionPlan.slotKey,
-            opts.warmSessionTtlSec,
             executionPlan.sessionPersistence
               ? resolveLatestPiSessionPath(
                   executionPlan.sessionPersistence.sessionDir,
@@ -379,7 +371,7 @@ export async function runOnce(argv: string[]): Promise<number> {
         // `expires_at_ms` to the post-completion idle TTL — that's
         // exactly the `slotResumableUntil` window we want stamped on
         // the attempt row.
-        const resolved = await slotRegistry.findLatestProducerSlotByTaskAttempt(
+        const resolved = await slotRegistry.findLatestSlotByTaskAttempt(
           claimedTask.task.teamId,
           claimedTask.task.id,
           claimedTask.attemptN,

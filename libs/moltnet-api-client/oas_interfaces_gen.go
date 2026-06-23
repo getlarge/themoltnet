@@ -129,8 +129,8 @@ type FailTaskRes interface {
 	failTaskRes()
 }
 
-type FindRuntimeProducerSlotRes interface {
-	findRuntimeProducerSlotRes()
+type FindLatestRuntimeSlotForAttemptRes interface {
+	findLatestRuntimeSlotForAttemptRes()
 }
 
 type FinishRuntimeSlotRes interface {

@@ -2393,15 +2393,15 @@ func decodeFailTaskParams(args [2]string, argsEscaped bool, r *http.Request) (pa
 	return params, nil
 }
 
-// FindRuntimeProducerSlotParams is parameters of findRuntimeProducerSlot operation.
-type FindRuntimeProducerSlotParams struct {
+// FindLatestRuntimeSlotForAttemptParams is parameters of findLatestRuntimeSlotForAttempt operation.
+type FindLatestRuntimeSlotForAttemptParams struct {
 	TaskId   uuid.UUID
 	AttemptN int
 	// Team ID (UUID) that will own the resource. Required.
 	XMoltnetTeamID uuid.UUID
 }
 
-func unpackFindRuntimeProducerSlotParams(packed middleware.Parameters) (params FindRuntimeProducerSlotParams) {
+func unpackFindLatestRuntimeSlotForAttemptParams(packed middleware.Parameters) (params FindLatestRuntimeSlotForAttemptParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "taskId",
@@ -2426,7 +2426,7 @@ func unpackFindRuntimeProducerSlotParams(packed middleware.Parameters) (params F
 	return params
 }
 
-func decodeFindRuntimeProducerSlotParams(args [0]string, argsEscaped bool, r *http.Request) (params FindRuntimeProducerSlotParams, _ error) {
+func decodeFindLatestRuntimeSlotForAttemptParams(args [0]string, argsEscaped bool, r *http.Request) (params FindLatestRuntimeSlotForAttemptParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
 	h := uri.NewHeaderDecoder(r.Header)
 	// Decode query: taskId.

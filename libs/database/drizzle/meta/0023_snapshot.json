@@ -1,5 +1,5 @@
 {
-  "id": "2bb226be-451c-4843-a2e7-c30fc34148d3",
+  "id": "fd800991-1cdb-49d1-a984-82534a30128f",
   "prevId": "0a221401-0000-4001-8001-000000001401",
   "version": "7",
   "dialect": "postgresql",
@@ -956,535 +956,6 @@
           "value": "max_batch_size > 0"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.runtime_slot_sessions": {
-      "name": "runtime_slot_sessions",
-      "schema": "",
-      "columns": {
-        "slot_id": {
-          "name": "slot_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "session_dir": {
-          "name": "session_dir",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "session_path": {
-          "name": "session_path",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "runtime_slot_sessions_session_path_idx": {
-          "name": "runtime_slot_sessions_session_path_idx",
-          "columns": [
-            {
-              "expression": "session_path",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "session_path IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "runtime_slot_sessions_slot_id_runtime_slots_id_fk": {
-          "name": "runtime_slot_sessions_slot_id_runtime_slots_id_fk",
-          "tableFrom": "runtime_slot_sessions",
-          "tableTo": "runtime_slots",
-          "columnsFrom": [
-            "slot_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.runtime_slots": {
-      "name": "runtime_slots",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "team_id": {
-          "name": "team_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "daemon_id": {
-          "name": "daemon_id",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "agent_name": {
-          "name": "agent_name",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "daemon_profile_id": {
-          "name": "daemon_profile_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provider": {
-          "name": "provider",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model": {
-          "name": "model",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "slot_key": {
-          "name": "slot_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "task_type": {
-          "name": "task_type",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "runtime_slot_state",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_task_id": {
-          "name": "last_task_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_attempt_n": {
-          "name": "last_attempt_n",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "workspace_row_id": {
-          "name": "workspace_row_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at_ms": {
-          "name": "created_at_ms",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_used_at_ms": {
-          "name": "last_used_at_ms",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at_ms": {
-          "name": "expires_at_ms",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "runtime_slots_identity_idx": {
-          "name": "runtime_slots_identity_idx",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "daemon_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "agent_name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "provider",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "model",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "slot_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "runtime_slots_team_idx": {
-          "name": "runtime_slots_team_idx",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "runtime_slots_profile_idx": {
-          "name": "runtime_slots_profile_idx",
-          "columns": [
-            {
-              "expression": "daemon_profile_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "daemon_profile_id IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "runtime_slots_task_attempt_idx": {
-          "name": "runtime_slots_task_attempt_idx",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "last_task_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "last_attempt_n",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "last_used_at_ms",
-              "isExpression": false,
-              "asc": false,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "runtime_slots_team_id_teams_id_fk": {
-          "name": "runtime_slots_team_id_teams_id_fk",
-          "tableFrom": "runtime_slots",
-          "tableTo": "teams",
-          "columnsFrom": [
-            "team_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "runtime_slots_daemon_profile_id_daemon_profiles_id_fk": {
-          "name": "runtime_slots_daemon_profile_id_daemon_profiles_id_fk",
-          "tableFrom": "runtime_slots",
-          "tableTo": "daemon_profiles",
-          "columnsFrom": [
-            "daemon_profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "runtime_slots_last_task_id_tasks_id_fk": {
-          "name": "runtime_slots_last_task_id_tasks_id_fk",
-          "tableFrom": "runtime_slots",
-          "tableTo": "tasks",
-          "columnsFrom": [
-            "last_task_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "runtime_slots_workspace_row_id_runtime_workspaces_id_fk": {
-          "name": "runtime_slots_workspace_row_id_runtime_workspaces_id_fk",
-          "tableFrom": "runtime_slots",
-          "tableTo": "runtime_workspaces",
-          "columnsFrom": [
-            "workspace_row_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "runtime_slots_last_task_id_last_attempt_n_task_attempts_task_id_attempt_n_fk": {
-          "name": "runtime_slots_last_task_id_last_attempt_n_task_attempts_task_id_attempt_n_fk",
-          "tableFrom": "runtime_slots",
-          "tableTo": "task_attempts",
-          "columnsFrom": [
-            "last_task_id",
-            "last_attempt_n"
-          ],
-          "columnsTo": [
-            "task_id",
-            "attempt_n"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.runtime_workspaces": {
-      "name": "runtime_workspaces",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "team_id": {
-          "name": "team_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "worktree_path": {
-          "name": "worktree_path",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "worktree_branch": {
-          "name": "worktree_branch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "kind": {
-          "name": "kind",
-          "type": "runtime_workspace_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at_ms": {
-          "name": "created_at_ms",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_used_at_ms": {
-          "name": "last_used_at_ms",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "runtime_workspaces_team_workspace_idx": {
-          "name": "runtime_workspaces_team_workspace_idx",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "workspace_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "runtime_workspaces_team_idx": {
-          "name": "runtime_workspaces_team_idx",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "runtime_workspaces_branch_idx": {
-          "name": "runtime_workspaces_branch_idx",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "worktree_branch",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "worktree_branch IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "runtime_workspaces_team_id_teams_id_fk": {
-          "name": "runtime_workspaces_team_id_teams_id_fk",
-          "tableFrom": "runtime_workspaces",
-          "tableTo": "teams",
-          "columnsFrom": [
-            "team_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.diaries": {
@@ -3324,6 +2795,475 @@
       },
       "isRLSEnabled": false
     },
+    "public.runtime_slots": {
+      "name": "runtime_slots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "team_id": {
+          "name": "team_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_name": {
+          "name": "agent_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "daemon_profile_id": {
+          "name": "daemon_profile_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_key": {
+          "name": "slot_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_type": {
+          "name": "task_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "runtime_slot_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_task_id": {
+          "name": "last_task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_attempt_n": {
+          "name": "last_attempt_n",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_dir": {
+          "name": "session_dir",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_path": {
+          "name": "session_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "workspace_row_id": {
+          "name": "workspace_row_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at_ms": {
+          "name": "created_at_ms",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_used_at_ms": {
+          "name": "last_used_at_ms",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at_ms": {
+          "name": "expires_at_ms",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "runtime_slots_identity_idx": {
+          "name": "runtime_slots_identity_idx",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "agent_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "model",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "slot_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "runtime_slots_team_idx": {
+          "name": "runtime_slots_team_idx",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "runtime_slots_profile_idx": {
+          "name": "runtime_slots_profile_idx",
+          "columns": [
+            {
+              "expression": "daemon_profile_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "daemon_profile_id IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "runtime_slots_task_attempt_idx": {
+          "name": "runtime_slots_task_attempt_idx",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "last_task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "last_attempt_n",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "last_used_at_ms",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "runtime_slots_session_path_idx": {
+          "name": "runtime_slots_session_path_idx",
+          "columns": [
+            {
+              "expression": "session_path",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "session_path IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "runtime_slots_team_id_teams_id_fk": {
+          "name": "runtime_slots_team_id_teams_id_fk",
+          "tableFrom": "runtime_slots",
+          "tableTo": "teams",
+          "columnsFrom": [
+            "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "runtime_slots_daemon_profile_id_daemon_profiles_id_fk": {
+          "name": "runtime_slots_daemon_profile_id_daemon_profiles_id_fk",
+          "tableFrom": "runtime_slots",
+          "tableTo": "daemon_profiles",
+          "columnsFrom": [
+            "daemon_profile_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "runtime_slots_last_task_id_tasks_id_fk": {
+          "name": "runtime_slots_last_task_id_tasks_id_fk",
+          "tableFrom": "runtime_slots",
+          "tableTo": "tasks",
+          "columnsFrom": [
+            "last_task_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "runtime_slots_workspace_row_id_runtime_workspaces_id_fk": {
+          "name": "runtime_slots_workspace_row_id_runtime_workspaces_id_fk",
+          "tableFrom": "runtime_slots",
+          "tableTo": "runtime_workspaces",
+          "columnsFrom": [
+            "workspace_row_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "runtime_slots_last_task_id_last_attempt_n_task_attempts_task_id_attempt_n_fk": {
+          "name": "runtime_slots_last_task_id_last_attempt_n_task_attempts_task_id_attempt_n_fk",
+          "tableFrom": "runtime_slots",
+          "tableTo": "task_attempts",
+          "columnsFrom": [
+            "last_task_id",
+            "last_attempt_n"
+          ],
+          "columnsTo": [
+            "task_id",
+            "attempt_n"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.runtime_workspaces": {
+      "name": "runtime_workspaces",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "team_id": {
+          "name": "team_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "worktree_path": {
+          "name": "worktree_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "worktree_branch": {
+          "name": "worktree_branch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "runtime_workspace_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at_ms": {
+          "name": "created_at_ms",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_used_at_ms": {
+          "name": "last_used_at_ms",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "runtime_workspaces_team_workspace_idx": {
+          "name": "runtime_workspaces_team_workspace_idx",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "runtime_workspaces_team_idx": {
+          "name": "runtime_workspaces_team_idx",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "runtime_workspaces_branch_idx": {
+          "name": "runtime_workspaces_branch_idx",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "worktree_branch",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "worktree_branch IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "runtime_workspaces_team_id_teams_id_fk": {
+          "name": "runtime_workspaces_team_id_teams_id_fk",
+          "tableFrom": "runtime_workspaces",
+          "tableTo": "teams",
+          "columnsFrom": [
+            "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.signing_requests": {
       "name": "signing_requests",
       "schema": "",
@@ -4633,23 +4573,6 @@
         "local"
       ]
     },
-    "public.runtime_slot_state": {
-      "name": "runtime_slot_state",
-      "schema": "public",
-      "values": [
-        "active",
-        "idle"
-      ]
-    },
-    "public.runtime_workspace_kind": {
-      "name": "runtime_workspace_kind",
-      "schema": "public",
-      "values": [
-        "origin",
-        "fork",
-        "scratch"
-      ]
-    },
     "public.diary_transfer_status": {
       "name": "diary_transfer_status",
       "schema": "public",
@@ -4731,6 +4654,23 @@
         "supports",
         "caused_by",
         "references"
+      ]
+    },
+    "public.runtime_slot_state": {
+      "name": "runtime_slot_state",
+      "schema": "public",
+      "values": [
+        "active",
+        "idle"
+      ]
+    },
+    "public.runtime_workspace_kind": {
+      "name": "runtime_workspace_kind",
+      "schema": "public",
+      "values": [
+        "origin",
+        "fork",
+        "scratch"
       ]
     },
     "public.signing_request_status": {

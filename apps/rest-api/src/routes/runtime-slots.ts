@@ -3,7 +3,6 @@ import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import type {
   ResolvedRuntimeSlot,
   RuntimeSlot,
-  RuntimeSlotSession,
   RuntimeWorkspace,
 } from '@moltnet/database';
 import {
@@ -14,7 +13,7 @@ import {
 } from '@moltnet/models';
 import {
   BeginRuntimeSlotBody as BeginRuntimeSlotBodySchema,
-  FindRuntimeProducerSlotQuery as FindRuntimeProducerSlotQuerySchema,
+  FindLatestRuntimeSlotForAttemptQuery as FindLatestRuntimeSlotForAttemptQuerySchema,
   FinishRuntimeSlotBody as FinishRuntimeSlotBodySchema,
   ResolvedRuntimeSlot as ResolvedRuntimeSlotSchema,
   RuntimeSlot as RuntimeSlotSchema,
@@ -63,7 +62,6 @@ function serializeSlot(slot: RuntimeSlot) {
   return {
     id: slot.id,
     teamId: slot.teamId,
-    daemonId: slot.daemonId,
     agentName: slot.agentName,
     daemonProfileId: slot.daemonProfileId ?? null,
     provider: slot.provider,
@@ -73,19 +71,12 @@ function serializeSlot(slot: RuntimeSlot) {
     state: slot.state,
     lastTaskId: slot.lastTaskId,
     lastAttemptN: slot.lastAttemptN,
+    sessionDir: slot.sessionDir ?? null,
+    sessionPath: slot.sessionPath ?? null,
     workspaceRowId: slot.workspaceRowId ?? null,
     createdAtMs: slot.createdAtMs,
     lastUsedAtMs: slot.lastUsedAtMs,
     expiresAtMs: slot.expiresAtMs,
-  };
-}
-
-function serializeSession(session: RuntimeSlotSession | null) {
-  if (!session) return null;
-  return {
-    slotId: session.slotId,
-    sessionDir: session.sessionDir,
-    sessionPath: session.sessionPath ?? null,
   };
 }
 
@@ -105,7 +96,6 @@ function serializeWorkspace(workspace: RuntimeWorkspace | null) {
 
 function serializeResolved(resolved: ResolvedRuntimeSlot) {
   return {
-    session: serializeSession(resolved.session),
     slot: serializeSlot(resolved.slot),
     workspace: serializeWorkspace(resolved.workspace),
   };
@@ -298,17 +288,17 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
   );
 
   server.get(
-    '/runtime-slots/producer',
+    '/runtime-slots/latest',
     {
       config: { rateLimit: fastify.rateLimitConfig.read },
       schema: {
-        operationId: 'findRuntimeProducerSlot',
+        operationId: 'findLatestRuntimeSlotForAttempt',
         tags: ['runtime-slots'],
         description:
-          'Find the latest team-scoped producer slot for a task attempt.',
+          'Find the latest team-scoped runtime slot for a task attempt.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderRequiredSchema,
-        querystring: FindRuntimeProducerSlotQuerySchema,
+        querystring: FindLatestRuntimeSlotForAttemptQuerySchema,
         response: {
           200: ResolvedRuntimeSlotSchema,
           400: ValidationProblemDetailsSchema,
@@ -325,7 +315,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
       await requireTeamAccess(fastify, teamId, identityId, subjectNs);
       await assertTaskAttemptInTeam(fastify, taskId, attemptN, teamId);
       const resolved =
-        await fastify.runtimeSlotRepository.findLatestProducerByTaskAttempt(
+        await fastify.runtimeSlotRepository.findLatestByTaskAttempt(
           teamId,
           taskId,
           attemptN,

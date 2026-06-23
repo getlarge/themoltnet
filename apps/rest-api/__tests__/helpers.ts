@@ -538,7 +538,7 @@ export function createMockServices(): MockServices {
     runtimeSlotRepository: {
       begin: vi.fn(),
       finish: vi.fn(),
-      findLatestProducerByTaskAttempt: vi.fn(),
+      findLatestByTaskAttempt: vi.fn(),
     },
     runtimeModelRepository: {
       create: vi.fn(),

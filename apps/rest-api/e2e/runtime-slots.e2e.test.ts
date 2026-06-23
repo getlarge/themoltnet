@@ -18,7 +18,7 @@ import {
   createTask,
   createTeam,
   createTeamInvite,
-  findRuntimeProducerSlot,
+  findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
   joinTeam,
 } from '@moltnet/api-client';
@@ -155,7 +155,6 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       body: {
         agentName: 'legreffier',
-        daemonId: 'daemon-e2e',
         lastAttemptN: attemptN,
         lastTaskId: taskId,
         model: 'claude-sonnet-4-5',
@@ -164,7 +163,6 @@ describe('Runtime slots API', () => {
         sessionPath,
         slotKey: 'curate_pack:correlation:runtime-slots',
         taskType: 'curate_pack',
-        ttlSec: 1800,
         workspaceId: 'workspace-e2e',
         workspaceKind: 'origin',
         worktreeBranch: 'issue-1414',
@@ -193,13 +191,11 @@ describe('Runtime slots API', () => {
       body: {
         agentName: 'legreffier',
         attemptN,
-        daemonId: 'daemon-e2e',
         model: 'claude-sonnet-4-5',
         provider: 'anthropic',
         sessionPath: '/tmp/moltnet/e2e-sessions/producer-finished.jsonl',
         slotKey: 'curate_pack:correlation:runtime-slots',
         taskId,
-        ttlSec: 1800,
       },
     });
     expect(finishError).toBeUndefined();
@@ -209,7 +205,7 @@ describe('Runtime slots API', () => {
       data: resolved,
       error,
       response,
-    } = await findRuntimeProducerSlot({
+    } = await findLatestRuntimeSlotForAttempt({
       client,
       auth: () => owner.accessToken,
       headers: { 'x-moltnet-team-id': teamId },
@@ -220,7 +216,7 @@ describe('Runtime slots API', () => {
     expect(response.status).toBe(200);
     expect(resolved!.slot.lastTaskId).toBe(taskId);
     expect(resolved!.slot.lastAttemptN).toBe(attemptN);
-    expect(resolved!.session?.sessionPath).toBe(
+    expect(resolved!.slot.sessionPath).toBe(
       '/tmp/moltnet/e2e-sessions/producer-finished.jsonl',
     );
     expect(resolved!.workspace?.workspaceId).toBe('workspace-e2e');
@@ -248,19 +244,17 @@ describe('Runtime slots API', () => {
       body: {
         agentName: 'legreffier',
         attemptN: first.attemptN,
-        daemonId: 'daemon-e2e',
         model: 'claude-sonnet-4-5',
         provider: 'anthropic',
         sessionPath: '/tmp/moltnet/e2e-sessions/stale-overwrite.jsonl',
         slotKey: 'curate_pack:correlation:runtime-slots',
         taskId: first.taskId,
-        ttlSec: 1800,
       },
     });
 
     expect(staleFinish.response.status).toBe(409);
 
-    const current = await findRuntimeProducerSlot({
+    const current = await findLatestRuntimeSlotForAttempt({
       client,
       auth: () => owner.accessToken,
       headers: { 'x-moltnet-team-id': teamId },
@@ -270,7 +264,7 @@ describe('Runtime slots API', () => {
     expect(current.error).toBeUndefined();
     expect(current.data!.slot.lastTaskId).toBe(second.taskId);
     expect(current.data!.slot.state).toBe('active');
-    expect(current.data!.session?.sessionPath).toBe(
+    expect(current.data!.slot.sessionPath).toBe(
       '/tmp/moltnet/e2e-sessions/stale-second.jsonl',
     );
   });
@@ -284,7 +278,6 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       body: {
         agentName: 'legreffier',
-        daemonId: 'daemon-e2e',
         lastAttemptN: 1,
         lastTaskId: taskId,
         model: 'claude-sonnet-4-5',
@@ -293,7 +286,6 @@ describe('Runtime slots API', () => {
         sessionPath: '/tmp/moltnet/e2e-sessions/unclaimed.jsonl',
         slotKey: 'curate_pack:correlation:unclaimed',
         taskType: 'curate_pack',
-        ttlSec: 1800,
       },
     });
 
@@ -314,7 +306,7 @@ describe('Runtime slots API', () => {
       '/tmp/moltnet/e2e-sessions/non-member.jsonl',
     );
 
-    const notMemberFind = await findRuntimeProducerSlot({
+    const notMemberFind = await findLatestRuntimeSlotForAttempt({
       client,
       auth: () => outsider.accessToken,
       headers: { 'x-moltnet-team-id': teamId },
@@ -329,18 +321,16 @@ describe('Runtime slots API', () => {
       body: {
         agentName: 'legreffier',
         attemptN,
-        daemonId: 'daemon-e2e',
         model: 'claude-sonnet-4-5',
         provider: 'anthropic',
         sessionPath: '/tmp/moltnet/e2e-sessions/non-member-overwrite.jsonl',
         slotKey: 'curate_pack:correlation:runtime-slots',
         taskId,
-        ttlSec: 1800,
       },
     });
     expect(notMemberFinish.response.status).toBe(403);
 
-    const current = await findRuntimeProducerSlot({
+    const current = await findLatestRuntimeSlotForAttempt({
       client,
       auth: () => owner.accessToken,
       headers: { 'x-moltnet-team-id': teamId },
@@ -348,7 +338,7 @@ describe('Runtime slots API', () => {
     });
     expect(current.error).toBeUndefined();
     expect(current.data!.slot.state).toBe('active');
-    expect(current.data!.session?.sessionPath).toBe(
+    expect(current.data!.slot.sessionPath).toBe(
       '/tmp/moltnet/e2e-sessions/non-member.jsonl',
     );
   });
@@ -363,7 +353,6 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': outsider.personalTeamId },
       body: {
         agentName: 'legreffier',
-        daemonId: 'daemon-e2e',
         lastAttemptN: attemptN,
         lastTaskId: taskId,
         model: 'claude-sonnet-4-5',
@@ -372,7 +361,6 @@ describe('Runtime slots API', () => {
         sessionPath: '/tmp/moltnet/e2e-sessions/wrong-team.jsonl',
         slotKey: 'curate_pack:correlation:wrong-team',
         taskType: 'curate_pack',
-        ttlSec: 1800,
       },
     });
 

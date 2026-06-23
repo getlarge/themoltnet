@@ -1915,7 +1915,6 @@ func (s *BeginRuntimeSlotNotFoundCode) UnmarshalText(data []byte) error {
 type BeginRuntimeSlotOK struct {
 	AgentName       string                  `json:"agentName"`
 	CreatedAtMs     int                     `json:"createdAtMs"`
-	DaemonId        string                  `json:"daemonId"`
 	DaemonProfileId NilUUID                 `json:"daemonProfileId"`
 	ExpiresAtMs     int                     `json:"expiresAtMs"`
 	ID              uuid.UUID               `json:"id"`
@@ -1924,6 +1923,8 @@ type BeginRuntimeSlotOK struct {
 	LastUsedAtMs    int                     `json:"lastUsedAtMs"`
 	Model           string                  `json:"model"`
 	Provider        string                  `json:"provider"`
+	SessionDir      NilString               `json:"sessionDir"`
+	SessionPath     NilString               `json:"sessionPath"`
 	SlotKey         string                  `json:"slotKey"`
 	State           BeginRuntimeSlotOKState `json:"state"`
 	TaskType        string                  `json:"taskType"`
@@ -1939,11 +1940,6 @@ func (s *BeginRuntimeSlotOK) GetAgentName() string {
 // GetCreatedAtMs returns the value of CreatedAtMs.
 func (s *BeginRuntimeSlotOK) GetCreatedAtMs() int {
 	return s.CreatedAtMs
-}
-
-// GetDaemonId returns the value of DaemonId.
-func (s *BeginRuntimeSlotOK) GetDaemonId() string {
-	return s.DaemonId
 }
 
 // GetDaemonProfileId returns the value of DaemonProfileId.
@@ -1986,6 +1982,16 @@ func (s *BeginRuntimeSlotOK) GetProvider() string {
 	return s.Provider
 }
 
+// GetSessionDir returns the value of SessionDir.
+func (s *BeginRuntimeSlotOK) GetSessionDir() NilString {
+	return s.SessionDir
+}
+
+// GetSessionPath returns the value of SessionPath.
+func (s *BeginRuntimeSlotOK) GetSessionPath() NilString {
+	return s.SessionPath
+}
+
 // GetSlotKey returns the value of SlotKey.
 func (s *BeginRuntimeSlotOK) GetSlotKey() string {
 	return s.SlotKey
@@ -2019,11 +2025,6 @@ func (s *BeginRuntimeSlotOK) SetAgentName(val string) {
 // SetCreatedAtMs sets the value of CreatedAtMs.
 func (s *BeginRuntimeSlotOK) SetCreatedAtMs(val int) {
 	s.CreatedAtMs = val
-}
-
-// SetDaemonId sets the value of DaemonId.
-func (s *BeginRuntimeSlotOK) SetDaemonId(val string) {
-	s.DaemonId = val
 }
 
 // SetDaemonProfileId sets the value of DaemonProfileId.
@@ -2064,6 +2065,16 @@ func (s *BeginRuntimeSlotOK) SetModel(val string) {
 // SetProvider sets the value of Provider.
 func (s *BeginRuntimeSlotOK) SetProvider(val string) {
 	s.Provider = val
+}
+
+// SetSessionDir sets the value of SessionDir.
+func (s *BeginRuntimeSlotOK) SetSessionDir(val NilString) {
+	s.SessionDir = val
+}
+
+// SetSessionPath sets the value of SessionPath.
+func (s *BeginRuntimeSlotOK) SetSessionPath(val NilString) {
+	s.SessionPath = val
 }
 
 // SetSlotKey sets the value of SlotKey.
@@ -2136,7 +2147,6 @@ func (s *BeginRuntimeSlotOKState) UnmarshalText(data []byte) error {
 
 type BeginRuntimeSlotReq struct {
 	AgentName       string                              `json:"agentName"`
-	DaemonId        string                              `json:"daemonId"`
 	DaemonProfileId OptUUID                             `json:"daemonProfileId"`
 	LastAttemptN    int                                 `json:"lastAttemptN"`
 	LastTaskId      uuid.UUID                           `json:"lastTaskId"`
@@ -2146,7 +2156,6 @@ type BeginRuntimeSlotReq struct {
 	SessionPath     OptString                           `json:"sessionPath"`
 	SlotKey         string                              `json:"slotKey"`
 	TaskType        string                              `json:"taskType"`
-	TtlSec          int                                 `json:"ttlSec"`
 	WorkspaceId     OptString                           `json:"workspaceId"`
 	WorkspaceKind   OptBeginRuntimeSlotReqWorkspaceKind `json:"workspaceKind"`
 	WorktreeBranch  OptString                           `json:"worktreeBranch"`
@@ -2156,11 +2165,6 @@ type BeginRuntimeSlotReq struct {
 // GetAgentName returns the value of AgentName.
 func (s *BeginRuntimeSlotReq) GetAgentName() string {
 	return s.AgentName
-}
-
-// GetDaemonId returns the value of DaemonId.
-func (s *BeginRuntimeSlotReq) GetDaemonId() string {
-	return s.DaemonId
 }
 
 // GetDaemonProfileId returns the value of DaemonProfileId.
@@ -2208,11 +2212,6 @@ func (s *BeginRuntimeSlotReq) GetTaskType() string {
 	return s.TaskType
 }
 
-// GetTtlSec returns the value of TtlSec.
-func (s *BeginRuntimeSlotReq) GetTtlSec() int {
-	return s.TtlSec
-}
-
 // GetWorkspaceId returns the value of WorkspaceId.
 func (s *BeginRuntimeSlotReq) GetWorkspaceId() OptString {
 	return s.WorkspaceId
@@ -2236,11 +2235,6 @@ func (s *BeginRuntimeSlotReq) GetWorktreePath() OptString {
 // SetAgentName sets the value of AgentName.
 func (s *BeginRuntimeSlotReq) SetAgentName(val string) {
 	s.AgentName = val
-}
-
-// SetDaemonId sets the value of DaemonId.
-func (s *BeginRuntimeSlotReq) SetDaemonId(val string) {
-	s.DaemonId = val
 }
 
 // SetDaemonProfileId sets the value of DaemonProfileId.
@@ -2286,11 +2280,6 @@ func (s *BeginRuntimeSlotReq) SetSlotKey(val string) {
 // SetTaskType sets the value of TaskType.
 func (s *BeginRuntimeSlotReq) SetTaskType(val string) {
 	s.TaskType = val
-}
-
-// SetTtlSec sets the value of TtlSec.
-func (s *BeginRuntimeSlotReq) SetTtlSec(val int) {
-	s.TtlSec = val
 }
 
 // SetWorkspaceId sets the value of WorkspaceId.
@@ -11085,102 +11074,102 @@ type FailTaskUnauthorized ProblemDetails
 func (*FailTaskUnauthorized) failTaskRes() {}
 
 // Merged schema.
-type FindRuntimeProducerSlotBadRequest struct {
-	Code            FindRuntimeProducerSlotBadRequestCode         `json:"code"`
-	Detail          OptString                                     `json:"detail"`
-	Instance        OptString                                     `json:"instance"`
-	Status          int                                           `json:"status"`
-	Title           string                                        `json:"title"`
-	Type            url.URL                                       `json:"type"`
-	Errors          []FindRuntimeProducerSlotBadRequestErrorsItem `json:"errors"`
-	AdditionalProps FindRuntimeProducerSlotBadRequestAdditional
+type FindLatestRuntimeSlotForAttemptBadRequest struct {
+	Code            FindLatestRuntimeSlotForAttemptBadRequestCode         `json:"code"`
+	Detail          OptString                                             `json:"detail"`
+	Instance        OptString                                             `json:"instance"`
+	Status          int                                                   `json:"status"`
+	Title           string                                                `json:"title"`
+	Type            url.URL                                               `json:"type"`
+	Errors          []FindLatestRuntimeSlotForAttemptBadRequestErrorsItem `json:"errors"`
+	AdditionalProps FindLatestRuntimeSlotForAttemptBadRequestAdditional
 }
 
 // GetCode returns the value of Code.
-func (s *FindRuntimeProducerSlotBadRequest) GetCode() FindRuntimeProducerSlotBadRequestCode {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetCode() FindLatestRuntimeSlotForAttemptBadRequestCode {
 	return s.Code
 }
 
 // GetDetail returns the value of Detail.
-func (s *FindRuntimeProducerSlotBadRequest) GetDetail() OptString {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetDetail() OptString {
 	return s.Detail
 }
 
 // GetInstance returns the value of Instance.
-func (s *FindRuntimeProducerSlotBadRequest) GetInstance() OptString {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetInstance() OptString {
 	return s.Instance
 }
 
 // GetStatus returns the value of Status.
-func (s *FindRuntimeProducerSlotBadRequest) GetStatus() int {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetStatus() int {
 	return s.Status
 }
 
 // GetTitle returns the value of Title.
-func (s *FindRuntimeProducerSlotBadRequest) GetTitle() string {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetTitle() string {
 	return s.Title
 }
 
 // GetType returns the value of Type.
-func (s *FindRuntimeProducerSlotBadRequest) GetType() url.URL {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetType() url.URL {
 	return s.Type
 }
 
 // GetErrors returns the value of Errors.
-func (s *FindRuntimeProducerSlotBadRequest) GetErrors() []FindRuntimeProducerSlotBadRequestErrorsItem {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetErrors() []FindLatestRuntimeSlotForAttemptBadRequestErrorsItem {
 	return s.Errors
 }
 
 // GetAdditionalProps returns the value of AdditionalProps.
-func (s *FindRuntimeProducerSlotBadRequest) GetAdditionalProps() FindRuntimeProducerSlotBadRequestAdditional {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetAdditionalProps() FindLatestRuntimeSlotForAttemptBadRequestAdditional {
 	return s.AdditionalProps
 }
 
 // SetCode sets the value of Code.
-func (s *FindRuntimeProducerSlotBadRequest) SetCode(val FindRuntimeProducerSlotBadRequestCode) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetCode(val FindLatestRuntimeSlotForAttemptBadRequestCode) {
 	s.Code = val
 }
 
 // SetDetail sets the value of Detail.
-func (s *FindRuntimeProducerSlotBadRequest) SetDetail(val OptString) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetDetail(val OptString) {
 	s.Detail = val
 }
 
 // SetInstance sets the value of Instance.
-func (s *FindRuntimeProducerSlotBadRequest) SetInstance(val OptString) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetInstance(val OptString) {
 	s.Instance = val
 }
 
 // SetStatus sets the value of Status.
-func (s *FindRuntimeProducerSlotBadRequest) SetStatus(val int) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetStatus(val int) {
 	s.Status = val
 }
 
 // SetTitle sets the value of Title.
-func (s *FindRuntimeProducerSlotBadRequest) SetTitle(val string) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetTitle(val string) {
 	s.Title = val
 }
 
 // SetType sets the value of Type.
-func (s *FindRuntimeProducerSlotBadRequest) SetType(val url.URL) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetType(val url.URL) {
 	s.Type = val
 }
 
 // SetErrors sets the value of Errors.
-func (s *FindRuntimeProducerSlotBadRequest) SetErrors(val []FindRuntimeProducerSlotBadRequestErrorsItem) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetErrors(val []FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) {
 	s.Errors = val
 }
 
 // SetAdditionalProps sets the value of AdditionalProps.
-func (s *FindRuntimeProducerSlotBadRequest) SetAdditionalProps(val FindRuntimeProducerSlotBadRequestAdditional) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetAdditionalProps(val FindLatestRuntimeSlotForAttemptBadRequestAdditional) {
 	s.AdditionalProps = val
 }
 
-func (*FindRuntimeProducerSlotBadRequest) findRuntimeProducerSlotRes() {}
+func (*FindLatestRuntimeSlotForAttemptBadRequest) findLatestRuntimeSlotForAttemptRes() {}
 
-type FindRuntimeProducerSlotBadRequestAdditional map[string]jx.Raw
+type FindLatestRuntimeSlotForAttemptBadRequestAdditional map[string]jx.Raw
 
-func (s *FindRuntimeProducerSlotBadRequestAdditional) init() FindRuntimeProducerSlotBadRequestAdditional {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestAdditional) init() FindLatestRuntimeSlotForAttemptBadRequestAdditional {
 	m := *s
 	if m == nil {
 		m = map[string]jx.Raw{}
@@ -11189,127 +11178,127 @@ func (s *FindRuntimeProducerSlotBadRequestAdditional) init() FindRuntimeProducer
 	return m
 }
 
-type FindRuntimeProducerSlotBadRequestCode string
+type FindLatestRuntimeSlotForAttemptBadRequestCode string
 
 const (
-	FindRuntimeProducerSlotBadRequestCodeUNAUTHORIZED                   FindRuntimeProducerSlotBadRequestCode = "UNAUTHORIZED"
-	FindRuntimeProducerSlotBadRequestCodeFORBIDDEN                      FindRuntimeProducerSlotBadRequestCode = "FORBIDDEN"
-	FindRuntimeProducerSlotBadRequestCodeNOTFOUND                       FindRuntimeProducerSlotBadRequestCode = "NOT_FOUND"
-	FindRuntimeProducerSlotBadRequestCodeCONFLICT                       FindRuntimeProducerSlotBadRequestCode = "CONFLICT"
-	FindRuntimeProducerSlotBadRequestCodeVALIDATIONFAILED               FindRuntimeProducerSlotBadRequestCode = "VALIDATION_FAILED"
-	FindRuntimeProducerSlotBadRequestCodeINVALIDCHALLENGE               FindRuntimeProducerSlotBadRequestCode = "INVALID_CHALLENGE"
-	FindRuntimeProducerSlotBadRequestCodeINVALIDSIGNATURE               FindRuntimeProducerSlotBadRequestCode = "INVALID_SIGNATURE"
-	FindRuntimeProducerSlotBadRequestCodeVOUCHERLIMIT                   FindRuntimeProducerSlotBadRequestCode = "VOUCHER_LIMIT"
-	FindRuntimeProducerSlotBadRequestCodeRATELIMITEXCEEDED              FindRuntimeProducerSlotBadRequestCode = "RATE_LIMIT_EXCEEDED"
-	FindRuntimeProducerSlotBadRequestCodeSERIALIZATIONEXHAUSTED         FindRuntimeProducerSlotBadRequestCode = "SERIALIZATION_EXHAUSTED"
-	FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTEXPIRED          FindRuntimeProducerSlotBadRequestCode = "SIGNING_REQUEST_EXPIRED"
-	FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED FindRuntimeProducerSlotBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
-	FindRuntimeProducerSlotBadRequestCodeREGISTRATIONFAILED             FindRuntimeProducerSlotBadRequestCode = "REGISTRATION_FAILED"
-	FindRuntimeProducerSlotBadRequestCodeUPSTREAMERROR                  FindRuntimeProducerSlotBadRequestCode = "UPSTREAM_ERROR"
-	FindRuntimeProducerSlotBadRequestCodeSERVICEUNAVAILABLE             FindRuntimeProducerSlotBadRequestCode = "SERVICE_UNAVAILABLE"
-	FindRuntimeProducerSlotBadRequestCodeINTERNALSERVERERROR            FindRuntimeProducerSlotBadRequestCode = "INTERNAL_SERVER_ERROR"
-	FindRuntimeProducerSlotBadRequestCodeTEAMPERSONALIMMUTABLE          FindRuntimeProducerSlotBadRequestCode = "TEAM_PERSONAL_IMMUTABLE"
-	FindRuntimeProducerSlotBadRequestCodeTEAMNOTACTIVE                  FindRuntimeProducerSlotBadRequestCode = "TEAM_NOT_ACTIVE"
-	FindRuntimeProducerSlotBadRequestCodeINVITEEXPIRED                  FindRuntimeProducerSlotBadRequestCode = "INVITE_EXPIRED"
-	FindRuntimeProducerSlotBadRequestCodeINVITEEXHAUSTED                FindRuntimeProducerSlotBadRequestCode = "INVITE_EXHAUSTED"
-	FindRuntimeProducerSlotBadRequestCodeTEAMLASTOWNER                  FindRuntimeProducerSlotBadRequestCode = "TEAM_LAST_OWNER"
-	FindRuntimeProducerSlotBadRequestCodeTEAMALREADYACTIVE              FindRuntimeProducerSlotBadRequestCode = "TEAM_ALREADY_ACTIVE"
-	FindRuntimeProducerSlotBadRequestCodeTEAMNOTFOUNDING                FindRuntimeProducerSlotBadRequestCode = "TEAM_NOT_FOUNDING"
-	FindRuntimeProducerSlotBadRequestCodeFOUNDINGALREADYACCEPTED        FindRuntimeProducerSlotBadRequestCode = "FOUNDING_ALREADY_ACCEPTED"
-	FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERPENDING           FindRuntimeProducerSlotBadRequestCode = "DIARY_TRANSFER_PENDING"
-	FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERNOTFOUND          FindRuntimeProducerSlotBadRequestCode = "DIARY_TRANSFER_NOT_FOUND"
-	FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED   FindRuntimeProducerSlotBadRequestCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeUNAUTHORIZED                   FindLatestRuntimeSlotForAttemptBadRequestCode = "UNAUTHORIZED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeFORBIDDEN                      FindLatestRuntimeSlotForAttemptBadRequestCode = "FORBIDDEN"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND                       FindLatestRuntimeSlotForAttemptBadRequestCode = "NOT_FOUND"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT                       FindLatestRuntimeSlotForAttemptBadRequestCode = "CONFLICT"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptBadRequestCode = "VALIDATION_FAILED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptBadRequestCode = "INVALID_CHALLENGE"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptBadRequestCode = "INVALID_SIGNATURE"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT                   FindLatestRuntimeSlotForAttemptBadRequestCode = "VOUCHER_LIMIT"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED              FindLatestRuntimeSlotForAttemptBadRequestCode = "RATE_LIMIT_EXCEEDED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptBadRequestCode = "SERIALIZATION_EXHAUSTED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptBadRequestCode = "SIGNING_REQUEST_EXPIRED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED FindLatestRuntimeSlotForAttemptBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED             FindLatestRuntimeSlotForAttemptBadRequestCode = "REGISTRATION_FAILED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeUPSTREAMERROR                  FindLatestRuntimeSlotForAttemptBadRequestCode = "UPSTREAM_ERROR"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeSERVICEUNAVAILABLE             FindLatestRuntimeSlotForAttemptBadRequestCode = "SERVICE_UNAVAILABLE"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeINTERNALSERVERERROR            FindLatestRuntimeSlotForAttemptBadRequestCode = "INTERNAL_SERVER_ERROR"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMPERSONALIMMUTABLE          FindLatestRuntimeSlotForAttemptBadRequestCode = "TEAM_PERSONAL_IMMUTABLE"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTACTIVE                  FindLatestRuntimeSlotForAttemptBadRequestCode = "TEAM_NOT_ACTIVE"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXPIRED                  FindLatestRuntimeSlotForAttemptBadRequestCode = "INVITE_EXPIRED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXHAUSTED                FindLatestRuntimeSlotForAttemptBadRequestCode = "INVITE_EXHAUSTED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMLASTOWNER                  FindLatestRuntimeSlotForAttemptBadRequestCode = "TEAM_LAST_OWNER"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMALREADYACTIVE              FindLatestRuntimeSlotForAttemptBadRequestCode = "TEAM_ALREADY_ACTIVE"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTFOUNDING                FindLatestRuntimeSlotForAttemptBadRequestCode = "TEAM_NOT_FOUNDING"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeFOUNDINGALREADYACCEPTED        FindLatestRuntimeSlotForAttemptBadRequestCode = "FOUNDING_ALREADY_ACCEPTED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERPENDING           FindLatestRuntimeSlotForAttemptBadRequestCode = "DIARY_TRANSFER_PENDING"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERNOTFOUND          FindLatestRuntimeSlotForAttemptBadRequestCode = "DIARY_TRANSFER_NOT_FOUND"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERALREADYRESOLVED   FindLatestRuntimeSlotForAttemptBadRequestCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
 )
 
-// AllValues returns all FindRuntimeProducerSlotBadRequestCode values.
-func (FindRuntimeProducerSlotBadRequestCode) AllValues() []FindRuntimeProducerSlotBadRequestCode {
-	return []FindRuntimeProducerSlotBadRequestCode{
-		FindRuntimeProducerSlotBadRequestCodeUNAUTHORIZED,
-		FindRuntimeProducerSlotBadRequestCodeFORBIDDEN,
-		FindRuntimeProducerSlotBadRequestCodeNOTFOUND,
-		FindRuntimeProducerSlotBadRequestCodeCONFLICT,
-		FindRuntimeProducerSlotBadRequestCodeVALIDATIONFAILED,
-		FindRuntimeProducerSlotBadRequestCodeINVALIDCHALLENGE,
-		FindRuntimeProducerSlotBadRequestCodeINVALIDSIGNATURE,
-		FindRuntimeProducerSlotBadRequestCodeVOUCHERLIMIT,
-		FindRuntimeProducerSlotBadRequestCodeRATELIMITEXCEEDED,
-		FindRuntimeProducerSlotBadRequestCodeSERIALIZATIONEXHAUSTED,
-		FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTEXPIRED,
-		FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
-		FindRuntimeProducerSlotBadRequestCodeREGISTRATIONFAILED,
-		FindRuntimeProducerSlotBadRequestCodeUPSTREAMERROR,
-		FindRuntimeProducerSlotBadRequestCodeSERVICEUNAVAILABLE,
-		FindRuntimeProducerSlotBadRequestCodeINTERNALSERVERERROR,
-		FindRuntimeProducerSlotBadRequestCodeTEAMPERSONALIMMUTABLE,
-		FindRuntimeProducerSlotBadRequestCodeTEAMNOTACTIVE,
-		FindRuntimeProducerSlotBadRequestCodeINVITEEXPIRED,
-		FindRuntimeProducerSlotBadRequestCodeINVITEEXHAUSTED,
-		FindRuntimeProducerSlotBadRequestCodeTEAMLASTOWNER,
-		FindRuntimeProducerSlotBadRequestCodeTEAMALREADYACTIVE,
-		FindRuntimeProducerSlotBadRequestCodeTEAMNOTFOUNDING,
-		FindRuntimeProducerSlotBadRequestCodeFOUNDINGALREADYACCEPTED,
-		FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERPENDING,
-		FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERNOTFOUND,
-		FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED,
+// AllValues returns all FindLatestRuntimeSlotForAttemptBadRequestCode values.
+func (FindLatestRuntimeSlotForAttemptBadRequestCode) AllValues() []FindLatestRuntimeSlotForAttemptBadRequestCode {
+	return []FindLatestRuntimeSlotForAttemptBadRequestCode{
+		FindLatestRuntimeSlotForAttemptBadRequestCodeUNAUTHORIZED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeFORBIDDEN,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeUPSTREAMERROR,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeSERVICEUNAVAILABLE,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeINTERNALSERVERERROR,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMPERSONALIMMUTABLE,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTACTIVE,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXPIRED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXHAUSTED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMLASTOWNER,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMALREADYACTIVE,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTFOUNDING,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeFOUNDINGALREADYACCEPTED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERPENDING,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERNOTFOUND,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERALREADYRESOLVED,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
-func (s FindRuntimeProducerSlotBadRequestCode) MarshalText() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptBadRequestCode) MarshalText() ([]byte, error) {
 	switch s {
-	case FindRuntimeProducerSlotBadRequestCodeUNAUTHORIZED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeUNAUTHORIZED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeFORBIDDEN:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeFORBIDDEN:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeNOTFOUND:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeCONFLICT:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeVALIDATIONFAILED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeINVALIDCHALLENGE:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeINVALIDSIGNATURE:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeVOUCHERLIMIT:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeRATELIMITEXCEEDED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeSERIALIZATIONEXHAUSTED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTEXPIRED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeREGISTRATIONFAILED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeUPSTREAMERROR:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeUPSTREAMERROR:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeSERVICEUNAVAILABLE:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSERVICEUNAVAILABLE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeINTERNALSERVERERROR:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINTERNALSERVERERROR:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeTEAMPERSONALIMMUTABLE:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMPERSONALIMMUTABLE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeTEAMNOTACTIVE:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTACTIVE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeINVITEEXPIRED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXPIRED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeINVITEEXHAUSTED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXHAUSTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeTEAMLASTOWNER:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMLASTOWNER:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeTEAMALREADYACTIVE:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMALREADYACTIVE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeTEAMNOTFOUNDING:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTFOUNDING:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeFOUNDINGALREADYACCEPTED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeFOUNDINGALREADYACCEPTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERPENDING:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERPENDING:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERNOTFOUND:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERNOTFOUND:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -11317,215 +11306,215 @@ func (s FindRuntimeProducerSlotBadRequestCode) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-func (s *FindRuntimeProducerSlotBadRequestCode) UnmarshalText(data []byte) error {
-	switch FindRuntimeProducerSlotBadRequestCode(data) {
-	case FindRuntimeProducerSlotBadRequestCodeUNAUTHORIZED:
-		*s = FindRuntimeProducerSlotBadRequestCodeUNAUTHORIZED
+func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) UnmarshalText(data []byte) error {
+	switch FindLatestRuntimeSlotForAttemptBadRequestCode(data) {
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeUNAUTHORIZED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeUNAUTHORIZED
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeFORBIDDEN:
-		*s = FindRuntimeProducerSlotBadRequestCodeFORBIDDEN
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeFORBIDDEN:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeFORBIDDEN
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeNOTFOUND:
-		*s = FindRuntimeProducerSlotBadRequestCodeNOTFOUND
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeCONFLICT:
-		*s = FindRuntimeProducerSlotBadRequestCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeVALIDATIONFAILED:
-		*s = FindRuntimeProducerSlotBadRequestCodeVALIDATIONFAILED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeINVALIDCHALLENGE:
-		*s = FindRuntimeProducerSlotBadRequestCodeINVALIDCHALLENGE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeINVALIDSIGNATURE:
-		*s = FindRuntimeProducerSlotBadRequestCodeINVALIDSIGNATURE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeVOUCHERLIMIT:
-		*s = FindRuntimeProducerSlotBadRequestCodeVOUCHERLIMIT
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeRATELIMITEXCEEDED:
-		*s = FindRuntimeProducerSlotBadRequestCodeRATELIMITEXCEEDED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeSERIALIZATIONEXHAUSTED:
-		*s = FindRuntimeProducerSlotBadRequestCodeSERIALIZATIONEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTEXPIRED:
-		*s = FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTEXPIRED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
-		*s = FindRuntimeProducerSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeREGISTRATIONFAILED:
-		*s = FindRuntimeProducerSlotBadRequestCodeREGISTRATIONFAILED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeUPSTREAMERROR:
-		*s = FindRuntimeProducerSlotBadRequestCodeUPSTREAMERROR
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeUPSTREAMERROR:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeUPSTREAMERROR
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeSERVICEUNAVAILABLE:
-		*s = FindRuntimeProducerSlotBadRequestCodeSERVICEUNAVAILABLE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSERVICEUNAVAILABLE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSERVICEUNAVAILABLE
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeINTERNALSERVERERROR:
-		*s = FindRuntimeProducerSlotBadRequestCodeINTERNALSERVERERROR
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINTERNALSERVERERROR:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINTERNALSERVERERROR
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeTEAMPERSONALIMMUTABLE:
-		*s = FindRuntimeProducerSlotBadRequestCodeTEAMPERSONALIMMUTABLE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMPERSONALIMMUTABLE
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeTEAMNOTACTIVE:
-		*s = FindRuntimeProducerSlotBadRequestCodeTEAMNOTACTIVE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTACTIVE
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeINVITEEXPIRED:
-		*s = FindRuntimeProducerSlotBadRequestCodeINVITEEXPIRED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXPIRED
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeINVITEEXHAUSTED:
-		*s = FindRuntimeProducerSlotBadRequestCodeINVITEEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINVITEEXHAUSTED
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeTEAMLASTOWNER:
-		*s = FindRuntimeProducerSlotBadRequestCodeTEAMLASTOWNER
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMLASTOWNER:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMLASTOWNER
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeTEAMALREADYACTIVE:
-		*s = FindRuntimeProducerSlotBadRequestCodeTEAMALREADYACTIVE
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMALREADYACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMALREADYACTIVE
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeTEAMNOTFOUNDING:
-		*s = FindRuntimeProducerSlotBadRequestCodeTEAMNOTFOUNDING
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTFOUNDING:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeTEAMNOTFOUNDING
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeFOUNDINGALREADYACCEPTED:
-		*s = FindRuntimeProducerSlotBadRequestCodeFOUNDINGALREADYACCEPTED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeFOUNDINGALREADYACCEPTED
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERPENDING:
-		*s = FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERPENDING
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERPENDING:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERPENDING
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERNOTFOUND:
-		*s = FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERNOTFOUND
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERNOTFOUND
 		return nil
-	case FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
-		*s = FindRuntimeProducerSlotBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeDIARYTRANSFERALREADYRESOLVED
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
 
-type FindRuntimeProducerSlotBadRequestErrorsItem struct {
+type FindLatestRuntimeSlotForAttemptBadRequestErrorsItem struct {
 	Code    OptString `json:"code"`
 	Field   string    `json:"field"`
 	Message string    `json:"message"`
 }
 
 // GetCode returns the value of Code.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) GetCode() OptString {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) GetCode() OptString {
 	return s.Code
 }
 
 // GetField returns the value of Field.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) GetField() string {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) GetField() string {
 	return s.Field
 }
 
 // GetMessage returns the value of Message.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) GetMessage() string {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) GetMessage() string {
 	return s.Message
 }
 
 // SetCode sets the value of Code.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) SetCode(val OptString) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) SetCode(val OptString) {
 	s.Code = val
 }
 
 // SetField sets the value of Field.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) SetField(val string) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) SetField(val string) {
 	s.Field = val
 }
 
 // SetMessage sets the value of Message.
-func (s *FindRuntimeProducerSlotBadRequestErrorsItem) SetMessage(val string) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) SetMessage(val string) {
 	s.Message = val
 }
 
-type FindRuntimeProducerSlotForbidden struct {
-	Code            FindRuntimeProducerSlotForbiddenCode `json:"code"`
-	Detail          OptString                            `json:"detail"`
-	Instance        OptString                            `json:"instance"`
-	Status          int                                  `json:"status"`
-	Title           string                               `json:"title"`
-	Type            url.URL                              `json:"type"`
-	AdditionalProps FindRuntimeProducerSlotForbiddenAdditional
+type FindLatestRuntimeSlotForAttemptForbidden struct {
+	Code            FindLatestRuntimeSlotForAttemptForbiddenCode `json:"code"`
+	Detail          OptString                                    `json:"detail"`
+	Instance        OptString                                    `json:"instance"`
+	Status          int                                          `json:"status"`
+	Title           string                                       `json:"title"`
+	Type            url.URL                                      `json:"type"`
+	AdditionalProps FindLatestRuntimeSlotForAttemptForbiddenAdditional
 }
 
 // GetCode returns the value of Code.
-func (s *FindRuntimeProducerSlotForbidden) GetCode() FindRuntimeProducerSlotForbiddenCode {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) GetCode() FindLatestRuntimeSlotForAttemptForbiddenCode {
 	return s.Code
 }
 
 // GetDetail returns the value of Detail.
-func (s *FindRuntimeProducerSlotForbidden) GetDetail() OptString {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) GetDetail() OptString {
 	return s.Detail
 }
 
 // GetInstance returns the value of Instance.
-func (s *FindRuntimeProducerSlotForbidden) GetInstance() OptString {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) GetInstance() OptString {
 	return s.Instance
 }
 
 // GetStatus returns the value of Status.
-func (s *FindRuntimeProducerSlotForbidden) GetStatus() int {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) GetStatus() int {
 	return s.Status
 }
 
 // GetTitle returns the value of Title.
-func (s *FindRuntimeProducerSlotForbidden) GetTitle() string {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) GetTitle() string {
 	return s.Title
 }
 
 // GetType returns the value of Type.
-func (s *FindRuntimeProducerSlotForbidden) GetType() url.URL {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) GetType() url.URL {
 	return s.Type
 }
 
 // GetAdditionalProps returns the value of AdditionalProps.
-func (s *FindRuntimeProducerSlotForbidden) GetAdditionalProps() FindRuntimeProducerSlotForbiddenAdditional {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) GetAdditionalProps() FindLatestRuntimeSlotForAttemptForbiddenAdditional {
 	return s.AdditionalProps
 }
 
 // SetCode sets the value of Code.
-func (s *FindRuntimeProducerSlotForbidden) SetCode(val FindRuntimeProducerSlotForbiddenCode) {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) SetCode(val FindLatestRuntimeSlotForAttemptForbiddenCode) {
 	s.Code = val
 }
 
 // SetDetail sets the value of Detail.
-func (s *FindRuntimeProducerSlotForbidden) SetDetail(val OptString) {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) SetDetail(val OptString) {
 	s.Detail = val
 }
 
 // SetInstance sets the value of Instance.
-func (s *FindRuntimeProducerSlotForbidden) SetInstance(val OptString) {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) SetInstance(val OptString) {
 	s.Instance = val
 }
 
 // SetStatus sets the value of Status.
-func (s *FindRuntimeProducerSlotForbidden) SetStatus(val int) {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) SetStatus(val int) {
 	s.Status = val
 }
 
 // SetTitle sets the value of Title.
-func (s *FindRuntimeProducerSlotForbidden) SetTitle(val string) {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) SetTitle(val string) {
 	s.Title = val
 }
 
 // SetType sets the value of Type.
-func (s *FindRuntimeProducerSlotForbidden) SetType(val url.URL) {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) SetType(val url.URL) {
 	s.Type = val
 }
 
 // SetAdditionalProps sets the value of AdditionalProps.
-func (s *FindRuntimeProducerSlotForbidden) SetAdditionalProps(val FindRuntimeProducerSlotForbiddenAdditional) {
+func (s *FindLatestRuntimeSlotForAttemptForbidden) SetAdditionalProps(val FindLatestRuntimeSlotForAttemptForbiddenAdditional) {
 	s.AdditionalProps = val
 }
 
-func (*FindRuntimeProducerSlotForbidden) findRuntimeProducerSlotRes() {}
+func (*FindLatestRuntimeSlotForAttemptForbidden) findLatestRuntimeSlotForAttemptRes() {}
 
-type FindRuntimeProducerSlotForbiddenAdditional map[string]jx.Raw
+type FindLatestRuntimeSlotForAttemptForbiddenAdditional map[string]jx.Raw
 
-func (s *FindRuntimeProducerSlotForbiddenAdditional) init() FindRuntimeProducerSlotForbiddenAdditional {
+func (s *FindLatestRuntimeSlotForAttemptForbiddenAdditional) init() FindLatestRuntimeSlotForAttemptForbiddenAdditional {
 	m := *s
 	if m == nil {
 		m = map[string]jx.Raw{}
@@ -11534,127 +11523,127 @@ func (s *FindRuntimeProducerSlotForbiddenAdditional) init() FindRuntimeProducerS
 	return m
 }
 
-type FindRuntimeProducerSlotForbiddenCode string
+type FindLatestRuntimeSlotForAttemptForbiddenCode string
 
 const (
-	FindRuntimeProducerSlotForbiddenCodeUNAUTHORIZED                   FindRuntimeProducerSlotForbiddenCode = "UNAUTHORIZED"
-	FindRuntimeProducerSlotForbiddenCodeFORBIDDEN                      FindRuntimeProducerSlotForbiddenCode = "FORBIDDEN"
-	FindRuntimeProducerSlotForbiddenCodeNOTFOUND                       FindRuntimeProducerSlotForbiddenCode = "NOT_FOUND"
-	FindRuntimeProducerSlotForbiddenCodeCONFLICT                       FindRuntimeProducerSlotForbiddenCode = "CONFLICT"
-	FindRuntimeProducerSlotForbiddenCodeVALIDATIONFAILED               FindRuntimeProducerSlotForbiddenCode = "VALIDATION_FAILED"
-	FindRuntimeProducerSlotForbiddenCodeINVALIDCHALLENGE               FindRuntimeProducerSlotForbiddenCode = "INVALID_CHALLENGE"
-	FindRuntimeProducerSlotForbiddenCodeINVALIDSIGNATURE               FindRuntimeProducerSlotForbiddenCode = "INVALID_SIGNATURE"
-	FindRuntimeProducerSlotForbiddenCodeVOUCHERLIMIT                   FindRuntimeProducerSlotForbiddenCode = "VOUCHER_LIMIT"
-	FindRuntimeProducerSlotForbiddenCodeRATELIMITEXCEEDED              FindRuntimeProducerSlotForbiddenCode = "RATE_LIMIT_EXCEEDED"
-	FindRuntimeProducerSlotForbiddenCodeSERIALIZATIONEXHAUSTED         FindRuntimeProducerSlotForbiddenCode = "SERIALIZATION_EXHAUSTED"
-	FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTEXPIRED          FindRuntimeProducerSlotForbiddenCode = "SIGNING_REQUEST_EXPIRED"
-	FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED FindRuntimeProducerSlotForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
-	FindRuntimeProducerSlotForbiddenCodeREGISTRATIONFAILED             FindRuntimeProducerSlotForbiddenCode = "REGISTRATION_FAILED"
-	FindRuntimeProducerSlotForbiddenCodeUPSTREAMERROR                  FindRuntimeProducerSlotForbiddenCode = "UPSTREAM_ERROR"
-	FindRuntimeProducerSlotForbiddenCodeSERVICEUNAVAILABLE             FindRuntimeProducerSlotForbiddenCode = "SERVICE_UNAVAILABLE"
-	FindRuntimeProducerSlotForbiddenCodeINTERNALSERVERERROR            FindRuntimeProducerSlotForbiddenCode = "INTERNAL_SERVER_ERROR"
-	FindRuntimeProducerSlotForbiddenCodeTEAMPERSONALIMMUTABLE          FindRuntimeProducerSlotForbiddenCode = "TEAM_PERSONAL_IMMUTABLE"
-	FindRuntimeProducerSlotForbiddenCodeTEAMNOTACTIVE                  FindRuntimeProducerSlotForbiddenCode = "TEAM_NOT_ACTIVE"
-	FindRuntimeProducerSlotForbiddenCodeINVITEEXPIRED                  FindRuntimeProducerSlotForbiddenCode = "INVITE_EXPIRED"
-	FindRuntimeProducerSlotForbiddenCodeINVITEEXHAUSTED                FindRuntimeProducerSlotForbiddenCode = "INVITE_EXHAUSTED"
-	FindRuntimeProducerSlotForbiddenCodeTEAMLASTOWNER                  FindRuntimeProducerSlotForbiddenCode = "TEAM_LAST_OWNER"
-	FindRuntimeProducerSlotForbiddenCodeTEAMALREADYACTIVE              FindRuntimeProducerSlotForbiddenCode = "TEAM_ALREADY_ACTIVE"
-	FindRuntimeProducerSlotForbiddenCodeTEAMNOTFOUNDING                FindRuntimeProducerSlotForbiddenCode = "TEAM_NOT_FOUNDING"
-	FindRuntimeProducerSlotForbiddenCodeFOUNDINGALREADYACCEPTED        FindRuntimeProducerSlotForbiddenCode = "FOUNDING_ALREADY_ACCEPTED"
-	FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERPENDING           FindRuntimeProducerSlotForbiddenCode = "DIARY_TRANSFER_PENDING"
-	FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERNOTFOUND          FindRuntimeProducerSlotForbiddenCode = "DIARY_TRANSFER_NOT_FOUND"
-	FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED   FindRuntimeProducerSlotForbiddenCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeUNAUTHORIZED                   FindLatestRuntimeSlotForAttemptForbiddenCode = "UNAUTHORIZED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeFORBIDDEN                      FindLatestRuntimeSlotForAttemptForbiddenCode = "FORBIDDEN"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND                       FindLatestRuntimeSlotForAttemptForbiddenCode = "NOT_FOUND"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT                       FindLatestRuntimeSlotForAttemptForbiddenCode = "CONFLICT"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptForbiddenCode = "VALIDATION_FAILED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptForbiddenCode = "INVALID_CHALLENGE"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptForbiddenCode = "INVALID_SIGNATURE"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT                   FindLatestRuntimeSlotForAttemptForbiddenCode = "VOUCHER_LIMIT"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED              FindLatestRuntimeSlotForAttemptForbiddenCode = "RATE_LIMIT_EXCEEDED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptForbiddenCode = "SERIALIZATION_EXHAUSTED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptForbiddenCode = "SIGNING_REQUEST_EXPIRED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED FindLatestRuntimeSlotForAttemptForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED             FindLatestRuntimeSlotForAttemptForbiddenCode = "REGISTRATION_FAILED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeUPSTREAMERROR                  FindLatestRuntimeSlotForAttemptForbiddenCode = "UPSTREAM_ERROR"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeSERVICEUNAVAILABLE             FindLatestRuntimeSlotForAttemptForbiddenCode = "SERVICE_UNAVAILABLE"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeINTERNALSERVERERROR            FindLatestRuntimeSlotForAttemptForbiddenCode = "INTERNAL_SERVER_ERROR"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMPERSONALIMMUTABLE          FindLatestRuntimeSlotForAttemptForbiddenCode = "TEAM_PERSONAL_IMMUTABLE"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTACTIVE                  FindLatestRuntimeSlotForAttemptForbiddenCode = "TEAM_NOT_ACTIVE"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXPIRED                  FindLatestRuntimeSlotForAttemptForbiddenCode = "INVITE_EXPIRED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXHAUSTED                FindLatestRuntimeSlotForAttemptForbiddenCode = "INVITE_EXHAUSTED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMLASTOWNER                  FindLatestRuntimeSlotForAttemptForbiddenCode = "TEAM_LAST_OWNER"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMALREADYACTIVE              FindLatestRuntimeSlotForAttemptForbiddenCode = "TEAM_ALREADY_ACTIVE"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTFOUNDING                FindLatestRuntimeSlotForAttemptForbiddenCode = "TEAM_NOT_FOUNDING"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeFOUNDINGALREADYACCEPTED        FindLatestRuntimeSlotForAttemptForbiddenCode = "FOUNDING_ALREADY_ACCEPTED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERPENDING           FindLatestRuntimeSlotForAttemptForbiddenCode = "DIARY_TRANSFER_PENDING"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERNOTFOUND          FindLatestRuntimeSlotForAttemptForbiddenCode = "DIARY_TRANSFER_NOT_FOUND"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERALREADYRESOLVED   FindLatestRuntimeSlotForAttemptForbiddenCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
 )
 
-// AllValues returns all FindRuntimeProducerSlotForbiddenCode values.
-func (FindRuntimeProducerSlotForbiddenCode) AllValues() []FindRuntimeProducerSlotForbiddenCode {
-	return []FindRuntimeProducerSlotForbiddenCode{
-		FindRuntimeProducerSlotForbiddenCodeUNAUTHORIZED,
-		FindRuntimeProducerSlotForbiddenCodeFORBIDDEN,
-		FindRuntimeProducerSlotForbiddenCodeNOTFOUND,
-		FindRuntimeProducerSlotForbiddenCodeCONFLICT,
-		FindRuntimeProducerSlotForbiddenCodeVALIDATIONFAILED,
-		FindRuntimeProducerSlotForbiddenCodeINVALIDCHALLENGE,
-		FindRuntimeProducerSlotForbiddenCodeINVALIDSIGNATURE,
-		FindRuntimeProducerSlotForbiddenCodeVOUCHERLIMIT,
-		FindRuntimeProducerSlotForbiddenCodeRATELIMITEXCEEDED,
-		FindRuntimeProducerSlotForbiddenCodeSERIALIZATIONEXHAUSTED,
-		FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTEXPIRED,
-		FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
-		FindRuntimeProducerSlotForbiddenCodeREGISTRATIONFAILED,
-		FindRuntimeProducerSlotForbiddenCodeUPSTREAMERROR,
-		FindRuntimeProducerSlotForbiddenCodeSERVICEUNAVAILABLE,
-		FindRuntimeProducerSlotForbiddenCodeINTERNALSERVERERROR,
-		FindRuntimeProducerSlotForbiddenCodeTEAMPERSONALIMMUTABLE,
-		FindRuntimeProducerSlotForbiddenCodeTEAMNOTACTIVE,
-		FindRuntimeProducerSlotForbiddenCodeINVITEEXPIRED,
-		FindRuntimeProducerSlotForbiddenCodeINVITEEXHAUSTED,
-		FindRuntimeProducerSlotForbiddenCodeTEAMLASTOWNER,
-		FindRuntimeProducerSlotForbiddenCodeTEAMALREADYACTIVE,
-		FindRuntimeProducerSlotForbiddenCodeTEAMNOTFOUNDING,
-		FindRuntimeProducerSlotForbiddenCodeFOUNDINGALREADYACCEPTED,
-		FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERPENDING,
-		FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERNOTFOUND,
-		FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED,
+// AllValues returns all FindLatestRuntimeSlotForAttemptForbiddenCode values.
+func (FindLatestRuntimeSlotForAttemptForbiddenCode) AllValues() []FindLatestRuntimeSlotForAttemptForbiddenCode {
+	return []FindLatestRuntimeSlotForAttemptForbiddenCode{
+		FindLatestRuntimeSlotForAttemptForbiddenCodeUNAUTHORIZED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeFORBIDDEN,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeUPSTREAMERROR,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeSERVICEUNAVAILABLE,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeINTERNALSERVERERROR,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMPERSONALIMMUTABLE,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTACTIVE,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXPIRED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXHAUSTED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMLASTOWNER,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMALREADYACTIVE,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTFOUNDING,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeFOUNDINGALREADYACCEPTED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERPENDING,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERNOTFOUND,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERALREADYRESOLVED,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
-func (s FindRuntimeProducerSlotForbiddenCode) MarshalText() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptForbiddenCode) MarshalText() ([]byte, error) {
 	switch s {
-	case FindRuntimeProducerSlotForbiddenCodeUNAUTHORIZED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeUNAUTHORIZED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeFORBIDDEN:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeFORBIDDEN:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeNOTFOUND:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeCONFLICT:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeVALIDATIONFAILED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeINVALIDCHALLENGE:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeINVALIDSIGNATURE:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeVOUCHERLIMIT:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeRATELIMITEXCEEDED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeSERIALIZATIONEXHAUSTED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTEXPIRED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeREGISTRATIONFAILED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeUPSTREAMERROR:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeUPSTREAMERROR:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeSERVICEUNAVAILABLE:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSERVICEUNAVAILABLE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeINTERNALSERVERERROR:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINTERNALSERVERERROR:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeTEAMPERSONALIMMUTABLE:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMPERSONALIMMUTABLE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeTEAMNOTACTIVE:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTACTIVE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeINVITEEXPIRED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXPIRED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeINVITEEXHAUSTED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXHAUSTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeTEAMLASTOWNER:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMLASTOWNER:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeTEAMALREADYACTIVE:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMALREADYACTIVE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeTEAMNOTFOUNDING:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTFOUNDING:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeFOUNDINGALREADYACCEPTED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeFOUNDINGALREADYACCEPTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERPENDING:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERPENDING:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERNOTFOUND:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERNOTFOUND:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -11662,179 +11651,179 @@ func (s FindRuntimeProducerSlotForbiddenCode) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-func (s *FindRuntimeProducerSlotForbiddenCode) UnmarshalText(data []byte) error {
-	switch FindRuntimeProducerSlotForbiddenCode(data) {
-	case FindRuntimeProducerSlotForbiddenCodeUNAUTHORIZED:
-		*s = FindRuntimeProducerSlotForbiddenCodeUNAUTHORIZED
+func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) UnmarshalText(data []byte) error {
+	switch FindLatestRuntimeSlotForAttemptForbiddenCode(data) {
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeUNAUTHORIZED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeUNAUTHORIZED
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeFORBIDDEN:
-		*s = FindRuntimeProducerSlotForbiddenCodeFORBIDDEN
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeFORBIDDEN:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeFORBIDDEN
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeNOTFOUND:
-		*s = FindRuntimeProducerSlotForbiddenCodeNOTFOUND
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeCONFLICT:
-		*s = FindRuntimeProducerSlotForbiddenCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeVALIDATIONFAILED:
-		*s = FindRuntimeProducerSlotForbiddenCodeVALIDATIONFAILED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeINVALIDCHALLENGE:
-		*s = FindRuntimeProducerSlotForbiddenCodeINVALIDCHALLENGE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeINVALIDSIGNATURE:
-		*s = FindRuntimeProducerSlotForbiddenCodeINVALIDSIGNATURE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeVOUCHERLIMIT:
-		*s = FindRuntimeProducerSlotForbiddenCodeVOUCHERLIMIT
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeRATELIMITEXCEEDED:
-		*s = FindRuntimeProducerSlotForbiddenCodeRATELIMITEXCEEDED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeSERIALIZATIONEXHAUSTED:
-		*s = FindRuntimeProducerSlotForbiddenCodeSERIALIZATIONEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTEXPIRED:
-		*s = FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTEXPIRED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
-		*s = FindRuntimeProducerSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeREGISTRATIONFAILED:
-		*s = FindRuntimeProducerSlotForbiddenCodeREGISTRATIONFAILED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeUPSTREAMERROR:
-		*s = FindRuntimeProducerSlotForbiddenCodeUPSTREAMERROR
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeUPSTREAMERROR:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeUPSTREAMERROR
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeSERVICEUNAVAILABLE:
-		*s = FindRuntimeProducerSlotForbiddenCodeSERVICEUNAVAILABLE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSERVICEUNAVAILABLE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSERVICEUNAVAILABLE
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeINTERNALSERVERERROR:
-		*s = FindRuntimeProducerSlotForbiddenCodeINTERNALSERVERERROR
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINTERNALSERVERERROR:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINTERNALSERVERERROR
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeTEAMPERSONALIMMUTABLE:
-		*s = FindRuntimeProducerSlotForbiddenCodeTEAMPERSONALIMMUTABLE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMPERSONALIMMUTABLE
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeTEAMNOTACTIVE:
-		*s = FindRuntimeProducerSlotForbiddenCodeTEAMNOTACTIVE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTACTIVE
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeINVITEEXPIRED:
-		*s = FindRuntimeProducerSlotForbiddenCodeINVITEEXPIRED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXPIRED
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeINVITEEXHAUSTED:
-		*s = FindRuntimeProducerSlotForbiddenCodeINVITEEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINVITEEXHAUSTED
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeTEAMLASTOWNER:
-		*s = FindRuntimeProducerSlotForbiddenCodeTEAMLASTOWNER
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMLASTOWNER:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMLASTOWNER
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeTEAMALREADYACTIVE:
-		*s = FindRuntimeProducerSlotForbiddenCodeTEAMALREADYACTIVE
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMALREADYACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMALREADYACTIVE
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeTEAMNOTFOUNDING:
-		*s = FindRuntimeProducerSlotForbiddenCodeTEAMNOTFOUNDING
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTFOUNDING:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeTEAMNOTFOUNDING
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeFOUNDINGALREADYACCEPTED:
-		*s = FindRuntimeProducerSlotForbiddenCodeFOUNDINGALREADYACCEPTED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeFOUNDINGALREADYACCEPTED
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERPENDING:
-		*s = FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERPENDING
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERPENDING:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERPENDING
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERNOTFOUND:
-		*s = FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERNOTFOUND
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERNOTFOUND
 		return nil
-	case FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
-		*s = FindRuntimeProducerSlotForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeDIARYTRANSFERALREADYRESOLVED
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
 
-type FindRuntimeProducerSlotNotFound struct {
-	Code            FindRuntimeProducerSlotNotFoundCode `json:"code"`
-	Detail          OptString                           `json:"detail"`
-	Instance        OptString                           `json:"instance"`
-	Status          int                                 `json:"status"`
-	Title           string                              `json:"title"`
-	Type            url.URL                             `json:"type"`
-	AdditionalProps FindRuntimeProducerSlotNotFoundAdditional
+type FindLatestRuntimeSlotForAttemptNotFound struct {
+	Code            FindLatestRuntimeSlotForAttemptNotFoundCode `json:"code"`
+	Detail          OptString                                   `json:"detail"`
+	Instance        OptString                                   `json:"instance"`
+	Status          int                                         `json:"status"`
+	Title           string                                      `json:"title"`
+	Type            url.URL                                     `json:"type"`
+	AdditionalProps FindLatestRuntimeSlotForAttemptNotFoundAdditional
 }
 
 // GetCode returns the value of Code.
-func (s *FindRuntimeProducerSlotNotFound) GetCode() FindRuntimeProducerSlotNotFoundCode {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) GetCode() FindLatestRuntimeSlotForAttemptNotFoundCode {
 	return s.Code
 }
 
 // GetDetail returns the value of Detail.
-func (s *FindRuntimeProducerSlotNotFound) GetDetail() OptString {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) GetDetail() OptString {
 	return s.Detail
 }
 
 // GetInstance returns the value of Instance.
-func (s *FindRuntimeProducerSlotNotFound) GetInstance() OptString {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) GetInstance() OptString {
 	return s.Instance
 }
 
 // GetStatus returns the value of Status.
-func (s *FindRuntimeProducerSlotNotFound) GetStatus() int {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) GetStatus() int {
 	return s.Status
 }
 
 // GetTitle returns the value of Title.
-func (s *FindRuntimeProducerSlotNotFound) GetTitle() string {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) GetTitle() string {
 	return s.Title
 }
 
 // GetType returns the value of Type.
-func (s *FindRuntimeProducerSlotNotFound) GetType() url.URL {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) GetType() url.URL {
 	return s.Type
 }
 
 // GetAdditionalProps returns the value of AdditionalProps.
-func (s *FindRuntimeProducerSlotNotFound) GetAdditionalProps() FindRuntimeProducerSlotNotFoundAdditional {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) GetAdditionalProps() FindLatestRuntimeSlotForAttemptNotFoundAdditional {
 	return s.AdditionalProps
 }
 
 // SetCode sets the value of Code.
-func (s *FindRuntimeProducerSlotNotFound) SetCode(val FindRuntimeProducerSlotNotFoundCode) {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) SetCode(val FindLatestRuntimeSlotForAttemptNotFoundCode) {
 	s.Code = val
 }
 
 // SetDetail sets the value of Detail.
-func (s *FindRuntimeProducerSlotNotFound) SetDetail(val OptString) {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) SetDetail(val OptString) {
 	s.Detail = val
 }
 
 // SetInstance sets the value of Instance.
-func (s *FindRuntimeProducerSlotNotFound) SetInstance(val OptString) {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) SetInstance(val OptString) {
 	s.Instance = val
 }
 
 // SetStatus sets the value of Status.
-func (s *FindRuntimeProducerSlotNotFound) SetStatus(val int) {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) SetStatus(val int) {
 	s.Status = val
 }
 
 // SetTitle sets the value of Title.
-func (s *FindRuntimeProducerSlotNotFound) SetTitle(val string) {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) SetTitle(val string) {
 	s.Title = val
 }
 
 // SetType sets the value of Type.
-func (s *FindRuntimeProducerSlotNotFound) SetType(val url.URL) {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) SetType(val url.URL) {
 	s.Type = val
 }
 
 // SetAdditionalProps sets the value of AdditionalProps.
-func (s *FindRuntimeProducerSlotNotFound) SetAdditionalProps(val FindRuntimeProducerSlotNotFoundAdditional) {
+func (s *FindLatestRuntimeSlotForAttemptNotFound) SetAdditionalProps(val FindLatestRuntimeSlotForAttemptNotFoundAdditional) {
 	s.AdditionalProps = val
 }
 
-func (*FindRuntimeProducerSlotNotFound) findRuntimeProducerSlotRes() {}
+func (*FindLatestRuntimeSlotForAttemptNotFound) findLatestRuntimeSlotForAttemptRes() {}
 
-type FindRuntimeProducerSlotNotFoundAdditional map[string]jx.Raw
+type FindLatestRuntimeSlotForAttemptNotFoundAdditional map[string]jx.Raw
 
-func (s *FindRuntimeProducerSlotNotFoundAdditional) init() FindRuntimeProducerSlotNotFoundAdditional {
+func (s *FindLatestRuntimeSlotForAttemptNotFoundAdditional) init() FindLatestRuntimeSlotForAttemptNotFoundAdditional {
 	m := *s
 	if m == nil {
 		m = map[string]jx.Raw{}
@@ -11843,127 +11832,127 @@ func (s *FindRuntimeProducerSlotNotFoundAdditional) init() FindRuntimeProducerSl
 	return m
 }
 
-type FindRuntimeProducerSlotNotFoundCode string
+type FindLatestRuntimeSlotForAttemptNotFoundCode string
 
 const (
-	FindRuntimeProducerSlotNotFoundCodeUNAUTHORIZED                   FindRuntimeProducerSlotNotFoundCode = "UNAUTHORIZED"
-	FindRuntimeProducerSlotNotFoundCodeFORBIDDEN                      FindRuntimeProducerSlotNotFoundCode = "FORBIDDEN"
-	FindRuntimeProducerSlotNotFoundCodeNOTFOUND                       FindRuntimeProducerSlotNotFoundCode = "NOT_FOUND"
-	FindRuntimeProducerSlotNotFoundCodeCONFLICT                       FindRuntimeProducerSlotNotFoundCode = "CONFLICT"
-	FindRuntimeProducerSlotNotFoundCodeVALIDATIONFAILED               FindRuntimeProducerSlotNotFoundCode = "VALIDATION_FAILED"
-	FindRuntimeProducerSlotNotFoundCodeINVALIDCHALLENGE               FindRuntimeProducerSlotNotFoundCode = "INVALID_CHALLENGE"
-	FindRuntimeProducerSlotNotFoundCodeINVALIDSIGNATURE               FindRuntimeProducerSlotNotFoundCode = "INVALID_SIGNATURE"
-	FindRuntimeProducerSlotNotFoundCodeVOUCHERLIMIT                   FindRuntimeProducerSlotNotFoundCode = "VOUCHER_LIMIT"
-	FindRuntimeProducerSlotNotFoundCodeRATELIMITEXCEEDED              FindRuntimeProducerSlotNotFoundCode = "RATE_LIMIT_EXCEEDED"
-	FindRuntimeProducerSlotNotFoundCodeSERIALIZATIONEXHAUSTED         FindRuntimeProducerSlotNotFoundCode = "SERIALIZATION_EXHAUSTED"
-	FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTEXPIRED          FindRuntimeProducerSlotNotFoundCode = "SIGNING_REQUEST_EXPIRED"
-	FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED FindRuntimeProducerSlotNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
-	FindRuntimeProducerSlotNotFoundCodeREGISTRATIONFAILED             FindRuntimeProducerSlotNotFoundCode = "REGISTRATION_FAILED"
-	FindRuntimeProducerSlotNotFoundCodeUPSTREAMERROR                  FindRuntimeProducerSlotNotFoundCode = "UPSTREAM_ERROR"
-	FindRuntimeProducerSlotNotFoundCodeSERVICEUNAVAILABLE             FindRuntimeProducerSlotNotFoundCode = "SERVICE_UNAVAILABLE"
-	FindRuntimeProducerSlotNotFoundCodeINTERNALSERVERERROR            FindRuntimeProducerSlotNotFoundCode = "INTERNAL_SERVER_ERROR"
-	FindRuntimeProducerSlotNotFoundCodeTEAMPERSONALIMMUTABLE          FindRuntimeProducerSlotNotFoundCode = "TEAM_PERSONAL_IMMUTABLE"
-	FindRuntimeProducerSlotNotFoundCodeTEAMNOTACTIVE                  FindRuntimeProducerSlotNotFoundCode = "TEAM_NOT_ACTIVE"
-	FindRuntimeProducerSlotNotFoundCodeINVITEEXPIRED                  FindRuntimeProducerSlotNotFoundCode = "INVITE_EXPIRED"
-	FindRuntimeProducerSlotNotFoundCodeINVITEEXHAUSTED                FindRuntimeProducerSlotNotFoundCode = "INVITE_EXHAUSTED"
-	FindRuntimeProducerSlotNotFoundCodeTEAMLASTOWNER                  FindRuntimeProducerSlotNotFoundCode = "TEAM_LAST_OWNER"
-	FindRuntimeProducerSlotNotFoundCodeTEAMALREADYACTIVE              FindRuntimeProducerSlotNotFoundCode = "TEAM_ALREADY_ACTIVE"
-	FindRuntimeProducerSlotNotFoundCodeTEAMNOTFOUNDING                FindRuntimeProducerSlotNotFoundCode = "TEAM_NOT_FOUNDING"
-	FindRuntimeProducerSlotNotFoundCodeFOUNDINGALREADYACCEPTED        FindRuntimeProducerSlotNotFoundCode = "FOUNDING_ALREADY_ACCEPTED"
-	FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERPENDING           FindRuntimeProducerSlotNotFoundCode = "DIARY_TRANSFER_PENDING"
-	FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERNOTFOUND          FindRuntimeProducerSlotNotFoundCode = "DIARY_TRANSFER_NOT_FOUND"
-	FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED   FindRuntimeProducerSlotNotFoundCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeUNAUTHORIZED                   FindLatestRuntimeSlotForAttemptNotFoundCode = "UNAUTHORIZED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeFORBIDDEN                      FindLatestRuntimeSlotForAttemptNotFoundCode = "FORBIDDEN"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND                       FindLatestRuntimeSlotForAttemptNotFoundCode = "NOT_FOUND"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT                       FindLatestRuntimeSlotForAttemptNotFoundCode = "CONFLICT"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptNotFoundCode = "VALIDATION_FAILED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptNotFoundCode = "INVALID_CHALLENGE"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptNotFoundCode = "INVALID_SIGNATURE"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT                   FindLatestRuntimeSlotForAttemptNotFoundCode = "VOUCHER_LIMIT"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED              FindLatestRuntimeSlotForAttemptNotFoundCode = "RATE_LIMIT_EXCEEDED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptNotFoundCode = "SERIALIZATION_EXHAUSTED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptNotFoundCode = "SIGNING_REQUEST_EXPIRED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED FindLatestRuntimeSlotForAttemptNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED             FindLatestRuntimeSlotForAttemptNotFoundCode = "REGISTRATION_FAILED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeUPSTREAMERROR                  FindLatestRuntimeSlotForAttemptNotFoundCode = "UPSTREAM_ERROR"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeSERVICEUNAVAILABLE             FindLatestRuntimeSlotForAttemptNotFoundCode = "SERVICE_UNAVAILABLE"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeINTERNALSERVERERROR            FindLatestRuntimeSlotForAttemptNotFoundCode = "INTERNAL_SERVER_ERROR"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMPERSONALIMMUTABLE          FindLatestRuntimeSlotForAttemptNotFoundCode = "TEAM_PERSONAL_IMMUTABLE"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTACTIVE                  FindLatestRuntimeSlotForAttemptNotFoundCode = "TEAM_NOT_ACTIVE"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXPIRED                  FindLatestRuntimeSlotForAttemptNotFoundCode = "INVITE_EXPIRED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXHAUSTED                FindLatestRuntimeSlotForAttemptNotFoundCode = "INVITE_EXHAUSTED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMLASTOWNER                  FindLatestRuntimeSlotForAttemptNotFoundCode = "TEAM_LAST_OWNER"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMALREADYACTIVE              FindLatestRuntimeSlotForAttemptNotFoundCode = "TEAM_ALREADY_ACTIVE"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTFOUNDING                FindLatestRuntimeSlotForAttemptNotFoundCode = "TEAM_NOT_FOUNDING"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeFOUNDINGALREADYACCEPTED        FindLatestRuntimeSlotForAttemptNotFoundCode = "FOUNDING_ALREADY_ACCEPTED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERPENDING           FindLatestRuntimeSlotForAttemptNotFoundCode = "DIARY_TRANSFER_PENDING"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERNOTFOUND          FindLatestRuntimeSlotForAttemptNotFoundCode = "DIARY_TRANSFER_NOT_FOUND"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERALREADYRESOLVED   FindLatestRuntimeSlotForAttemptNotFoundCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
 )
 
-// AllValues returns all FindRuntimeProducerSlotNotFoundCode values.
-func (FindRuntimeProducerSlotNotFoundCode) AllValues() []FindRuntimeProducerSlotNotFoundCode {
-	return []FindRuntimeProducerSlotNotFoundCode{
-		FindRuntimeProducerSlotNotFoundCodeUNAUTHORIZED,
-		FindRuntimeProducerSlotNotFoundCodeFORBIDDEN,
-		FindRuntimeProducerSlotNotFoundCodeNOTFOUND,
-		FindRuntimeProducerSlotNotFoundCodeCONFLICT,
-		FindRuntimeProducerSlotNotFoundCodeVALIDATIONFAILED,
-		FindRuntimeProducerSlotNotFoundCodeINVALIDCHALLENGE,
-		FindRuntimeProducerSlotNotFoundCodeINVALIDSIGNATURE,
-		FindRuntimeProducerSlotNotFoundCodeVOUCHERLIMIT,
-		FindRuntimeProducerSlotNotFoundCodeRATELIMITEXCEEDED,
-		FindRuntimeProducerSlotNotFoundCodeSERIALIZATIONEXHAUSTED,
-		FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTEXPIRED,
-		FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
-		FindRuntimeProducerSlotNotFoundCodeREGISTRATIONFAILED,
-		FindRuntimeProducerSlotNotFoundCodeUPSTREAMERROR,
-		FindRuntimeProducerSlotNotFoundCodeSERVICEUNAVAILABLE,
-		FindRuntimeProducerSlotNotFoundCodeINTERNALSERVERERROR,
-		FindRuntimeProducerSlotNotFoundCodeTEAMPERSONALIMMUTABLE,
-		FindRuntimeProducerSlotNotFoundCodeTEAMNOTACTIVE,
-		FindRuntimeProducerSlotNotFoundCodeINVITEEXPIRED,
-		FindRuntimeProducerSlotNotFoundCodeINVITEEXHAUSTED,
-		FindRuntimeProducerSlotNotFoundCodeTEAMLASTOWNER,
-		FindRuntimeProducerSlotNotFoundCodeTEAMALREADYACTIVE,
-		FindRuntimeProducerSlotNotFoundCodeTEAMNOTFOUNDING,
-		FindRuntimeProducerSlotNotFoundCodeFOUNDINGALREADYACCEPTED,
-		FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERPENDING,
-		FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERNOTFOUND,
-		FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED,
+// AllValues returns all FindLatestRuntimeSlotForAttemptNotFoundCode values.
+func (FindLatestRuntimeSlotForAttemptNotFoundCode) AllValues() []FindLatestRuntimeSlotForAttemptNotFoundCode {
+	return []FindLatestRuntimeSlotForAttemptNotFoundCode{
+		FindLatestRuntimeSlotForAttemptNotFoundCodeUNAUTHORIZED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeFORBIDDEN,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeUPSTREAMERROR,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeSERVICEUNAVAILABLE,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeINTERNALSERVERERROR,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMPERSONALIMMUTABLE,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTACTIVE,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXPIRED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXHAUSTED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMLASTOWNER,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMALREADYACTIVE,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTFOUNDING,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeFOUNDINGALREADYACCEPTED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERPENDING,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERNOTFOUND,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERALREADYRESOLVED,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
-func (s FindRuntimeProducerSlotNotFoundCode) MarshalText() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptNotFoundCode) MarshalText() ([]byte, error) {
 	switch s {
-	case FindRuntimeProducerSlotNotFoundCodeUNAUTHORIZED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeUNAUTHORIZED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeFORBIDDEN:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeFORBIDDEN:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeNOTFOUND:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeCONFLICT:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeVALIDATIONFAILED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeINVALIDCHALLENGE:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeINVALIDSIGNATURE:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeVOUCHERLIMIT:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeRATELIMITEXCEEDED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeSERIALIZATIONEXHAUSTED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTEXPIRED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeREGISTRATIONFAILED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeUPSTREAMERROR:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeUPSTREAMERROR:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeSERVICEUNAVAILABLE:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSERVICEUNAVAILABLE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeINTERNALSERVERERROR:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINTERNALSERVERERROR:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeTEAMPERSONALIMMUTABLE:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMPERSONALIMMUTABLE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeTEAMNOTACTIVE:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTACTIVE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeINVITEEXPIRED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXPIRED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeINVITEEXHAUSTED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXHAUSTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeTEAMLASTOWNER:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMLASTOWNER:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeTEAMALREADYACTIVE:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMALREADYACTIVE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeTEAMNOTFOUNDING:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTFOUNDING:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeFOUNDINGALREADYACCEPTED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeFOUNDINGALREADYACCEPTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERPENDING:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERPENDING:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERNOTFOUND:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERNOTFOUND:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -11971,368 +11960,332 @@ func (s FindRuntimeProducerSlotNotFoundCode) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-func (s *FindRuntimeProducerSlotNotFoundCode) UnmarshalText(data []byte) error {
-	switch FindRuntimeProducerSlotNotFoundCode(data) {
-	case FindRuntimeProducerSlotNotFoundCodeUNAUTHORIZED:
-		*s = FindRuntimeProducerSlotNotFoundCodeUNAUTHORIZED
+func (s *FindLatestRuntimeSlotForAttemptNotFoundCode) UnmarshalText(data []byte) error {
+	switch FindLatestRuntimeSlotForAttemptNotFoundCode(data) {
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeUNAUTHORIZED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeUNAUTHORIZED
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeFORBIDDEN:
-		*s = FindRuntimeProducerSlotNotFoundCodeFORBIDDEN
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeFORBIDDEN:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeFORBIDDEN
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeNOTFOUND:
-		*s = FindRuntimeProducerSlotNotFoundCodeNOTFOUND
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeCONFLICT:
-		*s = FindRuntimeProducerSlotNotFoundCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeVALIDATIONFAILED:
-		*s = FindRuntimeProducerSlotNotFoundCodeVALIDATIONFAILED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeINVALIDCHALLENGE:
-		*s = FindRuntimeProducerSlotNotFoundCodeINVALIDCHALLENGE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeINVALIDSIGNATURE:
-		*s = FindRuntimeProducerSlotNotFoundCodeINVALIDSIGNATURE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeVOUCHERLIMIT:
-		*s = FindRuntimeProducerSlotNotFoundCodeVOUCHERLIMIT
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeRATELIMITEXCEEDED:
-		*s = FindRuntimeProducerSlotNotFoundCodeRATELIMITEXCEEDED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeSERIALIZATIONEXHAUSTED:
-		*s = FindRuntimeProducerSlotNotFoundCodeSERIALIZATIONEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTEXPIRED:
-		*s = FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTEXPIRED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
-		*s = FindRuntimeProducerSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeREGISTRATIONFAILED:
-		*s = FindRuntimeProducerSlotNotFoundCodeREGISTRATIONFAILED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeUPSTREAMERROR:
-		*s = FindRuntimeProducerSlotNotFoundCodeUPSTREAMERROR
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeUPSTREAMERROR:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeUPSTREAMERROR
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeSERVICEUNAVAILABLE:
-		*s = FindRuntimeProducerSlotNotFoundCodeSERVICEUNAVAILABLE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSERVICEUNAVAILABLE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSERVICEUNAVAILABLE
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeINTERNALSERVERERROR:
-		*s = FindRuntimeProducerSlotNotFoundCodeINTERNALSERVERERROR
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINTERNALSERVERERROR:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINTERNALSERVERERROR
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeTEAMPERSONALIMMUTABLE:
-		*s = FindRuntimeProducerSlotNotFoundCodeTEAMPERSONALIMMUTABLE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMPERSONALIMMUTABLE
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeTEAMNOTACTIVE:
-		*s = FindRuntimeProducerSlotNotFoundCodeTEAMNOTACTIVE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTACTIVE
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeINVITEEXPIRED:
-		*s = FindRuntimeProducerSlotNotFoundCodeINVITEEXPIRED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXPIRED
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeINVITEEXHAUSTED:
-		*s = FindRuntimeProducerSlotNotFoundCodeINVITEEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINVITEEXHAUSTED
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeTEAMLASTOWNER:
-		*s = FindRuntimeProducerSlotNotFoundCodeTEAMLASTOWNER
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMLASTOWNER:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMLASTOWNER
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeTEAMALREADYACTIVE:
-		*s = FindRuntimeProducerSlotNotFoundCodeTEAMALREADYACTIVE
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMALREADYACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMALREADYACTIVE
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeTEAMNOTFOUNDING:
-		*s = FindRuntimeProducerSlotNotFoundCodeTEAMNOTFOUNDING
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTFOUNDING:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeTEAMNOTFOUNDING
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeFOUNDINGALREADYACCEPTED:
-		*s = FindRuntimeProducerSlotNotFoundCodeFOUNDINGALREADYACCEPTED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeFOUNDINGALREADYACCEPTED
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERPENDING:
-		*s = FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERPENDING
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERPENDING:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERPENDING
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERNOTFOUND:
-		*s = FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERNOTFOUND
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERNOTFOUND
 		return nil
-	case FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
-		*s = FindRuntimeProducerSlotNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeDIARYTRANSFERALREADYRESOLVED
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
 
-type FindRuntimeProducerSlotOK struct {
-	Session   NilFindRuntimeProducerSlotOKSession   `json:"session"`
-	Slot      FindRuntimeProducerSlotOKSlot         `json:"slot"`
-	Workspace NilFindRuntimeProducerSlotOKWorkspace `json:"workspace"`
-}
-
-// GetSession returns the value of Session.
-func (s *FindRuntimeProducerSlotOK) GetSession() NilFindRuntimeProducerSlotOKSession {
-	return s.Session
+type FindLatestRuntimeSlotForAttemptOK struct {
+	Slot      FindLatestRuntimeSlotForAttemptOKSlot         `json:"slot"`
+	Workspace NilFindLatestRuntimeSlotForAttemptOKWorkspace `json:"workspace"`
 }
 
 // GetSlot returns the value of Slot.
-func (s *FindRuntimeProducerSlotOK) GetSlot() FindRuntimeProducerSlotOKSlot {
+func (s *FindLatestRuntimeSlotForAttemptOK) GetSlot() FindLatestRuntimeSlotForAttemptOKSlot {
 	return s.Slot
 }
 
 // GetWorkspace returns the value of Workspace.
-func (s *FindRuntimeProducerSlotOK) GetWorkspace() NilFindRuntimeProducerSlotOKWorkspace {
+func (s *FindLatestRuntimeSlotForAttemptOK) GetWorkspace() NilFindLatestRuntimeSlotForAttemptOKWorkspace {
 	return s.Workspace
 }
 
-// SetSession sets the value of Session.
-func (s *FindRuntimeProducerSlotOK) SetSession(val NilFindRuntimeProducerSlotOKSession) {
-	s.Session = val
-}
-
 // SetSlot sets the value of Slot.
-func (s *FindRuntimeProducerSlotOK) SetSlot(val FindRuntimeProducerSlotOKSlot) {
+func (s *FindLatestRuntimeSlotForAttemptOK) SetSlot(val FindLatestRuntimeSlotForAttemptOKSlot) {
 	s.Slot = val
 }
 
 // SetWorkspace sets the value of Workspace.
-func (s *FindRuntimeProducerSlotOK) SetWorkspace(val NilFindRuntimeProducerSlotOKWorkspace) {
+func (s *FindLatestRuntimeSlotForAttemptOK) SetWorkspace(val NilFindLatestRuntimeSlotForAttemptOKWorkspace) {
 	s.Workspace = val
 }
 
-func (*FindRuntimeProducerSlotOK) findRuntimeProducerSlotRes() {}
+func (*FindLatestRuntimeSlotForAttemptOK) findLatestRuntimeSlotForAttemptRes() {}
 
-type FindRuntimeProducerSlotOKSession struct {
-	SessionDir  string    `json:"sessionDir"`
-	SessionPath NilString `json:"sessionPath"`
-	SlotId      uuid.UUID `json:"slotId"`
-}
-
-// GetSessionDir returns the value of SessionDir.
-func (s *FindRuntimeProducerSlotOKSession) GetSessionDir() string {
-	return s.SessionDir
-}
-
-// GetSessionPath returns the value of SessionPath.
-func (s *FindRuntimeProducerSlotOKSession) GetSessionPath() NilString {
-	return s.SessionPath
-}
-
-// GetSlotId returns the value of SlotId.
-func (s *FindRuntimeProducerSlotOKSession) GetSlotId() uuid.UUID {
-	return s.SlotId
-}
-
-// SetSessionDir sets the value of SessionDir.
-func (s *FindRuntimeProducerSlotOKSession) SetSessionDir(val string) {
-	s.SessionDir = val
-}
-
-// SetSessionPath sets the value of SessionPath.
-func (s *FindRuntimeProducerSlotOKSession) SetSessionPath(val NilString) {
-	s.SessionPath = val
-}
-
-// SetSlotId sets the value of SlotId.
-func (s *FindRuntimeProducerSlotOKSession) SetSlotId(val uuid.UUID) {
-	s.SlotId = val
-}
-
-type FindRuntimeProducerSlotOKSlot struct {
-	AgentName       string                             `json:"agentName"`
-	CreatedAtMs     int                                `json:"createdAtMs"`
-	DaemonId        string                             `json:"daemonId"`
-	DaemonProfileId NilUUID                            `json:"daemonProfileId"`
-	ExpiresAtMs     int                                `json:"expiresAtMs"`
-	ID              uuid.UUID                          `json:"id"`
-	LastAttemptN    int                                `json:"lastAttemptN"`
-	LastTaskId      uuid.UUID                          `json:"lastTaskId"`
-	LastUsedAtMs    int                                `json:"lastUsedAtMs"`
-	Model           string                             `json:"model"`
-	Provider        string                             `json:"provider"`
-	SlotKey         string                             `json:"slotKey"`
-	State           FindRuntimeProducerSlotOKSlotState `json:"state"`
-	TaskType        string                             `json:"taskType"`
-	TeamId          uuid.UUID                          `json:"teamId"`
-	WorkspaceRowId  NilUUID                            `json:"workspaceRowId"`
+type FindLatestRuntimeSlotForAttemptOKSlot struct {
+	AgentName       string                                     `json:"agentName"`
+	CreatedAtMs     int                                        `json:"createdAtMs"`
+	DaemonProfileId NilUUID                                    `json:"daemonProfileId"`
+	ExpiresAtMs     int                                        `json:"expiresAtMs"`
+	ID              uuid.UUID                                  `json:"id"`
+	LastAttemptN    int                                        `json:"lastAttemptN"`
+	LastTaskId      uuid.UUID                                  `json:"lastTaskId"`
+	LastUsedAtMs    int                                        `json:"lastUsedAtMs"`
+	Model           string                                     `json:"model"`
+	Provider        string                                     `json:"provider"`
+	SessionDir      NilString                                  `json:"sessionDir"`
+	SessionPath     NilString                                  `json:"sessionPath"`
+	SlotKey         string                                     `json:"slotKey"`
+	State           FindLatestRuntimeSlotForAttemptOKSlotState `json:"state"`
+	TaskType        string                                     `json:"taskType"`
+	TeamId          uuid.UUID                                  `json:"teamId"`
+	WorkspaceRowId  NilUUID                                    `json:"workspaceRowId"`
 }
 
 // GetAgentName returns the value of AgentName.
-func (s *FindRuntimeProducerSlotOKSlot) GetAgentName() string {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetAgentName() string {
 	return s.AgentName
 }
 
 // GetCreatedAtMs returns the value of CreatedAtMs.
-func (s *FindRuntimeProducerSlotOKSlot) GetCreatedAtMs() int {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetCreatedAtMs() int {
 	return s.CreatedAtMs
 }
 
-// GetDaemonId returns the value of DaemonId.
-func (s *FindRuntimeProducerSlotOKSlot) GetDaemonId() string {
-	return s.DaemonId
-}
-
 // GetDaemonProfileId returns the value of DaemonProfileId.
-func (s *FindRuntimeProducerSlotOKSlot) GetDaemonProfileId() NilUUID {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetDaemonProfileId() NilUUID {
 	return s.DaemonProfileId
 }
 
 // GetExpiresAtMs returns the value of ExpiresAtMs.
-func (s *FindRuntimeProducerSlotOKSlot) GetExpiresAtMs() int {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetExpiresAtMs() int {
 	return s.ExpiresAtMs
 }
 
 // GetID returns the value of ID.
-func (s *FindRuntimeProducerSlotOKSlot) GetID() uuid.UUID {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetID() uuid.UUID {
 	return s.ID
 }
 
 // GetLastAttemptN returns the value of LastAttemptN.
-func (s *FindRuntimeProducerSlotOKSlot) GetLastAttemptN() int {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetLastAttemptN() int {
 	return s.LastAttemptN
 }
 
 // GetLastTaskId returns the value of LastTaskId.
-func (s *FindRuntimeProducerSlotOKSlot) GetLastTaskId() uuid.UUID {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetLastTaskId() uuid.UUID {
 	return s.LastTaskId
 }
 
 // GetLastUsedAtMs returns the value of LastUsedAtMs.
-func (s *FindRuntimeProducerSlotOKSlot) GetLastUsedAtMs() int {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetLastUsedAtMs() int {
 	return s.LastUsedAtMs
 }
 
 // GetModel returns the value of Model.
-func (s *FindRuntimeProducerSlotOKSlot) GetModel() string {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetModel() string {
 	return s.Model
 }
 
 // GetProvider returns the value of Provider.
-func (s *FindRuntimeProducerSlotOKSlot) GetProvider() string {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetProvider() string {
 	return s.Provider
 }
 
+// GetSessionDir returns the value of SessionDir.
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetSessionDir() NilString {
+	return s.SessionDir
+}
+
+// GetSessionPath returns the value of SessionPath.
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetSessionPath() NilString {
+	return s.SessionPath
+}
+
 // GetSlotKey returns the value of SlotKey.
-func (s *FindRuntimeProducerSlotOKSlot) GetSlotKey() string {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetSlotKey() string {
 	return s.SlotKey
 }
 
 // GetState returns the value of State.
-func (s *FindRuntimeProducerSlotOKSlot) GetState() FindRuntimeProducerSlotOKSlotState {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetState() FindLatestRuntimeSlotForAttemptOKSlotState {
 	return s.State
 }
 
 // GetTaskType returns the value of TaskType.
-func (s *FindRuntimeProducerSlotOKSlot) GetTaskType() string {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetTaskType() string {
 	return s.TaskType
 }
 
 // GetTeamId returns the value of TeamId.
-func (s *FindRuntimeProducerSlotOKSlot) GetTeamId() uuid.UUID {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetTeamId() uuid.UUID {
 	return s.TeamId
 }
 
 // GetWorkspaceRowId returns the value of WorkspaceRowId.
-func (s *FindRuntimeProducerSlotOKSlot) GetWorkspaceRowId() NilUUID {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) GetWorkspaceRowId() NilUUID {
 	return s.WorkspaceRowId
 }
 
 // SetAgentName sets the value of AgentName.
-func (s *FindRuntimeProducerSlotOKSlot) SetAgentName(val string) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetAgentName(val string) {
 	s.AgentName = val
 }
 
 // SetCreatedAtMs sets the value of CreatedAtMs.
-func (s *FindRuntimeProducerSlotOKSlot) SetCreatedAtMs(val int) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetCreatedAtMs(val int) {
 	s.CreatedAtMs = val
 }
 
-// SetDaemonId sets the value of DaemonId.
-func (s *FindRuntimeProducerSlotOKSlot) SetDaemonId(val string) {
-	s.DaemonId = val
-}
-
 // SetDaemonProfileId sets the value of DaemonProfileId.
-func (s *FindRuntimeProducerSlotOKSlot) SetDaemonProfileId(val NilUUID) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetDaemonProfileId(val NilUUID) {
 	s.DaemonProfileId = val
 }
 
 // SetExpiresAtMs sets the value of ExpiresAtMs.
-func (s *FindRuntimeProducerSlotOKSlot) SetExpiresAtMs(val int) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetExpiresAtMs(val int) {
 	s.ExpiresAtMs = val
 }
 
 // SetID sets the value of ID.
-func (s *FindRuntimeProducerSlotOKSlot) SetID(val uuid.UUID) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetID(val uuid.UUID) {
 	s.ID = val
 }
 
 // SetLastAttemptN sets the value of LastAttemptN.
-func (s *FindRuntimeProducerSlotOKSlot) SetLastAttemptN(val int) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetLastAttemptN(val int) {
 	s.LastAttemptN = val
 }
 
 // SetLastTaskId sets the value of LastTaskId.
-func (s *FindRuntimeProducerSlotOKSlot) SetLastTaskId(val uuid.UUID) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetLastTaskId(val uuid.UUID) {
 	s.LastTaskId = val
 }
 
 // SetLastUsedAtMs sets the value of LastUsedAtMs.
-func (s *FindRuntimeProducerSlotOKSlot) SetLastUsedAtMs(val int) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetLastUsedAtMs(val int) {
 	s.LastUsedAtMs = val
 }
 
 // SetModel sets the value of Model.
-func (s *FindRuntimeProducerSlotOKSlot) SetModel(val string) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetModel(val string) {
 	s.Model = val
 }
 
 // SetProvider sets the value of Provider.
-func (s *FindRuntimeProducerSlotOKSlot) SetProvider(val string) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetProvider(val string) {
 	s.Provider = val
 }
 
+// SetSessionDir sets the value of SessionDir.
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetSessionDir(val NilString) {
+	s.SessionDir = val
+}
+
+// SetSessionPath sets the value of SessionPath.
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetSessionPath(val NilString) {
+	s.SessionPath = val
+}
+
 // SetSlotKey sets the value of SlotKey.
-func (s *FindRuntimeProducerSlotOKSlot) SetSlotKey(val string) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetSlotKey(val string) {
 	s.SlotKey = val
 }
 
 // SetState sets the value of State.
-func (s *FindRuntimeProducerSlotOKSlot) SetState(val FindRuntimeProducerSlotOKSlotState) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetState(val FindLatestRuntimeSlotForAttemptOKSlotState) {
 	s.State = val
 }
 
 // SetTaskType sets the value of TaskType.
-func (s *FindRuntimeProducerSlotOKSlot) SetTaskType(val string) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetTaskType(val string) {
 	s.TaskType = val
 }
 
 // SetTeamId sets the value of TeamId.
-func (s *FindRuntimeProducerSlotOKSlot) SetTeamId(val uuid.UUID) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
 }
 
 // SetWorkspaceRowId sets the value of WorkspaceRowId.
-func (s *FindRuntimeProducerSlotOKSlot) SetWorkspaceRowId(val NilUUID) {
+func (s *FindLatestRuntimeSlotForAttemptOKSlot) SetWorkspaceRowId(val NilUUID) {
 	s.WorkspaceRowId = val
 }
 
-type FindRuntimeProducerSlotOKSlotState string
+type FindLatestRuntimeSlotForAttemptOKSlotState string
 
 const (
-	FindRuntimeProducerSlotOKSlotStateActive FindRuntimeProducerSlotOKSlotState = "active"
-	FindRuntimeProducerSlotOKSlotStateIdle   FindRuntimeProducerSlotOKSlotState = "idle"
+	FindLatestRuntimeSlotForAttemptOKSlotStateActive FindLatestRuntimeSlotForAttemptOKSlotState = "active"
+	FindLatestRuntimeSlotForAttemptOKSlotStateIdle   FindLatestRuntimeSlotForAttemptOKSlotState = "idle"
 )
 
-// AllValues returns all FindRuntimeProducerSlotOKSlotState values.
-func (FindRuntimeProducerSlotOKSlotState) AllValues() []FindRuntimeProducerSlotOKSlotState {
-	return []FindRuntimeProducerSlotOKSlotState{
-		FindRuntimeProducerSlotOKSlotStateActive,
-		FindRuntimeProducerSlotOKSlotStateIdle,
+// AllValues returns all FindLatestRuntimeSlotForAttemptOKSlotState values.
+func (FindLatestRuntimeSlotForAttemptOKSlotState) AllValues() []FindLatestRuntimeSlotForAttemptOKSlotState {
+	return []FindLatestRuntimeSlotForAttemptOKSlotState{
+		FindLatestRuntimeSlotForAttemptOKSlotStateActive,
+		FindLatestRuntimeSlotForAttemptOKSlotStateIdle,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
-func (s FindRuntimeProducerSlotOKSlotState) MarshalText() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptOKSlotState) MarshalText() ([]byte, error) {
 	switch s {
-	case FindRuntimeProducerSlotOKSlotStateActive:
+	case FindLatestRuntimeSlotForAttemptOKSlotStateActive:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotOKSlotStateIdle:
+	case FindLatestRuntimeSlotForAttemptOKSlotStateIdle:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -12340,135 +12293,135 @@ func (s FindRuntimeProducerSlotOKSlotState) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-func (s *FindRuntimeProducerSlotOKSlotState) UnmarshalText(data []byte) error {
-	switch FindRuntimeProducerSlotOKSlotState(data) {
-	case FindRuntimeProducerSlotOKSlotStateActive:
-		*s = FindRuntimeProducerSlotOKSlotStateActive
+func (s *FindLatestRuntimeSlotForAttemptOKSlotState) UnmarshalText(data []byte) error {
+	switch FindLatestRuntimeSlotForAttemptOKSlotState(data) {
+	case FindLatestRuntimeSlotForAttemptOKSlotStateActive:
+		*s = FindLatestRuntimeSlotForAttemptOKSlotStateActive
 		return nil
-	case FindRuntimeProducerSlotOKSlotStateIdle:
-		*s = FindRuntimeProducerSlotOKSlotStateIdle
+	case FindLatestRuntimeSlotForAttemptOKSlotStateIdle:
+		*s = FindLatestRuntimeSlotForAttemptOKSlotStateIdle
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
 
-type FindRuntimeProducerSlotOKWorkspace struct {
-	CreatedAtMs    int                                    `json:"createdAtMs"`
-	ID             uuid.UUID                              `json:"id"`
-	Kind           FindRuntimeProducerSlotOKWorkspaceKind `json:"kind"`
-	LastUsedAtMs   int                                    `json:"lastUsedAtMs"`
-	TeamId         uuid.UUID                              `json:"teamId"`
-	WorkspaceId    string                                 `json:"workspaceId"`
-	WorktreeBranch NilString                              `json:"worktreeBranch"`
-	WorktreePath   string                                 `json:"worktreePath"`
+type FindLatestRuntimeSlotForAttemptOKWorkspace struct {
+	CreatedAtMs    int                                            `json:"createdAtMs"`
+	ID             uuid.UUID                                      `json:"id"`
+	Kind           FindLatestRuntimeSlotForAttemptOKWorkspaceKind `json:"kind"`
+	LastUsedAtMs   int                                            `json:"lastUsedAtMs"`
+	TeamId         uuid.UUID                                      `json:"teamId"`
+	WorkspaceId    string                                         `json:"workspaceId"`
+	WorktreeBranch NilString                                      `json:"worktreeBranch"`
+	WorktreePath   string                                         `json:"worktreePath"`
 }
 
 // GetCreatedAtMs returns the value of CreatedAtMs.
-func (s *FindRuntimeProducerSlotOKWorkspace) GetCreatedAtMs() int {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) GetCreatedAtMs() int {
 	return s.CreatedAtMs
 }
 
 // GetID returns the value of ID.
-func (s *FindRuntimeProducerSlotOKWorkspace) GetID() uuid.UUID {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) GetID() uuid.UUID {
 	return s.ID
 }
 
 // GetKind returns the value of Kind.
-func (s *FindRuntimeProducerSlotOKWorkspace) GetKind() FindRuntimeProducerSlotOKWorkspaceKind {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) GetKind() FindLatestRuntimeSlotForAttemptOKWorkspaceKind {
 	return s.Kind
 }
 
 // GetLastUsedAtMs returns the value of LastUsedAtMs.
-func (s *FindRuntimeProducerSlotOKWorkspace) GetLastUsedAtMs() int {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) GetLastUsedAtMs() int {
 	return s.LastUsedAtMs
 }
 
 // GetTeamId returns the value of TeamId.
-func (s *FindRuntimeProducerSlotOKWorkspace) GetTeamId() uuid.UUID {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) GetTeamId() uuid.UUID {
 	return s.TeamId
 }
 
 // GetWorkspaceId returns the value of WorkspaceId.
-func (s *FindRuntimeProducerSlotOKWorkspace) GetWorkspaceId() string {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) GetWorkspaceId() string {
 	return s.WorkspaceId
 }
 
 // GetWorktreeBranch returns the value of WorktreeBranch.
-func (s *FindRuntimeProducerSlotOKWorkspace) GetWorktreeBranch() NilString {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) GetWorktreeBranch() NilString {
 	return s.WorktreeBranch
 }
 
 // GetWorktreePath returns the value of WorktreePath.
-func (s *FindRuntimeProducerSlotOKWorkspace) GetWorktreePath() string {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) GetWorktreePath() string {
 	return s.WorktreePath
 }
 
 // SetCreatedAtMs sets the value of CreatedAtMs.
-func (s *FindRuntimeProducerSlotOKWorkspace) SetCreatedAtMs(val int) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) SetCreatedAtMs(val int) {
 	s.CreatedAtMs = val
 }
 
 // SetID sets the value of ID.
-func (s *FindRuntimeProducerSlotOKWorkspace) SetID(val uuid.UUID) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) SetID(val uuid.UUID) {
 	s.ID = val
 }
 
 // SetKind sets the value of Kind.
-func (s *FindRuntimeProducerSlotOKWorkspace) SetKind(val FindRuntimeProducerSlotOKWorkspaceKind) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) SetKind(val FindLatestRuntimeSlotForAttemptOKWorkspaceKind) {
 	s.Kind = val
 }
 
 // SetLastUsedAtMs sets the value of LastUsedAtMs.
-func (s *FindRuntimeProducerSlotOKWorkspace) SetLastUsedAtMs(val int) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) SetLastUsedAtMs(val int) {
 	s.LastUsedAtMs = val
 }
 
 // SetTeamId sets the value of TeamId.
-func (s *FindRuntimeProducerSlotOKWorkspace) SetTeamId(val uuid.UUID) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
 }
 
 // SetWorkspaceId sets the value of WorkspaceId.
-func (s *FindRuntimeProducerSlotOKWorkspace) SetWorkspaceId(val string) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) SetWorkspaceId(val string) {
 	s.WorkspaceId = val
 }
 
 // SetWorktreeBranch sets the value of WorktreeBranch.
-func (s *FindRuntimeProducerSlotOKWorkspace) SetWorktreeBranch(val NilString) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) SetWorktreeBranch(val NilString) {
 	s.WorktreeBranch = val
 }
 
 // SetWorktreePath sets the value of WorktreePath.
-func (s *FindRuntimeProducerSlotOKWorkspace) SetWorktreePath(val string) {
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspace) SetWorktreePath(val string) {
 	s.WorktreePath = val
 }
 
-type FindRuntimeProducerSlotOKWorkspaceKind string
+type FindLatestRuntimeSlotForAttemptOKWorkspaceKind string
 
 const (
-	FindRuntimeProducerSlotOKWorkspaceKindOrigin  FindRuntimeProducerSlotOKWorkspaceKind = "origin"
-	FindRuntimeProducerSlotOKWorkspaceKindFork    FindRuntimeProducerSlotOKWorkspaceKind = "fork"
-	FindRuntimeProducerSlotOKWorkspaceKindScratch FindRuntimeProducerSlotOKWorkspaceKind = "scratch"
+	FindLatestRuntimeSlotForAttemptOKWorkspaceKindOrigin  FindLatestRuntimeSlotForAttemptOKWorkspaceKind = "origin"
+	FindLatestRuntimeSlotForAttemptOKWorkspaceKindFork    FindLatestRuntimeSlotForAttemptOKWorkspaceKind = "fork"
+	FindLatestRuntimeSlotForAttemptOKWorkspaceKindScratch FindLatestRuntimeSlotForAttemptOKWorkspaceKind = "scratch"
 )
 
-// AllValues returns all FindRuntimeProducerSlotOKWorkspaceKind values.
-func (FindRuntimeProducerSlotOKWorkspaceKind) AllValues() []FindRuntimeProducerSlotOKWorkspaceKind {
-	return []FindRuntimeProducerSlotOKWorkspaceKind{
-		FindRuntimeProducerSlotOKWorkspaceKindOrigin,
-		FindRuntimeProducerSlotOKWorkspaceKindFork,
-		FindRuntimeProducerSlotOKWorkspaceKindScratch,
+// AllValues returns all FindLatestRuntimeSlotForAttemptOKWorkspaceKind values.
+func (FindLatestRuntimeSlotForAttemptOKWorkspaceKind) AllValues() []FindLatestRuntimeSlotForAttemptOKWorkspaceKind {
+	return []FindLatestRuntimeSlotForAttemptOKWorkspaceKind{
+		FindLatestRuntimeSlotForAttemptOKWorkspaceKindOrigin,
+		FindLatestRuntimeSlotForAttemptOKWorkspaceKindFork,
+		FindLatestRuntimeSlotForAttemptOKWorkspaceKindScratch,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
-func (s FindRuntimeProducerSlotOKWorkspaceKind) MarshalText() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptOKWorkspaceKind) MarshalText() ([]byte, error) {
 	switch s {
-	case FindRuntimeProducerSlotOKWorkspaceKindOrigin:
+	case FindLatestRuntimeSlotForAttemptOKWorkspaceKindOrigin:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotOKWorkspaceKindFork:
+	case FindLatestRuntimeSlotForAttemptOKWorkspaceKindFork:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotOKWorkspaceKindScratch:
+	case FindLatestRuntimeSlotForAttemptOKWorkspaceKindScratch:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -12476,107 +12429,107 @@ func (s FindRuntimeProducerSlotOKWorkspaceKind) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-func (s *FindRuntimeProducerSlotOKWorkspaceKind) UnmarshalText(data []byte) error {
-	switch FindRuntimeProducerSlotOKWorkspaceKind(data) {
-	case FindRuntimeProducerSlotOKWorkspaceKindOrigin:
-		*s = FindRuntimeProducerSlotOKWorkspaceKindOrigin
+func (s *FindLatestRuntimeSlotForAttemptOKWorkspaceKind) UnmarshalText(data []byte) error {
+	switch FindLatestRuntimeSlotForAttemptOKWorkspaceKind(data) {
+	case FindLatestRuntimeSlotForAttemptOKWorkspaceKindOrigin:
+		*s = FindLatestRuntimeSlotForAttemptOKWorkspaceKindOrigin
 		return nil
-	case FindRuntimeProducerSlotOKWorkspaceKindFork:
-		*s = FindRuntimeProducerSlotOKWorkspaceKindFork
+	case FindLatestRuntimeSlotForAttemptOKWorkspaceKindFork:
+		*s = FindLatestRuntimeSlotForAttemptOKWorkspaceKindFork
 		return nil
-	case FindRuntimeProducerSlotOKWorkspaceKindScratch:
-		*s = FindRuntimeProducerSlotOKWorkspaceKindScratch
+	case FindLatestRuntimeSlotForAttemptOKWorkspaceKindScratch:
+		*s = FindLatestRuntimeSlotForAttemptOKWorkspaceKindScratch
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
 
-type FindRuntimeProducerSlotUnauthorized struct {
-	Code            FindRuntimeProducerSlotUnauthorizedCode `json:"code"`
-	Detail          OptString                               `json:"detail"`
-	Instance        OptString                               `json:"instance"`
-	Status          int                                     `json:"status"`
-	Title           string                                  `json:"title"`
-	Type            url.URL                                 `json:"type"`
-	AdditionalProps FindRuntimeProducerSlotUnauthorizedAdditional
+type FindLatestRuntimeSlotForAttemptUnauthorized struct {
+	Code            FindLatestRuntimeSlotForAttemptUnauthorizedCode `json:"code"`
+	Detail          OptString                                       `json:"detail"`
+	Instance        OptString                                       `json:"instance"`
+	Status          int                                             `json:"status"`
+	Title           string                                          `json:"title"`
+	Type            url.URL                                         `json:"type"`
+	AdditionalProps FindLatestRuntimeSlotForAttemptUnauthorizedAdditional
 }
 
 // GetCode returns the value of Code.
-func (s *FindRuntimeProducerSlotUnauthorized) GetCode() FindRuntimeProducerSlotUnauthorizedCode {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) GetCode() FindLatestRuntimeSlotForAttemptUnauthorizedCode {
 	return s.Code
 }
 
 // GetDetail returns the value of Detail.
-func (s *FindRuntimeProducerSlotUnauthorized) GetDetail() OptString {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) GetDetail() OptString {
 	return s.Detail
 }
 
 // GetInstance returns the value of Instance.
-func (s *FindRuntimeProducerSlotUnauthorized) GetInstance() OptString {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) GetInstance() OptString {
 	return s.Instance
 }
 
 // GetStatus returns the value of Status.
-func (s *FindRuntimeProducerSlotUnauthorized) GetStatus() int {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) GetStatus() int {
 	return s.Status
 }
 
 // GetTitle returns the value of Title.
-func (s *FindRuntimeProducerSlotUnauthorized) GetTitle() string {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) GetTitle() string {
 	return s.Title
 }
 
 // GetType returns the value of Type.
-func (s *FindRuntimeProducerSlotUnauthorized) GetType() url.URL {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) GetType() url.URL {
 	return s.Type
 }
 
 // GetAdditionalProps returns the value of AdditionalProps.
-func (s *FindRuntimeProducerSlotUnauthorized) GetAdditionalProps() FindRuntimeProducerSlotUnauthorizedAdditional {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) GetAdditionalProps() FindLatestRuntimeSlotForAttemptUnauthorizedAdditional {
 	return s.AdditionalProps
 }
 
 // SetCode sets the value of Code.
-func (s *FindRuntimeProducerSlotUnauthorized) SetCode(val FindRuntimeProducerSlotUnauthorizedCode) {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) SetCode(val FindLatestRuntimeSlotForAttemptUnauthorizedCode) {
 	s.Code = val
 }
 
 // SetDetail sets the value of Detail.
-func (s *FindRuntimeProducerSlotUnauthorized) SetDetail(val OptString) {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) SetDetail(val OptString) {
 	s.Detail = val
 }
 
 // SetInstance sets the value of Instance.
-func (s *FindRuntimeProducerSlotUnauthorized) SetInstance(val OptString) {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
 }
 
 // SetStatus sets the value of Status.
-func (s *FindRuntimeProducerSlotUnauthorized) SetStatus(val int) {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) SetStatus(val int) {
 	s.Status = val
 }
 
 // SetTitle sets the value of Title.
-func (s *FindRuntimeProducerSlotUnauthorized) SetTitle(val string) {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) SetTitle(val string) {
 	s.Title = val
 }
 
 // SetType sets the value of Type.
-func (s *FindRuntimeProducerSlotUnauthorized) SetType(val url.URL) {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) SetType(val url.URL) {
 	s.Type = val
 }
 
 // SetAdditionalProps sets the value of AdditionalProps.
-func (s *FindRuntimeProducerSlotUnauthorized) SetAdditionalProps(val FindRuntimeProducerSlotUnauthorizedAdditional) {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) SetAdditionalProps(val FindLatestRuntimeSlotForAttemptUnauthorizedAdditional) {
 	s.AdditionalProps = val
 }
 
-func (*FindRuntimeProducerSlotUnauthorized) findRuntimeProducerSlotRes() {}
+func (*FindLatestRuntimeSlotForAttemptUnauthorized) findLatestRuntimeSlotForAttemptRes() {}
 
-type FindRuntimeProducerSlotUnauthorizedAdditional map[string]jx.Raw
+type FindLatestRuntimeSlotForAttemptUnauthorizedAdditional map[string]jx.Raw
 
-func (s *FindRuntimeProducerSlotUnauthorizedAdditional) init() FindRuntimeProducerSlotUnauthorizedAdditional {
+func (s *FindLatestRuntimeSlotForAttemptUnauthorizedAdditional) init() FindLatestRuntimeSlotForAttemptUnauthorizedAdditional {
 	m := *s
 	if m == nil {
 		m = map[string]jx.Raw{}
@@ -12585,127 +12538,127 @@ func (s *FindRuntimeProducerSlotUnauthorizedAdditional) init() FindRuntimeProduc
 	return m
 }
 
-type FindRuntimeProducerSlotUnauthorizedCode string
+type FindLatestRuntimeSlotForAttemptUnauthorizedCode string
 
 const (
-	FindRuntimeProducerSlotUnauthorizedCodeUNAUTHORIZED                   FindRuntimeProducerSlotUnauthorizedCode = "UNAUTHORIZED"
-	FindRuntimeProducerSlotUnauthorizedCodeFORBIDDEN                      FindRuntimeProducerSlotUnauthorizedCode = "FORBIDDEN"
-	FindRuntimeProducerSlotUnauthorizedCodeNOTFOUND                       FindRuntimeProducerSlotUnauthorizedCode = "NOT_FOUND"
-	FindRuntimeProducerSlotUnauthorizedCodeCONFLICT                       FindRuntimeProducerSlotUnauthorizedCode = "CONFLICT"
-	FindRuntimeProducerSlotUnauthorizedCodeVALIDATIONFAILED               FindRuntimeProducerSlotUnauthorizedCode = "VALIDATION_FAILED"
-	FindRuntimeProducerSlotUnauthorizedCodeINVALIDCHALLENGE               FindRuntimeProducerSlotUnauthorizedCode = "INVALID_CHALLENGE"
-	FindRuntimeProducerSlotUnauthorizedCodeINVALIDSIGNATURE               FindRuntimeProducerSlotUnauthorizedCode = "INVALID_SIGNATURE"
-	FindRuntimeProducerSlotUnauthorizedCodeVOUCHERLIMIT                   FindRuntimeProducerSlotUnauthorizedCode = "VOUCHER_LIMIT"
-	FindRuntimeProducerSlotUnauthorizedCodeRATELIMITEXCEEDED              FindRuntimeProducerSlotUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
-	FindRuntimeProducerSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED         FindRuntimeProducerSlotUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
-	FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED          FindRuntimeProducerSlotUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
-	FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED FindRuntimeProducerSlotUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
-	FindRuntimeProducerSlotUnauthorizedCodeREGISTRATIONFAILED             FindRuntimeProducerSlotUnauthorizedCode = "REGISTRATION_FAILED"
-	FindRuntimeProducerSlotUnauthorizedCodeUPSTREAMERROR                  FindRuntimeProducerSlotUnauthorizedCode = "UPSTREAM_ERROR"
-	FindRuntimeProducerSlotUnauthorizedCodeSERVICEUNAVAILABLE             FindRuntimeProducerSlotUnauthorizedCode = "SERVICE_UNAVAILABLE"
-	FindRuntimeProducerSlotUnauthorizedCodeINTERNALSERVERERROR            FindRuntimeProducerSlotUnauthorizedCode = "INTERNAL_SERVER_ERROR"
-	FindRuntimeProducerSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE          FindRuntimeProducerSlotUnauthorizedCode = "TEAM_PERSONAL_IMMUTABLE"
-	FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTACTIVE                  FindRuntimeProducerSlotUnauthorizedCode = "TEAM_NOT_ACTIVE"
-	FindRuntimeProducerSlotUnauthorizedCodeINVITEEXPIRED                  FindRuntimeProducerSlotUnauthorizedCode = "INVITE_EXPIRED"
-	FindRuntimeProducerSlotUnauthorizedCodeINVITEEXHAUSTED                FindRuntimeProducerSlotUnauthorizedCode = "INVITE_EXHAUSTED"
-	FindRuntimeProducerSlotUnauthorizedCodeTEAMLASTOWNER                  FindRuntimeProducerSlotUnauthorizedCode = "TEAM_LAST_OWNER"
-	FindRuntimeProducerSlotUnauthorizedCodeTEAMALREADYACTIVE              FindRuntimeProducerSlotUnauthorizedCode = "TEAM_ALREADY_ACTIVE"
-	FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTFOUNDING                FindRuntimeProducerSlotUnauthorizedCode = "TEAM_NOT_FOUNDING"
-	FindRuntimeProducerSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED        FindRuntimeProducerSlotUnauthorizedCode = "FOUNDING_ALREADY_ACCEPTED"
-	FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERPENDING           FindRuntimeProducerSlotUnauthorizedCode = "DIARY_TRANSFER_PENDING"
-	FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND          FindRuntimeProducerSlotUnauthorizedCode = "DIARY_TRANSFER_NOT_FOUND"
-	FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED   FindRuntimeProducerSlotUnauthorizedCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNAUTHORIZED                   FindLatestRuntimeSlotForAttemptUnauthorizedCode = "UNAUTHORIZED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeFORBIDDEN                      FindLatestRuntimeSlotForAttemptUnauthorizedCode = "FORBIDDEN"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND                       FindLatestRuntimeSlotForAttemptUnauthorizedCode = "NOT_FOUND"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT                       FindLatestRuntimeSlotForAttemptUnauthorizedCode = "CONFLICT"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptUnauthorizedCode = "VALIDATION_FAILED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptUnauthorizedCode = "INVALID_CHALLENGE"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptUnauthorizedCode = "INVALID_SIGNATURE"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT                   FindLatestRuntimeSlotForAttemptUnauthorizedCode = "VOUCHER_LIMIT"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED              FindLatestRuntimeSlotForAttemptUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED             FindLatestRuntimeSlotForAttemptUnauthorizedCode = "REGISTRATION_FAILED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeUPSTREAMERROR                  FindLatestRuntimeSlotForAttemptUnauthorizedCode = "UPSTREAM_ERROR"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERVICEUNAVAILABLE             FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SERVICE_UNAVAILABLE"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeINTERNALSERVERERROR            FindLatestRuntimeSlotForAttemptUnauthorizedCode = "INTERNAL_SERVER_ERROR"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMPERSONALIMMUTABLE          FindLatestRuntimeSlotForAttemptUnauthorizedCode = "TEAM_PERSONAL_IMMUTABLE"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTACTIVE                  FindLatestRuntimeSlotForAttemptUnauthorizedCode = "TEAM_NOT_ACTIVE"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXPIRED                  FindLatestRuntimeSlotForAttemptUnauthorizedCode = "INVITE_EXPIRED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXHAUSTED                FindLatestRuntimeSlotForAttemptUnauthorizedCode = "INVITE_EXHAUSTED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMLASTOWNER                  FindLatestRuntimeSlotForAttemptUnauthorizedCode = "TEAM_LAST_OWNER"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMALREADYACTIVE              FindLatestRuntimeSlotForAttemptUnauthorizedCode = "TEAM_ALREADY_ACTIVE"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTFOUNDING                FindLatestRuntimeSlotForAttemptUnauthorizedCode = "TEAM_NOT_FOUNDING"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeFOUNDINGALREADYACCEPTED        FindLatestRuntimeSlotForAttemptUnauthorizedCode = "FOUNDING_ALREADY_ACCEPTED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERPENDING           FindLatestRuntimeSlotForAttemptUnauthorizedCode = "DIARY_TRANSFER_PENDING"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERNOTFOUND          FindLatestRuntimeSlotForAttemptUnauthorizedCode = "DIARY_TRANSFER_NOT_FOUND"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED   FindLatestRuntimeSlotForAttemptUnauthorizedCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
 )
 
-// AllValues returns all FindRuntimeProducerSlotUnauthorizedCode values.
-func (FindRuntimeProducerSlotUnauthorizedCode) AllValues() []FindRuntimeProducerSlotUnauthorizedCode {
-	return []FindRuntimeProducerSlotUnauthorizedCode{
-		FindRuntimeProducerSlotUnauthorizedCodeUNAUTHORIZED,
-		FindRuntimeProducerSlotUnauthorizedCodeFORBIDDEN,
-		FindRuntimeProducerSlotUnauthorizedCodeNOTFOUND,
-		FindRuntimeProducerSlotUnauthorizedCodeCONFLICT,
-		FindRuntimeProducerSlotUnauthorizedCodeVALIDATIONFAILED,
-		FindRuntimeProducerSlotUnauthorizedCodeINVALIDCHALLENGE,
-		FindRuntimeProducerSlotUnauthorizedCodeINVALIDSIGNATURE,
-		FindRuntimeProducerSlotUnauthorizedCodeVOUCHERLIMIT,
-		FindRuntimeProducerSlotUnauthorizedCodeRATELIMITEXCEEDED,
-		FindRuntimeProducerSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED,
-		FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED,
-		FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
-		FindRuntimeProducerSlotUnauthorizedCodeREGISTRATIONFAILED,
-		FindRuntimeProducerSlotUnauthorizedCodeUPSTREAMERROR,
-		FindRuntimeProducerSlotUnauthorizedCodeSERVICEUNAVAILABLE,
-		FindRuntimeProducerSlotUnauthorizedCodeINTERNALSERVERERROR,
-		FindRuntimeProducerSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE,
-		FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTACTIVE,
-		FindRuntimeProducerSlotUnauthorizedCodeINVITEEXPIRED,
-		FindRuntimeProducerSlotUnauthorizedCodeINVITEEXHAUSTED,
-		FindRuntimeProducerSlotUnauthorizedCodeTEAMLASTOWNER,
-		FindRuntimeProducerSlotUnauthorizedCodeTEAMALREADYACTIVE,
-		FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTFOUNDING,
-		FindRuntimeProducerSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED,
-		FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERPENDING,
-		FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND,
-		FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED,
+// AllValues returns all FindLatestRuntimeSlotForAttemptUnauthorizedCode values.
+func (FindLatestRuntimeSlotForAttemptUnauthorizedCode) AllValues() []FindLatestRuntimeSlotForAttemptUnauthorizedCode {
+	return []FindLatestRuntimeSlotForAttemptUnauthorizedCode{
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNAUTHORIZED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeFORBIDDEN,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeUPSTREAMERROR,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERVICEUNAVAILABLE,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeINTERNALSERVERERROR,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMPERSONALIMMUTABLE,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTACTIVE,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXPIRED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXHAUSTED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMLASTOWNER,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMALREADYACTIVE,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTFOUNDING,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeFOUNDINGALREADYACCEPTED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERPENDING,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERNOTFOUND,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
-func (s FindRuntimeProducerSlotUnauthorizedCode) MarshalText() ([]byte, error) {
+func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) MarshalText() ([]byte, error) {
 	switch s {
-	case FindRuntimeProducerSlotUnauthorizedCodeUNAUTHORIZED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNAUTHORIZED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeFORBIDDEN:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeFORBIDDEN:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeNOTFOUND:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeCONFLICT:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeVALIDATIONFAILED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeINVALIDCHALLENGE:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeINVALIDSIGNATURE:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeVOUCHERLIMIT:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeRATELIMITEXCEEDED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeREGISTRATIONFAILED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeUPSTREAMERROR:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUPSTREAMERROR:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeSERVICEUNAVAILABLE:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERVICEUNAVAILABLE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeINTERNALSERVERERROR:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINTERNALSERVERERROR:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMPERSONALIMMUTABLE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTACTIVE:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTACTIVE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeINVITEEXPIRED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXPIRED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeINVITEEXHAUSTED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXHAUSTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMLASTOWNER:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMLASTOWNER:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMALREADYACTIVE:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMALREADYACTIVE:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTFOUNDING:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTFOUNDING:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeFOUNDINGALREADYACCEPTED:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERPENDING:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERPENDING:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERNOTFOUND:
 		return []byte(s), nil
-	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -12713,88 +12666,88 @@ func (s FindRuntimeProducerSlotUnauthorizedCode) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-func (s *FindRuntimeProducerSlotUnauthorizedCode) UnmarshalText(data []byte) error {
-	switch FindRuntimeProducerSlotUnauthorizedCode(data) {
-	case FindRuntimeProducerSlotUnauthorizedCodeUNAUTHORIZED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeUNAUTHORIZED
+func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) UnmarshalText(data []byte) error {
+	switch FindLatestRuntimeSlotForAttemptUnauthorizedCode(data) {
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNAUTHORIZED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNAUTHORIZED
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeFORBIDDEN:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeFORBIDDEN
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeFORBIDDEN:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeFORBIDDEN
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeNOTFOUND:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeNOTFOUND
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeCONFLICT:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeVALIDATIONFAILED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeVALIDATIONFAILED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeINVALIDCHALLENGE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeINVALIDCHALLENGE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeINVALIDSIGNATURE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeINVALIDSIGNATURE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeVOUCHERLIMIT:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeVOUCHERLIMIT
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeRATELIMITEXCEEDED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeRATELIMITEXCEEDED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeREGISTRATIONFAILED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeREGISTRATIONFAILED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeUPSTREAMERROR:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeUPSTREAMERROR
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUPSTREAMERROR:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeUPSTREAMERROR
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeSERVICEUNAVAILABLE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeSERVICEUNAVAILABLE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERVICEUNAVAILABLE
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeINTERNALSERVERERROR:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeINTERNALSERVERERROR
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINTERNALSERVERERROR:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINTERNALSERVERERROR
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMPERSONALIMMUTABLE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMPERSONALIMMUTABLE
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTACTIVE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTACTIVE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTACTIVE
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeINVITEEXPIRED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeINVITEEXPIRED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXPIRED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXPIRED
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeINVITEEXHAUSTED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeINVITEEXHAUSTED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXHAUSTED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVITEEXHAUSTED
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMLASTOWNER:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMLASTOWNER
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMLASTOWNER:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMLASTOWNER
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMALREADYACTIVE:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMALREADYACTIVE
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMALREADYACTIVE
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTFOUNDING:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeTEAMNOTFOUNDING
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeTEAMNOTFOUNDING
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeFOUNDINGALREADYACCEPTED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeFOUNDINGALREADYACCEPTED
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERPENDING:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERPENDING
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERPENDING
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERNOTFOUND
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERNOTFOUND
 		return nil
-	case FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
-		*s = FindRuntimeProducerSlotUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -14172,7 +14125,6 @@ func (s *FinishRuntimeSlotNotFoundCode) UnmarshalText(data []byte) error {
 type FinishRuntimeSlotOK struct {
 	AgentName       string                   `json:"agentName"`
 	CreatedAtMs     int                      `json:"createdAtMs"`
-	DaemonId        string                   `json:"daemonId"`
 	DaemonProfileId NilUUID                  `json:"daemonProfileId"`
 	ExpiresAtMs     int                      `json:"expiresAtMs"`
 	ID              uuid.UUID                `json:"id"`
@@ -14181,6 +14133,8 @@ type FinishRuntimeSlotOK struct {
 	LastUsedAtMs    int                      `json:"lastUsedAtMs"`
 	Model           string                   `json:"model"`
 	Provider        string                   `json:"provider"`
+	SessionDir      NilString                `json:"sessionDir"`
+	SessionPath     NilString                `json:"sessionPath"`
 	SlotKey         string                   `json:"slotKey"`
 	State           FinishRuntimeSlotOKState `json:"state"`
 	TaskType        string                   `json:"taskType"`
@@ -14196,11 +14150,6 @@ func (s *FinishRuntimeSlotOK) GetAgentName() string {
 // GetCreatedAtMs returns the value of CreatedAtMs.
 func (s *FinishRuntimeSlotOK) GetCreatedAtMs() int {
 	return s.CreatedAtMs
-}
-
-// GetDaemonId returns the value of DaemonId.
-func (s *FinishRuntimeSlotOK) GetDaemonId() string {
-	return s.DaemonId
 }
 
 // GetDaemonProfileId returns the value of DaemonProfileId.
@@ -14243,6 +14192,16 @@ func (s *FinishRuntimeSlotOK) GetProvider() string {
 	return s.Provider
 }
 
+// GetSessionDir returns the value of SessionDir.
+func (s *FinishRuntimeSlotOK) GetSessionDir() NilString {
+	return s.SessionDir
+}
+
+// GetSessionPath returns the value of SessionPath.
+func (s *FinishRuntimeSlotOK) GetSessionPath() NilString {
+	return s.SessionPath
+}
+
 // GetSlotKey returns the value of SlotKey.
 func (s *FinishRuntimeSlotOK) GetSlotKey() string {
 	return s.SlotKey
@@ -14276,11 +14235,6 @@ func (s *FinishRuntimeSlotOK) SetAgentName(val string) {
 // SetCreatedAtMs sets the value of CreatedAtMs.
 func (s *FinishRuntimeSlotOK) SetCreatedAtMs(val int) {
 	s.CreatedAtMs = val
-}
-
-// SetDaemonId sets the value of DaemonId.
-func (s *FinishRuntimeSlotOK) SetDaemonId(val string) {
-	s.DaemonId = val
 }
 
 // SetDaemonProfileId sets the value of DaemonProfileId.
@@ -14321,6 +14275,16 @@ func (s *FinishRuntimeSlotOK) SetModel(val string) {
 // SetProvider sets the value of Provider.
 func (s *FinishRuntimeSlotOK) SetProvider(val string) {
 	s.Provider = val
+}
+
+// SetSessionDir sets the value of SessionDir.
+func (s *FinishRuntimeSlotOK) SetSessionDir(val NilString) {
+	s.SessionDir = val
+}
+
+// SetSessionPath sets the value of SessionPath.
+func (s *FinishRuntimeSlotOK) SetSessionPath(val NilString) {
+	s.SessionPath = val
 }
 
 // SetSlotKey sets the value of SlotKey.
@@ -14394,13 +14358,11 @@ func (s *FinishRuntimeSlotOKState) UnmarshalText(data []byte) error {
 type FinishRuntimeSlotReq struct {
 	AgentName   string    `json:"agentName"`
 	AttemptN    int       `json:"attemptN"`
-	DaemonId    string    `json:"daemonId"`
 	Model       string    `json:"model"`
 	Provider    string    `json:"provider"`
 	SessionPath OptString `json:"sessionPath"`
 	SlotKey     string    `json:"slotKey"`
 	TaskId      uuid.UUID `json:"taskId"`
-	TtlSec      int       `json:"ttlSec"`
 }
 
 // GetAgentName returns the value of AgentName.
@@ -14411,11 +14373,6 @@ func (s *FinishRuntimeSlotReq) GetAgentName() string {
 // GetAttemptN returns the value of AttemptN.
 func (s *FinishRuntimeSlotReq) GetAttemptN() int {
 	return s.AttemptN
-}
-
-// GetDaemonId returns the value of DaemonId.
-func (s *FinishRuntimeSlotReq) GetDaemonId() string {
-	return s.DaemonId
 }
 
 // GetModel returns the value of Model.
@@ -14443,11 +14400,6 @@ func (s *FinishRuntimeSlotReq) GetTaskId() uuid.UUID {
 	return s.TaskId
 }
 
-// GetTtlSec returns the value of TtlSec.
-func (s *FinishRuntimeSlotReq) GetTtlSec() int {
-	return s.TtlSec
-}
-
 // SetAgentName sets the value of AgentName.
 func (s *FinishRuntimeSlotReq) SetAgentName(val string) {
 	s.AgentName = val
@@ -14456,11 +14408,6 @@ func (s *FinishRuntimeSlotReq) SetAgentName(val string) {
 // SetAttemptN sets the value of AttemptN.
 func (s *FinishRuntimeSlotReq) SetAttemptN(val int) {
 	s.AttemptN = val
-}
-
-// SetDaemonId sets the value of DaemonId.
-func (s *FinishRuntimeSlotReq) SetDaemonId(val string) {
-	s.DaemonId = val
 }
 
 // SetModel sets the value of Model.
@@ -14486,11 +14433,6 @@ func (s *FinishRuntimeSlotReq) SetSlotKey(val string) {
 // SetTaskId sets the value of TaskId.
 func (s *FinishRuntimeSlotReq) SetTaskId(val uuid.UUID) {
 	s.TaskId = val
-}
-
-// SetTtlSec sets the value of TtlSec.
-func (s *FinishRuntimeSlotReq) SetTtlSec(val int) {
-	s.TtlSec = val
 }
 
 type FinishRuntimeSlotUnauthorized struct {
@@ -19736,37 +19678,37 @@ func (o NilDateTime) Or(d time.Time) time.Time {
 	return d
 }
 
-// NewNilFindRuntimeProducerSlotOKSession returns new NilFindRuntimeProducerSlotOKSession with value set to v.
-func NewNilFindRuntimeProducerSlotOKSession(v FindRuntimeProducerSlotOKSession) NilFindRuntimeProducerSlotOKSession {
-	return NilFindRuntimeProducerSlotOKSession{
+// NewNilFindLatestRuntimeSlotForAttemptOKWorkspace returns new NilFindLatestRuntimeSlotForAttemptOKWorkspace with value set to v.
+func NewNilFindLatestRuntimeSlotForAttemptOKWorkspace(v FindLatestRuntimeSlotForAttemptOKWorkspace) NilFindLatestRuntimeSlotForAttemptOKWorkspace {
+	return NilFindLatestRuntimeSlotForAttemptOKWorkspace{
 		Value: v,
 	}
 }
 
-// NilFindRuntimeProducerSlotOKSession is nullable FindRuntimeProducerSlotOKSession.
-type NilFindRuntimeProducerSlotOKSession struct {
-	Value FindRuntimeProducerSlotOKSession
+// NilFindLatestRuntimeSlotForAttemptOKWorkspace is nullable FindLatestRuntimeSlotForAttemptOKWorkspace.
+type NilFindLatestRuntimeSlotForAttemptOKWorkspace struct {
+	Value FindLatestRuntimeSlotForAttemptOKWorkspace
 	Null  bool
 }
 
 // SetTo sets value to v.
-func (o *NilFindRuntimeProducerSlotOKSession) SetTo(v FindRuntimeProducerSlotOKSession) {
+func (o *NilFindLatestRuntimeSlotForAttemptOKWorkspace) SetTo(v FindLatestRuntimeSlotForAttemptOKWorkspace) {
 	o.Null = false
 	o.Value = v
 }
 
 // IsNull returns true if value is Null.
-func (o NilFindRuntimeProducerSlotOKSession) IsNull() bool { return o.Null }
+func (o NilFindLatestRuntimeSlotForAttemptOKWorkspace) IsNull() bool { return o.Null }
 
 // SetToNull sets value to null.
-func (o *NilFindRuntimeProducerSlotOKSession) SetToNull() {
+func (o *NilFindLatestRuntimeSlotForAttemptOKWorkspace) SetToNull() {
 	o.Null = true
-	var v FindRuntimeProducerSlotOKSession
+	var v FindLatestRuntimeSlotForAttemptOKWorkspace
 	o.Value = v
 }
 
 // Get returns value and boolean that denotes whether value was set.
-func (o NilFindRuntimeProducerSlotOKSession) Get() (v FindRuntimeProducerSlotOKSession, ok bool) {
+func (o NilFindLatestRuntimeSlotForAttemptOKWorkspace) Get() (v FindLatestRuntimeSlotForAttemptOKWorkspace, ok bool) {
 	if o.Null {
 		return v, false
 	}
@@ -19774,52 +19716,7 @@ func (o NilFindRuntimeProducerSlotOKSession) Get() (v FindRuntimeProducerSlotOKS
 }
 
 // Or returns value if set, or given parameter if does not.
-func (o NilFindRuntimeProducerSlotOKSession) Or(d FindRuntimeProducerSlotOKSession) FindRuntimeProducerSlotOKSession {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewNilFindRuntimeProducerSlotOKWorkspace returns new NilFindRuntimeProducerSlotOKWorkspace with value set to v.
-func NewNilFindRuntimeProducerSlotOKWorkspace(v FindRuntimeProducerSlotOKWorkspace) NilFindRuntimeProducerSlotOKWorkspace {
-	return NilFindRuntimeProducerSlotOKWorkspace{
-		Value: v,
-	}
-}
-
-// NilFindRuntimeProducerSlotOKWorkspace is nullable FindRuntimeProducerSlotOKWorkspace.
-type NilFindRuntimeProducerSlotOKWorkspace struct {
-	Value FindRuntimeProducerSlotOKWorkspace
-	Null  bool
-}
-
-// SetTo sets value to v.
-func (o *NilFindRuntimeProducerSlotOKWorkspace) SetTo(v FindRuntimeProducerSlotOKWorkspace) {
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o NilFindRuntimeProducerSlotOKWorkspace) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *NilFindRuntimeProducerSlotOKWorkspace) SetToNull() {
-	o.Null = true
-	var v FindRuntimeProducerSlotOKWorkspace
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o NilFindRuntimeProducerSlotOKWorkspace) Get() (v FindRuntimeProducerSlotOKWorkspace, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o NilFindRuntimeProducerSlotOKWorkspace) Or(d FindRuntimeProducerSlotOKWorkspace) FindRuntimeProducerSlotOKWorkspace {
+func (o NilFindLatestRuntimeSlotForAttemptOKWorkspace) Or(d FindLatestRuntimeSlotForAttemptOKWorkspace) FindLatestRuntimeSlotForAttemptOKWorkspace {
 	if v, ok := o.Get(); ok {
 		return v
 	}

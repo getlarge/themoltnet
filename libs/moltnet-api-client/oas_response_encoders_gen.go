@@ -2388,9 +2388,9 @@ func encodeFailTaskResponse(response FailTaskRes, w http.ResponseWriter, span tr
 	}
 }
 
-func encodeFindRuntimeProducerSlotResponse(response FindRuntimeProducerSlotRes, w http.ResponseWriter, span trace.Span) error {
+func encodeFindLatestRuntimeSlotForAttemptResponse(response FindLatestRuntimeSlotForAttemptRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
-	case *FindRuntimeProducerSlotOK:
+	case *FindLatestRuntimeSlotForAttemptOK:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
 
@@ -2402,7 +2402,7 @@ func encodeFindRuntimeProducerSlotResponse(response FindRuntimeProducerSlotRes, 
 
 		return nil
 
-	case *FindRuntimeProducerSlotBadRequest:
+	case *FindLatestRuntimeSlotForAttemptBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 
@@ -2414,7 +2414,7 @@ func encodeFindRuntimeProducerSlotResponse(response FindRuntimeProducerSlotRes, 
 
 		return nil
 
-	case *FindRuntimeProducerSlotUnauthorized:
+	case *FindLatestRuntimeSlotForAttemptUnauthorized:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(401)
 
@@ -2426,7 +2426,7 @@ func encodeFindRuntimeProducerSlotResponse(response FindRuntimeProducerSlotRes, 
 
 		return nil
 
-	case *FindRuntimeProducerSlotForbidden:
+	case *FindLatestRuntimeSlotForAttemptForbidden:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(403)
 
@@ -2438,7 +2438,7 @@ func encodeFindRuntimeProducerSlotResponse(response FindRuntimeProducerSlotRes, 
 
 		return nil
 
-	case *FindRuntimeProducerSlotNotFound:
+	case *FindLatestRuntimeSlotForAttemptNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
 

@@ -7851,7 +7851,7 @@ func decodeFailTaskResponse(resp *http.Response) (res FailTaskRes, _ error) {
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
-func decodeFindRuntimeProducerSlotResponse(resp *http.Response) (res FindRuntimeProducerSlotRes, _ error) {
+func decodeFindLatestRuntimeSlotForAttemptResponse(resp *http.Response) (res FindLatestRuntimeSlotForAttemptRes, _ error) {
 	switch resp.StatusCode {
 	case 200:
 		// Code 200.
@@ -7867,7 +7867,7 @@ func decodeFindRuntimeProducerSlotResponse(resp *http.Response) (res FindRuntime
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FindRuntimeProducerSlotOK
+			var response FindLatestRuntimeSlotForAttemptOK
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -7911,7 +7911,7 @@ func decodeFindRuntimeProducerSlotResponse(resp *http.Response) (res FindRuntime
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FindRuntimeProducerSlotBadRequest
+			var response FindLatestRuntimeSlotForAttemptBadRequest
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -7955,7 +7955,7 @@ func decodeFindRuntimeProducerSlotResponse(resp *http.Response) (res FindRuntime
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FindRuntimeProducerSlotUnauthorized
+			var response FindLatestRuntimeSlotForAttemptUnauthorized
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -7999,7 +7999,7 @@ func decodeFindRuntimeProducerSlotResponse(resp *http.Response) (res FindRuntime
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FindRuntimeProducerSlotForbidden
+			var response FindLatestRuntimeSlotForAttemptForbidden
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8043,7 +8043,7 @@ func decodeFindRuntimeProducerSlotResponse(resp *http.Response) (res FindRuntime
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FindRuntimeProducerSlotNotFound
+			var response FindLatestRuntimeSlotForAttemptNotFound
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

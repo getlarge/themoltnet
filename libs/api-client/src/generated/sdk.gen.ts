@@ -99,9 +99,9 @@ import type {
   FailTaskData,
   FailTaskErrors,
   FailTaskResponses,
-  FindRuntimeProducerSlotData,
-  FindRuntimeProducerSlotErrors,
-  FindRuntimeProducerSlotResponses,
+  FindLatestRuntimeSlotForAttemptData,
+  FindLatestRuntimeSlotForAttemptErrors,
+  FindLatestRuntimeSlotForAttemptResponses,
   FinishRuntimeSlotData,
   FinishRuntimeSlotErrors,
   FinishRuntimeSlotResponses,
@@ -2186,14 +2186,16 @@ export const finishRuntimeSlot = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Find the latest team-scoped producer slot for a task attempt.
+ * Find the latest team-scoped runtime slot for a task attempt.
  */
-export const findRuntimeProducerSlot = <ThrowOnError extends boolean = false>(
-  options: Options<FindRuntimeProducerSlotData, ThrowOnError>,
+export const findLatestRuntimeSlotForAttempt = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<FindLatestRuntimeSlotForAttemptData, ThrowOnError>,
 ) =>
   (options.client ?? client).get<
-    FindRuntimeProducerSlotResponses,
-    FindRuntimeProducerSlotErrors,
+    FindLatestRuntimeSlotForAttemptResponses,
+    FindLatestRuntimeSlotForAttemptErrors,
     ThrowOnError
   >({
     security: [
@@ -2205,7 +2207,7 @@ export const findRuntimeProducerSlot = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/runtime-slots/producer',
+    url: '/runtime-slots/latest',
     ...options,
   });
 

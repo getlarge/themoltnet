@@ -307,12 +307,12 @@ func (UnimplementedHandler) FailTask(ctx context.Context, req *FailTaskReq, para
 	return r, ht.ErrNotImplemented
 }
 
-// FindRuntimeProducerSlot implements findRuntimeProducerSlot operation.
+// FindLatestRuntimeSlotForAttempt implements findLatestRuntimeSlotForAttempt operation.
 //
-// Find the latest team-scoped producer slot for a task attempt.
+// Find the latest team-scoped runtime slot for a task attempt.
 //
-// GET /runtime-slots/producer
-func (UnimplementedHandler) FindRuntimeProducerSlot(ctx context.Context, params FindRuntimeProducerSlotParams) (r FindRuntimeProducerSlotRes, _ error) {
+// GET /runtime-slots/latest
+func (UnimplementedHandler) FindLatestRuntimeSlotForAttempt(ctx context.Context, params FindLatestRuntimeSlotForAttemptParams) (r FindLatestRuntimeSlotForAttemptRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

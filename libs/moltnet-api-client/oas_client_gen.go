@@ -227,12 +227,12 @@ type Invoker interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/fail
 	FailTask(ctx context.Context, request *FailTaskReq, params FailTaskParams) (FailTaskRes, error)
-	// FindRuntimeProducerSlot invokes findRuntimeProducerSlot operation.
+	// FindLatestRuntimeSlotForAttempt invokes findLatestRuntimeSlotForAttempt operation.
 	//
-	// Find the latest team-scoped producer slot for a task attempt.
+	// Find the latest team-scoped runtime slot for a task attempt.
 	//
-	// GET /runtime-slots/producer
-	FindRuntimeProducerSlot(ctx context.Context, params FindRuntimeProducerSlotParams) (FindRuntimeProducerSlotRes, error)
+	// GET /runtime-slots/latest
+	FindLatestRuntimeSlotForAttempt(ctx context.Context, params FindLatestRuntimeSlotForAttemptParams) (FindLatestRuntimeSlotForAttemptRes, error)
 	// FinishRuntimeSlot invokes finishRuntimeSlot operation.
 	//
 	// Mark a team-scoped runtime slot idle without deleting it.
@@ -5912,21 +5912,21 @@ func (c *Client) sendFailTask(ctx context.Context, request *FailTaskReq, params 
 	return result, nil
 }
 
-// FindRuntimeProducerSlot invokes findRuntimeProducerSlot operation.
+// FindLatestRuntimeSlotForAttempt invokes findLatestRuntimeSlotForAttempt operation.
 //
-// Find the latest team-scoped producer slot for a task attempt.
+// Find the latest team-scoped runtime slot for a task attempt.
 //
-// GET /runtime-slots/producer
-func (c *Client) FindRuntimeProducerSlot(ctx context.Context, params FindRuntimeProducerSlotParams) (FindRuntimeProducerSlotRes, error) {
-	res, err := c.sendFindRuntimeProducerSlot(ctx, params)
+// GET /runtime-slots/latest
+func (c *Client) FindLatestRuntimeSlotForAttempt(ctx context.Context, params FindLatestRuntimeSlotForAttemptParams) (FindLatestRuntimeSlotForAttemptRes, error) {
+	res, err := c.sendFindLatestRuntimeSlotForAttempt(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendFindRuntimeProducerSlot(ctx context.Context, params FindRuntimeProducerSlotParams) (res FindRuntimeProducerSlotRes, err error) {
+func (c *Client) sendFindLatestRuntimeSlotForAttempt(ctx context.Context, params FindLatestRuntimeSlotForAttemptParams) (res FindLatestRuntimeSlotForAttemptRes, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("findRuntimeProducerSlot"),
+		otelogen.OperationID("findLatestRuntimeSlotForAttempt"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/runtime-slots/producer"),
+		semconv.URLTemplateKey.String("/runtime-slots/latest"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -5942,7 +5942,7 @@ func (c *Client) sendFindRuntimeProducerSlot(ctx context.Context, params FindRun
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, FindRuntimeProducerSlotOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, FindLatestRuntimeSlotForAttemptOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -5960,7 +5960,7 @@ func (c *Client) sendFindRuntimeProducerSlot(ctx context.Context, params FindRun
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
 	var pathParts [1]string
-	pathParts[0] = "/runtime-slots/producer"
+	pathParts[0] = "/runtime-slots/latest"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeQueryParams"
@@ -6020,7 +6020,7 @@ func (c *Client) sendFindRuntimeProducerSlot(ctx context.Context, params FindRun
 		var satisfied bitset
 		{
 			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, FindRuntimeProducerSlotOperation, r); {
+			switch err := c.securityBearerAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6031,7 +6031,7 @@ func (c *Client) sendFindRuntimeProducerSlot(ctx context.Context, params FindRun
 		}
 		{
 			stage = "Security:SessionAuth"
-			switch err := c.securitySessionAuth(ctx, FindRuntimeProducerSlotOperation, r); {
+			switch err := c.securitySessionAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 1
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6042,7 +6042,7 @@ func (c *Client) sendFindRuntimeProducerSlot(ctx context.Context, params FindRun
 		}
 		{
 			stage = "Security:CookieAuth"
-			switch err := c.securityCookieAuth(ctx, FindRuntimeProducerSlotOperation, r); {
+			switch err := c.securityCookieAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6087,7 +6087,7 @@ func (c *Client) sendFindRuntimeProducerSlot(ctx context.Context, params FindRun
 	}()
 
 	stage = "DecodeResponse"
-	result, err := decodeFindRuntimeProducerSlotResponse(resp)
+	result, err := decodeFindLatestRuntimeSlotForAttemptResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
