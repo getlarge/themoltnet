@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  DeprecatedRuntimeOptionError,
+  commonOptionDefs,
   MissingRequiredOptionError,
   parseCommonOptions,
   validateTaskTypes,
@@ -24,13 +24,11 @@ describe('parseCommonOptions', () => {
     }
   });
 
-  it('rejects deprecated provider/model flags', () => {
-    expect(() =>
-      parseCommonOptions({ ...valid, provider: 'anthropic' }),
-    ).toThrow(DeprecatedRuntimeOptionError);
-    expect(() =>
-      parseCommonOptions({ ...valid, model: 'claude-sonnet-4-5' }),
-    ).toThrow(/--model is no longer supported/);
+  it('does not accept provider/model as common daemon options', () => {
+    const defs = commonOptionDefs();
+
+    expect(defs).not.toHaveProperty('provider');
+    expect(defs).not.toHaveProperty('model');
   });
 
   it('rejects --agent with traversal-unsafe characters', () => {

@@ -29,7 +29,6 @@ import { createRootLogger } from '../lib/logger.js';
 import {
   commonOptionDefs,
   type CommonOptions,
-  DeprecatedRuntimeOptionError,
   MissingRequiredOptionError,
   parseCommonOptions,
 } from '../lib/options.js';
@@ -80,10 +79,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   try {
     opts = parseCommonOptions(values);
   } catch (err) {
-    if (
-      err instanceof MissingRequiredOptionError ||
-      err instanceof DeprecatedRuntimeOptionError
-    ) {
+    if (err instanceof MissingRequiredOptionError) {
       console.error(`${err.message}\n`);
       console.error(ONCE_HELP);
       return 1;

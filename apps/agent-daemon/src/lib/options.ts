@@ -32,10 +32,6 @@ export interface CommonOptions {
 
 export interface CommonRawArgs {
   agent?: string;
-  /** Deprecated. Runtime provider is resolved from --profile. */
-  provider?: string;
-  /** Deprecated. Runtime model is resolved from --profile. */
-  model?: string;
   'lease-ttl-sec'?: string;
   'heartbeat-interval-ms'?: string;
   'max-batch-size'?: string;
@@ -81,16 +77,6 @@ export class MissingRequiredOptionError extends Error {
   }
 }
 
-export class DeprecatedRuntimeOptionError extends Error {
-  constructor(public readonly flag: 'provider' | 'model') {
-    super(
-      `--${flag} is no longer supported by agent-daemon. ` +
-        'Create a runtime profile and pass --profile instead.',
-    );
-    this.name = 'DeprecatedRuntimeOptionError';
-  }
-}
-
 export function parseCommonOptions(
   args: CommonRawArgs,
   options: ParseCommonOptionsOptions = {},
@@ -106,8 +92,6 @@ export function parseCommonOptions(
       options.runtimeDefaults?.warmSessionTtlSec ?? DEFAULTS.warmSessionTtlSec,
   };
   if (!args.agent) throw new MissingRequiredOptionError('agent');
-  if (args.provider) throw new DeprecatedRuntimeOptionError('provider');
-  if (args.model) throw new DeprecatedRuntimeOptionError('model');
 
   if (!/^[a-zA-Z0-9_-]+$/.test(args.agent)) {
     throw new Error(
@@ -187,10 +171,6 @@ function parseNonNegativeInt(
 export function commonOptionDefs() {
   return {
     agent: { type: 'string', short: 'a' },
-    // Kept only so parseArgs can report a migration error instead of
-    // throwing an unknown-option stack trace.
-    model: { type: 'string', short: 'm' },
-    provider: { type: 'string', short: 'p' },
     'lease-ttl-sec': { type: 'string' },
     'heartbeat-interval-ms': { type: 'string' },
     'max-batch-size': { type: 'string' },

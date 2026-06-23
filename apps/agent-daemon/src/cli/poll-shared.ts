@@ -31,7 +31,6 @@ import { createRootLogger } from '../lib/logger.js';
 import {
   commonOptionDefs,
   type CommonOptions,
-  DeprecatedRuntimeOptionError,
   MissingRequiredOptionError,
   parseCommonOptions,
   validateTaskTypes,
@@ -120,10 +119,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   try {
     baseCommon = parseCommonOptions(values);
   } catch (err) {
-    if (
-      err instanceof MissingRequiredOptionError ||
-      err instanceof DeprecatedRuntimeOptionError
-    ) {
+    if (err instanceof MissingRequiredOptionError) {
       console.error(`${err.message}\n`);
       console.error(opts.helpText);
       return 1;
