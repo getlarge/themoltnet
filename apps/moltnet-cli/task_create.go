@@ -70,6 +70,11 @@ func runTaskCreateWithClient(ctx context.Context, client *moltnetapi.Client, opt
 		opts.out = os.Stdout
 	}
 
+	teamID, err := uuid.Parse(opts.teamID)
+	if err != nil {
+		return fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
+	}
+
 	req, err := buildCreateTaskReq(opts)
 	if err != nil {
 		return err
@@ -103,7 +108,7 @@ func runTaskCreateWithClient(ctx context.Context, client *moltnetapi.Client, opt
 		return nil
 	}
 
-	res, err := client.CreateTask(ctx, req)
+	res, err := client.CreateTask(ctx, req, moltnetapi.CreateTaskParams{XMoltnetTeamID: teamID})
 	if err != nil {
 		return fmt.Errorf("task create: %w", formatTransportError(err))
 	}
@@ -131,10 +136,6 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 	if strings.TrimSpace(opts.taskType) == "" {
 		return nil, fmt.Errorf("--task-type is required")
 	}
-	teamID, err := uuid.Parse(opts.teamID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
-	}
 	diaryID, err := uuid.Parse(opts.diaryID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid --diary-id %q: %w", opts.diaryID, err)
@@ -151,7 +152,6 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 
 	req := &moltnetapi.CreateTaskReq{
 		TaskType: opts.taskType,
-		TeamId:   teamID,
 		DiaryId:  diaryID,
 		Input:    inputMap,
 	}

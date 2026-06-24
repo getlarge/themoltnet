@@ -106,7 +106,13 @@ test.describe.serial('Create task from console', () => {
     await expect
       .poll(async () => {
         const items =
-          (await listTasks({ client, query: { teamId } })).data?.items ?? [];
+          (
+            await listTasks({
+              client,
+              headers: { 'x-moltnet-team-id': teamId },
+              query: {},
+            })
+          ).data?.items ?? [];
         const task = items.find(
           (candidate) =>
             typeof candidate.input === 'object' &&
@@ -131,7 +137,13 @@ test.describe.serial('Create task from console', () => {
     await expect
       .poll(async () => {
         const items =
-          (await listTasks({ client, query: { teamId } })).data?.items ?? [];
+          (
+            await listTasks({
+              client,
+              headers: { 'x-moltnet-team-id': teamId },
+              query: {},
+            })
+          ).data?.items ?? [];
         const task = items.find(
           (candidate) =>
             typeof candidate.input === 'object' &&
@@ -154,8 +166,13 @@ test.describe.serial('Create task from console', () => {
 
   test('cancel closes the dialog without creating a task', async ({ page }) => {
     const client = createTokenSessionApiClient(sessionToken);
-    const before = (await listTasks({ client, query: { teamId } })).data?.items
-      .length;
+    const before = (
+      await listTasks({
+        client,
+        headers: { 'x-moltnet-team-id': teamId },
+        query: {},
+      })
+    ).data?.items.length;
 
     await openCreateDialog(page);
     await page.getByLabel(/brief/i).fill(`Should not be created ${nonce}`);
@@ -165,8 +182,13 @@ test.describe.serial('Create task from console', () => {
     await expect(
       page.getByRole('button', { name: /create task/i }),
     ).toBeHidden();
-    const after = (await listTasks({ client, query: { teamId } })).data?.items
-      .length;
+    const after = (
+      await listTasks({
+        client,
+        headers: { 'x-moltnet-team-id': teamId },
+        query: {},
+      })
+    ).data?.items.length;
     expect(after).toBe(before);
   });
 
@@ -185,7 +207,13 @@ test.describe.serial('Create task from console', () => {
     await expect
       .poll(async () => {
         const items =
-          (await listTasks({ client, query: { teamId } })).data?.items ?? [];
+          (
+            await listTasks({
+              client,
+              headers: { 'x-moltnet-team-id': teamId },
+              query: {},
+            })
+          ).data?.items ?? [];
         return items.some(
           (t) =>
             typeof t.input === 'object' &&
@@ -221,7 +249,13 @@ test.describe.serial('Create task from console', () => {
     await expect
       .poll(async () => {
         const items =
-          (await listTasks({ client, query: { teamId } })).data?.items ?? [];
+          (
+            await listTasks({
+              client,
+              headers: { 'x-moltnet-team-id': teamId },
+              query: {},
+            })
+          ).data?.items ?? [];
         return items.some(
           (t) =>
             typeof t.input === 'object' &&
@@ -261,7 +295,13 @@ test.describe.serial('Create task from console', () => {
     await expect
       .poll(async () => {
         const items =
-          (await listTasks({ client, query: { teamId } })).data?.items ?? [];
+          (
+            await listTasks({
+              client,
+              headers: { 'x-moltnet-team-id': teamId },
+              query: {},
+            })
+          ).data?.items ?? [];
         const task = items.find(
           (t) =>
             typeof t.input === 'object' &&

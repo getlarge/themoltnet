@@ -101,8 +101,8 @@ test('seed shared team, diary, tasks, and agent invite', async ({ page }) => {
   for (const { title, brief } of BRIEFS) {
     const result = await createTask({
       client,
+      headers: { 'x-moltnet-team-id': teamId },
       body: {
-        teamId,
         diaryId,
         taskType: 'freeform',
         maxAttempts: 1,

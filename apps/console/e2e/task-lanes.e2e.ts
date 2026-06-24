@@ -44,8 +44,8 @@ test.describe.serial('Task lanes board', () => {
     for (let attempt = 0; attempt < 10; attempt += 1) {
       const result = await createTask({
         client,
+        headers: { 'x-moltnet-team-id': teamId },
         body: {
-          teamId,
           diaryId,
           taskType: 'curate_pack',
           title: `${label} ${nonce}`,
@@ -217,7 +217,8 @@ async function getLaneTotal(
 ): Promise<number> {
   const result = await listTasks({
     client,
-    query: { teamId, statuses, limit: 1 },
+    headers: { 'x-moltnet-team-id': teamId },
+    query: { statuses, limit: 1 },
   });
   return result.data?.total ?? 0;
 }

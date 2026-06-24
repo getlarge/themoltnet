@@ -26,6 +26,7 @@ type stubCreateHandler struct {
 	createCalls  int
 	descriptors  []moltnetapi.TaskTypeDescriptor
 	lastCreate   *moltnetapi.CreateTaskReq
+	lastParams   moltnetapi.CreateTaskParams
 	createReturn moltnetapi.CreateTaskRes // override; nil → newTaskFixture
 }
 
@@ -36,17 +37,18 @@ func (h *stubCreateHandler) ListTaskSchemas(_ context.Context) (moltnetapi.ListT
 	return &moltnetapi.ListTaskSchemasResponse{Items: h.descriptors}, nil
 }
 
-func (h *stubCreateHandler) CreateTask(_ context.Context, req *moltnetapi.CreateTaskReq) (moltnetapi.CreateTaskRes, error) {
+func (h *stubCreateHandler) CreateTask(_ context.Context, req *moltnetapi.CreateTaskReq, params moltnetapi.CreateTaskParams) (moltnetapi.CreateTaskRes, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.createCalls++
 	// Copy so later mutations by the generated decoder don't race with reads.
 	cp := *req
 	h.lastCreate = &cp
+	h.lastParams = params
 	if h.createReturn != nil {
 		return h.createReturn, nil
 	}
-	return newTaskFixture(uuid.Nil, req.TeamId), nil
+	return newTaskFixture(uuid.Nil, params.XMoltnetTeamID), nil
 }
 
 func (h *stubCreateHandler) counts() (schema, create int) {

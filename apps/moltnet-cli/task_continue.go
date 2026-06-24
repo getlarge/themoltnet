@@ -137,7 +137,7 @@ func runTaskContinueWithClient(ctx context.Context, client *moltnetapi.Client, o
 	}
 
 	// 4. POST via existing CreateTask.
-	res, err := client.CreateTask(ctx, req)
+	res, err := client.CreateTask(ctx, req, moltnetapi.CreateTaskParams{XMoltnetTeamID: source.TeamId})
 	if err != nil {
 		return fmt.Errorf("task create: %w", formatTransportError(err))
 	}
@@ -190,7 +190,6 @@ func buildContinuationRequest(opts taskContinueOpts, source *moltnetapi.Task) (*
 
 	req := &moltnetapi.CreateTaskReq{
 		TaskType: "freeform",
-		TeamId:   source.TeamId,
 		DiaryId:  diaryID,
 		Input:    input,
 	}
