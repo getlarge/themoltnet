@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.8.0...mcp-server-v0.9.0) (2026-06-24)
+
+
+### Features
+
+* **sdk:** expose team context as { teamId } option across SDK and consumers ([f9bab47](https://github.com/getlarge/themoltnet/commit/f9bab47934f4859fb26a9ea9a5538529d95ca48c))
+* **sdk:** standardize team context on x-moltnet-team-id header (RFC [#1440](https://github.com/getlarge/themoltnet/issues/1440), closes [#1381](https://github.com/getlarge/themoltnet/issues/1381)) ([39e1314](https://github.com/getlarge/themoltnet/commit/39e13140883cdc293f608a0d1514e91e913a4428))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.7.0...mcp-server-v0.8.0) (2026-06-22)
 
 

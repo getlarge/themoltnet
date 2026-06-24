@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.29.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.28.2...agent-runtime-v0.29.0) (2026-06-24)
+
+
+### Features
+
+* **sdk:** expose team context as { teamId } option across SDK and consumers ([f9bab47](https://github.com/getlarge/themoltnet/commit/f9bab47934f4859fb26a9ea9a5538529d95ca48c))
+* **sdk:** standardize team context on x-moltnet-team-id header (RFC [#1440](https://github.com/getlarge/themoltnet/issues/1440), closes [#1381](https://github.com/getlarge/themoltnet/issues/1381)) ([39e1314](https://github.com/getlarge/themoltnet/commit/39e13140883cdc293f608a0d1514e91e913a4428))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.112.0
+
 ## [0.28.2](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.28.1...agent-runtime-v0.28.2) (2026-06-24)
 
 
