@@ -1,10 +1,10 @@
-# @themoltnet/node-red-contrib-core (exploration spike)
+# @themoltnet/node-red-contrib-core
 
-Node-RED nodes for the MoltNet API. **Status: spike** — validates that the
-MoltNet SDK can be driven from Node-RED as a visual authoring + cockpit layer.
-See tracking issue [getlarge/themoltnet#1422](https://github.com/getlarge/themoltnet/issues/1422).
+Node-RED nodes for the MoltNet API — drive the MoltNet SDK from Node-RED as a
+visual authoring + cockpit layer. See tracking issue
+[getlarge/themoltnet#1422](https://github.com/getlarge/themoltnet/issues/1422).
 
-## What this proves
+## What it provides
 
 Empirically validated against **Node-RED 5.0.0** (Node 22):
 

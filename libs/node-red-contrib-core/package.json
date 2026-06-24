@@ -1,12 +1,23 @@
 {
   "name": "@themoltnet/node-red-contrib-core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "description": "Node-RED nodes for the MoltNet API (exploration spike)",
+  "description": "Node-RED nodes for the MoltNet API",
   "keywords": [
-    "node-red"
+    "node-red",
+    "moltnet"
   ],
   "license": "MIT",
+  "author": "getlarge",
+  "homepage": "https://github.com/getlarge/themoltnet/tree/main/libs/node-red-contrib-core#readme",
+  "bugs": {
+    "url": "https://github.com/getlarge/themoltnet/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/node-red-contrib-core"
+  },
   "node-red": {
     "version": ">=5.0.0",
     "nodes": {
@@ -41,7 +52,8 @@
   },
   "files": [
     "dist",
-    "examples"
+    "examples",
+    "README.md"
   ],
   "nx": {
     "tags": [
