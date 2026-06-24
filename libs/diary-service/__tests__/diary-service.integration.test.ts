@@ -177,6 +177,7 @@ describe('DiaryService (integration)', () => {
       registerAgent: vi.fn().mockResolvedValue(undefined),
       registerHuman: vi.fn().mockResolvedValue(undefined),
       removeEntryRelations: vi.fn().mockResolvedValue(undefined),
+      removeEntryRelationsBatch: vi.fn().mockResolvedValue(undefined),
       grantDiaryTeam: vi.fn().mockResolvedValue(undefined),
       removeDiaryTeam: vi.fn().mockResolvedValue(undefined),
       removeDiaryRelations: vi.fn().mockResolvedValue(undefined),

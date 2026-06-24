@@ -135,6 +135,9 @@ type TaskRepositoryMocks = {
   listWaitingTasks: Mock<() => Promise<DbTask[]>>;
   listWaitingTasksReferencingTask: Mock<(taskId: string) => Promise<DbTask[]>>;
   promoteWaitingTasks: Mock<(ids: string[]) => Promise<DbTask[]>>;
+  findSealedTaskIds: Mock<(ids: string[]) => Promise<string[]>>;
+  deleteCorrelationSealsForTasks: Mock<(ids: string[]) => Promise<void>>;
+  deleteMany: Mock<(ids: string[]) => Promise<string[]>>;
   updateStatus: Mock<
     (
       id: string,
@@ -173,6 +176,13 @@ type PermissionCheckerMocks = {
       callerNs: string,
     ) => Promise<Map<string, boolean>>
   >;
+  canDeleteTasks: Mock<
+    (
+      taskIds: string[],
+      callerId: string,
+      callerNs: string,
+    ) => Promise<Map<string, boolean>>
+  >;
   canReadPack: Mock<
     (packId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
@@ -180,6 +190,15 @@ type PermissionCheckerMocks = {
 
 type RelationshipWriterMocks = {
   grantTaskParent: Mock<(taskId: string, diaryId: string) => Promise<void>>;
+  removeTaskRelationsBatch: Mock<
+    (
+      tasks: Array<{
+        id: string;
+        diaryId: string | null;
+        claimAgentId?: string | null;
+      }>,
+    ) => Promise<void>
+  >;
 };
 
 interface Mocks {
@@ -291,6 +310,15 @@ function makeMocks(
     promoteWaitingTasks: vi
       .fn<(ids: string[]) => Promise<DbTask[]>>()
       .mockResolvedValue([]),
+    findSealedTaskIds: vi
+      .fn<(ids: string[]) => Promise<string[]>>()
+      .mockResolvedValue([]),
+    deleteCorrelationSealsForTasks: vi
+      .fn<(ids: string[]) => Promise<void>>()
+      .mockResolvedValue(undefined),
+    deleteMany: vi
+      .fn<(ids: string[]) => Promise<string[]>>()
+      .mockImplementation((ids) => Promise.resolve(ids)),
     updateStatus: vi
       .fn<
         (
@@ -406,6 +434,24 @@ function makeMocks(
             ),
           ),
         ),
+      canDeleteTasks: vi
+        .fn<
+          (
+            taskIds: string[],
+            callerId: string,
+            callerNs: string,
+          ) => Promise<Map<string, boolean>>
+        >()
+        .mockImplementation((taskIds) =>
+          Promise.resolve(
+            new Map(
+              taskIds.map((taskId) => [
+                taskId,
+                Boolean(opts.visibleTasks?.[taskId]),
+              ]),
+            ),
+          ),
+        ),
       canReadPack: vi
         .fn<
           (
@@ -424,6 +470,7 @@ function makeMocks(
             ? Promise.reject(new Error('keto down'))
             : Promise.resolve(),
         ),
+      removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
     },
     transactionRunner,
     logger: {
@@ -854,5 +901,60 @@ describe('createTaskService.create — conditional claimability', () => {
       'tx',
       'promote',
     ]);
+  });
+});
+
+describe('createTaskService.deleteMany', () => {
+  it('removes task relations in the delete transaction with one batch call', async () => {
+    const task = {
+      ...makeJudgeTask(JUDGE_TASK, 'cancelled'),
+      claimAgentId: AGENT_ID,
+    } as DbTask;
+    const mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: task } });
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const result = await service.deleteMany({
+      ids: [JUDGE_TASK],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+    });
+
+    expect(result).toEqual({ deleted: [JUDGE_TASK], skipped: [] });
+    expect(
+      mocks.relationshipWriter.removeTaskRelationsBatch,
+    ).toHaveBeenCalledWith([
+      { id: JUDGE_TASK, diaryId: DIARY_ID, claimAgentId: AGENT_ID },
+    ]);
+  });
+
+  it('fails cleanup instead of reporting deletion when Keto relation cleanup fails', async () => {
+    const task = makeJudgeTask(JUDGE_TASK, 'cancelled');
+    const mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: task } });
+    mocks.relationshipWriter.removeTaskRelationsBatch.mockRejectedValue(
+      new Error('keto down'),
+    );
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    await expect(
+      service.deleteMany({
+        ids: [JUDGE_TASK],
+        callerId: AGENT_ID,
+        callerNs: KetoNamespace.Agent,
+      }),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+      message: 'Failed to clean up task permissions; no tasks were deleted',
+    });
+    expect(mocks.logger.error).toHaveBeenCalledOnce();
+    const [[payload, message]] = mocks.logger.error.mock.calls as [
+      [{ err: unknown; taskIds: string[] }, string],
+    ];
+    expect(payload.err).toBeInstanceOf(Error);
+    expect(payload.taskIds).toEqual([JUDGE_TASK]);
+    expect(message).toBe('task.delete-many_keto_cleanup_failed');
   });
 });

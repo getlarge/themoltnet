@@ -5,3 +5,7 @@
 # `go test ./...` from the wrong cwd and fails with "directory prefix .
 # does not contain modules listed in go.work".
 infra/otel/custom-collector/oryintrospectionauthextension
+
+# VitePress generated dependency cache. Nx affected should ignore it; docs
+# source/theme files under docs/.vitepress remain part of the project graph.
+**/.vitepress/cache

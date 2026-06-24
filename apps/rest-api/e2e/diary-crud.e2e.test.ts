@@ -6,6 +6,7 @@
  */
 
 import {
+  batchDeleteDiaryEntries,
   type Client,
   createClient,
   createDiaryEntry,
@@ -16,6 +17,8 @@ import {
   searchDiary,
   updateDiaryEntryById,
 } from '@moltnet/api-client';
+import { diaryEntries } from '@moltnet/database';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -362,6 +365,82 @@ describe('Diary CRUD', () => {
     });
 
     expect(fetched).toBeUndefined();
+  });
+
+  it('batch delete partitions deletable, immutable, unauthorized, and missing entries', async () => {
+    const deletable = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: { title: 'Batch deletable', content: 'delete me' },
+    });
+    const immutable = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: { title: 'Batch immutable', content: 'keep me' },
+    });
+    expect(deletable.error).toBeUndefined();
+    expect(immutable.error).toBeUndefined();
+
+    await harness.db
+      .update(diaryEntries)
+      .set({ contentSignature: `sig-${immutable.data!.id}` })
+      .where(eq(diaryEntries.id, immutable.data!.id));
+
+    const other = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+    const foreign = await createDiaryEntry({
+      client,
+      auth: () => other.accessToken,
+      path: { diaryId: other.privateDiaryId },
+      body: { title: 'Foreign entry', content: 'not yours' },
+    });
+    expect(foreign.error).toBeUndefined();
+
+    const missingId = '00000000-0000-4000-8000-000000000999';
+    const result = await batchDeleteDiaryEntries({
+      client,
+      auth: () => agent.accessToken,
+      body: {
+        ids: [
+          deletable.data!.id,
+          immutable.data!.id,
+          foreign.data!.id,
+          missingId,
+        ],
+      },
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.data?.deleted).toEqual([deletable.data!.id]);
+    expect(result.data?.skipped).toEqual([
+      immutable.data!.id,
+      foreign.data!.id,
+      missingId,
+    ]);
+
+    expect(
+      (
+        await getDiaryEntryById({
+          client,
+          auth: () => agent.accessToken,
+          path: { entryId: deletable.data!.id },
+        })
+      ).response.status,
+    ).toBe(404);
+    expect(
+      (
+        await getDiaryEntryById({
+          client,
+          auth: () => agent.accessToken,
+          path: { entryId: immutable.data!.id },
+        })
+      ).response.status,
+    ).toBe(200);
   });
 
   it('rejects unauthenticated delete', async () => {

@@ -85,6 +85,12 @@ const TERMINAL_STATUSES = new Set<DbTask['status']>([
   'cancelled',
   'expired',
 ]);
+const LIVE_STATUSES = new Set<DbTask['status']>([
+  'waiting',
+  'queued',
+  'dispatched',
+  'running',
+]);
 
 // Attempt-level terminal states. Used to reject a late /complete or /fail
 // from an attempt that has already settled — critically, this survives an
@@ -1789,6 +1795,104 @@ export function createTaskService(deps: TaskServiceDeps) {
       logger.info({ taskId, callerId, reason }, 'task.cancelled');
       await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
       return dbTaskToWire(updated);
+    },
+
+    async deleteMany(input: {
+      ids: string[];
+      callerId: string;
+      callerNs: KetoNamespace;
+      mode?: 'safe' | 'accept-risk';
+      reason?: string;
+    }): Promise<{ deleted: string[]; skipped: string[] }> {
+      const mode = input.mode ?? 'safe';
+      if (mode === 'accept-risk' && !input.reason?.trim()) {
+        throw new TaskServiceError(
+          'invalid',
+          'accept-risk cleanup requires a reason',
+        );
+      }
+
+      const uniqueIds = [...new Set(input.ids)];
+      const allowedMap = await permissionChecker.canDeleteTasks(
+        uniqueIds,
+        input.callerId,
+        input.callerNs,
+      );
+      const allowedIds = uniqueIds.filter((id) => allowedMap.get(id));
+      if (allowedIds.length === 0) {
+        return { deleted: [], skipped: uniqueIds };
+      }
+
+      const rows = await taskRepository.findByIds(allowedIds);
+      const terminalIds = rows
+        .filter(
+          (row) =>
+            TERMINAL_STATUSES.has(row.status) && !LIVE_STATUSES.has(row.status),
+        )
+        .map((row) => row.id);
+      const sealedIds = new Set(
+        await taskRepository.findSealedTaskIds(terminalIds),
+      );
+      const deletableIds =
+        mode === 'accept-risk'
+          ? terminalIds
+          : terminalIds.filter((id) => !sealedIds.has(id));
+
+      const deleted = await transactionRunner.runInTransaction(
+        async () => {
+          if (mode === 'accept-risk') {
+            await taskRepository.deleteCorrelationSealsForTasks(deletableIds);
+          }
+          const deletedTaskIds = await taskRepository.deleteMany(deletableIds);
+          const deletedSet = new Set(deletedTaskIds);
+          const deletedRows = rows.filter((row) => deletedSet.has(row.id));
+
+          try {
+            await relationshipWriter.removeTaskRelationsBatch(
+              deletedRows.map((row) => ({
+                id: row.id,
+                diaryId: row.diaryId,
+                claimAgentId: row.claimAgentId,
+              })),
+            );
+          } catch (err: unknown) {
+            const error = err instanceof Error ? err : new Error(String(err));
+
+            logger.error(
+              { err: error, taskIds: deletedTaskIds },
+              'task.delete-many_keto_cleanup_failed',
+            );
+
+            throw new TaskServiceError(
+              'invalid',
+              'Failed to clean up task permissions; no tasks were deleted',
+            );
+          }
+
+          return deletedTaskIds;
+        },
+        { name: 'task.delete-many' },
+      );
+
+      const deletedSet = new Set(deleted);
+      const skipped = uniqueIds.filter((id) => !deletedSet.has(id));
+
+      if (deleted.length > 0) {
+        logger.info(
+          {
+            deleted: deleted.length,
+            taskIds: deleted,
+            mode,
+            acceptedRisk: mode === 'accept-risk',
+            callerId: input.callerId,
+            callerNs: input.callerNs,
+            reason: mode === 'accept-risk' ? input.reason?.trim() : undefined,
+          },
+          'task.delete-many',
+        );
+      }
+
+      return { deleted, skipped };
     },
 
     async listAttempts(

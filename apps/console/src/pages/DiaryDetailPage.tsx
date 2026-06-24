@@ -1,3 +1,4 @@
+import { batchDeleteDiaryEntries } from '@moltnet/api-client';
 import {
   EntryCard,
   type EntryCardEntry,
@@ -6,10 +7,18 @@ import {
   serializeDiaryFiltersToQuery,
   useDiaryFilters,
 } from '@moltnet/diary-ui';
-import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
+import {
+  Button,
+  Card,
+  Dialog,
+  Stack,
+  Text,
+  useTheme,
+} from '@themoltnet/design-system';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
 
+import { getApiClient } from '../api.js';
 import { TransferDiaryDialog } from '../components/diaries/TransferDiaryDialog.js';
 import {
   SEARCH_LIMIT,
@@ -48,12 +57,34 @@ export function DiaryDetailPage({ id }: { id: string }) {
   }, [state, id]);
 
   const debouncedState = useDebouncedFilters(state);
+  const entryScopeKey = [
+    id,
+    debouncedState.view,
+    debouncedState.q.trim(),
+    debouncedState.tags.join(','),
+    debouncedState.excludeTags.join(','),
+    debouncedState.types.join(','),
+    debouncedState.weights
+      ? [
+          debouncedState.weights.relevance,
+          debouncedState.weights.recency,
+          debouncedState.weights.importance,
+        ].join(',')
+      : '',
+  ].join('|');
 
   const diaryQuery = useDiaryDetails(id);
   const tagsQuery = useDiaryTags(id);
   const entries = useEntries(id, debouncedState, PAGE_SIZE);
 
   const [transferOpen, setTransferOpen] = useState(false);
+  const [selectedEntryIds, setSelectedEntryIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteResult, setDeleteResult] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { teams, callerRoleForTeam } = useTeam();
 
   const diary = diaryQuery.data;
@@ -66,11 +97,66 @@ export function DiaryDetailPage({ id }: { id: string }) {
   const canTransferDiary =
     sourceTeamRole === 'owner' || sourceTeamRole === 'manager';
 
+  useEffect(() => {
+    setSelectedEntryIds(new Set());
+    setConfirmDeleteOpen(false);
+    setDeleteError(null);
+    setDeleteResult(null);
+  }, [entryScopeKey]);
+
   const hasActiveFilters =
     state.q !== '' ||
     state.tags.length > 0 ||
     state.excludeTags.length > 0 ||
     state.types.length > 0;
+
+  function toggleEntrySelection(entryId: string, selected: boolean) {
+    setSelectedEntryIds((current) => {
+      const next = new Set(current);
+      if (selected) next.add(entryId);
+      else next.delete(entryId);
+      return next;
+    });
+  }
+
+  function toggleVisibleEntrySelection(selected: boolean) {
+    setSelectedEntryIds((current) => {
+      const next = new Set(current);
+      for (const entry of entries.items) {
+        if (selected) next.add(entry.id);
+        else next.delete(entry.id);
+      }
+      return next;
+    });
+  }
+
+  async function submitDeleteEntries() {
+    const ids = [...selectedEntryIds];
+    if (ids.length === 0) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const { data, error: apiError } = await batchDeleteDiaryEntries({
+        client: getApiClient(),
+        body: { ids },
+      });
+      if (apiError || !data) {
+        throw new Error('Failed to delete selected entries');
+      }
+      setSelectedEntryIds(new Set());
+      setConfirmDeleteOpen(false);
+      setDeleteResult(
+        `${data.deleted.length} deleted, ${data.skipped.length} skipped`,
+      );
+      await entries.refetch();
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : 'Failed to delete entries',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <Stack gap={6}>
@@ -149,7 +235,36 @@ export function DiaryDetailPage({ id }: { id: string }) {
             Reset
           </Button>
         )}
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={entries.items.length === 0}
+          onClick={() =>
+            toggleVisibleEntrySelection(
+              !entries.items.every((entry) => selectedEntryIds.has(entry.id)),
+            )
+          }
+        >
+          {entries.items.length > 0 &&
+          entries.items.every((entry) => selectedEntryIds.has(entry.id))
+            ? 'Clear visible'
+            : 'Select visible'}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={selectedEntryIds.size === 0}
+          onClick={() => {
+            setDeleteResult(null);
+            setDeleteError(null);
+            setConfirmDeleteOpen(true);
+          }}
+        >
+          Delete selected
+        </Button>
       </div>
+
+      {deleteResult ? <Text color="muted">{deleteResult}</Text> : null}
 
       {entries.isLoading && entries.items.length === 0 ? (
         <Text color="muted">Loading entries…</Text>
@@ -184,22 +299,44 @@ export function DiaryDetailPage({ id }: { id: string }) {
           }}
         >
           {entries.items.map((entry) => (
-            <EntryCard
-              key={entry.id}
-              entry={entry as EntryCardEntry}
-              view={state.view}
-              onOpen={(entryId) =>
-                navigate(`/diaries/${id}/entries/${entryId}`)
-              }
-              onTagClick={(tag) =>
-                set({
-                  ...state,
-                  tags: state.tags.includes(tag)
-                    ? state.tags
-                    : [...state.tags, tag],
-                })
-              }
-            />
+            <div key={entry.id} style={{ position: 'relative' }}>
+              <label
+                style={{
+                  alignItems: 'center',
+                  background: theme.color.bg.surface,
+                  border: `1px solid ${theme.color.border.DEFAULT}`,
+                  borderRadius: theme.radius.md,
+                  display: 'inline-flex',
+                  gap: theme.spacing[2],
+                  marginBottom: theme.spacing[2],
+                  padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedEntryIds.has(entry.id)}
+                  onChange={(event) =>
+                    toggleEntrySelection(entry.id, event.target.checked)
+                  }
+                />
+                <Text variant="caption">Select</Text>
+              </label>
+              <EntryCard
+                entry={entry as EntryCardEntry}
+                view={state.view}
+                onOpen={(entryId) =>
+                  navigate(`/diaries/${id}/entries/${entryId}`)
+                }
+                onTagClick={(tag) =>
+                  set({
+                    ...state,
+                    tags: state.tags.includes(tag)
+                      ? state.tags
+                      : [...state.tags, tag],
+                  })
+                }
+              />
+            </div>
           ))}
         </div>
       )}
@@ -226,6 +363,44 @@ export function DiaryDetailPage({ id }: { id: string }) {
             further.
           </Text>
         )}
+
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        title="Delete selected entries"
+        width="420px"
+      >
+        <Stack gap={4}>
+          <Text>
+            Delete {selectedEntryIds.size} selected entr
+            {selectedEntryIds.size === 1 ? 'y' : 'ies'}? Signed, unauthorized,
+            or missing entries will be skipped.
+          </Text>
+          {deleteError ? <Text color="error">{deleteError}</Text> : null}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: theme.spacing[2],
+            }}
+          >
+            <Button
+              variant="secondary"
+              onClick={() => setConfirmDeleteOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="accent"
+              onClick={() => void submitDeleteEntries()}
+              disabled={isDeleting || selectedEntryIds.size === 0}
+            >
+              {isDeleting ? 'Deleting…' : 'Delete'}
+            </Button>
+          </div>
+        </Stack>
+      </Dialog>
     </Stack>
   );
 }

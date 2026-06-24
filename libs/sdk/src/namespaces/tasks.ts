@@ -1,6 +1,7 @@
 import {
   abortTaskAttempt,
   appendTaskMessages,
+  batchDeleteTasks,
   cancelTask,
   claimTask,
   completeTask,
@@ -79,6 +80,10 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
       return unwrapResult(
         await cancelTask({ client, auth, path: { id }, body }),
       );
+    },
+
+    async deleteMany(body) {
+      return unwrapResult(await batchDeleteTasks({ client, auth, body }));
     },
 
     async listAttempts(id) {

@@ -19,6 +19,7 @@ const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
+const TASK_ID = '990e8400-e29b-41d4-a716-446655440005';
 
 describe('PermissionChecker', () => {
   let mockPermissionApi: MockPermissionApi;
@@ -317,6 +318,76 @@ describe('PermissionChecker', () => {
       ).rejects.toThrow(
         `batch permission check failed for ${ENTRY_ID}: resolution failed`,
       );
+    });
+  });
+
+  describe('task delete permissions', () => {
+    it('checks canDeleteTask against Task delete permission', async () => {
+      mockPermissionApi.checkPermission.mockResolvedValue({
+        allowed: true,
+      });
+
+      const result = await checker.canDeleteTask(
+        TASK_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toBe(true);
+      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
+        namespace: 'Task',
+        object: TASK_ID,
+        relation: 'delete',
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
+      });
+    });
+
+    it('checks canDeleteTasks against Task delete permission in one batch request', async () => {
+      mockPermissionApi.batchCheckPermission.mockResolvedValue({
+        results: [{ allowed: false }, { allowed: true }],
+      });
+
+      const result = await checker.canDeleteTasks(
+        [TASK_ID, ENTRY_ID],
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toEqual(
+        new Map([
+          [TASK_ID, false],
+          [ENTRY_ID, true],
+        ]),
+      );
+      expect(mockPermissionApi.batchCheckPermission).toHaveBeenCalledWith({
+        batchCheckPermissionBody: {
+          tuples: [
+            {
+              namespace: 'Task',
+              object: TASK_ID,
+              relation: 'delete',
+              subject_set: {
+                namespace: 'Agent',
+                object: AGENT_ID,
+                relation: '',
+              },
+            },
+            {
+              namespace: 'Task',
+              object: ENTRY_ID,
+              relation: 'delete',
+              subject_set: {
+                namespace: 'Agent',
+                object: AGENT_ID,
+                relation: '',
+              },
+            },
+          ],
+        },
+      });
     });
   });
 

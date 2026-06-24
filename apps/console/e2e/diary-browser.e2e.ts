@@ -25,6 +25,7 @@ interface SeededDiary {
   emptyDiaryId: string;
   emptyDiaryName: string;
   entryTitle: string;
+  secondEntryTitle: string;
   entryTag: string;
 }
 
@@ -33,6 +34,7 @@ async function seedDiaryFixtures(sessionToken: string): Promise<SeededDiary> {
   const populatedDiaryName = `ui-seeded-diary-${nonce}`;
   const emptyDiaryName = `ui-empty-diary-${nonce}`;
   const entryTitle = `REST API route patterns ${nonce}`;
+  const secondEntryTitle = `Auth middleware decision ${nonce}`;
   const entryTag = `scope:api-${nonce}`;
   const client = createTokenSessionApiClient(sessionToken);
 
@@ -93,7 +95,7 @@ async function seedDiaryFixtures(sessionToken: string): Promise<SeededDiary> {
     client,
     path: { diaryId: populatedDiaryResponse.data.id },
     body: {
-      title: `Auth middleware decision ${nonce}`,
+      title: secondEntryTitle,
       content:
         'Second seeded entry so the page has a real tag cloud and more than one entry card.',
       tags: ['incident', `source:seed-${nonce}`],
@@ -108,6 +110,7 @@ async function seedDiaryFixtures(sessionToken: string): Promise<SeededDiary> {
     emptyDiaryId: emptyDiaryResponse.data.id,
     emptyDiaryName,
     entryTitle,
+    secondEntryTitle,
     entryTag,
   };
 }
@@ -198,5 +201,26 @@ test.describe.serial('Diary browser', () => {
     await expect(
       page.getByText('This diary has no entries yet.'),
     ).toBeVisible();
+  });
+
+  test('batch cleanup deletes selected visible entries from the console', async ({
+    page,
+  }) => {
+    await loginViaBrowser(page, user);
+    await page.goto(`${CONSOLE_URL}/diaries/${seeded.populatedDiaryId}`);
+
+    await expect(page.getByText(seeded.entryTitle)).toBeVisible();
+    await expect(page.getByText(seeded.secondEntryTitle)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Select visible' }).click();
+    await page.getByRole('button', { name: 'Delete selected' }).click();
+    await expect(
+      page.getByRole('dialog', { name: 'Delete selected entries' }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Delete', exact: true }).click();
+
+    await expect(page.getByText('2 deleted, 0 skipped')).toBeVisible();
+    await expect(page.getByText(seeded.entryTitle)).not.toBeVisible();
+    await expect(page.getByText(seeded.secondEntryTitle)).not.toBeVisible();
   });
 });

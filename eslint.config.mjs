@@ -11,6 +11,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/out-tsc/**',
       '**/node_modules/**',
+      '**/.vitepress/cache/**',
       // Local Node-RED dev userDir created by the dev runner (runtime artifact).
       '**/.node-red-dev/**',
       'libs/api-client/src/generated/**',

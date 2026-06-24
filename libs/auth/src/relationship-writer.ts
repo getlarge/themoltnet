@@ -49,6 +49,9 @@ export interface RelationshipWriter {
   grantEntryParent(entryId: string, diaryId: string): Promise<void>;
   grantPackParent(packId: string, diaryId: string): Promise<void>;
   removeEntryRelations(entryId: string): Promise<void>;
+  removeEntryRelationsBatch(
+    entries: Array<{ id: string; diaryId: string }>,
+  ): Promise<void>;
   removePackRelations(packId: string): Promise<void>;
   removePackRelationsBatch(
     packs: Array<{ id: string; diaryId: string }>,
@@ -100,6 +103,14 @@ export interface RelationshipWriter {
   // Task relations
   grantTaskParent(taskId: string, diaryId: string): Promise<void>;
   grantTaskClaimant(taskId: string, agentId: string): Promise<void>;
+  removeTaskRelations(taskId: string): Promise<void>;
+  removeTaskRelationsBatch(
+    tasks: Array<{
+      id: string;
+      diaryId: string | null;
+      claimAgentId?: string | null;
+    }>,
+  ): Promise<void>;
   removeTaskClaimant(taskId: string, agentId: string): Promise<void>;
 }
 
@@ -389,6 +400,28 @@ export function createRelationshipWriter(
       });
     },
 
+    async removeEntryRelationsBatch(
+      entries: Array<{ id: string; diaryId: string }>,
+    ): Promise<void> {
+      if (entries.length === 0) return;
+
+      await relationshipApi.patchRelationships({
+        relationshipPatch: entries.map((entry) => ({
+          action: 'delete' as const,
+          relation_tuple: {
+            namespace: KetoNamespace.DiaryEntry,
+            object: entry.id,
+            relation: DiaryEntryRelation.Parent,
+            subject_set: {
+              namespace: KetoNamespace.Diary,
+              object: entry.diaryId,
+              relation: '',
+            },
+          },
+        })),
+      });
+    },
+
     async grantDiaryWriters(
       diaryId: string,
       subjectId: string,
@@ -489,6 +522,65 @@ export function createRelationshipWriter(
           },
         },
       });
+    },
+
+    async removeTaskRelations(taskId: string): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.Task,
+        object: taskId,
+      });
+    },
+
+    async removeTaskRelationsBatch(
+      tasks: Array<{
+        id: string;
+        diaryId: string | null;
+        claimAgentId?: string | null;
+      }>,
+    ): Promise<void> {
+      if (tasks.length === 0) return;
+
+      const relationshipPatch = tasks.flatMap((task) => {
+        const patches = [];
+
+        if (task.diaryId) {
+          patches.push({
+            action: 'delete' as const,
+            relation_tuple: {
+              namespace: KetoNamespace.Task,
+              object: task.id,
+              relation: TaskRelation.Parent,
+              subject_set: {
+                namespace: KetoNamespace.Diary,
+                object: task.diaryId,
+                relation: '',
+              },
+            },
+          });
+        }
+
+        if (task.claimAgentId) {
+          patches.push({
+            action: 'delete' as const,
+            relation_tuple: {
+              namespace: KetoNamespace.Task,
+              object: task.id,
+              relation: TaskRelation.Claimant,
+              subject_set: {
+                namespace: KetoNamespace.Agent,
+                object: task.claimAgentId,
+                relation: '',
+              },
+            },
+          });
+        }
+
+        return patches;
+      });
+
+      if (relationshipPatch.length === 0) return;
+
+      await relationshipApi.patchRelationships({ relationshipPatch });
     },
 
     async removeTaskClaimant(taskId: string, agentId: string): Promise<void> {

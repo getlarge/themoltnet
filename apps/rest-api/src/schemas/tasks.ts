@@ -104,6 +104,23 @@ export const UpdateTaskMetadataBodySchema = Type.Object(
   },
 );
 
+export const BatchDeleteTasksBodySchema = Type.Object(
+  {
+    ids: Type.Array(Type.String({ format: 'uuid' }), {
+      minItems: 1,
+      maxItems: 100,
+      uniqueItems: true,
+    }),
+    mode: Type.Optional(
+      Type.Union([Type.Literal('safe'), Type.Literal('accept-risk')], {
+        default: 'safe',
+      }),
+    ),
+    reason: Type.Optional(Type.String({ minLength: 1, maxLength: 1000 })),
+  },
+  { $id: 'BatchDeleteTasksBody', additionalProperties: false },
+);
+
 export const ListTasksQuerySchema = Type.Object(
   {
     teamId: Type.String({ format: 'uuid' }),
@@ -330,6 +347,7 @@ export const taskSchemas = [
   TaskAttemptParamsSchema,
   CreateTaskBodySchema,
   UpdateTaskMetadataBodySchema,
+  BatchDeleteTasksBodySchema,
   ListTasksQuerySchema,
   ClaimTaskBodySchema,
   HeartbeatBodySchema,

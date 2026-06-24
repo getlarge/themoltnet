@@ -1,6 +1,14 @@
 import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import {
   createMockEntry,
@@ -31,14 +39,18 @@ describe('Diary entry routes - create and list', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
     mocks.diaryService.findDiary.mockResolvedValue(MOCK_DIARY);
     mocks.diaryService.findOwnedDiary.mockResolvedValue(MOCK_DIARY);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close();
   });
 

@@ -1,6 +1,8 @@
 import type { Client } from '@moltnet/api-client';
 import {
   acceptTransfer,
+  batchDeleteDiaryEntries,
+  batchDeleteTasks,
   createDiary,
   createDiaryEntry,
   createDiaryGrant,
@@ -85,6 +87,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     getDiaryEntryById: vi.fn(),
     updateDiaryEntryById: vi.fn(),
     deleteDiaryEntryById: vi.fn(),
+    batchDeleteDiaryEntries: vi.fn(),
     searchDiary: vi.fn(),
     getWhoami: vi.fn(),
     getAgentProfile: vi.fn(),
@@ -139,6 +142,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     listTaskSchemas: vi.fn(),
     listTasks: vi.fn(),
     createTask: vi.fn(),
+    batchDeleteTasks: vi.fn(),
     claimTask: vi.fn(),
     taskHeartbeat: vi.fn(),
     completeTask: vi.fn(),
@@ -323,6 +327,28 @@ describe('Agent facade', () => {
       );
     });
 
+    it('diary.deleteMany calls batchDeleteDiaryEntries', async () => {
+      const response = { deleted: ['entry-1'], skipped: ['entry-2'] };
+      vi.mocked(batchDeleteDiaryEntries).mockResolvedValueOnce({
+        data: response,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.entries.deleteMany({
+        ids: ['entry-1', 'entry-2'],
+      });
+
+      expect(result).toEqual(response);
+      expect(batchDeleteDiaryEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          body: { ids: ['entry-1', 'entry-2'] },
+        }),
+      );
+    });
+
     it('diary.search passes body', async () => {
       const searchData = { results: [mockEntry], total: 1 };
       vi.mocked(searchDiary).mockResolvedValueOnce({
@@ -446,6 +472,34 @@ describe('Agent facade', () => {
             teamId: 'team-1',
             diaryId: 'diary-1',
             input: { brief: 'Hello' },
+          },
+        }),
+      );
+    });
+
+    it('tasks.deleteMany calls batchDeleteTasks', async () => {
+      const response = { deleted: ['task-1'], skipped: ['task-2'] };
+      vi.mocked(batchDeleteTasks).mockResolvedValueOnce({
+        data: response,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.tasks.deleteMany({
+        ids: ['task-1', 'task-2'],
+        mode: 'accept-risk',
+        reason: 'cleanup duplicate terminal tasks',
+      });
+
+      expect(result).toEqual(response);
+      expect(batchDeleteTasks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          body: {
+            ids: ['task-1', 'task-2'],
+            mode: 'accept-risk',
+            reason: 'cleanup duplicate terminal tasks',
           },
         }),
       );

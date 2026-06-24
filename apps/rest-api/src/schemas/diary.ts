@@ -76,6 +76,25 @@ export const DiarySearchResultSchema = Type.Object(
   { $id: 'DiarySearchResult' },
 );
 
+export const BatchDeleteEntriesBodySchema = Type.Object(
+  {
+    ids: Type.Array(Type.String({ format: 'uuid' }), {
+      minItems: 1,
+      maxItems: 100,
+      uniqueItems: true,
+    }),
+  },
+  { $id: 'BatchDeleteEntriesBody', additionalProperties: false },
+);
+
+export const BatchDeleteResponseSchema = Type.Object(
+  {
+    deleted: Type.Array(Type.String({ format: 'uuid' })),
+    skipped: Type.Array(Type.String({ format: 'uuid' })),
+  },
+  { $id: 'BatchDeleteResponse' },
+);
+
 // ── Diary Catalog ──────────────────────────────────────────
 
 export const DiaryCatalogSchema = Type.Object(

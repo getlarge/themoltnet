@@ -21,6 +21,8 @@ import {
   AbortTaskBodySchema,
   AppendMessagesBodySchema,
   AppendMessagesResponseSchema,
+  BatchDeleteResponseSchema,
+  BatchDeleteTasksBodySchema,
   CancelTaskBodySchema,
   ClaimTaskBodySchema,
   ClaimTaskResponseSchema,
@@ -245,6 +247,45 @@ export function taskRoutes(fastify: FastifyInstance) {
           cursor: request.query.cursor,
           callerId: identityId,
           callerNs,
+        });
+      } catch (error) {
+        if (error instanceof TaskServiceError) throw toTaskProblem(error);
+        throw error;
+      }
+    },
+  );
+
+  // DELETE /tasks
+  server.delete(
+    '/tasks',
+    {
+      schema: {
+        operationId: 'batchDeleteTasks',
+        tags: ['tasks'],
+        description:
+          'Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        body: BatchDeleteTasksBodySchema,
+        response: {
+          200: Type.Ref(BatchDeleteResponseSchema.$id),
+          400: Type.Ref(ValidationProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectType } = getAuthContext(request);
+      const callerNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      try {
+        return await fastify.taskService.deleteMany({
+          ids: request.body.ids,
+          callerId: identityId,
+          callerNs,
+          mode: request.body.mode,
+          reason: request.body.reason,
         });
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);

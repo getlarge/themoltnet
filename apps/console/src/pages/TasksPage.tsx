@@ -1,4 +1,8 @@
-import { createTask, type TaskStatus } from '@moltnet/api-client';
+import {
+  batchDeleteTasks,
+  createTask,
+  type TaskStatus,
+} from '@moltnet/api-client';
 import {
   getTaskOptions,
   listRuntimeProfilesOptions,
@@ -23,8 +27,21 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
-import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
+import {
+  Button,
+  Card,
+  Dialog,
+  Stack,
+  Text,
+  useTheme,
+} from '@themoltnet/design-system';
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useLocation, useSearch } from 'wouter';
 
 import { getApiClient } from '../api.js';
@@ -60,6 +77,15 @@ export function TasksPage() {
   const status = getTaskStatusQuery(params.get('status'));
   const [view, setView] = useState<'board' | 'table'>('board');
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteMode, setDeleteMode] = useState<'safe' | 'accept-risk'>('safe');
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteResult, setDeleteResult] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const isMobile = useIsMobile();
   const teamId = selectedTeam?.id;
 
@@ -69,6 +95,23 @@ export function TasksPage() {
   // keystroke across the table + every board lane. See issue #1320.
   const debouncedTaskQuery = useDebouncedValue(taskQuery, 250);
   const debouncedCorrelationId = useDebouncedValue(correlationId, 250);
+  const taskScopeKey = [
+    teamId ?? '',
+    view,
+    status ?? '',
+    taskTypes.join(','),
+    debouncedTaskQuery.trim(),
+    debouncedCorrelationId.trim(),
+  ].join('|');
+
+  useEffect(() => {
+    setSelectedTaskIds(new Set());
+    setConfirmDeleteOpen(false);
+    setDeleteMode('safe');
+    setDeleteReason('');
+    setDeleteError(null);
+    setDeleteResult(null);
+  }, [taskScopeKey]);
 
   const diariesQuery = useDiarySummaries(teamId ?? null);
   const diaryOptions = useMemo(
@@ -214,6 +257,63 @@ export function TasksPage() {
     navigate(`/tasks?${next.toString()}`);
   }
 
+  function toggleTaskSelection(id: string, selected: boolean) {
+    setSelectedTaskIds((current) => {
+      const next = new Set(current);
+      if (selected) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleVisibleTaskSelection(selected: boolean) {
+    setSelectedTaskIds((current) => {
+      const next = new Set(current);
+      for (const task of tasks) {
+        if (selected) next.add(task.id);
+        else next.delete(task.id);
+      }
+      return next;
+    });
+  }
+
+  async function submitDeleteTasks() {
+    const ids = [...selectedTaskIds];
+    if (ids.length === 0) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const { data, error: apiError } = await batchDeleteTasks({
+        client: getApiClient(),
+        body: {
+          ids,
+          mode: deleteMode,
+          ...(deleteMode === 'accept-risk'
+            ? { reason: deleteReason.trim() }
+            : {}),
+        },
+      });
+      if (apiError || !data) {
+        throw new Error('Failed to delete selected tasks');
+      }
+      setSelectedTaskIds(new Set());
+      setConfirmDeleteOpen(false);
+      setDeleteMode('safe');
+      setDeleteReason('');
+      setDeleteResult(
+        `${data.deleted.length} deleted, ${data.skipped.length} skipped`,
+      );
+      if (view === 'board') refetchLanes();
+      else void query.refetch();
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : 'Failed to delete tasks',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   // A selected task keeps progressing through its lifecycle (waiting → queued →
   // dispatched → running → terminal). The pane must keep polling the task and
   // its attempts until the task reaches a terminal state — otherwise selecting
@@ -301,6 +401,20 @@ export function TasksPage() {
           >
             New task
           </Button>
+          {view === 'table' ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={selectedTaskIds.size === 0}
+              onClick={() => {
+                setDeleteResult(null);
+                setDeleteError(null);
+                setConfirmDeleteOpen(true);
+              }}
+            >
+              Delete selected
+            </Button>
+          ) : null}
           <Button
             variant={view === 'board' ? 'primary' : 'secondary'}
             size="sm"
@@ -330,6 +444,8 @@ export function TasksPage() {
           </Button>
         </div>
       </Stack>
+
+      {deleteResult ? <Text color="muted">{deleteResult}</Text> : null}
 
       <Card variant="surface" padding="md">
         <Stack gap={4}>
@@ -462,6 +578,11 @@ export function TasksPage() {
           ) : (
             <TaskQueueTable
               tasks={tasks}
+              selectedTaskIds={selectedTaskIds}
+              onToggleTask={(task, selected) =>
+                toggleTaskSelection(task.id, selected)
+              }
+              onToggleVisible={toggleVisibleTaskSelection}
               onOpenTask={(task) => navigate(`/tasks/${task.id}`)}
             />
           )}
@@ -514,6 +635,67 @@ export function TasksPage() {
           }}
         />
       ) : null}
+
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        title="Delete selected tasks"
+        width="460px"
+      >
+        <Stack gap={4}>
+          <Text>
+            Delete {selectedTaskIds.size} selected task
+            {selectedTaskIds.size === 1 ? '' : 's'}? Safe mode skips live,
+            unauthorized, missing, and protected tasks.
+          </Text>
+          <label style={{ display: 'flex', gap: theme.spacing[2] }}>
+            <input
+              type="checkbox"
+              checked={deleteMode === 'accept-risk'}
+              onChange={(event) =>
+                setDeleteMode(event.target.checked ? 'accept-risk' : 'safe')
+              }
+            />
+            <span>Use accept-risk mode for terminal protected tasks</span>
+          </label>
+          {deleteMode === 'accept-risk' ? (
+            <textarea
+              aria-label="Task deletion reason"
+              placeholder="Reason"
+              value={deleteReason}
+              onChange={(event) => setDeleteReason(event.target.value)}
+              style={{ ...inputStyle(theme), minHeight: 88 }}
+            />
+          ) : null}
+          {deleteError ? <Text color="error">{deleteError}</Text> : null}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: theme.spacing[2],
+            }}
+          >
+            <Button
+              variant="secondary"
+              onClick={() => setConfirmDeleteOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="accent"
+              onClick={() => void submitDeleteTasks()}
+              disabled={
+                isDeleting ||
+                selectedTaskIds.size === 0 ||
+                (deleteMode === 'accept-risk' && deleteReason.trim() === '')
+              }
+            >
+              {isDeleting ? 'Deleting…' : 'Delete'}
+            </Button>
+          </div>
+        </Stack>
+      </Dialog>
     </Stack>
   );
 }

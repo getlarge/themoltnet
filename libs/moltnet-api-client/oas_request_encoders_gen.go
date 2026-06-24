@@ -74,6 +74,34 @@ func encodeAppendTaskMessagesRequest(
 	return nil
 }
 
+func encodeBatchDeleteDiaryEntriesRequest(
+	req *BatchDeleteDiaryEntriesReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeBatchDeleteTasksRequest(
+	req *BatchDeleteTasksReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeBeginRuntimeSlotRequest(
 	req *BeginRuntimeSlotReq,
 	r *http.Request,

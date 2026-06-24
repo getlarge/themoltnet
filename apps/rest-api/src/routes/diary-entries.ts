@@ -27,6 +27,8 @@ import {
   isUniqueViolation,
 } from '../problems/index.js';
 import {
+  BatchDeleteEntriesBodySchema,
+  BatchDeleteResponseSchema,
   DiaryEntrySchema,
   DiaryEntryWithRelationsSchema,
   DiaryListSchema,
@@ -714,6 +716,37 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         identityId,
         subjectNs,
         request.body,
+      );
+    },
+  );
+
+  // ── Batch Delete Entries ───────────────────────────────────
+  server.delete(
+    '/entries',
+    {
+      schema: {
+        operationId: 'batchDeleteDiaryEntries',
+        tags: ['diary'],
+        description:
+          'Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        body: BatchDeleteEntriesBodySchema,
+        response: {
+          200: Type.Ref(BatchDeleteResponseSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      return fastify.diaryService.deleteEntries(
+        request.body.ids,
+        identityId,
+        subjectNs,
       );
     },
   );

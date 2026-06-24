@@ -11,9 +11,12 @@
  * which checks Task/Claim traversing the diary Keto tuple).
  */
 
+import { randomUUID } from 'node:crypto';
+
 import {
   abortTaskAttempt,
   appendTaskMessages,
+  batchDeleteTasks,
   cancelTask,
   claimTask,
   type Client,
@@ -30,6 +33,7 @@ import {
   listTaskAttempts,
   listTaskMessages,
   listTasks,
+  revokeDiaryGrant,
   taskHeartbeat,
   updateTaskMetadata,
 } from '@moltnet/api-client';
@@ -40,7 +44,7 @@ import {
   computeJsonCid,
   signExecutorAttestation,
 } from '@moltnet/crypto-service';
-import { tasks } from '@moltnet/database';
+import { correlationSeals, tasks } from '@moltnet/database';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -2184,6 +2188,208 @@ describe('Tasks API', () => {
         path: { id: taskId },
       });
       expect(still!.status).toBe('queued');
+    });
+  });
+
+  describe('DELETE /tasks cleanup', () => {
+    it('does not let a claimant batch-delete a task they were allowed to cancel', async () => {
+      const { data: proposed, error: createError } = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          taskType: 'freeform',
+          title: 'claimant delete boundary',
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
+          input: { brief: 'claimant must not cleanup by cancel grant' },
+        },
+      });
+      expect(createError).toBeUndefined();
+      const taskId = proposed!.id;
+
+      const { data: claimed, error: claimError } = await claimTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(claimError).toBeUndefined();
+
+      await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: claimed!.attempt.attemptN },
+        body: { leaseTtlSec: 30 },
+      });
+
+      const cancel = await cancelTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId },
+        body: { reason: 'claimant can cancel but not cleanup' },
+      });
+      expect(cancel.error).toBeUndefined();
+      expect(cancel.data!.status).toBe('cancelled');
+
+      const revoked = await revokeDiaryGrant({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: proposer.privateDiaryId },
+        body: {
+          subjectId: claimer.identityId,
+          subjectNs: 'Agent',
+          role: 'writer',
+        },
+      });
+      expect(revoked.error).toBeUndefined();
+
+      await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => claimer.accessToken,
+            path: { id: taskId },
+          }),
+        (result) => result.response.status === 403,
+        { label: 'revoked writer grant no longer reads task' },
+      );
+
+      const claimantCleanup = await batchDeleteTasks({
+        client,
+        auth: () => claimer.accessToken,
+        body: {
+          ids: [taskId],
+          mode: 'accept-risk',
+          reason: 'try to escalate cancel into delete',
+        },
+      });
+      expect(claimantCleanup.error).toBeUndefined();
+      expect(claimantCleanup.data).toEqual({
+        deleted: [],
+        skipped: [taskId],
+      });
+
+      const stillVisible = await getTask({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: taskId },
+      });
+      expect(stillVisible.response.status).toBe(200);
+      expect(stillVisible.data!.status).toBe('cancelled');
+
+      const ownerCleanup = await batchDeleteTasks({
+        client,
+        auth: () => proposer.accessToken,
+        body: { ids: [taskId], mode: 'safe' },
+      });
+      expect(ownerCleanup.error).toBeUndefined();
+      expect(ownerCleanup.data).toEqual({ deleted: [taskId], skipped: [] });
+    });
+
+    it('safe mode deletes terminal unsealed tasks and accept-risk gates sealed terminal cleanup', async () => {
+      const terminal = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          taskType: 'freeform',
+          title: 'cleanup terminal',
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
+          input: { brief: 'terminal cleanup' },
+        },
+      });
+      const live = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          taskType: 'freeform',
+          title: 'cleanup live',
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
+          input: { brief: 'live cleanup' },
+        },
+      });
+      const sealed = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          taskType: 'freeform',
+          title: 'cleanup sealed',
+          teamId: proposer.personalTeamId,
+          diaryId: proposer.privateDiaryId,
+          correlationId: randomUUID(),
+          input: { brief: 'sealed cleanup' },
+        },
+      });
+      expect(terminal.error).toBeUndefined();
+      expect(live.error).toBeUndefined();
+      expect(sealed.error).toBeUndefined();
+
+      await cancelTask({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: terminal.data!.id },
+        body: { reason: 'make terminal' },
+      });
+      await cancelTask({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: sealed.data!.id },
+        body: { reason: 'make sealed terminal' },
+      });
+      await harness.db.insert(correlationSeals).values({
+        correlationId: sealed.data!.correlationId!,
+        sealedByTaskId: sealed.data!.id,
+        sealedByTaskType: sealed.data!.taskType,
+        sealedByAgentId: proposer.identityId,
+      });
+
+      const missingId = '00000000-0000-4000-8000-000000000998';
+      const safe = await batchDeleteTasks({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          ids: [terminal.data!.id, live.data!.id, sealed.data!.id, missingId],
+          mode: 'safe',
+        },
+      });
+      expect(safe.error).toBeUndefined();
+      expect(safe.data?.deleted).toEqual([terminal.data!.id]);
+      expect(safe.data?.skipped).toEqual([
+        live.data!.id,
+        sealed.data!.id,
+        missingId,
+      ]);
+
+      const rejected = await batchDeleteTasks({
+        client,
+        auth: () => proposer.accessToken,
+        body: { ids: [sealed.data!.id], mode: 'accept-risk' },
+      });
+      expect(rejected.response.status).toBe(400);
+
+      const accepted = await batchDeleteTasks({
+        client,
+        auth: () => proposer.accessToken,
+        body: {
+          ids: [sealed.data!.id, live.data!.id],
+          mode: 'accept-risk',
+          reason: 'operator reviewed terminal sealed task',
+        },
+      });
+      expect(accepted.error).toBeUndefined();
+      expect(accepted.data?.deleted).toEqual([sealed.data!.id]);
+      expect(accepted.data?.skipped).toEqual([live.data!.id]);
+
+      expect(
+        (
+          await getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: live.data!.id },
+          })
+        ).response.status,
+      ).toBe(200);
     });
   });
 });

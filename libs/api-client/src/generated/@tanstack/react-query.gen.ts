@@ -15,6 +15,8 @@ import {
   acceptTransfer,
   addGroupMember,
   appendTaskMessages,
+  batchDeleteDiaryEntries,
+  batchDeleteTasks,
   beginRuntimeSlot,
   cancelTask,
   claimTask,
@@ -142,6 +144,12 @@ import type {
   AppendTaskMessagesData,
   AppendTaskMessagesError,
   AppendTaskMessagesResponse,
+  BatchDeleteDiaryEntriesData,
+  BatchDeleteDiaryEntriesError,
+  BatchDeleteDiaryEntriesResponse,
+  BatchDeleteTasksData,
+  BatchDeleteTasksError,
+  BatchDeleteTasksResponse,
   BeginRuntimeSlotData,
   BeginRuntimeSlotError,
   BeginRuntimeSlotResponse,
@@ -1503,6 +1511,33 @@ export const initiateTransferMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await initiateTransfer({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.
+ */
+export const batchDeleteDiaryEntriesMutation = (
+  options?: Partial<Options<BatchDeleteDiaryEntriesData>>,
+): UseMutationOptions<
+  BatchDeleteDiaryEntriesResponse,
+  BatchDeleteDiaryEntriesError,
+  Options<BatchDeleteDiaryEntriesData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    BatchDeleteDiaryEntriesResponse,
+    BatchDeleteDiaryEntriesError,
+    Options<BatchDeleteDiaryEntriesData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await batchDeleteDiaryEntries({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -3043,6 +3078,33 @@ export const findLatestRuntimeSlotForAttemptOptions = (
     },
     queryKey: findLatestRuntimeSlotForAttemptQueryKey(options),
   });
+
+/**
+ * Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+ */
+export const batchDeleteTasksMutation = (
+  options?: Partial<Options<BatchDeleteTasksData>>,
+): UseMutationOptions<
+  BatchDeleteTasksResponse,
+  BatchDeleteTasksError,
+  Options<BatchDeleteTasksData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    BatchDeleteTasksResponse,
+    BatchDeleteTasksError,
+    Options<BatchDeleteTasksData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await batchDeleteTasks({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const listTasksQueryKey = (options: Options<ListTasksData>) =>
   createQueryKey('listTasks', options);

@@ -135,6 +135,7 @@ export enum TaskPermission {
   View = 'view',
   EditMetadata = 'edit_metadata',
   Cancel = 'cancel',
+  Delete = 'delete',
   Claim = 'claim',
   Report = 'report',
 }
