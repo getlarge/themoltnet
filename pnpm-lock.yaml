@@ -1601,10 +1601,11 @@ importers:
         version: 5.9.3
 
   libs/node-red-contrib-core:
-    devDependencies:
+    dependencies:
       '@themoltnet/sdk':
-        specifier: workspace:*
-        version: link:../sdk
+        specifier: ^0.112.0
+        version: 0.112.0
+    devDependencies:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
@@ -5310,6 +5311,10 @@ packages:
         optional: true
       '@types/react-dom':
         optional: true
+
+  '@themoltnet/sdk@0.112.0':
+    resolution: {integrity: sha512-SX2m3lxTtK75O+UmqLFGr5+6LrTlzx7Zc4uaIdPukByQuJRLFMdB7NbM37AFOZanfch5z37b/j5iS1Fh+OJdAA==}
+    engines: {node: '>=18'}
 
   '@tootallnate/quickjs-emscripten@0.23.0':
     resolution: {integrity: sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA==}
@@ -14115,6 +14120,14 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.10
       '@types/react-dom': 19.2.3(@types/react@19.2.10)
+
+  '@themoltnet/sdk@0.112.0':
+    dependencies:
+      '@noble/ciphers': 1.3.0
+      '@noble/curves': 2.0.1
+      '@noble/ed25519': 2.3.0
+      '@noble/hashes': 1.8.0
+      typebox: 1.2.8
 
   '@tootallnate/quickjs-emscripten@0.23.0': {}
 

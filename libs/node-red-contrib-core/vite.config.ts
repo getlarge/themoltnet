@@ -7,8 +7,8 @@ import { defineConfig } from 'vite';
 const here = dirname(fileURLToPath(import.meta.url));
 
 // Node-RED node sets: each runtime .js is paired with a sibling .html editor
-// file. We bundle the .js (inlining @themoltnet/sdk so the published node is
-// self-contained) and copy the .html alongside it.
+// file. We bundle the .js (externalizing @themoltnet/sdk, which npm installs
+// for consumers) and copy the .html alongside it.
 const nodes = [
   'agent',
   'runtime-profile',
@@ -42,9 +42,11 @@ export default defineConfig({
     },
   },
   ssr: {
-    // Self-contained node: bundle the SDK and its workspace deps. Node built-ins
-    // stay external automatically.
-    noExternal: true,
+    // Externalize the published SDK — npm installs @themoltnet/sdk (and its
+    // public transitive deps) for consumers, so the bundle stays small. Any
+    // private @moltnet/* workspace deps used directly stay inlined.
+    external: ['@themoltnet/sdk'],
+    noExternal: [/@moltnet\//],
   },
   plugins: [
     {
