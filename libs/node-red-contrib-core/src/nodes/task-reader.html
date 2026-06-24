@@ -48,12 +48,17 @@
 </script>
 
 <script type="text/html" data-help-name="moltnet-task-reader">
-  <p>Parses a completed task snapshot (from <code>task: wait</code>/<code>task:
-  get</code>) into typed result data via the SDK reader. Sets the typed output on
-  <code>msg.payload</code> and a flat <code>msg.result</code> with
-  <code>{ summary, outputRef, artifact, artifactBody, accepted, usage }</code>.
-  The <code>outputRef</code> chains directly into a downstream
-  <code>task: build</code>'s "References from".</p>
-  <p>Set <b>Artifact kind/title</b> to pre-parse a JSON artifact body into
-  <code>msg.result.artifactBody</code>.</p>
+  <p>
+    Parses a completed task snapshot (from <code>task: wait</code>/<code
+      >task: get</code
+    >) into typed result data via the SDK reader. Sets the typed output on
+    <code>msg.payload</code> and a flat <code>msg.result</code> with
+    <code>{ summary, outputRef, artifact, artifactBody, accepted, usage }</code
+    >. The <code>outputRef</code> chains directly into a downstream
+    <code>task: build</code>'s "References from".
+  </p>
+  <p>
+    Set <b>Artifact kind/title</b> to pre-parse a JSON artifact body into
+    <code>msg.result.artifactBody</code>.
+  </p>
 </script>
