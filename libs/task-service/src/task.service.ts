@@ -1813,7 +1813,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
 
       const uniqueIds = [...new Set(input.ids)];
-      const allowedMap = await permissionChecker.canCancelTasks(
+      const allowedMap = await permissionChecker.canDeleteTasks(
         uniqueIds,
         input.callerId,
         input.callerNs,
@@ -1870,8 +1870,12 @@ export function createTaskService(deps: TaskServiceDeps) {
         logger.info(
           {
             deleted: deleted.length,
+            taskIds: deleted,
             mode,
             acceptedRisk: mode === 'accept-risk',
+            callerId: input.callerId,
+            callerNs: input.callerNs,
+            reason: mode === 'accept-risk' ? input.reason?.trim() : undefined,
           },
           'task.delete-many',
         );

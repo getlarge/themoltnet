@@ -57,6 +57,21 @@ export function DiaryDetailPage({ id }: { id: string }) {
   }, [state, id]);
 
   const debouncedState = useDebouncedFilters(state);
+  const entryScopeKey = [
+    id,
+    debouncedState.view,
+    debouncedState.q.trim(),
+    debouncedState.tags.join(','),
+    debouncedState.excludeTags.join(','),
+    debouncedState.types.join(','),
+    debouncedState.weights
+      ? [
+          debouncedState.weights.relevance,
+          debouncedState.weights.recency,
+          debouncedState.weights.importance,
+        ].join(',')
+      : '',
+  ].join('|');
 
   const diaryQuery = useDiaryDetails(id);
   const tagsQuery = useDiaryTags(id);
@@ -81,6 +96,13 @@ export function DiaryDetailPage({ id }: { id: string }) {
   const sourceTeamRole = diaryTeamId ? callerRoleForTeam(diaryTeamId) : null;
   const canTransferDiary =
     sourceTeamRole === 'owner' || sourceTeamRole === 'manager';
+
+  useEffect(() => {
+    setSelectedEntryIds(new Set());
+    setConfirmDeleteOpen(false);
+    setDeleteError(null);
+    setDeleteResult(null);
+  }, [entryScopeKey]);
 
   const hasActiveFilters =
     state.q !== '' ||

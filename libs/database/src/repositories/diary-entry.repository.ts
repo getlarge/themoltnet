@@ -362,7 +362,7 @@ export function createDiaryEntryRepository(db: Database) {
 
     async deleteMany(ids: string[]): Promise<string[]> {
       if (ids.length === 0) return [];
-      const deleted = await db
+      const deleted = await getExecutor(db)
         .delete(diaryEntries)
         .where(inArray(diaryEntries.id, ids))
         .returning({ id: diaryEntries.id });

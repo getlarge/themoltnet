@@ -35,7 +35,13 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useLocation, useSearch } from 'wouter';
 
 import { getApiClient } from '../api.js';
@@ -89,6 +95,23 @@ export function TasksPage() {
   // keystroke across the table + every board lane. See issue #1320.
   const debouncedTaskQuery = useDebouncedValue(taskQuery, 250);
   const debouncedCorrelationId = useDebouncedValue(correlationId, 250);
+  const taskScopeKey = [
+    teamId ?? '',
+    view,
+    status ?? '',
+    taskTypes.join(','),
+    debouncedTaskQuery.trim(),
+    debouncedCorrelationId.trim(),
+  ].join('|');
+
+  useEffect(() => {
+    setSelectedTaskIds(new Set());
+    setConfirmDeleteOpen(false);
+    setDeleteMode('safe');
+    setDeleteReason('');
+    setDeleteError(null);
+    setDeleteResult(null);
+  }, [taskScopeKey]);
 
   const diariesQuery = useDiarySummaries(teamId ?? null);
   const diaryOptions = useMemo(

@@ -173,6 +173,13 @@ type PermissionCheckerMocks = {
       callerNs: string,
     ) => Promise<Map<string, boolean>>
   >;
+  canDeleteTasks: Mock<
+    (
+      taskIds: string[],
+      callerId: string,
+      callerNs: string,
+    ) => Promise<Map<string, boolean>>
+  >;
   canReadPack: Mock<
     (packId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
@@ -389,6 +396,24 @@ function makeMocks(
         >()
         .mockResolvedValue(true),
       canViewTasks: vi
+        .fn<
+          (
+            taskIds: string[],
+            callerId: string,
+            callerNs: string,
+          ) => Promise<Map<string, boolean>>
+        >()
+        .mockImplementation((taskIds) =>
+          Promise.resolve(
+            new Map(
+              taskIds.map((taskId) => [
+                taskId,
+                Boolean(opts.visibleTasks?.[taskId]),
+              ]),
+            ),
+          ),
+        ),
+      canDeleteTasks: vi
         .fn<
           (
             taskIds: string[],
