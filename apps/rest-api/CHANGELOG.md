@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.15.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.14.0...rest-api-v0.15.0) (2026-06-24)
+
+
+### Features
+
+* batch cleanup for entries and tasks ([21982f9](https://github.com/getlarge/themoltnet/commit/21982f973d57286c7e263247306076f944b6a2c2))
+* **rest-api:** add batch cleanup endpoints ([aad84ae](https://github.com/getlarge/themoltnet/commit/aad84ae97649bbac39e0b100c75c2966c1b1c00a))
+
+
+### Bug Fixes
+
+* **ci:** stabilize diary route shard ([35d89e6](https://github.com/getlarge/themoltnet/commit/35d89e64089303178d7039b8c3ca6ea1e133aade))
+* **cleanup:** batch relation cleanup in transactions ([d36d3c3](https://github.com/getlarge/themoltnet/commit/d36d3c326a80fd3ef962a8160089b037c9d36eea))
+* **tasks:** tighten batch cleanup authorization ([da3cf66](https://github.com/getlarge/themoltnet/commit/da3cf66ba3c798d5a8bcad61dea4fedc7e5abfc4))
+
 ## [0.14.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.13.0...rest-api-v0.14.0) (2026-06-23)
 
 

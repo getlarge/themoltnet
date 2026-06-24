@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.51.0](https://github.com/getlarge/themoltnet/compare/cli-v1.50.0...cli-v1.51.0) (2026-06-24)
+
+
+### Features
+
+* batch cleanup for entries and tasks ([21982f9](https://github.com/getlarge/themoltnet/commit/21982f973d57286c7e263247306076f944b6a2c2))
+
+
+### Bug Fixes
+
+* **ci:** stabilize diary route shard ([35d89e6](https://github.com/getlarge/themoltnet/commit/35d89e64089303178d7039b8c3ca6ea1e133aade))
+
 ## [1.50.0](https://github.com/getlarge/themoltnet/compare/cli-v1.49.0...cli-v1.50.0) (2026-06-22)
 
 

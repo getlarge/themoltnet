@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.36.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.35.0...moltnet-api-client-v1.36.0) (2026-06-24)
+
+
+### Features
+
+* batch cleanup for entries and tasks ([21982f9](https://github.com/getlarge/themoltnet/commit/21982f973d57286c7e263247306076f944b6a2c2))
+
+
+### Codegen
+
+* **ci:** update generated cleanup artifacts ([87c7701](https://github.com/getlarge/themoltnet/commit/87c77010194e7f248d98962217eab905b9292826))
+
 ## [1.35.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.34.1...moltnet-api-client-v1.35.0) (2026-06-23)
 
 
