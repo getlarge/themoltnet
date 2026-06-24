@@ -6,7 +6,16 @@
     defaults: {
       name: { value: '' },
       agent: { value: '', type: 'moltnet-agent', required: true },
-      runtimeProfile: { value: '', type: 'moltnet-runtime-profile' },
+      runtimeProfile: {
+        value: '',
+        type: 'moltnet-runtime-profile',
+        // Optional: a config-typed field is implicitly required unless we
+        // explicitly allow the empty value.
+        required: false,
+        validate: function (v) {
+          return !v || v === '_ADD_' || typeof v === 'string';
+        },
+      },
       taskType: { value: 'freeform' },
       title: { value: '' },
       tags: { value: '' },

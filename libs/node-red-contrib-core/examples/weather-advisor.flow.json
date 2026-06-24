@@ -55,7 +55,7 @@
     "z": "weather_tab"
   },
   {
-    "func": "const userText = msg.payload;\nmsg.payload = {\n  input: {\n    brief:\n      \"Classify this request and extract slots. Return your structured answer as an \" +\n      \"artifact with fields: proceed (boolean — true only if this is a weather-activity \" +\n      \"question), location (string), timeframe (string), activity (string). If it is not \" +\n      \"a weather-activity question, set proceed=false. Request: \\\"\" + userText + \"\\\"\",\n    context: { userText },\n    successCriteria: {\n      version: 1,\n      gates: [\n        {\n          id: 'submit-output',\n          kind: 'submit-tool-call',\n          description: 'Call submit_freeform_output once with the structured slots.',\n          required: true\n        }\n      ]\n    }\n  }\n};\nreturn msg;",
+    "func": "const userText = msg.payload;\nmsg.payload = {\n  input: {\n    brief:\n      \"Classify this request and extract slots. Return your structured answer as an \" +\n      \"artifact with fields: proceed (boolean — true only if this is a weather-activity \" +\n      \"question), location (string), timeframe (string), activity (string). If it is not \" +\n      \"a weather-activity question, set proceed=false. Request: \\\"\" + userText + \"\\\"\",\n    context: [\n      { slug: 'user-request', binding: 'context_inline', content: String(userText) }\n    ],\n    execution: { workspace: 'none' },\n    successCriteria: {\n      version: 1,\n      gates: [\n        {\n          id: 'submit-output',\n          kind: 'submit-tool-call',\n          description: 'Call submit_freeform_output once with the structured slots.',\n          required: true\n        }\n      ]\n    }\n  }\n};\nreturn msg;",
     "id": "fn_intent_brief",
     "name": "build INTENT brief",
     "noerr": 0,
@@ -94,7 +94,7 @@
     "z": "weather_tab"
   },
   {
-    "func": "// Freeform output puts structured data in state.artifacts; fall back to summary.\nconst state = msg.payload && msg.payload.state ? msg.payload.state : {};\nlet slots = {};\nconst art = Array.isArray(state.artifacts) ? state.artifacts[0] : null;\nif (art && typeof art === 'object') slots = art.content || art.data || art;\n// Some agents inline JSON in the summary — try to recover it.\nif ((slots.proceed === undefined) && typeof state.summary === 'string') {\n  const m = state.summary.match(/\\{[\\s\\S]*\\}/);\n  if (m) { try { slots = JSON.parse(m[0]); } catch (e) {} }\n}\nmsg.intent = slots;\nmsg.intentTaskId = msg.payload && msg.payload.taskId;\nmsg.proceed = slots.proceed === true;\nreturn msg;",
+    "func": "// Freeform artifacts are { kind, title, body } where `body` holds the inline\n// content (a JSON string for kind:'json'). Extract the first artifact's body,\n// falling back to the summary if the agent inlined JSON there instead.\nfunction extractJson(state) {\n  const arts = Array.isArray(state.artifacts) ? state.artifacts : [];\n  for (const art of arts) {\n    if (!art || typeof art !== 'object') continue;\n    if (typeof art.body === 'string') {\n      try { return JSON.parse(art.body); } catch (e) { /* not JSON, keep looking */ }\n    } else if (art.body && typeof art.body === 'object') {\n      return art.body;\n    }\n  }\n  if (typeof state.summary === 'string') {\n    const m = state.summary.match(/\\{[\\s\\S]*\\}/);\n    if (m) { try { return JSON.parse(m[0]); } catch (e) {} }\n  }\n  return {};\n}\nconst state = (msg.payload && msg.payload.state) || {};\nconst slots = extractJson(state);\nmsg.intent = slots;\nmsg.intentTaskId = msg.payload && msg.payload.taskId;\nmsg.intentOutputCid = msg.payload && msg.payload.attempt && msg.payload.attempt.outputCid;\nmsg.proceed = slots.proceed === true;\nreturn msg;",
     "id": "fn_parse_intent",
     "name": "parse slots",
     "noerr": 0,
@@ -146,7 +146,7 @@
     "z": "weather_tab"
   },
   {
-    "func": "const forecast = msg.payload; // http response object\nmsg.payload = {\n  input: {\n    brief:\n      \"Given this 7-day forecast and the user's activity, recommend the best day(s) with \" +\n      \"concrete reasoning (temperature, rain probability), or advise against if the weather \" +\n      \"is poor. Be specific about which day and why.\",\n    context: { intent: msg.intent, forecast }\n  },\n  references: msg.intentTaskId ? [{ taskId: msg.intentTaskId, role: 'context' }] : []\n};\nreturn msg;",
+    "func": "const forecast = msg.payload; // http response object\nmsg.payload = {\n  input: {\n    brief:\n      \"Given this 7-day forecast and the user's activity, recommend the best day(s) with \" +\n      \"concrete reasoning (temperature, rain probability), or advise against if the weather \" +\n      \"is poor. Be specific about which day and why.\",\n    context: [\n      { slug: 'intent', binding: 'context_inline', content: JSON.stringify(msg.intent || {}) },\n      { slug: 'forecast', binding: 'context_inline', content: JSON.stringify(forecast || {}).slice(0, 60000) }\n    ],\n    execution: { workspace: 'none' }\n  },\n  references: msg.intentOutputCid ? [{ taskId: msg.intentTaskId, outputCid: msg.intentOutputCid, role: 'context' }] : []\n};\nreturn msg;",
     "id": "fn_advisor_brief",
     "name": "build ADVISOR brief",
     "noerr": 0,
@@ -184,7 +184,7 @@
     "z": "weather_tab"
   },
   {
-    "func": "const advisor = msg.payload && msg.payload.state ? msg.payload.state : {};\nmsg.advisorTaskId = msg.payload && msg.payload.taskId;\nmsg.payload = {\n  input: {\n    brief:\n      \"Evaluate the weather recommendation against the rubric. Return an artifact with \" +\n      \"fields: pass (boolean), score (0-1), notes (string). pass=true only if the advice is \" +\n      \"sound, matches the forecast, and is actionable.\",\n    context: { recommendation: advisor.summary, recommendationArtifacts: advisor.artifacts },\n    successCriteria: {\n      version: 1,\n      gates: [\n        {\n          id: 'submit-output',\n          kind: 'submit-tool-call',\n          description: 'Call submit_freeform_output once with the verdict.',\n          required: true\n        }\n      ]\n    }\n  },\n  references: msg.advisorTaskId ? [{ taskId: msg.advisorTaskId, role: 'judged_work' }] : []\n};\nreturn msg;",
+    "func": "const advisor = msg.payload && msg.payload.state ? msg.payload.state : {};\nmsg.advisorTaskId = msg.payload && msg.payload.taskId;\nconst advisorOutputCid = msg.payload && msg.payload.attempt && msg.payload.attempt.outputCid;\nmsg.payload = {\n  input: {\n    brief:\n      \"Evaluate the weather recommendation against the rubric. Return an artifact with \" +\n      \"fields: pass (boolean), score (0-1), notes (string). pass=true only if the advice is \" +\n      \"sound, matches the forecast, and is actionable.\",\n    context: [\n      { slug: 'recommendation', binding: 'context_inline', content: String(advisor.summary || 'n/a') }\n    ],\n    execution: { workspace: 'none' },\n    successCriteria: {\n      version: 1,\n      gates: [\n        {\n          id: 'submit-output',\n          kind: 'submit-tool-call',\n          description: 'Call submit_freeform_output once with the verdict.',\n          required: true\n        }\n      ]\n    }\n  },\n  references: advisorOutputCid ? [{ taskId: msg.advisorTaskId, outputCid: advisorOutputCid, role: 'judged_work' }] : []\n};\nreturn msg;",
     "id": "fn_judge_brief",
     "name": "build JUDGE brief",
     "noerr": 0,
@@ -222,7 +222,7 @@
     "z": "weather_tab"
   },
   {
-    "func": "const state = msg.payload && msg.payload.state ? msg.payload.state : {};\nlet verdict = {};\nconst art = Array.isArray(state.artifacts) ? state.artifacts[0] : null;\nif (art && typeof art === 'object') verdict = art.content || art.data || art;\nif ((verdict.pass === undefined) && typeof state.summary === 'string') {\n  const m = state.summary.match(/\\{[\\s\\S]*\\}/);\n  if (m) { try { verdict = JSON.parse(m[0]); } catch (e) {} }\n}\nmsg.verdict = verdict;\nmsg.pass = verdict.pass === true;\nreturn msg;",
+    "func": "// Same extraction as the intent parser: read the first artifact's `body`\n// (JSON string), falling back to a JSON blob in the summary.\nfunction extractJson(state) {\n  const arts = Array.isArray(state.artifacts) ? state.artifacts : [];\n  for (const art of arts) {\n    if (!art || typeof art !== 'object') continue;\n    if (typeof art.body === 'string') {\n      try { return JSON.parse(art.body); } catch (e) {}\n    } else if (art.body && typeof art.body === 'object') {\n      return art.body;\n    }\n  }\n  if (typeof state.summary === 'string') {\n    const m = state.summary.match(/\\{[\\s\\S]*\\}/);\n    if (m) { try { return JSON.parse(m[0]); } catch (e) {} }\n  }\n  return {};\n}\nconst state = (msg.payload && msg.payload.state) || {};\nconst verdict = extractJson(state);\nmsg.verdict = verdict;\nmsg.pass = verdict.pass === true;\nreturn msg;",
     "id": "fn_parse_verdict",
     "name": "parse verdict",
     "noerr": 0,

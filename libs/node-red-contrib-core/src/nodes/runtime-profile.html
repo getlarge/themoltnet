@@ -40,11 +40,17 @@
           .done((data) => {
             const profiles = (data && data.profiles) || [];
             if (!profiles.length) {
-              showManual(
-                (data && data.error === 'agent-not-deployed'
-                  ? 'Deploy the agent first to list profiles, or '
-                  : 'No profiles found, or ') + 'enter a Profile ID manually.',
-              );
+              let prefix;
+              if (data && data.error === 'agent-not-deployed') {
+                prefix = 'Deploy the agent first to list profiles. ';
+              } else if (data && data.error) {
+                // Surface the real backend error instead of hiding it behind
+                // a generic "no profiles" message.
+                prefix = 'Could not list profiles: ' + data.error + '. ';
+              } else {
+                prefix = 'No profiles found for this team. ';
+              }
+              showManual(prefix + 'Enter a Profile ID manually.');
               return;
             }
             select.empty();
