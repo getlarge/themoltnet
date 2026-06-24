@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.16.0...rest-api-v0.17.0) (2026-06-24)
+
+
+### Features
+
+* **runtime-profiles:** add workspace mode policy ([7c0a4b6](https://github.com/getlarge/themoltnet/commit/7c0a4b6d60ff3ffd5f118bf5b28e85a7f8224886))
+* **runtime-profiles:** add workspace mode policy ([1b48a18](https://github.com/getlarge/themoltnet/commit/1b48a186caeb87e8919c72f006277be87d3e85e8))
+
 ## [0.16.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.15.0...rest-api-v0.16.0) (2026-06-24)
 
 
