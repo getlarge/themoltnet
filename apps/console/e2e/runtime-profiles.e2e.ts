@@ -16,6 +16,7 @@ test.describe.serial('Runtime profiles console', () => {
   const user = createTestUser({ prefix: 'runtime-profiles-e2e' });
   const nonce = randomBytes(3).toString('hex');
   const profileName = `console-profile-${nonce}`;
+  const secondProfileName = `console-profile-second-${nonce}`;
   const editedDescription = `Updated profile description ${nonce}`;
   let sessionToken: string;
   let teamId: string;
@@ -57,12 +58,33 @@ test.describe.serial('Runtime profiles console', () => {
       }),
     ).toBeVisible();
 
+    await page.getByRole('button', { name: /new profile/i }).click();
+    await expect(page.getByLabel(/^name$/i)).toHaveValue('');
+    await expect(
+      page.getByRole('button', { name: /create profile/i }),
+    ).toBeVisible();
+    await page.getByLabel(/^name$/i).fill(secondProfileName);
+    await page.getByLabel(/^provider$/i).fill('anthropic');
+    await page.getByLabel(/^model$/i).fill('claude-sonnet-4-5');
+    await page.getByLabel(/sandbox json/i).fill('{}');
+    await page.getByRole('button', { name: /create profile/i }).click();
+
+    await expect(
+      page.getByRole('button', { name: new RegExp(profileName) }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: new RegExp(secondProfileName) }),
+    ).toBeVisible();
+
     await page.getByLabel(/description/i).fill(editedDescription);
     await page.getByRole('button', { name: /save profile/i }).click();
     await expect(page.getByLabel(/description/i)).toHaveValue(
       editedDescription,
     );
 
+    await page.getByRole('button', { name: /delete profile/i }).click();
+    await expect(page.getByText(secondProfileName)).toHaveCount(0);
+    await page.getByRole('button', { name: new RegExp(profileName) }).click();
     await page.getByRole('button', { name: /delete profile/i }).click();
     await expect(page.getByText(profileName)).toHaveCount(0);
     await expect(page.getByText(/no runtime profiles yet/i)).toBeVisible();

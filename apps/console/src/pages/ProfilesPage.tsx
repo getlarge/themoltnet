@@ -61,6 +61,7 @@ const EMPTY_FORM: ProfileFormState = {
 
 const RUNTIME_PROFILE_DOCS_HREF =
   'https://docs.themolt.net/use/agent-daemon.html#remote-runtime-profiles';
+const NEW_PROFILE_ID = '__new_runtime_profile__';
 
 const FIELD_HELP = {
   sessionTtlSec:
@@ -132,6 +133,7 @@ export function ProfilesPage() {
     if (
       profilesQuery.data &&
       selectedProfileId &&
+      selectedProfileId !== NEW_PROFILE_ID &&
       !profiles.some((profile) => profile.id === selectedProfileId)
     ) {
       setSelectedProfileId(profiles[0]?.id ?? null);
@@ -180,7 +182,7 @@ export function ProfilesPage() {
   }
 
   function startNewProfile() {
-    setSelectedProfileId(null);
+    setSelectedProfileId(NEW_PROFILE_ID);
     setForm(EMPTY_FORM);
     setFormError(null);
   }
