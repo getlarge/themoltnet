@@ -19,6 +19,7 @@ export default defineConfig({
         paths: {
           '@moltnet/api-client': ['../api-client/dist/index.d.ts'],
           '@moltnet/crypto-service': ['../crypto-service/dist/index.d.ts'],
+          '@moltnet/tasks': ['../tasks/dist/index.d.ts'],
         },
       },
     }),

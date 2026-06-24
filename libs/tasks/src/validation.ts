@@ -1,7 +1,5 @@
 import './formats.js';
 
-import { randomUUID } from 'node:crypto';
-
 import type { TSchema } from 'typebox';
 import { Value } from 'typebox/value';
 
@@ -92,6 +90,10 @@ type ValidationErrorWithParams = {
  * queryable by default. Preserves caller-supplied values. Composes with
  * `normalizeTaskInputForCreate` (which handles task-type-specific input
  * gates); both run server-side before validation.
+ *
+ * Uses the isomorphic Web Crypto `globalThis.crypto.randomUUID()` rather than
+ * `node:crypto` so this `platform:isomorphic` package stays browser-safe — it
+ * is bundled (via `@themoltnet/sdk`) into browser builds such as the docs site.
  */
 export function normalizeTaskCreateRequest<
   T extends Record<string, unknown> & { correlationId?: string | null },
@@ -102,7 +104,7 @@ export function normalizeTaskCreateRequest<
     // through validation upstream) is preserved verbatim. Upstream
     // TypeBox/schema validation is responsible for rejecting empties
     // when they're invalid in domain terms.
-    correlationId: request.correlationId ?? randomUUID(),
+    correlationId: request.correlationId ?? globalThis.crypto.randomUUID(),
   };
 }
 

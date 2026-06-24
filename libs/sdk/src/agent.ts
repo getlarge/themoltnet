@@ -119,6 +119,17 @@ import type {
   VerifyResult,
   Voucher,
 } from '@moltnet/api-client';
+import type {
+  AssessBriefInput,
+  CuratePackInput,
+  FreeformInput,
+  FulfillBriefInput,
+  JudgeEvalAttemptInput,
+  JudgePackInput,
+  PrReviewInput,
+  RenderPackInput,
+  RunEvalInput,
+} from '@moltnet/tasks';
 
 import type { AgentContext } from './agent-context.js';
 import { createAgentsNamespace } from './namespaces/agents.js';
@@ -139,6 +150,7 @@ import { createSigningRequestsNamespace } from './namespaces/signing-requests.js
 import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
 import { createVouchNamespace } from './namespaces/vouch.js';
+import type { TaskBuilder, TaskResultReader } from './tasks/index.js';
 import type { TokenManager } from './token.js';
 
 // ---------------------------------------------------------------------------
@@ -473,6 +485,69 @@ export interface TasksNamespace {
   list(query: ListTasksData['query']): Promise<TaskListResponse>;
 
   create(body: CreateTaskData['body']): Promise<Task>;
+
+  /** Generic builder escape hatch for any task type slug. */
+  buildTask<TInput extends Record<string, unknown>>(
+    taskType: string,
+    input: TInput,
+  ): TaskBuilder<TInput>;
+  /** Typed builder for a `freeform` task (`brief` required). */
+  buildFreeform(
+    input: Pick<FreeformInput, 'brief'> & Partial<FreeformInput>,
+  ): TaskBuilder<FreeformInput>;
+  /** Typed builder for a `fulfill_brief` task (`brief` required). */
+  buildFulfillBrief(
+    input: Pick<FulfillBriefInput, 'brief'> & Partial<FulfillBriefInput>,
+  ): TaskBuilder<FulfillBriefInput>;
+  /** Typed builder for a `curate_pack` task (`diaryId` + `taskPrompt` required). */
+  buildCuratePack(
+    input: Pick<CuratePackInput, 'diaryId' | 'taskPrompt'> &
+      Partial<CuratePackInput>,
+  ): TaskBuilder<CuratePackInput>;
+  /** Typed builder for a `render_pack` task (`packId` required). */
+  buildRenderPack(
+    input: Pick<RenderPackInput, 'packId'> & Partial<RenderPackInput>,
+  ): TaskBuilder<RenderPackInput>;
+  /** Typed builder for a `run_eval` task (scenario/variantLabel/execution/context required). */
+  buildRunEval(
+    input: Pick<
+      RunEvalInput,
+      'scenario' | 'variantLabel' | 'execution' | 'context'
+    > &
+      Partial<RunEvalInput>,
+  ): TaskBuilder<RunEvalInput>;
+  /** Typed builder for an `assess_brief` task (targetTaskId + successCriteria required; needs references). */
+  buildAssessBrief(
+    input: Pick<AssessBriefInput, 'targetTaskId' | 'successCriteria'> &
+      Partial<AssessBriefInput>,
+  ): TaskBuilder<AssessBriefInput>;
+  /** Typed builder for a `judge_pack` task (renderedPackId/sourcePackId/successCriteria required; needs references). */
+  buildJudgePack(
+    input: Pick<
+      JudgePackInput,
+      'renderedPackId' | 'sourcePackId' | 'successCriteria'
+    > &
+      Partial<JudgePackInput>,
+  ): TaskBuilder<JudgePackInput>;
+  /** Typed builder for a `judge_eval_attempt` task (targetTaskId/targetAttemptN/successCriteria required). */
+  buildJudgeEvalAttempt(
+    input: Pick<
+      JudgeEvalAttemptInput,
+      'targetTaskId' | 'targetAttemptN' | 'successCriteria'
+    > &
+      Partial<JudgeEvalAttemptInput>,
+  ): TaskBuilder<JudgeEvalAttemptInput>;
+  /** Typed builder for a `pr_review` task (subject + successCriteria required). */
+  buildPrReview(
+    input: Pick<PrReviewInput, 'subject' | 'successCriteria'> &
+      Partial<PrReviewInput>,
+  ): TaskBuilder<PrReviewInput>;
+
+  /**
+   * Resolve a completed task's accepted output into a typed reader.
+   * Accepts a task id (fetched) or a `Task` already in hand.
+   */
+  readResult(taskOrId: string | Task): Promise<TaskResultReader>;
 
   get(id: string): Promise<Task>;
 

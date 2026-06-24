@@ -1763,6 +1763,9 @@ importers:
       '@noble/hashes':
         specifier: 'catalog:'
         version: 1.8.0
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
     devDependencies:
       '@moltnet/api-client':
         specifier: workspace:*
@@ -1770,6 +1773,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../crypto-service
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
