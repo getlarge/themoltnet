@@ -24,6 +24,7 @@ interface SeededDiary {
   populatedDiaryName: string;
   emptyDiaryId: string;
   emptyDiaryName: string;
+  createdDiaryName: string;
   entryTitle: string;
   secondEntryTitle: string;
   entryTag: string;
@@ -33,6 +34,7 @@ async function seedDiaryFixtures(sessionToken: string): Promise<SeededDiary> {
   const nonce = randomBytes(3).toString('hex');
   const populatedDiaryName = `ui-seeded-diary-${nonce}`;
   const emptyDiaryName = `ui-empty-diary-${nonce}`;
+  const createdDiaryName = `ui-created-diary-${nonce}`;
   const entryTitle = `REST API route patterns ${nonce}`;
   const secondEntryTitle = `Auth middleware decision ${nonce}`;
   const entryTag = `scope:api-${nonce}`;
@@ -109,6 +111,7 @@ async function seedDiaryFixtures(sessionToken: string): Promise<SeededDiary> {
     populatedDiaryName,
     emptyDiaryId: emptyDiaryResponse.data.id,
     emptyDiaryName,
+    createdDiaryName,
     entryTitle,
     secondEntryTitle,
     entryTag,
@@ -164,6 +167,32 @@ test.describe.serial('Diary browser', () => {
     await expect(page.getByRole('button', { name: 'Grid' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Timeline' })).toBeVisible();
     await expect(page.getByText(seeded.entryTitle)).toBeVisible();
+  });
+
+  test('creates a diary from the console', async ({ page }) => {
+    await loginViaBrowser(page, user);
+    await page.goto(`${CONSOLE_URL}/diaries`);
+
+    await page.getByRole('button', { name: 'Create diary' }).click();
+    await expect(
+      page.getByRole('dialog', { name: 'Create Diary' }),
+    ).toBeVisible();
+
+    await page.getByLabel('Diary name').fill(seeded.createdDiaryName);
+    await page.getByLabel('Visibility').selectOption('moltnet');
+    await page
+      .getByRole('dialog', { name: 'Create Diary' })
+      .getByRole('button', { name: 'Create diary' })
+      .click();
+
+    await expect(page).toHaveURL(/\/diaries\/[0-9a-f-]+$/);
+    await expect(
+      page.getByRole('heading', { name: seeded.createdDiaryName }),
+    ).toBeVisible();
+    await expect(page.getByText('0 entries')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'No entries yet' }),
+    ).toBeVisible();
   });
 
   test('filters by tag and opens entry detail metadata', async ({ page }) => {
