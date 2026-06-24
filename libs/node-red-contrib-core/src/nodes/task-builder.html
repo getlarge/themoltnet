@@ -8,6 +8,8 @@
       agent: { value: '', type: 'moltnet-agent', required: true },
       taskType: { value: 'freeform' },
       brief: { value: '' },
+      title: { value: '' },
+      tags: { value: '' },
       teamId: { value: '' },
       teamIdType: { value: 'str' },
       diaryId: { value: '' },
@@ -67,6 +69,18 @@
       type="text"
       id="node-input-brief"
       placeholder="msg.payload.input.brief"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-title"><i class="fa fa-header"></i> Title</label>
+    <input type="text" id="node-input-title" placeholder="(optional)" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-tags"><i class="fa fa-tags"></i> Tags</label>
+    <input
+      type="text"
+      id="node-input-tags"
+      placeholder="comma-separated, e.g. triage,issue-1"
     />
   </div>
   <div class="form-row">
@@ -134,9 +148,17 @@
 <script type="text/html" data-help-name="moltnet-task-builder">
   <p>
     Composes a validated MoltNet <code>tasks.create</code> body from config +
-    the incoming message, using the SDK fluent builder. The built body is set on
-    <code>msg.payload</code> for a downstream <code>tasks: create</code>.
-    Validation errors show on the node (red ring) with the offending field.
+    the incoming message, using the SDK fluent builder. The built body —
+    <b>task type</b>, <b>title</b>, <b>tags</b>, <code>input</code>,
+    <code>references</code>, gates — is set on <code>msg.payload</code> for a
+    downstream <code>tasks: create</code>. Validation errors show on the node
+    (red ring) with the offending field.
+  </p>
+  <p>
+    <b>Title</b> and <b>Tags</b> (comma-separated → <code>string[]</code>) are
+    optional; <code>msg.payload.title</code> /
+    <code>msg.payload.tags</code> override the node values.
+    <b>Task type</b> defaults to <code>freeform</code>.
   </p>
   <p>
     <b>Team / Diary (override)</b> default to the referenced <b>agent</b>'s

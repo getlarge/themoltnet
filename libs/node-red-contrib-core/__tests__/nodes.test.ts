@@ -38,20 +38,18 @@ describe('moltnet-tasks-create', () => {
     red.load(agentStub(agent));
     red.load(tasksCreate);
     red.create('moltnet-agent', 'a1');
-    const node = red.create('moltnet-tasks-create', 'n1', {
-      agent: 'a1',
-      taskType: 'freeform',
-    });
+    const node = red.create('moltnet-tasks-create', 'n1', { agent: 'a1' });
 
     const { outputs } = await red.input(node, { payload: { foo: 'bar' } });
 
     expect(outputs).toHaveLength(1);
     expect(outputs[0].payload).toMatchObject({ id: 'task-123' });
-    // Payload is preserved and the configured taskType is merged in.
+    // Payload is preserved; taskType defaults to freeform when the payload
+    // (e.g. from task: build) does not set it.
     expect(created).toEqual([{ foo: 'bar', taskType: 'freeform' }]);
   });
 
-  it('falls back to config taskType and inherits team/diary from the agent', async () => {
+  it('defaults taskType to freeform and inherits team/diary from the agent', async () => {
     const created: Record<string, unknown>[] = [];
     const options: Record<string, unknown>[] = [];
     const agent = {
@@ -75,22 +73,20 @@ describe('moltnet-tasks-create', () => {
     const a = red.create('moltnet-agent', 'a1');
     (a as Record<string, unknown>).teamId = 'team-1';
     (a as Record<string, unknown>).diaryId = 'diary-1';
-    const node = red.create('moltnet-tasks-create', 'n1', {
-      agent: 'a1',
-      taskType: 'review',
-    });
+    const node = red.create('moltnet-tasks-create', 'n1', { agent: 'a1' });
 
     await red.input(node, { payload: 'not-an-object' });
 
     // teamId is passed as the SDK team-context option; diaryId stays in the body.
+    // taskType defaults to freeform (the body normally arrives from task: build).
     expect(created[0]).toMatchObject({
-      taskType: 'review',
+      taskType: 'freeform',
       diaryId: 'diary-1',
     });
     expect(options[0]).toEqual({ teamId: 'team-1' });
   });
 
-  it('builds body from node fields (tags/profiles/maxAttempts/title); payload wins', async () => {
+  it('passes through the body from msg.payload (task: build); node only adds maxAttempts', async () => {
     const created: Record<string, unknown>[] = [];
     const agent = {
       tasks: {
@@ -104,25 +100,27 @@ describe('moltnet-tasks-create', () => {
     red.load(agentStub(agent));
     red.load(tasksCreate);
     red.create('moltnet-agent', 'a1');
+    // taskType/title/tags/allowedProfiles are NO LONGER node fields — they
+    // arrive on msg.payload (composed by task: build). The node only fills
+    // maxAttempts (and team/diary/correlationId).
     const node = red.create('moltnet-tasks-create', 'n1', {
       agent: 'a1',
-      taskType: 'fulfill_brief',
-      title: 'node title',
-      tags: 'triage, issue-1',
-      allowedProfiles: 'prof-a, prof-b',
       maxAttempts: 3,
     });
 
-    // payload carries input + overrides the title; node fills the rest.
     const { outputs } = await red.input(node, {
-      payload: { input: { brief: 'go' }, title: 'payload title' },
+      payload: {
+        taskType: 'fulfill_brief',
+        title: 'built title',
+        tags: ['triage', 'issue-1'],
+        input: { brief: 'go' },
+      },
     });
 
     expect(created[0]).toMatchObject({
       taskType: 'fulfill_brief',
-      title: 'payload title',
+      title: 'built title',
       tags: ['triage', 'issue-1'],
-      allowedProfiles: [{ profileId: 'prof-a' }, { profileId: 'prof-b' }],
       maxAttempts: 3,
       input: { brief: 'go' },
     });
@@ -567,20 +565,6 @@ describe('moltnet-runtime-profile + tasks-create routing', () => {
     });
 
     expect(created[0].allowedProfiles).toEqual([{ profileId: 'pay' }]);
-  });
-
-  it('CSV allowedProfiles field beats the config node', async () => {
-    const { red, created } = setup({});
-    red.create('moltnet-runtime-profile', 'rp1', { profileId: 'prof-x' });
-    const node = red.create('moltnet-tasks-create', 'n1', {
-      agent: 'a1',
-      runtimeProfile: 'rp1',
-      allowedProfiles: 'csv-a',
-    });
-
-    await red.input(node, { payload: {} });
-
-    expect(created[0].allowedProfiles).toEqual([{ profileId: 'csv-a' }]);
   });
 
   it('leaves allowedProfiles unset when the config node has no profileId', async () => {

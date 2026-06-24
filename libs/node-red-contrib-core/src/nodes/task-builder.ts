@@ -1,4 +1,4 @@
-import { buildFreeform, TaskBuildError } from '@themoltnet/sdk';
+import { buildTask, TaskBuildError } from '@themoltnet/sdk';
 import type {
   Node,
   NodeDef,
@@ -37,6 +37,10 @@ interface TaskBuilderDef extends NodeDef {
   agent?: string;
   taskType?: string;
   brief?: string;
+  /** Human-readable task title; falls back to `msg.payload.title`. */
+  title?: string;
+  /** Comma-separated task tags; falls back to `msg.payload.tags`. */
+  tags?: string;
   /** Optional team override; falls back to the agent's team when blank. */
   teamId?: string;
   teamIdType?: ValueType;
@@ -56,6 +60,15 @@ interface TaskBuilderDef extends NodeDef {
   workspace?: 'none' | 'shared_mount' | 'dedicated_worktree';
   constraints?: string[];
   expectedOutput?: string;
+}
+
+/** Split a comma-separated config string into trimmed, non-empty values. */
+function parseCsv(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /** Resolve a context mapping's raw value from the message / context stores / literal. */
@@ -137,7 +150,11 @@ const init: NodeInitializer = (RED): void => {
             ? (payloadInput.input as { brief: string }).brief
             : (def.brief ?? '');
 
-        const builder = buildFreeform({ brief });
+        // Generic builder keyed on the configured task type (default freeform).
+        // buildFreeform delegates to buildTask('freeform', ...) anyway, so the
+        // gate/normalize behavior is identical for freeform.
+        const taskType = def.taskType?.trim() || 'freeform';
+        const builder = buildTask(taskType, { brief });
 
         // Team/diary: explicit override (node typedInput, or msg.payload) →
         // agent default. The override fields make precedence visible in the
@@ -190,6 +207,19 @@ const init: NodeInitializer = (RED): void => {
           inputPatch.constraints = def.constraints;
         if (def.expectedOutput) inputPatch.expectedOutput = def.expectedOutput;
         if (Object.keys(inputPatch).length > 0) builder.input(inputPatch);
+
+        // Top-level body fields: msg.payload wins, node config fills the gap
+        // (mirrors the tasks-create precedence these fields moved away from).
+        const title =
+          typeof payloadInput.title === 'string' && payloadInput.title
+            ? payloadInput.title
+            : def.title?.trim();
+        if (title) builder.title(title);
+
+        const tags = Array.isArray(payloadInput.tags)
+          ? (payloadInput.tags as string[])
+          : parseCsv(def.tags);
+        if (tags.length > 0) builder.tags(...tags);
 
         const built = builder.build();
 

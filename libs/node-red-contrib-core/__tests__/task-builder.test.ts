@@ -176,3 +176,50 @@ describe('moltnet-task-builder references + gates + execution', () => {
     expect(input.execution?.workspace).toBe('none');
   });
 });
+
+describe('moltnet-task-builder taskType + title + tags', () => {
+  it('defaults to freeform and sets title + tags (CSV) on the body', async () => {
+    const { red, node } = setup({
+      brief: 'b',
+      title: 'Triage issue',
+      tags: 'triage, issue-1',
+    });
+    const { outputs } = await red.input(node, { payload: {} });
+    const payload = outputs[0].payload as Record<string, unknown>;
+    expect(payload.taskType).toBe('freeform');
+    expect(payload.title).toBe('Triage issue');
+    expect(payload.tags).toEqual(['triage', 'issue-1']);
+  });
+
+  it('builds a non-freeform task type via the generic builder', async () => {
+    const { red, node } = setup({ taskType: 'fulfill_brief', brief: 'do it' });
+    const { outputs } = await red.input(node, { payload: {} });
+    const payload = outputs[0].payload as Record<string, unknown>;
+    expect(payload.taskType).toBe('fulfill_brief');
+    expect((payload.input as { brief: string }).brief).toBe('do it');
+  });
+
+  it('lets msg.payload override the node taskType/title/tags', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      title: 'node title',
+      tags: 'node-tag',
+    });
+    const { outputs } = await red.input(node, {
+      payload: { title: 'msg title', tags: ['msg-tag'] },
+    } as Record<string, unknown>);
+    const payload = outputs[0].payload as Record<string, unknown>;
+    // msg wins, config fills gaps (mirrors tasks-create precedence).
+    expect(payload.title).toBe('msg title');
+    expect(payload.tags).toEqual(['msg-tag']);
+  });
+
+  it('omits title/tags when neither config nor msg set them', async () => {
+    const { red, node } = setup({ taskType: 'freeform', brief: 'b' });
+    const { outputs } = await red.input(node, { payload: {} });
+    const payload = outputs[0].payload as Record<string, unknown>;
+    expect(payload.title).toBeUndefined();
+    expect(payload.tags).toBeUndefined();
+  });
+});

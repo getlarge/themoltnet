@@ -35,10 +35,6 @@ import type { MoltnetRuntimeProfileNode } from './runtime-profile.js';
 interface TasksCreateDef extends NodeDef {
   agent?: string; // id of the referenced moltnet-agent config node
   runtimeProfile?: string; // id of an optional moltnet-runtime-profile config node
-  taskType?: string;
-  title?: string;
-  tags?: string; // comma-separated
-  allowedProfiles?: string; // comma-separated runtime profileIds
   maxAttempts?: number;
   generateCorrelationId?: boolean;
 }
@@ -64,26 +60,20 @@ const init: NodeInitializer = (RED): void => {
           this.status({ fill: 'blue', shape: 'dot', text: 'creating…' });
           const agent = await agentNode.getAgent();
 
-          // msg.payload (programmatic) wins; node fields fill the gaps.
+          // The task body is composed upstream by moltnet-task-builder and
+          // arrives on msg.payload (taskType, title, tags, input, references,
+          // gates…). This node submits it and fills only the dispatch-level
+          // gaps: a freeform taskType fallback for ad-hoc payloads, the runtime
+          // profile, maxAttempts, team/diary, and the correlationId.
           const base: Record<string, unknown> =
             msg.payload && typeof msg.payload === 'object'
               ? { ...(msg.payload as Record<string, unknown>) }
               : {};
 
-          if (!base.taskType) base.taskType = def.taskType || 'freeform';
-          if (!base.title && def.title?.trim()) base.title = def.title.trim();
-          if (!base.tags) {
-            const tags = parseCsv(def.tags);
-            if (tags.length > 0) base.tags = tags;
-          }
-          if (!base.allowedProfiles) {
-            const profiles = parseCsv(def.allowedProfiles).map((profileId) => ({
-              profileId,
-            }));
-            if (profiles.length > 0) base.allowedProfiles = profiles;
-          }
-          // Runtime-profile config node: lowest precedence — only fills the gap
-          // when neither msg.payload nor the CSV field set allowedProfiles.
+          if (!base.taskType) base.taskType = 'freeform';
+          // Runtime-profile config node: a routing gate set here (not in the
+          // builder) since it pairs with which daemon claims the task. Only
+          // fills the gap when msg.payload didn't already set allowedProfiles.
           if (!base.allowedProfiles && profileNode?.profileId) {
             base.allowedProfiles = [{ profileId: profileNode.profileId }];
           }
@@ -147,15 +137,6 @@ const init: NodeInitializer = (RED): void => {
  * Returns `undefined` when none is available and generation is off (the task is
  * then created without one — valid for ad-hoc, non-workflow tasks).
  */
-/** Split a comma-separated config string into trimmed, non-empty values. */
-function parseCsv(raw: string | undefined): string[] {
-  if (!raw) return [];
-  return raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 function resolveCorrelationId(
   msg: NodeMessageInFlow,
   fromPayload: unknown,
