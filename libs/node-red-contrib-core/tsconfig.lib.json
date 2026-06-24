@@ -13,5 +13,12 @@
   "exclude": ["node_modules", "dist", "out-tsc"],
   "extends": "./tsconfig.json",
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../sdk/tsconfig.lib.json" }]
+  "references": [
+    {
+      "path": "../../tools/tsconfig.lib.json"
+    },
+    {
+      "path": "../sdk/tsconfig.lib.json"
+    }
+  ]
 }

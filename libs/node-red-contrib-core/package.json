@@ -26,7 +26,8 @@
   "main": "dist/nodes/agent.js",
   "scripts": {
     "build": "vite build",
-    "dev": "node scripts/dev.mjs"
+    "dev": "node scripts/dev.mjs",
+    "check:pack": "tsx scripts/check-pack.ts"
   },
   "dependencies": {
     "@themoltnet/sdk": "^0.112.0"
