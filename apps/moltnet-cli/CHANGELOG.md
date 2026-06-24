@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.52.0](https://github.com/getlarge/themoltnet/compare/cli-v1.51.0...cli-v1.52.0) (2026-06-24)
+
+
+### Features
+
+* **sdk:** standardize team context on x-moltnet-team-id header (RFC [#1440](https://github.com/getlarge/themoltnet/issues/1440), closes [#1381](https://github.com/getlarge/themoltnet/issues/1381)) ([39e1314](https://github.com/getlarge/themoltnet/commit/39e13140883cdc293f608a0d1514e91e913a4428))
+
+
+### Bug Fixes
+
+* **moltnet-cli:** surface inherited teamId in task continue --dry-run ([60d6698](https://github.com/getlarge/themoltnet/commit/60d669840a79513088e820f6e8053fb7f954bbbc))
+* **tasks:** migrate Go CLI + console e2e to team header; resync daemon-action bundle ([b3166c3](https://github.com/getlarge/themoltnet/commit/b3166c3f8f05f92733b77664bf32cca7ae920790))
+
 ## [1.51.0](https://github.com/getlarge/themoltnet/compare/cli-v1.50.0...cli-v1.51.0) (2026-06-24)
 
 
