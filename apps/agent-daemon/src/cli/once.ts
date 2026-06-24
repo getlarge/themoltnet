@@ -118,6 +118,8 @@ export async function runOnce(argv: string[]): Promise<number> {
       leaseTtlSec: profile.leaseTtlSec,
       heartbeatIntervalMs: profile.heartbeatIntervalMs,
       maxBatchSize: profile.maxBatchSize,
+      maxTurns: profile.maxTurns,
+      maxBashTimeouts: profile.maxBashTimeouts,
       warmSessionTtlSec: resolveProfileWarmSessionTtlSec(profile),
     },
   });
@@ -138,6 +140,10 @@ export async function runOnce(argv: string[]): Promise<number> {
     stateDirs,
     slotIdentity,
     warmSessionTtlSec: opts.warmSessionTtlSec,
+    workspacePolicy: {
+      defaultWorkspaceMode: profile.defaultWorkspaceMode,
+      allowedWorkspaceModes: profile.allowedWorkspaceModes,
+    },
     slotRegistry,
   });
   const otelShutdown = await initWorkerOtel({
@@ -172,6 +178,8 @@ export async function runOnce(argv: string[]): Promise<number> {
       taskId,
       leaseTtlSec: opts.leaseTtlSec,
       heartbeatIntervalMs: opts.heartbeatIntervalMs,
+      maxTurns: opts.maxTurns,
+      maxBashTimeouts: opts.maxBashTimeouts,
       warmSessionTtlSec: opts.warmSessionTtlSec,
       profileId: profile.id,
       profileSessionTtlSec: profile.sessionTtlSec,

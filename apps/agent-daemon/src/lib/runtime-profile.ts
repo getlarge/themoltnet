@@ -1,6 +1,7 @@
 import { accessSync, constants } from 'node:fs';
 import { delimiter, isAbsolute, resolve } from 'node:path';
 
+import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
 import type { SandboxConfig } from '@themoltnet/pi-extension';
 import type { Agent } from '@themoltnet/sdk';
 
@@ -15,8 +16,12 @@ export interface ResolvedRuntimeProfile {
   leaseTtlSec: number;
   heartbeatIntervalMs: number;
   maxBatchSize: number;
+  maxTurns: number;
+  maxBashTimeouts: number;
   sessionTtlSec: number;
   workspaceTtlSec: number;
+  defaultWorkspaceMode: RuntimeProfileWorkspaceMode | null;
+  allowedWorkspaceModes: RuntimeProfileWorkspaceMode[];
   requiredEnv: string[];
   requiredTools: string[];
   sandboxConfig: SandboxConfig;
@@ -71,8 +76,12 @@ export async function resolveRuntimeProfile(options: {
     leaseTtlSec: profile.leaseTtlSec,
     heartbeatIntervalMs: profile.heartbeatIntervalMs,
     maxBatchSize: profile.maxBatchSize,
+    maxTurns: profile.maxTurns,
+    maxBashTimeouts: profile.maxBashTimeouts,
     sessionTtlSec: profile.sessionTtlSec,
     workspaceTtlSec: profile.workspaceTtlSec,
+    defaultWorkspaceMode: profile.defaultWorkspaceMode ?? null,
+    allowedWorkspaceModes: profile.allowedWorkspaceModes,
     requiredEnv: profile.requiredEnv,
     requiredTools: profile.requiredTools,
     sandboxConfig: profile.sandbox,

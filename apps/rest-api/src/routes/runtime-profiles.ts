@@ -8,11 +8,16 @@ import {
   ProblemDetailsSchema,
   TeamHeaderOptionalSchema,
 } from '@moltnet/models';
+import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
 import { RuntimeProfile as RuntimeProfileSchema } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
-import { createConflictProblem, createProblem } from '../problems/index.js';
+import {
+  createConflictProblem,
+  createProblem,
+  createValidationProblem,
+} from '../problems/index.js';
 import {
   CreateRuntimeProfileBodySchema,
   RuntimeProfileListResponseSchema,
@@ -47,6 +52,39 @@ function normalizeList(values: readonly string[] | undefined): string[] {
   return [...new Set((values ?? []).map((v) => v.trim()).filter(Boolean))];
 }
 
+const DEFAULT_ALLOWED_WORKSPACE_MODES: RuntimeProfileWorkspaceMode[] = [
+  'none',
+  'shared_mount',
+  'dedicated_worktree',
+];
+
+function normalizeWorkspaceModes(
+  values: readonly RuntimeProfileWorkspaceMode[] | undefined,
+): RuntimeProfileWorkspaceMode[] {
+  return [...new Set(values ?? DEFAULT_ALLOWED_WORKSPACE_MODES)];
+}
+
+function validateWorkspacePolicy(input: {
+  defaultWorkspaceMode: RuntimeProfileWorkspaceMode | null;
+  allowedWorkspaceModes: readonly RuntimeProfileWorkspaceMode[];
+}): void {
+  if (
+    input.defaultWorkspaceMode &&
+    !input.allowedWorkspaceModes.includes(input.defaultWorkspaceMode)
+  ) {
+    throw createValidationProblem(
+      [
+        {
+          field: 'defaultWorkspaceMode',
+          message:
+            'defaultWorkspaceMode must be included in allowedWorkspaceModes',
+        },
+      ],
+      'Invalid runtime profile workspace policy',
+    );
+  }
+}
+
 function serializeProfile(
   row: RuntimeProfile,
 ): Static<typeof RuntimeProfileSchema> {
@@ -61,11 +99,17 @@ function serializeProfile(
     sandbox: row.sandbox as Record<string, unknown>,
     sessionStorageMode: 'local',
     workspaceStorageMode: 'local',
+    defaultWorkspaceMode:
+      (row.defaultWorkspaceMode as RuntimeProfileWorkspaceMode | null) ?? null,
+    allowedWorkspaceModes:
+      row.allowedWorkspaceModes as RuntimeProfileWorkspaceMode[],
     sessionTtlSec: row.sessionTtlSec,
     workspaceTtlSec: row.workspaceTtlSec,
     leaseTtlSec: row.leaseTtlSec,
     heartbeatIntervalMs: row.heartbeatIntervalMs,
     maxBatchSize: row.maxBatchSize,
+    maxTurns: row.maxTurns,
+    maxBashTimeouts: row.maxBashTimeouts,
     requiredEnv: row.requiredEnv,
     requiredTools: row.requiredTools,
     context: row.context as Static<typeof RuntimeProfileSchema>['context'],
@@ -87,11 +131,15 @@ type ProfileDefinitionInput = {
   sandbox: unknown;
   sessionStorageMode?: 'local';
   workspaceStorageMode?: 'local';
+  defaultWorkspaceMode?: RuntimeProfileWorkspaceMode | null;
+  allowedWorkspaceModes?: RuntimeProfileWorkspaceMode[];
   sessionTtlSec?: number;
   workspaceTtlSec?: number;
   leaseTtlSec?: number;
   heartbeatIntervalMs?: number;
   maxBatchSize?: number;
+  maxTurns?: number;
+  maxBashTimeouts?: number;
   requiredEnv?: string[];
   requiredTools?: string[];
   context?: unknown[];
@@ -110,11 +158,15 @@ async function computeProfileDefinitionCid(
     sandbox: input.sandbox,
     sessionStorageMode: input.sessionStorageMode ?? 'local',
     workspaceStorageMode: input.workspaceStorageMode ?? 'local',
+    defaultWorkspaceMode: input.defaultWorkspaceMode ?? null,
+    allowedWorkspaceModes: normalizeWorkspaceModes(input.allowedWorkspaceModes),
     sessionTtlSec: input.sessionTtlSec ?? 1800,
     workspaceTtlSec: input.workspaceTtlSec ?? 1800,
     leaseTtlSec: input.leaseTtlSec ?? 300,
     heartbeatIntervalMs: input.heartbeatIntervalMs ?? 60_000,
     maxBatchSize: input.maxBatchSize ?? 50,
+    maxTurns: input.maxTurns ?? 0,
+    maxBashTimeouts: input.maxBashTimeouts ?? 3,
     requiredEnv: normalizeList(input.requiredEnv).sort(),
     requiredTools: normalizeList(input.requiredTools).sort(),
     context: input.context ?? [],
@@ -192,6 +244,13 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       const body = request.body as Static<
         typeof CreateRuntimeProfileBodySchema
       >;
+      const workspacePolicy = {
+        defaultWorkspaceMode: body.defaultWorkspaceMode ?? null,
+        allowedWorkspaceModes: normalizeWorkspaceModes(
+          body.allowedWorkspaceModes,
+        ),
+      };
+      validateWorkspacePolicy(workspacePolicy);
       const definitionCid = await computeProfileDefinitionCid(body);
       try {
         const row = await fastify.runtimeProfileRepository.create({
@@ -204,11 +263,15 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           sandbox: body.sandbox,
           sessionStorageMode: body.sessionStorageMode ?? 'local',
           workspaceStorageMode: body.workspaceStorageMode ?? 'local',
+          defaultWorkspaceMode: workspacePolicy.defaultWorkspaceMode,
+          allowedWorkspaceModes: workspacePolicy.allowedWorkspaceModes,
           sessionTtlSec: body.sessionTtlSec ?? 1800,
           workspaceTtlSec: body.workspaceTtlSec ?? 1800,
           leaseTtlSec: body.leaseTtlSec ?? 300,
           heartbeatIntervalMs: body.heartbeatIntervalMs ?? 60_000,
           maxBatchSize: body.maxBatchSize ?? 50,
+          maxTurns: body.maxTurns ?? 0,
+          maxBashTimeouts: body.maxBashTimeouts ?? 3,
           requiredEnv: normalizeList(body.requiredEnv),
           requiredTools: normalizeList(body.requiredTools),
           context: body.context ?? [],
@@ -312,18 +375,33 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         sandbox: body.sandbox ?? existing.sandbox,
         sessionStorageMode: body.sessionStorageMode ?? 'local',
         workspaceStorageMode: body.workspaceStorageMode ?? 'local',
+        defaultWorkspaceMode:
+          'defaultWorkspaceMode' in body
+            ? (body.defaultWorkspaceMode ?? null)
+            : ((existing.defaultWorkspaceMode as RuntimeProfileWorkspaceMode | null) ??
+              null),
+        allowedWorkspaceModes: normalizeWorkspaceModes(
+          body.allowedWorkspaceModes ??
+            (existing.allowedWorkspaceModes as RuntimeProfileWorkspaceMode[]),
+        ),
         sessionTtlSec: body.sessionTtlSec ?? existing.sessionTtlSec,
         workspaceTtlSec: body.workspaceTtlSec ?? existing.workspaceTtlSec,
         leaseTtlSec: body.leaseTtlSec ?? existing.leaseTtlSec,
         heartbeatIntervalMs:
           body.heartbeatIntervalMs ?? existing.heartbeatIntervalMs,
         maxBatchSize: body.maxBatchSize ?? existing.maxBatchSize,
+        maxTurns: body.maxTurns ?? existing.maxTurns,
+        maxBashTimeouts: body.maxBashTimeouts ?? existing.maxBashTimeouts,
         requiredEnv: normalizeList(body.requiredEnv ?? existing.requiredEnv),
         requiredTools: normalizeList(
           body.requiredTools ?? existing.requiredTools,
         ),
         context: body.context ?? (existing.context as unknown[]),
       };
+      validateWorkspacePolicy({
+        defaultWorkspaceMode: next.defaultWorkspaceMode ?? null,
+        allowedWorkspaceModes: next.allowedWorkspaceModes ?? [],
+      });
       const definitionCid = await computeProfileDefinitionCid(next);
       try {
         const row = await fastify.runtimeProfileRepository.update(existing.id, {

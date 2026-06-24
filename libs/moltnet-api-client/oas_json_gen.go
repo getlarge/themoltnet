@@ -12407,6 +12407,16 @@ func (s *CreateRuntimeProfileBody) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *CreateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 	{
+		if s.AllowedWorkspaceModes != nil {
+			e.FieldStart("allowedWorkspaceModes")
+			e.ArrStart()
+			for _, elem := range s.AllowedWorkspaceModes {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.Context != nil {
 			e.FieldStart("context")
 			e.ArrStart()
@@ -12414,6 +12424,12 @@ func (s *CreateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 				elem.Encode(e)
 			}
 			e.ArrEnd()
+		}
+	}
+	{
+		if s.DefaultWorkspaceMode.Set {
+			e.FieldStart("defaultWorkspaceMode")
+			s.DefaultWorkspaceMode.Encode(e)
 		}
 	}
 	{
@@ -12435,9 +12451,21 @@ func (s *CreateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.MaxBashTimeouts.Set {
+			e.FieldStart("maxBashTimeouts")
+			s.MaxBashTimeouts.Encode(e)
+		}
+	}
+	{
 		if s.MaxBatchSize.Set {
 			e.FieldStart("maxBatchSize")
 			s.MaxBatchSize.Encode(e)
+		}
+	}
+	{
+		if s.MaxTurns.Set {
+			e.FieldStart("maxTurns")
+			s.MaxTurns.Encode(e)
 		}
 	}
 	{
@@ -12508,23 +12536,27 @@ func (s *CreateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateRuntimeProfileBody = [16]string{
-	0:  "context",
-	1:  "description",
-	2:  "heartbeatIntervalMs",
-	3:  "leaseTtlSec",
-	4:  "maxBatchSize",
-	5:  "model",
-	6:  "name",
-	7:  "provider",
-	8:  "requiredEnv",
-	9:  "requiredTools",
-	10: "runtimeKind",
-	11: "sandbox",
-	12: "sessionStorageMode",
-	13: "sessionTtlSec",
-	14: "workspaceStorageMode",
-	15: "workspaceTtlSec",
+var jsonFieldsNameOfCreateRuntimeProfileBody = [20]string{
+	0:  "allowedWorkspaceModes",
+	1:  "context",
+	2:  "defaultWorkspaceMode",
+	3:  "description",
+	4:  "heartbeatIntervalMs",
+	5:  "leaseTtlSec",
+	6:  "maxBashTimeouts",
+	7:  "maxBatchSize",
+	8:  "maxTurns",
+	9:  "model",
+	10: "name",
+	11: "provider",
+	12: "requiredEnv",
+	13: "requiredTools",
+	14: "runtimeKind",
+	15: "sandbox",
+	16: "sessionStorageMode",
+	17: "sessionTtlSec",
+	18: "workspaceStorageMode",
+	19: "workspaceTtlSec",
 }
 
 // Decode decodes CreateRuntimeProfileBody from json.
@@ -12532,10 +12564,27 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode CreateRuntimeProfileBody to nil")
 	}
-	var requiredBitSet [2]uint8
+	var requiredBitSet [3]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "allowedWorkspaceModes":
+			if err := func() error {
+				s.AllowedWorkspaceModes = make([]CreateRuntimeProfileBodyAllowedWorkspaceModesItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem CreateRuntimeProfileBodyAllowedWorkspaceModesItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.AllowedWorkspaceModes = append(s.AllowedWorkspaceModes, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedWorkspaceModes\"")
+			}
 		case "context":
 			if err := func() error {
 				s.Context = make([]CreateRuntimeProfileBodyContextItem, 0)
@@ -12552,6 +12601,16 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"context\"")
+			}
+		case "defaultWorkspaceMode":
+			if err := func() error {
+				s.DefaultWorkspaceMode.Reset()
+				if err := s.DefaultWorkspaceMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultWorkspaceMode\"")
 			}
 		case "description":
 			if err := func() error {
@@ -12583,6 +12642,16 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
 			}
+		case "maxBashTimeouts":
+			if err := func() error {
+				s.MaxBashTimeouts.Reset()
+				if err := s.MaxBashTimeouts.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
+			}
 		case "maxBatchSize":
 			if err := func() error {
 				s.MaxBatchSize.Reset()
@@ -12593,8 +12662,18 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBatchSize\"")
 			}
+		case "maxTurns":
+			if err := func() error {
+				s.MaxTurns.Reset()
+				if err := s.MaxTurns.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxTurns\"")
+			}
 		case "model":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -12606,7 +12685,7 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -12618,7 +12697,7 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -12678,7 +12757,7 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -12736,9 +12815,10 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
-		0b11100000,
-		0b00001000,
+	for i, mask := range [3]uint8{
+		0b00000000,
+		0b10001110,
+		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -12780,6 +12860,48 @@ func (s *CreateRuntimeProfileBody) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateRuntimeProfileBody) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateRuntimeProfileBodyAllowedWorkspaceModesItem as json.
+func (s CreateRuntimeProfileBodyAllowedWorkspaceModesItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateRuntimeProfileBodyAllowedWorkspaceModesItem from json.
+func (s *CreateRuntimeProfileBodyAllowedWorkspaceModesItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateRuntimeProfileBodyAllowedWorkspaceModesItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateRuntimeProfileBodyAllowedWorkspaceModesItem(v) {
+	case CreateRuntimeProfileBodyAllowedWorkspaceModesItemNone:
+		*s = CreateRuntimeProfileBodyAllowedWorkspaceModesItemNone
+	case CreateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount:
+		*s = CreateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount
+	case CreateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree:
+		*s = CreateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree
+	default:
+		*s = CreateRuntimeProfileBodyAllowedWorkspaceModesItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateRuntimeProfileBodyAllowedWorkspaceModesItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateRuntimeProfileBodyAllowedWorkspaceModesItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -12952,6 +13074,48 @@ func (s CreateRuntimeProfileBodyContextItemBinding) MarshalJSON() ([]byte, error
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateRuntimeProfileBodyContextItemBinding) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateRuntimeProfileBodyDefaultWorkspaceMode as json.
+func (s CreateRuntimeProfileBodyDefaultWorkspaceMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateRuntimeProfileBodyDefaultWorkspaceMode from json.
+func (s *CreateRuntimeProfileBodyDefaultWorkspaceMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateRuntimeProfileBodyDefaultWorkspaceMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateRuntimeProfileBodyDefaultWorkspaceMode(v) {
+	case CreateRuntimeProfileBodyDefaultWorkspaceModeNone:
+		*s = CreateRuntimeProfileBodyDefaultWorkspaceModeNone
+	case CreateRuntimeProfileBodyDefaultWorkspaceModeSharedMount:
+		*s = CreateRuntimeProfileBodyDefaultWorkspaceModeSharedMount
+	case CreateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree:
+		*s = CreateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree
+	default:
+		*s = CreateRuntimeProfileBodyDefaultWorkspaceMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateRuntimeProfileBodyDefaultWorkspaceMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -48134,6 +48298,94 @@ func (s *NilInt) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes RuntimeProfileDefaultWorkspaceMode as json.
+func (o NilRuntimeProfileDefaultWorkspaceMode) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes RuntimeProfileDefaultWorkspaceMode from json.
+func (o *NilRuntimeProfileDefaultWorkspaceMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilRuntimeProfileDefaultWorkspaceMode to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v RuntimeProfileDefaultWorkspaceMode
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilRuntimeProfileDefaultWorkspaceMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilRuntimeProfileDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileListResponseItemsItemDefaultWorkspaceMode as json.
+func (o NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemDefaultWorkspaceMode from json.
+func (o *NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v RuntimeProfileListResponseItemsItemDefaultWorkspaceMode
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes string as json.
 func (o NilString) Encode(e *jx.Encoder) {
 	if o.Null {
@@ -49829,6 +50081,55 @@ func (s *OptInt) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes CreateRuntimeProfileBodyDefaultWorkspaceMode as json.
+func (o OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes CreateRuntimeProfileBodyDefaultWorkspaceMode from json.
+func (o *OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v CreateRuntimeProfileBodyDefaultWorkspaceMode
+		o.Value = v
+		o.Set = true
+		o.Null = true
+		return nil
+	}
+	o.Set = true
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes DaemonState as json.
 func (o OptNilDaemonState) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -49976,6 +50277,55 @@ func (s OptNilUUID) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptNilUUID) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateRuntimeProfileBodyDefaultWorkspaceMode as json.
+func (o OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes UpdateRuntimeProfileBodyDefaultWorkspaceMode from json.
+func (o *OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v UpdateRuntimeProfileBodyDefaultWorkspaceMode
+		o.Value = v
+		o.Set = true
+		o.Null = true
+		return nil
+	}
+	o.Set = true
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -61841,6 +62191,14 @@ func (s *RuntimeProfile) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("allowedWorkspaceModes")
+		e.ArrStart()
+		for _, elem := range s.AllowedWorkspaceModes {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
 		e.FieldStart("context")
 		e.ArrStart()
 		for _, elem := range s.Context {
@@ -61859,6 +62217,10 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("createdByHumanId")
 		s.CreatedByHumanId.Encode(e)
+	}
+	{
+		e.FieldStart("defaultWorkspaceMode")
+		s.DefaultWorkspaceMode.Encode(e)
 	}
 	{
 		e.FieldStart("definitionCid")
@@ -61881,8 +62243,16 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 		e.Int(s.LeaseTtlSec)
 	}
 	{
+		e.FieldStart("maxBashTimeouts")
+		e.Int(s.MaxBashTimeouts)
+	}
+	{
 		e.FieldStart("maxBatchSize")
 		e.Int(s.MaxBatchSize)
+	}
+	{
+		e.FieldStart("maxTurns")
+		e.Int(s.MaxTurns)
 	}
 	{
 		e.FieldStart("model")
@@ -61950,31 +62320,35 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRuntimeProfile = [24]string{
-	0:  "context",
-	1:  "createdAt",
-	2:  "createdByAgentId",
-	3:  "createdByHumanId",
-	4:  "definitionCid",
-	5:  "description",
-	6:  "heartbeatIntervalMs",
-	7:  "id",
-	8:  "leaseTtlSec",
-	9:  "maxBatchSize",
-	10: "model",
-	11: "name",
-	12: "provider",
-	13: "requiredEnv",
-	14: "requiredTools",
-	15: "revision",
-	16: "runtimeKind",
-	17: "sandbox",
-	18: "sessionStorageMode",
-	19: "sessionTtlSec",
-	20: "teamId",
-	21: "updatedAt",
-	22: "workspaceStorageMode",
-	23: "workspaceTtlSec",
+var jsonFieldsNameOfRuntimeProfile = [28]string{
+	0:  "allowedWorkspaceModes",
+	1:  "context",
+	2:  "createdAt",
+	3:  "createdByAgentId",
+	4:  "createdByHumanId",
+	5:  "defaultWorkspaceMode",
+	6:  "definitionCid",
+	7:  "description",
+	8:  "heartbeatIntervalMs",
+	9:  "id",
+	10: "leaseTtlSec",
+	11: "maxBashTimeouts",
+	12: "maxBatchSize",
+	13: "maxTurns",
+	14: "model",
+	15: "name",
+	16: "provider",
+	17: "requiredEnv",
+	18: "requiredTools",
+	19: "revision",
+	20: "runtimeKind",
+	21: "sandbox",
+	22: "sessionStorageMode",
+	23: "sessionTtlSec",
+	24: "teamId",
+	25: "updatedAt",
+	26: "workspaceStorageMode",
+	27: "workspaceTtlSec",
 }
 
 // Decode decodes RuntimeProfile from json.
@@ -61982,12 +62356,30 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode RuntimeProfile to nil")
 	}
-	var requiredBitSet [3]uint8
+	var requiredBitSet [4]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "context":
+		case "allowedWorkspaceModes":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.AllowedWorkspaceModes = make([]RuntimeProfileAllowedWorkspaceModesItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem RuntimeProfileAllowedWorkspaceModesItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.AllowedWorkspaceModes = append(s.AllowedWorkspaceModes, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedWorkspaceModes\"")
+			}
+		case "context":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				s.Context = make([]RuntimeProfileContextItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -62005,7 +62397,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"context\"")
 			}
 		case "createdAt":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.CreatedAt = v
@@ -62017,7 +62409,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
 		case "createdByAgentId":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.CreatedByAgentId.Decode(d); err != nil {
 					return err
@@ -62027,7 +62419,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"createdByAgentId\"")
 			}
 		case "createdByHumanId":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.CreatedByHumanId.Decode(d); err != nil {
 					return err
@@ -62036,8 +62428,18 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdByHumanId\"")
 			}
+		case "defaultWorkspaceMode":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.DefaultWorkspaceMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultWorkspaceMode\"")
+			}
 		case "definitionCid":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.DefinitionCid = string(v)
@@ -62049,7 +62451,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"definitionCid\"")
 			}
 		case "description":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.Description.Decode(d); err != nil {
 					return err
@@ -62059,7 +62461,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
 		case "heartbeatIntervalMs":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Int()
 				s.HeartbeatIntervalMs = int(v)
@@ -62071,7 +62473,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -62083,7 +62485,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "leaseTtlSec":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.LeaseTtlSec = int(v)
@@ -62094,8 +62496,20 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
 			}
+		case "maxBashTimeouts":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.MaxBashTimeouts = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
+			}
 		case "maxBatchSize":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxBatchSize = int(v)
@@ -62106,8 +62520,20 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBatchSize\"")
 			}
+		case "maxTurns":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.MaxTurns = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxTurns\"")
+			}
 		case "model":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -62119,7 +62545,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -62131,7 +62557,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -62143,7 +62569,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "requiredEnv":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				s.RequiredEnv = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -62163,7 +62589,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredEnv\"")
 			}
 		case "requiredTools":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				s.RequiredTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -62183,7 +62609,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredTools\"")
 			}
 		case "revision":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.Revision = int(v)
@@ -62195,7 +62621,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revision\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				if err := s.RuntimeKind.Decode(d); err != nil {
 					return err
@@ -62205,7 +62631,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -62215,7 +62641,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
 		case "sessionStorageMode":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				if err := s.SessionStorageMode.Decode(d); err != nil {
 					return err
@@ -62225,7 +62651,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
 			}
 		case "sessionTtlSec":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.SessionTtlSec = int(v)
@@ -62237,7 +62663,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
 			}
 		case "teamId":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[3] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -62249,7 +62675,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[3] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -62261,7 +62687,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
 			}
 		case "workspaceStorageMode":
-			requiredBitSet[2] |= 1 << 6
+			requiredBitSet[3] |= 1 << 2
 			if err := func() error {
 				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
 					return err
@@ -62271,7 +62697,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
 			}
 		case "workspaceTtlSec":
-			requiredBitSet[2] |= 1 << 7
+			requiredBitSet[3] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.WorkspaceTtlSec = int(v)
@@ -62291,10 +62717,11 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [3]uint8{
+	for i, mask := range [4]uint8{
 		0b11111111,
 		0b11111111,
 		0b11111111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -62336,6 +62763,48 @@ func (s *RuntimeProfile) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RuntimeProfile) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileAllowedWorkspaceModesItem as json.
+func (s RuntimeProfileAllowedWorkspaceModesItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes RuntimeProfileAllowedWorkspaceModesItem from json.
+func (s *RuntimeProfileAllowedWorkspaceModesItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileAllowedWorkspaceModesItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch RuntimeProfileAllowedWorkspaceModesItem(v) {
+	case RuntimeProfileAllowedWorkspaceModesItemNone:
+		*s = RuntimeProfileAllowedWorkspaceModesItemNone
+	case RuntimeProfileAllowedWorkspaceModesItemSharedMount:
+		*s = RuntimeProfileAllowedWorkspaceModesItemSharedMount
+	case RuntimeProfileAllowedWorkspaceModesItemDedicatedWorktree:
+		*s = RuntimeProfileAllowedWorkspaceModesItemDedicatedWorktree
+	default:
+		*s = RuntimeProfileAllowedWorkspaceModesItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RuntimeProfileAllowedWorkspaceModesItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileAllowedWorkspaceModesItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -62512,6 +62981,48 @@ func (s *RuntimeProfileContextItemBinding) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes RuntimeProfileDefaultWorkspaceMode as json.
+func (s RuntimeProfileDefaultWorkspaceMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes RuntimeProfileDefaultWorkspaceMode from json.
+func (s *RuntimeProfileDefaultWorkspaceMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileDefaultWorkspaceMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch RuntimeProfileDefaultWorkspaceMode(v) {
+	case RuntimeProfileDefaultWorkspaceModeNone:
+		*s = RuntimeProfileDefaultWorkspaceModeNone
+	case RuntimeProfileDefaultWorkspaceModeSharedMount:
+		*s = RuntimeProfileDefaultWorkspaceModeSharedMount
+	case RuntimeProfileDefaultWorkspaceModeDedicatedWorktree:
+		*s = RuntimeProfileDefaultWorkspaceModeDedicatedWorktree
+	default:
+		*s = RuntimeProfileDefaultWorkspaceMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RuntimeProfileDefaultWorkspaceMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *RuntimeProfileListResponse) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -62628,6 +63139,14 @@ func (s *RuntimeProfileListResponseItemsItem) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("allowedWorkspaceModes")
+		e.ArrStart()
+		for _, elem := range s.AllowedWorkspaceModes {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
 		e.FieldStart("context")
 		e.ArrStart()
 		for _, elem := range s.Context {
@@ -62646,6 +63165,10 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("createdByHumanId")
 		s.CreatedByHumanId.Encode(e)
+	}
+	{
+		e.FieldStart("defaultWorkspaceMode")
+		s.DefaultWorkspaceMode.Encode(e)
 	}
 	{
 		e.FieldStart("definitionCid")
@@ -62668,8 +63191,16 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 		e.Int(s.LeaseTtlSec)
 	}
 	{
+		e.FieldStart("maxBashTimeouts")
+		e.Int(s.MaxBashTimeouts)
+	}
+	{
 		e.FieldStart("maxBatchSize")
 		e.Int(s.MaxBatchSize)
+	}
+	{
+		e.FieldStart("maxTurns")
+		e.Int(s.MaxTurns)
 	}
 	{
 		e.FieldStart("model")
@@ -62737,31 +63268,35 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [24]string{
-	0:  "context",
-	1:  "createdAt",
-	2:  "createdByAgentId",
-	3:  "createdByHumanId",
-	4:  "definitionCid",
-	5:  "description",
-	6:  "heartbeatIntervalMs",
-	7:  "id",
-	8:  "leaseTtlSec",
-	9:  "maxBatchSize",
-	10: "model",
-	11: "name",
-	12: "provider",
-	13: "requiredEnv",
-	14: "requiredTools",
-	15: "revision",
-	16: "runtimeKind",
-	17: "sandbox",
-	18: "sessionStorageMode",
-	19: "sessionTtlSec",
-	20: "teamId",
-	21: "updatedAt",
-	22: "workspaceStorageMode",
-	23: "workspaceTtlSec",
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [28]string{
+	0:  "allowedWorkspaceModes",
+	1:  "context",
+	2:  "createdAt",
+	3:  "createdByAgentId",
+	4:  "createdByHumanId",
+	5:  "defaultWorkspaceMode",
+	6:  "definitionCid",
+	7:  "description",
+	8:  "heartbeatIntervalMs",
+	9:  "id",
+	10: "leaseTtlSec",
+	11: "maxBashTimeouts",
+	12: "maxBatchSize",
+	13: "maxTurns",
+	14: "model",
+	15: "name",
+	16: "provider",
+	17: "requiredEnv",
+	18: "requiredTools",
+	19: "revision",
+	20: "runtimeKind",
+	21: "sandbox",
+	22: "sessionStorageMode",
+	23: "sessionTtlSec",
+	24: "teamId",
+	25: "updatedAt",
+	26: "workspaceStorageMode",
+	27: "workspaceTtlSec",
 }
 
 // Decode decodes RuntimeProfileListResponseItemsItem from json.
@@ -62769,12 +63304,30 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItem to nil")
 	}
-	var requiredBitSet [3]uint8
+	var requiredBitSet [4]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "context":
+		case "allowedWorkspaceModes":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.AllowedWorkspaceModes = make([]RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.AllowedWorkspaceModes = append(s.AllowedWorkspaceModes, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedWorkspaceModes\"")
+			}
+		case "context":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				s.Context = make([]RuntimeProfileListResponseItemsItemContextItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -62792,7 +63345,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"context\"")
 			}
 		case "createdAt":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.CreatedAt = v
@@ -62804,7 +63357,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
 		case "createdByAgentId":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.CreatedByAgentId.Decode(d); err != nil {
 					return err
@@ -62814,7 +63367,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"createdByAgentId\"")
 			}
 		case "createdByHumanId":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.CreatedByHumanId.Decode(d); err != nil {
 					return err
@@ -62823,8 +63376,18 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdByHumanId\"")
 			}
+		case "defaultWorkspaceMode":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.DefaultWorkspaceMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultWorkspaceMode\"")
+			}
 		case "definitionCid":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.DefinitionCid = string(v)
@@ -62836,7 +63399,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"definitionCid\"")
 			}
 		case "description":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.Description.Decode(d); err != nil {
 					return err
@@ -62846,7 +63409,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
 		case "heartbeatIntervalMs":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Int()
 				s.HeartbeatIntervalMs = int(v)
@@ -62858,7 +63421,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -62870,7 +63433,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "leaseTtlSec":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.LeaseTtlSec = int(v)
@@ -62881,8 +63444,20 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
 			}
+		case "maxBashTimeouts":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.MaxBashTimeouts = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
+			}
 		case "maxBatchSize":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxBatchSize = int(v)
@@ -62893,8 +63468,20 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBatchSize\"")
 			}
+		case "maxTurns":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.MaxTurns = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxTurns\"")
+			}
 		case "model":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -62906,7 +63493,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -62918,7 +63505,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -62930,7 +63517,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "requiredEnv":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				s.RequiredEnv = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -62950,7 +63537,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredEnv\"")
 			}
 		case "requiredTools":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				s.RequiredTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -62970,7 +63557,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredTools\"")
 			}
 		case "revision":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.Revision = int(v)
@@ -62982,7 +63569,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revision\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				if err := s.RuntimeKind.Decode(d); err != nil {
 					return err
@@ -62992,7 +63579,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -63002,7 +63589,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
 		case "sessionStorageMode":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				if err := s.SessionStorageMode.Decode(d); err != nil {
 					return err
@@ -63012,7 +63599,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
 			}
 		case "sessionTtlSec":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.SessionTtlSec = int(v)
@@ -63024,7 +63611,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
 			}
 		case "teamId":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[3] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -63036,7 +63623,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[3] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -63048,7 +63635,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
 			}
 		case "workspaceStorageMode":
-			requiredBitSet[2] |= 1 << 6
+			requiredBitSet[3] |= 1 << 2
 			if err := func() error {
 				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
 					return err
@@ -63058,7 +63645,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
 			}
 		case "workspaceTtlSec":
-			requiredBitSet[2] |= 1 << 7
+			requiredBitSet[3] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.WorkspaceTtlSec = int(v)
@@ -63078,10 +63665,11 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [3]uint8{
+	for i, mask := range [4]uint8{
 		0b11111111,
 		0b11111111,
 		0b11111111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -63123,6 +63711,48 @@ func (s *RuntimeProfileListResponseItemsItem) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RuntimeProfileListResponseItemsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem as json.
+func (s RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem from json.
+func (s *RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem(v) {
+	case RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemNone:
+		*s = RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemNone
+	case RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemSharedMount:
+		*s = RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemSharedMount
+	case RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemDedicatedWorktree:
+		*s = RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemDedicatedWorktree
+	default:
+		*s = RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -63295,6 +63925,48 @@ func (s RuntimeProfileListResponseItemsItemContextItemBinding) MarshalJSON() ([]
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RuntimeProfileListResponseItemsItemContextItemBinding) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileListResponseItemsItemDefaultWorkspaceMode as json.
+func (s RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemDefaultWorkspaceMode from json.
+func (s *RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItemDefaultWorkspaceMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch RuntimeProfileListResponseItemsItemDefaultWorkspaceMode(v) {
+	case RuntimeProfileListResponseItemsItemDefaultWorkspaceModeNone:
+		*s = RuntimeProfileListResponseItemsItemDefaultWorkspaceModeNone
+	case RuntimeProfileListResponseItemsItemDefaultWorkspaceModeSharedMount:
+		*s = RuntimeProfileListResponseItemsItemDefaultWorkspaceModeSharedMount
+	case RuntimeProfileListResponseItemsItemDefaultWorkspaceModeDedicatedWorktree:
+		*s = RuntimeProfileListResponseItemsItemDefaultWorkspaceModeDedicatedWorktree
+	default:
+		*s = RuntimeProfileListResponseItemsItemDefaultWorkspaceMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -73181,6 +73853,16 @@ func (s *UpdateRuntimeProfileBody) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *UpdateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 	{
+		if s.AllowedWorkspaceModes != nil {
+			e.FieldStart("allowedWorkspaceModes")
+			e.ArrStart()
+			for _, elem := range s.AllowedWorkspaceModes {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.Context != nil {
 			e.FieldStart("context")
 			e.ArrStart()
@@ -73188,6 +73870,12 @@ func (s *UpdateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 				elem.Encode(e)
 			}
 			e.ArrEnd()
+		}
+	}
+	{
+		if s.DefaultWorkspaceMode.Set {
+			e.FieldStart("defaultWorkspaceMode")
+			s.DefaultWorkspaceMode.Encode(e)
 		}
 	}
 	{
@@ -73209,9 +73897,21 @@ func (s *UpdateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.MaxBashTimeouts.Set {
+			e.FieldStart("maxBashTimeouts")
+			s.MaxBashTimeouts.Encode(e)
+		}
+	}
+	{
 		if s.MaxBatchSize.Set {
 			e.FieldStart("maxBatchSize")
 			s.MaxBatchSize.Encode(e)
+		}
+	}
+	{
+		if s.MaxTurns.Set {
+			e.FieldStart("maxTurns")
+			s.MaxTurns.Encode(e)
 		}
 	}
 	{
@@ -73290,23 +73990,27 @@ func (s *UpdateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUpdateRuntimeProfileBody = [16]string{
-	0:  "context",
-	1:  "description",
-	2:  "heartbeatIntervalMs",
-	3:  "leaseTtlSec",
-	4:  "maxBatchSize",
-	5:  "model",
-	6:  "name",
-	7:  "provider",
-	8:  "requiredEnv",
-	9:  "requiredTools",
-	10: "runtimeKind",
-	11: "sandbox",
-	12: "sessionStorageMode",
-	13: "sessionTtlSec",
-	14: "workspaceStorageMode",
-	15: "workspaceTtlSec",
+var jsonFieldsNameOfUpdateRuntimeProfileBody = [20]string{
+	0:  "allowedWorkspaceModes",
+	1:  "context",
+	2:  "defaultWorkspaceMode",
+	3:  "description",
+	4:  "heartbeatIntervalMs",
+	5:  "leaseTtlSec",
+	6:  "maxBashTimeouts",
+	7:  "maxBatchSize",
+	8:  "maxTurns",
+	9:  "model",
+	10: "name",
+	11: "provider",
+	12: "requiredEnv",
+	13: "requiredTools",
+	14: "runtimeKind",
+	15: "sandbox",
+	16: "sessionStorageMode",
+	17: "sessionTtlSec",
+	18: "workspaceStorageMode",
+	19: "workspaceTtlSec",
 }
 
 // Decode decodes UpdateRuntimeProfileBody from json.
@@ -73319,6 +74023,23 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		propertiesCount++
 		switch string(k) {
+		case "allowedWorkspaceModes":
+			if err := func() error {
+				s.AllowedWorkspaceModes = make([]UpdateRuntimeProfileBodyAllowedWorkspaceModesItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem UpdateRuntimeProfileBodyAllowedWorkspaceModesItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.AllowedWorkspaceModes = append(s.AllowedWorkspaceModes, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedWorkspaceModes\"")
+			}
 		case "context":
 			if err := func() error {
 				s.Context = make([]UpdateRuntimeProfileBodyContextItem, 0)
@@ -73335,6 +74056,16 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"context\"")
+			}
+		case "defaultWorkspaceMode":
+			if err := func() error {
+				s.DefaultWorkspaceMode.Reset()
+				if err := s.DefaultWorkspaceMode.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultWorkspaceMode\"")
 			}
 		case "description":
 			if err := func() error {
@@ -73366,6 +74097,16 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
 			}
+		case "maxBashTimeouts":
+			if err := func() error {
+				s.MaxBashTimeouts.Reset()
+				if err := s.MaxBashTimeouts.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
+			}
 		case "maxBatchSize":
 			if err := func() error {
 				s.MaxBatchSize.Reset()
@@ -73375,6 +74116,16 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBatchSize\"")
+			}
+		case "maxTurns":
+			if err := func() error {
+				s.MaxTurns.Reset()
+				if err := s.MaxTurns.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxTurns\"")
 			}
 		case "model":
 			if err := func() error {
@@ -73533,6 +74284,48 @@ func (s *UpdateRuntimeProfileBody) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateRuntimeProfileBody) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateRuntimeProfileBodyAllowedWorkspaceModesItem as json.
+func (s UpdateRuntimeProfileBodyAllowedWorkspaceModesItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateRuntimeProfileBodyAllowedWorkspaceModesItem from json.
+func (s *UpdateRuntimeProfileBodyAllowedWorkspaceModesItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateRuntimeProfileBodyAllowedWorkspaceModesItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateRuntimeProfileBodyAllowedWorkspaceModesItem(v) {
+	case UpdateRuntimeProfileBodyAllowedWorkspaceModesItemNone:
+		*s = UpdateRuntimeProfileBodyAllowedWorkspaceModesItemNone
+	case UpdateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount:
+		*s = UpdateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount
+	case UpdateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree:
+		*s = UpdateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree
+	default:
+		*s = UpdateRuntimeProfileBodyAllowedWorkspaceModesItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateRuntimeProfileBodyAllowedWorkspaceModesItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateRuntimeProfileBodyAllowedWorkspaceModesItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -73705,6 +74498,48 @@ func (s UpdateRuntimeProfileBodyContextItemBinding) MarshalJSON() ([]byte, error
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateRuntimeProfileBodyContextItemBinding) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateRuntimeProfileBodyDefaultWorkspaceMode as json.
+func (s UpdateRuntimeProfileBodyDefaultWorkspaceMode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateRuntimeProfileBodyDefaultWorkspaceMode from json.
+func (s *UpdateRuntimeProfileBodyDefaultWorkspaceMode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateRuntimeProfileBodyDefaultWorkspaceMode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateRuntimeProfileBodyDefaultWorkspaceMode(v) {
+	case UpdateRuntimeProfileBodyDefaultWorkspaceModeNone:
+		*s = UpdateRuntimeProfileBodyDefaultWorkspaceModeNone
+	case UpdateRuntimeProfileBodyDefaultWorkspaceModeSharedMount:
+		*s = UpdateRuntimeProfileBodyDefaultWorkspaceModeSharedMount
+	case UpdateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree:
+		*s = UpdateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree
+	default:
+		*s = UpdateRuntimeProfileBodyDefaultWorkspaceMode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateRuntimeProfileBodyDefaultWorkspaceMode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

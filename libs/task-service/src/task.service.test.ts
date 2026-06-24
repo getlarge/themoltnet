@@ -22,6 +22,8 @@ const AGENT_ID = 'a0000000-0000-0000-0000-000000000001';
 const RUN_TASK = '11111111-1111-1111-1111-111111111111';
 const JUDGE_TASK = '22222222-2222-2222-2222-222222222222';
 const CORRELATION = '99999999-9999-9999-9999-999999999999';
+const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
+const OTHER_TEAM_ID = '00000000-0000-0000-0000-000000000002';
 
 function rubric() {
   return {
@@ -132,6 +134,7 @@ type TaskRepositoryMocks = {
     ) => Promise<DbTask | null>
   >;
   create: Mock<(newTask: Record<string, unknown>) => Promise<DbTask>>;
+  countAttempts: Mock<(taskId: string) => Promise<number>>;
   listWaitingTasks: Mock<() => Promise<DbTask[]>>;
   listWaitingTasksReferencingTask: Mock<(taskId: string) => Promise<DbTask[]>>;
   promoteWaitingTasks: Mock<(ids: string[]) => Promise<DbTask[]>>;
@@ -144,6 +147,10 @@ type TaskRepositoryMocks = {
       status: string,
       fields: { cancelReason?: string },
     ) => Promise<DbTask | null>
+  >;
+  claimIfQueued: Mock<(taskId: string) => Promise<DbTask | null>>;
+  tryAcquireContinuationLock: Mock<
+    (taskId: string, attemptN: number) => Promise<boolean>
   >;
 };
 
@@ -167,6 +174,9 @@ type PermissionCheckerMocks = {
     (taskId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
   canEditTaskMetadata: Mock<
+    (taskId: string, callerId: string, callerNs: string) => Promise<boolean>
+  >;
+  canClaimTask: Mock<
     (taskId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
   canViewTasks: Mock<
@@ -209,6 +219,11 @@ interface Mocks {
   agentRepository: {
     findByIdentityId: Mock<
       (identityId: string) => Promise<{ identityId: string }>
+    >;
+  };
+  runtimeProfileRepository: {
+    findById: Mock<
+      (id: string) => Promise<{ id: string; teamId: string } | null>
     >;
   };
   contextPackRepository: {
@@ -303,6 +318,9 @@ function makeMocks(
         insertedTasks.push(merged);
         return Promise.resolve(merged);
       }),
+    countAttempts: vi
+      .fn<(taskId: string) => Promise<number>>()
+      .mockResolvedValue(0),
     listWaitingTasks: vi.fn<() => Promise<DbTask[]>>().mockResolvedValue([]),
     listWaitingTasksReferencingTask: vi
       .fn<(taskId: string) => Promise<DbTask[]>>()
@@ -335,6 +353,14 @@ function makeMocks(
         }
         return Promise.resolve(task ?? null);
       }),
+    claimIfQueued: vi
+      .fn<(taskId: string) => Promise<DbTask | null>>()
+      .mockImplementation((id) =>
+        Promise.resolve(opts.visibleTasks?.[id] ?? null),
+      ),
+    tryAcquireContinuationLock: vi
+      .fn<(taskId: string, attemptN: number) => Promise<boolean>>()
+      .mockResolvedValue(true),
   };
 
   const transactionRunner: TransactionRunner = {
@@ -354,6 +380,11 @@ function makeMocks(
       findByIdentityId: vi
         .fn<(identityId: string) => Promise<{ identityId: string }>>()
         .mockResolvedValue({ identityId: AGENT_ID }),
+    },
+    runtimeProfileRepository: {
+      findById: vi
+        .fn<(id: string) => Promise<{ id: string; teamId: string } | null>>()
+        .mockResolvedValue({ id: PROFILE_ID, teamId: TEAM_ID }),
     },
     contextPackRepository: {
       findById: vi.fn<(id: string) => Promise<null>>().mockResolvedValue(null),
@@ -408,6 +439,15 @@ function makeMocks(
           Promise.resolve(Boolean(opts.visibleTasks?.[taskId])),
         ),
       canEditTaskMetadata: vi
+        .fn<
+          (
+            taskId: string,
+            callerId: string,
+            callerNs: string,
+          ) => Promise<boolean>
+        >()
+        .mockResolvedValue(true),
+      canClaimTask: vi
         .fn<
           (
             taskId: string,
@@ -520,6 +560,62 @@ beforeAll(async () => {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
   );
   await initTaskTypeRegistry();
+});
+
+describe('createTaskService.claim — runtime profile attestation', () => {
+  let mocks: Mocks;
+  let service: ReturnType<typeof createTaskService>;
+
+  beforeEach(() => {
+    mocks = makeMocks({
+      visibleTasks: {
+        [JUDGE_TASK]: makeJudgeTask(JUDGE_TASK, 'queued'),
+      },
+    });
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('rejects profile IDs that do not resolve in the task team even when the task is unrestricted', async () => {
+    mocks.runtimeProfileRepository.findById.mockResolvedValue({
+      id: PROFILE_ID,
+      teamId: OTHER_TEAM_ID,
+    });
+
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+        profileId: PROFILE_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'forbidden',
+      message: 'Runtime profile does not resolve in the task team',
+    });
+
+    expect(mocks.runtimeProfileRepository.findById).toHaveBeenCalledWith(
+      PROFILE_ID,
+    );
+    expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+  });
+
+  it('rejects unknown profile IDs before claiming an unrestricted task', async () => {
+    mocks.runtimeProfileRepository.findById.mockResolvedValue(null);
+
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+        profileId: PROFILE_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'forbidden',
+      message: 'Runtime profile does not resolve in the task team',
+    });
+
+    expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+  });
 });
 
 describe('createTaskService.create — judge_eval_attempt flow', () => {

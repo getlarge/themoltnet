@@ -182,6 +182,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         leaseTtlSec: profile.leaseTtlSec,
         heartbeatIntervalMs: profile.heartbeatIntervalMs,
         maxBatchSize: profile.maxBatchSize,
+        maxTurns: profile.maxTurns,
+        maxBashTimeouts: profile.maxBashTimeouts,
         warmSessionTtlSec: resolveProfileWarmSessionTtlSec(profile),
       },
     });
@@ -200,6 +202,10 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       stateDirs,
       slotIdentity,
       warmSessionTtlSec: common.warmSessionTtlSec,
+      workspacePolicy: {
+        defaultWorkspaceMode: profile.defaultWorkspaceMode,
+        allowedWorkspaceModes: profile.allowedWorkspaceModes,
+      },
       slotRegistry,
     });
     runtimes.set(profile.id, {
@@ -297,9 +303,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           sandbox: runtime.sandbox.path,
           leaseTtlSec: runtime.common.leaseTtlSec,
           heartbeatIntervalMs: runtime.common.heartbeatIntervalMs,
+          maxTurns: runtime.common.maxTurns,
+          maxBashTimeouts: runtime.common.maxBashTimeouts,
           warmSessionTtlSec: runtime.common.warmSessionTtlSec,
           profileSessionTtlSec: profile.sessionTtlSec,
           profileWorkspaceTtlSec: profile.workspaceTtlSec,
+          defaultWorkspaceMode: profile.defaultWorkspaceMode,
+          allowedWorkspaceModes: profile.allowedWorkspaceModes,
         };
       }),
       piAgentDir: piAgentDir.path,

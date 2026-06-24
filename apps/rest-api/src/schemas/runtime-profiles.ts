@@ -1,13 +1,17 @@
 import {
   RuntimeProfile,
+  RuntimeProfileAllowedWorkspaceModes,
   RuntimeProfileContext,
   RuntimeProfileEnvName,
   RuntimeProfileHeartbeatIntervalMs,
   RuntimeProfileLeaseTtlSec,
+  RuntimeProfileMaxBashTimeouts,
   RuntimeProfileMaxBatchSize,
+  RuntimeProfileMaxTurns,
   RuntimeProfileName,
   RuntimeProfileSandbox,
   RuntimeProfileToolName,
+  RuntimeProfileWorkspaceMode,
 } from '@moltnet/tasks';
 import { Type } from 'typebox';
 
@@ -21,6 +25,10 @@ export const CreateRuntimeProfileBodySchema = Type.Object(
     sandbox: RuntimeProfileSandbox,
     sessionStorageMode: Type.Optional(Type.Literal('local')),
     workspaceStorageMode: Type.Optional(Type.Literal('local')),
+    defaultWorkspaceMode: Type.Optional(
+      Type.Union([RuntimeProfileWorkspaceMode, Type.Null()]),
+    ),
+    allowedWorkspaceModes: Type.Optional(RuntimeProfileAllowedWorkspaceModes),
     sessionTtlSec: Type.Optional(Type.Integer({ minimum: 1, maximum: 86_400 })),
     workspaceTtlSec: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 86_400 }),
@@ -28,6 +36,8 @@ export const CreateRuntimeProfileBodySchema = Type.Object(
     leaseTtlSec: Type.Optional(RuntimeProfileLeaseTtlSec),
     heartbeatIntervalMs: Type.Optional(RuntimeProfileHeartbeatIntervalMs),
     maxBatchSize: Type.Optional(RuntimeProfileMaxBatchSize),
+    maxTurns: Type.Optional(RuntimeProfileMaxTurns),
+    maxBashTimeouts: Type.Optional(RuntimeProfileMaxBashTimeouts),
     requiredEnv: Type.Optional(
       Type.Array(RuntimeProfileEnvName, { maxItems: 100 }),
     ),

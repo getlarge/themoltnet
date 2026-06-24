@@ -253,4 +253,110 @@ describe('buildDaemonTaskExecutionPlan', () => {
     expect(out.worktreeBranch).toBeNull();
     expect(out.workspaceScope).toBe('session');
   });
+
+  it('uses the runtime profile default when task input has no workspace override', () => {
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        taskType: 'freeform',
+        title: null,
+        correlationId: '11111111-2222-4333-8444-555555555555',
+        input: { brief: 'read task context only' },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+      },
+      identity,
+      1800,
+      {
+        defaultWorkspaceMode: 'none',
+        allowedWorkspaceModes: ['none', 'shared_mount'],
+      },
+    );
+
+    expect(out.workspaceMode).toBe('scratch_mount');
+    expect(out.workspaceId).toBe(
+      'session-agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Afreeform%3Acorrelation%3A11111111-2222-4333-8444-555555555555',
+    );
+  });
+
+  it('honors a task workspace override when the runtime profile allows it', () => {
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: '12121212-1212-4121-8121-121212121212',
+        taskType: 'freeform',
+        title: null,
+        correlationId: '23232323-2323-4232-8232-232323232323',
+        input: {
+          brief: 'needs repo edits',
+          execution: { workspace: 'dedicated_worktree' },
+        },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+      },
+      identity,
+      1800,
+      {
+        defaultWorkspaceMode: 'none',
+        allowedWorkspaceModes: ['none', 'dedicated_worktree'],
+      },
+    );
+
+    expect(out.workspaceMode).toBe('dedicated_worktree');
+    expect(out.worktreeBranch).toBe('task/freeform-12121212');
+  });
+
+  it('ignores a task workspace override that the runtime profile forbids', () => {
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: '34343434-3434-4343-8343-343434343434',
+        taskType: 'freeform',
+        title: null,
+        correlationId: '45454545-4545-4454-8454-454545454545',
+        input: {
+          brief: 'requests shared repo',
+          execution: { workspace: 'shared_mount' },
+        },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+      },
+      identity,
+      1800,
+      {
+        defaultWorkspaceMode: 'none',
+        allowedWorkspaceModes: ['none', 'dedicated_worktree'],
+      },
+    );
+
+    expect(out.workspaceMode).toBe('scratch_mount');
+  });
+
+  it('falls back to the safest allowed mode when the task default is forbidden', () => {
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: '56565656-5656-4565-8565-565656565656',
+        taskType: 'freeform',
+        title: null,
+        correlationId: '67676767-6767-4676-8676-676767676767',
+        input: { brief: 'default shared_mount is not allowed' },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+      },
+      identity,
+      1800,
+      {
+        allowedWorkspaceModes: ['dedicated_worktree'],
+      },
+    );
+
+    expect(out.workspaceMode).toBe('dedicated_worktree');
+    expect(out.worktreeBranch).toBe('task/freeform-56565656');
+  });
 });
