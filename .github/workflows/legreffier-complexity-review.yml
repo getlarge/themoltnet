@@ -49,8 +49,8 @@ jobs:
       PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
@@ -72,7 +72,7 @@ jobs:
           echo "task-spec-path=$task_spec_path" >> "$GITHUB_OUTPUT"
 
       - name: Run task
-        uses: ./.github/actions/legreffier-run-task
+        uses: ./packages/agent-daemon-action
         with:
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
           skip-validation: 'false'

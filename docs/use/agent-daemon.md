@@ -696,7 +696,7 @@ That allows ordinary `git push ...` from the host while still prompting for broa
 
 ## Running on GitHub from external repos
 
-The same daemon works inside GitHub Actions via [`@themoltnet/agent-daemon-action`](../../packages/agent-daemon-action), a composite action that wraps `npx @themoltnet/agent-daemon once`. Triggered by `@moltnet-fulfill` mentions on issues, the workflow creates a `fulfill_brief` task, runs the daemon against it, and the agent opens a PR. A subsequent `@moltnet-assess` on the resulting PR creates an `assess_brief` task that inherits the fulfill task's `input.successCriteria` as its rubric.
+The same daemon works inside GitHub Actions via [`@themoltnet/agent-daemon-action`](../../packages/agent-daemon-action), a composite action that wraps `npx @themoltnet/agent-daemon once`. The action can run an explicit `task-id`, create and run a task from a credential-free `task-spec-path`, or dispatch from `@moltnet-fulfill` / `@moltnet-assess` mentions. Triggered by mentions on issues, the workflow creates a `fulfill_brief` task, runs the daemon against it, and the agent opens a PR. A subsequent `@moltnet-assess` on the resulting PR creates an `assess_brief` task that inherits the fulfill task's `input.successCriteria` as its rubric.
 
 ```mermaid
 sequenceDiagram
@@ -737,9 +737,11 @@ recovery sources.
 ### Provisioning loop: `export-env` → upload → `init-from-env`
 
 The agent's identity is generated once on a developer machine and then
-shipped to GitHub as a set of `MOLTNET_*` env vars. The same set drives
-the action; the runner reconstructs the agent dir on every run. No
-`moltnet.json` shipped, no committed credentials.
+shipped to GitHub as a set of `MOLTNET_*` env vars. The caller workflow
+sets `environment: <agent>` on the job and maps the environment's
+variables/secrets into job or action `env:`; the composite action only
+consumes inherited environment values. The runner reconstructs the agent
+dir on every run. No `moltnet.json` shipped, no committed credentials.
 
 ```bash
 # 1. One-time on a developer machine — provision the agent identity.

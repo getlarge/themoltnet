@@ -13,11 +13,28 @@ inputs:
   task-id:
     description: >
       Existing MoltNet task id to claim and execute. When empty (the
-      common path) the action runs the dispatcher: parses the
+      common path) the action either creates a task from task-spec-path
+      or runs the dispatcher: parses the
       issue_comment for a @moltnet-* mention, resolves correlationId
       from PR-side anchors, and creates a fulfill_brief task.
     required: false
     default: ''
+  task-spec-path:
+    description: >
+      Path to a JSON file with shape { taskType, correlationId, input }.
+      When set and task-id is empty, the action creates the task with
+      moltnet task create, then runs the daemon against the created id.
+      teamId and diaryId come from MOLTNET_TEAM_ID and MOLTNET_DIARY_ID,
+      keeping task composers credential-free.
+    required: false
+    default: ''
+  skip-validation:
+    description: >
+      Pass --skip-validation to moltnet task create when using
+      task-spec-path. Useful while a task input schema is rolling out to
+      the deployed API.
+    required: false
+    default: 'false'
   mode:
     description: 'Daemon mode: once | drain. poll is disallowed in CI for cost reasons.'
     required: false
@@ -66,8 +83,8 @@ outputs:
     description: 'MoltNet task id that was executed (or created+executed).'
     value: ${{ steps.run.outputs.task-id }}
   correlation-id:
-    description: 'correlationId of the executed task (only set when the dispatcher ran).'
-    value: ${{ steps.dispatch.outputs.correlation-id }}
+    description: 'correlationId of the executed task when the action created it.'
+    value: ${{ steps.create-task.outputs.correlation-id || steps.dispatch.outputs.correlation-id }}
 runs:
   using: 'composite'
   # The composite handler in actions/runner propagates the caller-step's
@@ -80,7 +97,7 @@ runs:
   # action — every shell below sees them via process.env without having
   # to re-list each one in a child `env:` block.
   steps:
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
 
@@ -105,7 +122,7 @@ runs:
     - name: Restore apt archives cache (gondolin deps)
       if: runner.os == 'Linux'
       id: restore-apt-cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: ~/.cache/agent-daemon-action/apt
         key: ${{ steps.apt-cache-key.outputs.value }}
@@ -180,7 +197,7 @@ runs:
     # on cache miss to avoid re-uploading an unchanged blob.
     - name: Save apt archives cache (gondolin deps)
       if: runner.os == 'Linux' && steps.restore-apt-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ~/.cache/agent-daemon-action/apt
         key: ${{ steps.apt-cache-key.outputs.value }}
@@ -238,6 +255,22 @@ runs:
           echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
         } >> "$GITHUB_ENV"
 
+    - name: Verify GitHub App PEM is well-formed
+      shell: bash
+      run: |
+        set -euo pipefail
+        PEM="$MOLTNET_AGENT_DIR/$MOLTNET_AGENT_NAME.pem"
+        if [ ! -f "$PEM" ]; then
+          echo "::notice::No GitHub App PEM at $PEM — agent gh calls will fall back."
+          exit 0
+        fi
+        if ! openssl rsa -in "$PEM" -noout -check >/dev/null 2>&1 \
+          && ! openssl pkey -in "$PEM" -noout >/dev/null 2>&1; then
+          echo "::error::GitHub App PEM at $PEM failed openssl parse. Common causes: MOLTNET_GITHUB_APP_PRIVATE_KEY passed through a composite-action input (newline collapse), or the stored secret contains literal \\n escapes / surrounding quotes instead of raw PEM lines. Prefer a JOB env var and upload the raw PEM block as the secret value."
+          exit 1
+        fi
+        echo "::notice::GitHub App PEM at $PEM parses cleanly."
+
     - name: Configure Pi agent dir
       shell: bash
       run: |
@@ -247,6 +280,13 @@ runs:
         # Callers may still provide PI_CODING_AGENT_DIR explicitly.
         PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
         mkdir -p "$PI_AGENT_DIR"
+        for config_file in settings.json models.json; do
+          source_file="$GITHUB_WORKSPACE/.pi/$config_file"
+          if [ -f "$source_file" ] && [ ! -f "$PI_AGENT_DIR/$config_file" ]; then
+            cp "$source_file" "$PI_AGENT_DIR/$config_file"
+            echo "::notice::Pi $config_file copied from repo .pi/ into $PI_AGENT_DIR"
+          fi
+        done
         {
           echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR"
         } >> "$GITHUB_ENV"
@@ -343,13 +383,75 @@ runs:
     - name: Restore gondolin snapshot cache
       if: runner.os == 'Linux'
       id: restore-gondolin-cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: ~/.cache/moltnet/gondolin
         key: ${{ steps.gondolin-cache-key.outputs.value }}
 
+    - id: create-task
+      if: ${{ inputs.task-id == '' && inputs.task-spec-path != '' }}
+      shell: bash
+      env:
+        TASK_SPEC_PATH: ${{ inputs.task-spec-path }}
+        SKIP_VALIDATION: ${{ inputs.skip-validation }}
+        MOLTNET_RUNNING_TIMEOUT_SEC: ${{ inputs.running-timeout-sec }}
+      run: |
+        set -euo pipefail
+        if [ ! -f "$TASK_SPEC_PATH" ]; then
+          echo "::error::task-spec-path '$TASK_SPEC_PATH' does not exist"
+          exit 1
+        fi
+        TASK_TYPE=$(jq -r '.taskType // empty' "$TASK_SPEC_PATH")
+        CORRELATION_ID=$(jq -r '.correlationId // empty' "$TASK_SPEC_PATH")
+        if [ -z "$TASK_TYPE" ]; then
+          echo "::error::task spec at '$TASK_SPEC_PATH' is missing .taskType"
+          exit 1
+        fi
+        if [ -z "$CORRELATION_ID" ]; then
+          echo "::error::task spec at '$TASK_SPEC_PATH' is missing .correlationId"
+          exit 1
+        fi
+        if ! jq -e 'has("input")' "$TASK_SPEC_PATH" >/dev/null; then
+          echo "::error::task spec at '$TASK_SPEC_PATH' is missing .input"
+          exit 1
+        fi
+
+        INPUT_PATH="$RUNNER_TEMP/moltnet-task-input.json"
+        jq '.input' "$TASK_SPEC_PATH" > "$INPUT_PATH"
+
+        CREDS="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json"
+        if [ ! -f "$CREDS" ]; then
+          echo "::error::moltnet credentials not found at $CREDS"
+          exit 1
+        fi
+
+        flags=()
+        if [ "$SKIP_VALIDATION" = "true" ]; then
+          flags+=(--skip-validation)
+        elif [ "$SKIP_VALIDATION" != "false" ]; then
+          echo "::error::skip-validation must be 'true' or 'false', got '$SKIP_VALIDATION'"
+          exit 1
+        fi
+        if [ -n "${MOLTNET_RUNNING_TIMEOUT_SEC:-}" ]; then
+          flags+=(--running-timeout-sec "$MOLTNET_RUNNING_TIMEOUT_SEC")
+        fi
+
+        TASK_ID=$(npx -y @themoltnet/cli task create \
+          --task-type "$TASK_TYPE" \
+          --team-id "$MOLTNET_TEAM_ID" \
+          --diary-id "$MOLTNET_DIARY_ID" \
+          --correlation-id "$CORRELATION_ID" \
+          --input-file "$INPUT_PATH" \
+          --output id \
+          --api-url "${MOLTNET_API_URL:-https://api.themolt.net}" \
+          --credentials "$CREDS" \
+          "${flags[@]}")
+        echo "::notice::Created task $TASK_ID (correlationId=$CORRELATION_ID)"
+        echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
+        echo "correlation-id=$CORRELATION_ID" >> "$GITHUB_OUTPUT"
+
     - id: dispatch
-      if: ${{ inputs.task-id == '' && github.event_name == 'issue_comment' }}
+      if: ${{ inputs.task-id == '' && inputs.task-spec-path == '' && github.event_name == 'issue_comment' }}
       shell: bash
       env:
         # Pass-through for `running-timeout-sec` action input. Read by
@@ -369,7 +471,7 @@ runs:
     - id: run
       shell: bash
       env:
-        TASK_ID: ${{ inputs.task-id != '' && inputs.task-id || steps.dispatch.outputs.task-id }}
+        TASK_ID: ${{ inputs.task-id || steps.create-task.outputs.task-id || steps.dispatch.outputs.task-id }}
         PROFILE_OVERRIDE: ${{ inputs.profile }}
       run: |
         set -euo pipefail
@@ -386,10 +488,19 @@ runs:
           exit 1
         fi
         echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
-        npx -y @themoltnet/agent-daemon@${{ inputs.daemon-version }} \
-          ${{ inputs.mode }} --task-id "$TASK_ID" \
-          --agent "$MOLTNET_AGENT_NAME" \
+
+        daemon_args=(
+          "${{ inputs.mode }}"
+          --task-id "$TASK_ID"
+          --agent "$MOLTNET_AGENT_NAME"
           --profile "$PROFILE"
+        )
+        if [ -n "${MOLTNET_TEAM_ID:-}" ]; then
+          daemon_args+=(--team "$MOLTNET_TEAM_ID")
+        fi
+
+        npx -y @themoltnet/agent-daemon@${{ inputs.daemon-version }} \
+          "${daemon_args[@]}"
 
     # Save the gondolin snapshot built by the daemon. `if: always()`
     # so we still upload the snapshot when the LLM call fails post-
@@ -400,7 +511,7 @@ runs:
         always()
         && runner.os == 'Linux'
         && steps.restore-gondolin-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ~/.cache/moltnet/gondolin
         key: ${{ steps.gondolin-cache-key.outputs.value }}
