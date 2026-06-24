@@ -280,6 +280,13 @@ runs:
         # Callers may still provide PI_CODING_AGENT_DIR explicitly.
         PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
         mkdir -p "$PI_AGENT_DIR"
+        for config_file in settings.json models.json; do
+          source_file="$GITHUB_WORKSPACE/.pi/$config_file"
+          if [ -f "$source_file" ] && [ ! -f "$PI_AGENT_DIR/$config_file" ]; then
+            cp "$source_file" "$PI_AGENT_DIR/$config_file"
+            echo "::notice::Pi $config_file copied from repo .pi/ into $PI_AGENT_DIR"
+          fi
+        done
         {
           echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR"
         } >> "$GITHUB_ENV"

@@ -183,6 +183,11 @@ GitHub runs isolated from both repo-local `.pi` config and the runner
 user's home directory. Set `PI_CODING_AGENT_DIR` explicitly only if
 you want the action to use a different runner-local Pi directory.
 
+When repo-local `.pi/settings.json` or `.pi/models.json` exist, the action
+copies them into the runner-local Pi directory before starting the daemon. Keep
+provider/model registry data in those committed files and reference secrets by
+environment variable name, for example `"apiKey": "$OLLAMA_API_KEY"`.
+
 ### Option A — Env-var API key (default, stateless)
 
 Set one of the [Pi-supported provider env vars](https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts)
