@@ -97,7 +97,7 @@ runs:
   # action — every shell below sees them via process.env without having
   # to re-list each one in a child `env:` block.
   steps:
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
 
@@ -122,7 +122,7 @@ runs:
     - name: Restore apt archives cache (gondolin deps)
       if: runner.os == 'Linux'
       id: restore-apt-cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: ~/.cache/agent-daemon-action/apt
         key: ${{ steps.apt-cache-key.outputs.value }}
@@ -197,7 +197,7 @@ runs:
     # on cache miss to avoid re-uploading an unchanged blob.
     - name: Save apt archives cache (gondolin deps)
       if: runner.os == 'Linux' && steps.restore-apt-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ~/.cache/agent-daemon-action/apt
         key: ${{ steps.apt-cache-key.outputs.value }}
@@ -383,7 +383,7 @@ runs:
     - name: Restore gondolin snapshot cache
       if: runner.os == 'Linux'
       id: restore-gondolin-cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v6
       with:
         path: ~/.cache/moltnet/gondolin
         key: ${{ steps.gondolin-cache-key.outputs.value }}
@@ -511,7 +511,7 @@ runs:
         always()
         && runner.os == 'Linux'
         && steps.restore-gondolin-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ~/.cache/moltnet/gondolin
         key: ${{ steps.gondolin-cache-key.outputs.value }}
