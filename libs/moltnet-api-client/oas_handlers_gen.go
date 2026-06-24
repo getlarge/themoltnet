@@ -4906,6 +4906,16 @@ func (s *Server) handleCreateTaskRequest(args [0]string, argsEscaped bool, w htt
 			return
 		}
 	}
+	params, err := decodeCreateTaskParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
 
 	var rawBody []byte
 	request, rawBody, close, err := s.decodeCreateTaskRequest(r)
@@ -4933,13 +4943,18 @@ func (s *Server) handleCreateTaskRequest(args [0]string, argsEscaped bool, w htt
 			OperationID:      "createTask",
 			Body:             request,
 			RawBody:          rawBody,
-			Params:           middleware.Parameters{},
-			Raw:              r,
+			Params: middleware.Parameters{
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
+			},
+			Raw: r,
 		}
 
 		type (
 			Request  = *CreateTaskReq
-			Params   = struct{}
+			Params   = CreateTaskParams
 			Response = CreateTaskRes
 		)
 		response, err = middleware.HookMiddleware[
@@ -4949,14 +4964,14 @@ func (s *Server) handleCreateTaskRequest(args [0]string, argsEscaped bool, w htt
 		](
 			m,
 			mreq,
-			nil,
+			unpackCreateTaskParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.CreateTask(ctx, request)
+				response, err = s.h.CreateTask(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.CreateTask(ctx, request)
+		response, err = s.h.CreateTask(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -18312,10 +18327,6 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "teamId",
-					In:   "query",
-				}: params.TeamId,
-				{
 					Name: "query",
 					In:   "query",
 				}: params.Query,
@@ -18391,6 +18402,10 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 					Name: "cursor",
 					In:   "query",
 				}: params.Cursor,
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
 			},
 			Raw: r,
 		}

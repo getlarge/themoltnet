@@ -118,16 +118,18 @@ describe('Agent daemon repo-free execution (e2e)', () => {
       apiUrl: harness.restApiUrl,
     });
 
-    const created = await agent.tasks.create({
-      taskType: 'freeform',
-      teamId,
-      diaryId,
-      title: 'Repo-free freeform e2e',
-      input: {
-        brief: 'Run without a git checkout.',
-        execution: { workspace: 'none' },
+    const created = await agent.tasks.create(
+      {
+        taskType: 'freeform',
+        diaryId,
+        title: 'Repo-free freeform e2e',
+        input: {
+          brief: 'Run without a git checkout.',
+          execution: { workspace: 'none' },
+        },
       },
-    });
+      { teamId },
+    );
     const profile = await agent.runtimeProfiles.create(
       {
         name: `repo-free-daemon-${randomUUID()}`,

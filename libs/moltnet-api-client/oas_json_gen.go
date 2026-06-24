@@ -14483,10 +14483,6 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.TaskType)
 	}
 	{
-		e.FieldStart("teamId")
-		json.EncodeUUID(e, s.TeamId)
-	}
-	{
 		if s.Title.Set {
 			e.FieldStart("title")
 			s.Title.Encode(e)
@@ -14494,7 +14490,7 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateTaskReq = [15]string{
+var jsonFieldsNameOfCreateTaskReq = [14]string{
 	0:  "allowedProfiles",
 	1:  "claimCondition",
 	2:  "correlationId",
@@ -14508,8 +14504,7 @@ var jsonFieldsNameOfCreateTaskReq = [15]string{
 	10: "runningTimeoutSec",
 	11: "tags",
 	12: "taskType",
-	13: "teamId",
-	14: "title",
+	13: "title",
 }
 
 // Decode decodes CreateTaskReq from json.
@@ -14679,18 +14674,6 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
-		case "teamId":
-			requiredBitSet[1] |= 1 << 5
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.TeamId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"teamId\"")
-			}
 		case "title":
 			if err := func() error {
 				s.Title.Reset()
@@ -14712,7 +14695,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b01001000,
-		0b00110000,
+		0b00010000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

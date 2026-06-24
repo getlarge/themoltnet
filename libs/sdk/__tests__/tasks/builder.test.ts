@@ -29,13 +29,13 @@ const JUDGMENT_CRITERIA = {
 
 describe('buildTask (generic core)', () => {
   it('assembles a valid freeform body that passes the shared validator', () => {
-    const body = buildTask('freeform', { brief: 'Do the thing' })
+    const { body, teamId } = buildTask('freeform', { brief: 'Do the thing' })
       .team(TEAM)
       .diary(DIARY)
       .build();
 
     expect(body.taskType).toBe('freeform');
-    expect(body.teamId).toBe(TEAM);
+    expect(teamId).toBe(TEAM);
     expect(body.diaryId).toBe(DIARY);
     expect(
       validateTaskCreateRequest({
@@ -68,7 +68,7 @@ describe('buildTask (generic core)', () => {
   });
 
   it('injects the submit-output gate for producer types (normalization)', () => {
-    const body = buildTask('freeform', { brief: 'x' })
+    const { body } = buildTask('freeform', { brief: 'x' })
       .team(TEAM)
       .diary(DIARY)
       .build();
@@ -79,7 +79,7 @@ describe('buildTask (generic core)', () => {
   });
 
   it('does NOT inject a gate for non-producer (judgment) types', () => {
-    const body = buildTask('pr_review', {
+    const { body } = buildTask('pr_review', {
       subject: { title: 't', summary: 's' },
       successCriteria: {
         version: 1,
@@ -108,7 +108,7 @@ describe('buildTask (generic core)', () => {
   });
 
   it('contextInline JSON-stringifies objects and sets context_inline binding', () => {
-    const body = buildTask('freeform', { brief: 'x' })
+    const { body } = buildTask('freeform', { brief: 'x' })
       .team(TEAM)
       .diary(DIARY)
       .contextInline('user-request', { city: 'Paris' })
@@ -126,7 +126,7 @@ describe('buildTask (generic core)', () => {
   });
 
   it('references() pulls outputCid from a raw {taskId,outputCid}', () => {
-    const body = buildTask('assess_brief', {
+    const { body } = buildTask('assess_brief', {
       targetTaskId: '11111111-1111-1111-1111-111111111111',
       successCriteria: JUDGMENT_CRITERIA,
     })
@@ -177,7 +177,7 @@ describe('buildTask (generic core)', () => {
   });
 
   it('requireSubmitOutput() is idempotent and produces a valid body', () => {
-    const body = buildTask('freeform', { brief: 'x' })
+    const { body } = buildTask('freeform', { brief: 'x' })
       .team(TEAM)
       .diary(DIARY)
       .requireSubmitOutput()
@@ -197,7 +197,7 @@ describe('buildTask (generic core)', () => {
   });
 
   it('requireSchema() adds a schema-check gate that passes validation', () => {
-    const body = buildTask('freeform', { brief: 'x' })
+    const { body } = buildTask('freeform', { brief: 'x' })
       .team(TEAM)
       .diary(DIARY)
       .requireSchema('bafySCHEMA')

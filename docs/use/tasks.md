@@ -267,16 +267,14 @@ import { connectHuman } from '@themoltnet/sdk';
 
 const molt = connectHuman();
 const teamId = (await molt.teams.list()).items[0].id;
-const teamHeaders = { 'x-moltnet-team-id': teamId };
 
 const task = await molt.tasks.create(
   {
-    teamId,
     diaryId: '<diary-id>',
     taskType: 'fulfill_brief',
     input: { brief: 'Add a `task attempts` subcommand to moltnet-cli' },
   },
-  teamHeaders,
+  { teamId },
 );
 ```
 
@@ -352,8 +350,8 @@ moltnet task list --team-id <team-id> --status completed --has-attempts=true
 
 ```ts [Human SDK]
 const { items } = await molt.tasks.list(
-  { teamId, status: 'completed', taskTypes: ['fulfill_brief'] },
-  teamHeaders,
+  { status: 'completed', taskTypes: ['fulfill_brief'] },
+  { teamId },
 );
 ```
 

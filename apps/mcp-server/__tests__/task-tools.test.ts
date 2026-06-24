@@ -147,9 +147,9 @@ describe('Task tools', () => {
 
       expect(createTask).toHaveBeenCalledWith(
         expect.objectContaining({
+          headers: { 'x-moltnet-team-id': TEAM_ID },
           body: expect.objectContaining({
             taskType: 'curate_pack',
-            teamId: TEAM_ID,
             diaryId: DIARY_ID,
             input: taskInput,
             maxAttempts: 2,
@@ -329,8 +329,8 @@ describe('Task tools', () => {
 
       expect(listTasks).toHaveBeenCalledWith(
         expect.objectContaining({
+          headers: { 'x-moltnet-team-id': TEAM_ID },
           query: expect.objectContaining({
-            teamId: TEAM_ID,
             status: 'queued',
             taskTypes: ['curate_pack'],
             diaryId: DIARY_ID,

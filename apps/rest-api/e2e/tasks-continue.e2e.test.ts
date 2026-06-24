@@ -96,9 +96,9 @@ describe('tasks_continue server-side validation matrix', () => {
     const { data, error } = await createTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body: {
         taskType: 'freeform',
-        teamId: proposer.personalTeamId,
         diaryId: proposer.privateDiaryId,
         input: { brief },
       },
@@ -212,9 +212,9 @@ describe('tasks_continue server-side validation matrix', () => {
     return createTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body: {
         taskType: 'freeform',
-        teamId: proposer.personalTeamId,
         diaryId: proposer.privateDiaryId,
         input: {
           brief: 'Pick up where the parent left off.',
@@ -280,9 +280,9 @@ describe('tasks_continue server-side validation matrix', () => {
     const { data: curate, error: curateError } = await createTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body: {
         taskType: 'curate_pack',
-        teamId: proposer.personalTeamId,
         diaryId: proposer.privateDiaryId,
         input: {
           diaryId: proposer.privateDiaryId,

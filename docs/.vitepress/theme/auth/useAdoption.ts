@@ -196,7 +196,8 @@ async function loadAdoption(): Promise<AdoptionState> {
               async () => {
                 const res = await listTasks({
                   client,
-                  query: { teamId: t.id, limit: 1 },
+                  headers: { 'x-moltnet-team-id': t.id },
+                  query: { limit: 1 },
                 });
                 return res.data?.total ?? res.data?.items?.length ?? 0;
               },

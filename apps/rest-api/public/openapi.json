@@ -1860,10 +1860,6 @@
             "minLength": 1,
             "type": "string"
           },
-          "teamId": {
-            "format": "uuid",
-            "type": "string"
-          },
           "title": {
             "maxLength": 255,
             "minLength": 1,
@@ -1872,7 +1868,6 @@
         },
         "required": [
           "taskType",
-          "teamId",
           "diaryId",
           "input"
         ],
@@ -3655,15 +3650,8 @@
             },
             "maxItems": 20,
             "type": "array"
-          },
-          "teamId": {
-            "format": "uuid",
-            "type": "string"
           }
         },
-        "required": [
-          "teamId"
-        ],
         "type": "object"
       },
       "NetworkInfo": {
@@ -23680,15 +23668,6 @@
         "parameters": [
           {
             "in": "query",
-            "name": "teamId",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
             "name": "query",
             "required": false,
             "schema": {
@@ -23876,6 +23855,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -23938,6 +23927,18 @@
       "post": {
         "description": "Create and enqueue a new task.",
         "operationId": "createTask",
+        "parameters": [
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -24006,10 +24007,6 @@
                     "minLength": 1,
                     "type": "string"
                   },
-                  "teamId": {
-                    "format": "uuid",
-                    "type": "string"
-                  },
                   "title": {
                     "maxLength": 255,
                     "minLength": 1,
@@ -24018,7 +24015,6 @@
                 },
                 "required": [
                   "taskType",
-                  "teamId",
                   "diaryId",
                   "input"
                 ],

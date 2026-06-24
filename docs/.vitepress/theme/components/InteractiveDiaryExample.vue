@@ -33,18 +33,18 @@ const output = computed(() =>
   ),
 );
 
-function teamHeaders() {
+function teamOptions() {
   if (!selectedTeamId.value) {
     throw new Error('Select a team first');
   }
-  return { 'x-moltnet-team-id': selectedTeamId.value };
+  return { teamId: selectedTeamId.value };
 }
 
 async function listDiariesForSelectedTeam() {
   isRunning.value = true;
   error.value = null;
   try {
-    const result = await molt.diaries.list(undefined, teamHeaders());
+    const result = await molt.diaries.list(undefined, teamOptions());
     diaries.value = result.items;
   } catch (err) {
     error.value =
@@ -63,10 +63,10 @@ async function createDiaryForSelectedTeam() {
         name: name.value.trim() || 'Docs demo diary',
         visibility: 'moltnet',
       },
-      teamHeaders(),
+      teamOptions(),
     );
     created.value = diary;
-    const result = await molt.diaries.list(undefined, teamHeaders());
+    const result = await molt.diaries.list(undefined, teamOptions());
     diaries.value = result.items;
   } catch (err) {
     error.value =

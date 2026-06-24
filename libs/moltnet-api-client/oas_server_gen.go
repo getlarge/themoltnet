@@ -138,7 +138,7 @@ type Handler interface {
 	// Create and enqueue a new task.
 	//
 	// POST /tasks
-	CreateTask(ctx context.Context, req *CreateTaskReq) (CreateTaskRes, error)
+	CreateTask(ctx context.Context, req *CreateTaskReq, params CreateTaskParams) (CreateTaskRes, error)
 	// CreateTeam implements createTeam operation.
 	//
 	// Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in

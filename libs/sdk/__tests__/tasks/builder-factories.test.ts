@@ -47,11 +47,13 @@ const booleanRubric = {
   ],
 };
 
-const ok = (body: { taskType: string; input: unknown; references?: unknown }) =>
+const ok = (built: {
+  body: { taskType: string; input: unknown; references?: unknown };
+}) =>
   validateTaskCreateRequest({
-    taskType: body.taskType,
-    input: body.input,
-    references: (body.references as never) ?? null,
+    taskType: built.body.taskType,
+    input: built.body.input,
+    references: (built.body.references as never) ?? null,
   });
 
 describe('typed per-type factories produce validator-passing bodies', () => {

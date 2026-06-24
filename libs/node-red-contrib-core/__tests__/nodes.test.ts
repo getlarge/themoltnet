@@ -53,12 +53,17 @@ describe('moltnet-tasks-create', () => {
 
   it('falls back to config taskType and inherits team/diary from the agent', async () => {
     const created: Record<string, unknown>[] = [];
+    const options: Record<string, unknown>[] = [];
     const agent = {
       teamId: 'team-1',
       diaryId: 'diary-1',
       tasks: {
-        create: (body: Record<string, unknown>) => {
+        create: (
+          body: Record<string, unknown>,
+          opts: Record<string, unknown>,
+        ) => {
           created.push(body);
+          options.push(opts);
           return Promise.resolve({ id: 't' });
         },
       },
@@ -77,11 +82,12 @@ describe('moltnet-tasks-create', () => {
 
     await red.input(node, { payload: 'not-an-object' });
 
+    // teamId is passed as the SDK team-context option; diaryId stays in the body.
     expect(created[0]).toMatchObject({
       taskType: 'review',
-      teamId: 'team-1',
       diaryId: 'diary-1',
     });
+    expect(options[0]).toEqual({ teamId: 'team-1' });
   });
 
   it('builds body from node fields (tags/profiles/maxAttempts/title); payload wins', async () => {
@@ -189,10 +195,16 @@ describe('moltnet-tasks-create', () => {
 describe('moltnet-workflow-status', () => {
   it('maps a workflow run’s tasks to table rows by correlationId', async () => {
     const seen: Array<{ correlationId?: string; limit?: number }> = [];
+    const seenOptions: Array<{ teamId?: string }> = [];
     const agent = {
+      teamId: 'team-1',
       tasks: {
-        list: (query: { correlationId?: string; limit?: number }) => {
+        list: (
+          query: { correlationId?: string; limit?: number },
+          options: { teamId?: string },
+        ) => {
           seen.push(query);
+          seenOptions.push(options);
           return Promise.resolve({
             total: 2,
             items: [
@@ -220,7 +232,8 @@ describe('moltnet-workflow-status', () => {
     const red = new FakeRed();
     red.load(agentStub(agent));
     red.load(workflowStatus);
-    red.create('moltnet-agent', 'a1');
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
     const node = red.create('moltnet-workflow-status', 'n1', {
       agent: 'a1',
       limit: 25,
@@ -229,6 +242,7 @@ describe('moltnet-workflow-status', () => {
     const { outputs } = await red.input(node, { correlationId: 'corr-1' });
 
     expect(seen).toEqual([{ correlationId: 'corr-1', limit: 25 }]);
+    expect(seenOptions).toEqual([{ teamId: 'team-1' }]);
     const rows = outputs[0].payload as Array<Record<string, unknown>>;
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({

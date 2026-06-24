@@ -10,6 +10,7 @@ import {
 import type { DiariesNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
+import { requiredTeamHeaders, teamHeaders } from './team-headers.js';
 
 export function createDiariesNamespace(
   context: AgentContext,
@@ -17,26 +18,60 @@ export function createDiariesNamespace(
   const { client, auth } = context;
 
   return {
-    async list(query, headers) {
-      return unwrapResult(await listDiaries({ client, auth, query, headers }));
-    },
-
-    async create(body, headers) {
-      return unwrapResult(await createDiary({ client, auth, body, headers }));
-    },
-
-    async get(id) {
-      return unwrapResult(await getDiary({ client, auth, path: { id } }));
-    },
-
-    async update(id, body) {
+    async list(query, options) {
       return unwrapResult(
-        await updateDiary({ client, auth, path: { id }, body }),
+        await listDiaries({
+          client,
+          auth,
+          query,
+          headers: teamHeaders(options),
+        }),
       );
     },
 
-    async delete(id) {
-      return unwrapResult(await deleteDiary({ client, auth, path: { id } }));
+    async create(body, options) {
+      return unwrapResult(
+        await createDiary({
+          client,
+          auth,
+          body,
+          headers: requiredTeamHeaders(options),
+        }),
+      );
+    },
+
+    async get(id, options) {
+      return unwrapResult(
+        await getDiary({
+          client,
+          auth,
+          path: { id },
+          headers: teamHeaders(options),
+        }),
+      );
+    },
+
+    async update(id, body, options) {
+      return unwrapResult(
+        await updateDiary({
+          client,
+          auth,
+          path: { id },
+          body,
+          headers: teamHeaders(options),
+        }),
+      );
+    },
+
+    async delete(id, options) {
+      return unwrapResult(
+        await deleteDiary({
+          client,
+          auth,
+          path: { id },
+          headers: teamHeaders(options),
+        }),
+      );
     },
 
     async tags(diaryId, query) {

@@ -159,7 +159,7 @@ type Invoker interface {
 	// Create and enqueue a new task.
 	//
 	// POST /tasks
-	CreateTask(ctx context.Context, request *CreateTaskReq) (CreateTaskRes, error)
+	CreateTask(ctx context.Context, request *CreateTaskReq, params CreateTaskParams) (CreateTaskRes, error)
 	// CreateTeam invokes createTeam operation.
 	//
 	// Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in
@@ -3967,12 +3967,12 @@ func (c *Client) sendCreateSigningRequest(ctx context.Context, request *CreateSi
 // Create and enqueue a new task.
 //
 // POST /tasks
-func (c *Client) CreateTask(ctx context.Context, request *CreateTaskReq) (CreateTaskRes, error) {
-	res, err := c.sendCreateTask(ctx, request)
+func (c *Client) CreateTask(ctx context.Context, request *CreateTaskReq, params CreateTaskParams) (CreateTaskRes, error) {
+	res, err := c.sendCreateTask(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendCreateTask(ctx context.Context, request *CreateTaskReq) (res CreateTaskRes, err error) {
+func (c *Client) sendCreateTask(ctx context.Context, request *CreateTaskReq, params CreateTaskParams) (res CreateTaskRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("createTask"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -4020,6 +4020,20 @@ func (c *Client) sendCreateTask(ctx context.Context, request *CreateTaskReq) (re
 	}
 	if err := encodeCreateTaskRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -13990,20 +14004,6 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 	stage = "EncodeQueryParams"
 	q := uri.NewQueryEncoder()
 	{
-		// Encode "teamId" parameter.
-		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "teamId",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.UUIDToString(params.TeamId))
-		}); err != nil {
-			return res, errors.Wrap(err, "encode query")
-		}
-	}
-	{
 		// Encode "query" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
 			Name:    "query",
@@ -14368,6 +14368,20 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 	r, err := ht.NewRequest(ctx, "GET", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{

@@ -246,13 +246,15 @@ async function main() {
   }
 
   const agent = await connect({ configDir: agentDir });
-  const task = await agent.tasks.create({
-    taskType: RUN_EVAL_TYPE,
-    teamId,
-    diaryId,
-    correlationId,
-    input: input as unknown as Record<string, unknown>,
-  });
+  const task = await agent.tasks.create(
+    {
+      taskType: RUN_EVAL_TYPE,
+      diaryId,
+      correlationId,
+      input: input as unknown as Record<string, unknown>,
+    },
+    { teamId },
+  );
 
   console.error(
     `[task] created ${task.id} (status=${task.status}, variant=${variantLabel}, correlation=${correlationId})`,

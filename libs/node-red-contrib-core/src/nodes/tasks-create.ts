@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import type { CreateTaskBody } from '@themoltnet/sdk';
 import type {
   Node,
   NodeDef,
@@ -41,9 +42,6 @@ interface TasksCreateDef extends NodeDef {
   maxAttempts?: number;
   generateCorrelationId?: boolean;
 }
-
-type AgentApi = Awaited<ReturnType<MoltnetAgentNode['getAgent']>>;
-type CreateTaskBody = Parameters<AgentApi['tasks']['create']>[0];
 
 const init: NodeInitializer = (RED): void => {
   function TasksCreateNode(this: Node, def: TasksCreateDef): void {
@@ -113,7 +111,10 @@ const init: NodeInitializer = (RED): void => {
           );
           if (correlationId) base.correlationId = correlationId;
 
-          const task = await agent.tasks.create(base as CreateTaskBody);
+          const { teamId, ...createBody } = base;
+          const task = await agent.tasks.create(createBody as CreateTaskBody, {
+            teamId: teamId as string,
+          });
 
           // Emit on a clone so fan-out wires don't share a mutated message.
           // The resolved correlationId is echoed onto msg.correlationId so

@@ -424,21 +424,23 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.tasks.list({
-        teamId: 'team-1',
-        diaryId: 'diary-1',
-        claimedByAgentId: 'agent-1',
-        hasAttempts: true,
-        queuedAfter: '2026-04-28T10:00:00.000Z',
-      });
+      const result = await agent.tasks.list(
+        {
+          diaryId: 'diary-1',
+          claimedByAgentId: 'agent-1',
+          hasAttempts: true,
+          queuedAfter: '2026-04-28T10:00:00.000Z',
+        },
+        { teamId: 'team-1' },
+      );
 
       expect(result).toEqual(taskList);
       expect(listTasks).toHaveBeenCalledWith(
         expect.objectContaining({
           client: mockClient,
           auth: mockAuth,
+          headers: { 'x-moltnet-team-id': 'team-1' },
           query: {
-            teamId: 'team-1',
             diaryId: 'diary-1',
             claimedByAgentId: 'agent-1',
             hasAttempts: true,
@@ -455,21 +457,55 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.tasks.create({
-        taskType: 'fulfill_brief',
-        teamId: 'team-1',
-        diaryId: 'diary-1',
-        input: { brief: 'Hello' },
-      });
+      const result = await agent.tasks.create(
+        {
+          taskType: 'fulfill_brief',
+          diaryId: 'diary-1',
+          input: { brief: 'Hello' },
+        },
+        { teamId: 'team-1' },
+      );
 
       expect(result).toEqual(mockTask);
       expect(createTask).toHaveBeenCalledWith(
         expect.objectContaining({
           client: mockClient,
           auth: mockAuth,
+          headers: { 'x-moltnet-team-id': 'team-1' },
           body: {
             taskType: 'fulfill_brief',
-            teamId: 'team-1',
+            diaryId: 'diary-1',
+            input: { brief: 'Hello' },
+          },
+        }),
+      );
+    });
+
+    it('tasks.create accepts a builder { body, teamId } result and sets the team header', async () => {
+      vi.mocked(createTask).mockResolvedValueOnce({
+        data: mockTask,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      // Shape produced by TaskBuilder.build(): body has no teamId; team travels
+      // as the header.
+      const built = {
+        body: {
+          taskType: 'freeform' as const,
+          diaryId: 'diary-1',
+          input: { brief: 'Hello' },
+        },
+        teamId: 'team-1',
+      };
+      const result = await agent.tasks.create(built);
+
+      expect(result).toEqual(mockTask);
+      expect(createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: { 'x-moltnet-team-id': 'team-1' },
+          body: {
+            taskType: 'freeform',
             diaryId: 'diary-1',
             input: { brief: 'Hello' },
           },
@@ -929,13 +965,59 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const headers = { 'x-moltnet-team-id': 'team-123' };
-      await agent.diaries.create({ name: 'My Diary' }, headers);
+      await agent.diaries.create({ name: 'My Diary' }, { teamId: 'team-123' });
 
       expect(createDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           body: { name: 'My Diary' },
-          headers,
+          headers: { 'x-moltnet-team-id': 'team-123' },
+        }),
+      );
+    });
+
+    it('diaries.list sets the team header from { teamId }', async () => {
+      vi.mocked(listDiaries).mockResolvedValueOnce({
+        data: { items: [] },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.list(undefined, { teamId: 'team-7' });
+
+      expect(listDiaries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: { 'x-moltnet-team-id': 'team-7' },
+        }),
+      );
+    });
+
+    it('diaries.list omits the team header when no option is passed', async () => {
+      vi.mocked(listDiaries).mockResolvedValueOnce({
+        data: { items: [] },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.list();
+
+      expect(listDiaries).toHaveBeenCalledWith(
+        expect.objectContaining({ headers: undefined }),
+      );
+    });
+
+    it('diaries.get sets the team header from { teamId }', async () => {
+      vi.mocked(getDiary).mockResolvedValueOnce({
+        data: mockDiary,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.get('diary-1', { teamId: 'team-9' });
+
+      expect(getDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'diary-1' },
+          headers: { 'x-moltnet-team-id': 'team-9' },
         }),
       );
     });

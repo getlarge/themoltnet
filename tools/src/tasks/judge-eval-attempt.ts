@@ -135,13 +135,15 @@ async function main() {
     return;
   }
 
-  const task = await agent.tasks.create({
-    taskType: JUDGE_EVAL_ATTEMPT_TYPE,
-    teamId,
-    diaryId,
-    correlationId: target.correlationId,
-    input: input as unknown as Record<string, unknown>,
-  });
+  const task = await agent.tasks.create(
+    {
+      taskType: JUDGE_EVAL_ATTEMPT_TYPE,
+      diaryId,
+      correlationId: target.correlationId,
+      input: input as unknown as Record<string, unknown>,
+    },
+    { teamId },
+  );
 
   console.error(
     `[task] created ${task.id} (status=${task.status}, target=${targetTaskId}@${target.acceptedAttemptN})`,

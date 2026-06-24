@@ -86,18 +86,20 @@ export async function seedCompletedFreeformAttempt(
     slotTtlMs = 60 * 60 * 1000,
   } = options;
 
-  const created = await agent.tasks.create({
-    taskType: 'freeform',
-    teamId,
-    diaryId,
-    ...(title ? { title } : {}),
-    ...(correlationId ? { correlationId } : {}),
-    ...(allowedProfiles?.length ? { allowedProfiles } : {}),
-    ...(requiredExecutorTrustLevel ? { requiredExecutorTrustLevel } : {}),
-    input: {
-      brief,
+  const created = await agent.tasks.create(
+    {
+      taskType: 'freeform',
+      diaryId,
+      ...(title ? { title } : {}),
+      ...(correlationId ? { correlationId } : {}),
+      ...(allowedProfiles?.length ? { allowedProfiles } : {}),
+      ...(requiredExecutorTrustLevel ? { requiredExecutorTrustLevel } : {}),
+      input: {
+        brief,
+      },
     },
-  });
+    { teamId },
+  );
 
   const claimed = await agent.tasks.claim(created.id, {
     leaseTtlSec: 120,

@@ -150,32 +150,49 @@ import { createSigningRequestsNamespace } from './namespaces/signing-requests.js
 import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
 import { createVouchNamespace } from './namespaces/vouch.js';
-import type { TaskBuilder, TaskResultReader } from './tasks/index.js';
+import type {
+  BuiltTask,
+  TaskBuilder,
+  TaskResultReader,
+} from './tasks/index.js';
 import type { TokenManager } from './token.js';
 
 // ---------------------------------------------------------------------------
 // Namespace interfaces
 // ---------------------------------------------------------------------------
 
+/** Per-call team context for diary operations. */
+export interface DiaryRequestOptions {
+  /** Active team. Sets `x-moltnet-team-id` for the request when provided. */
+  teamId?: string;
+}
+
+/** Team context for diary creation, where the team is required (it owns the diary). */
+export interface DiaryCreateRequestOptions {
+  /** Team that will own the diary. Sets `x-moltnet-team-id`. */
+  teamId: string;
+}
+
 export interface DiariesNamespace {
   list(
     query?: ListDiariesData['query'],
-    headers?: ListDiariesData['headers'],
+    options?: DiaryRequestOptions,
   ): Promise<DiaryCatalogList>;
 
   create(
     body: CreateDiaryData['body'],
-    headers: CreateDiaryData['headers'],
+    options: DiaryCreateRequestOptions,
   ): Promise<DiaryCatalog>;
 
-  get(id: string): Promise<DiaryCatalog>;
+  get(id: string, options?: DiaryRequestOptions): Promise<DiaryCatalog>;
 
   update(
     id: string,
     body: NonNullable<UpdateDiaryData['body']>,
+    options?: DiaryRequestOptions,
   ): Promise<DiaryCatalog>;
 
-  delete(id: string): Promise<Success>;
+  delete(id: string, options?: DiaryRequestOptions): Promise<Success>;
 
   tags(
     diaryId: string,
@@ -479,12 +496,26 @@ export interface DiaryTransfersNamespace {
   reject(transferId: string): Promise<RejectTransferResponses[200]>;
 }
 
+/** Per-call team context for task operations. The header is required. */
+export interface TaskRequestOptions {
+  /** Active team. Sets `x-moltnet-team-id` for the request. */
+  teamId: string;
+}
+
 export interface TasksNamespace {
   schemas(): Promise<ListTaskSchemasResponse>;
 
-  list(query: ListTasksData['query']): Promise<TaskListResponse>;
+  list(
+    query: ListTasksData['query'],
+    options: TaskRequestOptions,
+  ): Promise<TaskListResponse>;
 
-  create(body: CreateTaskData['body']): Promise<Task>;
+  create(
+    body: CreateTaskData['body'],
+    options: TaskRequestOptions,
+  ): Promise<Task>;
+  /** Create from a {@link TaskBuilder.build} result (`{ body, teamId }`). */
+  create(built: BuiltTask): Promise<Task>;
 
   /** Generic builder escape hatch for any task type slug. */
   buildTask<TInput extends Record<string, unknown>>(

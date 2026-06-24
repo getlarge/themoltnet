@@ -6247,7 +6247,6 @@ type CreateTaskReq struct {
 	RunningTimeoutSec          OptInt                `json:"runningTimeoutSec"`
 	Tags                       []string              `json:"tags"`
 	TaskType                   string                `json:"taskType"`
-	TeamId                     uuid.UUID             `json:"teamId"`
 	Title                      OptString             `json:"title"`
 }
 
@@ -6314,11 +6313,6 @@ func (s *CreateTaskReq) GetTags() []string {
 // GetTaskType returns the value of TaskType.
 func (s *CreateTaskReq) GetTaskType() string {
 	return s.TaskType
-}
-
-// GetTeamId returns the value of TeamId.
-func (s *CreateTaskReq) GetTeamId() uuid.UUID {
-	return s.TeamId
 }
 
 // GetTitle returns the value of Title.
@@ -6389,11 +6383,6 @@ func (s *CreateTaskReq) SetTags(val []string) {
 // SetTaskType sets the value of TaskType.
 func (s *CreateTaskReq) SetTaskType(val string) {
 	s.TaskType = val
-}
-
-// SetTeamId sets the value of TeamId.
-func (s *CreateTaskReq) SetTeamId(val uuid.UUID) {
-	s.TeamId = val
 }
 
 // SetTitle sets the value of Title.

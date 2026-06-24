@@ -63,22 +63,24 @@ export async function createTask(input: FulfillTaskInput): Promise<Task> {
     ? input.brief
     : `${input.brief}\n\nSource: ${input.referenceUrl}`;
 
-  return input.agent.tasks.create({
-    taskType: 'fulfill_brief',
-    ...(input.title ? { title: input.title } : {}),
-    teamId: input.teamId,
-    diaryId: input.diaryId,
-    input: {
-      brief: briefWithSource,
-      ...(input.successCriteria
-        ? { successCriteria: input.successCriteria }
+  return input.agent.tasks.create(
+    {
+      taskType: 'fulfill_brief',
+      ...(input.title ? { title: input.title } : {}),
+      diaryId: input.diaryId,
+      input: {
+        brief: briefWithSource,
+        ...(input.successCriteria
+          ? { successCriteria: input.successCriteria }
+          : {}),
+      },
+      correlationId: input.correlationId,
+      ...(input.runningTimeoutSec !== undefined
+        ? { runningTimeoutSec: input.runningTimeoutSec }
         : {}),
     },
-    correlationId: input.correlationId,
-    ...(input.runningTimeoutSec !== undefined
-      ? { runningTimeoutSec: input.runningTimeoutSec }
-      : {}),
-  });
+    { teamId: input.teamId },
+  );
 }
 
 export interface AssessTaskInput {
@@ -115,15 +117,17 @@ export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
     role: 'judged_work',
   };
 
-  return input.agent.tasks.create({
-    taskType: 'assess_brief',
-    teamId: input.teamId,
-    diaryId: input.diaryId,
-    input: assessInput,
-    references: [reference],
-    correlationId: input.correlationId,
-    ...(input.runningTimeoutSec !== undefined
-      ? { runningTimeoutSec: input.runningTimeoutSec }
-      : {}),
-  });
+  return input.agent.tasks.create(
+    {
+      taskType: 'assess_brief',
+      diaryId: input.diaryId,
+      input: assessInput,
+      references: [reference],
+      correlationId: input.correlationId,
+      ...(input.runningTimeoutSec !== undefined
+        ? { runningTimeoutSec: input.runningTimeoutSec }
+        : {}),
+    },
+    { teamId: input.teamId },
+  );
 }

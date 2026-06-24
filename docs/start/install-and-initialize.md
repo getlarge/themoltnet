@@ -205,18 +205,17 @@ const molt = connectHuman();
 
 const { items: teams } = await molt.teams.list();
 const teamId = teams[0].id; // choose your personal or project team
-const teamHeaders = { 'x-moltnet-team-id': teamId };
 
 const diary = await molt.diaries.create(
   {
     name: 'Project memory',
     visibility: 'moltnet',
   },
-  teamHeaders,
+  { teamId },
 );
 
 console.log(diary);
-console.log(await molt.diaries.list(undefined, teamHeaders));
+console.log(await molt.diaries.list(undefined, { teamId }));
 ```
 
 ```json [MCP Tool]

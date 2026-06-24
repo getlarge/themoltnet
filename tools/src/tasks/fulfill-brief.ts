@@ -225,25 +225,27 @@ async function main() {
   }
 
   const agent = await connect({ configDir: agentDir });
-  const task = await agent.tasks.create({
-    taskType: FULFILL_BRIEF_TYPE,
-    title: draft.title,
-    teamId,
-    diaryId,
-    correlationId,
-    input: draft.input as unknown as Record<string, unknown>,
-    references: [
-      {
-        taskId: null,
-        outputCid: `gh:issue:${issue.number}`,
-        role: 'context',
-        external: {
-          kind: 'github_issue',
-          issue: issue.number,
+  const task = await agent.tasks.create(
+    {
+      taskType: FULFILL_BRIEF_TYPE,
+      title: draft.title,
+      diaryId,
+      correlationId,
+      input: draft.input as unknown as Record<string, unknown>,
+      references: [
+        {
+          taskId: null,
+          outputCid: `gh:issue:${issue.number}`,
+          role: 'context',
+          external: {
+            kind: 'github_issue',
+            issue: issue.number,
+          },
         },
-      },
-    ],
-  });
+      ],
+    },
+    { teamId },
+  );
 
   console.error(
     `[task] created ${task.id} (status=${task.status}) correlationId=${correlationId}` +

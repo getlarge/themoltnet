@@ -141,7 +141,7 @@ async function setup(): Promise<void> {
 
   const diary = await sdk.diaries.create(
     { name: 'eval-workspace', visibility: 'moltnet' },
-    { 'x-moltnet-team-id': personalTeamId },
+    { teamId: personalTeamId },
   );
   console.log(`[eval-setup] Diary created: ${diary.id}`);
 

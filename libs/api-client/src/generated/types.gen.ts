@@ -497,7 +497,6 @@ export type CreateTaskBody = {
   runningTimeoutSec?: number;
   tags?: Array<string>;
   taskType: string;
-  teamId: string;
   title?: string;
 };
 
@@ -899,7 +898,6 @@ export type ListTasksQuery = {
    * Repeated task type filter. Single value also accepted.
    */
   taskTypes?: Array<string>;
-  teamId: string;
 };
 
 export type NetworkInfo = {
@@ -7409,9 +7407,14 @@ export type BatchDeleteTasksResponse =
 
 export type ListTasksData = {
   body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
   path?: never;
-  query: {
-    teamId: string;
+  query?: {
     query?: string;
     status?: TaskStatus;
     statuses?: Array<TaskStatus>;
@@ -7487,8 +7490,13 @@ export type CreateTaskData = {
     runningTimeoutSec?: number;
     tags?: Array<string>;
     taskType: string;
-    teamId: string;
     title?: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
   };
   path?: never;
   query?: never;
