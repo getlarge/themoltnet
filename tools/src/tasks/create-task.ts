@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import type { TasksNamespace } from '@themoltnet/sdk';
+import type { BuiltTask } from '@themoltnet/sdk';
 
 import {
   parseSetArgs,
@@ -57,9 +57,14 @@ async function main() {
   }
 
   const api = await resolveTasksApiContext(repoRoot, agentName);
-  const created = await api.agent.tasks.create(
-    payload as Parameters<TasksNamespace['create']>[0],
-  );
+  const { teamId, ...body } = payload as { teamId: string } & Record<
+    string,
+    unknown
+  >;
+  const created = await api.agent.tasks.create({
+    body: body as BuiltTask['body'],
+    teamId,
+  });
 
   console.log('\n[done] Task:');
   console.log(JSON.stringify(created, null, 2));

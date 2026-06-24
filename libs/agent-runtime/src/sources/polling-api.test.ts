@@ -54,11 +54,13 @@ describe('PollingApiTaskSource', () => {
       attemptN: 1,
       traceHeaders: { traceparent: '00-x-y-01' },
     });
-    expect(list).toHaveBeenCalledWith({
-      teamId: 'team-1',
-      status: 'queued',
-      limit: 10,
-    });
+    expect(list).toHaveBeenCalledWith(
+      {
+        status: 'queued',
+        limit: 10,
+      },
+      { teamId: 'team-1' },
+    );
     expect(claim).toHaveBeenCalledWith(task.id, { leaseTtlSec: 60 });
   });
 
@@ -175,6 +177,7 @@ describe('PollingApiTaskSource', () => {
       expect.objectContaining({
         profileId,
       }),
+      { teamId: 't' },
     );
     expect(claim).toHaveBeenCalledWith(
       task.id,
@@ -311,6 +314,7 @@ describe('PollingApiTaskSource', () => {
         cursor: 'next-page',
         profileId: firstProfile,
       }),
+      { teamId: 't' },
     );
   });
 
@@ -334,24 +338,24 @@ describe('PollingApiTaskSource', () => {
       allowedProfiles: [{ profileId: secondProfile }],
     });
     const list = vi.fn<TasksNamespace['list']>().mockImplementation((query) => {
-      if (query.profileId === firstProfile && !query.cursor) {
+      if (query?.profileId === firstProfile && !query?.cursor) {
         return Promise.resolve({
           items: [skippedA],
           nextCursor: 'cursor-a',
           total: 2,
         });
       }
-      if (query.profileId === secondProfile && !query.cursor) {
+      if (query?.profileId === secondProfile && !query?.cursor) {
         return Promise.resolve({
           items: [skippedB],
           nextCursor: 'cursor-b',
           total: 2,
         });
       }
-      if (query.profileId === firstProfile && query.cursor === 'cursor-a') {
+      if (query?.profileId === firstProfile && query?.cursor === 'cursor-a') {
         return Promise.resolve({ items: [], total: 0 });
       }
-      if (query.profileId === secondProfile && query.cursor === 'cursor-b') {
+      if (query?.profileId === secondProfile && query?.cursor === 'cursor-b') {
         return Promise.resolve({ items: [task], total: 1 });
       }
       return Promise.resolve({ items: [], total: 0 });
@@ -382,6 +386,7 @@ describe('PollingApiTaskSource', () => {
         cursor: 'cursor-b',
         profileId: secondProfile,
       }),
+      { teamId: 't' },
     );
     expect(claim).toHaveBeenCalledWith(task.id, {
       leaseTtlSec: 90,
@@ -406,6 +411,7 @@ describe('PollingApiTaskSource', () => {
     expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenCalledWith(
       expect.objectContaining({ taskTypes: ['fulfill_brief', 'curate_pack'] }),
+      { teamId: 't' },
     );
   });
 
@@ -601,6 +607,7 @@ describe('PollingApiTaskSource', () => {
     expect(list).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ cursor: 'page-2' }),
+      { teamId: 't' },
     );
     expect(claim).toHaveBeenCalledOnce();
     expect(claim).toHaveBeenCalledWith(claimable.id, { leaseTtlSec: 60 });

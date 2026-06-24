@@ -26,6 +26,7 @@ type stubContinueHandler struct {
 	getParams   moltnetapi.GetTaskParams
 	createCalls int
 	lastCreate  *moltnetapi.CreateTaskReq
+	lastParams  moltnetapi.CreateTaskParams
 	// When set, GetTask returns this error response instead of source.
 	getErr moltnetapi.GetTaskRes
 	// When set, CreateTask returns this error response instead of a Task.
@@ -43,16 +44,17 @@ func (h *stubContinueHandler) GetTask(_ context.Context, params moltnetapi.GetTa
 	return h.source, nil
 }
 
-func (h *stubContinueHandler) CreateTask(_ context.Context, req *moltnetapi.CreateTaskReq) (moltnetapi.CreateTaskRes, error) {
+func (h *stubContinueHandler) CreateTask(_ context.Context, req *moltnetapi.CreateTaskReq, params moltnetapi.CreateTaskParams) (moltnetapi.CreateTaskRes, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.createCalls++
 	cp := *req
 	h.lastCreate = &cp
+	h.lastParams = params
 	if h.createErr != nil {
 		return h.createErr, nil
 	}
-	return newTaskFixture(uuid.Nil, req.TeamId), nil
+	return newTaskFixture(uuid.Nil, params.XMoltnetTeamID), nil
 }
 
 // freeformSourceFixture is a completed freeform Task suitable for use as
@@ -109,8 +111,8 @@ func TestRunTaskContinue_HappyPath(t *testing.T) {
 	if got.TaskType != "freeform" {
 		t.Errorf("taskType = %q, want freeform", got.TaskType)
 	}
-	if got.TeamId != teamID {
-		t.Errorf("teamId = %s, want %s", got.TeamId, teamID)
+	if h.lastParams.XMoltnetTeamID != teamID {
+		t.Errorf("teamId = %s, want %s", h.lastParams.XMoltnetTeamID, teamID)
 	}
 	if !got.CorrelationId.IsSet() || got.CorrelationId.Value != corrID {
 		t.Errorf("correlationId = %v, want %s", got.CorrelationId, corrID)

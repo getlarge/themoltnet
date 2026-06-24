@@ -203,7 +203,7 @@ func (UnimplementedHandler) CreateSigningRequest(ctx context.Context, req *Creat
 // Create and enqueue a new task.
 //
 // POST /tasks
-func (UnimplementedHandler) CreateTask(ctx context.Context, req *CreateTaskReq) (r CreateTaskRes, _ error) {
+func (UnimplementedHandler) CreateTask(ctx context.Context, req *CreateTaskReq, params CreateTaskParams) (r CreateTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

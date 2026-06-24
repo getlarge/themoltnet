@@ -133,7 +133,7 @@ describe('Human client facade', () => {
 
     await human.diaries.create(
       { name: 'Project memory', visibility: 'moltnet' },
-      { 'x-moltnet-team-id': 'team-1' },
+      { teamId: 'team-1' },
     );
 
     expect(createDiary).toHaveBeenCalledWith(
@@ -156,7 +156,7 @@ describe('Human client facade', () => {
       client: mockClient,
     });
 
-    await human.diaries.list(undefined, { 'x-moltnet-team-id': 'team-1' });
+    await human.diaries.list(undefined, { teamId: 'team-1' });
 
     expect(listDiaries).toHaveBeenCalledWith(
       expect.objectContaining({

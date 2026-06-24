@@ -76,6 +76,7 @@ export {
   buildRenderPack,
   buildRunEval,
   buildTask,
+  type BuiltTask,
   createResultReader,
   type CreateTaskBody,
   formatValidationErrors,

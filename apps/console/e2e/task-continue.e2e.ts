@@ -227,7 +227,8 @@ test.describe.serial('Continue task from console', () => {
           const tasks = (
             await listTasks({
               client: humanClient,
-              query: { teamId: sharedTeamId },
+              headers: { 'x-moltnet-team-id': sharedTeamId },
+              query: {},
             })
           ).data?.items;
           const match = tasks?.find(

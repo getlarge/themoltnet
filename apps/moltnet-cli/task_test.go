@@ -34,7 +34,7 @@ func (h *stubTasksHandler) ListTasks(_ context.Context, params moltnetapi.ListTa
 	h.listCalls++
 	h.listParams = params
 	return &moltnetapi.TaskListResponse{
-		Items: []moltnetapi.Task{*newTaskFixture(h.responseTaskID, params.TeamId)},
+		Items: []moltnetapi.Task{*newTaskFixture(h.responseTaskID, params.XMoltnetTeamID)},
 		Total: 1,
 	}, nil
 }

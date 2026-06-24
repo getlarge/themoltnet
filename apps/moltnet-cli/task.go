@@ -98,7 +98,7 @@ func buildListTasksParams(opts taskListOpts) (moltnetapi.ListTasksParams, error)
 		return moltnetapi.ListTasksParams{}, fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
 	}
 
-	params := moltnetapi.ListTasksParams{TeamId: teamID}
+	params := moltnetapi.ListTasksParams{XMoltnetTeamID: teamID}
 
 	if opts.taskTypesSet {
 		params.TaskTypes = append(params.TaskTypes, cleanCSVValues(opts.taskTypes)...)

@@ -131,9 +131,9 @@ describe('Runtime slots API', () => {
     const { data, error } = await createTask({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': teamId },
       body: {
         taskType: 'curate_pack',
-        teamId,
         diaryId,
         input: { diaryId, taskPrompt },
       },
@@ -153,9 +153,9 @@ describe('Runtime slots API', () => {
     const { data, error } = await createTask({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': teamId },
       body: {
         taskType: 'curate_pack',
-        teamId,
         diaryId,
         input: { diaryId, taskPrompt },
       },

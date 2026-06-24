@@ -42,7 +42,7 @@ describe('compose -> consume -> compose', () => {
       } as unknown as TaskAttempt,
     );
 
-    const body = buildAssessBrief({
+    const { body } = buildAssessBrief({
       targetTaskId: UPSTREAM_ID,
       successCriteria: { version: 1, rubric: llmRubric },
     })

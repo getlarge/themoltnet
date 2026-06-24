@@ -77,18 +77,23 @@ describe('POST /tasks', () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.taskService.create.mockResolvedValue(MOCK_TASK);
+    // Team context is resolved from the x-moltnet-team-id header by the auth
+    // plugin, which permission-checks via canAccessTeam.
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
   });
 
-  it('returns 201 with created task', async () => {
+  it('returns 201 with created task and derives teamId from the header', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/tasks',
-      headers: { authorization: 'Bearer test-token' },
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
       payload: {
         taskType: 'fulfill_brief',
         title: 'Task worker',
         tags: ['observability', 'cohort'],
-        teamId: TEAM_ID,
         diaryId: DIARY_ID,
         input: { brief: 'Ship a task worker.' },
       },
@@ -104,18 +109,37 @@ describe('POST /tasks', () => {
       expect.objectContaining({
         title: 'Task worker',
         tags: ['observability', 'cohort'],
+        teamId: TEAM_ID,
       }),
     );
+  });
+
+  it('returns 400 when the x-moltnet-team-id header is missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/tasks',
+      headers: { authorization: 'Bearer test-token' },
+      payload: {
+        taskType: 'fulfill_brief',
+        diaryId: DIARY_ID,
+        input: { brief: 'Ship a task worker.' },
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(mocks.taskService.create).not.toHaveBeenCalled();
   });
 
   it('passes the agent identityId as proposerId for agent callers', async () => {
     await app.inject({
       method: 'POST',
       url: '/tasks',
-      headers: { authorization: 'Bearer test-token' },
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
       payload: {
         taskType: 'fulfill_brief',
-        teamId: TEAM_ID,
         diaryId: DIARY_ID,
         input: { brief: 'Ship a task worker.' },
       },
@@ -136,6 +160,7 @@ describe('POST /tasks', () => {
     const HUMAN_ROW_ID = '550e8400-e29b-41d4-a716-4466554400ee';
     const humanMocks = createMockServices();
     humanMocks.taskService.create.mockResolvedValue(MOCK_TASK);
+    humanMocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     const humanApp = await createTestApp(humanMocks, {
       subjectType: 'human',
       identityId: HUMAN_IDENTITY,
@@ -148,10 +173,12 @@ describe('POST /tasks', () => {
     await humanApp.inject({
       method: 'POST',
       url: '/tasks',
-      headers: { authorization: 'Bearer test-token' },
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
       payload: {
         taskType: 'fulfill_brief',
-        teamId: TEAM_ID,
         diaryId: DIARY_ID,
         input: { brief: 'Ship a task worker.' },
       },
@@ -173,9 +200,9 @@ describe('POST /tasks', () => {
     const response = await appNoAuth.inject({
       method: 'POST',
       url: '/tasks',
+      headers: { 'x-moltnet-team-id': TEAM_ID },
       payload: {
         taskType: 'fulfill_brief',
-        teamId: TEAM_ID,
         diaryId: DIARY_ID,
         input: {},
       },
@@ -187,20 +214,26 @@ describe('POST /tasks', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/tasks',
-      headers: { authorization: 'Bearer test-token' },
-      payload: { teamId: TEAM_ID, input: {} },
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { input: {} },
     });
     expect(response.statusCode).toBe(400);
   });
 
-  it('returns 400 when teamId is not a uuid', async () => {
+  it('returns 400 when the team header is not a uuid', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/tasks',
-      headers: { authorization: 'Bearer test-token' },
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': 'not-a-uuid',
+      },
       payload: {
         taskType: 'fulfill_brief',
-        teamId: 'not-a-uuid',
+        diaryId: DIARY_ID,
         input: {},
       },
     });
@@ -218,10 +251,10 @@ describe('POST /tasks', () => {
       headers: {
         authorization: 'Bearer test-token',
         accept: 'application/problem+json',
+        'x-moltnet-team-id': TEAM_ID,
       },
       payload: {
         taskType: 'nope',
-        teamId: TEAM_ID,
         diaryId: DIARY_ID,
         input: {},
       },
@@ -244,10 +277,12 @@ describe('POST /tasks', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/tasks',
-      headers: { authorization: 'Bearer test-token' },
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
       payload: {
         taskType: 'fulfill_brief',
-        teamId: TEAM_ID,
         diaryId: DIARY_ID,
         allowedProfiles: [{ profileId: PROFILE_ID }],
         input: { brief: 'Ship a task worker.' },
@@ -277,10 +312,10 @@ describe('POST /tasks', () => {
       headers: {
         authorization: 'Bearer test-token',
         accept: 'application/problem+json',
+        'x-moltnet-team-id': TEAM_ID,
       },
       payload: {
         taskType: 'fulfill_brief',
-        teamId: TEAM_ID,
         diaryId: DIARY_ID,
         allowedProfiles: [{ profileId: PROFILE_ID }],
         input: { brief: 'Ship a task worker.' },
@@ -304,26 +339,33 @@ describe('GET /tasks', () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.taskService.list.mockResolvedValue({ items: [MOCK_TASK], total: 1 });
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
   });
 
-  it('returns 200 with task list', async () => {
+  it('returns 200 with task list and derives teamId from the header', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/tasks?teamId=${TEAM_ID}`,
-      headers: { authorization: 'Bearer test-token' },
+      url: '/tasks',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
     });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ items: [{ id: TASK_ID }] });
     expect(mocks.taskService.list).toHaveBeenCalledOnce();
+    expect(mocks.taskService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: TEAM_ID }),
+    );
   });
 
   it('passes extended filters through to taskService.list', async () => {
     const response = await app.inject({
       method: 'GET',
       url:
-        `/tasks?teamId=${TEAM_ID}` +
-        '&query=task%20worker' +
+        '/tasks?' +
+        'query=task%20worker' +
         '&taskTypes=fulfill_brief' +
         '&taskTypes=curate_pack' +
         '&tags=observability' +
@@ -338,7 +380,10 @@ describe('GET /tasks', () => {
         `&queuedBefore=2026-04-29T10:00:00.000Z` +
         `&completedAfter=2026-04-28T12:00:00.000Z` +
         `&completedBefore=2026-04-29T12:00:00.000Z`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
     });
 
     expect(response.statusCode).toBe(200);
@@ -363,7 +408,7 @@ describe('GET /tasks', () => {
     );
   });
 
-  it('returns 400 when teamId is missing', async () => {
+  it('returns 400 when the x-moltnet-team-id header is missing', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/tasks',
@@ -375,8 +420,11 @@ describe('GET /tasks', () => {
   it('forwards profileId to taskService.list when set', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/tasks?teamId=${TEAM_ID}&profileId=${PROFILE_ID}`,
-      headers: { authorization: 'Bearer test-token' },
+      url: `/tasks?profileId=${PROFILE_ID}`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
     });
 
     expect(response.statusCode).toBe(200);
@@ -390,8 +438,11 @@ describe('GET /tasks', () => {
   it('omits profile filter when profileId is unset', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/tasks?teamId=${TEAM_ID}`,
-      headers: { authorization: 'Bearer test-token' },
+      url: '/tasks',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
     });
 
     expect(response.statusCode).toBe(200);

@@ -206,12 +206,14 @@ async function dispatchAssess(args: {
   // Look up the originating fulfill_brief in this chain. Order by most
   // recent (server returns newest-first) so a chain with multiple
   // revision-fulfills assesses the latest one.
-  const list = await args.moltnet.tasks.list({
-    teamId: args.teamId,
-    correlationId,
-    taskTypes: ['fulfill_brief'],
-    limit: 10,
-  });
+  const list = await args.moltnet.tasks.list(
+    {
+      correlationId,
+      taskTypes: ['fulfill_brief'],
+      limit: 10,
+    },
+    { teamId: args.teamId },
+  );
   const fulfill = list.items?.find((t) => t.acceptedAttemptN !== null);
 
   if (!fulfill) {

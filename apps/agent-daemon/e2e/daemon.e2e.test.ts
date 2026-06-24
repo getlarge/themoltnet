@@ -112,86 +112,94 @@ describe('Agent daemon (e2e)', () => {
   });
 
   function proposeCuratePackTask() {
-    return agent.tasks.create({
-      taskType: 'curate_pack',
-      teamId,
-      diaryId,
-      input: {
+    return agent.tasks.create(
+      {
+        taskType: 'curate_pack',
         diaryId,
-        taskPrompt: 'e2e daemon smoke',
+        input: {
+          diaryId,
+          taskPrompt: 'e2e daemon smoke',
+        },
       },
-    });
+      { teamId },
+    );
   }
 
   function proposeFulfillBriefTask(correlationId: string) {
-    return agent.tasks.create({
-      taskType: 'fulfill_brief',
-      title: 'Warm session e2e',
-      teamId,
-      diaryId,
-      correlationId,
-      input: {
-        brief: 'Exercise runtime slot persistence in e2e',
-        scopeHint: 'daemon-e2e',
+    return agent.tasks.create(
+      {
+        taskType: 'fulfill_brief',
+        title: 'Warm session e2e',
+        diaryId,
+        correlationId,
+        input: {
+          brief: 'Exercise runtime slot persistence in e2e',
+          scopeHint: 'daemon-e2e',
+        },
       },
-    });
+      { teamId },
+    );
   }
 
   function proposeFreeformTask(
     correlationId: string,
     continueFrom?: { taskId: string; attemptN: number },
   ) {
-    return agent.tasks.create({
-      taskType: 'freeform',
-      title: 'Freeform warm-resume e2e',
-      teamId,
-      diaryId,
-      correlationId,
-      input: {
-        brief: 'Exercise freeform tasks_continue warm-resume path in e2e',
-        ...(continueFrom ? { continueFrom } : {}),
+    return agent.tasks.create(
+      {
+        taskType: 'freeform',
+        title: 'Freeform warm-resume e2e',
+        diaryId,
+        correlationId,
+        input: {
+          brief: 'Exercise freeform tasks_continue warm-resume path in e2e',
+          ...(continueFrom ? { continueFrom } : {}),
+        },
       },
-    });
+      { teamId },
+    );
   }
 
   function proposePrReviewTask() {
-    return agent.tasks.create({
-      taskType: 'pr_review',
-      teamId,
-      diaryId,
-      input: {
-        subject: {
-          title: 'PR #1: Complexity review smoke',
-          summary:
-            'Judge the complexity and reviewability of a change under a binary rubric.',
-          inspectionHints: ['Use the local workspace if needed.'],
-        },
-        taskPrompt:
-          'Treat this as a local smoke test. Do not attempt any network mutation.',
-        successCriteria: {
-          version: 1,
-          rubric: {
-            rubricId: 'pr-complexity-binary-e2e',
-            version: 'v1',
-            preamble: 'Assess reviewability and complexity only.',
-            criteria: [
-              {
-                id: 'cognitive_load',
-                description: 'The change is easy to review in one pass.',
-                weight: 0.6,
-                scoring: 'boolean',
-              },
-              {
-                id: 'blast_radius',
-                description: 'The change is narrowly scoped.',
-                weight: 0.4,
-                scoring: 'boolean',
-              },
-            ],
+    return agent.tasks.create(
+      {
+        taskType: 'pr_review',
+        diaryId,
+        input: {
+          subject: {
+            title: 'PR #1: Complexity review smoke',
+            summary:
+              'Judge the complexity and reviewability of a change under a binary rubric.',
+            inspectionHints: ['Use the local workspace if needed.'],
+          },
+          taskPrompt:
+            'Treat this as a local smoke test. Do not attempt any network mutation.',
+          successCriteria: {
+            version: 1,
+            rubric: {
+              rubricId: 'pr-complexity-binary-e2e',
+              version: 'v1',
+              preamble: 'Assess reviewability and complexity only.',
+              criteria: [
+                {
+                  id: 'cognitive_load',
+                  description: 'The change is easy to review in one pass.',
+                  weight: 0.6,
+                  scoring: 'boolean',
+                },
+                {
+                  id: 'blast_radius',
+                  description: 'The change is narrowly scoped.',
+                  weight: 0.4,
+                  scoring: 'boolean',
+                },
+              ],
+            },
           },
         },
       },
-    });
+      { teamId },
+    );
   }
 
   function createRuntimeProfile(name: string) {
@@ -561,13 +569,15 @@ describe('Agent daemon (e2e)', () => {
 
   it('daemon shutdown aborts the active attempt without cancelling the task (#1382)', async () => {
     // maxAttempts:2 so the requeued task is reclaimable after the abort.
-    const created = await agent.tasks.create({
-      taskType: 'curate_pack',
-      teamId,
-      diaryId,
-      input: { diaryId, taskPrompt: 'e2e daemon shutdown abort' },
-      maxAttempts: 2,
-    });
+    const created = await agent.tasks.create(
+      {
+        taskType: 'curate_pack',
+        diaryId,
+        input: { diaryId, taskPrompt: 'e2e daemon shutdown abort' },
+        maxAttempts: 2,
+      },
+      { teamId },
+    );
 
     let abortedAttemptN: number | null = null;
     let runtime: AgentRuntime | null = null;
@@ -887,13 +897,15 @@ describe('Agent daemon (e2e)', () => {
     function proposePinnedCuratePackTask(
       allowedProfiles: { profileId: string }[],
     ) {
-      return agent.tasks.create({
-        taskType: 'curate_pack',
-        teamId,
-        diaryId,
-        input: { diaryId, taskPrompt: 'e2e allowedProfiles smoke' },
-        allowedProfiles,
-      });
+      return agent.tasks.create(
+        {
+          taskType: 'curate_pack',
+          diaryId,
+          input: { diaryId, taskPrompt: 'e2e allowedProfiles smoke' },
+          allowedProfiles,
+        },
+        { teamId },
+      );
     }
 
     it('persists allowedProfiles profile refs', async () => {
@@ -916,12 +928,14 @@ describe('Agent daemon (e2e)', () => {
         { profileId: allowedProfile.id },
       ]);
       try {
-        const result = await agent.tasks.list({
-          teamId,
-          status: 'queued',
-          profileId: otherProfile.id,
-          limit: 50,
-        });
+        const result = await agent.tasks.list(
+          {
+            status: 'queued',
+            profileId: otherProfile.id,
+            limit: 50,
+          },
+          { teamId },
+        );
         expect(result.items.find((t) => t.id === pinned.id)).toBeUndefined();
       } finally {
         await agent.tasks.cancel(pinned.id, { reason: 'cleanup' });
@@ -936,12 +950,14 @@ describe('Agent daemon (e2e)', () => {
         { profileId: profile.id },
       ]);
       try {
-        const result = await agent.tasks.list({
-          teamId,
-          status: 'queued',
-          profileId: profile.id,
-          limit: 50,
-        });
+        const result = await agent.tasks.list(
+          {
+            status: 'queued',
+            profileId: profile.id,
+            limit: 50,
+          },
+          { teamId },
+        );
         expect(result.items.find((t) => t.id === pinned.id)).toBeDefined();
       } finally {
         await agent.tasks.cancel(pinned.id, { reason: 'cleanup' });
@@ -953,12 +969,14 @@ describe('Agent daemon (e2e)', () => {
       const profile = await createProfile(`daemon-e2e-${randomUUID()}`);
       const unrestricted = await proposeCuratePackTask();
       try {
-        const result = await agent.tasks.list({
-          teamId,
-          status: 'queued',
-          profileId: profile.id,
-          limit: 50,
-        });
+        const result = await agent.tasks.list(
+          {
+            status: 'queued',
+            profileId: profile.id,
+            limit: 50,
+          },
+          { teamId },
+        );
         expect(
           result.items.find((t) => t.id === unrestricted.id),
         ).toBeDefined();

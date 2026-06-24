@@ -95,10 +95,10 @@ describe('Runtime Profiles API', () => {
     return createTask({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       body: {
         taskType: 'fulfill_brief',
         title,
-        teamId: owner.personalTeamId,
         diaryId: owner.privateDiaryId,
         allowedProfiles,
         input: { brief: title },
@@ -240,8 +240,8 @@ describe('Runtime Profiles API', () => {
     const { data: linearVisible, error: linearListError } = await listTasks({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       query: {
-        teamId: owner.personalTeamId,
         profileId: linearProfile!.id,
         limit: 100,
       },

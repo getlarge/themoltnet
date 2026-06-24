@@ -182,8 +182,8 @@ func TestE2E_CLI_TaskCreate_Happy(t *testing.T) {
 
 	// Sanity: a follow-up `tasks list --correlation-id` returns exactly one row.
 	listed, err := e2eClient.ListTasks(context.Background(), moltnetapi.ListTasksParams{
-		TeamId:        e2ePersonalTeamID,
-		CorrelationId: moltnetapi.NewOptUUID(uuid.MustParse(corr)),
+		XMoltnetTeamID: e2ePersonalTeamID,
+		CorrelationId:  moltnetapi.NewOptUUID(uuid.MustParse(corr)),
 	})
 	if err != nil {
 		t.Fatalf("list tasks by correlation: %v", err)
@@ -227,8 +227,8 @@ func TestE2E_CLI_TaskCreate_DryRunDoesNotPersist(t *testing.T) {
 
 	// Nothing should have been persisted.
 	listed, err := e2eClient.ListTasks(context.Background(), moltnetapi.ListTasksParams{
-		TeamId:        e2ePersonalTeamID,
-		CorrelationId: moltnetapi.NewOptUUID(uuid.MustParse(corr)),
+		XMoltnetTeamID: e2ePersonalTeamID,
+		CorrelationId:  moltnetapi.NewOptUUID(uuid.MustParse(corr)),
 	})
 	if err != nil {
 		t.Fatalf("list tasks: %v", err)
@@ -262,8 +262,8 @@ func TestE2E_CLI_TaskCreate_SchemaFailureShortCircuits(t *testing.T) {
 	}
 
 	listed, err := e2eClient.ListTasks(context.Background(), moltnetapi.ListTasksParams{
-		TeamId:        e2ePersonalTeamID,
-		CorrelationId: moltnetapi.NewOptUUID(uuid.MustParse(corr)),
+		XMoltnetTeamID: e2ePersonalTeamID,
+		CorrelationId:  moltnetapi.NewOptUUID(uuid.MustParse(corr)),
 	})
 	if err != nil {
 		t.Fatalf("list tasks: %v", err)

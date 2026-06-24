@@ -25,12 +25,12 @@ export function useDiarySelection() {
   const { selectedTeamId } = useTeamSelection();
   const molt = useHumanMolt();
 
-  function teamHeaders() {
+  function teamOptions() {
     if (!selectedTeamId.value) {
       throw new Error('Select a team first');
     }
 
-    return { 'x-moltnet-team-id': selectedTeamId.value };
+    return { teamId: selectedTeamId.value };
   }
 
   async function refreshDiaries(): Promise<void> {
@@ -45,7 +45,7 @@ export function useDiarySelection() {
     inflight = (async () => {
       isLoading.value = true;
       try {
-        const result = await molt.diaries.list(undefined, teamHeaders());
+        const result = await molt.diaries.list(undefined, teamOptions());
         diaries.value = result.items;
         selectedDiaryId.value = chooseDefaultDiary(result.items);
         error.value = null;

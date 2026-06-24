@@ -45,8 +45,8 @@ export function useLaneQueries(filters: LaneFilters): {
     const query = useInfiniteQuery({
       ...listTasksInfiniteOptions({
         client: getApiClient(),
+        headers: { 'x-moltnet-team-id': teamId ?? '' },
         query: {
-          teamId: teamId ?? '',
           query: taskQuery?.trim() || undefined,
           statuses: lane.statuses,
           taskTypes: taskTypes && taskTypes.length ? taskTypes : undefined,
@@ -55,7 +55,10 @@ export function useLaneQueries(filters: LaneFilters): {
         },
       }),
       enabled: enabled && Boolean(teamId),
-      initialPageParam: { query: { teamId: teamId ?? '' } },
+      initialPageParam: {
+        headers: { 'x-moltnet-team-id': teamId ?? '' },
+        query: {},
+      },
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       refetchInterval: isActiveLane ? 5_000 : false,
     });

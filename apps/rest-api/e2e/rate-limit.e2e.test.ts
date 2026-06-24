@@ -158,7 +158,7 @@ describe('Rate limiting read/write split (#1336 part 2)', () => {
     const readRes = await listTasks({
       client,
       auth: () => agent.accessToken,
-      query: { teamId: agent.personalTeamId },
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
     });
     expect(readRes.response.status).toBe(200);
     expect(readRes.response.headers.get('x-ratelimit-limit')).toBe(
@@ -213,7 +213,7 @@ describe('Rate limiting Redis-backed store (#1336 part 3)', () => {
     const res = await listTasks({
       client,
       auth: () => agent.accessToken,
-      query: { teamId: agent.personalTeamId },
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
     });
     expect(res.response.status).toBe(200);
 

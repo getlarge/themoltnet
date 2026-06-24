@@ -5,7 +5,8 @@ import type { TaskClient } from './types.js';
 export function createSdkTaskClient(agent: Agent): TaskClient {
   return {
     createTask(body) {
-      return agent.tasks.create(body);
+      const { teamId, ...createBody } = body;
+      return agent.tasks.create(createBody, { teamId });
     },
     getTask(id) {
       return agent.tasks.get(id);

@@ -21,6 +21,18 @@ export type PathOf<T extends { path?: unknown }> = Exclude<
   T['path'],
   undefined
 >;
+export type HeadersOf<T extends { headers?: unknown }> = Exclude<
+  T['headers'],
+  undefined
+>;
+
+/**
+ * Type of the `x-moltnet-team-id` request header for a team-scoped
+ * operation, used to derive the MCP `team_id` input from the wire contract.
+ */
+export type TeamIdHeaderOf<
+  T extends { headers?: { 'x-moltnet-team-id'?: unknown } },
+> = HeadersOf<T>['x-moltnet-team-id'];
 
 export type SnakeCase<S extends string> = S extends `${infer H}${infer T}`
   ? H extends Lowercase<H>

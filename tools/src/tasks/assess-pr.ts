@@ -268,20 +268,22 @@ async function main() {
     return;
   }
 
-  const task = await agent.tasks.create({
-    taskType: ASSESS_BRIEF_TYPE,
-    teamId,
-    diaryId,
-    correlationId,
-    input: input as unknown as Record<string, unknown>,
-    references: [
-      {
-        taskId: targetTaskId,
-        outputCid: acceptedAttempt.outputCid,
-        role: 'judged_work',
-      },
-    ],
-  });
+  const task = await agent.tasks.create(
+    {
+      taskType: ASSESS_BRIEF_TYPE,
+      diaryId,
+      correlationId,
+      input: input as unknown as Record<string, unknown>,
+      references: [
+        {
+          taskId: targetTaskId,
+          outputCid: acceptedAttempt.outputCid,
+          role: 'judged_work',
+        },
+      ],
+    },
+    { teamId },
+  );
 
   if (correlationId) {
     console.error(

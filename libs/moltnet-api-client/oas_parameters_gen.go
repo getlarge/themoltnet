@@ -1321,6 +1321,62 @@ func decodeCreateRuntimeProfileParams(args [0]string, argsEscaped bool, r *http.
 	return params, nil
 }
 
+// CreateTaskParams is parameters of createTask operation.
+type CreateTaskParams struct {
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackCreateTaskParams(packed middleware.Parameters) (params CreateTaskParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeCreateTaskParams(args [0]string, argsEscaped bool, r *http.Request) (params CreateTaskParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CreateTeamInviteParams is parameters of createTeamInvite operation.
 type CreateTeamInviteParams struct {
 	// UUID v4 identifier.
@@ -8163,7 +8219,6 @@ func decodeListTaskMessagesParams(args [2]string, argsEscaped bool, r *http.Requ
 
 // ListTasksParams is parameters of listTasks operation.
 type ListTasksParams struct {
-	TeamId   uuid.UUID
 	Query    OptString     `json:",omitempty,omitzero"`
 	Status   OptTaskStatus `json:",omitempty,omitzero"`
 	Statuses []TaskStatus  `json:",omitempty"`
@@ -8186,16 +8241,11 @@ type ListTasksParams struct {
 	CompletedBefore   OptDateTime `json:",omitempty,omitzero"`
 	Limit             OptInt      `json:",omitempty,omitzero"`
 	Cursor            OptString   `json:",omitempty,omitzero"`
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
 }
 
 func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "teamId",
-			In:   "query",
-		}
-		params.TeamId = packed[key].(uuid.UUID)
-	}
 	{
 		key := middleware.ParameterKey{
 			Name: "query",
@@ -8367,47 +8417,19 @@ func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams
 			params.Cursor = v.(OptString)
 		}
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
 	return params
 }
 
 func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (params ListTasksParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
-	// Decode query: teamId.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "teamId",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.TeamId = c
-				return nil
-			}); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "teamId",
-			In:   "query",
-			Err:  err,
-		}
-	}
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode query: query.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
@@ -9432,6 +9454,40 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 		return params, &ogenerrors.DecodeParamError{
 			Name: "cursor",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}

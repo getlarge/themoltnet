@@ -20,6 +20,16 @@ import { TaskBuildError } from './errors.js';
 /** The `tasks.create` request body the builder produces. */
 export type CreateTaskBody = CreateTaskData['body'];
 
+/**
+ * The output of {@link TaskBuilder.build}: the validated create body plus the
+ * team context, which travels as the `x-moltnet-team-id` header (not the body).
+ * Pass it straight to `tasks.create(built)`.
+ */
+export interface BuiltTask {
+  body: CreateTaskBody;
+  teamId: string;
+}
+
 /** Role a referenced task's output plays in the new task. */
 export type ReferenceRole = TaskRef['role'];
 
@@ -64,6 +74,7 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
   private inputData: Record<string, unknown>;
   private readonly refs: TaskRef[] = [];
   private readonly body: Partial<CreateTaskBody> = {};
+  private teamIdValue?: string;
 
   constructor(taskType: string, input: TInput) {
     this.taskType = taskType;
@@ -212,7 +223,7 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
    * @returns This builder, for chaining.
    */
   team(teamId: string): this {
-    this.body.teamId = teamId;
+    this.teamIdValue = teamId;
     return this;
   }
 
@@ -338,16 +349,17 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
    * generated `correlationId` when omitted, so the persisted top-level body may
    * gain that one field.
    *
-   * @returns A validated `CreateTaskData['body']`.
+   * @returns A {@link BuiltTask}: the validated body plus the team context
+   *   (which travels as the `x-moltnet-team-id` header, not the body).
    * @throws {TaskBuildError} when required fields are missing or the payload
    *   fails the shared `@moltnet/tasks` validation, with field-level detail.
    * @example
-   * const body = buildFreeform({ brief }).team(t).diary(d).build();
-   * await agent.tasks.create(body);
+   * const built = buildFreeform({ brief }).team(t).diary(d).build();
+   * await agent.tasks.create(built);
    */
-  build(): CreateTaskBody {
+  build(): BuiltTask {
     const missing = [];
-    if (!this.body.teamId) {
+    if (!this.teamIdValue) {
       missing.push({ field: 'teamId', message: 'teamId is required' });
     }
     if (!this.body.diaryId) {
@@ -371,14 +383,15 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
     const all = [...missing, ...validationErrors];
     if (all.length > 0) throw new TaskBuildError(all);
 
-    return {
+    const body = {
       ...this.body,
       taskType: this.taskType,
       input: normalizedInput,
-      teamId: this.body.teamId as string,
       diaryId: this.body.diaryId as string,
       ...(references ? { references } : {}),
     } as CreateTaskBody;
+
+    return { body, teamId: this.teamIdValue as string };
   }
 }
 

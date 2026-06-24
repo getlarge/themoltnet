@@ -98,9 +98,9 @@ describe('Tasks API', () => {
     return createTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body: {
         taskType: 'curate_pack',
-        teamId: proposer.personalTeamId,
         diaryId: proposer.privateDiaryId,
         input: {
           diaryId: proposer.privateDiaryId,
@@ -169,9 +169,9 @@ describe('Tasks API', () => {
       const { data: task } = await createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         body: {
           taskType: 'curate_pack',
-          teamId,
           diaryId: diary!.id,
           input: {
             diaryId: diary!.id,
@@ -238,7 +238,7 @@ describe('Tasks API', () => {
     it('returns 401 without a token', async () => {
       const { response } = await listTasks({
         client,
-        query: { teamId: proposer.personalTeamId },
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       });
       expect(response.status).toBe(401);
     });
@@ -247,8 +247,8 @@ describe('Tasks API', () => {
       const { response } = await listTasks({
         client,
         auth: () => proposer.accessToken,
-        // @ts-expect-error intentionally omitting required teamId
-        query: {},
+        // @ts-expect-error intentionally omitting the required x-moltnet-team-id header
+        headers: {},
       });
       expect(response.status).toBe(400);
     });
@@ -273,9 +273,9 @@ describe('Tasks API', () => {
       const { response } = await createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body: {
           taskType: 'does_not_exist',
-          teamId: proposer.personalTeamId,
           diaryId: proposer.privateDiaryId,
           input: {},
         },
@@ -288,9 +288,9 @@ describe('Tasks API', () => {
       const { response } = await createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body: {
           taskType: 'curate_pack',
-          teamId: proposer.personalTeamId,
           diaryId: claimer.privateDiaryId,
           input: {
             diaryId: claimer.privateDiaryId,
@@ -365,7 +365,7 @@ describe('Tasks API', () => {
       const { data, error } = await listTasks({
         client,
         auth: () => proposer.accessToken,
-        query: { teamId: proposer.personalTeamId },
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       });
       expect(error).toBeUndefined();
       expect(data!.items.length).toBeGreaterThan(0);
@@ -378,9 +378,9 @@ describe('Tasks API', () => {
       const { data: curateTask, error: curateError } = await createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body: {
           taskType: 'curate_pack',
-          teamId: proposer.personalTeamId,
           diaryId: proposer.privateDiaryId,
           input: {
             diaryId: proposer.privateDiaryId,
@@ -393,10 +393,10 @@ describe('Tasks API', () => {
       const { data: fulfillTask, error: fulfillError } = await createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body: {
           taskType: 'fulfill_brief',
           title: 'taskTypes filter fulfill',
-          teamId: proposer.personalTeamId,
           diaryId: proposer.privateDiaryId,
           input: {
             brief: 'taskTypes filter fulfill',
@@ -409,8 +409,8 @@ describe('Tasks API', () => {
         const { data: fulfillOnly, error: fulfillOnlyError } = await listTasks({
           client,
           auth: () => proposer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
           query: {
-            teamId: proposer.personalTeamId,
             taskTypes: ['fulfill_brief'],
             limit: 50,
           },
@@ -426,8 +426,8 @@ describe('Tasks API', () => {
         const { data: either, error: eitherError } = await listTasks({
           client,
           auth: () => proposer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
           query: {
-            teamId: proposer.personalTeamId,
             taskTypes: ['curate_pack', 'fulfill_brief'],
             limit: 50,
           },
@@ -458,7 +458,7 @@ describe('Tasks API', () => {
       const { response } = await listTasks({
         client,
         auth: () => claimer.accessToken,
-        query: { teamId: proposer.personalTeamId },
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       });
       expect(response.status).toBe(403);
     });
@@ -485,9 +485,9 @@ describe('Tasks API', () => {
       const { data: primaryTask, error: primaryTaskError } = await createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body: {
           taskType: 'curate_pack',
-          teamId: proposer.personalTeamId,
           diaryId: proposer.privateDiaryId,
           input: {
             diaryId: proposer.privateDiaryId,
@@ -501,9 +501,9 @@ describe('Tasks API', () => {
         await createTask({
           client,
           auth: () => proposer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
           body: {
             taskType: 'curate_pack',
-            teamId: proposer.personalTeamId,
             diaryId: otherDiary!.id,
             input: {
               diaryId: otherDiary!.id,
@@ -541,8 +541,8 @@ describe('Tasks API', () => {
       const { data: diaryFiltered, error: diaryFilterError } = await listTasks({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         query: {
-          teamId: proposer.personalTeamId,
           diaryId: otherDiary!.id,
         },
       });
@@ -558,8 +558,8 @@ describe('Tasks API', () => {
         await listTasks({
           client,
           auth: () => proposer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
           query: {
-            teamId: proposer.personalTeamId,
             claimedByAgentId: claimer.identityId,
           },
         });
@@ -574,8 +574,8 @@ describe('Tasks API', () => {
       const { data: queuedWindow, error: queuedWindowError } = await listTasks({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         query: {
-          teamId: proposer.personalTeamId,
           queuedAfter: '2026-04-28T10:00:00.000Z',
           queuedBefore: '2026-04-28T12:00:00.000Z',
         },
@@ -1140,9 +1140,9 @@ describe('Tasks API', () => {
       const { data } = await createTask({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': claimer.personalTeamId },
         body: {
           taskType: 'curate_pack',
-          teamId: claimer.personalTeamId,
           diaryId: claimer.privateDiaryId,
           input: {
             diaryId: claimer.privateDiaryId,
@@ -2196,10 +2196,10 @@ describe('Tasks API', () => {
       const { data: proposed, error: createError } = await createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body: {
           taskType: 'freeform',
           title: 'claimant delete boundary',
-          teamId: proposer.personalTeamId,
           diaryId: proposer.privateDiaryId,
           input: { brief: 'claimant must not cleanup by cancel grant' },
         },
@@ -2290,10 +2290,10 @@ describe('Tasks API', () => {
       const terminal = await createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body: {
           taskType: 'freeform',
           title: 'cleanup terminal',
-          teamId: proposer.personalTeamId,
           diaryId: proposer.privateDiaryId,
           input: { brief: 'terminal cleanup' },
         },
@@ -2301,10 +2301,10 @@ describe('Tasks API', () => {
       const live = await createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body: {
           taskType: 'freeform',
           title: 'cleanup live',
-          teamId: proposer.personalTeamId,
           diaryId: proposer.privateDiaryId,
           input: { brief: 'live cleanup' },
         },
@@ -2312,10 +2312,10 @@ describe('Tasks API', () => {
       const sealed = await createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body: {
           taskType: 'freeform',
           title: 'cleanup sealed',
-          teamId: proposer.personalTeamId,
           diaryId: proposer.privateDiaryId,
           correlationId: randomUUID(),
           input: { brief: 'sealed cleanup' },

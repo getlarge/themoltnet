@@ -4,13 +4,11 @@ import {
   finishRuntimeSlot,
 } from '@moltnet/api-client';
 
-import type {
-  RuntimeSlotRequestOptions,
-  RuntimeSlotsNamespace,
-} from '../agent.js';
+import type { RuntimeSlotsNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 import { MoltNetError } from '../errors.js';
+import { requiredTeamHeaders as teamHeaders } from './team-headers.js';
 
 export function createRuntimeSlotsNamespace(
   context: AgentContext,
@@ -58,10 +56,4 @@ export function createRuntimeSlotsNamespace(
       }
     },
   };
-}
-
-function teamHeaders(options: RuntimeSlotRequestOptions): {
-  'x-moltnet-team-id': string;
-} {
-  return { 'x-moltnet-team-id': options.teamId };
 }

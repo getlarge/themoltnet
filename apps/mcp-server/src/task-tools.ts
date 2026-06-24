@@ -136,9 +136,9 @@ export async function handleTasksCreate(
   const { data, error } = await createTask({
     client: deps.client,
     auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
     body: {
       taskType: args.task_type,
-      teamId: args.team_id,
       diaryId: args.diary_id,
       input: args.input,
       references: args.references,
@@ -236,9 +236,9 @@ export async function handleTasksContinue(
   const { data, error } = await createTask({
     client: deps.client,
     auth: () => token,
+    headers: { 'x-moltnet-team-id': source.teamId },
     body: {
       taskType: 'freeform',
-      teamId: source.teamId,
       diaryId: source.diaryId,
       input: freeformInput,
       ...(source.correlationId ? { correlationId: source.correlationId } : {}),
@@ -301,8 +301,8 @@ export async function handleTasksList(
   const { data, error } = await listTasks({
     client: deps.client,
     auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
     query: {
-      teamId: args.team_id,
       status: args.status,
       taskTypes: args.task_type ? [args.task_type] : undefined,
       correlationId: args.correlation_id,

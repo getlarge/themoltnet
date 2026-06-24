@@ -45,7 +45,7 @@ export async function resolvePriorContext(
   const summary =
     typeof output.summary === 'string' ? output.summary : undefined;
   const artifacts = Array.isArray(output.artifacts)
-    ? (output.artifacts as FreeformArtifact[])
+    ? output.artifacts
         .filter(
           (a): a is FreeformArtifact =>
             !!a && typeof a.kind === 'string' && typeof a.title === 'string',

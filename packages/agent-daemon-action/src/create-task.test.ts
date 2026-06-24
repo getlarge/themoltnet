@@ -31,16 +31,18 @@ describe('createTask', () => {
 
     expect(out.id).toBe('task-1');
     expect(m.create).toHaveBeenCalledTimes(1);
-    expect(m.create).toHaveBeenCalledWith({
-      taskType: 'fulfill_brief',
-      title: 'Fix flaky test',
-      teamId: BASE_INPUT.teamId,
-      diaryId: BASE_INPUT.diaryId,
-      input: {
-        brief: `Issue body...\n\nSource: ${BASE_INPUT.referenceUrl}`,
+    expect(m.create).toHaveBeenCalledWith(
+      {
+        taskType: 'fulfill_brief',
+        title: 'Fix flaky test',
+        diaryId: BASE_INPUT.diaryId,
+        input: {
+          brief: `Issue body...\n\nSource: ${BASE_INPUT.referenceUrl}`,
+        },
+        correlationId: BASE_INPUT.correlationId,
       },
-      correlationId: BASE_INPUT.correlationId,
-    });
+      { teamId: BASE_INPUT.teamId },
+    );
 
     // Caller never has to think about references[] — the SDK enforces
     // the schema, and we deliberately don't pass that field for the
@@ -129,22 +131,24 @@ describe('createAssessTask', () => {
 
     expect(out.id).toBe('task-1');
     expect(m.create).toHaveBeenCalledTimes(1);
-    expect(m.create).toHaveBeenCalledWith({
-      taskType: 'assess_brief',
-      teamId: BASE_INPUT.teamId,
-      diaryId: BASE_INPUT.diaryId,
-      input: {
-        targetTaskId: '44444444-4444-4444-8444-444444444444',
-        successCriteria: RUBRIC,
-      },
-      references: [
-        {
-          taskId: '44444444-4444-4444-8444-444444444444',
-          outputCid: 'bafy-fulfill-output',
-          role: 'judged_work',
+    expect(m.create).toHaveBeenCalledWith(
+      {
+        taskType: 'assess_brief',
+        diaryId: BASE_INPUT.diaryId,
+        input: {
+          targetTaskId: '44444444-4444-4444-8444-444444444444',
+          successCriteria: RUBRIC,
         },
-      ],
-      correlationId: BASE_INPUT.correlationId,
-    });
+        references: [
+          {
+            taskId: '44444444-4444-4444-8444-444444444444',
+            outputCid: 'bafy-fulfill-output',
+            role: 'judged_work',
+          },
+        ],
+        correlationId: BASE_INPUT.correlationId,
+      },
+      { teamId: BASE_INPUT.teamId },
+    );
   });
 });

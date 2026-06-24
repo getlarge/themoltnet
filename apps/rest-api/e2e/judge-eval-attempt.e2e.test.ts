@@ -81,9 +81,9 @@ describe('judge_eval_attempt duplicate protection', () => {
     const { data, error } = await createTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body: {
         taskType: 'run_eval',
-        teamId: proposer.personalTeamId,
         diaryId: proposer.privateDiaryId,
         correlationId,
         input: {
@@ -169,7 +169,6 @@ describe('judge_eval_attempt duplicate protection', () => {
   function judgeBody(correlationId: string, runTaskId: string) {
     return {
       taskType: 'judge_eval_attempt',
-      teamId: proposer.personalTeamId,
       diaryId: proposer.privateDiaryId,
       correlationId,
       input: {
@@ -191,6 +190,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     const { data: judge, error: judgeError } = await createTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body: {
         ...judgeBody(firstCorrelationId, firstRunTaskId),
         claimCondition: {
@@ -255,11 +255,13 @@ describe('judge_eval_attempt duplicate protection', () => {
       createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body,
       }),
       createTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body,
       }),
     ]);
@@ -276,6 +278,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     const winner = await createTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body,
     });
     expect(winner.response.status).toBe(201);
@@ -283,6 +286,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     const loser = await createTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body,
     });
     expect(loser.response.status).toBe(400);

@@ -30363,46 +30363,66 @@ function createCryptoNamespace(context, signingRequests) {
 	};
 }
 //#endregion
+//#region ../../libs/sdk/src/namespaces/team-headers.ts
+/**
+* Build the team header from an optional option, or `undefined` when no team
+* context was supplied. Used by diaries and runtime-profiles, whose endpoints
+* accept the header optionally.
+*/
+function teamHeaders(options) {
+	return options?.teamId ? { "x-moltnet-team-id": options.teamId } : void 0;
+}
+/**
+* Build the team header from a required option. Used by tasks and
+* runtime-slots, whose endpoints mandate the header.
+*/
+function requiredTeamHeaders(options) {
+	return { "x-moltnet-team-id": options.teamId };
+}
+//#endregion
 //#region ../../libs/sdk/src/namespaces/diaries.ts
 function createDiariesNamespace(context) {
 	const { client, auth } = context;
 	return {
-		async list(query, headers) {
+		async list(query, options) {
 			return unwrapResult(await listDiaries({
 				client,
 				auth,
 				query,
-				headers
+				headers: teamHeaders(options)
 			}));
 		},
-		async create(body, headers) {
+		async create(body, options) {
 			return unwrapResult(await createDiary({
 				client,
 				auth,
 				body,
-				headers
+				headers: requiredTeamHeaders(options)
 			}));
 		},
-		async get(id) {
+		async get(id, options) {
 			return unwrapResult(await getDiary({
 				client,
 				auth,
-				path: { id }
+				path: { id },
+				headers: teamHeaders(options)
 			}));
 		},
-		async update(id, body) {
+		async update(id, body, options) {
 			return unwrapResult(await updateDiary({
 				client,
 				auth,
 				path: { id },
-				body
+				body,
+				headers: teamHeaders(options)
 			}));
 		},
-		async delete(id) {
+		async delete(id, options) {
 			return unwrapResult(await deleteDiary({
 				client,
 				auth,
-				path: { id }
+				path: { id },
+				headers: teamHeaders(options)
 			}));
 		},
 		async tags(diaryId, query) {
@@ -32513,14 +32533,14 @@ function createRuntimeProfilesNamespace(context) {
 			return unwrapResult(await listRuntimeProfiles({
 				client,
 				auth,
-				headers: teamHeaders$1(options)
+				headers: teamHeaders(options)
 			}));
 		},
 		async create(body, options) {
 			return unwrapResult(await createRuntimeProfile({
 				client,
 				auth,
-				headers: teamHeaders$1(options),
+				headers: teamHeaders(options),
 				body
 			}));
 		},
@@ -32549,9 +32569,6 @@ function createRuntimeProfilesNamespace(context) {
 		}
 	};
 }
-function teamHeaders$1(options) {
-	return options?.teamId ? { "x-moltnet-team-id": options.teamId } : void 0;
-}
 //#endregion
 //#region ../../libs/sdk/src/namespaces/runtime-slots.ts
 function createRuntimeSlotsNamespace(context) {
@@ -32561,7 +32578,7 @@ function createRuntimeSlotsNamespace(context) {
 			return unwrapResult(await beginRuntimeSlot({
 				client,
 				auth,
-				headers: teamHeaders(options),
+				headers: requiredTeamHeaders(options),
 				body
 			}));
 		},
@@ -32569,7 +32586,7 @@ function createRuntimeSlotsNamespace(context) {
 			return unwrapResult(await finishRuntimeSlot({
 				client,
 				auth,
-				headers: teamHeaders(options),
+				headers: requiredTeamHeaders(options),
 				body
 			}));
 		},
@@ -32578,7 +32595,7 @@ function createRuntimeSlotsNamespace(context) {
 				return unwrapResult(await findLatestRuntimeSlotForAttempt({
 					client,
 					auth,
-					headers: teamHeaders(options),
+					headers: requiredTeamHeaders(options),
 					query
 				}));
 			} catch (err) {
@@ -32587,9 +32604,6 @@ function createRuntimeSlotsNamespace(context) {
 			}
 		}
 	};
-}
-function teamHeaders(options) {
-	return { "x-moltnet-team-id": options.teamId };
 }
 //#endregion
 //#region ../../libs/sdk/src/namespaces/signing-requests.ts
@@ -41298,6 +41312,7 @@ var TaskBuilder = class {
 	inputData;
 	refs = [];
 	body = {};
+	teamIdValue;
 	constructor(taskType, input) {
 		this.taskType = taskType;
 		this.inputData = { ...input };
@@ -41436,7 +41451,7 @@ var TaskBuilder = class {
 	* @returns This builder, for chaining.
 	*/
 	team(teamId) {
-		this.body.teamId = teamId;
+		this.teamIdValue = teamId;
 		return this;
 	}
 	/**
@@ -41547,16 +41562,17 @@ var TaskBuilder = class {
 	* generated `correlationId` when omitted, so the persisted top-level body may
 	* gain that one field.
 	*
-	* @returns A validated `CreateTaskData['body']`.
+	* @returns A {@link BuiltTask}: the validated body plus the team context
+	*   (which travels as the `x-moltnet-team-id` header, not the body).
 	* @throws {TaskBuildError} when required fields are missing or the payload
 	*   fails the shared `@moltnet/tasks` validation, with field-level detail.
 	* @example
-	* const body = buildFreeform({ brief }).team(t).diary(d).build();
-	* await agent.tasks.create(body);
+	* const built = buildFreeform({ brief }).team(t).diary(d).build();
+	* await agent.tasks.create(built);
 	*/
 	build() {
 		const missing = [];
-		if (!this.body.teamId) missing.push({
+		if (!this.teamIdValue) missing.push({
 			field: "teamId",
 			message: "teamId is required"
 		});
@@ -41574,12 +41590,14 @@ var TaskBuilder = class {
 		const all = [...missing, ...validationErrors];
 		if (all.length > 0) throw new TaskBuildError(all);
 		return {
-			...this.body,
-			taskType: this.taskType,
-			input: normalizedInput,
-			teamId: this.body.teamId,
-			diaryId: this.body.diaryId,
-			...references ? { references } : {}
+			body: {
+				...this.body,
+				taskType: this.taskType,
+				input: normalizedInput,
+				diaryId: this.body.diaryId,
+				...references ? { references } : {}
+			},
+			teamId: this.teamIdValue
 		};
 	}
 };
@@ -41828,18 +41846,24 @@ function createTasksNamespace(context) {
 				auth
 			}));
 		},
-		async list(query) {
+		async list(query, options) {
 			return unwrapResult(await listTasks({
 				client,
 				auth,
-				query
+				query,
+				headers: requiredTeamHeaders(options)
 			}));
 		},
-		async create(body) {
+		async create(bodyOrBuilt, options) {
+			const { body, teamId } = options !== void 0 ? {
+				body: bodyOrBuilt,
+				teamId: options.teamId
+			} : bodyOrBuilt;
 			return unwrapResult(await createTask$1({
 				client,
 				auth,
-				body
+				body,
+				headers: requiredTeamHeaders({ teamId })
 			}));
 		},
 		buildTask,
@@ -44163,7 +44187,6 @@ async function createTask(input) {
 	return input.agent.tasks.create({
 		taskType: "fulfill_brief",
 		...input.title ? { title: input.title } : {},
-		teamId: input.teamId,
 		diaryId: input.diaryId,
 		input: {
 			brief: briefWithSource,
@@ -44171,7 +44194,7 @@ async function createTask(input) {
 		},
 		correlationId: input.correlationId,
 		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {}
-	});
+	}, { teamId: input.teamId });
 }
 async function createAssessTask(input) {
 	const assessInput = {
@@ -44185,13 +44208,12 @@ async function createAssessTask(input) {
 	};
 	return input.agent.tasks.create({
 		taskType: "assess_brief",
-		teamId: input.teamId,
 		diaryId: input.diaryId,
 		input: assessInput,
 		references: [reference],
 		correlationId: input.correlationId,
 		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {}
-	});
+	}, { teamId: input.teamId });
 }
 //#endregion
 //#region src/parse-mention.ts
@@ -44407,11 +44429,10 @@ async function dispatchAssess(args) {
 		logger: nxLogger()
 	});
 	const fulfill = (await args.moltnet.tasks.list({
-		teamId: args.teamId,
 		correlationId,
 		taskTypes: ["fulfill_brief"],
 		limit: 10
-	})).items?.find((t) => t.acceptedAttemptN !== null);
+	}, { teamId: args.teamId })).items?.find((t) => t.acceptedAttemptN !== null);
 	if (!fulfill) {
 		await postPrComment(args.github, pr, NO_FULFILL_NOTICE);
 		import_core.info(`assess: no completed fulfill_brief found for correlationId=${correlationId}`);

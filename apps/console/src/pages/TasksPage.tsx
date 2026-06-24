@@ -127,8 +127,8 @@ export function TasksPage() {
   const query = useInfiniteQuery({
     ...listTasksInfiniteOptions({
       client: getApiClient(),
+      headers: { 'x-moltnet-team-id': teamId ?? '' },
       query: {
-        teamId: teamId ?? '',
         query: debouncedTaskQuery.trim() || undefined,
         status,
         taskTypes: taskTypes.length ? taskTypes : undefined,
@@ -137,7 +137,10 @@ export function TasksPage() {
       },
     }),
     enabled: enabled && view === 'table',
-    initialPageParam: { query: { teamId: teamId ?? '' } },
+    initialPageParam: {
+      headers: { 'x-moltnet-team-id': teamId ?? '' },
+      query: {},
+    },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     refetchInterval: (query) => {
       const hasActive = query.state.data?.pages.some((page) =>
@@ -206,8 +209,8 @@ export function TasksPage() {
   const candidateQuery = useQuery({
     ...listTasksOptions({
       client: getApiClient(),
+      headers: { 'x-moltnet-team-id': teamId ?? '' },
       query: {
-        teamId: teamId ?? '',
         statuses: ['waiting', 'queued', 'dispatched', 'running', 'completed'],
         limit: 50,
       },
@@ -221,8 +224,8 @@ export function TasksPage() {
       const data = await queryClient.fetchQuery(
         listTasksOptions({
           client: getApiClient(),
+          headers: { 'x-moltnet-team-id': teamId },
           query: {
-            teamId,
             query: searchText.trim() || undefined,
             statuses: [
               'waiting',
@@ -612,9 +615,11 @@ export function TasksPage() {
           successCriteriaDocsHref={SUCCESS_CRITERIA_DOCS_HREF}
           onClose={() => setShowCreate(false)}
           onSubmit={async (request: CreateTaskRequest) => {
+            const { teamId: requestTeamId, ...body } = request;
             const { data, error: apiError } = await createTask({
               client: getApiClient(),
-              body: request,
+              headers: { 'x-moltnet-team-id': requestTeamId },
+              body,
             });
             if (apiError || !data || !('id' in data)) {
               const detail =

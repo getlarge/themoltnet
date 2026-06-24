@@ -204,9 +204,11 @@ export function TaskAttemptPage({
           }}
           onClose={() => setShowContinue(false)}
           onSubmit={async (request: CreateTaskRequest) => {
+            const { teamId: requestTeamId, ...body } = request;
             const { data, error: apiError } = await createTask({
               client: getApiClient(),
-              body: request,
+              headers: { 'x-moltnet-team-id': requestTeamId },
+              body,
             });
             if (apiError || !data || !('id' in data)) {
               const detail =

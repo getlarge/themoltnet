@@ -110,12 +110,13 @@ test.describe.serial('Landing capture', () => {
       const client = createTokenSessionApiClient(state.sessionToken);
       const done = await listTasks({
         client,
-        query: { teamId: state.teamId, statuses: ['completed'], limit: 1 },
+        headers: { 'x-moltnet-team-id': state.teamId },
+        query: { statuses: ['completed'], limit: 1 },
       });
       const active = await listTasks({
         client,
+        headers: { 'x-moltnet-team-id': state.teamId },
         query: {
-          teamId: state.teamId,
           statuses: ['running', 'dispatched'],
           limit: 1,
         },

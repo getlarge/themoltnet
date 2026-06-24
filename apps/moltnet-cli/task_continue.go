@@ -122,22 +122,19 @@ func runTaskContinueWithClient(ctx context.Context, client *moltnetapi.Client, o
 	}
 
 	if opts.dryRun {
-		var buf bytes.Buffer
-		enc := jx.NewStreamingEncoder(&buf, 1024)
-		req.Encode(enc)
-		if err := enc.Close(); err != nil {
-			return fmt.Errorf("encode dry-run body: %w", err)
+		// teamId travels as the x-moltnet-team-id header, not in the body.
+		// Surface it at the top level of the dry-run view so the rendered
+		// request shows the full composition (body + inherited team).
+		pretty, err := renderDryRunRequest(req, source.TeamId)
+		if err != nil {
+			return err
 		}
-		var pretty bytes.Buffer
-		if err := json.Indent(&pretty, buf.Bytes(), "", "  "); err != nil {
-			return fmt.Errorf("indent dry-run body: %w", err)
-		}
-		_, err := fmt.Fprintln(opts.out, pretty.String())
+		_, err = fmt.Fprintln(opts.out, pretty)
 		return err
 	}
 
 	// 4. POST via existing CreateTask.
-	res, err := client.CreateTask(ctx, req)
+	res, err := client.CreateTask(ctx, req, moltnetapi.CreateTaskParams{XMoltnetTeamID: source.TeamId})
 	if err != nil {
 		return fmt.Errorf("task create: %w", formatTransportError(err))
 	}
@@ -155,6 +152,29 @@ func runTaskContinueWithClient(ctx context.Context, client *moltnetapi.Client, o
 	default:
 		return fmt.Errorf("--output: unsupported value %q (one of: json, id)", opts.outputMode)
 	}
+}
+
+// renderDryRunRequest pretty-prints the create request for --dry-run. The
+// team travels as the x-moltnet-team-id header rather than in the body, so it
+// is merged back in at the top level here to keep the dry-run view a faithful
+// picture of the whole request (body fields + the inherited teamId).
+func renderDryRunRequest(req *moltnetapi.CreateTaskReq, teamID uuid.UUID) (string, error) {
+	var buf bytes.Buffer
+	enc := jx.NewStreamingEncoder(&buf, 1024)
+	req.Encode(enc)
+	if err := enc.Close(); err != nil {
+		return "", fmt.Errorf("encode dry-run body: %w", err)
+	}
+	var view map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &view); err != nil {
+		return "", fmt.Errorf("decode dry-run body: %w", err)
+	}
+	view["teamId"] = teamID.String()
+	pretty, err := json.MarshalIndent(view, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("indent dry-run body: %w", err)
+	}
+	return string(pretty), nil
 }
 
 // buildContinuationRequest projects the source task plus caller inputs
@@ -190,7 +210,6 @@ func buildContinuationRequest(opts taskContinueOpts, source *moltnetapi.Task) (*
 
 	req := &moltnetapi.CreateTaskReq{
 		TaskType: "freeform",
-		TeamId:   source.TeamId,
 		DiaryId:  diaryID,
 		Input:    input,
 	}

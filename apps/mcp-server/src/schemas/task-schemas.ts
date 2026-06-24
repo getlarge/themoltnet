@@ -37,6 +37,7 @@ import type {
   PathOf,
   QueryOf,
   ResponseOf,
+  TeamIdHeaderOf,
 } from './common.js';
 
 export const TasksSchemasInputSchema = Type.Object({});
@@ -121,7 +122,7 @@ export const TaskCreateSchema = Type.Object({
 type CreateTaskBody = BodyOf<CreateTaskData>;
 export type TaskCreateInput = {
   task_type: CreateTaskBody['taskType'];
-  team_id: CreateTaskBody['teamId'];
+  team_id: TeamIdHeaderOf<CreateTaskData>;
   diary_id: CreateTaskBody['diaryId'];
   input: CreateTaskBody['input'];
   references?: CreateTaskBody['references'];

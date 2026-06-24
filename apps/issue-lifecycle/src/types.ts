@@ -1,4 +1,4 @@
-import type { Agent } from '@themoltnet/sdk';
+import type { Agent, CreateTaskBody } from '@themoltnet/sdk';
 
 import type { LifecycleConfig } from './lifecycle-config.js';
 
@@ -107,7 +107,12 @@ export interface GithubClient {
 }
 
 export interface TaskClient {
-  createTask(body: Parameters<Agent['tasks']['create']>[0]): Promise<SdkTask>;
+  /**
+   * Create a task. `teamId` is carried alongside the body here and split into
+   * the SDK's team-context option by the client implementation; the rest is
+   * the task create body.
+   */
+  createTask(body: CreateTaskBody & { teamId: string }): Promise<SdkTask>;
   getTask(id: string): Promise<SdkTask>;
   listAttempts(id: string): Promise<SdkTaskAttempt[]>;
   listMessages?(

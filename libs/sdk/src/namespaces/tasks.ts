@@ -1,4 +1,4 @@
-import type { Task } from '@moltnet/api-client';
+import type { CreateTaskData, Task } from '@moltnet/api-client';
 import {
   abortTaskAttempt,
   appendTaskMessages,
@@ -16,9 +16,10 @@ import {
   taskHeartbeat,
 } from '@moltnet/api-client';
 
-import type { TasksNamespace } from '../agent.js';
+import type { TaskRequestOptions, TasksNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
+import type { BuiltTask } from '../tasks/index.js';
 import {
   buildAssessBrief,
   buildCuratePack,
@@ -33,6 +34,7 @@ import {
   createResultReader,
   TaskResultError,
 } from '../tasks/index.js';
+import { requiredTeamHeaders } from './team-headers.js';
 
 export function createTasksNamespace(context: AgentContext): TasksNamespace {
   const { client, auth } = context;
@@ -42,12 +44,38 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
       return unwrapResult(await listTaskSchemas({ client, auth }));
     },
 
-    async list(query) {
-      return unwrapResult(await listTasks({ client, auth, query }));
+    async list(query, options) {
+      return unwrapResult(
+        await listTasks({
+          client,
+          auth,
+          query,
+          headers: requiredTeamHeaders(options),
+        }),
+      );
     },
 
-    async create(body) {
-      return unwrapResult(await createTask({ client, auth, body }));
+    async create(
+      bodyOrBuilt: CreateTaskData['body'] | BuiltTask,
+      options?: TaskRequestOptions,
+    ) {
+      // Accept either a raw (body, { teamId }) pair or a builder's
+      // { body, teamId } result.
+      const { body, teamId } =
+        options !== undefined
+          ? {
+              body: bodyOrBuilt as CreateTaskData['body'],
+              teamId: options.teamId,
+            }
+          : (bodyOrBuilt as BuiltTask);
+      return unwrapResult(
+        await createTask({
+          client,
+          auth,
+          body,
+          headers: requiredTeamHeaders({ teamId }),
+        }),
+      );
     },
 
     buildTask,

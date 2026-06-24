@@ -1,5 +1,5 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
+import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import type {
   ResolvedRuntimeSlot,
   RuntimeSlot,
@@ -25,6 +25,7 @@ import {
   createProblem,
   createValidationProblem,
 } from '../problems/index.js';
+import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 
 function authSubject(request: {
   authContext: {
@@ -43,19 +44,6 @@ function authSubject(request: {
       auth.subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent,
     subjectType: auth.subjectType,
   };
-}
-
-function requireCurrentTeamId(request: {
-  authContext: { currentTeamId: string | null } | null;
-}): string {
-  const teamId = request.authContext?.currentTeamId;
-  if (!teamId) {
-    throw createProblem(
-      'validation-failed',
-      `${TEAM_HEADER} header is required: runtime slots are team-scoped`,
-    );
-  }
-  return teamId;
 }
 
 function serializeSlot(slot: RuntimeSlot) {
@@ -208,7 +196,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
         );
       }
       const body = request.body;
-      const teamId = requireCurrentTeamId(request);
+      const teamId = requireCurrentTeamId(request, 'runtime slots');
       await requireTeamAccess(fastify, teamId, identityId, subjectNs);
       await assertTaskAttemptInTeam(
         fastify,
@@ -260,7 +248,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
         );
       }
       const body = request.body;
-      const teamId = requireCurrentTeamId(request);
+      const teamId = requireCurrentTeamId(request, 'runtime slots');
       await requireTeamAccess(fastify, teamId, identityId, subjectNs);
       await assertTaskAttemptInTeam(
         fastify,
@@ -309,7 +297,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs } = authSubject(request);
-      const teamId = requireCurrentTeamId(request);
+      const teamId = requireCurrentTeamId(request, 'runtime slots');
       const { taskId, attemptN } = request.query;
       await requireTeamAccess(fastify, teamId, identityId, subjectNs);
       await assertTaskAttemptInTeam(fastify, taskId, attemptN, teamId);

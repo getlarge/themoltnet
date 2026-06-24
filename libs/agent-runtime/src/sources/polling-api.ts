@@ -246,14 +246,16 @@ export class PollingApiTaskSource implements TaskSource {
           this.opts.taskTypes && this.opts.taskTypes.length > 0
             ? this.opts.taskTypes
             : undefined;
-        const result = await this.opts.agent.tasks.list({
-          teamId: this.opts.teamId,
-          status: 'queued' satisfies TaskStatus,
-          ...(taskTypes ? { taskTypes } : {}),
-          ...(profile.profileId ? { profileId: profile.profileId } : {}),
-          ...(cursors.get(key) ? { cursor: cursors.get(key) } : {}),
-          limit: this.listLimit,
-        });
+        const result = await this.opts.agent.tasks.list(
+          {
+            status: 'queued' satisfies TaskStatus,
+            ...(taskTypes ? { taskTypes } : {}),
+            ...(profile.profileId ? { profileId: profile.profileId } : {}),
+            ...(cursors.get(key) ? { cursor: cursors.get(key) } : {}),
+            limit: this.listLimit,
+          },
+          { teamId: this.opts.teamId },
+        );
         if (result.nextCursor) {
           cursors.set(key, result.nextCursor);
         } else {

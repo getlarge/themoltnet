@@ -6,12 +6,10 @@ import {
   updateRuntimeProfile,
 } from '@moltnet/api-client';
 
-import type {
-  RuntimeProfileRequestOptions,
-  RuntimeProfilesNamespace,
-} from '../agent.js';
+import type { RuntimeProfilesNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
+import { teamHeaders } from './team-headers.js';
 
 export function createRuntimeProfilesNamespace(
   context: AgentContext,
@@ -68,10 +66,4 @@ export function createRuntimeProfilesNamespace(
       }
     },
   };
-}
-
-function teamHeaders(
-  options: RuntimeProfileRequestOptions | undefined,
-): { 'x-moltnet-team-id': string } | undefined {
-  return options?.teamId ? { 'x-moltnet-team-id': options.teamId } : undefined;
 }
