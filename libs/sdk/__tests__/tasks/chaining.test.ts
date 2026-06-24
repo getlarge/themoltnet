@@ -29,7 +29,7 @@ describe('compose -> consume -> compose', () => {
         taskType: 'freeform',
         acceptedAttemptN: 1,
         input: {},
-      } as Task,
+      } as unknown as Task,
       {
         taskId: UPSTREAM_ID,
         attemptN: 1,
@@ -39,7 +39,7 @@ describe('compose -> consume -> compose', () => {
         completedAt: null,
         completedExecutorFingerprint: null,
         usage: null,
-      } as TaskAttempt,
+      } as unknown as TaskAttempt,
     );
 
     const body = buildAssessBrief({

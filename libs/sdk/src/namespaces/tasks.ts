@@ -1,3 +1,4 @@
+import type { Task } from '@moltnet/api-client';
 import {
   abortTaskAttempt,
   appendTaskMessages,
@@ -17,6 +18,20 @@ import {
 import type { TasksNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
+import {
+  buildAssessBrief,
+  buildCuratePack,
+  buildFreeform,
+  buildFulfillBrief,
+  buildJudgeEvalAttempt,
+  buildJudgePack,
+  buildPrReview,
+  buildRenderPack,
+  buildRunEval,
+  buildTask,
+  createResultReader,
+  TaskResultError,
+} from '../tasks/index.js';
 
 export function createTasksNamespace(context: AgentContext): TasksNamespace {
   const { client, auth } = context;
@@ -32,6 +47,39 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
 
     async create(body) {
       return unwrapResult(await createTask({ client, auth, body }));
+    },
+
+    buildTask,
+    buildFreeform,
+    buildFulfillBrief,
+    buildCuratePack,
+    buildRenderPack,
+    buildRunEval,
+    buildAssessBrief,
+    buildJudgePack,
+    buildJudgeEvalAttempt,
+    buildPrReview,
+
+    async readResult(taskOrId: string | Task) {
+      const task =
+        typeof taskOrId === 'string'
+          ? unwrapResult(await getTask({ client, auth, path: { id: taskOrId } }))
+          : taskOrId;
+      const attempts = unwrapResult(
+        await listTaskAttempts({ client, auth, path: { id: task.id } }),
+      );
+      const accepted = attempts.find(
+        (a) => a.attemptN === task.acceptedAttemptN,
+      );
+      if (!accepted) {
+        throw new TaskResultError([
+          {
+            field: 'acceptedAttemptN',
+            message: 'no accepted attempt found for task',
+          },
+        ]);
+      }
+      return createResultReader(task, accepted);
     },
 
     async get(id) {

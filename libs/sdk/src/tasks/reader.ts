@@ -1,7 +1,7 @@
 import type { Task, TaskAttempt } from '@moltnet/api-client';
 import {
-  type TaskRef,
   getTaskOutputSchema,
+  type TaskRef,
   validateTaskOutput,
 } from '@moltnet/tasks';
 

@@ -63,6 +63,31 @@ export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
 export { type RetryOptions } from './retry.js';
 export { sign, signBytes } from './sign.js';
 export { exportSSHKey } from './ssh.js';
+export {
+  type AcceptedMeta,
+  type ArtifactFilter,
+  buildAssessBrief,
+  buildCuratePack,
+  buildFreeform,
+  buildFulfillBrief,
+  buildJudgeEvalAttempt,
+  buildJudgePack,
+  buildPrReview,
+  buildRenderPack,
+  buildRunEval,
+  buildTask,
+  createResultReader,
+  type CreateTaskBody,
+  formatValidationErrors,
+  type FreeformArtifactLike,
+  PRODUCER_TASK_TYPES,
+  type ReferenceRole,
+  type ReferenceSource,
+  TaskBuilder,
+  TaskBuildError,
+  TaskResultError,
+  TaskResultReader,
+} from './tasks/index.js';
 export { TokenManager, type TokenManagerOptions } from './token.js';
 export {
   computeCanonicalHash,

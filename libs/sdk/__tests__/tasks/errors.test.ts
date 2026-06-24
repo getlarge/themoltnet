@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  formatValidationErrors,
   TaskBuildError,
   TaskResultError,
-  formatValidationErrors,
 } from '../../src/tasks/errors.js';
 
 describe('formatValidationErrors', () => {
