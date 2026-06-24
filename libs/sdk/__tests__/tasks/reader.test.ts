@@ -96,3 +96,69 @@ describe('createResultReader (freeform)', () => {
     ).toThrow(TaskResultError);
   });
 });
+
+describe('createResultReader (verification cross-field rule)', () => {
+  // A real server-fetched freeform task carries the normalized successCriteria
+  // in input (incl. the injected submit-output gate). When criteria are set,
+  // the output MUST include a valid verification block — the reader validates
+  // this and throws otherwise. This is the reader's main real-world branch.
+  const inputWithCriteria = {
+    brief: 'do it',
+    successCriteria: {
+      version: 1,
+      gates: [
+        {
+          id: 'submit-output',
+          kind: 'submit-tool-call',
+          description: 'Call submit_freeform_output once.',
+          required: true,
+        },
+      ],
+    },
+  };
+
+  const verification = {
+    inputCid: 'bafyINPUT',
+    passed: true,
+    results: [{ id: 'submit-output', kind: 'gate', status: 'pass' }],
+  };
+
+  function taskWithCriteria(): Task {
+    return {
+      id: 'task-2',
+      taskType: 'freeform',
+      acceptedAttemptN: 1,
+      input: inputWithCriteria,
+    } as unknown as Task;
+  }
+
+  function attempt(output: unknown): TaskAttempt {
+    return {
+      taskId: 'task-2',
+      attemptN: 1,
+      status: 'completed',
+      output: output as TaskAttempt['output'],
+      outputCid: 'bafyOUT2',
+      completedAt: null,
+      completedExecutorFingerprint: null,
+      usage: null,
+    } as unknown as TaskAttempt;
+  }
+
+  it('throws when criteria are set but output omits verification', () => {
+    expect(() =>
+      createResultReader(taskWithCriteria(), attempt({ summary: 'done' })),
+    ).toThrow(TaskResultError);
+  });
+
+  it('succeeds when output carries a valid verification block', () => {
+    const r = createResultReader(
+      taskWithCriteria(),
+      attempt({ summary: 'done', verification }),
+    );
+    expect(r.summary).toBe('done');
+    expect(
+      (r.output as { verification?: { passed: boolean } }).verification?.passed,
+    ).toBe(true);
+  });
+});

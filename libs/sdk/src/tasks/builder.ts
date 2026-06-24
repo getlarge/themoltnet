@@ -92,7 +92,9 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
    * @returns This builder, for chaining.
    */
   context(slug: string, binding: ContextBinding, content: string): this {
-    const ctx = (this.inputData.context as unknown[] | undefined) ?? [];
+    // Copy before appending so we never mutate a `context` array the caller
+    // passed into the factory (or shares across builders).
+    const ctx = [...((this.inputData.context as unknown[] | undefined) ?? [])];
     ctx.push({ slug, binding, content });
     this.inputData.context = ctx;
     return this;
@@ -329,9 +331,12 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
   }
 
   /**
-   * Normalize, validate, and return the create body. The returned body is
-   * byte-identical to what the server persists (producer types receive the
-   * `submit-output` gate via the same normalization the server runs).
+   * Normalize, validate, and return the create body. The `input` payload is
+   * normalized identically to the server (producer types receive the
+   * `submit-output` gate via the same `normalizeTaskInputForCreate` the server
+   * runs), so what you build is what executes. The server additionally fills a
+   * generated `correlationId` when omitted, so the persisted top-level body may
+   * gain that one field.
    *
    * @returns A validated `CreateTaskData['body']`.
    * @throws {TaskBuildError} when required fields are missing or the payload

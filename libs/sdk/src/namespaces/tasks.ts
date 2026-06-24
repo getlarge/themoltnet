@@ -65,6 +65,14 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
         typeof taskOrId === 'string'
           ? unwrapResult(await getTask({ client, auth, path: { id: taskOrId } }))
           : taskOrId;
+      if (task.acceptedAttemptN === null || task.acceptedAttemptN === undefined) {
+        throw new TaskResultError([
+          {
+            field: 'acceptedAttemptN',
+            message: 'task has no accepted attempt',
+          },
+        ]);
+      }
       const attempts = unwrapResult(
         await listTaskAttempts({ client, auth, path: { id: task.id } }),
       );

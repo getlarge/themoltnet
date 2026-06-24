@@ -159,4 +159,61 @@ describe('buildTask (generic core)', () => {
         .build(),
     ).toThrow(/outputCid/);
   });
+
+  it('context() does not mutate a caller-supplied context array', () => {
+    const shared = [
+      { slug: 'seed', binding: 'context_inline' as const, content: 'x' },
+    ];
+    buildTask('freeform', { brief: 'b', context: shared })
+      .team(TEAM)
+      .diary(DIARY)
+      .context('extra', 'context_inline', 'y')
+      .build();
+    // The caller's array must be untouched (no aliasing).
+    expect(shared).toHaveLength(1);
+  });
+
+  it('requireSubmitOutput() is idempotent and produces a valid body', () => {
+    const body = buildTask('freeform', { brief: 'x' })
+      .team(TEAM)
+      .diary(DIARY)
+      .requireSubmitOutput()
+      .requireSubmitOutput()
+      .build();
+    const gates = (
+      body.input as { successCriteria?: { gates?: { id: string }[] } }
+    ).successCriteria?.gates;
+    expect(gates?.filter((g) => g.id === 'submit-output')).toHaveLength(1);
+    expect(
+      validateTaskCreateRequest({
+        taskType: body.taskType,
+        input: body.input,
+        references: null,
+      }),
+    ).toEqual([]);
+  });
+
+  it('requireSchema() adds a schema-check gate that passes validation', () => {
+    const body = buildTask('freeform', { brief: 'x' })
+      .team(TEAM)
+      .diary(DIARY)
+      .requireSchema('bafySCHEMA')
+      .build();
+    const gates = (
+      body.input as {
+        successCriteria?: {
+          gates?: { id: string; kind: string; spec?: unknown }[];
+        };
+      }
+    ).successCriteria?.gates;
+    const schemaGate = gates?.find((g) => g.kind === 'schema-check');
+    expect(schemaGate?.spec).toEqual({ schemaCid: 'bafySCHEMA' });
+    expect(
+      validateTaskCreateRequest({
+        taskType: body.taskType,
+        input: body.input,
+        references: null,
+      }),
+    ).toEqual([]);
+  });
 });
