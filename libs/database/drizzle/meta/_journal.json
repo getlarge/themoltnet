@@ -175,6 +175,13 @@
       "when": 1782230693072,
       "tag": "0024_tense_captain_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1782320718897,
+      "tag": "0025_young_adam_warlock",
+      "breakpoints": true
     }
   ],
   "version": "7"

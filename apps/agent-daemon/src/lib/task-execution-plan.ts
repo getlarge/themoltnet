@@ -1,3 +1,4 @@
+import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
 import type { DaemonSlotIdentity } from './daemon-slot-identity.js';
@@ -42,6 +43,11 @@ export interface DaemonTaskExecutionPlan {
   } | null;
 }
 
+export interface RuntimeProfileWorkspacePolicy {
+  defaultWorkspaceMode?: RuntimeProfileWorkspaceMode | null;
+  allowedWorkspaceModes?: readonly RuntimeProfileWorkspaceMode[];
+}
+
 export function buildDaemonTaskExecutionPlan(
   task: Pick<
     ClaimedTask['task'],
@@ -50,9 +56,14 @@ export function buildDaemonTaskExecutionPlan(
   stateDirs: DaemonStateDirs,
   identity: DaemonSlotIdentity,
   warmSessionTtlSec: number,
+  runtimeProfileWorkspacePolicy: RuntimeProfileWorkspacePolicy = {},
 ): DaemonTaskExecutionPlan {
   const descriptor = deriveTaskSessionDescriptor(task);
-  const workspaceMode = resolveTaskWorkspaceMode(task, descriptor.policy);
+  const workspaceMode = resolveTaskWorkspaceMode(
+    task,
+    descriptor.policy,
+    runtimeProfileWorkspacePolicy,
+  );
   const slotKey = warmSessionTtlSec > 0 ? descriptor.sessionKey : null;
   const workspaceScope =
     slotKey !== null ? descriptor.policy.workspaceScope : 'attempt';
@@ -145,30 +156,84 @@ function resolveTaskWorkspaceMode(
     workspaceMode: 'shared_mount' | 'dedicated_worktree';
     acceptsInputWorkspaceOverride: boolean;
   },
+  runtimeProfileWorkspacePolicy: RuntimeProfileWorkspacePolicy,
 ): 'shared_mount' | 'dedicated_worktree' | 'scratch_mount' {
-  if (!policy.acceptsInputWorkspaceOverride) {
-    return policy.workspaceMode;
-  }
+  const allowed = resolveAllowedWorkspaceModes(runtimeProfileWorkspacePolicy);
+  const profileDefault =
+    runtimeProfileWorkspacePolicy.defaultWorkspaceMode ?? null;
 
   const requestedWorkspace =
-    typeof (
-      task.input as {
-        execution?: { workspace?: unknown };
-      }
-    ).execution?.workspace === 'string'
+    policy.acceptsInputWorkspaceOverride &&
+    typeof (task.input as { execution?: { workspace?: unknown } }).execution
+      ?.workspace === 'string'
       ? (task.input as { execution: { workspace: string } }).execution.workspace
       : null;
 
-  switch (requestedWorkspace) {
-    case 'none':
-      return 'scratch_mount';
-    case 'shared_mount':
-      return 'shared_mount';
-    case 'dedicated_worktree':
-      return 'dedicated_worktree';
-    default:
-      return policy.workspaceMode;
+  if (isRuntimeProfileWorkspaceMode(requestedWorkspace)) {
+    if (allowed.has(requestedWorkspace)) {
+      return toDaemonWorkspaceMode(requestedWorkspace);
+    }
   }
+
+  if (profileDefault && allowed.has(profileDefault)) {
+    return toDaemonWorkspaceMode(profileDefault);
+  }
+
+  if (allowed.has(policy.workspaceMode)) {
+    return policy.workspaceMode;
+  }
+
+  return toDaemonWorkspaceMode(firstAllowedWorkspaceMode(allowed));
+}
+
+const ALL_WORKSPACE_MODES: readonly RuntimeProfileWorkspaceMode[] = [
+  'none',
+  'shared_mount',
+  'dedicated_worktree',
+];
+const WORKSPACE_MODE_FALLBACK_ORDER: readonly RuntimeProfileWorkspaceMode[] = [
+  'none',
+  'dedicated_worktree',
+  'shared_mount',
+];
+
+function resolveAllowedWorkspaceModes(
+  policy: RuntimeProfileWorkspacePolicy,
+): Set<RuntimeProfileWorkspaceMode> {
+  const modes =
+    policy.allowedWorkspaceModes && policy.allowedWorkspaceModes.length > 0
+      ? policy.allowedWorkspaceModes
+      : ALL_WORKSPACE_MODES;
+  return new Set(
+    modes.filter((mode): mode is RuntimeProfileWorkspaceMode =>
+      isRuntimeProfileWorkspaceMode(mode),
+    ),
+  );
+}
+
+function firstAllowedWorkspaceMode(
+  allowed: Set<RuntimeProfileWorkspaceMode>,
+): RuntimeProfileWorkspaceMode {
+  for (const mode of WORKSPACE_MODE_FALLBACK_ORDER) {
+    if (allowed.has(mode)) return mode;
+  }
+  return 'none';
+}
+
+function isRuntimeProfileWorkspaceMode(
+  value: unknown,
+): value is RuntimeProfileWorkspaceMode {
+  return (
+    value === 'none' ||
+    value === 'shared_mount' ||
+    value === 'dedicated_worktree'
+  );
+}
+
+function toDaemonWorkspaceMode(
+  mode: RuntimeProfileWorkspaceMode,
+): 'shared_mount' | 'dedicated_worktree' | 'scratch_mount' {
+  return mode === 'none' ? 'scratch_mount' : mode;
 }
 
 function resolveTaskWorkspaceId(

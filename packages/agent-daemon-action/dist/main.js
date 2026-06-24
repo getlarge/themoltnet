@@ -36941,6 +36941,16 @@ var RuntimeProfileToolName = String$1({
 	maxLength: 128,
 	pattern: "^[a-zA-Z0-9._/-]+$"
 });
+var RuntimeProfileWorkspaceMode = Union([
+	Literal("none"),
+	Literal("shared_mount"),
+	Literal("dedicated_worktree")
+]);
+var RuntimeProfileAllowedWorkspaceModes = _Array_(RuntimeProfileWorkspaceMode, {
+	minItems: 1,
+	maxItems: 3,
+	uniqueItems: true
+});
 var SandboxResumeCommandWhenSchema = _Object_({ workspaceMode: Optional(_Array_(Union([
 	Literal("shared_mount"),
 	Literal("dedicated_worktree"),
@@ -37044,6 +37054,14 @@ var RuntimeProfileMaxBatchSize = Integer({
 	minimum: 1,
 	maximum: 1e3
 });
+var RuntimeProfileMaxTurns = Integer({
+	minimum: 0,
+	maximum: 1e4
+});
+var RuntimeProfileMaxBashTimeouts = Integer({
+	minimum: 0,
+	maximum: 1e3
+});
 _Object_({
 	id: String$1({ format: "uuid" }),
 	teamId: String$1({ format: "uuid" }),
@@ -37061,6 +37079,8 @@ _Object_({
 	sandbox: RuntimeProfileSandbox,
 	sessionStorageMode: Literal("local"),
 	workspaceStorageMode: Literal("local"),
+	defaultWorkspaceMode: Union([RuntimeProfileWorkspaceMode, Null()]),
+	allowedWorkspaceModes: RuntimeProfileAllowedWorkspaceModes,
 	sessionTtlSec: Integer({
 		minimum: 1,
 		maximum: 86400
@@ -37072,6 +37092,8 @@ _Object_({
 	leaseTtlSec: RuntimeProfileLeaseTtlSec,
 	heartbeatIntervalMs: RuntimeProfileHeartbeatIntervalMs,
 	maxBatchSize: RuntimeProfileMaxBatchSize,
+	maxTurns: RuntimeProfileMaxTurns,
+	maxBashTimeouts: RuntimeProfileMaxBashTimeouts,
 	requiredEnv: _Array_(RuntimeProfileEnvName, { maxItems: 100 }),
 	requiredTools: _Array_(RuntimeProfileToolName, { maxItems: 100 }),
 	context: _Array_(RuntimeProfileContext, { maxItems: 5 }),

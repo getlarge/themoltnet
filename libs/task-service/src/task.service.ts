@@ -1083,21 +1083,22 @@ export function createTaskService(deps: TaskServiceDeps) {
       const allowedProfiles = (row.allowedProfiles ?? []) as {
         profileId: string;
       }[];
+      const selectedProfileId = executorAttestation.profileId;
+      if (selectedProfileId) {
+        const selectedProfile =
+          await runtimeProfileRepository.findById(selectedProfileId);
+        if (!selectedProfile || selectedProfile.teamId !== row.teamId) {
+          throw new TaskServiceError(
+            'forbidden',
+            'Runtime profile does not resolve in the task team',
+          );
+        }
+      }
       if (allowedProfiles.length > 0) {
-        const selectedProfileId = executorAttestation.profileId;
         if (
           !selectedProfileId ||
           !allowedProfiles.some((p) => p.profileId === selectedProfileId)
         ) {
-          throw new TaskServiceError(
-            'forbidden',
-            'Task requires an allowed runtime profile',
-          );
-        }
-
-        const selectedProfile =
-          await runtimeProfileRepository.findById(selectedProfileId);
-        if (!selectedProfile || selectedProfile.teamId !== row.teamId) {
           throw new TaskServiceError(
             'forbidden',
             'Task requires an allowed runtime profile',

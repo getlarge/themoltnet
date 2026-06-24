@@ -21,6 +21,27 @@ export const RuntimeProfileToolName = Type.String({
 });
 export type RuntimeProfileToolName = Static<typeof RuntimeProfileToolName>;
 
+export const RuntimeProfileWorkspaceMode = Type.Union([
+  Type.Literal('none'),
+  Type.Literal('shared_mount'),
+  Type.Literal('dedicated_worktree'),
+]);
+export type RuntimeProfileWorkspaceMode = Static<
+  typeof RuntimeProfileWorkspaceMode
+>;
+
+export const RuntimeProfileAllowedWorkspaceModes = Type.Array(
+  RuntimeProfileWorkspaceMode,
+  {
+    minItems: 1,
+    maxItems: 3,
+    uniqueItems: true,
+  },
+);
+export type RuntimeProfileAllowedWorkspaceModes = Static<
+  typeof RuntimeProfileAllowedWorkspaceModes
+>;
+
 const SandboxResumeCommandWhenSchema = Type.Object(
   {
     workspaceMode: Type.Optional(
@@ -181,6 +202,20 @@ export type RuntimeProfileMaxBatchSize = Static<
   typeof RuntimeProfileMaxBatchSize
 >;
 
+export const RuntimeProfileMaxTurns = Type.Integer({
+  minimum: 0,
+  maximum: 10_000,
+});
+export type RuntimeProfileMaxTurns = Static<typeof RuntimeProfileMaxTurns>;
+
+export const RuntimeProfileMaxBashTimeouts = Type.Integer({
+  minimum: 0,
+  maximum: 1_000,
+});
+export type RuntimeProfileMaxBashTimeouts = Static<
+  typeof RuntimeProfileMaxBashTimeouts
+>;
+
 export const RuntimeProfile = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
@@ -193,11 +228,18 @@ export const RuntimeProfile = Type.Object(
     sandbox: RuntimeProfileSandbox,
     sessionStorageMode: Type.Literal('local'),
     workspaceStorageMode: Type.Literal('local'),
+    defaultWorkspaceMode: Type.Union([
+      RuntimeProfileWorkspaceMode,
+      Type.Null(),
+    ]),
+    allowedWorkspaceModes: RuntimeProfileAllowedWorkspaceModes,
     sessionTtlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
     workspaceTtlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
     leaseTtlSec: RuntimeProfileLeaseTtlSec,
     heartbeatIntervalMs: RuntimeProfileHeartbeatIntervalMs,
     maxBatchSize: RuntimeProfileMaxBatchSize,
+    maxTurns: RuntimeProfileMaxTurns,
+    maxBashTimeouts: RuntimeProfileMaxBashTimeouts,
     requiredEnv: Type.Array(RuntimeProfileEnvName, { maxItems: 100 }),
     requiredTools: Type.Array(RuntimeProfileToolName, { maxItems: 100 }),
     context: Type.Array(RuntimeProfileContext, { maxItems: 5 }),

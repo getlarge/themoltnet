@@ -9,6 +9,7 @@ import type { DaemonStateDirs } from './state-dir.js';
 import {
   buildDaemonTaskExecutionPlan,
   type DaemonTaskExecutionPlan,
+  type RuntimeProfileWorkspacePolicy,
 } from './task-execution-plan.js';
 
 export interface ResolvedRuntimeSlotContext {
@@ -81,6 +82,7 @@ export function createExecutionPlanCache(args: {
   stateDirs: DaemonStateDirs;
   slotIdentity: DaemonSlotIdentity;
   warmSessionTtlSec: number;
+  workspacePolicy?: RuntimeProfileWorkspacePolicy;
   slotRegistry: RuntimeSlotStore;
 }): ExecutionPlanCache {
   const cache = new Map<string, DaemonTaskExecutionPlan>();
@@ -98,6 +100,7 @@ export function createExecutionPlanCache(args: {
         args.stateDirs,
         args.slotIdentity,
         args.warmSessionTtlSec,
+        args.workspacePolicy,
       );
       const plan = await maybeAttachWarmSlotContext(
         claimedTask,
@@ -105,6 +108,7 @@ export function createExecutionPlanCache(args: {
         args.stateDirs,
         args.slotRegistry,
       );
+      assertPlanAllowedByWorkspacePolicy(plan, args.workspacePolicy);
       cache.set(key, plan);
       return plan;
     },
@@ -112,6 +116,33 @@ export function createExecutionPlanCache(args: {
       cache.delete(buildClaimedTaskKey(claimedTask));
     },
   };
+}
+
+function assertPlanAllowedByWorkspacePolicy(
+  plan: DaemonTaskExecutionPlan,
+  policy: RuntimeProfileWorkspacePolicy | undefined,
+): void {
+  const allowed = new Set(
+    policy?.allowedWorkspaceModes && policy.allowedWorkspaceModes.length > 0
+      ? policy.allowedWorkspaceModes
+      : ['none', 'shared_mount', 'dedicated_worktree'],
+  );
+  const effectiveMode = planToRuntimeProfileWorkspaceMode(plan);
+  if (!allowed.has(effectiveMode)) {
+    throw new Error(
+      `Runtime profile forbids final workspace mode "${effectiveMode}" for this task`,
+    );
+  }
+}
+
+function planToRuntimeProfileWorkspaceMode(
+  plan: DaemonTaskExecutionPlan,
+): 'none' | 'shared_mount' | 'dedicated_worktree' {
+  if (plan.workspaceMode === 'scratch_mount') return 'none';
+  if (plan.workspaceMode === 'dedicated_worktree' && !plan.worktreeBranch) {
+    return 'shared_mount';
+  }
+  return plan.workspaceMode;
 }
 
 function buildClaimedTaskKey(task: CachedTask): string {

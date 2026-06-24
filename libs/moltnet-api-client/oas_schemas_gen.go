@@ -5408,27 +5408,41 @@ func (*CreateRuntimeProfileBadRequest) createRuntimeProfileRes() {}
 
 // Ref: #/components/schemas/CreateRuntimeProfileBody
 type CreateRuntimeProfileBody struct {
-	Context              []CreateRuntimeProfileBodyContextItem           `json:"context"`
-	Description          OptString                                       `json:"description"`
-	HeartbeatIntervalMs  OptInt                                          `json:"heartbeatIntervalMs"`
-	LeaseTtlSec          OptInt                                          `json:"leaseTtlSec"`
-	MaxBatchSize         OptInt                                          `json:"maxBatchSize"`
-	Model                string                                          `json:"model"`
-	Name                 string                                          `json:"name"`
-	Provider             string                                          `json:"provider"`
-	RequiredEnv          []string                                        `json:"requiredEnv"`
-	RequiredTools        []string                                        `json:"requiredTools"`
-	RuntimeKind          OptCreateRuntimeProfileBodyRuntimeKind          `json:"runtimeKind"`
-	Sandbox              CreateRuntimeProfileBodySandbox                 `json:"sandbox"`
-	SessionStorageMode   OptCreateRuntimeProfileBodySessionStorageMode   `json:"sessionStorageMode"`
-	SessionTtlSec        OptInt                                          `json:"sessionTtlSec"`
-	WorkspaceStorageMode OptCreateRuntimeProfileBodyWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      OptInt                                          `json:"workspaceTtlSec"`
+	AllowedWorkspaceModes []CreateRuntimeProfileBodyAllowedWorkspaceModesItem `json:"allowedWorkspaceModes"`
+	Context               []CreateRuntimeProfileBodyContextItem               `json:"context"`
+	DefaultWorkspaceMode  OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode  `json:"defaultWorkspaceMode"`
+	Description           OptString                                           `json:"description"`
+	HeartbeatIntervalMs   OptInt                                              `json:"heartbeatIntervalMs"`
+	LeaseTtlSec           OptInt                                              `json:"leaseTtlSec"`
+	MaxBashTimeouts       OptInt                                              `json:"maxBashTimeouts"`
+	MaxBatchSize          OptInt                                              `json:"maxBatchSize"`
+	MaxTurns              OptInt                                              `json:"maxTurns"`
+	Model                 string                                              `json:"model"`
+	Name                  string                                              `json:"name"`
+	Provider              string                                              `json:"provider"`
+	RequiredEnv           []string                                            `json:"requiredEnv"`
+	RequiredTools         []string                                            `json:"requiredTools"`
+	RuntimeKind           OptCreateRuntimeProfileBodyRuntimeKind              `json:"runtimeKind"`
+	Sandbox               CreateRuntimeProfileBodySandbox                     `json:"sandbox"`
+	SessionStorageMode    OptCreateRuntimeProfileBodySessionStorageMode       `json:"sessionStorageMode"`
+	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
+	WorkspaceStorageMode  OptCreateRuntimeProfileBodyWorkspaceStorageMode     `json:"workspaceStorageMode"`
+	WorkspaceTtlSec       OptInt                                              `json:"workspaceTtlSec"`
+}
+
+// GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
+func (s *CreateRuntimeProfileBody) GetAllowedWorkspaceModes() []CreateRuntimeProfileBodyAllowedWorkspaceModesItem {
+	return s.AllowedWorkspaceModes
 }
 
 // GetContext returns the value of Context.
 func (s *CreateRuntimeProfileBody) GetContext() []CreateRuntimeProfileBodyContextItem {
 	return s.Context
+}
+
+// GetDefaultWorkspaceMode returns the value of DefaultWorkspaceMode.
+func (s *CreateRuntimeProfileBody) GetDefaultWorkspaceMode() OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode {
+	return s.DefaultWorkspaceMode
 }
 
 // GetDescription returns the value of Description.
@@ -5446,9 +5460,19 @@ func (s *CreateRuntimeProfileBody) GetLeaseTtlSec() OptInt {
 	return s.LeaseTtlSec
 }
 
+// GetMaxBashTimeouts returns the value of MaxBashTimeouts.
+func (s *CreateRuntimeProfileBody) GetMaxBashTimeouts() OptInt {
+	return s.MaxBashTimeouts
+}
+
 // GetMaxBatchSize returns the value of MaxBatchSize.
 func (s *CreateRuntimeProfileBody) GetMaxBatchSize() OptInt {
 	return s.MaxBatchSize
+}
+
+// GetMaxTurns returns the value of MaxTurns.
+func (s *CreateRuntimeProfileBody) GetMaxTurns() OptInt {
+	return s.MaxTurns
 }
 
 // GetModel returns the value of Model.
@@ -5506,9 +5530,19 @@ func (s *CreateRuntimeProfileBody) GetWorkspaceTtlSec() OptInt {
 	return s.WorkspaceTtlSec
 }
 
+// SetAllowedWorkspaceModes sets the value of AllowedWorkspaceModes.
+func (s *CreateRuntimeProfileBody) SetAllowedWorkspaceModes(val []CreateRuntimeProfileBodyAllowedWorkspaceModesItem) {
+	s.AllowedWorkspaceModes = val
+}
+
 // SetContext sets the value of Context.
 func (s *CreateRuntimeProfileBody) SetContext(val []CreateRuntimeProfileBodyContextItem) {
 	s.Context = val
+}
+
+// SetDefaultWorkspaceMode sets the value of DefaultWorkspaceMode.
+func (s *CreateRuntimeProfileBody) SetDefaultWorkspaceMode(val OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) {
+	s.DefaultWorkspaceMode = val
 }
 
 // SetDescription sets the value of Description.
@@ -5526,9 +5560,19 @@ func (s *CreateRuntimeProfileBody) SetLeaseTtlSec(val OptInt) {
 	s.LeaseTtlSec = val
 }
 
+// SetMaxBashTimeouts sets the value of MaxBashTimeouts.
+func (s *CreateRuntimeProfileBody) SetMaxBashTimeouts(val OptInt) {
+	s.MaxBashTimeouts = val
+}
+
 // SetMaxBatchSize sets the value of MaxBatchSize.
 func (s *CreateRuntimeProfileBody) SetMaxBatchSize(val OptInt) {
 	s.MaxBatchSize = val
+}
+
+// SetMaxTurns sets the value of MaxTurns.
+func (s *CreateRuntimeProfileBody) SetMaxTurns(val OptInt) {
+	s.MaxTurns = val
 }
 
 // SetModel sets the value of Model.
@@ -5584,6 +5628,54 @@ func (s *CreateRuntimeProfileBody) SetWorkspaceStorageMode(val OptCreateRuntimeP
 // SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
 func (s *CreateRuntimeProfileBody) SetWorkspaceTtlSec(val OptInt) {
 	s.WorkspaceTtlSec = val
+}
+
+type CreateRuntimeProfileBodyAllowedWorkspaceModesItem string
+
+const (
+	CreateRuntimeProfileBodyAllowedWorkspaceModesItemNone              CreateRuntimeProfileBodyAllowedWorkspaceModesItem = "none"
+	CreateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount       CreateRuntimeProfileBodyAllowedWorkspaceModesItem = "shared_mount"
+	CreateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree CreateRuntimeProfileBodyAllowedWorkspaceModesItem = "dedicated_worktree"
+)
+
+// AllValues returns all CreateRuntimeProfileBodyAllowedWorkspaceModesItem values.
+func (CreateRuntimeProfileBodyAllowedWorkspaceModesItem) AllValues() []CreateRuntimeProfileBodyAllowedWorkspaceModesItem {
+	return []CreateRuntimeProfileBodyAllowedWorkspaceModesItem{
+		CreateRuntimeProfileBodyAllowedWorkspaceModesItemNone,
+		CreateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount,
+		CreateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodyAllowedWorkspaceModesItem) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodyAllowedWorkspaceModesItemNone:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodyAllowedWorkspaceModesItem) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodyAllowedWorkspaceModesItem(data) {
+	case CreateRuntimeProfileBodyAllowedWorkspaceModesItemNone:
+		*s = CreateRuntimeProfileBodyAllowedWorkspaceModesItemNone
+		return nil
+	case CreateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount:
+		*s = CreateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount
+		return nil
+	case CreateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree:
+		*s = CreateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type CreateRuntimeProfileBodyContextItem struct {
@@ -5671,6 +5763,54 @@ func (s *CreateRuntimeProfileBodyContextItemBinding) UnmarshalText(data []byte) 
 		return nil
 	case CreateRuntimeProfileBodyContextItemBindingUserInline:
 		*s = CreateRuntimeProfileBodyContextItemBindingUserInline
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateRuntimeProfileBodyDefaultWorkspaceMode string
+
+const (
+	CreateRuntimeProfileBodyDefaultWorkspaceModeNone              CreateRuntimeProfileBodyDefaultWorkspaceMode = "none"
+	CreateRuntimeProfileBodyDefaultWorkspaceModeSharedMount       CreateRuntimeProfileBodyDefaultWorkspaceMode = "shared_mount"
+	CreateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree CreateRuntimeProfileBodyDefaultWorkspaceMode = "dedicated_worktree"
+)
+
+// AllValues returns all CreateRuntimeProfileBodyDefaultWorkspaceMode values.
+func (CreateRuntimeProfileBodyDefaultWorkspaceMode) AllValues() []CreateRuntimeProfileBodyDefaultWorkspaceMode {
+	return []CreateRuntimeProfileBodyDefaultWorkspaceMode{
+		CreateRuntimeProfileBodyDefaultWorkspaceModeNone,
+		CreateRuntimeProfileBodyDefaultWorkspaceModeSharedMount,
+		CreateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodyDefaultWorkspaceMode) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodyDefaultWorkspaceModeNone:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyDefaultWorkspaceModeSharedMount:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodyDefaultWorkspaceMode(data) {
+	case CreateRuntimeProfileBodyDefaultWorkspaceModeNone:
+		*s = CreateRuntimeProfileBodyDefaultWorkspaceModeNone
+		return nil
+	case CreateRuntimeProfileBodyDefaultWorkspaceModeSharedMount:
+		*s = CreateRuntimeProfileBodyDefaultWorkspaceModeSharedMount
+		return nil
+	case CreateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree:
+		*s = CreateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -19957,6 +20097,96 @@ func (o NilInt) Or(d int) int {
 	return d
 }
 
+// NewNilRuntimeProfileDefaultWorkspaceMode returns new NilRuntimeProfileDefaultWorkspaceMode with value set to v.
+func NewNilRuntimeProfileDefaultWorkspaceMode(v RuntimeProfileDefaultWorkspaceMode) NilRuntimeProfileDefaultWorkspaceMode {
+	return NilRuntimeProfileDefaultWorkspaceMode{
+		Value: v,
+	}
+}
+
+// NilRuntimeProfileDefaultWorkspaceMode is nullable RuntimeProfileDefaultWorkspaceMode.
+type NilRuntimeProfileDefaultWorkspaceMode struct {
+	Value RuntimeProfileDefaultWorkspaceMode
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilRuntimeProfileDefaultWorkspaceMode) SetTo(v RuntimeProfileDefaultWorkspaceMode) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilRuntimeProfileDefaultWorkspaceMode) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilRuntimeProfileDefaultWorkspaceMode) SetToNull() {
+	o.Null = true
+	var v RuntimeProfileDefaultWorkspaceMode
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilRuntimeProfileDefaultWorkspaceMode) Get() (v RuntimeProfileDefaultWorkspaceMode, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilRuntimeProfileDefaultWorkspaceMode) Or(d RuntimeProfileDefaultWorkspaceMode) RuntimeProfileDefaultWorkspaceMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode returns new NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode with value set to v.
+func NewNilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode(v RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode {
+	return NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode{
+		Value: v,
+	}
+}
+
+// NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode is nullable RuntimeProfileListResponseItemsItemDefaultWorkspaceMode.
+type NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode struct {
+	Value RuntimeProfileListResponseItemsItemDefaultWorkspaceMode
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) SetTo(v RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) SetToNull() {
+	o.Null = true
+	var v RuntimeProfileListResponseItemsItemDefaultWorkspaceMode
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Get() (v RuntimeProfileListResponseItemsItemDefaultWorkspaceMode, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Or(d RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) RuntimeProfileListResponseItemsItemDefaultWorkspaceMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilString returns new NilString with value set to v.
 func NewNilString(v string) NilString {
 	return NilString{
@@ -22387,6 +22617,74 @@ func (o OptListEntryRelationsDirection) Or(d ListEntryRelationsDirection) ListEn
 	return d
 }
 
+// NewOptNilCreateRuntimeProfileBodyDefaultWorkspaceMode returns new OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode with value set to v.
+func NewOptNilCreateRuntimeProfileBodyDefaultWorkspaceMode(v CreateRuntimeProfileBodyDefaultWorkspaceMode) OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode {
+	return OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode is optional nullable CreateRuntimeProfileBodyDefaultWorkspaceMode.
+type OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode struct {
+	Value CreateRuntimeProfileBodyDefaultWorkspaceMode
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode was set.
+func (o OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) Reset() {
+	var v CreateRuntimeProfileBodyDefaultWorkspaceMode
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) SetTo(v CreateRuntimeProfileBodyDefaultWorkspaceMode) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v CreateRuntimeProfileBodyDefaultWorkspaceMode
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) Get() (v CreateRuntimeProfileBodyDefaultWorkspaceMode, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) Or(d CreateRuntimeProfileBodyDefaultWorkspaceMode) CreateRuntimeProfileBodyDefaultWorkspaceMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptNilDaemonState returns new OptNilDaemonState with value set to v.
 func NewOptNilDaemonState(v DaemonState) OptNilDaemonState {
 	return OptNilDaemonState{
@@ -22585,6 +22883,74 @@ func (o OptNilUUID) Get() (v uuid.UUID, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptNilUUID) Or(d uuid.UUID) uuid.UUID {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode returns new OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode with value set to v.
+func NewOptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode(v UpdateRuntimeProfileBodyDefaultWorkspaceMode) OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode {
+	return OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode is optional nullable UpdateRuntimeProfileBodyDefaultWorkspaceMode.
+type OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode struct {
+	Value UpdateRuntimeProfileBodyDefaultWorkspaceMode
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode was set.
+func (o OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) Reset() {
+	var v UpdateRuntimeProfileBodyDefaultWorkspaceMode
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) SetTo(v UpdateRuntimeProfileBodyDefaultWorkspaceMode) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v UpdateRuntimeProfileBodyDefaultWorkspaceMode
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) Get() (v UpdateRuntimeProfileBodyDefaultWorkspaceMode, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) Or(d UpdateRuntimeProfileBodyDefaultWorkspaceMode) UpdateRuntimeProfileBodyDefaultWorkspaceMode {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -29291,30 +29657,39 @@ func NewStringRuntimeModelListResponseItemsItemCapabilitiesItem(v string) Runtim
 
 // Ref: #/components/schemas/RuntimeProfile
 type RuntimeProfile struct {
-	Context              []RuntimeProfileContextItem        `json:"context"`
-	CreatedAt            time.Time                          `json:"createdAt"`
-	CreatedByAgentId     NilUUID                            `json:"createdByAgentId"`
-	CreatedByHumanId     NilUUID                            `json:"createdByHumanId"`
-	DefinitionCid        string                             `json:"definitionCid"`
-	Description          NilString                          `json:"description"`
-	HeartbeatIntervalMs  int                                `json:"heartbeatIntervalMs"`
-	ID                   uuid.UUID                          `json:"id"`
-	LeaseTtlSec          int                                `json:"leaseTtlSec"`
-	MaxBatchSize         int                                `json:"maxBatchSize"`
-	Model                string                             `json:"model"`
-	Name                 string                             `json:"name"`
-	Provider             string                             `json:"provider"`
-	RequiredEnv          []string                           `json:"requiredEnv"`
-	RequiredTools        []string                           `json:"requiredTools"`
-	Revision             int                                `json:"revision"`
-	RuntimeKind          RuntimeProfileRuntimeKind          `json:"runtimeKind"`
-	Sandbox              RuntimeProfileSandbox              `json:"sandbox"`
-	SessionStorageMode   RuntimeProfileSessionStorageMode   `json:"sessionStorageMode"`
-	SessionTtlSec        int                                `json:"sessionTtlSec"`
-	TeamId               uuid.UUID                          `json:"teamId"`
-	UpdatedAt            time.Time                          `json:"updatedAt"`
-	WorkspaceStorageMode RuntimeProfileWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      int                                `json:"workspaceTtlSec"`
+	AllowedWorkspaceModes []RuntimeProfileAllowedWorkspaceModesItem `json:"allowedWorkspaceModes"`
+	Context               []RuntimeProfileContextItem               `json:"context"`
+	CreatedAt             time.Time                                 `json:"createdAt"`
+	CreatedByAgentId      NilUUID                                   `json:"createdByAgentId"`
+	CreatedByHumanId      NilUUID                                   `json:"createdByHumanId"`
+	DefaultWorkspaceMode  NilRuntimeProfileDefaultWorkspaceMode     `json:"defaultWorkspaceMode"`
+	DefinitionCid         string                                    `json:"definitionCid"`
+	Description           NilString                                 `json:"description"`
+	HeartbeatIntervalMs   int                                       `json:"heartbeatIntervalMs"`
+	ID                    uuid.UUID                                 `json:"id"`
+	LeaseTtlSec           int                                       `json:"leaseTtlSec"`
+	MaxBashTimeouts       int                                       `json:"maxBashTimeouts"`
+	MaxBatchSize          int                                       `json:"maxBatchSize"`
+	MaxTurns              int                                       `json:"maxTurns"`
+	Model                 string                                    `json:"model"`
+	Name                  string                                    `json:"name"`
+	Provider              string                                    `json:"provider"`
+	RequiredEnv           []string                                  `json:"requiredEnv"`
+	RequiredTools         []string                                  `json:"requiredTools"`
+	Revision              int                                       `json:"revision"`
+	RuntimeKind           RuntimeProfileRuntimeKind                 `json:"runtimeKind"`
+	Sandbox               RuntimeProfileSandbox                     `json:"sandbox"`
+	SessionStorageMode    RuntimeProfileSessionStorageMode          `json:"sessionStorageMode"`
+	SessionTtlSec         int                                       `json:"sessionTtlSec"`
+	TeamId                uuid.UUID                                 `json:"teamId"`
+	UpdatedAt             time.Time                                 `json:"updatedAt"`
+	WorkspaceStorageMode  RuntimeProfileWorkspaceStorageMode        `json:"workspaceStorageMode"`
+	WorkspaceTtlSec       int                                       `json:"workspaceTtlSec"`
+}
+
+// GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
+func (s *RuntimeProfile) GetAllowedWorkspaceModes() []RuntimeProfileAllowedWorkspaceModesItem {
+	return s.AllowedWorkspaceModes
 }
 
 // GetContext returns the value of Context.
@@ -29335,6 +29710,11 @@ func (s *RuntimeProfile) GetCreatedByAgentId() NilUUID {
 // GetCreatedByHumanId returns the value of CreatedByHumanId.
 func (s *RuntimeProfile) GetCreatedByHumanId() NilUUID {
 	return s.CreatedByHumanId
+}
+
+// GetDefaultWorkspaceMode returns the value of DefaultWorkspaceMode.
+func (s *RuntimeProfile) GetDefaultWorkspaceMode() NilRuntimeProfileDefaultWorkspaceMode {
+	return s.DefaultWorkspaceMode
 }
 
 // GetDefinitionCid returns the value of DefinitionCid.
@@ -29362,9 +29742,19 @@ func (s *RuntimeProfile) GetLeaseTtlSec() int {
 	return s.LeaseTtlSec
 }
 
+// GetMaxBashTimeouts returns the value of MaxBashTimeouts.
+func (s *RuntimeProfile) GetMaxBashTimeouts() int {
+	return s.MaxBashTimeouts
+}
+
 // GetMaxBatchSize returns the value of MaxBatchSize.
 func (s *RuntimeProfile) GetMaxBatchSize() int {
 	return s.MaxBatchSize
+}
+
+// GetMaxTurns returns the value of MaxTurns.
+func (s *RuntimeProfile) GetMaxTurns() int {
+	return s.MaxTurns
 }
 
 // GetModel returns the value of Model.
@@ -29437,6 +29827,11 @@ func (s *RuntimeProfile) GetWorkspaceTtlSec() int {
 	return s.WorkspaceTtlSec
 }
 
+// SetAllowedWorkspaceModes sets the value of AllowedWorkspaceModes.
+func (s *RuntimeProfile) SetAllowedWorkspaceModes(val []RuntimeProfileAllowedWorkspaceModesItem) {
+	s.AllowedWorkspaceModes = val
+}
+
 // SetContext sets the value of Context.
 func (s *RuntimeProfile) SetContext(val []RuntimeProfileContextItem) {
 	s.Context = val
@@ -29455,6 +29850,11 @@ func (s *RuntimeProfile) SetCreatedByAgentId(val NilUUID) {
 // SetCreatedByHumanId sets the value of CreatedByHumanId.
 func (s *RuntimeProfile) SetCreatedByHumanId(val NilUUID) {
 	s.CreatedByHumanId = val
+}
+
+// SetDefaultWorkspaceMode sets the value of DefaultWorkspaceMode.
+func (s *RuntimeProfile) SetDefaultWorkspaceMode(val NilRuntimeProfileDefaultWorkspaceMode) {
+	s.DefaultWorkspaceMode = val
 }
 
 // SetDefinitionCid sets the value of DefinitionCid.
@@ -29482,9 +29882,19 @@ func (s *RuntimeProfile) SetLeaseTtlSec(val int) {
 	s.LeaseTtlSec = val
 }
 
+// SetMaxBashTimeouts sets the value of MaxBashTimeouts.
+func (s *RuntimeProfile) SetMaxBashTimeouts(val int) {
+	s.MaxBashTimeouts = val
+}
+
 // SetMaxBatchSize sets the value of MaxBatchSize.
 func (s *RuntimeProfile) SetMaxBatchSize(val int) {
 	s.MaxBatchSize = val
+}
+
+// SetMaxTurns sets the value of MaxTurns.
+func (s *RuntimeProfile) SetMaxTurns(val int) {
+	s.MaxTurns = val
 }
 
 // SetModel sets the value of Model.
@@ -29560,6 +29970,54 @@ func (s *RuntimeProfile) SetWorkspaceTtlSec(val int) {
 func (*RuntimeProfile) createRuntimeProfileRes() {}
 func (*RuntimeProfile) getRuntimeProfileRes()    {}
 func (*RuntimeProfile) updateRuntimeProfileRes() {}
+
+type RuntimeProfileAllowedWorkspaceModesItem string
+
+const (
+	RuntimeProfileAllowedWorkspaceModesItemNone              RuntimeProfileAllowedWorkspaceModesItem = "none"
+	RuntimeProfileAllowedWorkspaceModesItemSharedMount       RuntimeProfileAllowedWorkspaceModesItem = "shared_mount"
+	RuntimeProfileAllowedWorkspaceModesItemDedicatedWorktree RuntimeProfileAllowedWorkspaceModesItem = "dedicated_worktree"
+)
+
+// AllValues returns all RuntimeProfileAllowedWorkspaceModesItem values.
+func (RuntimeProfileAllowedWorkspaceModesItem) AllValues() []RuntimeProfileAllowedWorkspaceModesItem {
+	return []RuntimeProfileAllowedWorkspaceModesItem{
+		RuntimeProfileAllowedWorkspaceModesItemNone,
+		RuntimeProfileAllowedWorkspaceModesItemSharedMount,
+		RuntimeProfileAllowedWorkspaceModesItemDedicatedWorktree,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileAllowedWorkspaceModesItem) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileAllowedWorkspaceModesItemNone:
+		return []byte(s), nil
+	case RuntimeProfileAllowedWorkspaceModesItemSharedMount:
+		return []byte(s), nil
+	case RuntimeProfileAllowedWorkspaceModesItemDedicatedWorktree:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileAllowedWorkspaceModesItem) UnmarshalText(data []byte) error {
+	switch RuntimeProfileAllowedWorkspaceModesItem(data) {
+	case RuntimeProfileAllowedWorkspaceModesItemNone:
+		*s = RuntimeProfileAllowedWorkspaceModesItemNone
+		return nil
+	case RuntimeProfileAllowedWorkspaceModesItemSharedMount:
+		*s = RuntimeProfileAllowedWorkspaceModesItemSharedMount
+		return nil
+	case RuntimeProfileAllowedWorkspaceModesItemDedicatedWorktree:
+		*s = RuntimeProfileAllowedWorkspaceModesItemDedicatedWorktree
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type RuntimeProfileContextItem struct {
 	Binding RuntimeProfileContextItemBinding `json:"binding"`
@@ -29652,6 +30110,54 @@ func (s *RuntimeProfileContextItemBinding) UnmarshalText(data []byte) error {
 	}
 }
 
+type RuntimeProfileDefaultWorkspaceMode string
+
+const (
+	RuntimeProfileDefaultWorkspaceModeNone              RuntimeProfileDefaultWorkspaceMode = "none"
+	RuntimeProfileDefaultWorkspaceModeSharedMount       RuntimeProfileDefaultWorkspaceMode = "shared_mount"
+	RuntimeProfileDefaultWorkspaceModeDedicatedWorktree RuntimeProfileDefaultWorkspaceMode = "dedicated_worktree"
+)
+
+// AllValues returns all RuntimeProfileDefaultWorkspaceMode values.
+func (RuntimeProfileDefaultWorkspaceMode) AllValues() []RuntimeProfileDefaultWorkspaceMode {
+	return []RuntimeProfileDefaultWorkspaceMode{
+		RuntimeProfileDefaultWorkspaceModeNone,
+		RuntimeProfileDefaultWorkspaceModeSharedMount,
+		RuntimeProfileDefaultWorkspaceModeDedicatedWorktree,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileDefaultWorkspaceMode) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileDefaultWorkspaceModeNone:
+		return []byte(s), nil
+	case RuntimeProfileDefaultWorkspaceModeSharedMount:
+		return []byte(s), nil
+	case RuntimeProfileDefaultWorkspaceModeDedicatedWorktree:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileDefaultWorkspaceMode) UnmarshalText(data []byte) error {
+	switch RuntimeProfileDefaultWorkspaceMode(data) {
+	case RuntimeProfileDefaultWorkspaceModeNone:
+		*s = RuntimeProfileDefaultWorkspaceModeNone
+		return nil
+	case RuntimeProfileDefaultWorkspaceModeSharedMount:
+		*s = RuntimeProfileDefaultWorkspaceModeSharedMount
+		return nil
+	case RuntimeProfileDefaultWorkspaceModeDedicatedWorktree:
+		*s = RuntimeProfileDefaultWorkspaceModeDedicatedWorktree
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/RuntimeProfileListResponse
 type RuntimeProfileListResponse struct {
 	Items []RuntimeProfileListResponseItemsItem `json:"items"`
@@ -29670,30 +30176,39 @@ func (s *RuntimeProfileListResponse) SetItems(val []RuntimeProfileListResponseIt
 func (*RuntimeProfileListResponse) listRuntimeProfilesRes() {}
 
 type RuntimeProfileListResponseItemsItem struct {
-	Context              []RuntimeProfileListResponseItemsItemContextItem        `json:"context"`
-	CreatedAt            time.Time                                               `json:"createdAt"`
-	CreatedByAgentId     NilUUID                                                 `json:"createdByAgentId"`
-	CreatedByHumanId     NilUUID                                                 `json:"createdByHumanId"`
-	DefinitionCid        string                                                  `json:"definitionCid"`
-	Description          NilString                                               `json:"description"`
-	HeartbeatIntervalMs  int                                                     `json:"heartbeatIntervalMs"`
-	ID                   uuid.UUID                                               `json:"id"`
-	LeaseTtlSec          int                                                     `json:"leaseTtlSec"`
-	MaxBatchSize         int                                                     `json:"maxBatchSize"`
-	Model                string                                                  `json:"model"`
-	Name                 string                                                  `json:"name"`
-	Provider             string                                                  `json:"provider"`
-	RequiredEnv          []string                                                `json:"requiredEnv"`
-	RequiredTools        []string                                                `json:"requiredTools"`
-	Revision             int                                                     `json:"revision"`
-	RuntimeKind          RuntimeProfileListResponseItemsItemRuntimeKind          `json:"runtimeKind"`
-	Sandbox              RuntimeProfileListResponseItemsItemSandbox              `json:"sandbox"`
-	SessionStorageMode   RuntimeProfileListResponseItemsItemSessionStorageMode   `json:"sessionStorageMode"`
-	SessionTtlSec        int                                                     `json:"sessionTtlSec"`
-	TeamId               uuid.UUID                                               `json:"teamId"`
-	UpdatedAt            time.Time                                               `json:"updatedAt"`
-	WorkspaceStorageMode RuntimeProfileListResponseItemsItemWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      int                                                     `json:"workspaceTtlSec"`
+	AllowedWorkspaceModes []RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem `json:"allowedWorkspaceModes"`
+	Context               []RuntimeProfileListResponseItemsItemContextItem               `json:"context"`
+	CreatedAt             time.Time                                                      `json:"createdAt"`
+	CreatedByAgentId      NilUUID                                                        `json:"createdByAgentId"`
+	CreatedByHumanId      NilUUID                                                        `json:"createdByHumanId"`
+	DefaultWorkspaceMode  NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode     `json:"defaultWorkspaceMode"`
+	DefinitionCid         string                                                         `json:"definitionCid"`
+	Description           NilString                                                      `json:"description"`
+	HeartbeatIntervalMs   int                                                            `json:"heartbeatIntervalMs"`
+	ID                    uuid.UUID                                                      `json:"id"`
+	LeaseTtlSec           int                                                            `json:"leaseTtlSec"`
+	MaxBashTimeouts       int                                                            `json:"maxBashTimeouts"`
+	MaxBatchSize          int                                                            `json:"maxBatchSize"`
+	MaxTurns              int                                                            `json:"maxTurns"`
+	Model                 string                                                         `json:"model"`
+	Name                  string                                                         `json:"name"`
+	Provider              string                                                         `json:"provider"`
+	RequiredEnv           []string                                                       `json:"requiredEnv"`
+	RequiredTools         []string                                                       `json:"requiredTools"`
+	Revision              int                                                            `json:"revision"`
+	RuntimeKind           RuntimeProfileListResponseItemsItemRuntimeKind                 `json:"runtimeKind"`
+	Sandbox               RuntimeProfileListResponseItemsItemSandbox                     `json:"sandbox"`
+	SessionStorageMode    RuntimeProfileListResponseItemsItemSessionStorageMode          `json:"sessionStorageMode"`
+	SessionTtlSec         int                                                            `json:"sessionTtlSec"`
+	TeamId                uuid.UUID                                                      `json:"teamId"`
+	UpdatedAt             time.Time                                                      `json:"updatedAt"`
+	WorkspaceStorageMode  RuntimeProfileListResponseItemsItemWorkspaceStorageMode        `json:"workspaceStorageMode"`
+	WorkspaceTtlSec       int                                                            `json:"workspaceTtlSec"`
+}
+
+// GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
+func (s *RuntimeProfileListResponseItemsItem) GetAllowedWorkspaceModes() []RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem {
+	return s.AllowedWorkspaceModes
 }
 
 // GetContext returns the value of Context.
@@ -29714,6 +30229,11 @@ func (s *RuntimeProfileListResponseItemsItem) GetCreatedByAgentId() NilUUID {
 // GetCreatedByHumanId returns the value of CreatedByHumanId.
 func (s *RuntimeProfileListResponseItemsItem) GetCreatedByHumanId() NilUUID {
 	return s.CreatedByHumanId
+}
+
+// GetDefaultWorkspaceMode returns the value of DefaultWorkspaceMode.
+func (s *RuntimeProfileListResponseItemsItem) GetDefaultWorkspaceMode() NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode {
+	return s.DefaultWorkspaceMode
 }
 
 // GetDefinitionCid returns the value of DefinitionCid.
@@ -29741,9 +30261,19 @@ func (s *RuntimeProfileListResponseItemsItem) GetLeaseTtlSec() int {
 	return s.LeaseTtlSec
 }
 
+// GetMaxBashTimeouts returns the value of MaxBashTimeouts.
+func (s *RuntimeProfileListResponseItemsItem) GetMaxBashTimeouts() int {
+	return s.MaxBashTimeouts
+}
+
 // GetMaxBatchSize returns the value of MaxBatchSize.
 func (s *RuntimeProfileListResponseItemsItem) GetMaxBatchSize() int {
 	return s.MaxBatchSize
+}
+
+// GetMaxTurns returns the value of MaxTurns.
+func (s *RuntimeProfileListResponseItemsItem) GetMaxTurns() int {
+	return s.MaxTurns
 }
 
 // GetModel returns the value of Model.
@@ -29816,6 +30346,11 @@ func (s *RuntimeProfileListResponseItemsItem) GetWorkspaceTtlSec() int {
 	return s.WorkspaceTtlSec
 }
 
+// SetAllowedWorkspaceModes sets the value of AllowedWorkspaceModes.
+func (s *RuntimeProfileListResponseItemsItem) SetAllowedWorkspaceModes(val []RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem) {
+	s.AllowedWorkspaceModes = val
+}
+
 // SetContext sets the value of Context.
 func (s *RuntimeProfileListResponseItemsItem) SetContext(val []RuntimeProfileListResponseItemsItemContextItem) {
 	s.Context = val
@@ -29834,6 +30369,11 @@ func (s *RuntimeProfileListResponseItemsItem) SetCreatedByAgentId(val NilUUID) {
 // SetCreatedByHumanId sets the value of CreatedByHumanId.
 func (s *RuntimeProfileListResponseItemsItem) SetCreatedByHumanId(val NilUUID) {
 	s.CreatedByHumanId = val
+}
+
+// SetDefaultWorkspaceMode sets the value of DefaultWorkspaceMode.
+func (s *RuntimeProfileListResponseItemsItem) SetDefaultWorkspaceMode(val NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) {
+	s.DefaultWorkspaceMode = val
 }
 
 // SetDefinitionCid sets the value of DefinitionCid.
@@ -29861,9 +30401,19 @@ func (s *RuntimeProfileListResponseItemsItem) SetLeaseTtlSec(val int) {
 	s.LeaseTtlSec = val
 }
 
+// SetMaxBashTimeouts sets the value of MaxBashTimeouts.
+func (s *RuntimeProfileListResponseItemsItem) SetMaxBashTimeouts(val int) {
+	s.MaxBashTimeouts = val
+}
+
 // SetMaxBatchSize sets the value of MaxBatchSize.
 func (s *RuntimeProfileListResponseItemsItem) SetMaxBatchSize(val int) {
 	s.MaxBatchSize = val
+}
+
+// SetMaxTurns sets the value of MaxTurns.
+func (s *RuntimeProfileListResponseItemsItem) SetMaxTurns(val int) {
+	s.MaxTurns = val
 }
 
 // SetModel sets the value of Model.
@@ -29934,6 +30484,54 @@ func (s *RuntimeProfileListResponseItemsItem) SetWorkspaceStorageMode(val Runtim
 // SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
 func (s *RuntimeProfileListResponseItemsItem) SetWorkspaceTtlSec(val int) {
 	s.WorkspaceTtlSec = val
+}
+
+type RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem string
+
+const (
+	RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemNone              RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem = "none"
+	RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemSharedMount       RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem = "shared_mount"
+	RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemDedicatedWorktree RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem = "dedicated_worktree"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem values.
+func (RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem) AllValues() []RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem {
+	return []RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem{
+		RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemNone,
+		RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemSharedMount,
+		RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemDedicatedWorktree,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemNone:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemSharedMount:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemDedicatedWorktree:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem(data) {
+	case RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemNone:
+		*s = RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemNone
+		return nil
+	case RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemSharedMount:
+		*s = RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemSharedMount
+		return nil
+	case RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemDedicatedWorktree:
+		*s = RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemDedicatedWorktree
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type RuntimeProfileListResponseItemsItemContextItem struct {
@@ -30021,6 +30619,54 @@ func (s *RuntimeProfileListResponseItemsItemContextItemBinding) UnmarshalText(da
 		return nil
 	case RuntimeProfileListResponseItemsItemContextItemBindingUserInline:
 		*s = RuntimeProfileListResponseItemsItemContextItemBindingUserInline
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileListResponseItemsItemDefaultWorkspaceMode string
+
+const (
+	RuntimeProfileListResponseItemsItemDefaultWorkspaceModeNone              RuntimeProfileListResponseItemsItemDefaultWorkspaceMode = "none"
+	RuntimeProfileListResponseItemsItemDefaultWorkspaceModeSharedMount       RuntimeProfileListResponseItemsItemDefaultWorkspaceMode = "shared_mount"
+	RuntimeProfileListResponseItemsItemDefaultWorkspaceModeDedicatedWorktree RuntimeProfileListResponseItemsItemDefaultWorkspaceMode = "dedicated_worktree"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemDefaultWorkspaceMode values.
+func (RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) AllValues() []RuntimeProfileListResponseItemsItemDefaultWorkspaceMode {
+	return []RuntimeProfileListResponseItemsItemDefaultWorkspaceMode{
+		RuntimeProfileListResponseItemsItemDefaultWorkspaceModeNone,
+		RuntimeProfileListResponseItemsItemDefaultWorkspaceModeSharedMount,
+		RuntimeProfileListResponseItemsItemDefaultWorkspaceModeDedicatedWorktree,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemDefaultWorkspaceModeNone:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemDefaultWorkspaceModeSharedMount:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemDefaultWorkspaceModeDedicatedWorktree:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemDefaultWorkspaceMode(data) {
+	case RuntimeProfileListResponseItemsItemDefaultWorkspaceModeNone:
+		*s = RuntimeProfileListResponseItemsItemDefaultWorkspaceModeNone
+		return nil
+	case RuntimeProfileListResponseItemsItemDefaultWorkspaceModeSharedMount:
+		*s = RuntimeProfileListResponseItemsItemDefaultWorkspaceModeSharedMount
+		return nil
+	case RuntimeProfileListResponseItemsItemDefaultWorkspaceModeDedicatedWorktree:
+		*s = RuntimeProfileListResponseItemsItemDefaultWorkspaceModeDedicatedWorktree
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -34183,27 +34829,41 @@ func (*UpdateRuntimeProfileBadRequest) updateRuntimeProfileRes() {}
 
 // Ref: #/components/schemas/UpdateRuntimeProfileBody
 type UpdateRuntimeProfileBody struct {
-	Context              []UpdateRuntimeProfileBodyContextItem           `json:"context"`
-	Description          OptString                                       `json:"description"`
-	HeartbeatIntervalMs  OptInt                                          `json:"heartbeatIntervalMs"`
-	LeaseTtlSec          OptInt                                          `json:"leaseTtlSec"`
-	MaxBatchSize         OptInt                                          `json:"maxBatchSize"`
-	Model                OptString                                       `json:"model"`
-	Name                 OptString                                       `json:"name"`
-	Provider             OptString                                       `json:"provider"`
-	RequiredEnv          []string                                        `json:"requiredEnv"`
-	RequiredTools        []string                                        `json:"requiredTools"`
-	RuntimeKind          OptUpdateRuntimeProfileBodyRuntimeKind          `json:"runtimeKind"`
-	Sandbox              OptUpdateRuntimeProfileBodySandbox              `json:"sandbox"`
-	SessionStorageMode   OptUpdateRuntimeProfileBodySessionStorageMode   `json:"sessionStorageMode"`
-	SessionTtlSec        OptInt                                          `json:"sessionTtlSec"`
-	WorkspaceStorageMode OptUpdateRuntimeProfileBodyWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      OptInt                                          `json:"workspaceTtlSec"`
+	AllowedWorkspaceModes []UpdateRuntimeProfileBodyAllowedWorkspaceModesItem `json:"allowedWorkspaceModes"`
+	Context               []UpdateRuntimeProfileBodyContextItem               `json:"context"`
+	DefaultWorkspaceMode  OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode  `json:"defaultWorkspaceMode"`
+	Description           OptString                                           `json:"description"`
+	HeartbeatIntervalMs   OptInt                                              `json:"heartbeatIntervalMs"`
+	LeaseTtlSec           OptInt                                              `json:"leaseTtlSec"`
+	MaxBashTimeouts       OptInt                                              `json:"maxBashTimeouts"`
+	MaxBatchSize          OptInt                                              `json:"maxBatchSize"`
+	MaxTurns              OptInt                                              `json:"maxTurns"`
+	Model                 OptString                                           `json:"model"`
+	Name                  OptString                                           `json:"name"`
+	Provider              OptString                                           `json:"provider"`
+	RequiredEnv           []string                                            `json:"requiredEnv"`
+	RequiredTools         []string                                            `json:"requiredTools"`
+	RuntimeKind           OptUpdateRuntimeProfileBodyRuntimeKind              `json:"runtimeKind"`
+	Sandbox               OptUpdateRuntimeProfileBodySandbox                  `json:"sandbox"`
+	SessionStorageMode    OptUpdateRuntimeProfileBodySessionStorageMode       `json:"sessionStorageMode"`
+	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
+	WorkspaceStorageMode  OptUpdateRuntimeProfileBodyWorkspaceStorageMode     `json:"workspaceStorageMode"`
+	WorkspaceTtlSec       OptInt                                              `json:"workspaceTtlSec"`
+}
+
+// GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
+func (s *UpdateRuntimeProfileBody) GetAllowedWorkspaceModes() []UpdateRuntimeProfileBodyAllowedWorkspaceModesItem {
+	return s.AllowedWorkspaceModes
 }
 
 // GetContext returns the value of Context.
 func (s *UpdateRuntimeProfileBody) GetContext() []UpdateRuntimeProfileBodyContextItem {
 	return s.Context
+}
+
+// GetDefaultWorkspaceMode returns the value of DefaultWorkspaceMode.
+func (s *UpdateRuntimeProfileBody) GetDefaultWorkspaceMode() OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode {
+	return s.DefaultWorkspaceMode
 }
 
 // GetDescription returns the value of Description.
@@ -34221,9 +34881,19 @@ func (s *UpdateRuntimeProfileBody) GetLeaseTtlSec() OptInt {
 	return s.LeaseTtlSec
 }
 
+// GetMaxBashTimeouts returns the value of MaxBashTimeouts.
+func (s *UpdateRuntimeProfileBody) GetMaxBashTimeouts() OptInt {
+	return s.MaxBashTimeouts
+}
+
 // GetMaxBatchSize returns the value of MaxBatchSize.
 func (s *UpdateRuntimeProfileBody) GetMaxBatchSize() OptInt {
 	return s.MaxBatchSize
+}
+
+// GetMaxTurns returns the value of MaxTurns.
+func (s *UpdateRuntimeProfileBody) GetMaxTurns() OptInt {
+	return s.MaxTurns
 }
 
 // GetModel returns the value of Model.
@@ -34281,9 +34951,19 @@ func (s *UpdateRuntimeProfileBody) GetWorkspaceTtlSec() OptInt {
 	return s.WorkspaceTtlSec
 }
 
+// SetAllowedWorkspaceModes sets the value of AllowedWorkspaceModes.
+func (s *UpdateRuntimeProfileBody) SetAllowedWorkspaceModes(val []UpdateRuntimeProfileBodyAllowedWorkspaceModesItem) {
+	s.AllowedWorkspaceModes = val
+}
+
 // SetContext sets the value of Context.
 func (s *UpdateRuntimeProfileBody) SetContext(val []UpdateRuntimeProfileBodyContextItem) {
 	s.Context = val
+}
+
+// SetDefaultWorkspaceMode sets the value of DefaultWorkspaceMode.
+func (s *UpdateRuntimeProfileBody) SetDefaultWorkspaceMode(val OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) {
+	s.DefaultWorkspaceMode = val
 }
 
 // SetDescription sets the value of Description.
@@ -34301,9 +34981,19 @@ func (s *UpdateRuntimeProfileBody) SetLeaseTtlSec(val OptInt) {
 	s.LeaseTtlSec = val
 }
 
+// SetMaxBashTimeouts sets the value of MaxBashTimeouts.
+func (s *UpdateRuntimeProfileBody) SetMaxBashTimeouts(val OptInt) {
+	s.MaxBashTimeouts = val
+}
+
 // SetMaxBatchSize sets the value of MaxBatchSize.
 func (s *UpdateRuntimeProfileBody) SetMaxBatchSize(val OptInt) {
 	s.MaxBatchSize = val
+}
+
+// SetMaxTurns sets the value of MaxTurns.
+func (s *UpdateRuntimeProfileBody) SetMaxTurns(val OptInt) {
+	s.MaxTurns = val
 }
 
 // SetModel sets the value of Model.
@@ -34359,6 +35049,54 @@ func (s *UpdateRuntimeProfileBody) SetWorkspaceStorageMode(val OptUpdateRuntimeP
 // SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
 func (s *UpdateRuntimeProfileBody) SetWorkspaceTtlSec(val OptInt) {
 	s.WorkspaceTtlSec = val
+}
+
+type UpdateRuntimeProfileBodyAllowedWorkspaceModesItem string
+
+const (
+	UpdateRuntimeProfileBodyAllowedWorkspaceModesItemNone              UpdateRuntimeProfileBodyAllowedWorkspaceModesItem = "none"
+	UpdateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount       UpdateRuntimeProfileBodyAllowedWorkspaceModesItem = "shared_mount"
+	UpdateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree UpdateRuntimeProfileBodyAllowedWorkspaceModesItem = "dedicated_worktree"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodyAllowedWorkspaceModesItem values.
+func (UpdateRuntimeProfileBodyAllowedWorkspaceModesItem) AllValues() []UpdateRuntimeProfileBodyAllowedWorkspaceModesItem {
+	return []UpdateRuntimeProfileBodyAllowedWorkspaceModesItem{
+		UpdateRuntimeProfileBodyAllowedWorkspaceModesItemNone,
+		UpdateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount,
+		UpdateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodyAllowedWorkspaceModesItem) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodyAllowedWorkspaceModesItemNone:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodyAllowedWorkspaceModesItem) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodyAllowedWorkspaceModesItem(data) {
+	case UpdateRuntimeProfileBodyAllowedWorkspaceModesItemNone:
+		*s = UpdateRuntimeProfileBodyAllowedWorkspaceModesItemNone
+		return nil
+	case UpdateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount:
+		*s = UpdateRuntimeProfileBodyAllowedWorkspaceModesItemSharedMount
+		return nil
+	case UpdateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree:
+		*s = UpdateRuntimeProfileBodyAllowedWorkspaceModesItemDedicatedWorktree
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type UpdateRuntimeProfileBodyContextItem struct {
@@ -34446,6 +35184,54 @@ func (s *UpdateRuntimeProfileBodyContextItemBinding) UnmarshalText(data []byte) 
 		return nil
 	case UpdateRuntimeProfileBodyContextItemBindingUserInline:
 		*s = UpdateRuntimeProfileBodyContextItemBindingUserInline
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateRuntimeProfileBodyDefaultWorkspaceMode string
+
+const (
+	UpdateRuntimeProfileBodyDefaultWorkspaceModeNone              UpdateRuntimeProfileBodyDefaultWorkspaceMode = "none"
+	UpdateRuntimeProfileBodyDefaultWorkspaceModeSharedMount       UpdateRuntimeProfileBodyDefaultWorkspaceMode = "shared_mount"
+	UpdateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree UpdateRuntimeProfileBodyDefaultWorkspaceMode = "dedicated_worktree"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodyDefaultWorkspaceMode values.
+func (UpdateRuntimeProfileBodyDefaultWorkspaceMode) AllValues() []UpdateRuntimeProfileBodyDefaultWorkspaceMode {
+	return []UpdateRuntimeProfileBodyDefaultWorkspaceMode{
+		UpdateRuntimeProfileBodyDefaultWorkspaceModeNone,
+		UpdateRuntimeProfileBodyDefaultWorkspaceModeSharedMount,
+		UpdateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodyDefaultWorkspaceMode) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodyDefaultWorkspaceModeNone:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyDefaultWorkspaceModeSharedMount:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodyDefaultWorkspaceMode(data) {
+	case UpdateRuntimeProfileBodyDefaultWorkspaceModeNone:
+		*s = UpdateRuntimeProfileBodyDefaultWorkspaceModeNone
+		return nil
+	case UpdateRuntimeProfileBodyDefaultWorkspaceModeSharedMount:
+		*s = UpdateRuntimeProfileBodyDefaultWorkspaceModeSharedMount
+		return nil
+	case UpdateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree:
+		*s = UpdateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

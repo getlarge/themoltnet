@@ -3945,6 +3945,45 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if s.AllowedWorkspaceModes == nil {
+			return nil // optional
+		}
+		if err := (validate.Array{
+			MinLength:    1,
+			MinLengthSet: true,
+			MaxLength:    3,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.AllowedWorkspaceModes)); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		if err := validate.UniqueItems(s.AllowedWorkspaceModes); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.AllowedWorkspaceModes {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "allowedWorkspaceModes",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if s.Context == nil {
 			return nil // optional
 		}
@@ -3977,6 +4016,24 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "context",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.DefaultWorkspaceMode.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "defaultWorkspaceMode",
 			Error: err,
 		})
 	}
@@ -4067,6 +4124,34 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.MaxBashTimeouts.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           1000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxBashTimeouts",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.MaxBatchSize.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -4091,6 +4176,34 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "maxBatchSize",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.MaxTurns.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           10000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxTurns",
 			Error: err,
 		})
 	}
@@ -4386,6 +4499,19 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 	return nil
 }
 
+func (s CreateRuntimeProfileBodyAllowedWorkspaceModesItem) Validate() error {
+	switch s {
+	case "none":
+		return nil
+	case "shared_mount":
+		return nil
+	case "dedicated_worktree":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *CreateRuntimeProfileBodyContextItem) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -4464,6 +4590,19 @@ func (s CreateRuntimeProfileBodyContextItemBinding) Validate() error {
 	case "prompt_prefix":
 		return nil
 	case "user_inline":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s CreateRuntimeProfileBodyDefaultWorkspaceMode) Validate() error {
+	switch s {
+	case "none":
+		return nil
+	case "shared_mount":
+		return nil
+	case "dedicated_worktree":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -15383,6 +15522,45 @@ func (s *RuntimeProfile) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if s.AllowedWorkspaceModes == nil {
+			return errors.New("nil is invalid value")
+		}
+		if err := (validate.Array{
+			MinLength:    1,
+			MinLengthSet: true,
+			MaxLength:    3,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.AllowedWorkspaceModes)); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		if err := validate.UniqueItems(s.AllowedWorkspaceModes); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.AllowedWorkspaceModes {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "allowedWorkspaceModes",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if s.Context == nil {
 			return errors.New("nil is invalid value")
 		}
@@ -15415,6 +15593,24 @@ func (s *RuntimeProfile) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "context",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.DefaultWorkspaceMode.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "defaultWorkspaceMode",
 			Error: err,
 		})
 	}
@@ -15516,6 +15712,27 @@ func (s *RuntimeProfile) Validate() error {
 	if err := func() error {
 		if err := (validate.Int{
 			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           1000,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.MaxBashTimeouts)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxBashTimeouts",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
 			Min:           1,
 			MaxSet:        true,
 			Max:           1000,
@@ -15531,6 +15748,27 @@ func (s *RuntimeProfile) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "maxBatchSize",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           10000,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.MaxTurns)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxTurns",
 			Error: err,
 		})
 	}
@@ -15810,6 +16048,19 @@ func (s *RuntimeProfile) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s RuntimeProfileAllowedWorkspaceModesItem) Validate() error {
+	switch s {
+	case "none":
+		return nil
+	case "shared_mount":
+		return nil
+	case "dedicated_worktree":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *RuntimeProfileContextItem) Validate() error {
@@ -15896,6 +16147,19 @@ func (s RuntimeProfileContextItemBinding) Validate() error {
 	}
 }
 
+func (s RuntimeProfileDefaultWorkspaceMode) Validate() error {
+	switch s {
+	case "none":
+		return nil
+	case "shared_mount":
+		return nil
+	case "dedicated_worktree":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *RuntimeProfileListResponse) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -15943,6 +16207,45 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if s.AllowedWorkspaceModes == nil {
+			return errors.New("nil is invalid value")
+		}
+		if err := (validate.Array{
+			MinLength:    1,
+			MinLengthSet: true,
+			MaxLength:    3,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.AllowedWorkspaceModes)); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		if err := validate.UniqueItems(s.AllowedWorkspaceModes); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.AllowedWorkspaceModes {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "allowedWorkspaceModes",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if s.Context == nil {
 			return errors.New("nil is invalid value")
 		}
@@ -15975,6 +16278,24 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "context",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.DefaultWorkspaceMode.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "defaultWorkspaceMode",
 			Error: err,
 		})
 	}
@@ -16076,6 +16397,27 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 	if err := func() error {
 		if err := (validate.Int{
 			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           1000,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.MaxBashTimeouts)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxBashTimeouts",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
 			Min:           1,
 			MaxSet:        true,
 			Max:           1000,
@@ -16091,6 +16433,27 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "maxBatchSize",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           10000,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.MaxTurns)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxTurns",
 			Error: err,
 		})
 	}
@@ -16372,6 +16735,19 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 	return nil
 }
 
+func (s RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem) Validate() error {
+	switch s {
+	case "none":
+		return nil
+	case "shared_mount":
+		return nil
+	case "dedicated_worktree":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *RuntimeProfileListResponseItemsItemContextItem) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -16450,6 +16826,19 @@ func (s RuntimeProfileListResponseItemsItemContextItemBinding) Validate() error 
 	case "prompt_prefix":
 		return nil
 	case "user_inline":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Validate() error {
+	switch s {
+	case "none":
+		return nil
+	case "shared_mount":
+		return nil
+	case "dedicated_worktree":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -20776,6 +21165,45 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if s.AllowedWorkspaceModes == nil {
+			return nil // optional
+		}
+		if err := (validate.Array{
+			MinLength:    1,
+			MinLengthSet: true,
+			MaxLength:    3,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.AllowedWorkspaceModes)); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		if err := validate.UniqueItems(s.AllowedWorkspaceModes); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.AllowedWorkspaceModes {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "allowedWorkspaceModes",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if s.Context == nil {
 			return nil // optional
 		}
@@ -20808,6 +21236,24 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "context",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.DefaultWorkspaceMode.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "defaultWorkspaceMode",
 			Error: err,
 		})
 	}
@@ -20898,6 +21344,34 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.MaxBashTimeouts.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           1000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxBashTimeouts",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.MaxBatchSize.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -20922,6 +21396,34 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "maxBatchSize",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.MaxTurns.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           10000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxTurns",
 			Error: err,
 		})
 	}
@@ -21245,6 +21747,19 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 	return nil
 }
 
+func (s UpdateRuntimeProfileBodyAllowedWorkspaceModesItem) Validate() error {
+	switch s {
+	case "none":
+		return nil
+	case "shared_mount":
+		return nil
+	case "dedicated_worktree":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *UpdateRuntimeProfileBodyContextItem) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -21323,6 +21838,19 @@ func (s UpdateRuntimeProfileBodyContextItemBinding) Validate() error {
 	case "prompt_prefix":
 		return nil
 	case "user_inline":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s UpdateRuntimeProfileBodyDefaultWorkspaceMode) Validate() error {
+	switch s {
+	case "none":
+		return nil
+	case "shared_mount":
+		return nil
+	case "dedicated_worktree":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

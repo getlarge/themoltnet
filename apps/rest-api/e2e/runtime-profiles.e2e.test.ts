@@ -67,6 +67,10 @@ describe('Runtime Profiles API', () => {
         hostExec: { autoApprove: false as const },
         resources: { cpus: 2, memory: '2G' },
       },
+      defaultWorkspaceMode: 'dedicated_worktree' as const,
+      allowedWorkspaceModes: ['none' as const, 'dedicated_worktree' as const],
+      maxTurns: 30,
+      maxBashTimeouts: 2,
       requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
       requiredTools: ['linear.issue.get', 'github.pr.create'],
       context: [
@@ -124,6 +128,10 @@ describe('Runtime Profiles API', () => {
       runtimeKind: 'gondolin_pi',
       sessionStorageMode: 'local',
       workspaceStorageMode: 'local',
+      defaultWorkspaceMode: 'dedicated_worktree',
+      allowedWorkspaceModes: ['none', 'dedicated_worktree'],
+      maxTurns: 30,
+      maxBashTimeouts: 2,
       revision: 1,
     });
     expect(created!.definitionCid).toMatch(/^ba/);
@@ -144,6 +152,11 @@ describe('Runtime Profiles API', () => {
     });
     expect(getError).toBeUndefined();
     expect(fetched!.id).toBe(created!.id);
+    expect(fetched!.defaultWorkspaceMode).toBe('dedicated_worktree');
+    expect(fetched!.allowedWorkspaceModes).toEqual([
+      'none',
+      'dedicated_worktree',
+    ]);
 
     const { data: updated, error: updateError } = await updateRuntimeProfile({
       client,
@@ -152,6 +165,10 @@ describe('Runtime Profiles API', () => {
       body: {
         model: 'Claude-Opus-4-1',
         sessionTtlSec: 3600,
+        defaultWorkspaceMode: null,
+        allowedWorkspaceModes: ['none'],
+        maxTurns: 12,
+        maxBashTimeouts: 1,
       },
     });
     expect(updateError).toBeUndefined();
@@ -159,6 +176,10 @@ describe('Runtime Profiles API', () => {
       id: created!.id,
       model: 'claude-opus-4-1',
       sessionTtlSec: 3600,
+      defaultWorkspaceMode: null,
+      allowedWorkspaceModes: ['none'],
+      maxTurns: 12,
+      maxBashTimeouts: 1,
       revision: 2,
     });
     expect(updated!.definitionCid).not.toBe(created!.definitionCid);

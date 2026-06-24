@@ -24,11 +24,15 @@ function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
     sandbox: {},
     sessionStorageMode: 'local',
     workspaceStorageMode: 'local',
+    defaultWorkspaceMode: null,
+    allowedWorkspaceModes: ['none', 'shared_mount', 'dedicated_worktree'],
     sessionTtlSec: 1800,
     workspaceTtlSec: 1800,
     leaseTtlSec: 300,
     heartbeatIntervalMs: 60_000,
     maxBatchSize: 50,
+    maxTurns: 0,
+    maxBashTimeouts: 3,
     requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
     requiredTools: ['linear.issue.get', 'github.pr.create'],
     context: [
@@ -84,9 +88,13 @@ describe('runtime profile routes', () => {
           ],
           hostExec: { autoApprove: false },
         },
+        defaultWorkspaceMode: 'dedicated_worktree',
+        allowedWorkspaceModes: ['none', 'dedicated_worktree'],
         leaseTtlSec: 900,
         heartbeatIntervalMs: 15_000,
         maxBatchSize: 10,
+        maxTurns: 30,
+        maxBashTimeouts: 2,
         requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
         requiredTools: ['linear.issue.get', 'github.pr.create'],
         context: [
@@ -109,6 +117,10 @@ describe('runtime profile routes', () => {
       leaseTtlSec: 300,
       heartbeatIntervalMs: 60_000,
       maxBatchSize: 50,
+      maxTurns: 0,
+      maxBashTimeouts: 3,
+      defaultWorkspaceMode: null,
+      allowedWorkspaceModes: ['none', 'shared_mount', 'dedicated_worktree'],
     });
     expect(mocks.runtimeProfileRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -118,11 +130,51 @@ describe('runtime profile routes', () => {
         leaseTtlSec: 900,
         heartbeatIntervalMs: 15_000,
         maxBatchSize: 10,
+        maxTurns: 30,
+        maxBashTimeouts: 2,
+        defaultWorkspaceMode: 'dedicated_worktree',
+        allowedWorkspaceModes: ['none', 'dedicated_worktree'],
         createdByAgentId: OWNER_ID,
         createdByHumanId: null,
         definitionCid: expect.stringMatching(/^ba/),
       }),
     );
+  });
+
+  it('rejects runtime profiles whose default workspace mode is not allowed', async () => {
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/runtime-profiles',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: {
+        name: 'repo-less',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        sandbox: {},
+        defaultWorkspaceMode: 'shared_mount',
+        allowedWorkspaceModes: ['none'],
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      code: 'VALIDATION_FAILED',
+      errors: [
+        {
+          field: 'defaultWorkspaceMode',
+          message:
+            'defaultWorkspaceMode must be included in allowedWorkspaceModes',
+        },
+      ],
+    });
+    expect(mocks.runtimeProfileRepository.create).not.toHaveBeenCalled();
   });
 
   it('lists runtime profiles when the caller can access the team', async () => {

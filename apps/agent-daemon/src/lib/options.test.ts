@@ -81,6 +81,8 @@ describe('parseCommonOptions', () => {
         leaseTtlSec: 900,
         heartbeatIntervalMs: 15_000,
         maxBatchSize: 7,
+        maxTurns: 30,
+        maxBashTimeouts: 2,
         warmSessionTtlSec: 120,
       },
     });
@@ -88,6 +90,8 @@ describe('parseCommonOptions', () => {
     expect(result.leaseTtlSec).toBe(900);
     expect(result.heartbeatIntervalMs).toBe(15_000);
     expect(result.maxBatchSize).toBe(7);
+    expect(result.maxTurns).toBe(30);
+    expect(result.maxBashTimeouts).toBe(2);
     expect(result.warmSessionTtlSec).toBe(120);
   });
 
@@ -98,6 +102,8 @@ describe('parseCommonOptions', () => {
         'lease-ttl-sec': '60',
         'heartbeat-interval-ms': '5000',
         'max-batch-size': '10',
+        'max-turns': '15',
+        'max-bash-timeouts': '1',
         'warm-session-ttl-sec': '90',
       },
       {
@@ -105,6 +111,8 @@ describe('parseCommonOptions', () => {
           leaseTtlSec: 900,
           heartbeatIntervalMs: 15_000,
           maxBatchSize: 7,
+          maxTurns: 30,
+          maxBashTimeouts: 2,
           warmSessionTtlSec: 120,
         },
       },
@@ -113,6 +121,8 @@ describe('parseCommonOptions', () => {
     expect(result.leaseTtlSec).toBe(60);
     expect(result.heartbeatIntervalMs).toBe(5_000);
     expect(result.maxBatchSize).toBe(10);
+    expect(result.maxTurns).toBe(15);
+    expect(result.maxBashTimeouts).toBe(1);
     expect(result.warmSessionTtlSec).toBe(90);
   });
 

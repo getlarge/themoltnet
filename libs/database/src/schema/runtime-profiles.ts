@@ -50,6 +50,15 @@ export function defineRuntimeProfilesTable({
       workspaceStorageMode: storageModeEnum('workspace_storage_mode')
         .notNull()
         .default('local'),
+      defaultWorkspaceMode: varchar('default_workspace_mode', {
+        length: 32,
+      }),
+      allowedWorkspaceModes: text('allowed_workspace_modes')
+        .array()
+        .notNull()
+        .default(
+          sql`ARRAY['none','shared_mount','dedicated_worktree']::text[]`,
+        ),
       sessionTtlSec: integer('session_ttl_sec').notNull().default(1800),
       workspaceTtlSec: integer('workspace_ttl_sec').notNull().default(1800),
       leaseTtlSec: integer('lease_ttl_sec').notNull().default(300),
@@ -57,6 +66,8 @@ export function defineRuntimeProfilesTable({
         .notNull()
         .default(60000),
       maxBatchSize: integer('max_batch_size').notNull().default(50),
+      maxTurns: integer('max_turns').notNull().default(0),
+      maxBashTimeouts: integer('max_bash_timeouts').notNull().default(3),
       requiredEnv: text('required_env')
         .array()
         .notNull()
@@ -110,6 +121,27 @@ export function defineRuntimeProfilesTable({
       check(
         'runtime_profiles_max_batch_size_positive',
         sql`max_batch_size > 0`,
+      ),
+      check('runtime_profiles_max_turns_non_negative', sql`max_turns >= 0`),
+      check(
+        'runtime_profiles_max_bash_timeouts_non_negative',
+        sql`max_bash_timeouts >= 0`,
+      ),
+      check(
+        'runtime_profiles_default_workspace_mode_valid',
+        sql`default_workspace_mode IS NULL OR default_workspace_mode = ANY(ARRAY['none','shared_mount','dedicated_worktree']::text[])`,
+      ),
+      check(
+        'runtime_profiles_allowed_workspace_modes_nonempty',
+        sql`cardinality(allowed_workspace_modes) BETWEEN 1 AND 3`,
+      ),
+      check(
+        'runtime_profiles_allowed_workspace_modes_valid',
+        sql`allowed_workspace_modes <@ ARRAY['none','shared_mount','dedicated_worktree']::text[]`,
+      ),
+      check(
+        'runtime_profiles_default_workspace_mode_allowed',
+        sql`default_workspace_mode IS NULL OR default_workspace_mode = ANY(allowed_workspace_modes)`,
       ),
     ],
   );

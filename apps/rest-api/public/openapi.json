@@ -1476,6 +1476,34 @@
       "CreateRuntimeProfileBody": {
         "additionalProperties": false,
         "properties": {
+          "allowedWorkspaceModes": {
+            "items": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "none"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "shared_mount"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "dedicated_worktree"
+                  ],
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
           "context": {
             "items": {
               "additionalProperties": false,
@@ -1530,6 +1558,35 @@
             "maxItems": 5,
             "type": "array"
           },
+          "defaultWorkspaceMode": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "none"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "shared_mount"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "dedicated_worktree"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "description": {
             "maxLength": 4096,
             "type": "string"
@@ -1544,9 +1601,19 @@
             "minimum": 1,
             "type": "integer"
           },
+          "maxBashTimeouts": {
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "maxBatchSize": {
             "maximum": 1000,
             "minimum": 1,
+            "type": "integer"
+          },
+          "maxTurns": {
+            "maximum": 10000,
+            "minimum": 0,
             "type": "integer"
           },
           "model": {
@@ -6587,6 +6654,34 @@
       "RuntimeProfile": {
         "additionalProperties": false,
         "properties": {
+          "allowedWorkspaceModes": {
+            "items": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "none"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "shared_mount"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "dedicated_worktree"
+                  ],
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
           "context": {
             "items": {
               "additionalProperties": false,
@@ -6667,6 +6762,35 @@
               }
             ]
           },
+          "defaultWorkspaceMode": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "none"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "shared_mount"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "dedicated_worktree"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "definitionCid": {
             "maxLength": 100,
             "minLength": 1,
@@ -6697,9 +6821,19 @@
             "minimum": 1,
             "type": "integer"
           },
+          "maxBashTimeouts": {
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "maxBatchSize": {
             "maximum": 1000,
             "minimum": 1,
+            "type": "integer"
+          },
+          "maxTurns": {
+            "maximum": 10000,
+            "minimum": 0,
             "type": "integer"
           },
           "model": {
@@ -6963,11 +7097,15 @@
           "sandbox",
           "sessionStorageMode",
           "workspaceStorageMode",
+          "defaultWorkspaceMode",
+          "allowedWorkspaceModes",
           "sessionTtlSec",
           "workspaceTtlSec",
           "leaseTtlSec",
           "heartbeatIntervalMs",
           "maxBatchSize",
+          "maxTurns",
+          "maxBashTimeouts",
           "requiredEnv",
           "requiredTools",
           "context",
@@ -7036,6 +7174,34 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "allowedWorkspaceModes": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "none"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "shared_mount"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "dedicated_worktree"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "maxItems": 3,
+                  "minItems": 1,
+                  "type": "array",
+                  "uniqueItems": true
+                },
                 "context": {
                   "items": {
                     "additionalProperties": false,
@@ -7116,6 +7282,35 @@
                     }
                   ]
                 },
+                "defaultWorkspaceMode": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "none"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "shared_mount"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "dedicated_worktree"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "definitionCid": {
                   "maxLength": 100,
                   "minLength": 1,
@@ -7146,9 +7341,19 @@
                   "minimum": 1,
                   "type": "integer"
                 },
+                "maxBashTimeouts": {
+                  "maximum": 1000,
+                  "minimum": 0,
+                  "type": "integer"
+                },
                 "maxBatchSize": {
                   "maximum": 1000,
                   "minimum": 1,
+                  "type": "integer"
+                },
+                "maxTurns": {
+                  "maximum": 10000,
+                  "minimum": 0,
                   "type": "integer"
                 },
                 "model": {
@@ -7412,11 +7617,15 @@
                 "sandbox",
                 "sessionStorageMode",
                 "workspaceStorageMode",
+                "defaultWorkspaceMode",
+                "allowedWorkspaceModes",
                 "sessionTtlSec",
                 "workspaceTtlSec",
                 "leaseTtlSec",
                 "heartbeatIntervalMs",
                 "maxBatchSize",
+                "maxTurns",
+                "maxBashTimeouts",
                 "requiredEnv",
                 "requiredTools",
                 "context",
@@ -9232,6 +9441,34 @@
         "additionalProperties": false,
         "minProperties": 1,
         "properties": {
+          "allowedWorkspaceModes": {
+            "items": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "none"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "shared_mount"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "dedicated_worktree"
+                  ],
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
           "context": {
             "items": {
               "additionalProperties": false,
@@ -9286,6 +9523,35 @@
             "maxItems": 5,
             "type": "array"
           },
+          "defaultWorkspaceMode": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "none"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "shared_mount"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "dedicated_worktree"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "description": {
             "maxLength": 4096,
             "type": "string"
@@ -9300,9 +9566,19 @@
             "minimum": 1,
             "type": "integer"
           },
+          "maxBashTimeouts": {
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "maxBatchSize": {
             "maximum": 1000,
             "minimum": 1,
+            "type": "integer"
+          },
+          "maxTurns": {
+            "maximum": 10000,
+            "minimum": 0,
             "type": "integer"
           },
           "model": {

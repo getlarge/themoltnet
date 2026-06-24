@@ -555,4 +555,136 @@ describe('createExecutionPlanCache', () => {
 
     await slotStore.close();
   });
+
+  it('rejects a continuation whose final workspace mode is forbidden by the runtime profile', async () => {
+    const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-policy-'));
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const producerSessionDir = join(stateDirs.piSessionsDir, 'producer-slot');
+    mkdirSync(producerSessionDir, { recursive: true });
+    const producerSessionPath = join(producerSessionDir, 'session-1.jsonl');
+    writeFileSync(producerSessionPath, '{"role":"system"}\n', 'utf8');
+
+    const slotStore = new InMemoryRuntimeSlotStore();
+    await slotStore.beginSlot({
+      teamId: TEAM_ID,
+      agentName: 'a',
+      runtimeProfileId: PROFILE_ID,
+      provider: 'p',
+      model: 'm',
+      slotKey: 'freeform:correlation:abc',
+      taskType: 'freeform',
+      sessionDir: producerSessionDir,
+      sessionPath: producerSessionPath,
+      workspaceId: null,
+      worktreePath: null,
+      worktreeBranch: null,
+      lastTaskId: '11111111-1111-4111-8111-111111111111',
+      lastAttemptN: 1,
+    });
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      warmSessionTtlSec: 300,
+      workspacePolicy: { allowedWorkspaceModes: ['none'] },
+      slotRegistry: slotStore,
+    });
+
+    await expect(
+      cache.getOrCreate({
+        attemptN: 1,
+        task: {
+          id: '22222222-2222-4222-8222-222222222222',
+          teamId: TEAM_ID,
+          taskType: 'freeform',
+          correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          input: {
+            brief: 'continue shared producer',
+            continueFrom: {
+              taskId: '11111111-1111-4111-8111-111111111111',
+              attemptN: 1,
+            },
+          },
+        } as unknown as Task,
+      }),
+    ).rejects.toThrow('forbids final workspace mode "shared_mount"');
+
+    await slotStore.close();
+  });
+
+  it('rejects a judge task whose scratch workspace mode is forbidden by the runtime profile', async () => {
+    const mountRoot = mkdtempSync(
+      join(tmpdir(), 'daemon-exec-plan-policy-judge-'),
+    );
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const producerSessionDir = join(stateDirs.piSessionsDir, 'producer-slot');
+    const producerWorkspace = join(
+      mountRoot,
+      '.moltnet',
+      'd',
+      'task-workspaces',
+      'task-producer',
+    );
+    mkdirSync(producerSessionDir, { recursive: true });
+    mkdirSync(producerWorkspace, { recursive: true });
+    const producerSessionPath = join(producerSessionDir, 'session-1.jsonl');
+    writeFileSync(producerSessionPath, '{"role":"system"}\n', 'utf8');
+
+    const slotStore = new InMemoryRuntimeSlotStore();
+    await slotStore.beginSlot({
+      teamId: TEAM_ID,
+      agentName: 'a',
+      runtimeProfileId: PROFILE_ID,
+      provider: 'p',
+      model: 'm',
+      slotKey: 'run_eval:correlation:test:variant:baseline',
+      taskType: 'run_eval',
+      sessionDir: producerSessionDir,
+      sessionPath: producerSessionPath,
+      workspaceId: 'task-producer',
+      worktreePath: producerWorkspace,
+      worktreeBranch: null,
+      lastTaskId: '11111111-1111-4111-8111-111111111111',
+      lastAttemptN: 1,
+    });
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      warmSessionTtlSec: 300,
+      workspacePolicy: { allowedWorkspaceModes: ['dedicated_worktree'] },
+      slotRegistry: slotStore,
+    });
+
+    await expect(
+      cache.getOrCreate({
+        attemptN: 1,
+        task: {
+          id: '33333333-3333-4333-8333-333333333333',
+          teamId: TEAM_ID,
+          taskType: 'judge_eval_attempt',
+          correlationId: '44444444-4444-4444-8444-444444444444',
+          input: {
+            targetTaskId: '11111111-1111-4111-8111-111111111111',
+            targetAttemptN: 1,
+            successCriteria: { version: 1, rubric: null },
+          },
+        } as unknown as Task,
+      }),
+    ).rejects.toThrow('forbids final workspace mode "none"');
+
+    await slotStore.close();
+  });
 });

@@ -50,6 +50,8 @@ export interface ParseCommonOptionsOptions {
       | 'leaseTtlSec'
       | 'heartbeatIntervalMs'
       | 'maxBatchSize'
+      | 'maxTurns'
+      | 'maxBashTimeouts'
       | 'warmSessionTtlSec'
     >
   >;
@@ -89,6 +91,9 @@ export function parseCommonOptions(
       DEFAULTS.heartbeatIntervalMs,
     maxBatchSize:
       options.runtimeDefaults?.maxBatchSize ?? DEFAULTS.maxBatchSize,
+    maxTurns: options.runtimeDefaults?.maxTurns ?? DEFAULTS.maxTurns,
+    maxBashTimeouts:
+      options.runtimeDefaults?.maxBashTimeouts ?? DEFAULTS.maxBashTimeouts,
     warmSessionTtlSec:
       options.runtimeDefaults?.warmSessionTtlSec ?? DEFAULTS.warmSessionTtlSec,
   };
@@ -124,12 +129,12 @@ export function parseCommonOptions(
     maxTurns: parseNonNegativeInt(
       args['max-turns'],
       'max-turns',
-      DEFAULTS.maxTurns,
+      runtimeDefaults.maxTurns,
     ),
     maxBashTimeouts: parseNonNegativeInt(
       args['max-bash-timeouts'],
       'max-bash-timeouts',
-      DEFAULTS.maxBashTimeouts,
+      runtimeDefaults.maxBashTimeouts,
     ),
     warmSessionTtlSec: parseNonNegativeInt(
       args['warm-session-ttl-sec'],

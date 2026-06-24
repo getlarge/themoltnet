@@ -27,6 +27,11 @@ import { getApiClient } from '../api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useTeam } from '../team/useTeam.js';
 
+type RuntimeProfileWorkspaceMode =
+  | 'none'
+  | 'shared_mount'
+  | 'dedicated_worktree';
+
 interface ProfileFormState {
   name: string;
   description: string;
@@ -38,6 +43,10 @@ interface ProfileFormState {
   leaseTtlSec: string;
   heartbeatIntervalMs: string;
   maxBatchSize: string;
+  maxTurns: string;
+  maxBashTimeouts: string;
+  defaultWorkspaceMode: RuntimeProfileWorkspaceMode | '';
+  allowedWorkspaceModes: RuntimeProfileWorkspaceMode[];
   requiredEnv: string;
   requiredTools: string;
   contextJson: string;
@@ -54,6 +63,10 @@ const EMPTY_FORM: ProfileFormState = {
   leaseTtlSec: '300',
   heartbeatIntervalMs: '60000',
   maxBatchSize: '50',
+  maxTurns: '0',
+  maxBashTimeouts: '3',
+  defaultWorkspaceMode: '',
+  allowedWorkspaceModes: ['none', 'shared_mount', 'dedicated_worktree'],
   requiredEnv: '',
   requiredTools: '',
   contextJson: '[]',
@@ -74,6 +87,14 @@ const FIELD_HELP = {
     'How often the daemon sends heartbeat and progress batches while a task is running.',
   maxBatchSize:
     'Maximum buffered runtime events sent in one progress flush before the reporter flushes immediately.',
+  maxTurns:
+    'Maximum tool-use turns allowed for one attempt. Use 0 to disable the profile default.',
+  maxBashTimeouts:
+    'Maximum bash tool timeouts allowed before the daemon stops the attempt. Use 0 to disable.',
+  defaultWorkspaceMode:
+    'Workspace mode this profile chooses when a task does not request one. Task type defaults apply when unset.',
+  allowedWorkspaceModes:
+    'Workspace modes this profile may use. Task requests outside this set are ignored, and task defaults outside this set are replaced with the safest allowed mode.',
   requiredEnv:
     'Comma-separated environment variables that must be present before this daemon can run the profile.',
   requiredTools:
@@ -470,6 +491,54 @@ export function ProfilesPage() {
                 onChange={(value) => updateField('maxBatchSize', value)}
                 type="number"
               />
+              <LabeledInput
+                label="Max turns"
+                help={FIELD_HELP.maxTurns}
+                value={form.maxTurns}
+                onChange={(value) => updateField('maxTurns', value)}
+                type="number"
+              />
+              <LabeledInput
+                label="Max bash timeouts"
+                help={FIELD_HELP.maxBashTimeouts}
+                value={form.maxBashTimeouts}
+                onChange={(value) => updateField('maxBashTimeouts', value)}
+                type="number"
+              />
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: theme.spacing[3],
+              }}
+            >
+              <LabeledSelect
+                label="Default workspace mode"
+                help={FIELD_HELP.defaultWorkspaceMode}
+                value={form.defaultWorkspaceMode}
+                onChange={(value) =>
+                  updateField(
+                    'defaultWorkspaceMode',
+                    value as ProfileFormState['defaultWorkspaceMode'],
+                  )
+                }
+                options={[
+                  { value: '', label: 'Task type default' },
+                  { value: 'none', label: 'None' },
+                  { value: 'shared_mount', label: 'Shared mount' },
+                  { value: 'dedicated_worktree', label: 'Dedicated worktree' },
+                ]}
+              />
+              <WorkspaceModeChecklist
+                label="Allowed workspace modes"
+                help={FIELD_HELP.allowedWorkspaceModes}
+                value={form.allowedWorkspaceModes}
+                onChange={(value) =>
+                  updateField('allowedWorkspaceModes', value)
+                }
+              />
             </div>
 
             <div
@@ -553,6 +622,114 @@ export function ProfilesPage() {
         </Card>
       </div>
     </Stack>
+  );
+}
+
+function LabeledSelect({
+  label,
+  help,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  help?: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  const theme = useTheme();
+  return (
+    <label style={{ display: 'grid', gap: theme.spacing[1] }}>
+      <FieldLabel label={label} help={help} />
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        style={fieldStyle(theme)}
+      >
+        {options.map((option) => (
+          <option key={option.value || '__unset'} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+const WORKSPACE_MODE_OPTIONS: {
+  value: RuntimeProfileWorkspaceMode;
+  label: string;
+}[] = [
+  { value: 'none', label: 'None' },
+  { value: 'shared_mount', label: 'Shared mount' },
+  { value: 'dedicated_worktree', label: 'Dedicated worktree' },
+];
+
+function WorkspaceModeChecklist({
+  label,
+  help,
+  value,
+  onChange,
+}: {
+  label: string;
+  help?: string;
+  value: RuntimeProfileWorkspaceMode[];
+  onChange: (value: RuntimeProfileWorkspaceMode[]) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <fieldset
+      style={{
+        display: 'grid',
+        gap: theme.spacing[2],
+        border: 0,
+        margin: 0,
+        padding: 0,
+      }}
+    >
+      <legend style={{ padding: 0 }}>
+        <FieldLabel label={label} help={help} />
+      </legend>
+      <Stack direction="row" gap={2} wrap>
+        {WORKSPACE_MODE_OPTIONS.map((option) => {
+          const checked = value.includes(option.value);
+          return (
+            <label
+              key={option.value}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: theme.spacing[1],
+                border: `1px solid ${theme.color.border.DEFAULT}`,
+                borderRadius: theme.radius.md,
+                padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                fontSize: theme.font.size.sm,
+                color: theme.color.text.DEFAULT,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                aria-label={`Allow ${option.label}`}
+                onChange={(event) => {
+                  const next = event.target.checked
+                    ? [...value, option.value]
+                    : value.filter((mode) => mode !== option.value);
+                  onChange(
+                    WORKSPACE_MODE_OPTIONS.map(
+                      (candidate) => candidate.value,
+                    ).filter((mode) => next.includes(mode)),
+                  );
+                }}
+              />
+              {option.label}
+            </label>
+          );
+        })}
+      </Stack>
+    </fieldset>
   );
 }
 
@@ -711,6 +888,10 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
     leaseTtlSec: String(profile.leaseTtlSec),
     heartbeatIntervalMs: String(profile.heartbeatIntervalMs),
     maxBatchSize: String(profile.maxBatchSize),
+    maxTurns: String(profile.maxTurns),
+    maxBashTimeouts: String(profile.maxBashTimeouts),
+    defaultWorkspaceMode: profile.defaultWorkspaceMode ?? '',
+    allowedWorkspaceModes: profile.allowedWorkspaceModes,
     requiredEnv: profile.requiredEnv.join(', '),
     requiredTools: profile.requiredTools.join(', '),
     contextJson: JSON.stringify(profile.context, null, 2),
@@ -729,6 +910,17 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
   if (!Array.isArray(context)) {
     throw new Error('Context JSON must be an array.');
   }
+  if (form.allowedWorkspaceModes.length === 0) {
+    throw new Error('Allowed workspace modes must include at least one mode.');
+  }
+  if (
+    form.defaultWorkspaceMode &&
+    !form.allowedWorkspaceModes.includes(form.defaultWorkspaceMode)
+  ) {
+    throw new Error(
+      'Default workspace mode must be included in allowed workspace modes.',
+    );
+  }
   return {
     name: requireText(form.name, 'Name'),
     ...(form.description.trim()
@@ -740,6 +932,8 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
     sandbox,
     sessionStorageMode: 'local',
     workspaceStorageMode: 'local',
+    defaultWorkspaceMode: form.defaultWorkspaceMode || null,
+    allowedWorkspaceModes: form.allowedWorkspaceModes,
     sessionTtlSec: parsePositiveInt(form.sessionTtlSec, 'Session TTL seconds'),
     workspaceTtlSec: parsePositiveInt(
       form.workspaceTtlSec,
@@ -751,6 +945,11 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
       'Heartbeat interval ms',
     ),
     maxBatchSize: parsePositiveInt(form.maxBatchSize, 'Max batch size'),
+    maxTurns: parseNonNegativeInt(form.maxTurns, 'Max turns'),
+    maxBashTimeouts: parseNonNegativeInt(
+      form.maxBashTimeouts,
+      'Max bash timeouts',
+    ),
     requiredEnv: parseCsv(form.requiredEnv),
     requiredTools: parseCsv(form.requiredTools),
     context,

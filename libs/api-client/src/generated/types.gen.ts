@@ -426,15 +426,19 @@ export type CreateRuntimeModelBody = {
 };
 
 export type CreateRuntimeProfileBody = {
+  allowedWorkspaceModes?: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
   context?: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
     slug: string;
   }>;
+  defaultWorkspaceMode?: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   description?: string;
   heartbeatIntervalMs?: number;
   leaseTtlSec?: number;
+  maxBashTimeouts?: number;
   maxBatchSize?: number;
+  maxTurns?: number;
   model: string;
   name: string;
   provider: string;
@@ -1620,6 +1624,7 @@ export type RuntimeModelParams = {
 };
 
 export type RuntimeProfile = {
+  allowedWorkspaceModes: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
   context: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
@@ -1628,12 +1633,15 @@ export type RuntimeProfile = {
   createdAt: string;
   createdByAgentId: string | null;
   createdByHumanId: string | null;
+  defaultWorkspaceMode: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   definitionCid: string;
   description: string | null;
   heartbeatIntervalMs: number;
   id: string;
   leaseTtlSec: number;
+  maxBashTimeouts: number;
   maxBatchSize: number;
+  maxTurns: number;
   model: string;
   name: string;
   provider: string;
@@ -1691,6 +1699,9 @@ export type RuntimeProfileContext = {
 
 export type RuntimeProfileListResponse = {
   items: Array<{
+    allowedWorkspaceModes: Array<
+      'none' | 'shared_mount' | 'dedicated_worktree'
+    >;
     context: Array<{
       binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
       content: string;
@@ -1699,12 +1710,15 @@ export type RuntimeProfileListResponse = {
     createdAt: string;
     createdByAgentId: string | null;
     createdByHumanId: string | null;
+    defaultWorkspaceMode: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
     definitionCid: string;
     description: string | null;
     heartbeatIntervalMs: number;
     id: string;
     leaseTtlSec: number;
+    maxBashTimeouts: number;
     maxBatchSize: number;
+    maxTurns: number;
     model: string;
     name: string;
     provider: string;
@@ -2077,15 +2091,19 @@ export type UpdateRuntimeModelBody = {
 };
 
 export type UpdateRuntimeProfileBody = {
+  allowedWorkspaceModes?: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
   context?: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
     slug: string;
   }>;
+  defaultWorkspaceMode?: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   description?: string;
   heartbeatIntervalMs?: number;
   leaseTtlSec?: number;
+  maxBashTimeouts?: number;
   maxBatchSize?: number;
+  maxTurns?: number;
   model?: string;
   name?: string;
   provider?: string;

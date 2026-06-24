@@ -46,6 +46,10 @@ test.describe.serial('Runtime profiles console', () => {
     await page.getByLabel(/^name$/i).fill(profileName);
     await page.getByLabel(/^provider$/i).fill('anthropic');
     await page.getByLabel(/^model$/i).fill('claude-sonnet-4-5');
+    await page
+      .getByLabel('Default workspace mode', { exact: true })
+      .selectOption('dedicated_worktree');
+    await page.getByLabel(/allow shared mount/i).uncheck();
     await page.getByLabel('Sandbox JSON', { exact: true }).fill('{}');
     await page.getByRole('button', { name: /create profile/i }).click();
 
@@ -60,6 +64,9 @@ test.describe.serial('Runtime profiles console', () => {
 
     await page.getByRole('button', { name: /new profile/i }).click();
     await expect(page.getByLabel(/^name$/i)).toHaveValue('');
+    await expect(
+      page.getByLabel('Default workspace mode', { exact: true }),
+    ).toHaveValue('');
     await expect(
       page.getByRole('button', { name: /create profile/i }),
     ).toBeVisible();
