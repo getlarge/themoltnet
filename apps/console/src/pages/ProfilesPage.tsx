@@ -13,7 +13,14 @@ import {
   listRuntimeProfilesOptions,
 } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
+import {
+  Button,
+  Card,
+  Stack,
+  Text,
+  Tooltip,
+  useTheme,
+} from '@themoltnet/design-system';
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../api.js';
@@ -51,6 +58,31 @@ const EMPTY_FORM: ProfileFormState = {
   requiredTools: '',
   contextJson: '[]',
 };
+
+const RUNTIME_PROFILE_DOCS_HREF =
+  'https://docs.themolt.net/use/agent-daemon.html#remote-runtime-profiles';
+const NEW_PROFILE_ID = '__new_runtime_profile__';
+
+const FIELD_HELP = {
+  sessionTtlSec:
+    'Maximum lifetime for one warm agent session before the daemon starts a fresh executor context.',
+  workspaceTtlSec:
+    'Maximum lifetime for the profile workspace. Warm sessions are capped by the lower of session TTL and workspace TTL.',
+  leaseTtlSec:
+    'Task claim lease duration sent to the API. The daemon must heartbeat before this expires or the task can be reclaimed.',
+  heartbeatIntervalMs:
+    'How often the daemon sends heartbeat and progress batches while a task is running.',
+  maxBatchSize:
+    'Maximum buffered runtime events sent in one progress flush before the reporter flushes immediately.',
+  requiredEnv:
+    'Comma-separated environment variables that must be present before this daemon can run the profile.',
+  requiredTools:
+    'Comma-separated executables or paths that must be available before this daemon can run the profile.',
+  sandboxJson:
+    'Pi sandbox policy for the runtime, including filesystem/network rules passed to the executor.',
+  contextJson:
+    'Context entries injected into tasks that use this profile, such as skills, prompt prefixes, or inline context blocks.',
+} as const;
 
 export function ProfilesPage() {
   const theme = useTheme();
@@ -101,6 +133,7 @@ export function ProfilesPage() {
     if (
       profilesQuery.data &&
       selectedProfileId &&
+      selectedProfileId !== NEW_PROFILE_ID &&
       !profiles.some((profile) => profile.id === selectedProfileId)
     ) {
       setSelectedProfileId(profiles[0]?.id ?? null);
@@ -149,7 +182,7 @@ export function ProfilesPage() {
   }
 
   function startNewProfile() {
-    setSelectedProfileId(null);
+    setSelectedProfileId(NEW_PROFILE_ID);
     setForm(EMPTY_FORM);
     setFormError(null);
   }
@@ -330,6 +363,18 @@ export function ProfilesPage() {
                 Profiles pin provider, model, sandbox policy, and daemon
                 prerequisites.
               </Text>
+              <a
+                href={RUNTIME_PROFILE_DOCS_HREF}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: theme.color.accent.DEFAULT,
+                  fontSize: theme.font.size.sm,
+                  width: 'fit-content',
+                }}
+              >
+                Runtime profile docs
+              </a>
             </Stack>
 
             <div
@@ -392,30 +437,35 @@ export function ProfilesPage() {
             >
               <LabeledInput
                 label="Session TTL seconds"
+                help={FIELD_HELP.sessionTtlSec}
                 value={form.sessionTtlSec}
                 onChange={(value) => updateField('sessionTtlSec', value)}
                 type="number"
               />
               <LabeledInput
                 label="Workspace TTL seconds"
+                help={FIELD_HELP.workspaceTtlSec}
                 value={form.workspaceTtlSec}
                 onChange={(value) => updateField('workspaceTtlSec', value)}
                 type="number"
               />
               <LabeledInput
                 label="Lease TTL seconds"
+                help={FIELD_HELP.leaseTtlSec}
                 value={form.leaseTtlSec}
                 onChange={(value) => updateField('leaseTtlSec', value)}
                 type="number"
               />
               <LabeledInput
                 label="Heartbeat interval ms"
+                help={FIELD_HELP.heartbeatIntervalMs}
                 value={form.heartbeatIntervalMs}
                 onChange={(value) => updateField('heartbeatIntervalMs', value)}
                 type="number"
               />
               <LabeledInput
                 label="Max batch size"
+                help={FIELD_HELP.maxBatchSize}
                 value={form.maxBatchSize}
                 onChange={(value) => updateField('maxBatchSize', value)}
                 type="number"
@@ -431,12 +481,14 @@ export function ProfilesPage() {
             >
               <LabeledInput
                 label="Required env"
+                help={FIELD_HELP.requiredEnv}
                 value={form.requiredEnv}
                 onChange={(value) => updateField('requiredEnv', value)}
                 placeholder="ANTHROPIC_API_KEY, GITHUB_TOKEN"
               />
               <LabeledInput
                 label="Required tools"
+                help={FIELD_HELP.requiredTools}
                 value={form.requiredTools}
                 onChange={(value) => updateField('requiredTools', value)}
                 placeholder="git, gh, pnpm"
@@ -445,12 +497,14 @@ export function ProfilesPage() {
 
             <LabeledTextarea
               label="Sandbox JSON"
+              help={FIELD_HELP.sandboxJson}
               value={form.sandboxJson}
               onChange={(value) => updateField('sandboxJson', value)}
               rows={8}
             />
             <LabeledTextarea
               label="Context JSON"
+              help={FIELD_HELP.contextJson}
               value={form.contextJson}
               onChange={(value) => updateField('contextJson', value)}
               rows={5}
@@ -504,6 +558,7 @@ export function ProfilesPage() {
 
 function LabeledInput({
   label,
+  help,
   value,
   onChange,
   list,
@@ -512,6 +567,7 @@ function LabeledInput({
   type = 'text',
 }: {
   label: string;
+  help?: string;
   value: string;
   onChange: (value: string) => void;
   list?: string;
@@ -522,12 +578,7 @@ function LabeledInput({
   const theme = useTheme();
   return (
     <label style={{ display: 'grid', gap: theme.spacing[1] }}>
-      <Text variant="caption" color="muted">
-        {label}
-        {required ? (
-          <span style={{ color: theme.color.accent.DEFAULT }}> *</span>
-        ) : null}
-      </Text>
+      <FieldLabel label={label} help={help} required={required} />
       <input
         aria-label={label}
         value={value}
@@ -545,11 +596,13 @@ function LabeledInput({
 
 function LabeledTextarea({
   label,
+  help,
   value,
   onChange,
   rows,
 }: {
   label: string;
+  help?: string;
   value: string;
   onChange: (value: string) => void;
   rows: number;
@@ -557,9 +610,7 @@ function LabeledTextarea({
   const theme = useTheme();
   return (
     <label style={{ display: 'grid', gap: theme.spacing[1] }}>
-      <Text variant="caption" color="muted">
-        {label}
-      </Text>
+      <FieldLabel label={label} help={help} />
       <textarea
         aria-label={label}
         value={value}
@@ -573,6 +624,67 @@ function LabeledTextarea({
       />
     </label>
   );
+}
+
+function FieldLabel({
+  label,
+  help,
+  required = false,
+}: {
+  label: string;
+  help?: string;
+  required?: boolean;
+}) {
+  const theme = useTheme();
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: theme.spacing[1],
+        minWidth: 0,
+      }}
+    >
+      <Text variant="caption" color="muted">
+        {label}
+        {required ? (
+          <span style={{ color: theme.color.accent.DEFAULT }}> *</span>
+        ) : null}
+      </Text>
+      {help ? (
+        <Tooltip content={help} placement="top">
+          <button
+            type="button"
+            aria-label={`Help: ${label}`}
+            onClick={(event) => event.preventDefault()}
+            style={helpButtonStyle(theme)}
+          >
+            ?
+          </button>
+        </Tooltip>
+      ) : null}
+    </span>
+  );
+}
+
+function helpButtonStyle(
+  theme: ReturnType<typeof useTheme>,
+): React.CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '1rem',
+    height: '1rem',
+    borderRadius: '999px',
+    border: `1px solid ${theme.color.border.DEFAULT}`,
+    background: theme.color.bg.surface,
+    color: theme.color.text.muted,
+    cursor: 'help',
+    fontSize: theme.font.size.xs,
+    lineHeight: 1,
+    padding: 0,
+  };
 }
 
 function fieldStyle(theme: ReturnType<typeof useTheme>): React.CSSProperties {
