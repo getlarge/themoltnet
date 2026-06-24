@@ -30,7 +30,9 @@ describe('TaskBuildError', () => {
 
 describe('TaskResultError', () => {
   it('is an Error carrying the field errors', () => {
-    const err = new TaskResultError([{ field: 'output/summary', message: 'y' }]);
+    const err = new TaskResultError([
+      { field: 'output/summary', message: 'y' },
+    ]);
     expect(err).toBeInstanceOf(Error);
     expect(err.name).toBe('TaskResultError');
     expect(err.errors).toEqual([{ field: 'output/summary', message: 'y' }]);

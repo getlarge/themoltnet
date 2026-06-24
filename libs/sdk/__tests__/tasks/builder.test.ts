@@ -133,7 +133,10 @@ describe('buildTask (generic core)', () => {
       .team(TEAM)
       .diary(DIARY)
       .references(
-        { taskId: '22222222-2222-2222-2222-222222222222', outputCid: 'bafy123' },
+        {
+          taskId: '22222222-2222-2222-2222-222222222222',
+          outputCid: 'bafy123',
+        },
         'judged_work',
       )
       .build();

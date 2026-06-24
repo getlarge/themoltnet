@@ -47,11 +47,7 @@ const booleanRubric = {
   ],
 };
 
-const ok = (body: {
-  taskType: string;
-  input: unknown;
-  references?: unknown;
-}) =>
+const ok = (body: { taskType: string; input: unknown; references?: unknown }) =>
   validateTaskCreateRequest({
     taskType: body.taskType,
     input: body.input,

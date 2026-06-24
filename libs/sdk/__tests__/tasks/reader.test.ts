@@ -58,7 +58,9 @@ describe('createResultReader (freeform)', () => {
 
   it('artifactBody<T>() parses JSON body', () => {
     const r = createResultReader(freeformTask(), freeformAttempt(output));
-    expect(r.artifactBody<{ changed: number }>('patch')).toEqual({ changed: 3 });
+    expect(r.artifactBody<{ changed: number }>('patch')).toEqual({
+      changed: 3,
+    });
   });
 
   it('artifactBody throws TaskResultError on invalid JSON', () => {
