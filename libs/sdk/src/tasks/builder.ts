@@ -1,6 +1,15 @@
 import type { CreateTaskData } from '@moltnet/api-client';
 import {
+  type AssessBriefInput,
   type ContextBinding,
+  type CuratePackInput,
+  type FreeformInput,
+  type FulfillBriefInput,
+  type JudgeEvalAttemptInput,
+  type JudgePackInput,
+  type PrReviewInput,
+  type RenderPackInput,
+  type RunEvalInput,
   type TaskRef,
   normalizeTaskInputForCreate,
   validateTaskCreateRequest,
@@ -381,4 +390,133 @@ export function buildTask<TInput extends Record<string, unknown>>(
   input: TInput,
 ): TaskBuilder<TInput> {
   return new TaskBuilder<TInput>(taskType, input);
+}
+
+/** Require keys `K` of `T` while keeping the rest optional. */
+type WithRequired<T, K extends keyof T> = Pick<T, K> & Partial<T>;
+
+/**
+ * Build a `freeform` task. `brief` is required.
+ *
+ * @param input - Freeform input; `brief` mandatory.
+ * @returns A typed {@link TaskBuilder}.
+ * @example
+ * agent.tasks.buildFreeform({ brief: 'Classify…' })
+ *   .contextInline('user-request', userText)
+ *   .team(teamId).diary(diaryId).build();
+ */
+export function buildFreeform(
+  input: WithRequired<FreeformInput, 'brief'>,
+): TaskBuilder<FreeformInput> {
+  return buildTask('freeform', input as FreeformInput);
+}
+
+/**
+ * Build a `fulfill_brief` task. `brief` is required.
+ *
+ * @param input - Fulfill-brief input; `brief` mandatory.
+ * @returns A typed {@link TaskBuilder}.
+ */
+export function buildFulfillBrief(
+  input: WithRequired<FulfillBriefInput, 'brief'>,
+): TaskBuilder<FulfillBriefInput> {
+  return buildTask('fulfill_brief', input as FulfillBriefInput);
+}
+
+/**
+ * Build a `curate_pack` task. `diaryId` and `taskPrompt` are required.
+ *
+ * @param input - Curate-pack input; `diaryId` + `taskPrompt` mandatory.
+ * @returns A typed {@link TaskBuilder}.
+ */
+export function buildCuratePack(
+  input: WithRequired<CuratePackInput, 'diaryId' | 'taskPrompt'>,
+): TaskBuilder<CuratePackInput> {
+  return buildTask('curate_pack', input as CuratePackInput);
+}
+
+/**
+ * Build a `render_pack` task. `packId` is required.
+ *
+ * @param input - Render-pack input; `packId` mandatory.
+ * @returns A typed {@link TaskBuilder}.
+ */
+export function buildRenderPack(
+  input: WithRequired<RenderPackInput, 'packId'>,
+): TaskBuilder<RenderPackInput> {
+  return buildTask('render_pack', input as RenderPackInput);
+}
+
+/**
+ * Build a `run_eval` task. `scenario`, `variantLabel`, `execution`, and
+ * `context` are required.
+ *
+ * @param input - Run-eval input; the four core fields mandatory.
+ * @returns A typed {@link TaskBuilder}.
+ */
+export function buildRunEval(
+  input: WithRequired<
+    RunEvalInput,
+    'scenario' | 'variantLabel' | 'execution' | 'context'
+  >,
+): TaskBuilder<RunEvalInput> {
+  return buildTask('run_eval', input as RunEvalInput);
+}
+
+/**
+ * Build an `assess_brief` task. Requires `targetTaskId` + `successCriteria`
+ * and at least one reference (add via `.references(...)`).
+ *
+ * @param input - Assess-brief input; `targetTaskId` + `successCriteria` mandatory.
+ * @returns A typed {@link TaskBuilder}.
+ */
+export function buildAssessBrief(
+  input: WithRequired<AssessBriefInput, 'targetTaskId' | 'successCriteria'>,
+): TaskBuilder<AssessBriefInput> {
+  return buildTask('assess_brief', input as AssessBriefInput);
+}
+
+/**
+ * Build a `judge_pack` task. Requires `renderedPackId`, `sourcePackId`,
+ * `successCriteria` and at least one reference.
+ *
+ * @param input - Judge-pack input; the three core fields mandatory.
+ * @returns A typed {@link TaskBuilder}.
+ */
+export function buildJudgePack(
+  input: WithRequired<
+    JudgePackInput,
+    'renderedPackId' | 'sourcePackId' | 'successCriteria'
+  >,
+): TaskBuilder<JudgePackInput> {
+  return buildTask('judge_pack', input as JudgePackInput);
+}
+
+/**
+ * Build a `judge_eval_attempt` task. Requires `targetTaskId`,
+ * `targetAttemptN`, and `successCriteria`.
+ *
+ * @param input - Judge-eval-attempt input; the three core fields mandatory.
+ * @returns A typed {@link TaskBuilder}.
+ */
+export function buildJudgeEvalAttempt(
+  input: WithRequired<
+    JudgeEvalAttemptInput,
+    'targetTaskId' | 'targetAttemptN' | 'successCriteria'
+  >,
+): TaskBuilder<JudgeEvalAttemptInput> {
+  return buildTask('judge_eval_attempt', input as JudgeEvalAttemptInput);
+}
+
+/**
+ * Build a `pr_review` task. Requires `subject` + `successCriteria`. Note the
+ * rubric criteria must use `boolean` scoring for this task type.
+ *
+ * @param input - PR-review input; `subject` + `successCriteria` mandatory.
+ * @returns A typed {@link TaskBuilder}.
+ */
+export function buildPrReview(
+  input: WithRequired<PrReviewInput, 'subject' | 'successCriteria'>,
+): TaskBuilder<PrReviewInput> {
+  return buildTask('pr_review', input as PrReviewInput);
 }
