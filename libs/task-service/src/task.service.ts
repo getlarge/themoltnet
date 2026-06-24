@@ -1843,28 +1843,39 @@ export function createTaskService(deps: TaskServiceDeps) {
           if (mode === 'accept-risk') {
             await taskRepository.deleteCorrelationSealsForTasks(deletableIds);
           }
-          return taskRepository.deleteMany(deletableIds);
+          const deletedTaskIds = await taskRepository.deleteMany(deletableIds);
+          const deletedSet = new Set(deletedTaskIds);
+          const deletedRows = rows.filter((row) => deletedSet.has(row.id));
+
+          try {
+            await relationshipWriter.removeTaskRelationsBatch(
+              deletedRows.map((row) => ({
+                id: row.id,
+                diaryId: row.diaryId,
+                claimAgentId: row.claimAgentId,
+              })),
+            );
+          } catch (err: unknown) {
+            const error = err instanceof Error ? err : new Error(String(err));
+
+            logger.error(
+              { err: error, taskIds: deletedTaskIds },
+              'task.delete-many_keto_cleanup_failed',
+            );
+
+            throw new TaskServiceError(
+              'invalid',
+              'Failed to clean up task permissions; no tasks were deleted',
+            );
+          }
+
+          return deletedTaskIds;
         },
         { name: 'task.delete-many' },
       );
 
       const deletedSet = new Set(deleted);
       const skipped = uniqueIds.filter((id) => !deletedSet.has(id));
-
-      await Promise.all(
-        deleted.map((taskId) =>
-          relationshipWriter
-            .removeTaskRelations(taskId)
-            .catch((err: unknown) => {
-              const error = err instanceof Error ? err : new Error(String(err));
-
-              logger.warn(
-                { err: error, taskId },
-                'task.delete-many_keto_cleanup_failed',
-              );
-            }),
-        ),
-      );
 
       if (deleted.length > 0) {
         logger.info(

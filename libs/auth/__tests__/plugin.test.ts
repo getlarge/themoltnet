@@ -64,6 +64,7 @@ function createMockRelationshipWriter() {
     grantEntryParent: vi.fn(),
     registerAgent: vi.fn(),
     removeEntryRelations: vi.fn(),
+    removeEntryRelationsBatch: vi.fn(),
     grantDiaryTeam: vi.fn(),
     removeDiaryTeam: vi.fn(),
     removeDiaryRelations: vi.fn(),

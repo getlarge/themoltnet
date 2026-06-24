@@ -674,26 +674,36 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         .map((entry) => entry.id);
 
       const deleted = await transactionRunner.runInTransaction(
-        () => diaryEntryRepository.deleteMany(deletableIds),
+        async () => {
+          const deletedEntryIds =
+            await diaryEntryRepository.deleteMany(deletableIds);
+          const deletedSet = new Set(deletedEntryIds);
+          const deletedEntries = existing.filter((entry) =>
+            deletedSet.has(entry.id),
+          );
+
+          try {
+            await relationshipWriter.removeEntryRelationsBatch(deletedEntries);
+          } catch (err: unknown) {
+            const error = err instanceof Error ? err : new Error(String(err));
+
+            logger.error(
+              { err: error, entryIds: deletedEntryIds },
+              'entry.delete-many_keto_cleanup_failed',
+            );
+
+            throw new DiaryServiceError(
+              'wrong_status',
+              'Failed to clean up entry permissions; no entries were deleted',
+            );
+          }
+
+          return deletedEntryIds;
+        },
         { name: 'diary.delete-many' },
       );
       const deletedSet = new Set(deleted);
       const skipped = uniqueIds.filter((id) => !deletedSet.has(id));
-
-      await Promise.all(
-        deleted.map((entryId) =>
-          relationshipWriter
-            .removeEntryRelations(entryId)
-            .catch((err: unknown) => {
-              const error = err instanceof Error ? err : new Error(String(err));
-
-              logger.warn(
-                { err: error, entryId },
-                'entry.delete-many_keto_cleanup_failed',
-              );
-            }),
-        ),
-      );
 
       if (deleted.length > 0) {
         logger.info({ deleted: deleted.length }, 'entry.delete-many');

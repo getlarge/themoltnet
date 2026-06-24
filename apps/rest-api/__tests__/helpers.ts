@@ -483,6 +483,7 @@ export function createMockServices(): MockServices {
       removeGroupMember: vi.fn(),
       removeGroupRelations: vi.fn(),
       removeEntryRelations: vi.fn(),
+      removeEntryRelationsBatch: vi.fn(),
       removePackRelations: vi.fn(),
       removePackRelationsBatch: vi.fn(),
       grantDiaryWriters: vi.fn(),
@@ -491,6 +492,8 @@ export function createMockServices(): MockServices {
       revokeDiaryManager: vi.fn(),
       grantTaskParent: vi.fn(),
       grantTaskClaimant: vi.fn(),
+      removeTaskRelations: vi.fn(),
+      removeTaskRelationsBatch: vi.fn(),
       removeTaskClaimant: vi.fn(),
     },
     dataSource: {

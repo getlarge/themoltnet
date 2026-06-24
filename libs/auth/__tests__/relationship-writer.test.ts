@@ -138,6 +138,60 @@ describe('RelationshipWriter', () => {
     });
   });
 
+  describe('removeEntryRelationsBatch', () => {
+    const ENTRY_ID_1 = '770e8400-e29b-41d4-a716-446655440002';
+    const ENTRY_ID_2 = '770e8400-e29b-41d4-a716-446655440003';
+    const DIARY_ID_1 = '880e8400-e29b-41d4-a716-446655440004';
+    const DIARY_ID_2 = '880e8400-e29b-41d4-a716-446655440005';
+
+    it('sends one patchRelationships call with parent delete actions', async () => {
+      mockRelationshipApi.patchRelationships.mockResolvedValue(undefined);
+
+      await writer.removeEntryRelationsBatch([
+        { id: ENTRY_ID_1, diaryId: DIARY_ID_1 },
+        { id: ENTRY_ID_2, diaryId: DIARY_ID_2 },
+      ]);
+
+      expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledOnce();
+      expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledWith({
+        relationshipPatch: [
+          {
+            action: 'delete',
+            relation_tuple: {
+              namespace: 'DiaryEntry',
+              object: ENTRY_ID_1,
+              relation: 'parent',
+              subject_set: {
+                namespace: 'Diary',
+                object: DIARY_ID_1,
+                relation: '',
+              },
+            },
+          },
+          {
+            action: 'delete',
+            relation_tuple: {
+              namespace: 'DiaryEntry',
+              object: ENTRY_ID_2,
+              relation: 'parent',
+              subject_set: {
+                namespace: 'Diary',
+                object: DIARY_ID_2,
+                relation: '',
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it('is a no-op for empty array', async () => {
+      await writer.removeEntryRelationsBatch([]);
+
+      expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
+    });
+  });
+
   describe('removePackRelationsBatch', () => {
     const PACK_ID_1 = 'aaaa0000-0000-0000-0000-000000000001';
     const PACK_ID_2 = 'aaaa0000-0000-0000-0000-000000000002';
@@ -187,6 +241,85 @@ describe('RelationshipWriter', () => {
 
     it('is a no-op for empty array', async () => {
       await writer.removePackRelationsBatch([]);
+
+      expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('removeTaskRelationsBatch', () => {
+    const TASK_ID_1 = 'cccc0000-0000-0000-0000-000000000001';
+    const TASK_ID_2 = 'cccc0000-0000-0000-0000-000000000002';
+    const TASK_DIARY_ID = 'dddd0000-0000-0000-0000-000000000001';
+    const CLAIMANT_ID = 'eeee0000-0000-0000-0000-000000000001';
+
+    it('sends one patchRelationships call for parent and claimant deletes', async () => {
+      mockRelationshipApi.patchRelationships.mockResolvedValue(undefined);
+
+      await writer.removeTaskRelationsBatch([
+        {
+          id: TASK_ID_1,
+          diaryId: TASK_DIARY_ID,
+          claimAgentId: CLAIMANT_ID,
+        },
+        { id: TASK_ID_2, diaryId: TASK_DIARY_ID, claimAgentId: null },
+      ]);
+
+      expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledOnce();
+      expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledWith({
+        relationshipPatch: [
+          {
+            action: 'delete',
+            relation_tuple: {
+              namespace: 'Task',
+              object: TASK_ID_1,
+              relation: 'parent',
+              subject_set: {
+                namespace: 'Diary',
+                object: TASK_DIARY_ID,
+                relation: '',
+              },
+            },
+          },
+          {
+            action: 'delete',
+            relation_tuple: {
+              namespace: 'Task',
+              object: TASK_ID_1,
+              relation: 'claimant',
+              subject_set: {
+                namespace: 'Agent',
+                object: CLAIMANT_ID,
+                relation: '',
+              },
+            },
+          },
+          {
+            action: 'delete',
+            relation_tuple: {
+              namespace: 'Task',
+              object: TASK_ID_2,
+              relation: 'parent',
+              subject_set: {
+                namespace: 'Diary',
+                object: TASK_DIARY_ID,
+                relation: '',
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it('is a no-op for empty array', async () => {
+      await writer.removeTaskRelationsBatch([]);
+
+      expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
+    });
+
+    it('is a no-op when tasks have no task relations to remove', async () => {
+      await writer.removeTaskRelationsBatch([
+        { id: TASK_ID_1, diaryId: null, claimAgentId: null },
+      ]);
 
       expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
     });

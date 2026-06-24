@@ -1,7 +1,7 @@
 import { KetoNamespace } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
 import type { FastifyBaseLogger } from 'fastify';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 const logger = {
   info: vi.fn(),
@@ -78,8 +78,10 @@ function createMockDiaryEntryRepository(): {
     findById: vi.fn(),
     list: vi.fn(),
     search: vi.fn(),
+    findByIds: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
     countSignedByDiary: vi.fn(),
   };
 }
@@ -91,6 +93,11 @@ function createMockPermissionChecker(): {
     canViewEntry: vi.fn().mockResolvedValue(true),
     canEditEntry: vi.fn().mockResolvedValue(true),
     canDeleteEntry: vi.fn().mockResolvedValue(true),
+    canDeleteEntries: vi
+      .fn()
+      .mockImplementation((ids: string[]) =>
+        Promise.resolve(new Map(ids.map((id) => [id, true]))),
+      ),
     canEditAnyEntry: vi.fn().mockResolvedValue(false),
     canReadDiary: vi.fn().mockResolvedValue(true),
     canWriteDiary: vi.fn().mockResolvedValue(true),
@@ -124,6 +131,7 @@ function createMockRelationshipWriter(): {
     registerAgent: vi.fn().mockResolvedValue(undefined),
     registerHuman: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
+    removeEntryRelationsBatch: vi.fn().mockResolvedValue(undefined),
     grantDiaryTeam: vi.fn().mockResolvedValue(undefined),
     removeDiaryTeam: vi.fn().mockResolvedValue(undefined),
     removeDiaryRelations: vi.fn().mockResolvedValue(undefined),
@@ -1062,6 +1070,83 @@ describe('buildEmbeddingText', () => {
   it('skips title when empty string', () => {
     const result = buildEmbeddingText('body', null, '');
     expect(result).toBe('body');
+  });
+});
+
+describe('DiaryService — deleteEntries cleanup', () => {
+  let service: DiaryService;
+  let repo: ReturnType<typeof createMockDiaryEntryRepository>;
+  let diaryRepo: ReturnType<typeof createMockDiaryRepository>;
+  let permissions: ReturnType<typeof createMockPermissionChecker>;
+  let reader: ReturnType<typeof createMockRelationshipReader>;
+  let writer: ReturnType<typeof createMockRelationshipWriter>;
+  let embeddings: ReturnType<typeof createMockEmbeddingService>;
+  let transactionRunner: {
+    runInTransaction: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    (logger.error as Mock<(obj: object, msg: string) => void>).mockClear();
+
+    repo = createMockDiaryEntryRepository();
+    diaryRepo = createMockDiaryRepository();
+    permissions = createMockPermissionChecker();
+    reader = createMockRelationshipReader();
+    writer = createMockRelationshipWriter();
+    embeddings = createMockEmbeddingService();
+    transactionRunner = {
+      runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
+    };
+
+    service = createDiaryService({
+      logger,
+      diaryRepository: diaryRepo as unknown as DiaryRepository,
+      diaryEntryRepository: repo as unknown as DiaryEntryRepository,
+      entryRelationRepository:
+        createMockEntryRelationRepository() as unknown as EntryRelationRepository,
+      permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipReader: reader as unknown as RelationshipReader,
+      relationshipWriter: writer as unknown as RelationshipWriter,
+      embeddingService: embeddings as unknown as EmbeddingService,
+      transactionRunner: transactionRunner as unknown as TransactionRunner,
+    });
+  });
+
+  it('removes entry relations in the delete transaction with one batch call', async () => {
+    const entry = createMockEntry();
+    repo.findByIds.mockResolvedValue([entry]);
+    repo.deleteMany.mockResolvedValue([ENTRY_ID]);
+
+    const result = await service.deleteEntries(
+      [ENTRY_ID],
+      OWNER_ID,
+      KetoNamespace.Agent,
+    );
+
+    expect(result).toEqual({ deleted: [ENTRY_ID], skipped: [] });
+    expect(writer.removeEntryRelationsBatch).toHaveBeenCalledWith([entry]);
+  });
+
+  it('fails cleanup instead of reporting deletion when Keto relation cleanup fails', async () => {
+    const entry = createMockEntry();
+    repo.findByIds.mockResolvedValue([entry]);
+    repo.deleteMany.mockResolvedValue([ENTRY_ID]);
+    writer.removeEntryRelationsBatch.mockRejectedValue(new Error('keto down'));
+
+    await expect(
+      service.deleteEntries([ENTRY_ID], OWNER_ID, KetoNamespace.Agent),
+    ).rejects.toMatchObject({
+      code: 'wrong_status',
+      message: 'Failed to clean up entry permissions; no entries were deleted',
+    });
+    const errorMock = logger.error as Mock<(obj: object, msg: string) => void>;
+    expect(errorMock).toHaveBeenCalledOnce();
+    const [[payload, message]] = errorMock.mock.calls as [
+      [{ err: unknown; entryIds: string[] }, string],
+    ];
+    expect(payload.err).toBeInstanceOf(Error);
+    expect(payload.entryIds).toEqual([ENTRY_ID]);
+    expect(message).toBe('entry.delete-many_keto_cleanup_failed');
   });
 });
 
