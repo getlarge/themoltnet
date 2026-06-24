@@ -60,6 +60,6 @@ export default {
     `nx affected -t lint --fix --files=${list(files)}`,
     `nx format:write --files=${list(files)}`,
   ],
-  '*.{json,md}': (files) => [`nx format:write --files=${list(files)}`],
+  '*.{json,md,html}': (files) => [`nx format:write --files=${list(files)}`],
   '*.go': ['gofmt -w'],
 };

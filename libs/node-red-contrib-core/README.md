@@ -1,10 +1,10 @@
-# @themoltnet/node-red-contrib-core (exploration spike)
+# @themoltnet/node-red-contrib-core
 
-Node-RED nodes for the MoltNet API. **Status: spike** — validates that the
-MoltNet SDK can be driven from Node-RED as a visual authoring + cockpit layer.
-See tracking issue [getlarge/themoltnet#1422](https://github.com/getlarge/themoltnet/issues/1422).
+Node-RED nodes for the MoltNet API — drive the MoltNet SDK from Node-RED as a
+visual authoring + cockpit layer. See tracking issue
+[getlarge/themoltnet#1422](https://github.com/getlarge/themoltnet/issues/1422).
 
-## What this proves
+## What it provides
 
 Empirically validated against **Node-RED 5.0.0** (Node 22):
 
@@ -15,10 +15,10 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   package carries no private-package runtime dependency. `@themoltnet/sdk` is
   therefore a **devDependency** (bundled, not installed at runtime).
 - The `.html` editor files are copied to `dist/nodes/` as assets (not compiled).
-- Two **config nodes** (`moltnet-agent`, `moltnet-runtime-profile`) and four
+- Two **config nodes** (`moltnet-agent`, `moltnet-runtime-profile`) and six
   **action nodes** (`moltnet-tasks-create`, `moltnet-task-get`,
-  `moltnet-task-wait`, `moltnet-workflow-status`) register and appear in the
-  palette.
+  `moltnet-task-wait`, `moltnet-workflow-status`, `moltnet-task-builder`,
+  `moltnet-task-reader`) register and appear in the palette.
 
 ## Nodes
 
@@ -54,6 +54,22 @@ attempts, error, task }`. `state` is the accepted attempt's output artifact
   one workflow run (by `correlationId`) and emits a table-shaped `msg.payload`
   (array of `{ taskId, type, title, status, queuedAt, completedAt }`) plus
   `msg.workflow = { correlationId, total }`. The cockpit **source** node.
+- **`moltnet-task-builder`** (palette: _task: build_) — composes a validated
+  `tasks.create` body from the SDK fluent builder (`buildFreeform`). Pure offline
+  transform: reads `teamId`/`diaryId` from the referenced `agent` (with optional
+  typedInput overrides), maps **context rows** (slug ← msg/flow/global/str/json),
+  binds a prior task's output via **References from** (a `msg`-path to an
+  `outputRef` from `task: read`), and toggles the **submit-output** / schema
+  gates. Emits the flat body on `msg.payload` for a downstream `tasks: create`
+  (the SDK's `{ body, teamId }` envelope is flattened to `{ ...body, teamId }`).
+  Validation errors surface on the node (red ring).
+- **`moltnet-task-reader`** (palette: _task: read_) — parses a completed snapshot
+  (from `task: wait`/`task: get`) into typed result data via the SDK
+  `createResultReader`. Emits the typed output on `msg.payload` and a flat
+  `msg.result = { summary, outputRef, artifact, artifactBody, accepted, usage }`.
+  The pre-computed **`outputRef`** (`{ taskId, outputCid, role }`) chains straight
+  into a downstream `task: build`'s **References from**; set an **artifact
+  kind/title** to pre-parse a JSON artifact body into `msg.result.artifactBody`.
 
 All nodes register a long, collision-safe `type` (`moltnet-*`) but show a short
 `paletteLabel` under the **moltnet** category, so the palette is not crowded by
@@ -78,8 +94,13 @@ through the run, see below).
 | `correlationId`    | minted/threaded         |                                                   |
 
 The task **`input`** (and advanced fields like `references`, `claimCondition`,
-`successCriteria`, timeouts) is not a node field — set it on `msg.payload` with
-an upstream `function`/`change` node. The `input` shape is **per task type**:
+`successCriteria`, timeouts) is not a `tasks: create` node field. The preferred
+way to compose it is the **`task: build`** node (palette _task: build_), which
+drives the SDK builder: set the brief, map context rows, toggle the
+submit-output gate, and chain a prior task's `outputRef` via **References from**,
+then wire `task: build → tasks: create`. For ad-hoc cases you can still set
+`msg.payload` directly with an upstream `function`/`change` node. The `input`
+shape is **per task type**:
 
 - **`GET /tasks/schemas`** returns each type's `inputSchema` (the SDK exposes it
   as `agent.tasks.schemas()`). E.g. `fulfill_brief` requires `{ brief: string }`.
@@ -126,17 +147,31 @@ The examples below run **end-to-end on a single daemon** by default (no
 [`examples/weather-advisor.flow.json`](./examples/weather-advisor.flow.json) is a
 multi-agent decision pipeline over real weather data:
 
-`inject` → `template` (free-text request) → **INTENT** agent (classify + extract
-location/timeframe, freeform with a `successCriteria` gate) → `switch` on
-`proceed` → **Open-Meteo** `http request` → **ADVISOR** agent (reason over the
-forecast → recommend) → **JUDGE** agent (evaluate the recommendation against a
-rubric) → `switch` on the verdict → final / flagged.
+`inject` → `template` (free-text request) → **`task: build`** (INTENT) →
+**`tasks: create`** → **`task: wait`** → **`task: read`** (INTENT) → `switch` on
+`proceed` → **Open-Meteo** `http request` → **`task: build`** (ADVISOR) →
+`tasks: create` → `task: wait` → **`task: read`** (ADVISOR) → **`task: build`**
+(JUDGE) → `tasks: create` → `task: wait` → **`task: read`** (JUDGE) → `switch` on
+the verdict → final / flagged.
+
+Each agent step is the same four-node chain: **`task: build`** composes the body
+(brief + context rows + gates), **`tasks: create`** submits it, **`task: wait`**
+polls to completion, and **`task: read`** parses the snapshot into typed output
+plus a flat `msg.result`. Output→input chaining is explicit: `task: read` emits a
+pre-computed `msg.result.outputRef`, and the next `task: build` references it via
+its **References from** field (ADVISOR references INTENT as `context`; JUDGE
+references ADVISOR as `judged_work`). The INTENT and JUDGE readers set
+**artifact kind `json`** so the structured slots/verdict land on
+`msg.result.artifactBody` — no hand-rolled JSON extraction. Three small
+`function` nodes remain only for genuine app glue (lifting parsed slots onto
+`msg` for the switch + forecast-URL, and carrying the recommendation summary
+past the JUDGE payload overwrite).
 
 It demonstrates: an external public API feeding an agent, **passing context via
-task `input.context`**, **agent output→input chaining via `references`** (ADVISOR
-references INTENT; JUDGE references ADVISOR with `role: 'judged_work'`), and
-**eval/judgment** with a freeform rubric. Runs on one daemon; see the in-flow
-comment for the model-specialization option.
+the builder's context rows**, **agent output→input chaining via the reader's
+`outputRef` + the builder's References-from**, and **eval/judgment** with a
+freeform rubric. Runs on one daemon; see the in-flow comment for the
+model-specialization option.
 
 ## Reproducing the issue-lifecycle shape
 

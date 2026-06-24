@@ -1,0 +1,64 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-task-reader', {
+    category: 'moltnet',
+    color: '#00d4c8',
+    paletteLabel: 'task: read',
+    defaults: {
+      name: { value: '' },
+      source: { value: '' },
+      role: { value: 'context' },
+      artifactKind: { value: '' },
+      artifactTitle: { value: '' },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-book',
+    label: function () {
+      return this.name || 'task: read';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-task-reader">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-source"><i class="fa fa-sign-in"></i> Source</label>
+    <input type="text" id="node-input-source" placeholder="payload" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-role"><i class="fa fa-link"></i> Output role</label>
+    <select id="node-input-role">
+      <option value="context">context</option>
+      <option value="judged_work">judged_work</option>
+      <option value="reviewed_diff">reviewed_diff</option>
+      <option value="target_source">target_source</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-artifactKind">Artifact kind</label>
+    <input type="text" id="node-input-artifactKind" placeholder="(optional)" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-artifactTitle">Artifact title</label>
+    <input type="text" id="node-input-artifactTitle" placeholder="(optional)" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-task-reader">
+  <p>
+    Parses a completed task snapshot (from <code>task: wait</code>/<code
+      >task: get</code
+    >) into typed result data via the SDK reader. Sets the typed output on
+    <code>msg.payload</code> and a flat <code>msg.result</code> with
+    <code>{ summary, outputRef, artifact, artifactBody, accepted, usage }</code
+    >. The <code>outputRef</code> chains directly into a downstream
+    <code>task: build</code>'s "References from".
+  </p>
+  <p>
+    Set <b>Artifact kind/title</b> to pre-parse a JSON artifact body into
+    <code>msg.result.artifactBody</code>.
+  </p>
+</script>

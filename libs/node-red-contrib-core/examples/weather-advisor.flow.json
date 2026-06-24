@@ -2,7 +2,7 @@
   {
     "disabled": false,
     "id": "weather_tab",
-    "info": "Free-text request → INTENT agent (classify + extract slots) → Open-Meteo forecast → ADVISOR agent (reason → recommend) → JUDGE agent (evaluate vs rubric) → decision.\n\nDemonstrates: external API → agent, passing context via task `input.context`, agent output→input chaining via `references`, and judgment/eval via a freeform task with a rubric.\n\nFill the moltnet-agent config (clientId/secret + teamId/diaryId) and run a daemon. See the comment node for model-specialization notes.",
+    "info": "Free-text request → INTENT agent (classify + extract slots) → Open-Meteo forecast → ADVISOR agent (reason → recommend) → JUDGE agent (evaluate vs rubric) → decision.\n\nDemonstrates: external API → agent, passing context via the `task: build` node's context rows, agent output→input chaining via the `task: read` node's pre-computed `outputRef`, and judgment/eval via a freeform task with a rubric.\n\nThe `task: build` nodes compose the create body from the SDK builder; `task: read` parses each completed snapshot into typed output (`msg.payload`) + a flat `msg.result` (summary, outputRef, artifactBody).\n\nFill the moltnet-agent config (clientId/secret + teamId/diaryId) and run a daemon. See the comment node for model-specialization notes.",
     "label": "MoltNet Weather Advisor (multi-agent)",
     "type": "tab"
   },
@@ -49,20 +49,34 @@
     "syntax": "plain",
     "template": "good day to bbq in Lyon this weekend?",
     "type": "template",
-    "wires": [["fn_intent_brief"]],
+    "wires": [["build_intent"]],
     "x": 300,
     "y": 120,
     "z": "weather_tab"
   },
   {
-    "func": "const userText = msg.payload;\nmsg.payload = {\n  input: {\n    brief:\n      \"Classify this request and extract slots. Return your structured answer as an \" +\n      \"artifact with fields: proceed (boolean — true only if this is a weather-activity \" +\n      \"question), location (string), timeframe (string), activity (string). If it is not \" +\n      \"a weather-activity question, set proceed=false. Request: \\\"\" + userText + \"\\\"\",\n    context: [\n      { slug: 'user-request', binding: 'context_inline', content: String(userText) }\n    ],\n    execution: { workspace: 'none' },\n    successCriteria: {\n      version: 1,\n      gates: [\n        {\n          id: 'submit-output',\n          kind: 'submit-tool-call',\n          description: 'Call submit_freeform_output once with the structured slots.',\n          required: true\n        }\n      ]\n    }\n  }\n};\nreturn msg;",
-    "id": "fn_intent_brief",
-    "name": "build INTENT brief",
-    "noerr": 0,
-    "outputs": 1,
-    "type": "function",
+    "agent": "weather_agent_cfg",
+    "brief": "Classify this request and extract slots. Return your structured answer as a freeform artifact with kind 'json' whose body is a JSON object with fields: proceed (boolean — true only if this is a weather-activity question), location (string), timeframe (string), activity (string). If it is not a weather-activity question, set proceed=false.",
+    "contexts": [
+      {
+        "binding": "context_inline",
+        "slug": "user-request",
+        "value": "payload",
+        "valueType": "msg"
+      }
+    ],
+    "expectedOutput": "",
+    "id": "build_intent",
+    "name": "build INTENT",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": true,
+    "taskType": "freeform",
+    "type": "moltnet-task-builder",
     "wires": [["create_intent"]],
-    "x": 510,
+    "workspace": "none",
+    "x": 500,
     "y": 120,
     "z": "weather_tab"
   },
@@ -71,7 +85,6 @@
     "generateCorrelationId": true,
     "id": "create_intent",
     "name": "INTENT",
-    "taskType": "freeform",
     "type": "moltnet-tasks-create",
     "wires": [["wait_intent"]],
     "x": 690,
@@ -88,20 +101,33 @@
     "taskId": "",
     "timeoutSec": 1800,
     "type": "moltnet-task-wait",
-    "wires": [["debug_tail"], ["fn_parse_intent"]],
+    "wires": [["debug_tail"], ["read_intent"]],
     "x": 860,
     "y": 120,
     "z": "weather_tab"
   },
   {
-    "func": "// Freeform artifacts are { kind, title, body } where `body` holds the inline\n// content (a JSON string for kind:'json'). Extract the first artifact's body,\n// falling back to the summary if the agent inlined JSON there instead.\nfunction extractJson(state) {\n  const arts = Array.isArray(state.artifacts) ? state.artifacts : [];\n  for (const art of arts) {\n    if (!art || typeof art !== 'object') continue;\n    if (typeof art.body === 'string') {\n      try { return JSON.parse(art.body); } catch (e) { /* not JSON, keep looking */ }\n    }\n  }\n  if (typeof state.summary === 'string') {\n    const m = state.summary.match(/\\{[\\s\\S]*\\}/);\n    if (m) { try { return JSON.parse(m[0]); } catch (e) {} }\n  }\n  return {};\n}\nconst state = (msg.payload && msg.payload.state) || {};\nconst slots = extractJson(state);\nmsg.intent = slots;\nmsg.intentTaskId = msg.payload && msg.payload.taskId;\nmsg.intentOutputCid = msg.payload && msg.payload.attempt && msg.payload.attempt.outputCid;\nmsg.proceed = slots.proceed === true;\nreturn msg;",
-    "id": "fn_parse_intent",
-    "name": "parse slots",
+    "artifactKind": "json",
+    "artifactTitle": "",
+    "id": "read_intent",
+    "name": "read INTENT",
+    "role": "context",
+    "source": "",
+    "type": "moltnet-task-reader",
+    "wires": [["fn_intent_slots"]],
+    "x": 130,
+    "y": 220,
+    "z": "weather_tab"
+  },
+  {
+    "func": "// task: read parsed the JSON artifact into msg.result.artifactBody and the\n// chaining ref into msg.result.outputRef. Lift the slots onto msg for the\n// switch + the forecast URL builder; keep the outputRef for ADVISOR to chain.\nconst slots = (msg.result && msg.result.artifactBody) || {};\nmsg.intent = slots;\nmsg.intentRef = msg.result && msg.result.outputRef;\nmsg.proceed = slots.proceed === true;\nreturn msg;",
+    "id": "fn_intent_slots",
+    "name": "intent slots",
     "noerr": 0,
     "outputs": 1,
     "type": "function",
     "wires": [["switch_proceed"]],
-    "x": 130,
+    "x": 320,
     "y": 220,
     "z": "weather_tab"
   },
@@ -115,7 +141,7 @@
     "rules": [{ "t": "true" }, { "t": "else" }],
     "type": "switch",
     "wires": [["fn_build_url"], ["debug_unsupported"]],
-    "x": 320,
+    "x": 520,
     "y": 220,
     "z": "weather_tab"
   },
@@ -127,7 +153,7 @@
     "outputs": 1,
     "type": "function",
     "wires": [["http_forecast"]],
-    "x": 510,
+    "x": 710,
     "y": 220,
     "z": "weather_tab"
   },
@@ -140,31 +166,50 @@
     "tls": "",
     "type": "http request",
     "url": "",
-    "wires": [["fn_advisor_brief"]],
-    "x": 690,
-    "y": 220,
+    "wires": [["build_advisor"]],
+    "x": 130,
+    "y": 320,
     "z": "weather_tab"
   },
   {
-    "func": "const forecast = msg.payload; // http response object\nmsg.payload = {\n  input: {\n    brief:\n      \"Given this 7-day forecast and the user's activity, recommend the best day(s) with \" +\n      \"concrete reasoning (temperature, rain probability), or advise against if the weather \" +\n      \"is poor. Be specific about which day and why.\",\n    context: [\n      { slug: 'intent', binding: 'context_inline', content: JSON.stringify(msg.intent || {}) },\n      { slug: 'forecast', binding: 'context_inline', content: JSON.stringify(forecast || {}).slice(0, 60000) }\n    ],\n    execution: { workspace: 'none' }\n  },\n  references: msg.intentOutputCid ? [{ taskId: msg.intentTaskId, outputCid: msg.intentOutputCid, role: 'context' }] : []\n};\nreturn msg;",
-    "id": "fn_advisor_brief",
-    "name": "build ADVISOR brief",
-    "noerr": 0,
-    "outputs": 1,
-    "type": "function",
+    "agent": "weather_agent_cfg",
+    "brief": "Given the 7-day forecast and the user's activity, recommend the best day(s) with concrete reasoning (temperature, rain probability), or advise against if the weather is poor. Be specific about which day and why.",
+    "contexts": [
+      {
+        "binding": "context_inline",
+        "slug": "intent",
+        "value": "intent",
+        "valueType": "msg"
+      },
+      {
+        "binding": "context_inline",
+        "slug": "forecast",
+        "value": "payload",
+        "valueType": "msg"
+      }
+    ],
+    "expectedOutput": "",
+    "id": "build_advisor",
+    "name": "build ADVISOR",
+    "referencesFrom": "intentRef",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "taskType": "freeform",
+    "type": "moltnet-task-builder",
     "wires": [["create_advisor"]],
-    "x": 880,
-    "y": 220,
+    "workspace": "none",
+    "x": 330,
+    "y": 320,
     "z": "weather_tab"
   },
   {
     "agent": "weather_agent_cfg",
     "id": "create_advisor",
     "name": "ADVISOR",
-    "taskType": "freeform",
     "type": "moltnet-tasks-create",
     "wires": [["wait_advisor"]],
-    "x": 130,
+    "x": 520,
     "y": 320,
     "z": "weather_tab"
   },
@@ -178,32 +223,70 @@
     "taskId": "",
     "timeoutSec": 1800,
     "type": "moltnet-task-wait",
-    "wires": [["debug_tail"], ["fn_judge_brief"]],
-    "x": 310,
+    "wires": [["debug_tail"], ["read_advisor"]],
+    "x": 700,
     "y": 320,
     "z": "weather_tab"
   },
   {
-    "func": "const advisor = msg.payload && msg.payload.state ? msg.payload.state : {};\nmsg.advisorTaskId = msg.payload && msg.payload.taskId;\nmsg.recommendation = advisor.summary; // carry past the JUDGE payload overwrite\nconst advisorOutputCid = msg.payload && msg.payload.attempt && msg.payload.attempt.outputCid;\nmsg.payload = {\n  input: {\n    brief:\n      \"Evaluate the weather recommendation against the rubric. Return an artifact with \" +\n      \"fields: pass (boolean), score (0-1), notes (string). pass=true only if the advice is \" +\n      \"sound, matches the forecast, and is actionable.\",\n    context: [\n      { slug: 'recommendation', binding: 'context_inline', content: String(advisor.summary || 'n/a') }\n    ],\n    execution: { workspace: 'none' },\n    successCriteria: {\n      version: 1,\n      gates: [\n        {\n          id: 'submit-output',\n          kind: 'submit-tool-call',\n          description: 'Call submit_freeform_output once with the verdict.',\n          required: true\n        }\n      ]\n    }\n  },\n  references: advisorOutputCid ? [{ taskId: msg.advisorTaskId, outputCid: advisorOutputCid, role: 'judged_work' }] : []\n};\nreturn msg;",
-    "id": "fn_judge_brief",
-    "name": "build JUDGE brief",
+    "artifactKind": "",
+    "artifactTitle": "",
+    "id": "read_advisor",
+    "name": "read ADVISOR",
+    "role": "judged_work",
+    "source": "",
+    "type": "moltnet-task-reader",
+    "wires": [["fn_carry_recommendation"]],
+    "x": 870,
+    "y": 320,
+    "z": "weather_tab"
+  },
+  {
+    "func": "// Carry the recommendation summary past the JUDGE payload overwrite, and keep\n// the advisor outputRef (role: judged_work) for the JUDGE task to reference.\nmsg.recommendation = (msg.result && msg.result.summary) || (msg.payload && msg.payload.summary);\nmsg.advisorRef = msg.result && msg.result.outputRef;\nreturn msg;",
+    "id": "fn_carry_recommendation",
+    "name": "carry recommendation",
     "noerr": 0,
     "outputs": 1,
     "type": "function",
+    "wires": [["build_judge"]],
+    "x": 130,
+    "y": 420,
+    "z": "weather_tab"
+  },
+  {
+    "agent": "weather_agent_cfg",
+    "brief": "Evaluate the weather recommendation against the rubric. Return a freeform artifact with kind 'json' whose body is a JSON object with fields: pass (boolean), score (0-1), notes (string). pass=true only if the advice is sound, matches the forecast, and is actionable.",
+    "contexts": [
+      {
+        "binding": "context_inline",
+        "slug": "recommendation",
+        "value": "recommendation",
+        "valueType": "msg"
+      }
+    ],
+    "expectedOutput": "",
+    "id": "build_judge",
+    "name": "build JUDGE",
+    "referencesFrom": "advisorRef",
+    "referencesRole": "judged_work",
+    "schemaCid": "",
+    "submitOutputGate": true,
+    "taskType": "freeform",
+    "type": "moltnet-task-builder",
     "wires": [["create_judge"]],
-    "x": 500,
-    "y": 320,
+    "workspace": "none",
+    "x": 330,
+    "y": 420,
     "z": "weather_tab"
   },
   {
     "agent": "weather_agent_cfg",
     "id": "create_judge",
     "name": "JUDGE",
-    "taskType": "freeform",
     "type": "moltnet-tasks-create",
     "wires": [["wait_judge"]],
-    "x": 690,
-    "y": 320,
+    "x": 520,
+    "y": 420,
     "z": "weather_tab"
   },
   {
@@ -216,21 +299,34 @@
     "taskId": "",
     "timeoutSec": 1800,
     "type": "moltnet-task-wait",
-    "wires": [["debug_tail"], ["fn_parse_verdict"]],
-    "x": 860,
-    "y": 320,
+    "wires": [["debug_tail"], ["read_judge"]],
+    "x": 700,
+    "y": 420,
     "z": "weather_tab"
   },
   {
-    "func": "// Same extraction as the intent parser: read the first artifact's `body`\n// (JSON string), falling back to a JSON blob in the summary.\nfunction extractJson(state) {\n  const arts = Array.isArray(state.artifacts) ? state.artifacts : [];\n  for (const art of arts) {\n    if (!art || typeof art !== 'object') continue;\n    if (typeof art.body === 'string') {\n      try { return JSON.parse(art.body); } catch (e) { /* not JSON, keep looking */ }\n    }\n  }\n  if (typeof state.summary === 'string') {\n    const m = state.summary.match(/\\{[\\s\\S]*\\}/);\n    if (m) { try { return JSON.parse(m[0]); } catch (e) {} }\n  }\n  return {};\n}\nconst state = (msg.payload && msg.payload.state) || {};\nconst verdict = extractJson(state);\nmsg.verdict = verdict;\nmsg.pass = verdict.pass === true;\nreturn msg;",
-    "id": "fn_parse_verdict",
-    "name": "parse verdict",
+    "artifactKind": "json",
+    "artifactTitle": "",
+    "id": "read_judge",
+    "name": "read JUDGE",
+    "role": "context",
+    "source": "",
+    "type": "moltnet-task-reader",
+    "wires": [["fn_verdict"]],
+    "x": 870,
+    "y": 420,
+    "z": "weather_tab"
+  },
+  {
+    "func": "// task: read parsed the verdict JSON into msg.result.artifactBody.\nconst verdict = (msg.result && msg.result.artifactBody) || {};\nmsg.verdict = verdict;\nmsg.pass = verdict.pass === true;\nreturn msg;",
+    "id": "fn_verdict",
+    "name": "verdict",
     "noerr": 0,
     "outputs": 1,
     "type": "function",
     "wires": [["switch_verdict"]],
-    "x": 140,
-    "y": 420,
+    "x": 130,
+    "y": 520,
     "z": "weather_tab"
   },
   {
@@ -244,7 +340,7 @@
     "type": "switch",
     "wires": [["debug_final"], ["debug_flagged"]],
     "x": 330,
-    "y": 420,
+    "y": 520,
     "z": "weather_tab"
   },
   {
@@ -269,7 +365,7 @@
     "tosidebar": true,
     "type": "debug",
     "wires": [],
-    "x": 360,
+    "x": 720,
     "y": 160,
     "z": "weather_tab"
   },
@@ -283,7 +379,7 @@
     "type": "debug",
     "wires": [],
     "x": 560,
-    "y": 400,
+    "y": 500,
     "z": "weather_tab"
   },
   {
@@ -296,7 +392,7 @@
     "type": "debug",
     "wires": [],
     "x": 560,
-    "y": 460,
+    "y": 560,
     "z": "weather_tab"
   }
 ]

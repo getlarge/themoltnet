@@ -66,6 +66,11 @@
       "component": "moltnet-api-client",
       "release-type": "go"
     },
+    "libs/node-red-contrib-core": {
+      "bump-minor-pre-major": true,
+      "component": "node-red-contrib-core",
+      "release-type": "node"
+    },
     "libs/pi-extension": {
       "component": "pi-extension",
       "release-type": "node"
