@@ -11,6 +11,7 @@
     "version": ">=5.0.0",
     "nodes": {
       "moltnet-agent": "dist/nodes/agent.js",
+      "moltnet-runtime-profile": "dist/nodes/runtime-profile.js",
       "moltnet-tasks-create": "dist/nodes/tasks-create.js",
       "moltnet-task-get": "dist/nodes/task-get.js",
       "moltnet-task-wait": "dist/nodes/task-wait.js",

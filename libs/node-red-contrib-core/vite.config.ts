@@ -11,6 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 // self-contained) and copy the .html alongside it.
 const nodes = [
   'agent',
+  'runtime-profile',
   'tasks-create',
   'task-get',
   'task-wait',

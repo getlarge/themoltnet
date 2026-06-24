@@ -8,6 +8,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import type { MoltnetRuntimeProfileNode } from './runtime-profile.js';
 
 /**
  * `moltnet-tasks-create` — creates a MoltNet task via the SDK, acting as the
@@ -32,6 +33,7 @@ import type { MoltnetAgentNode } from './agent.js';
 
 interface TasksCreateDef extends NodeDef {
   agent?: string; // id of the referenced moltnet-agent config node
+  runtimeProfile?: string; // id of an optional moltnet-runtime-profile config node
   taskType?: string;
   title?: string;
   tags?: string; // comma-separated
@@ -48,6 +50,11 @@ const init: NodeInitializer = (RED): void => {
     RED.nodes.createNode(this, def);
     const agentNode = def.agent
       ? (RED.nodes.getNode(def.agent) as MoltnetAgentNode | null)
+      : null;
+    const profileNode = def.runtimeProfile
+      ? (RED.nodes.getNode(
+          def.runtimeProfile,
+        ) as MoltnetRuntimeProfileNode | null)
       : null;
 
     this.on('input', (msg: NodeMessageInFlow, send, done) => {
@@ -76,6 +83,11 @@ const init: NodeInitializer = (RED): void => {
               profileId,
             }));
             if (profiles.length > 0) base.allowedProfiles = profiles;
+          }
+          // Runtime-profile config node: lowest precedence — only fills the gap
+          // when neither msg.payload nor the CSV field set allowedProfiles.
+          if (!base.allowedProfiles && profileNode?.profileId) {
+            base.allowedProfiles = [{ profileId: profileNode.profileId }];
           }
           if (
             base.maxAttempts === undefined &&

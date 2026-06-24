@@ -15,9 +15,10 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   package carries no private-package runtime dependency. `@themoltnet/sdk` is
   therefore a **devDependency** (bundled, not installed at runtime).
 - The `.html` editor files are copied to `dist/nodes/` as assets (not compiled).
-- A **config node** (`moltnet-agent`) and four **action nodes**
-  (`moltnet-tasks-create`, `moltnet-task-get`, `moltnet-task-wait`,
-  `moltnet-workflow-status`) register and appear in the palette.
+- Two **config nodes** (`moltnet-agent`, `moltnet-runtime-profile`) and four
+  **action nodes** (`moltnet-tasks-create`, `moltnet-task-get`,
+  `moltnet-task-wait`, `moltnet-workflow-status`) register and appear in the
+  palette.
 
 ## Nodes
 
@@ -25,10 +26,16 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   credentials, Plane B). Client secret stored as an encrypted Node-RED
   credential. Exposes `getAgent()` returning a connected, token-managed SDK
   agent.
+- **`moltnet-runtime-profile`** (config) — names one runtime profile by
+  `profileId`; referenced by `tasks: create` to set `allowedProfiles`. References
+  a `moltnet-agent` and offers a **dynamic dropdown** of the team's profiles
+  (via `runtimeProfiles.list()`, needs a deployed agent), with a manual
+  `profileId` fallback. See
+  [Model specialization / routing](#model-specialization--routing).
 - **`moltnet-tasks-create`** (palette: _tasks: create_) — creates a task as the
   referenced agent. Merges node fields (`taskType`, `title`, `tags`,
-  `allowedProfiles`, `maxAttempts`) with `msg.payload` (payload wins). The task
-  `input` and advanced fields come from `msg.payload`. See
+  `allowedProfiles`, `maxAttempts`, `runtimeProfile`) with `msg.payload` (payload
+  wins). The task `input` and advanced fields come from `msg.payload`. See
   [Building the task request](#building-the-task-request). Holds no SDK import —
   the SDK lives only in the config node.
 - **`moltnet-task-get`** (palette: _task: get_) — one-shot read of a task and its
@@ -90,6 +97,46 @@ msg.payload = {
 };
 return msg; // title/tags/taskType can come from the tasks: create node fields
 ```
+
+## Model specialization / routing
+
+`allowedProfiles` on a task is a **routing gate, not a model selector.** A daemon
+runs exactly **one** runtime profile (`--profile <id>`) and only claims tasks
+whose `allowedProfiles` include that profile — or whose `allowedProfiles` is
+**empty** (= unrestricted, any daemon claims it). Setting a profile does **not**
+make a daemon run a different model; it routes the task to a daemon already
+serving that profile.
+
+So running different steps on different models (e.g. a small/fast model to
+classify intent, a stronger one to reason) means running **one daemon per
+profile**. Multiple daemons against one stack work fine — the server picks a
+single claim winner per task.
+
+Assign a profile with the **`moltnet-runtime-profile`** config node (dynamic
+dropdown from `runtimeProfiles.list()`, or a manual `profileId`) referenced from
+`tasks: create`. Precedence for `allowedProfiles` (high → low):
+`msg.payload.allowedProfiles` → the `tasks: create` **Profiles** CSV field → the
+referenced **runtime-profile** config node.
+
+The examples below run **end-to-end on a single daemon** by default (no
+`allowedProfiles`); profile routing is an optional enhancement.
+
+## Weather activity advisor (multi-agent + external API)
+
+[`examples/weather-advisor.flow.json`](./examples/weather-advisor.flow.json) is a
+multi-agent decision pipeline over real weather data:
+
+`inject` → `template` (free-text request) → **INTENT** agent (classify + extract
+location/timeframe, freeform with a `successCriteria` gate) → `switch` on
+`proceed` → **Open-Meteo** `http request` → **ADVISOR** agent (reason over the
+forecast → recommend) → **JUDGE** agent (evaluate the recommendation against a
+rubric) → `switch` on the verdict → final / flagged.
+
+It demonstrates: an external public API feeding an agent, **passing context via
+task `input.context`**, **agent output→input chaining via `references`** (ADVISOR
+references INTENT; JUDGE references ADVISOR with `role: 'judged_work'`), and
+**eval/judgment** with a freeform rubric. Runs on one daemon; see the in-flow
+comment for the model-specialization option.
 
 ## Reproducing the issue-lifecycle shape
 

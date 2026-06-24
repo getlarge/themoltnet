@@ -52,11 +52,17 @@ const init: NodeInitializer = (RED): void => {
           new Error('moltnet-agent: clientId and clientSecret are required'),
         );
       }
-      agentPromise ??= connect({
-        clientId: this.clientId,
-        clientSecret,
-        apiUrl: this.apiUrl,
-      });
+      // Don't cache a rejected connect — a fixed credential should retry.
+      if (!agentPromise) {
+        agentPromise = connect({
+          clientId: this.clientId,
+          clientSecret,
+          apiUrl: this.apiUrl,
+        }).catch((err) => {
+          agentPromise = null;
+          throw err;
+        });
+      }
       return agentPromise;
     };
   }

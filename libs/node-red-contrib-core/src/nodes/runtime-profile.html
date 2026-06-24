@@ -1,0 +1,156 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-runtime-profile', {
+    category: 'config',
+    paletteLabel: 'runtime profile',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      profileId: { value: '', required: true },
+      profileName: { value: '' },
+    },
+    label: function () {
+      return (
+        this.name || this.profileName || this.profileId || 'runtime profile'
+      );
+    },
+    oneditprepare: function () {
+      const select = $('#node-config-input-profile-select');
+      const manualRow = $('#node-config-row-profileId');
+      const hint = $('#node-config-profile-hint');
+      const profileIdInput = $('#node-config-input-profileId');
+      const profileNameInput = $('#node-config-input-profileName');
+      const current = this.profileId;
+
+      const showManual = (message) => {
+        hint.text(message);
+        manualRow.show();
+        select.hide();
+      };
+
+      const loadProfiles = () => {
+        const agentId = $('#node-config-input-agent').val();
+        if (!agentId) {
+          showManual('Select an agent, or enter a Profile ID manually.');
+          return;
+        }
+        select.empty().append($('<option>').val('').text('loading…')).show();
+        manualRow.hide();
+        hint.text('');
+        $.getJSON('moltnet-runtime-profiles/' + agentId)
+          .done((data) => {
+            const profiles = (data && data.profiles) || [];
+            if (!profiles.length) {
+              let prefix;
+              if (data && data.error === 'agent-not-deployed') {
+                prefix = 'Deploy the agent first to list profiles. ';
+              } else if (data && data.error) {
+                // Surface the real backend error instead of hiding it behind
+                // a generic "no profiles" message.
+                prefix = 'Could not list profiles: ' + data.error + '. ';
+              } else {
+                prefix = 'No profiles found for this team. ';
+              }
+              showManual(prefix + 'Enter a Profile ID manually.');
+              return;
+            }
+            select.empty();
+            select.append($('<option>').val('').text('— select a profile —'));
+            profiles.forEach((p) => {
+              select.append(
+                $('<option>')
+                  .val(p.id)
+                  .text(p.name + ' (' + p.provider + '/' + p.model + ')'),
+              );
+            });
+            if (current) select.val(current);
+            manualRow.hide();
+            select.show();
+          })
+          .fail(() => {
+            showManual(
+              'Could not reach the editor backend; enter a Profile ID manually.',
+            );
+          });
+      };
+
+      $('#node-config-input-agent').on('change', loadProfiles);
+      loadProfiles();
+
+      // Keep the hidden profileId in sync from the dropdown selection.
+      select.on('change', function () {
+        const id = $(this).val();
+        if (id) {
+          profileIdInput.val(id);
+          const label = $(this).find('option:selected').text();
+          profileNameInput.val(label);
+        }
+      });
+    },
+    oneditsave: function () {
+      // If the dropdown has a selection, it already wrote profileId; otherwise
+      // the manual input is the source of truth.
+      const sel = $('#node-config-input-profile-select').val();
+      if (sel) $('#node-config-input-profileId').val(sel);
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-runtime-profile">
+  <div class="form-row">
+    <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input
+      type="text"
+      id="node-config-input-name"
+      placeholder="e.g. fast-classify"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-agent"
+      ><i class="fa fa-user"></i> Agent</label
+    >
+    <input type="text" id="node-config-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-profile-select"
+      ><i class="fa fa-microchip"></i> Profile</label
+    >
+    <select id="node-config-input-profile-select" style="width: 70%"></select>
+  </div>
+  <div
+    class="form-tips"
+    id="node-config-profile-hint"
+    style="margin-bottom: 8px"
+  ></div>
+  <div class="form-row" id="node-config-row-profileId">
+    <label for="node-config-input-profileId"
+      ><i class="fa fa-hashtag"></i> Profile ID</label
+    >
+    <input
+      type="text"
+      id="node-config-input-profileId"
+      placeholder="profile UUID"
+    />
+  </div>
+  <input type="hidden" id="node-config-input-profileName" />
+</script>
+
+<script type="text/html" data-help-name="moltnet-runtime-profile">
+  <p>
+    Names one MoltNet <b>runtime profile</b> by its <code>profileId</code>.
+    <code>tasks: create</code> references this config to set the task's
+    <code>allowedProfiles</code>, routing the task to a daemon serving that
+    profile.
+  </p>
+  <p>
+    <b>Routing gate, not a model selector.</b> A daemon runs exactly one profile
+    (<code>--profile &lt;id&gt;</code>) and only claims tasks whose
+    <code>allowedProfiles</code> include it (an empty list = unrestricted).
+    Selecting a profile here does not run a different model by itself — a daemon
+    serving that profile must be running.
+  </p>
+  <p>
+    The <b>Profile</b> dropdown lists the team's profiles via the selected
+    <b>Agent</b>. The agent config node must be <b>deployed</b> first; otherwise
+    enter the <b>Profile ID</b> manually.
+  </p>
+</script>
