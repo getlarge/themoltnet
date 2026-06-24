@@ -85,3 +85,54 @@ describe('moltnet-task-builder', () => {
     expect(payload.diaryId).toBe('diary-1');
   });
 });
+
+describe('moltnet-task-builder context mappings', () => {
+  it('pulls a context value from a msg path and JSON-stringifies objects', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      contexts: [
+        {
+          slug: 'forecast',
+          binding: 'context_inline',
+          valueType: 'msg',
+          value: 'forecast',
+        },
+      ],
+    });
+    const { outputs } = await red.input(node, {
+      payload: {},
+      forecast: { temp: 21 },
+    } as Record<string, unknown>);
+    const payload = outputs[0].payload as Record<string, unknown>;
+    const ctx = (
+      payload.input as {
+        context: { slug: string; binding: string; content: string }[];
+      }
+    ).context;
+    expect(ctx[0]).toEqual({
+      slug: 'forecast',
+      binding: 'context_inline',
+      content: JSON.stringify({ temp: 21 }),
+    });
+  });
+
+  it('passes a literal str context value through unchanged', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      contexts: [
+        {
+          slug: 'note',
+          binding: 'context_inline',
+          valueType: 'str',
+          value: 'hello',
+        },
+      ],
+    });
+    const { outputs } = await red.input(node, { payload: {} });
+    const payload = outputs[0].payload as Record<string, unknown>;
+    const ctx = (payload.input as { context: { content: string }[] }).context;
+    expect(ctx[0].content).toBe('hello');
+  });
+});

@@ -25,6 +25,14 @@ import type { MoltnetAgentNode } from './agent.js';
 /** typedInput value-source kinds for the team/diary overrides. */
 type ValueType = 'str' | 'msg' | 'flow' | 'global';
 
+/** A context row: maps a slug to a value pulled from msg/flow/global/literal. */
+interface ContextMapping {
+  slug: string;
+  binding?: 'context_inline' | 'user_inline' | 'prompt_prefix' | 'skill';
+  valueType: 'msg' | 'flow' | 'global' | 'str' | 'json';
+  value: string;
+}
+
 interface TaskBuilderDef extends NodeDef {
   agent?: string;
   taskType?: string;
@@ -35,6 +43,33 @@ interface TaskBuilderDef extends NodeDef {
   /** Optional diary override; falls back to the agent's diary when blank. */
   diaryId?: string;
   diaryIdType?: ValueType;
+  contexts?: ContextMapping[];
+}
+
+/** Resolve a context mapping's raw value from the message / context stores / literal. */
+function resolveValue(
+  RED: Parameters<NodeInitializer>[0],
+  node: Node,
+  msg: NodeMessageInFlow,
+  m: ContextMapping,
+): unknown {
+  switch (m.valueType) {
+    case 'msg':
+      return RED.util.getMessageProperty(msg, m.value) as unknown;
+    case 'flow':
+      return node.context().flow.get(m.value);
+    case 'global':
+      return node.context().global.get(m.value);
+    case 'json':
+      try {
+        return JSON.parse(m.value) as unknown;
+      } catch {
+        return m.value;
+      }
+    case 'str':
+    default:
+      return m.value;
+  }
 }
 
 /**
@@ -105,6 +140,24 @@ const init: NodeInitializer = (RED): void => {
           agentNode?.diaryId;
         if (teamId) builder.team(teamId);
         if (diaryId) builder.diary(diaryId);
+
+        // Context rows: resolve each value, then bind it. context_inline /
+        // user_inline JSON-stringify objects automatically; other bindings
+        // require a string, so non-strings are JSON-stringified here.
+        for (const m of def.contexts ?? []) {
+          if (!m?.slug) continue;
+          const value = resolveValue(RED, this, msg, m);
+          const binding = m.binding ?? 'context_inline';
+          if (binding === 'context_inline') {
+            builder.contextInline(m.slug, value);
+          } else if (binding === 'user_inline') {
+            builder.userInline(m.slug, value);
+          } else {
+            const content =
+              typeof value === 'string' ? value : JSON.stringify(value);
+            builder.context(m.slug, binding, content);
+          }
+        }
 
         const built = builder.build();
 
