@@ -16,6 +16,8 @@ const nodes = [
   'task-get',
   'task-wait',
   'workflow-status',
+  'task-builder',
+  'task-reader',
 ];
 
 export default defineConfig({

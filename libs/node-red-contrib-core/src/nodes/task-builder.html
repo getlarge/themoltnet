@@ -1,0 +1,122 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-task-builder', {
+    category: 'moltnet',
+    color: '#00d4c8',
+    paletteLabel: 'task: build',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      taskType: { value: 'freeform' },
+      brief: { value: '' },
+      teamId: { value: '' },
+      teamIdType: { value: 'str' },
+      diaryId: { value: '' },
+      diaryIdType: { value: 'str' },
+      contexts: { value: [] },
+      referencesFrom: { value: '' },
+      referencesRole: { value: 'context' },
+      submitOutputGate: { value: true },
+      schemaCid: { value: '' },
+      workspace: { value: '' },
+      constraints: { value: [] },
+      expectedOutput: { value: '' },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-wrench',
+    label: function () {
+      return this.name || 'task: build';
+    },
+    oneditprepare: function () {
+      // Team/diary overrides: typedInput (literal or msg/flow/global path).
+      // Blank ⇒ inherit the agent's context.
+      $('#node-input-teamId').typedInput({
+        default: 'str',
+        typeField: '#node-input-teamIdType',
+        types: ['str', 'msg', 'flow', 'global'],
+      });
+      $('#node-input-diaryId').typedInput({
+        default: 'str',
+        typeField: '#node-input-diaryIdType',
+        types: ['str', 'msg', 'flow', 'global'],
+      });
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-task-builder">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
+    <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-taskType"><i class="fa fa-cube"></i> Task type</label>
+    <select id="node-input-taskType"><option value="freeform">freeform</option></select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-brief"><i class="fa fa-file-text"></i> Brief</label>
+    <input type="text" id="node-input-brief" placeholder="msg.payload.input.brief" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-teamId"><i class="fa fa-users"></i> Team (override)</label>
+    <input type="text" id="node-input-teamId" style="width:70%" />
+    <input type="hidden" id="node-input-teamIdType" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-diaryId"><i class="fa fa-book"></i> Diary (override)</label>
+    <input type="text" id="node-input-diaryId" style="width:70%" />
+    <input type="hidden" id="node-input-diaryIdType" />
+  </div>
+  <div class="form-row node-builder-group" id="group-references">
+    <label for="node-input-referencesFrom"><i class="fa fa-link"></i> References from</label>
+    <input type="text" id="node-input-referencesFrom" placeholder="result.outputRef" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-referencesRole">Role</label>
+    <select id="node-input-referencesRole">
+      <option value="context">context</option>
+      <option value="judged_work">judged_work</option>
+      <option value="reviewed_diff">reviewed_diff</option>
+      <option value="target_source">target_source</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-submitOutputGate">Submit gate</label>
+    <input type="checkbox" id="node-input-submitOutputGate" style="width:auto" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-workspace"><i class="fa fa-folder"></i> Workspace</label>
+    <select id="node-input-workspace">
+      <option value="">(default)</option>
+      <option value="none">none</option>
+      <option value="shared_mount">shared_mount</option>
+      <option value="dedicated_worktree">dedicated_worktree</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-expectedOutput">Expected output</label>
+    <input type="text" id="node-input-expectedOutput" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-schemaCid">Schema CID</label>
+    <input type="text" id="node-input-schemaCid" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-task-builder">
+  <p>Composes a validated MoltNet <code>tasks.create</code> body from config + the
+  incoming message, using the SDK fluent builder. The built body is set on
+  <code>msg.payload</code> for a downstream <code>tasks: create</code>.
+  Validation errors show on the node (red ring) with the offending field.</p>
+  <p><b>Team / Diary (override)</b> default to the referenced <b>agent</b>'s
+  context. Set either field (literal, or a <code>msg</code>/<code>flow</code>/<code>global</code>
+  path) only to <i>override</i> the agent for this task; leave blank to inherit.</p>
+  <p><b>Context</b> rows map a slug to a value source (msg/flow/global/str/json);
+  objects are JSON-stringified. <b>References from</b> reads an
+  <code>outputRef</code> emitted by <code>task: read</code> to chain tasks
+  (the <code>outputCid</code> is pulled automatically).</p>
+</script>

@@ -15,7 +15,9 @@
       "moltnet-tasks-create": "dist/nodes/tasks-create.js",
       "moltnet-task-get": "dist/nodes/task-get.js",
       "moltnet-task-wait": "dist/nodes/task-wait.js",
-      "moltnet-workflow-status": "dist/nodes/workflow-status.js"
+      "moltnet-workflow-status": "dist/nodes/workflow-status.js",
+      "moltnet-task-builder": "dist/nodes/task-builder.js",
+      "moltnet-task-reader": "dist/nodes/task-reader.js"
     }
   },
   "engines": {
