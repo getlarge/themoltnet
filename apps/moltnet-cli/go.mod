@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/XiaoConstantine/dspy-go v0.82.2
 	github.com/getlarge/themoltnet/libs/dspy-adapters v0.9.3
-	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.35.0 // release CLI when generated client changes
+	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.37.0 // release CLI when generated client changes
 	github.com/go-faster/jx v1.2.0
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-cid v0.6.0
