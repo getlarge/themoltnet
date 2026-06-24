@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.111.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.110.0...sdk-v0.111.0) (2026-06-24)
+
+
+### Features
+
+* **sdk:** fluent task builder + typed result reader ([#1436](https://github.com/getlarge/themoltnet/issues/1436)) ([60527bc](https://github.com/getlarge/themoltnet/commit/60527bc0f4d4a9191b881f7f865cf5830fed6b03))
+
+
+### Bug Fixes
+
+* **ci:** format SDK task files + regenerate agent-daemon-action bundle ([8a9503b](https://github.com/getlarge/themoltnet/commit/8a9503b638ce90a928a4966e14a5450d573605ac))
+
 ## [0.110.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.109.0...sdk-v0.110.0) (2026-06-24)
 
 
