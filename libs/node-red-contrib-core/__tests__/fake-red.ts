@@ -41,6 +41,26 @@ interface AdminRoute {
 type NodeConstructor = (this: FakeNode, def: Record<string, unknown>) => void;
 type Handler = (...args: unknown[]) => unknown;
 
+/**
+ * Resolve a dotted/bracketed property path against a message, mirroring the
+ * subset of `RED.util.getMessageProperty` the task nodes rely on. A leading
+ * `msg.` is stripped (Node-RED treats the message as the implicit root).
+ * Returns `undefined` for any missing segment instead of throwing.
+ */
+function resolvePath(root: Record<string, unknown>, expr: string): unknown {
+  const normalized = expr.startsWith('msg.') ? expr.slice(4) : expr;
+  const parts = normalized
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .filter(Boolean);
+  let cur: unknown = root;
+  for (const part of parts) {
+    if (cur === null || typeof cur !== 'object') return undefined;
+    cur = (cur as Record<string, unknown>)[part];
+  }
+  return cur;
+}
+
 export class FakeRed {
   private readonly types = new Map<string, NodeConstructor>();
   private readonly instances = new Map<string, FakeNode>();
@@ -79,10 +99,17 @@ export class FakeRed {
     getNode: (id: string): FakeNode | null => this.instances.get(id) ?? null,
   };
 
-  /** `RED.util` slice. `cloneMessage` is used by multi-emit nodes. */
+  /**
+   * `RED.util` slice. `cloneMessage` is used by multi-emit nodes;
+   * `getMessageProperty` resolves a dotted/bracketed path against the message
+   * (a faithful subset of Node-RED's resolver — enough for the dotted paths the
+   * task-builder/task-reader nodes use, e.g. `result.outputRef`, `ctx.team`).
+   */
   readonly util = {
     cloneMessage: (msg: Record<string, unknown>): Record<string, unknown> =>
       structuredClone(msg),
+    getMessageProperty: (msg: Record<string, unknown>, expr: string): unknown =>
+      resolvePath(msg, expr),
   };
 
   /** `RED.auth` slice — needsPermission returns a marker middleware. */
