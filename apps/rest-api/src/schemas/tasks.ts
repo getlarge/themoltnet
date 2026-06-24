@@ -50,7 +50,6 @@ export const CreateTaskBodySchema = Type.Object(
         maxItems: 20,
       }),
     ),
-    teamId: Type.String({ format: 'uuid' }),
     diaryId: Type.String({ format: 'uuid' }),
     input: Type.Record(Type.String(), Type.Unknown()),
     references: Type.Optional(
@@ -123,7 +122,6 @@ export const BatchDeleteTasksBodySchema = Type.Object(
 
 export const ListTasksQuerySchema = Type.Object(
   {
-    teamId: Type.String({ format: 'uuid' }),
     query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
     status: Type.Optional(
       Type.Unsafe<TaskStatusType>(Type.Ref(TaskStatus.$id)),

@@ -1,5 +1,5 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
+import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import type { RuntimeProfile as RuntimeProfile } from '@moltnet/database';
 import { UniqueViolationError } from '@moltnet/database';
@@ -19,6 +19,7 @@ import {
   UpdateRuntimeProfileBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 
 const ProfileParamsSchema = Type.Object(
   { profileId: Type.String({ format: 'uuid' }) },
@@ -40,19 +41,6 @@ function authSubject(request: {
     subjectNs:
       auth.subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent,
   };
-}
-
-function requireCurrentTeamId(request: {
-  authContext: { currentTeamId: string | null } | null;
-}): string {
-  const teamId = request.authContext?.currentTeamId;
-  if (!teamId) {
-    throw createProblem(
-      'validation-failed',
-      `${TEAM_HEADER} header is required: runtime profiles are team-scoped`,
-    );
-  }
-  return teamId;
 }
 
 function normalizeList(values: readonly string[] | undefined): string[] {
@@ -156,7 +144,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const teamId = requireCurrentTeamId(request);
+      const teamId = requireCurrentTeamId(request, 'runtime profiles');
       const { identityId, subjectNs } = authSubject(request);
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         teamId,
@@ -190,7 +178,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const teamId = requireCurrentTeamId(request);
+      const teamId = requireCurrentTeamId(request, 'runtime profiles');
       const { identityId, subjectNs } = authSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeam(
         teamId,

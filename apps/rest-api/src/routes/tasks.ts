@@ -3,6 +3,7 @@ import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
+  TeamHeaderRequiredSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
 import {
@@ -41,6 +42,7 @@ import {
 } from '../schemas.js';
 import { TaskServiceError } from '../services/task.service.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 
 function toTaskProblem(error: TaskServiceError) {
   switch (error.code) {
@@ -148,6 +150,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'Create and enqueue a new task.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
         body: CreateTaskBodySchema,
         response: {
           201: Type.Ref(Task.$id),
@@ -159,20 +162,21 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { identityId, subjectType } = getAuthContext(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       const callerNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
         const normalised = normalizeTaskCreateRequest(request.body);
         await validateAllowedProfiles(
           fastify,
-          request.body.teamId,
+          teamId,
           request.body.allowedProfiles,
         );
         const task = await fastify.taskService.create({
           taskType: request.body.taskType,
           title: request.body.title,
           tags: request.body.tags,
-          teamId: request.body.teamId,
+          teamId,
           diaryId: request.body.diaryId,
           inputPayload: request.body.input,
           references: request.body.references,
@@ -210,6 +214,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'List tasks for a team with optional filters.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
         querystring: ListTasksQuerySchema,
         response: {
           200: Type.Ref(TaskListResponseSchema.$id),
@@ -221,11 +226,12 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectType } = getAuthContext(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       const callerNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
         return await fastify.taskService.list({
-          teamId: request.query.teamId,
+          teamId,
           query: request.query.query,
           status: request.query.status,
           statuses: request.query.statuses,
