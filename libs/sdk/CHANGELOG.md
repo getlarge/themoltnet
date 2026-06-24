@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.110.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.109.0...sdk-v0.110.0) (2026-06-24)
+
+
+### Features
+
+* batch cleanup for entries and tasks ([21982f9](https://github.com/getlarge/themoltnet/commit/21982f973d57286c7e263247306076f944b6a2c2))
+* **sdk:** expose batch cleanup methods ([cc1e806](https://github.com/getlarge/themoltnet/commit/cc1e806da1318061d80e3b534831159a5f4da541))
+
 ## [0.109.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.108.0...sdk-v0.109.0) (2026-06-23)
 
 
