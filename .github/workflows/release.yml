@@ -58,6 +58,8 @@ jobs:
       agent-runtime-tag-name: ${{ steps.release.outputs['libs/agent-runtime--tag_name'] }}
       pi-extension-release-created: ${{ steps.release.outputs['libs/pi-extension--release_created'] }}
       pi-extension-tag-name: ${{ steps.release.outputs['libs/pi-extension--tag_name'] }}
+      node-red-release-created: ${{ steps.release.outputs['libs/node-red-contrib-core--release_created'] }}
+      node-red-tag-name: ${{ steps.release.outputs['libs/node-red-contrib-core--tag_name'] }}
       design-system-release-created: ${{ steps.release.outputs['libs/design-system--release_created'] }}
       design-system-tag-name: ${{ steps.release.outputs['libs/design-system--tag_name'] }}
       agent-daemon-release-created: ${{ steps.release.outputs['apps/agent-daemon--release_created'] }}
@@ -99,6 +101,8 @@ jobs:
       agent-runtime-tag: ${{ steps.resolve.outputs.agent-runtime-tag }}
       pi-extension: ${{ steps.resolve.outputs.pi-extension }}
       pi-extension-tag: ${{ steps.resolve.outputs.pi-extension-tag }}
+      node-red: ${{ steps.resolve.outputs.node-red }}
+      node-red-tag: ${{ steps.resolve.outputs.node-red-tag }}
       design-system: ${{ steps.resolve.outputs.design-system }}
       design-system-tag: ${{ steps.resolve.outputs.design-system-tag }}
       agent-daemon: ${{ steps.resolve.outputs.agent-daemon }}
@@ -131,6 +135,8 @@ jobs:
           RP_AGENT_RUNTIME_TAG: ${{ needs.release-please.outputs.agent-runtime-tag-name }}
           RP_PI_EXTENSION_CREATED: ${{ needs.release-please.outputs.pi-extension-release-created }}
           RP_PI_EXTENSION_TAG: ${{ needs.release-please.outputs.pi-extension-tag-name }}
+          RP_NODE_RED_CREATED: ${{ needs.release-please.outputs.node-red-release-created }}
+          RP_NODE_RED_TAG: ${{ needs.release-please.outputs.node-red-tag-name }}
           RP_DESIGN_SYSTEM_CREATED: ${{ needs.release-please.outputs.design-system-release-created }}
           RP_DESIGN_SYSTEM_TAG: ${{ needs.release-please.outputs.design-system-tag-name }}
           RP_AGENT_DAEMON_CREATED: ${{ needs.release-please.outputs.agent-daemon-release-created }}
@@ -189,6 +195,7 @@ jobs:
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
           resolve "agent-runtime" "$RP_AGENT_RUNTIME_CREATED" "$RP_AGENT_RUNTIME_TAG" "agent-runtime"
           resolve "pi-extension" "$RP_PI_EXTENSION_CREATED" "$RP_PI_EXTENSION_TAG" "pi-extension"
+          resolve "node-red"     "$RP_NODE_RED_CREATED"  "$RP_NODE_RED_TAG"  "node-red-contrib-core"
           resolve "agent-daemon" "$RP_AGENT_DAEMON_CREATED" "$RP_AGENT_DAEMON_TAG" "agent-daemon"
 
           # Forward version outputs
@@ -256,6 +263,49 @@ jobs:
 
       - name: Publish SDK release
         run: gh release edit "${{ needs.resolve-publish.outputs.sdk-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-node-red:
+    name: Publish Node-RED nodes to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.node-red == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      # The package externalizes @themoltnet/sdk; the build only bundles the
+      # node runtime + copies editor HTML (no SDK inlining).
+      - run: pnpm exec nx run @themoltnet/node-red-contrib-core:build
+
+      - run: pnpm exec nx run @themoltnet/node-red-contrib-core:test
+
+      # Project-level pack check: every node-red.nodes path + sibling .html ships.
+      - run: pnpm --filter @themoltnet/node-red-contrib-core run check:pack
+
+      - name: Publish @themoltnet/node-red-contrib-core
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/node-red-contrib-core publish --no-git-checks --access public --provenance
+
+      - name: Publish Node-RED release
+        run: gh release edit "${{ needs.resolve-publish.outputs.node-red-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
