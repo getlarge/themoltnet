@@ -136,3 +136,43 @@ describe('moltnet-task-builder context mappings', () => {
     expect(ctx[0].content).toBe('hello');
   });
 });
+
+describe('moltnet-task-builder references + gates + execution', () => {
+  it('adds a reference from an outputRef on a msg path', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      referencesFrom: 'result.outputRef',
+      referencesRole: 'judged_work',
+    });
+    const { outputs } = await red.input(node, {
+      payload: {},
+      result: {
+        outputRef: { taskId: 't1', outputCid: 'bafy', role: 'context' },
+      },
+    } as Record<string, unknown>);
+    const payload = outputs[0].payload as Record<string, unknown>;
+    expect(payload.references).toEqual([
+      { taskId: 't1', outputCid: 'bafy', role: 'judged_work' },
+    ]);
+  });
+
+  it('adds submit-output gate and execution workspace', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      submitOutputGate: true,
+      workspace: 'none',
+    });
+    const { outputs } = await red.input(node, { payload: {} });
+    const payload = outputs[0].payload as Record<string, unknown>;
+    const input = payload.input as {
+      successCriteria?: { gates?: { id: string }[] };
+      execution?: { workspace?: string };
+    };
+    expect(
+      input.successCriteria?.gates?.some((g) => g.id === 'submit-output'),
+    ).toBe(true);
+    expect(input.execution?.workspace).toBe('none');
+  });
+});

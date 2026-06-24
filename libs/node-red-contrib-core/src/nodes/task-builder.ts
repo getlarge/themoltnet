@@ -44,6 +44,18 @@ interface TaskBuilderDef extends NodeDef {
   diaryId?: string;
   diaryIdType?: ValueType;
   contexts?: ContextMapping[];
+  /** msg path to an `outputRef` (`{taskId, outputCid}`) from a prior task: read. */
+  referencesFrom?: string;
+  referencesRole?:
+    | 'context'
+    | 'judged_work'
+    | 'reviewed_diff'
+    | 'target_source';
+  submitOutputGate?: boolean;
+  schemaCid?: string;
+  workspace?: 'none' | 'shared_mount' | 'dedicated_worktree';
+  constraints?: string[];
+  expectedOutput?: string;
 }
 
 /** Resolve a context mapping's raw value from the message / context stores / literal. */
@@ -158,6 +170,26 @@ const init: NodeInitializer = (RED): void => {
             builder.context(m.slug, binding, content);
           }
         }
+
+        // Reference a prior task's output, pulled from a msg path. The builder
+        // re-stamps the role we pass, ignoring any role on the source ref.
+        if (def.referencesFrom) {
+          const ref = RED.util.getMessageProperty(msg, def.referencesFrom) as
+            | { taskId: string | null; outputCid: string }
+            | undefined;
+          if (ref && ref.outputCid) {
+            builder.references(ref, def.referencesRole ?? 'context');
+          }
+        }
+        if (def.submitOutputGate) builder.requireSubmitOutput();
+        if (def.schemaCid) builder.requireSchema(def.schemaCid);
+
+        const inputPatch: Record<string, unknown> = {};
+        if (def.workspace) inputPatch.execution = { workspace: def.workspace };
+        if (def.constraints && def.constraints.length > 0)
+          inputPatch.constraints = def.constraints;
+        if (def.expectedOutput) inputPatch.expectedOutput = def.expectedOutput;
+        if (Object.keys(inputPatch).length > 0) builder.input(inputPatch);
 
         const built = builder.build();
 
