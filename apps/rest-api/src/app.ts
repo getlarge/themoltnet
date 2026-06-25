@@ -50,12 +50,14 @@ import { registrationRoutes } from './routes/registration.js';
 import { renderedPackRoutes } from './routes/rendered-packs.js';
 import { runtimeModelRoutes } from './routes/runtime-models.js';
 import { runtimeProfileRoutes } from './routes/runtime-profiles.js';
+import { runtimeSessionRoutes } from './routes/runtime-sessions.js';
 import { runtimeSlotRoutes } from './routes/runtime-slots.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
 import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
+import type { RuntimeSessionStorage } from './services/runtime-session-storage.js';
 import type {
   AgentRepository,
   ContextPackRepository,
@@ -73,6 +75,7 @@ import type {
   RenderedPackRepository,
   RuntimeModelRepository,
   RuntimeProfileRepository,
+  RuntimeSessionRepository,
   RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
@@ -150,6 +153,8 @@ export interface AppOptions {
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
   runtimeProfileRepository: RuntimeProfileRepository;
+  runtimeSessionRepository: RuntimeSessionRepository;
+  runtimeSessionStorage: RuntimeSessionStorage;
   runtimeSlotRepository: RuntimeSlotRepository;
   runtimeModelRepository: RuntimeModelRepository;
   taskRepository: TaskRepository;
@@ -172,6 +177,7 @@ export interface AppOptions {
   oryClients: OryClients;
   security: SecurityOptions;
   packGcConfig: PackGcConfig;
+  runtimeSessionMaxBytes: number;
   /**
    * Optional ioredis client for the shared rate-limit store. When omitted, the
    * rate limiter uses an in-memory store. Constructed and owned by the caller
@@ -352,11 +358,14 @@ export async function registerApiRoutes(
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
   decorateSafe('runtimeProfileRepository', options.runtimeProfileRepository);
+  decorateSafe('runtimeSessionRepository', options.runtimeSessionRepository);
+  decorateSafe('runtimeSessionStorage', options.runtimeSessionStorage);
   decorateSafe('runtimeSlotRepository', options.runtimeSlotRepository);
   decorateSafe('runtimeModelRepository', options.runtimeModelRepository);
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('packGcConfig', options.packGcConfig);
+  decorateSafe('runtimeSessionMaxBytes', options.runtimeSessionMaxBytes);
   decorateSafe('taskRepository', options.taskRepository);
   decorateSafe('taskService', options.taskService);
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
@@ -397,6 +406,7 @@ export async function registerApiRoutes(
   await app.register(teamRoutes);
   await app.register(groupRoutes);
   await app.register(runtimeSlotRoutes);
+  await app.register(runtimeSessionRoutes);
   await app.register(runtimeProfileRoutes);
   await app.register(runtimeModelRoutes);
   await app.register(vouchRoutes);

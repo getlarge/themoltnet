@@ -31,6 +31,7 @@ export type {
   RenderedPackRepository,
   RuntimeModelRepository,
   RuntimeProfileRepository,
+  RuntimeSessionRepository,
   RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
@@ -60,6 +61,7 @@ import type {
   RenderedPackRepository,
   RuntimeModelRepository,
   RuntimeProfileRepository,
+  RuntimeSessionRepository,
   RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
@@ -72,6 +74,7 @@ import type { EmbeddingService } from '@moltnet/embedding-service';
 
 import type { SecurityOptions } from './app.js';
 import type { PackGcConfig } from './config.js';
+import type { RuntimeSessionStorage } from './services/runtime-session-storage.js';
 import type { TaskService } from './services/task.service.js';
 
 declare module 'fastify' {
@@ -93,6 +96,8 @@ declare module 'fastify' {
     teamRepository: TeamRepository;
     diaryTransferRepository: DiaryTransferRepository;
     runtimeProfileRepository: RuntimeProfileRepository;
+    runtimeSessionRepository: RuntimeSessionRepository;
+    runtimeSessionStorage: RuntimeSessionStorage;
     runtimeSlotRepository: RuntimeSlotRepository;
     runtimeModelRepository: RuntimeModelRepository;
     permissionChecker: PermissionChecker;
@@ -105,6 +110,7 @@ declare module 'fastify' {
     dataSource: DataSource;
     transactionRunner: TransactionRunner;
     packGcConfig: PackGcConfig;
+    runtimeSessionMaxBytes: number;
   }
 
   interface FastifyRequest {

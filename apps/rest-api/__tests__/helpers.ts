@@ -17,6 +17,7 @@ import { vi } from 'vitest';
 
 import { type AppOptions, buildApp } from '../src/app.js';
 import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
+import type { RuntimeSessionStorage } from '../src/services/runtime-session-storage.js';
 import type {
   AgentRepository,
   CryptoService,
@@ -30,6 +31,7 @@ import type {
   NonceRepository,
   RuntimeModelRepository,
   RuntimeProfileRepository,
+  RuntimeSessionRepository,
   RuntimeSlotRepository,
   SigningRequestRepository,
   TaskRepository,
@@ -244,6 +246,12 @@ export interface MockServices {
   };
   runtimeProfileRepository: {
     [K in keyof RuntimeProfileRepository]: ReturnType<typeof vi.fn>;
+  };
+  runtimeSessionRepository: {
+    [K in keyof RuntimeSessionRepository]: ReturnType<typeof vi.fn>;
+  };
+  runtimeSessionStorage: {
+    [K in keyof RuntimeSessionStorage]: ReturnType<typeof vi.fn>;
   };
   runtimeSlotRepository: {
     [K in keyof RuntimeSlotRepository]: ReturnType<typeof vi.fn>;
@@ -542,6 +550,16 @@ export function createMockServices(): MockServices {
       begin: vi.fn(),
       finish: vi.fn(),
       findLatestByTaskAttempt: vi.fn(),
+      findByIdInTeam: vi.fn(),
+    },
+    runtimeSessionRepository: {
+      upsertActive: vi.fn(),
+      findActiveByTaskAttempt: vi.fn(),
+      findByIdInTeam: vi.fn(),
+    },
+    runtimeSessionStorage: {
+      putObject: vi.fn(),
+      getObject: vi.fn(),
     },
     runtimeModelRepository: {
       create: vi.fn(),
@@ -735,6 +753,11 @@ export async function createTestApp(
       mocks.diaryTransferRepository as unknown as DiaryTransferRepository,
     runtimeProfileRepository:
       mocks.runtimeProfileRepository as unknown as RuntimeProfileRepository,
+    runtimeSessionRepository:
+      mocks.runtimeSessionRepository as unknown as RuntimeSessionRepository,
+    runtimeSessionStorage:
+      mocks.runtimeSessionStorage as unknown as RuntimeSessionStorage,
+    runtimeSessionMaxBytes: 1024 * 1024,
     runtimeSlotRepository:
       mocks.runtimeSlotRepository as unknown as RuntimeSlotRepository,
     runtimeModelRepository:

@@ -118,6 +118,13 @@ export {
   type UpdateRuntimeProfileInput,
 } from './repositories/runtime-profile.repository.js';
 export {
+  createRuntimeSessionRepository,
+  type RuntimeSessionCheckpointKind,
+  type RuntimeSessionKind,
+  type RuntimeSessionRepository,
+  type UpsertRuntimeSessionInput,
+} from './repositories/runtime-session.repository.js';
+export {
   type BeginRuntimeSlotInput,
   createRuntimeSlotRepository,
   type FinishRuntimeSlotInput,

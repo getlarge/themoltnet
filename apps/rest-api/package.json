@@ -31,6 +31,7 @@
     "@fastify/swagger": "catalog:",
     "@scalar/fastify-api-reference": "catalog:",
     "@fastify/type-provider-typebox": "catalog:",
+    "@aws-sdk/client-s3": "catalog:",
     "@moltnet/auth": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",

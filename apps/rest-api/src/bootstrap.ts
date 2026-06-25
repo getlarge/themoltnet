@@ -38,6 +38,7 @@ import {
   createRenderedPackRepository,
   createRuntimeModelRepository,
   createRuntimeProfileRepository,
+  createRuntimeSessionRepository,
   createRuntimeSlotRepository,
   createSigningRequestRepository,
   createTaskRepository,
@@ -75,6 +76,7 @@ import type { AppConfig } from './config.js';
 import { resolveOryUrls, resolveRedisConfig } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import { createAssertDiaryReadable } from './services/diary-readable.js';
+import { createRuntimeSessionStorage } from './services/runtime-session-storage.js';
 import {
   createTaskService,
   type TaskService,
@@ -247,6 +249,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const runtimeSlotRepository = createRuntimeSlotRepository(dbConnection.db);
+  const runtimeSessionRepository = createRuntimeSessionRepository(
+    dbConnection.db,
+  );
   const runtimeModelRepository = createRuntimeModelRepository(dbConnection.db);
   const groupRepository = createGroupRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
@@ -506,6 +511,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     teamRepository,
     diaryTransferRepository,
     runtimeProfileRepository,
+    runtimeSessionRepository,
+    runtimeSessionStorage: createRuntimeSessionStorage(
+      config.runtimeSessionStorage,
+    ),
+    runtimeSessionMaxBytes:
+      config.runtimeSessionStorage.RUNTIME_SESSION_MAX_BYTES,
     runtimeSlotRepository,
     runtimeModelRepository,
     taskRepository,

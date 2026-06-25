@@ -178,6 +178,17 @@ export const runtimeWorkspaceKindEnum = pgEnum('runtime_workspace_kind', [
   'scratch',
 ]);
 
+export const runtimeSessionKindEnum = pgEnum('runtime_session_kind', [
+  'root',
+  'extend',
+  'fork',
+]);
+
+export const runtimeSessionCheckpointKindEnum = pgEnum(
+  'runtime_session_checkpoint_kind',
+  ['attempt_final'],
+);
+
 /**
  * Diaries Table
  *
@@ -1426,6 +1437,82 @@ export type RuntimeWorkspace = typeof runtimeWorkspaces.$inferSelect;
 export type NewRuntimeWorkspace = typeof runtimeWorkspaces.$inferInsert;
 export type RuntimeSlot = typeof runtimeSlots.$inferSelect;
 export type NewRuntimeSlot = typeof runtimeSlots.$inferInsert;
+
+export const runtimeSessions = pgTable(
+  'runtime_sessions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    attemptN: integer('attempt_n').notNull(),
+    sourceSlotId: uuid('source_slot_id').references(() => runtimeSlots.id, {
+      onDelete: 'set null',
+    }),
+    sourceRuntimeProfileId: uuid('source_runtime_profile_id').references(
+      () => runtimeProfiles.id,
+      { onDelete: 'set null' },
+    ),
+    sessionKind: runtimeSessionKindEnum('session_kind').notNull(),
+    parentSessionId: uuid('parent_session_id').references(
+      (): AnyPgColumn => runtimeSessions.id,
+      { onDelete: 'restrict' },
+    ),
+    objectKey: text('object_key').notNull(),
+    contentType: varchar('content_type', { length: 200 }).notNull(),
+    contentEncoding: varchar('content_encoding', { length: 100 }),
+    sizeBytes: integer('size_bytes').notNull(),
+    sha256: varchar('sha256', { length: 64 }).notNull(),
+    storageClass: varchar('storage_class', { length: 100 }).notNull(),
+    checkpointKind: runtimeSessionCheckpointKindEnum('checkpoint_kind')
+      .notNull()
+      .default('attempt_final'),
+    uploadedAt: timestamp('uploaded_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('runtime_sessions_active_attempt_idx')
+      .on(table.teamId, table.taskId, table.attemptN)
+      .where(sql`deleted_at IS NULL`),
+    uniqueIndex('runtime_sessions_object_key_idx').on(table.objectKey),
+    index('runtime_sessions_team_idx').on(table.teamId),
+    index('runtime_sessions_task_attempt_idx').on(
+      table.teamId,
+      table.taskId,
+      table.attemptN,
+    ),
+    index('runtime_sessions_parent_idx')
+      .on(table.parentSessionId)
+      .where(sql`parent_session_id IS NOT NULL`),
+    index('runtime_sessions_source_slot_idx')
+      .on(table.sourceSlotId)
+      .where(sql`source_slot_id IS NOT NULL`),
+    foreignKey({
+      columns: [table.taskId, table.attemptN],
+      foreignColumns: [taskAttempts.taskId, taskAttempts.attemptN],
+    }).onDelete('cascade'),
+    check('runtime_sessions_size_bytes_non_negative', sql`size_bytes >= 0`),
+    check('runtime_sessions_sha256_hex', sql`sha256 ~ '^[0-9a-f]{64}$'`),
+    check(
+      'runtime_sessions_parent_not_self',
+      sql`parent_session_id IS NULL OR parent_session_id <> id`,
+    ),
+  ],
+);
+
+export type RuntimeSession = typeof runtimeSessions.$inferSelect;
+export type NewRuntimeSession = typeof runtimeSessions.$inferInsert;
 
 // ── Task Messages ──────────────────────────────────────────
 

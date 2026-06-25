@@ -154,6 +154,18 @@ services:
       - redis-data:/data
     restart: unless-stopped
 
+  runtime-object-store:
+    image: chrislusf/seaweedfs:4.36
+    command: ['server', '-s3', '-s3.port=8333', '-dir=/data', '-volume.max=0']
+    environment:
+      AWS_ACCESS_KEY_ID: runtime-sessions
+      AWS_SECRET_ACCESS_KEY: runtime-sessions-secret
+    ports:
+      - '8333:8333'
+    volumes:
+      - runtime-object-store-data:/data
+    restart: unless-stopped
+
 volumes:
   app-db-data:
   issue-lifecycle-db-data:
@@ -161,3 +173,4 @@ volumes:
   hydra-db-data:
   keto-db-data:
   redis-data:
+  runtime-object-store-data:
