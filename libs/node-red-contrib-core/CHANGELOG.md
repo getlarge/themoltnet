@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.2.0...node-red-contrib-core-v0.3.0) (2026-06-25)
+
+
+### Features
+
+* **node-red:** add query nodes and eval flow ([a96b2e6](https://github.com/getlarge/themoltnet/commit/a96b2e6b70a0ec8ee05dc682267a365c64eae957))
+* **node-red:** add task list and entry search nodes ([e6e09d8](https://github.com/getlarge/themoltnet/commit/e6e09d8675a803530e9d4bd1ad411b9afcfebdd8))
+
+
+### Bug Fixes
+
+* **node-red:** address query node review findings ([45b279c](https://github.com/getlarge/themoltnet/commit/45b279c92b0d13bfc5e39c126234653b3a895f6d))
+* **node-red:** address query node review findings ([47e915b](https://github.com/getlarge/themoltnet/commit/47e915b158dd9ce81f17c58bce90d31fe8bc323c))
+* **node-red:** satisfy query node checks ([8ddbafa](https://github.com/getlarge/themoltnet/commit/8ddbafa1524f3d83a16358ee56474bf8f4f6c349))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.1.0...node-red-contrib-core-v0.2.0) (2026-06-24)
 
 
