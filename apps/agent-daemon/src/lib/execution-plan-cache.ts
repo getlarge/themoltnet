@@ -190,46 +190,41 @@ async function resolveWarmSlot(
   sourceAttemptN: number,
   stateDirs: DaemonStateDirs,
 ): Promise<WarmSlotResolution> {
-  const remoteSession =
-    await runtimeSessionStore.findRuntimeSessionByTaskAttempt(
-      teamId,
-      sourceTaskId,
-      sourceAttemptN,
-    );
   const producerContext = await slotRegistry.findLatestSlotByTaskAttempt(
     teamId,
     sourceTaskId,
     sourceAttemptN,
   );
-  if (!producerContext && !remoteSession) return { kind: 'missing' };
+  if (!producerContext) return { kind: 'missing' };
 
-  const sourceSessionPath = remoteSession
-    ? await runtimeSessionStore.hydrateSession({
-        attemptN: sourceAttemptN,
-        destinationDir: `${stateDirs.piSessionsDir}/remote-${sourceTaskId}-attempt-${sourceAttemptN}`,
-        taskId: sourceTaskId,
+  const localSessionPath = resolveProducerSessionPath(producerContext);
+  const remoteSession = localSessionPath
+    ? null
+    : await runtimeSessionStore.findRuntimeSessionByTaskAttempt(
         teamId,
-      })
-    : producerContext
-      ? resolveProducerSessionPath(producerContext)
+        sourceTaskId,
+        sourceAttemptN,
+      );
+  const sourceSessionPath = localSessionPath
+    ? localSessionPath
+    : remoteSession
+      ? await runtimeSessionStore.hydrateSession({
+          attemptN: sourceAttemptN,
+          destinationDir: `${stateDirs.piSessionsDir}/remote-${sourceTaskId}-attempt-${sourceAttemptN}`,
+          taskId: sourceTaskId,
+          teamId,
+        })
       : null;
   if (!sourceSessionPath) return { kind: 'no-session-path' };
 
-  const copiedWorkspaceSource = producerContext
-    ? resolveProducerWorkspaceCopySource(producerContext, stateDirs)
-    : dirname(dirname(stateDirs.rootDir));
+  const copiedWorkspaceSource = resolveProducerWorkspaceCopySource(
+    producerContext,
+    stateDirs,
+  );
 
   return {
     kind: 'found',
-    producerSlot: producerContext ?? {
-      session: null,
-      slot: {
-        expiresAtMs: 0,
-        id: '',
-        runtimeProfileId: null,
-      },
-      workspace: null,
-    },
+    producerSlot: producerContext,
     sessionPath: sourceSessionPath,
     workspacePath: copiedWorkspaceSource,
   };

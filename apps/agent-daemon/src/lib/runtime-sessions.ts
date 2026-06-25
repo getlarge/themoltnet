@@ -1,5 +1,7 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pipeline } from 'node:stream/promises';
 
 import type { Agent, RuntimeSessionsNamespace } from '@themoltnet/sdk';
 
@@ -52,15 +54,12 @@ export function createApiRuntimeSessionStore(args: {
         },
         { teamId: input.teamId },
       );
-      mkdirSync(input.destinationDir, { recursive: true });
+      await mkdir(input.destinationDir, { recursive: true });
       const sessionPath = join(
         input.destinationDir,
         `remote-${input.taskId}-attempt-${input.attemptN}.jsonl`,
       );
-      writeFileSync(
-        sessionPath,
-        Buffer.from(downloaded.contentBase64, 'base64'),
-      );
+      await pipeline(downloaded, createWriteStream(sessionPath));
       return sessionPath;
     },
 
@@ -71,11 +70,10 @@ export function createApiRuntimeSessionStore(args: {
           `Cannot upload runtime session for ${input.taskId}/${input.attemptN}: no local session file in ${input.sessionDir}`,
         );
       }
-      const contentBase64 = readFileSync(sessionPath).toString('base64');
       await agent.runtimeSessions.upload(
         { attemptN: input.attemptN, taskId: input.taskId },
+        createReadStream(sessionPath),
         {
-          contentBase64,
           parentSessionId: input.parentSessionId ?? undefined,
           sessionKind: input.sessionKind,
           sourceRuntimeProfileId: input.sourceRuntimeProfileId ?? undefined,

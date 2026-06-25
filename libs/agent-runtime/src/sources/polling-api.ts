@@ -1,4 +1,5 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 import type { Task, TaskStatus } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
@@ -20,8 +21,18 @@ export interface ContinuationSlotRegistry {
     taskId: string,
     attemptN: number,
   ):
-    | Promise<{ session?: { sessionDir?: string | null } | null } | null>
-    | { session?: { sessionDir?: string | null } | null }
+    | Promise<{
+        session?: {
+          sessionDir?: string | null;
+          sessionPath?: string | null;
+        } | null;
+      } | null>
+    | {
+        session?: {
+          sessionDir?: string | null;
+          sessionPath?: string | null;
+        } | null;
+      }
     | null;
 }
 
@@ -37,7 +48,8 @@ export interface ContinuationSessionRegistry {
  * Claim-time affinity filter for warm-resume continuations.
  *
  * - No `continueFrom` → claimable (true).
- * - `continueFrom` set + remote session exists → claimable (true).
+ * - `continueFrom` set + remote session exists + slot exists → claimable
+ *   even if the slot's local session file is unavailable.
  * - `continueFrom` set + no slot in the store → not claimable (the producer
  *   context is unavailable to this daemon).
  * - `continueFrom` set + slot exists but its `sessionDir` is missing on
@@ -65,13 +77,6 @@ export async function isContinuationClaimableByThisDaemon(
 > {
   const cf = task.input?.continueFrom;
   if (!cf) return { claimable: true };
-  const remoteSession = await sessionRegistry?.findRuntimeSessionByTaskAttempt(
-    task.teamId,
-    cf.taskId,
-    cf.attemptN,
-  );
-  if (remoteSession) return { claimable: true };
-
   const slot = await slotRegistry.findLatestSlotByTaskAttempt(
     task.teamId,
     cf.taskId,
@@ -84,16 +89,46 @@ export async function isContinuationClaimableByThisDaemon(
       continueFrom: cf,
     };
   }
-  const sessionDir = slot.session?.sessionDir;
-  if (!sessionDir || !existsSync(sessionDir)) {
+  if (!hasLocalSessionFile(slot.session ?? null)) {
+    const remoteSession =
+      await sessionRegistry?.findRuntimeSessionByTaskAttempt(
+        task.teamId,
+        cf.taskId,
+        cf.attemptN,
+      );
+    if (remoteSession) return { claimable: true };
     return {
       claimable: false,
       reason: 'missing_session_dir',
       continueFrom: cf,
-      sessionDir,
+      sessionDir: slot.session?.sessionDir,
     };
   }
   return { claimable: true };
+}
+
+function hasLocalSessionFile(
+  session: { sessionDir?: string | null; sessionPath?: string | null } | null,
+): boolean {
+  const explicit = session?.sessionPath ?? null;
+  if (explicit && existsSync(explicit)) return true;
+
+  const sessionDir = session?.sessionDir ?? null;
+  if (!sessionDir || !existsSync(sessionDir)) return false;
+  return resolveLatestPiSessionPath(sessionDir) !== null;
+}
+
+function resolveLatestPiSessionPath(sessionDir: string): string | null {
+  try {
+    const latestEntry = readdirSync(sessionDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.jsonl'))
+      .map((entry) => entry.name)
+      .sort()
+      .at(-1);
+    return latestEntry ? join(sessionDir, latestEntry) : null;
+  } catch {
+    return null;
+  }
 }
 
 export interface PollingApiTaskSourceOptions {

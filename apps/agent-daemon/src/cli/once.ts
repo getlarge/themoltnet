@@ -396,31 +396,20 @@ export async function runOnce(argv: string[]): Promise<number> {
           claimedTask.attemptN,
         );
         if (resolved?.session?.sessionDir) {
-          try {
-            const parentSession = await resolveParentRuntimeSession(
-              runtimeSessionStore,
-              claimedTask,
-            );
-            await runtimeSessionStore.uploadAttemptFinal({
-              attemptN: claimedTask.attemptN,
-              parentSessionId: parentSession?.id ?? null,
-              sessionDir: resolved.session.sessionDir,
-              sessionKind: resolveRuntimeSessionKind(claimedTask),
-              sourceRuntimeProfileId: resolved.slot.runtimeProfileId,
-              sourceSlotId: resolved.slot.id,
-              taskId: claimedTask.task.id,
-              teamId: claimedTask.task.teamId,
-            });
-          } catch (err) {
-            rootLogger.warn(
-              {
-                err,
-                attemptN: claimedTask.attemptN,
-                taskId: claimedTask.task.id,
-              },
-              'runtime-session.upload_failed',
-            );
-          }
+          const parentSession = await resolveParentRuntimeSession(
+            runtimeSessionStore,
+            claimedTask,
+          );
+          await runtimeSessionStore.uploadAttemptFinal({
+            attemptN: claimedTask.attemptN,
+            parentSessionId: parentSession?.id ?? null,
+            sessionDir: resolved.session.sessionDir,
+            sessionKind: resolveRuntimeSessionKind(claimedTask),
+            sourceRuntimeProfileId: resolved.slot.runtimeProfileId,
+            sourceSlotId: resolved.slot.id,
+            taskId: claimedTask.task.id,
+            teamId: claimedTask.task.teamId,
+          });
         }
         return finalizeTask(ctx.agent, output, {
           task: claimedTask.task,

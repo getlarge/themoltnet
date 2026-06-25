@@ -353,7 +353,7 @@ describe('createExecutionPlanCache', () => {
     await slotStore.close();
   });
 
-  it('hydrates a remote runtime session for freeform continuations when no local slot exists', async () => {
+  it('hydrates a remote runtime session for freeform continuations when the slot exists but local session is missing', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-remote-'));
     tempRoots.push(mountRoot);
     const stateDirs = {
@@ -363,6 +363,22 @@ describe('createExecutionPlanCache', () => {
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
     const slotStore = new InMemoryRuntimeSlotStore();
+    await slotStore.beginSlot({
+      agentName: 'a',
+      lastAttemptN: 1,
+      lastTaskId: '11111111-1111-4111-8111-111111111111',
+      model: 'm',
+      provider: 'p',
+      runtimeProfileId: PROFILE_ID,
+      sessionDir: join(mountRoot, 'missing-session-dir'),
+      sessionPath: null,
+      slotKey: 'freeform:correlation:abc',
+      taskType: 'freeform',
+      teamId: TEAM_ID,
+      workspaceId: null,
+      worktreeBranch: null,
+      worktreePath: null,
+    });
     let hydratedPath: string | null = null;
     const runtimeSessionStore: RuntimeSessionStore = {
       findRuntimeSessionByTaskAttempt: async () =>
@@ -411,6 +427,79 @@ describe('createExecutionPlanCache', () => {
     );
     expect(plan.workspaceId).toBeNull();
     expect(plan.worktreeBranch).toBeNull();
+
+    await slotStore.close();
+  });
+
+  it('uses the local producer session instead of downloading when both local and remote exist', async () => {
+    const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-local-'));
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const producerSessionDir = join(stateDirs.piSessionsDir, 'producer-slot');
+    mkdirSync(producerSessionDir, { recursive: true });
+    const producerSessionPath = join(producerSessionDir, 'session-1.jsonl');
+    writeFileSync(producerSessionPath, '{"role":"system","content":"local"}\n');
+
+    const slotStore = new InMemoryRuntimeSlotStore();
+    await slotStore.beginSlot({
+      agentName: 'a',
+      lastAttemptN: 1,
+      lastTaskId: '11111111-1111-4111-8111-111111111111',
+      model: 'm',
+      provider: 'p',
+      runtimeProfileId: PROFILE_ID,
+      sessionDir: producerSessionDir,
+      sessionPath: producerSessionPath,
+      slotKey: 'freeform:correlation:abc',
+      taskType: 'freeform',
+      teamId: TEAM_ID,
+      workspaceId: null,
+      worktreeBranch: null,
+      worktreePath: null,
+    });
+    const runtimeSessionStore: RuntimeSessionStore = {
+      findRuntimeSessionByTaskAttempt: async () => {
+        throw new Error('remote session should not be queried');
+      },
+      hydrateSession: async () => {
+        throw new Error('remote session should not be downloaded');
+      },
+      uploadAttemptFinal: async () => {},
+    };
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      warmSessionTtlSec: 300,
+      slotRegistry: slotStore,
+      runtimeSessionStore,
+    });
+
+    const plan = await cache.getOrCreate({
+      attemptN: 1,
+      task: {
+        id: '22222222-2222-4222-8222-222222222222',
+        teamId: TEAM_ID,
+        taskType: 'freeform',
+        correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        input: {
+          brief: 'next step',
+          continueFrom: {
+            taskId: '11111111-1111-4111-8111-111111111111',
+            attemptN: 1,
+          },
+        },
+      } as unknown as Task,
+    });
+
+    expect(plan.sessionPersistence?.forkFromSessionPath).toBe(
+      producerSessionPath,
+    );
 
     await slotStore.close();
   });
