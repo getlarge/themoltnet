@@ -24,11 +24,13 @@
       "moltnet-agent": "dist/nodes/agent.js",
       "moltnet-runtime-profile": "dist/nodes/runtime-profile.js",
       "moltnet-tasks-create": "dist/nodes/tasks-create.js",
+      "moltnet-tasks-list": "dist/nodes/tasks-list.js",
       "moltnet-task-get": "dist/nodes/task-get.js",
       "moltnet-task-wait": "dist/nodes/task-wait.js",
       "moltnet-workflow-status": "dist/nodes/workflow-status.js",
       "moltnet-task-builder": "dist/nodes/task-builder.js",
-      "moltnet-task-reader": "dist/nodes/task-reader.js"
+      "moltnet-task-reader": "dist/nodes/task-reader.js",
+      "moltnet-entries-search": "dist/nodes/entries-search.js"
     }
   },
   "engines": {

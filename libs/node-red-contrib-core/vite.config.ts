@@ -13,11 +13,13 @@ const nodes = [
   'agent',
   'runtime-profile',
   'tasks-create',
+  'tasks-list',
   'task-get',
   'task-wait',
   'workflow-status',
   'task-builder',
   'task-reader',
+  'entries-search',
 ];
 
 export default defineConfig({

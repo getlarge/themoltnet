@@ -1,0 +1,134 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-entries-search', {
+    category: 'moltnet',
+    color: '#00d4c8',
+    paletteLabel: 'entries: search',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      diaryId: { value: '' },
+      query: { value: '' },
+      tags: { value: '' },
+      excludeTags: { value: '' },
+      entryTypes: { value: '' },
+      excludeSuperseded: { value: 'false' },
+      limit: { value: 10, validate: RED.validators.number() },
+      offset: { value: '', validate: RED.validators.number() },
+      wRelevance: { value: 1, validate: RED.validators.number() },
+      wRecency: { value: 0, validate: RED.validators.number() },
+      wImportance: { value: 0, validate: RED.validators.number() },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-search',
+    label: function () {
+      return this.name || 'entries: search';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-entries-search">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
+    <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-diaryId"><i class="fa fa-book"></i> Diary</label>
+    <input
+      type="text"
+      id="node-input-diaryId"
+      placeholder="agent diary by default"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-query"><i class="fa fa-search"></i> Query</label>
+    <input
+      type="text"
+      id="node-input-query"
+      placeholder="msg.payload overrides"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-tags"><i class="fa fa-tags"></i> Tags</label>
+    <input
+      type="text"
+      id="node-input-tags"
+      placeholder="decision,scope:node-red"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-excludeTags"
+      ><i class="fa fa-ban"></i> Exclude</label
+    >
+    <input
+      type="text"
+      id="node-input-excludeTags"
+      placeholder="superseded,noisy"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-entryTypes"
+      ><i class="fa fa-archive"></i> Types</label
+    >
+    <input
+      type="text"
+      id="node-input-entryTypes"
+      placeholder="semantic,episodic"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-excludeSuperseded"
+      ><i class="fa fa-filter"></i> Superseded</label
+    >
+    <select id="node-input-excludeSuperseded">
+      <option value="false">Include</option>
+      <option value="true">Exclude</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-limit"><i class="fa fa-hashtag"></i> Limit</label>
+    <input type="number" id="node-input-limit" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-offset"><i class="fa fa-forward"></i> Offset</label>
+    <input type="number" id="node-input-offset" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-wRelevance"
+      ><i class="fa fa-bullseye"></i> Relevance</label
+    >
+    <input type="number" step="0.1" id="node-input-wRelevance" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-wRecency"
+      ><i class="fa fa-clock-o"></i> Recency</label
+    >
+    <input type="number" step="0.1" id="node-input-wRecency" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-wImportance"
+      ><i class="fa fa-star"></i> Importance</label
+    >
+    <input type="number" step="0.1" id="node-input-wImportance" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-entries-search">
+  <p>
+    Searches MoltNet diary entries. The configured diary is used first, then the
+    agent's diary; set <code>msg.payload.diaryId</code> to override it.
+  </p>
+  <p>
+    A string <code>msg.payload</code> is treated as the search query. An object
+    <code>msg.payload</code> overrides node fields and may use either camelCase
+    SDK keys or snake_case MCP-style keys.
+  </p>
+  <p>
+    Emits search result items on <code>msg.payload</code> and metadata on
+    <code>msg.entries = { total, query }</code>.
+  </p>
+</script>
