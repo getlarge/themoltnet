@@ -7,6 +7,17 @@ import type { Agent, RuntimeSessionsNamespace } from '@themoltnet/sdk';
 
 import { resolveLatestPiSessionPath } from './session-files.js';
 
+export type RuntimeSessionKind = 'root' | 'extend' | 'fork';
+
+export interface RuntimeSessionClaim {
+  attemptN: number;
+  task: {
+    id: string;
+    input: unknown;
+    teamId: string;
+  };
+}
+
 export interface RuntimeSessionStore {
   findRuntimeSessionByTaskAttempt(
     teamId: string,
@@ -28,9 +39,30 @@ export interface RuntimeSessionStore {
     sessionDir: string;
     sourceSlotId?: string | null;
     sourceRuntimeProfileId?: string | null;
-    sessionKind: 'root' | 'extend' | 'fork';
+    sessionKind: RuntimeSessionKind;
     parentSessionId?: string | null;
   }): Promise<void>;
+}
+
+export function resolveRuntimeSessionKind(
+  claimedTask: RuntimeSessionClaim,
+): RuntimeSessionKind {
+  const continueFrom = resolveContinueFrom(claimedTask);
+  if (!continueFrom) return 'root';
+  return continueFrom.mode === 'fork' ? 'fork' : 'extend';
+}
+
+export async function resolveParentRuntimeSession(
+  runtimeSessionStore: RuntimeSessionStore,
+  claimedTask: RuntimeSessionClaim,
+) {
+  const continueFrom = resolveContinueFrom(claimedTask);
+  if (!continueFrom) return null;
+  return runtimeSessionStore.findRuntimeSessionByTaskAttempt(
+    claimedTask.task.teamId,
+    continueFrom.taskId,
+    continueFrom.attemptN,
+  );
 }
 
 export function createApiRuntimeSessionStore(args: {
@@ -83,4 +115,22 @@ export function createApiRuntimeSessionStore(args: {
       );
     },
   };
+}
+
+function resolveContinueFrom(claimedTask: RuntimeSessionClaim):
+  | {
+      attemptN: number;
+      mode?: 'extend' | 'fork';
+      taskId: string;
+    }
+  | undefined {
+  return (
+    claimedTask.task.input as {
+      continueFrom?: {
+        attemptN: number;
+        mode?: 'extend' | 'fork';
+        taskId: string;
+      };
+    }
+  ).continueFrom;
 }

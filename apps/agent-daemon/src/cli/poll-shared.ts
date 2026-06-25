@@ -46,7 +46,8 @@ import {
 } from '../lib/runtime-profile.js';
 import {
   createApiRuntimeSessionStore,
-  type RuntimeSessionStore,
+  resolveParentRuntimeSession,
+  resolveRuntimeSessionKind,
 } from '../lib/runtime-sessions.js';
 import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
@@ -621,35 +622,6 @@ function resolveRecordedWorkspacePath(
   return executionPlan.workspaceMode === 'scratch_mount'
     ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
     : join(findMainWorktree(), '.worktrees', executionPlan.workspaceId);
-}
-
-function resolveRuntimeSessionKind(
-  claimedTask: ClaimedTask,
-): 'root' | 'extend' | 'fork' {
-  const continueFrom = (
-    claimedTask.task.input as {
-      continueFrom?: { mode?: 'extend' | 'fork' };
-    }
-  ).continueFrom;
-  if (!continueFrom) return 'root';
-  return continueFrom.mode === 'fork' ? 'fork' : 'extend';
-}
-
-async function resolveParentRuntimeSession(
-  runtimeSessionStore: RuntimeSessionStore,
-  claimedTask: ClaimedTask,
-) {
-  const continueFrom = (
-    claimedTask.task.input as {
-      continueFrom?: { taskId: string; attemptN: number };
-    }
-  ).continueFrom;
-  if (!continueFrom) return null;
-  return runtimeSessionStore.findRuntimeSessionByTaskAttempt(
-    claimedTask.task.teamId,
-    continueFrom.taskId,
-    continueFrom.attemptN,
-  );
 }
 
 function runtimeForClaimedTask(
