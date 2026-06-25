@@ -1067,10 +1067,10 @@ func (UnimplementedHandler) UpdateTeamMemberRole(ctx context.Context, req *Updat
 
 // UploadRuntimeSession implements uploadRuntimeSession operation.
 //
-// Upload or replace the durable team-scoped runtime session for a task attempt.
+// Stream or replace the durable team-scoped runtime session content for a task attempt.
 //
-// PUT /runtime-sessions/{taskId}/{attemptN}
-func (UnimplementedHandler) UploadRuntimeSession(ctx context.Context, req *UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (r UploadRuntimeSessionRes, _ error) {
+// PUT /runtime-sessions/{taskId}/{attemptN}/content
+func (UnimplementedHandler) UploadRuntimeSession(ctx context.Context, params UploadRuntimeSessionParams) (r UploadRuntimeSessionRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

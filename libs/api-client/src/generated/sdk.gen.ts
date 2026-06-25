@@ -104,7 +104,6 @@ import type {
   DiffContextPacksByIdResponses,
   DownloadRuntimeSessionData,
   DownloadRuntimeSessionErrors,
-  DownloadRuntimeSessionResponses,
   FailTaskData,
   FailTaskErrors,
   FailTaskResponses,
@@ -2197,14 +2196,14 @@ export const getRuntimeSession = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Upload or replace the durable team-scoped runtime session for a task attempt.
+ * Download the durable team-scoped runtime session content for a task attempt.
  */
-export const uploadRuntimeSession = <ThrowOnError extends boolean = false>(
-  options: Options<UploadRuntimeSessionData, ThrowOnError>,
+export const downloadRuntimeSession = <ThrowOnError extends boolean = false>(
+  options: Options<DownloadRuntimeSessionData, ThrowOnError>,
 ) =>
-  (options.client ?? client).put<
-    UploadRuntimeSessionResponses,
-    UploadRuntimeSessionErrors,
+  (options.client ?? client).get<
+    unknown,
+    DownloadRuntimeSessionErrors,
     ThrowOnError
   >({
     security: [
@@ -2216,23 +2215,19 @@ export const uploadRuntimeSession = <ThrowOnError extends boolean = false>(
         type: 'apiKey',
       },
     ],
-    url: '/runtime-sessions/{taskId}/{attemptN}',
+    url: '/runtime-sessions/{taskId}/{attemptN}/content',
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
   });
 
 /**
- * Download the durable team-scoped runtime session content for a task attempt.
+ * Stream or replace the durable team-scoped runtime session content for a task attempt.
  */
-export const downloadRuntimeSession = <ThrowOnError extends boolean = false>(
-  options: Options<DownloadRuntimeSessionData, ThrowOnError>,
+export const uploadRuntimeSession = <ThrowOnError extends boolean = false>(
+  options: Options<UploadRuntimeSessionData, ThrowOnError>,
 ) =>
-  (options.client ?? client).get<
-    DownloadRuntimeSessionResponses,
-    DownloadRuntimeSessionErrors,
+  (options.client ?? client).put<
+    UploadRuntimeSessionResponses,
+    UploadRuntimeSessionErrors,
     ThrowOnError
   >({
     security: [

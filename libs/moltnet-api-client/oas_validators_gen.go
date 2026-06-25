@@ -8327,261 +8327,6 @@ func (s DownloadRuntimeSessionNotFoundCode) Validate() error {
 	}
 }
 
-func (s *DownloadRuntimeSessionOK) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := s.Session.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "session",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s *DownloadRuntimeSessionOKSession) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        false,
-			Max:           0,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.AttemptN)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "attemptN",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.CheckpointKind.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "checkpointKind",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.ContentEncoding.Get(); ok {
-			if err := func() error {
-				if err := (validate.String{
-					MinLength:     1,
-					MinLengthSet:  true,
-					MaxLength:     100,
-					MaxLengthSet:  true,
-					Email:         false,
-					Hostname:      false,
-					Regex:         nil,
-					MinNumeric:    0,
-					MinNumericSet: false,
-					MaxNumeric:    0,
-					MaxNumericSet: false,
-				}).Validate(string(value)); err != nil {
-					return errors.Wrap(err, "string")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "contentEncoding",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     200,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.ContentType)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "contentType",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     0,
-			MaxLengthSet:  false,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.ObjectKey)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "objectKey",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.SessionKind.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionKind",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     64,
-			MinLengthSet:  true,
-			MaxLength:     64,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.SHA256)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sha256",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           0,
-			MaxSet:        false,
-			Max:           0,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.SizeBytes)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sizeBytes",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     100,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.StorageClass)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "storageClass",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s DownloadRuntimeSessionOKSessionCheckpointKind) Validate() error {
-	switch s.Type {
-	case DownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind:
-		if err := s.DownloadRuntimeSessionOKSessionCheckpointKind0.Validate(); err != nil {
-			return err
-		}
-		return nil
-	default:
-		return errors.Errorf("invalid type %q", s.Type)
-	}
-}
-
-func (s DownloadRuntimeSessionOKSessionCheckpointKind0) Validate() error {
-	switch s {
-	case "attempt_final":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s DownloadRuntimeSessionOKSessionSessionKind) Validate() error {
-	switch s {
-	case "root":
-		return nil
-	case "extend":
-		return nil
-	case "fork":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
 func (s *DownloadRuntimeSessionServiceUnavailable) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -12402,29 +12147,6 @@ func (s *GetRuntimeSessionOK) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "contentType",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     0,
-			MaxLengthSet:  false,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.ObjectKey)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "objectKey",
 			Error: err,
 		})
 	}
@@ -24399,6 +24121,111 @@ func (s UploadRuntimeSessionBadRequestCode) Validate() error {
 	}
 }
 
+func (s *UploadRuntimeSessionConflict) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s UploadRuntimeSessionConflictCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *UploadRuntimeSessionForbidden) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -24701,29 +24528,6 @@ func (s *UploadRuntimeSessionOK) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     0,
-			MaxLengthSet:  false,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.ObjectKey)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "objectKey",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if err := s.SessionKind.Validate(); err != nil {
 			return err
 		}
@@ -24841,65 +24645,6 @@ func (s UploadRuntimeSessionOKSessionKind) Validate() error {
 	}
 }
 
-func (s *UploadRuntimeSessionReq) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     0,
-			MaxLengthSet:  false,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.ContentBase64)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "contentBase64",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.SessionKind.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionKind",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s UploadRuntimeSessionReqSessionKind) Validate() error {
-	switch s {
-	case "root":
-		return nil
-	case "extend":
-		return nil
-	case "fork":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
 func (s *UploadRuntimeSessionServiceUnavailable) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -24999,6 +24744,19 @@ func (s UploadRuntimeSessionServiceUnavailableCode) Validate() error {
 	case "DIARY_TRANSFER_NOT_FOUND":
 		return nil
 	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s UploadRuntimeSessionSessionKind) Validate() error {
+	switch s {
+	case "root":
+		return nil
+	case "extend":
+		return nil
+	case "fork":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

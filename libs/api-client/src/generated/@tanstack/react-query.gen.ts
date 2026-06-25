@@ -233,7 +233,6 @@ import type {
   DiffContextPacksByIdResponse,
   DownloadRuntimeSessionData,
   DownloadRuntimeSessionError,
-  DownloadRuntimeSessionResponse2,
   FailTaskData,
   FailTaskError,
   FailTaskResponse,
@@ -3037,8 +3036,36 @@ export const getRuntimeSessionOptions = (
     queryKey: getRuntimeSessionQueryKey(options),
   });
 
+export const downloadRuntimeSessionQueryKey = (
+  options: Options<DownloadRuntimeSessionData>,
+) => createQueryKey('downloadRuntimeSession', options);
+
 /**
- * Upload or replace the durable team-scoped runtime session for a task attempt.
+ * Download the durable team-scoped runtime session content for a task attempt.
+ */
+export const downloadRuntimeSessionOptions = (
+  options: Options<DownloadRuntimeSessionData>,
+) =>
+  queryOptions<
+    unknown,
+    DownloadRuntimeSessionError,
+    unknown,
+    ReturnType<typeof downloadRuntimeSessionQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await downloadRuntimeSession({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: downloadRuntimeSessionQueryKey(options),
+  });
+
+/**
+ * Stream or replace the durable team-scoped runtime session content for a task attempt.
  */
 export const uploadRuntimeSessionMutation = (
   options?: Partial<Options<UploadRuntimeSessionData>>,
@@ -3063,34 +3090,6 @@ export const uploadRuntimeSessionMutation = (
   };
   return mutationOptions;
 };
-
-export const downloadRuntimeSessionQueryKey = (
-  options: Options<DownloadRuntimeSessionData>,
-) => createQueryKey('downloadRuntimeSession', options);
-
-/**
- * Download the durable team-scoped runtime session content for a task attempt.
- */
-export const downloadRuntimeSessionOptions = (
-  options: Options<DownloadRuntimeSessionData>,
-) =>
-  queryOptions<
-    DownloadRuntimeSessionResponse2,
-    DownloadRuntimeSessionError,
-    DownloadRuntimeSessionResponse2,
-    ReturnType<typeof downloadRuntimeSessionQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await downloadRuntimeSession({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: downloadRuntimeSessionQueryKey(options),
-  });
 
 /**
  * Upsert a team-scoped runtime slot for audit and continuation affinity lookup.

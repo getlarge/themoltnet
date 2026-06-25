@@ -719,10 +719,10 @@ type Handler interface {
 	UpdateTeamMemberRole(ctx context.Context, req *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (UpdateTeamMemberRoleRes, error)
 	// UploadRuntimeSession implements uploadRuntimeSession operation.
 	//
-	// Upload or replace the durable team-scoped runtime session for a task attempt.
+	// Stream or replace the durable team-scoped runtime session content for a task attempt.
 	//
-	// PUT /runtime-sessions/{taskId}/{attemptN}
-	UploadRuntimeSession(ctx context.Context, req *UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error)
+	// PUT /runtime-sessions/{taskId}/{attemptN}/content
+	UploadRuntimeSession(ctx context.Context, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error)
 	// VerifyAgentSignature implements verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.

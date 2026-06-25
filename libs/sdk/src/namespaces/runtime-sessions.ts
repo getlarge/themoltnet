@@ -1,8 +1,7 @@
-import {
-  downloadRuntimeSession,
-  getRuntimeSession,
-  uploadRuntimeSession,
-} from '@moltnet/api-client';
+import { Readable } from 'node:stream';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+
+import { getRuntimeSession, type RuntimeSession } from '@moltnet/api-client';
 
 import type { RuntimeSessionsNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
@@ -34,26 +33,48 @@ export function createRuntimeSessionsNamespace(
       }
     },
 
-    async upload(path, body, options) {
-      return unwrapResult(
-        await uploadRuntimeSession({
-          client,
+    async upload(path, body, query, options) {
+      return unwrapResult<RuntimeSession>(
+        (await client.request({
           auth,
-          headers: teamHeaders(options),
-          path,
           body,
-        }),
+          duplex: 'half',
+          headers: {
+            ...teamHeaders(options),
+            'content-type': 'application/x-ndjson',
+          },
+          method: 'PUT',
+          path,
+          query,
+          security: [{ scheme: 'bearer', type: 'http' }],
+          url: '/runtime-sessions/{taskId}/{attemptN}/content',
+        } as Parameters<typeof client.request>[0])) as {
+          data?: RuntimeSession;
+          error?: unknown;
+          response?: unknown;
+        },
       );
     },
 
     async download(path, options) {
-      return unwrapResult(
-        await downloadRuntimeSession({
-          client,
+      const stream = unwrapResult(
+        await client.request({
           auth,
           headers: teamHeaders(options),
+          method: 'GET',
+          parseAs: 'stream',
           path,
+          security: [{ scheme: 'bearer', type: 'http' }],
+          url: '/runtime-sessions/{taskId}/{attemptN}/content',
         }),
+      );
+      if (stream instanceof Readable) return stream;
+      if (stream instanceof ReadableStream) {
+        return Readable.fromWeb(stream as NodeReadableStream);
+      }
+      throw new MoltNetError(
+        'Unexpected runtime session download response stream',
+        { code: 'INVALID_RESPONSE' },
       );
     },
   };

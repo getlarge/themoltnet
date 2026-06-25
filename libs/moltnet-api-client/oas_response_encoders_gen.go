@@ -2435,18 +2435,6 @@ func encodeDiffContextPacksByIdResponse(response DiffContextPacksByIdRes, w http
 
 func encodeDownloadRuntimeSessionResponse(response DownloadRuntimeSessionRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
-	case *DownloadRuntimeSessionOK:
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(200)
-
-		e := new(jx.Encoder)
-		response.Encode(e)
-		if _, err := e.WriteTo(w); err != nil {
-			return errors.Wrap(err, "write")
-		}
-
-		return nil
-
 	case *DownloadRuntimeSessionBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
@@ -7435,6 +7423,18 @@ func encodeUploadRuntimeSessionResponse(response UploadRuntimeSessionRes, w http
 	case *UploadRuntimeSessionNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *UploadRuntimeSessionConflict:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(409)
 
 		e := new(jx.Encoder)
 		response.Encode(e)

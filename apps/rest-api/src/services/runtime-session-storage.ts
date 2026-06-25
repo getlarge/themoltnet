@@ -1,5 +1,9 @@
+import { Readable } from 'node:stream';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+
 import {
   CreateBucketCommand,
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
   NoSuchKey,
@@ -10,7 +14,7 @@ import {
 import type { RuntimeSessionStorageConfig } from '../config.js';
 
 export interface RuntimeSessionObject {
-  body: Buffer;
+  body: Readable;
   contentType?: string;
   contentEncoding?: string;
 }
@@ -18,12 +22,15 @@ export interface RuntimeSessionObject {
 export interface RuntimeSessionStorage {
   putObject(input: {
     key: string;
-    body: Buffer;
+    body: Readable;
+    contentLength?: number;
     contentType: string;
     contentEncoding?: string | null;
   }): Promise<void>;
 
   getObject(key: string): Promise<RuntimeSessionObject>;
+
+  deleteObject(key: string): Promise<void>;
 }
 
 export class RuntimeSessionStorageNotConfiguredError extends Error {
@@ -72,6 +79,7 @@ export function createRuntimeSessionStorage(
           Body: input.body,
           Bucket: bucket,
           ContentEncoding: input.contentEncoding ?? undefined,
+          ContentLength: input.contentLength,
           ContentType: input.contentType,
           Key: input.key,
         }),
@@ -88,11 +96,8 @@ export function createRuntimeSessionStorage(
             Key: key,
           }),
         );
-        const body = object.Body
-          ? Buffer.from(await object.Body.transformToByteArray())
-          : Buffer.alloc(0);
         return {
-          body,
+          body: object.Body ? toReadable(object.Body) : Readable.from([]),
           contentEncoding: object.ContentEncoding,
           contentType: object.ContentType,
         };
@@ -102,6 +107,12 @@ export function createRuntimeSessionStorage(
         }
         throw err;
       }
+    },
+
+    async deleteObject(key) {
+      bucketReady ??= ensureBucket(client, bucket);
+      await bucketReady;
+      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },
   };
 }
@@ -128,7 +139,35 @@ function createDisabledRuntimeSessionStorage(): RuntimeSessionStorage {
     async getObject() {
       throw new RuntimeSessionStorageNotConfiguredError();
     },
+    async deleteObject() {
+      throw new RuntimeSessionStorageNotConfiguredError();
+    },
   };
+}
+
+function toReadable(body: unknown): Readable {
+  if (body instanceof Readable) return body;
+  if (
+    typeof body === 'object' &&
+    body !== null &&
+    'transformToWebStream' in body &&
+    typeof (body as { transformToWebStream?: unknown }).transformToWebStream ===
+      'function'
+  ) {
+    return Readable.fromWeb(
+      (
+        body as { transformToWebStream(): NodeReadableStream }
+      ).transformToWebStream(),
+    );
+  }
+  if (
+    typeof body === 'object' &&
+    body !== null &&
+    Symbol.asyncIterator in body
+  ) {
+    return Readable.from(body as AsyncIterable<Uint8Array>);
+  }
+  throw new TypeError('Unsupported runtime session object body stream');
 }
 
 function hasS3NoSuchKeyName(err: unknown): boolean {

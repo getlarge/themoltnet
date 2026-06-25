@@ -1,4 +1,6 @@
-import { gzipSync } from 'node:zlib';
+import { Readable } from 'node:stream';
+import { promisify } from 'node:util';
+import { gzip } from 'node:zlib';
 
 import type { RuntimeSession } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
@@ -21,6 +23,7 @@ const TEAM_HEADERS = {
   authorization: 'Bearer test-token',
   'x-moltnet-team-id': TEAM_ID,
 };
+const gzipAsync = promisify(gzip);
 
 function mockSession(overrides: Partial<RuntimeSession> = {}): RuntimeSession {
   return {
@@ -64,6 +67,8 @@ describe('runtime session routes', () => {
     });
     mocks.taskRepository.findAttempt.mockResolvedValue({
       attemptN: 1,
+      claimedByAgentId: VALID_AUTH_CONTEXT.identityId,
+      status: 'running',
       taskId: TASK_ID,
     });
     mocks.runtimeSlotRepository.findByIdInTeam.mockResolvedValue({
@@ -84,13 +89,12 @@ describe('runtime session routes', () => {
 
     const response = await app.inject({
       method: 'PUT',
-      url: `/runtime-sessions/${TASK_ID}/1`,
-      headers: TEAM_HEADERS,
-      payload: {
-        contentBase64: Buffer.from('{"session":"one"}\n').toString('base64'),
-        sessionKind: 'root',
-        sourceSlotId: SLOT_ID,
+      url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root&sourceSlotId=${SLOT_ID}`,
+      headers: {
+        ...TEAM_HEADERS,
+        'content-type': 'application/x-ndjson',
       },
+      payload: Readable.from(['{"session":"one"}\n']),
     });
 
     expect(response.statusCode).toBe(200);
@@ -128,12 +132,12 @@ describe('runtime session routes', () => {
 
     const response = await app.inject({
       method: 'PUT',
-      url: `/runtime-sessions/${TASK_ID}/1`,
-      headers: TEAM_HEADERS,
-      payload: {
-        contentBase64: Buffer.from('{"session":"one"}\n').toString('base64'),
-        sessionKind: 'root',
+      url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root`,
+      headers: {
+        ...TEAM_HEADERS,
+        'content-type': 'application/x-ndjson',
       },
+      payload: Readable.from(['{"session":"one"}\n']),
     });
 
     expect(response.statusCode).toBe(400);
@@ -146,15 +150,59 @@ describe('runtime session routes', () => {
 
     const response = await app.inject({
       method: 'PUT',
-      url: `/runtime-sessions/${TASK_ID}/1`,
-      headers: TEAM_HEADERS,
-      payload: {
-        contentBase64: Buffer.from('{"session":"one"}\n').toString('base64'),
-        sessionKind: 'root',
+      url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root`,
+      headers: {
+        ...TEAM_HEADERS,
+        'content-type': 'application/x-ndjson',
       },
+      payload: Readable.from(['{"session":"one"}\n']),
     });
 
     expect(response.statusCode).toBe(403);
+    expect(mocks.runtimeSessionStorage.putObject).not.toHaveBeenCalled();
+  });
+
+  it('requires the claiming agent to upload an attempt checkpoint', async () => {
+    mocks.taskRepository.findAttempt.mockResolvedValue({
+      attemptN: 1,
+      claimedByAgentId: '00000000-0000-4000-8000-000000000000',
+      status: 'running',
+      taskId: TASK_ID,
+    });
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root`,
+      headers: {
+        ...TEAM_HEADERS,
+        'content-type': 'application/x-ndjson',
+      },
+      payload: Readable.from(['{"session":"one"}\n']),
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(mocks.runtimeSessionStorage.putObject).not.toHaveBeenCalled();
+  });
+
+  it('rejects checkpoint upload before the attempt is running', async () => {
+    mocks.taskRepository.findAttempt.mockResolvedValue({
+      attemptN: 1,
+      claimedByAgentId: VALID_AUTH_CONTEXT.identityId,
+      status: 'claimed',
+      taskId: TASK_ID,
+    });
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root`,
+      headers: {
+        ...TEAM_HEADERS,
+        'content-type': 'application/x-ndjson',
+      },
+      payload: Readable.from(['{"session":"one"}\n']),
+    });
+
+    expect(response.statusCode).toBe(409);
     expect(mocks.runtimeSessionStorage.putObject).not.toHaveBeenCalled();
   });
 
@@ -169,13 +217,14 @@ describe('runtime session routes', () => {
 
     const response = await app.inject({
       method: 'PUT',
-      url: `/runtime-sessions/${TASK_ID}/1`,
-      headers: TEAM_HEADERS,
-      payload: {
-        contentBase64: Buffer.from('{"session":"one"}\n').toString('base64'),
-        parentSessionId: '99999999-1111-4111-8111-999999999999',
-        sessionKind: 'extend',
+      url:
+        `/runtime-sessions/${TASK_ID}/1/content?sessionKind=extend` +
+        '&parentSessionId=99999999-1111-4111-8111-999999999999',
+      headers: {
+        ...TEAM_HEADERS,
+        'content-type': 'application/x-ndjson',
       },
+      payload: Readable.from(['{"session":"one"}\n']),
     });
 
     expect(response.statusCode).toBe(404);
@@ -187,13 +236,14 @@ describe('runtime session routes', () => {
     expect(mocks.runtimeSessionStorage.putObject).not.toHaveBeenCalled();
   });
 
-  it('downloads and decompresses runtime session content', async () => {
+  it('downloads and streams runtime session content', async () => {
+    const content = '{"session":"one"}\n';
     mocks.runtimeSessionRepository.findActiveByTaskAttempt.mockResolvedValue(
       mockSession(),
     );
     mocks.runtimeSessionStorage.getObject.mockResolvedValue({
-      body: gzipSync(Buffer.from('{"session":"one"}\n')),
-      contentEncoding: 'gzip',
+      body: Readable.from([await gzipAsync(content)]),
+      contentEncoding: null,
       contentType: 'application/x-ndjson',
     });
 
@@ -204,13 +254,32 @@ describe('runtime session routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({
-      contentBase64: Buffer.from('{"session":"one"}\n').toString('base64'),
-      session: {
-        id: SESSION_ID,
-        taskId: TASK_ID,
+    expect(response.headers['x-moltnet-runtime-session-id']).toBe(SESSION_ID);
+    expect(response.body).toBe(content);
+  });
+
+  it('deletes the replaced object after a successful replacement', async () => {
+    mocks.runtimeSessionRepository.findActiveByTaskAttempt.mockResolvedValue(
+      mockSession({ objectKey: 'old-object.jsonl.gz' }),
+    );
+    mocks.runtimeSessionRepository.upsertActive.mockResolvedValue(
+      mockSession({ objectKey: 'new-object.jsonl.gz' }),
+    );
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root`,
+      headers: {
+        ...TEAM_HEADERS,
+        'content-type': 'application/x-ndjson',
       },
+      payload: Readable.from(['{"session":"replacement"}\n']),
     });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.runtimeSessionStorage.deleteObject).toHaveBeenCalledWith(
+      'old-object.jsonl.gz',
+    );
   });
 
   it('reports missing remote object distinctly from missing metadata', async () => {

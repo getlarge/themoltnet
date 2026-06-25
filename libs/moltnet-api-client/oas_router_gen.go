@@ -167,10 +167,10 @@ var (
 	}
 	rn66AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
-		"PUT": "Authorization,Content-Type,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
 	rn67AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
+		"PUT": "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
 	rn21AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
@@ -2333,14 +2333,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 											args[0],
 											args[1],
 										}, elemIsEscaped, w, r)
-									case "PUT":
-										s.handleUploadRuntimeSessionRequest([2]string{
-											args[0],
-											args[1],
-										}, elemIsEscaped, w, r)
 									default:
 										s.notAllowed(w, r, notAllowedParams{
-											allowedMethods: "GET,PUT",
+											allowedMethods: "GET",
 											allowedHeaders: rn66AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
@@ -2366,9 +2361,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 												args[0],
 												args[1],
 											}, elemIsEscaped, w, r)
+										case "PUT":
+											s.handleUploadRuntimeSessionRequest([2]string{
+												args[0],
+												args[1],
+											}, elemIsEscaped, w, r)
 										default:
 											s.notAllowed(w, r, notAllowedParams{
-												allowedMethods: "GET",
+												allowedMethods: "GET,PUT",
 												allowedHeaders: rn67AllowedHeaders,
 												acceptPost:     "",
 												acceptPatch:    "",
@@ -5571,15 +5571,6 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 										r.args = args
 										r.count = 2
 										return r, true
-									case "PUT":
-										r.name = UploadRuntimeSessionOperation
-										r.summary = ""
-										r.operationID = "uploadRuntimeSession"
-										r.operationGroup = ""
-										r.pathPattern = "/runtime-sessions/{taskId}/{attemptN}"
-										r.args = args
-										r.count = 2
-										return r, true
 									default:
 										return
 									}
@@ -5600,6 +5591,15 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 											r.name = DownloadRuntimeSessionOperation
 											r.summary = ""
 											r.operationID = "downloadRuntimeSession"
+											r.operationGroup = ""
+											r.pathPattern = "/runtime-sessions/{taskId}/{attemptN}/content"
+											r.args = args
+											r.count = 2
+											return r, true
+										case "PUT":
+											r.name = UploadRuntimeSessionOperation
+											r.summary = ""
+											r.operationID = "uploadRuntimeSession"
 											r.operationGroup = ""
 											r.pathPattern = "/runtime-sessions/{taskId}/{attemptN}/content"
 											r.args = args

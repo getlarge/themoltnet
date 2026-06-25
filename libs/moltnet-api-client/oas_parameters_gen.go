@@ -11875,13 +11875,51 @@ func decodeUpdateTeamMemberRoleParams(args [2]string, argsEscaped bool, r *http.
 
 // UploadRuntimeSessionParams is parameters of uploadRuntimeSession operation.
 type UploadRuntimeSessionParams struct {
-	TaskId   uuid.UUID
-	AttemptN int
+	SourceSlotId           OptUUID `json:",omitempty,omitzero"`
+	SourceRuntimeProfileId OptUUID `json:",omitempty,omitzero"`
+	SessionKind            UploadRuntimeSessionSessionKind
+	ParentSessionId        OptUUID `json:",omitempty,omitzero"`
+	TaskId                 uuid.UUID
+	AttemptN               int
 	// Team ID (UUID) that will own the resource. Required.
 	XMoltnetTeamID uuid.UUID
 }
 
 func unpackUploadRuntimeSessionParams(packed middleware.Parameters) (params UploadRuntimeSessionParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "sourceSlotId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.SourceSlotId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "sourceRuntimeProfileId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.SourceRuntimeProfileId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "sessionKind",
+			In:   "query",
+		}
+		params.SessionKind = packed[key].(UploadRuntimeSessionSessionKind)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "parentSessionId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ParentSessionId = v.(OptUUID)
+		}
+	}
 	{
 		key := middleware.ParameterKey{
 			Name: "taskId",
@@ -11907,7 +11945,175 @@ func unpackUploadRuntimeSessionParams(packed middleware.Parameters) (params Uplo
 }
 
 func decodeUploadRuntimeSessionParams(args [2]string, argsEscaped bool, r *http.Request) (params UploadRuntimeSessionParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
 	h := uri.NewHeaderDecoder(r.Header)
+	// Decode query: sourceSlotId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "sourceSlotId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotSourceSlotIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotSourceSlotIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.SourceSlotId.SetTo(paramsDotSourceSlotIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "sourceSlotId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: sourceRuntimeProfileId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "sourceRuntimeProfileId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotSourceRuntimeProfileIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotSourceRuntimeProfileIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.SourceRuntimeProfileId.SetTo(paramsDotSourceRuntimeProfileIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "sourceRuntimeProfileId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: sessionKind.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "sessionKind",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.SessionKind = UploadRuntimeSessionSessionKind(c)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.SessionKind.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "sessionKind",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: parentSessionId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "parentSessionId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotParentSessionIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotParentSessionIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ParentSessionId.SetTo(paramsDotParentSessionIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "parentSessionId",
+			In:   "query",
+			Err:  err,
+		}
+	}
 	// Decode path: taskId.
 	if err := func() error {
 		param := args[0]

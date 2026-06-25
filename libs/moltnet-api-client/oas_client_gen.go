@@ -740,10 +740,10 @@ type Invoker interface {
 	UpdateTeamMemberRole(ctx context.Context, request *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (UpdateTeamMemberRoleRes, error)
 	// UploadRuntimeSession invokes uploadRuntimeSession operation.
 	//
-	// Upload or replace the durable team-scoped runtime session for a task attempt.
+	// Stream or replace the durable team-scoped runtime session content for a task attempt.
 	//
-	// PUT /runtime-sessions/{taskId}/{attemptN}
-	UploadRuntimeSession(ctx context.Context, request *UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error)
+	// PUT /runtime-sessions/{taskId}/{attemptN}/content
+	UploadRuntimeSession(ctx context.Context, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error)
 	// VerifyAgentSignature invokes verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.
@@ -18970,19 +18970,19 @@ func (c *Client) sendUpdateTeamMemberRole(ctx context.Context, request *UpdateTe
 
 // UploadRuntimeSession invokes uploadRuntimeSession operation.
 //
-// Upload or replace the durable team-scoped runtime session for a task attempt.
+// Stream or replace the durable team-scoped runtime session content for a task attempt.
 //
-// PUT /runtime-sessions/{taskId}/{attemptN}
-func (c *Client) UploadRuntimeSession(ctx context.Context, request *UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error) {
-	res, err := c.sendUploadRuntimeSession(ctx, request, params)
+// PUT /runtime-sessions/{taskId}/{attemptN}/content
+func (c *Client) UploadRuntimeSession(ctx context.Context, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error) {
+	res, err := c.sendUploadRuntimeSession(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendUploadRuntimeSession(ctx context.Context, request *UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (res UploadRuntimeSessionRes, err error) {
+func (c *Client) sendUploadRuntimeSession(ctx context.Context, params UploadRuntimeSessionParams) (res UploadRuntimeSessionRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("uploadRuntimeSession"),
 		semconv.HTTPRequestMethodKey.String("PUT"),
-		semconv.URLTemplateKey.String("/runtime-sessions/{taskId}/{attemptN}"),
+		semconv.URLTemplateKey.String("/runtime-sessions/{taskId}/{attemptN}/content"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -19015,7 +19015,7 @@ func (c *Client) sendUploadRuntimeSession(ctx context.Context, request *UploadRu
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [4]string
+	var pathParts [5]string
 	pathParts[0] = "/runtime-sessions/"
 	{
 		// Encode "taskId" parameter.
@@ -19054,15 +19054,82 @@ func (c *Client) sendUploadRuntimeSession(ctx context.Context, request *UploadRu
 		}
 		pathParts[3] = encoded
 	}
+	pathParts[4] = "/content"
 	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "sourceSlotId" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "sourceSlotId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.SourceSlotId.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "sourceRuntimeProfileId" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "sourceRuntimeProfileId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.SourceRuntimeProfileId.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "sessionKind" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "sessionKind",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.StringToString(string(params.SessionKind)))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "parentSessionId" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "parentSessionId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.ParentSessionId.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
 
 	stage = "EncodeRequest"
 	r, err := ht.NewRequest(ctx, "PUT", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
-	}
-	if err := encodeUploadRuntimeSessionRequest(request, r); err != nil {
-		return res, errors.Wrap(err, "encode request")
 	}
 
 	stage = "EncodeHeaderParams"

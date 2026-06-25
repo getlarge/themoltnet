@@ -11611,335 +11611,6 @@ func (s *DownloadRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 	}
 }
 
-type DownloadRuntimeSessionOK struct {
-	ContentBase64 string                          `json:"contentBase64"`
-	Session       DownloadRuntimeSessionOKSession `json:"session"`
-}
-
-// GetContentBase64 returns the value of ContentBase64.
-func (s *DownloadRuntimeSessionOK) GetContentBase64() string {
-	return s.ContentBase64
-}
-
-// GetSession returns the value of Session.
-func (s *DownloadRuntimeSessionOK) GetSession() DownloadRuntimeSessionOKSession {
-	return s.Session
-}
-
-// SetContentBase64 sets the value of ContentBase64.
-func (s *DownloadRuntimeSessionOK) SetContentBase64(val string) {
-	s.ContentBase64 = val
-}
-
-// SetSession sets the value of Session.
-func (s *DownloadRuntimeSessionOK) SetSession(val DownloadRuntimeSessionOKSession) {
-	s.Session = val
-}
-
-func (*DownloadRuntimeSessionOK) downloadRuntimeSessionRes() {}
-
-type DownloadRuntimeSessionOKSession struct {
-	AttemptN               int                                           `json:"attemptN"`
-	CheckpointKind         DownloadRuntimeSessionOKSessionCheckpointKind `json:"checkpointKind"`
-	ContentEncoding        NilString                                     `json:"contentEncoding"`
-	ContentType            string                                        `json:"contentType"`
-	ID                     uuid.UUID                                     `json:"id"`
-	ObjectKey              string                                        `json:"objectKey"`
-	ParentSessionId        NilUUID                                       `json:"parentSessionId"`
-	SessionKind            DownloadRuntimeSessionOKSessionSessionKind    `json:"sessionKind"`
-	SHA256                 string                                        `json:"sha256"`
-	SizeBytes              int                                           `json:"sizeBytes"`
-	SourceRuntimeProfileId NilUUID                                       `json:"sourceRuntimeProfileId"`
-	SourceSlotId           NilUUID                                       `json:"sourceSlotId"`
-	StorageClass           string                                        `json:"storageClass"`
-	TaskId                 uuid.UUID                                     `json:"taskId"`
-	TeamId                 uuid.UUID                                     `json:"teamId"`
-	UploadedAt             time.Time                                     `json:"uploadedAt"`
-}
-
-// GetAttemptN returns the value of AttemptN.
-func (s *DownloadRuntimeSessionOKSession) GetAttemptN() int {
-	return s.AttemptN
-}
-
-// GetCheckpointKind returns the value of CheckpointKind.
-func (s *DownloadRuntimeSessionOKSession) GetCheckpointKind() DownloadRuntimeSessionOKSessionCheckpointKind {
-	return s.CheckpointKind
-}
-
-// GetContentEncoding returns the value of ContentEncoding.
-func (s *DownloadRuntimeSessionOKSession) GetContentEncoding() NilString {
-	return s.ContentEncoding
-}
-
-// GetContentType returns the value of ContentType.
-func (s *DownloadRuntimeSessionOKSession) GetContentType() string {
-	return s.ContentType
-}
-
-// GetID returns the value of ID.
-func (s *DownloadRuntimeSessionOKSession) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetObjectKey returns the value of ObjectKey.
-func (s *DownloadRuntimeSessionOKSession) GetObjectKey() string {
-	return s.ObjectKey
-}
-
-// GetParentSessionId returns the value of ParentSessionId.
-func (s *DownloadRuntimeSessionOKSession) GetParentSessionId() NilUUID {
-	return s.ParentSessionId
-}
-
-// GetSessionKind returns the value of SessionKind.
-func (s *DownloadRuntimeSessionOKSession) GetSessionKind() DownloadRuntimeSessionOKSessionSessionKind {
-	return s.SessionKind
-}
-
-// GetSHA256 returns the value of SHA256.
-func (s *DownloadRuntimeSessionOKSession) GetSHA256() string {
-	return s.SHA256
-}
-
-// GetSizeBytes returns the value of SizeBytes.
-func (s *DownloadRuntimeSessionOKSession) GetSizeBytes() int {
-	return s.SizeBytes
-}
-
-// GetSourceRuntimeProfileId returns the value of SourceRuntimeProfileId.
-func (s *DownloadRuntimeSessionOKSession) GetSourceRuntimeProfileId() NilUUID {
-	return s.SourceRuntimeProfileId
-}
-
-// GetSourceSlotId returns the value of SourceSlotId.
-func (s *DownloadRuntimeSessionOKSession) GetSourceSlotId() NilUUID {
-	return s.SourceSlotId
-}
-
-// GetStorageClass returns the value of StorageClass.
-func (s *DownloadRuntimeSessionOKSession) GetStorageClass() string {
-	return s.StorageClass
-}
-
-// GetTaskId returns the value of TaskId.
-func (s *DownloadRuntimeSessionOKSession) GetTaskId() uuid.UUID {
-	return s.TaskId
-}
-
-// GetTeamId returns the value of TeamId.
-func (s *DownloadRuntimeSessionOKSession) GetTeamId() uuid.UUID {
-	return s.TeamId
-}
-
-// GetUploadedAt returns the value of UploadedAt.
-func (s *DownloadRuntimeSessionOKSession) GetUploadedAt() time.Time {
-	return s.UploadedAt
-}
-
-// SetAttemptN sets the value of AttemptN.
-func (s *DownloadRuntimeSessionOKSession) SetAttemptN(val int) {
-	s.AttemptN = val
-}
-
-// SetCheckpointKind sets the value of CheckpointKind.
-func (s *DownloadRuntimeSessionOKSession) SetCheckpointKind(val DownloadRuntimeSessionOKSessionCheckpointKind) {
-	s.CheckpointKind = val
-}
-
-// SetContentEncoding sets the value of ContentEncoding.
-func (s *DownloadRuntimeSessionOKSession) SetContentEncoding(val NilString) {
-	s.ContentEncoding = val
-}
-
-// SetContentType sets the value of ContentType.
-func (s *DownloadRuntimeSessionOKSession) SetContentType(val string) {
-	s.ContentType = val
-}
-
-// SetID sets the value of ID.
-func (s *DownloadRuntimeSessionOKSession) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetObjectKey sets the value of ObjectKey.
-func (s *DownloadRuntimeSessionOKSession) SetObjectKey(val string) {
-	s.ObjectKey = val
-}
-
-// SetParentSessionId sets the value of ParentSessionId.
-func (s *DownloadRuntimeSessionOKSession) SetParentSessionId(val NilUUID) {
-	s.ParentSessionId = val
-}
-
-// SetSessionKind sets the value of SessionKind.
-func (s *DownloadRuntimeSessionOKSession) SetSessionKind(val DownloadRuntimeSessionOKSessionSessionKind) {
-	s.SessionKind = val
-}
-
-// SetSHA256 sets the value of SHA256.
-func (s *DownloadRuntimeSessionOKSession) SetSHA256(val string) {
-	s.SHA256 = val
-}
-
-// SetSizeBytes sets the value of SizeBytes.
-func (s *DownloadRuntimeSessionOKSession) SetSizeBytes(val int) {
-	s.SizeBytes = val
-}
-
-// SetSourceRuntimeProfileId sets the value of SourceRuntimeProfileId.
-func (s *DownloadRuntimeSessionOKSession) SetSourceRuntimeProfileId(val NilUUID) {
-	s.SourceRuntimeProfileId = val
-}
-
-// SetSourceSlotId sets the value of SourceSlotId.
-func (s *DownloadRuntimeSessionOKSession) SetSourceSlotId(val NilUUID) {
-	s.SourceSlotId = val
-}
-
-// SetStorageClass sets the value of StorageClass.
-func (s *DownloadRuntimeSessionOKSession) SetStorageClass(val string) {
-	s.StorageClass = val
-}
-
-// SetTaskId sets the value of TaskId.
-func (s *DownloadRuntimeSessionOKSession) SetTaskId(val uuid.UUID) {
-	s.TaskId = val
-}
-
-// SetTeamId sets the value of TeamId.
-func (s *DownloadRuntimeSessionOKSession) SetTeamId(val uuid.UUID) {
-	s.TeamId = val
-}
-
-// SetUploadedAt sets the value of UploadedAt.
-func (s *DownloadRuntimeSessionOKSession) SetUploadedAt(val time.Time) {
-	s.UploadedAt = val
-}
-
-// DownloadRuntimeSessionOKSessionCheckpointKind represents sum type.
-type DownloadRuntimeSessionOKSessionCheckpointKind struct {
-	// Type selects the active sum variant, switch on this field.
-	Type                                           DownloadRuntimeSessionOKSessionCheckpointKindType
-	DownloadRuntimeSessionOKSessionCheckpointKind0 DownloadRuntimeSessionOKSessionCheckpointKind0
-}
-
-// DownloadRuntimeSessionOKSessionCheckpointKindType is oneOf type of DownloadRuntimeSessionOKSessionCheckpointKind.
-type DownloadRuntimeSessionOKSessionCheckpointKindType string
-
-// Possible values for DownloadRuntimeSessionOKSessionCheckpointKindType.
-const (
-	DownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind DownloadRuntimeSessionOKSessionCheckpointKindType = "DownloadRuntimeSessionOKSessionCheckpointKind0"
-)
-
-// IsDownloadRuntimeSessionOKSessionCheckpointKind0 reports whether DownloadRuntimeSessionOKSessionCheckpointKind is DownloadRuntimeSessionOKSessionCheckpointKind0.
-func (s DownloadRuntimeSessionOKSessionCheckpointKind) IsDownloadRuntimeSessionOKSessionCheckpointKind0() bool {
-	return s.Type == DownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind
-}
-
-// SetDownloadRuntimeSessionOKSessionCheckpointKind0 sets DownloadRuntimeSessionOKSessionCheckpointKind to DownloadRuntimeSessionOKSessionCheckpointKind0.
-func (s *DownloadRuntimeSessionOKSessionCheckpointKind) SetDownloadRuntimeSessionOKSessionCheckpointKind0(v DownloadRuntimeSessionOKSessionCheckpointKind0) {
-	s.Type = DownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind
-	s.DownloadRuntimeSessionOKSessionCheckpointKind0 = v
-}
-
-// GetDownloadRuntimeSessionOKSessionCheckpointKind0 returns DownloadRuntimeSessionOKSessionCheckpointKind0 and true boolean if DownloadRuntimeSessionOKSessionCheckpointKind is DownloadRuntimeSessionOKSessionCheckpointKind0.
-func (s DownloadRuntimeSessionOKSessionCheckpointKind) GetDownloadRuntimeSessionOKSessionCheckpointKind0() (v DownloadRuntimeSessionOKSessionCheckpointKind0, ok bool) {
-	if !s.IsDownloadRuntimeSessionOKSessionCheckpointKind0() {
-		return v, false
-	}
-	return s.DownloadRuntimeSessionOKSessionCheckpointKind0, true
-}
-
-// NewDownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind returns new DownloadRuntimeSessionOKSessionCheckpointKind from DownloadRuntimeSessionOKSessionCheckpointKind0.
-func NewDownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind(v DownloadRuntimeSessionOKSessionCheckpointKind0) DownloadRuntimeSessionOKSessionCheckpointKind {
-	var s DownloadRuntimeSessionOKSessionCheckpointKind
-	s.SetDownloadRuntimeSessionOKSessionCheckpointKind0(v)
-	return s
-}
-
-type DownloadRuntimeSessionOKSessionCheckpointKind0 string
-
-const (
-	DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal DownloadRuntimeSessionOKSessionCheckpointKind0 = "attempt_final"
-)
-
-// AllValues returns all DownloadRuntimeSessionOKSessionCheckpointKind0 values.
-func (DownloadRuntimeSessionOKSessionCheckpointKind0) AllValues() []DownloadRuntimeSessionOKSessionCheckpointKind0 {
-	return []DownloadRuntimeSessionOKSessionCheckpointKind0{
-		DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DownloadRuntimeSessionOKSessionCheckpointKind0) MarshalText() ([]byte, error) {
-	switch s {
-	case DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DownloadRuntimeSessionOKSessionCheckpointKind0) UnmarshalText(data []byte) error {
-	switch DownloadRuntimeSessionOKSessionCheckpointKind0(data) {
-	case DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal:
-		*s = DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type DownloadRuntimeSessionOKSessionSessionKind string
-
-const (
-	DownloadRuntimeSessionOKSessionSessionKindRoot   DownloadRuntimeSessionOKSessionSessionKind = "root"
-	DownloadRuntimeSessionOKSessionSessionKindExtend DownloadRuntimeSessionOKSessionSessionKind = "extend"
-	DownloadRuntimeSessionOKSessionSessionKindFork   DownloadRuntimeSessionOKSessionSessionKind = "fork"
-)
-
-// AllValues returns all DownloadRuntimeSessionOKSessionSessionKind values.
-func (DownloadRuntimeSessionOKSessionSessionKind) AllValues() []DownloadRuntimeSessionOKSessionSessionKind {
-	return []DownloadRuntimeSessionOKSessionSessionKind{
-		DownloadRuntimeSessionOKSessionSessionKindRoot,
-		DownloadRuntimeSessionOKSessionSessionKindExtend,
-		DownloadRuntimeSessionOKSessionSessionKindFork,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DownloadRuntimeSessionOKSessionSessionKind) MarshalText() ([]byte, error) {
-	switch s {
-	case DownloadRuntimeSessionOKSessionSessionKindRoot:
-		return []byte(s), nil
-	case DownloadRuntimeSessionOKSessionSessionKindExtend:
-		return []byte(s), nil
-	case DownloadRuntimeSessionOKSessionSessionKindFork:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DownloadRuntimeSessionOKSessionSessionKind) UnmarshalText(data []byte) error {
-	switch DownloadRuntimeSessionOKSessionSessionKind(data) {
-	case DownloadRuntimeSessionOKSessionSessionKindRoot:
-		*s = DownloadRuntimeSessionOKSessionSessionKindRoot
-		return nil
-	case DownloadRuntimeSessionOKSessionSessionKindExtend:
-		*s = DownloadRuntimeSessionOKSessionSessionKindExtend
-		return nil
-	case DownloadRuntimeSessionOKSessionSessionKindFork:
-		*s = DownloadRuntimeSessionOKSessionSessionKindFork
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type DownloadRuntimeSessionServiceUnavailable struct {
 	Code            DownloadRuntimeSessionServiceUnavailableCode `json:"code"`
 	Detail          OptString                                    `json:"detail"`
@@ -19240,7 +18911,6 @@ type GetRuntimeSessionOK struct {
 	ContentEncoding        NilString                         `json:"contentEncoding"`
 	ContentType            string                            `json:"contentType"`
 	ID                     uuid.UUID                         `json:"id"`
-	ObjectKey              string                            `json:"objectKey"`
 	ParentSessionId        NilUUID                           `json:"parentSessionId"`
 	SessionKind            GetRuntimeSessionOKSessionKind    `json:"sessionKind"`
 	SHA256                 string                            `json:"sha256"`
@@ -19276,11 +18946,6 @@ func (s *GetRuntimeSessionOK) GetContentType() string {
 // GetID returns the value of ID.
 func (s *GetRuntimeSessionOK) GetID() uuid.UUID {
 	return s.ID
-}
-
-// GetObjectKey returns the value of ObjectKey.
-func (s *GetRuntimeSessionOK) GetObjectKey() string {
-	return s.ObjectKey
 }
 
 // GetParentSessionId returns the value of ParentSessionId.
@@ -19356,11 +19021,6 @@ func (s *GetRuntimeSessionOK) SetContentType(val string) {
 // SetID sets the value of ID.
 func (s *GetRuntimeSessionOK) SetID(val uuid.UUID) {
 	s.ID = val
-}
-
-// SetObjectKey sets the value of ObjectKey.
-func (s *GetRuntimeSessionOK) SetObjectKey(val string) {
-	s.ObjectKey = val
 }
 
 // SetParentSessionId sets the value of ParentSessionId.
@@ -39807,6 +39467,315 @@ func (s *UploadRuntimeSessionBadRequestErrorsItem) SetMessage(val string) {
 	s.Message = val
 }
 
+type UploadRuntimeSessionConflict struct {
+	Code            UploadRuntimeSessionConflictCode `json:"code"`
+	Detail          OptString                        `json:"detail"`
+	Instance        OptString                        `json:"instance"`
+	Status          int                              `json:"status"`
+	Title           string                           `json:"title"`
+	Type            url.URL                          `json:"type"`
+	AdditionalProps UploadRuntimeSessionConflictAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *UploadRuntimeSessionConflict) GetCode() UploadRuntimeSessionConflictCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *UploadRuntimeSessionConflict) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *UploadRuntimeSessionConflict) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *UploadRuntimeSessionConflict) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *UploadRuntimeSessionConflict) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *UploadRuntimeSessionConflict) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *UploadRuntimeSessionConflict) GetAdditionalProps() UploadRuntimeSessionConflictAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *UploadRuntimeSessionConflict) SetCode(val UploadRuntimeSessionConflictCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *UploadRuntimeSessionConflict) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *UploadRuntimeSessionConflict) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *UploadRuntimeSessionConflict) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *UploadRuntimeSessionConflict) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *UploadRuntimeSessionConflict) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *UploadRuntimeSessionConflict) SetAdditionalProps(val UploadRuntimeSessionConflictAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*UploadRuntimeSessionConflict) uploadRuntimeSessionRes() {}
+
+type UploadRuntimeSessionConflictAdditional map[string]jx.Raw
+
+func (s *UploadRuntimeSessionConflictAdditional) init() UploadRuntimeSessionConflictAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type UploadRuntimeSessionConflictCode string
+
+const (
+	UploadRuntimeSessionConflictCodeUNAUTHORIZED                   UploadRuntimeSessionConflictCode = "UNAUTHORIZED"
+	UploadRuntimeSessionConflictCodeFORBIDDEN                      UploadRuntimeSessionConflictCode = "FORBIDDEN"
+	UploadRuntimeSessionConflictCodeNOTFOUND                       UploadRuntimeSessionConflictCode = "NOT_FOUND"
+	UploadRuntimeSessionConflictCodeCONFLICT                       UploadRuntimeSessionConflictCode = "CONFLICT"
+	UploadRuntimeSessionConflictCodeVALIDATIONFAILED               UploadRuntimeSessionConflictCode = "VALIDATION_FAILED"
+	UploadRuntimeSessionConflictCodeINVALIDCHALLENGE               UploadRuntimeSessionConflictCode = "INVALID_CHALLENGE"
+	UploadRuntimeSessionConflictCodeINVALIDSIGNATURE               UploadRuntimeSessionConflictCode = "INVALID_SIGNATURE"
+	UploadRuntimeSessionConflictCodeVOUCHERLIMIT                   UploadRuntimeSessionConflictCode = "VOUCHER_LIMIT"
+	UploadRuntimeSessionConflictCodeRATELIMITEXCEEDED              UploadRuntimeSessionConflictCode = "RATE_LIMIT_EXCEEDED"
+	UploadRuntimeSessionConflictCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionConflictCode = "SERIALIZATION_EXHAUSTED"
+	UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionConflictCode = "SIGNING_REQUEST_EXPIRED"
+	UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionConflictCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionConflictCodeREGISTRATIONFAILED             UploadRuntimeSessionConflictCode = "REGISTRATION_FAILED"
+	UploadRuntimeSessionConflictCodeUPSTREAMERROR                  UploadRuntimeSessionConflictCode = "UPSTREAM_ERROR"
+	UploadRuntimeSessionConflictCodeSERVICEUNAVAILABLE             UploadRuntimeSessionConflictCode = "SERVICE_UNAVAILABLE"
+	UploadRuntimeSessionConflictCodeINTERNALSERVERERROR            UploadRuntimeSessionConflictCode = "INTERNAL_SERVER_ERROR"
+	UploadRuntimeSessionConflictCodeTEAMPERSONALIMMUTABLE          UploadRuntimeSessionConflictCode = "TEAM_PERSONAL_IMMUTABLE"
+	UploadRuntimeSessionConflictCodeTEAMNOTACTIVE                  UploadRuntimeSessionConflictCode = "TEAM_NOT_ACTIVE"
+	UploadRuntimeSessionConflictCodeINVITEEXPIRED                  UploadRuntimeSessionConflictCode = "INVITE_EXPIRED"
+	UploadRuntimeSessionConflictCodeINVITEEXHAUSTED                UploadRuntimeSessionConflictCode = "INVITE_EXHAUSTED"
+	UploadRuntimeSessionConflictCodeTEAMLASTOWNER                  UploadRuntimeSessionConflictCode = "TEAM_LAST_OWNER"
+	UploadRuntimeSessionConflictCodeTEAMALREADYACTIVE              UploadRuntimeSessionConflictCode = "TEAM_ALREADY_ACTIVE"
+	UploadRuntimeSessionConflictCodeTEAMNOTFOUNDING                UploadRuntimeSessionConflictCode = "TEAM_NOT_FOUNDING"
+	UploadRuntimeSessionConflictCodeFOUNDINGALREADYACCEPTED        UploadRuntimeSessionConflictCode = "FOUNDING_ALREADY_ACCEPTED"
+	UploadRuntimeSessionConflictCodeDIARYTRANSFERPENDING           UploadRuntimeSessionConflictCode = "DIARY_TRANSFER_PENDING"
+	UploadRuntimeSessionConflictCodeDIARYTRANSFERNOTFOUND          UploadRuntimeSessionConflictCode = "DIARY_TRANSFER_NOT_FOUND"
+	UploadRuntimeSessionConflictCodeDIARYTRANSFERALREADYRESOLVED   UploadRuntimeSessionConflictCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all UploadRuntimeSessionConflictCode values.
+func (UploadRuntimeSessionConflictCode) AllValues() []UploadRuntimeSessionConflictCode {
+	return []UploadRuntimeSessionConflictCode{
+		UploadRuntimeSessionConflictCodeUNAUTHORIZED,
+		UploadRuntimeSessionConflictCodeFORBIDDEN,
+		UploadRuntimeSessionConflictCodeNOTFOUND,
+		UploadRuntimeSessionConflictCodeCONFLICT,
+		UploadRuntimeSessionConflictCodeVALIDATIONFAILED,
+		UploadRuntimeSessionConflictCodeINVALIDCHALLENGE,
+		UploadRuntimeSessionConflictCodeINVALIDSIGNATURE,
+		UploadRuntimeSessionConflictCodeVOUCHERLIMIT,
+		UploadRuntimeSessionConflictCodeRATELIMITEXCEEDED,
+		UploadRuntimeSessionConflictCodeSERIALIZATIONEXHAUSTED,
+		UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED,
+		UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionConflictCodeREGISTRATIONFAILED,
+		UploadRuntimeSessionConflictCodeUPSTREAMERROR,
+		UploadRuntimeSessionConflictCodeSERVICEUNAVAILABLE,
+		UploadRuntimeSessionConflictCodeINTERNALSERVERERROR,
+		UploadRuntimeSessionConflictCodeTEAMPERSONALIMMUTABLE,
+		UploadRuntimeSessionConflictCodeTEAMNOTACTIVE,
+		UploadRuntimeSessionConflictCodeINVITEEXPIRED,
+		UploadRuntimeSessionConflictCodeINVITEEXHAUSTED,
+		UploadRuntimeSessionConflictCodeTEAMLASTOWNER,
+		UploadRuntimeSessionConflictCodeTEAMALREADYACTIVE,
+		UploadRuntimeSessionConflictCodeTEAMNOTFOUNDING,
+		UploadRuntimeSessionConflictCodeFOUNDINGALREADYACCEPTED,
+		UploadRuntimeSessionConflictCodeDIARYTRANSFERPENDING,
+		UploadRuntimeSessionConflictCodeDIARYTRANSFERNOTFOUND,
+		UploadRuntimeSessionConflictCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UploadRuntimeSessionConflictCode) MarshalText() ([]byte, error) {
+	switch s {
+	case UploadRuntimeSessionConflictCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeFORBIDDEN:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UploadRuntimeSessionConflictCode) UnmarshalText(data []byte) error {
+	switch UploadRuntimeSessionConflictCode(data) {
+	case UploadRuntimeSessionConflictCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionConflictCodeUNAUTHORIZED
+		return nil
+	case UploadRuntimeSessionConflictCodeFORBIDDEN:
+		*s = UploadRuntimeSessionConflictCodeFORBIDDEN
+		return nil
+	case UploadRuntimeSessionConflictCodeNOTFOUND:
+		*s = UploadRuntimeSessionConflictCodeNOTFOUND
+		return nil
+	case UploadRuntimeSessionConflictCodeCONFLICT:
+		*s = UploadRuntimeSessionConflictCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionConflictCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionConflictCodeVALIDATIONFAILED
+		return nil
+	case UploadRuntimeSessionConflictCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionConflictCodeINVALIDCHALLENGE
+		return nil
+	case UploadRuntimeSessionConflictCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionConflictCodeINVALIDSIGNATURE
+		return nil
+	case UploadRuntimeSessionConflictCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionConflictCodeVOUCHERLIMIT
+		return nil
+	case UploadRuntimeSessionConflictCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionConflictCodeRATELIMITEXCEEDED
+		return nil
+	case UploadRuntimeSessionConflictCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionConflictCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionConflictCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionConflictCodeREGISTRATIONFAILED
+		return nil
+	case UploadRuntimeSessionConflictCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionConflictCodeUPSTREAMERROR
+		return nil
+	case UploadRuntimeSessionConflictCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionConflictCodeSERVICEUNAVAILABLE
+		return nil
+	case UploadRuntimeSessionConflictCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionConflictCodeINTERNALSERVERERROR
+		return nil
+	case UploadRuntimeSessionConflictCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionConflictCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case UploadRuntimeSessionConflictCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionConflictCodeTEAMNOTACTIVE
+		return nil
+	case UploadRuntimeSessionConflictCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionConflictCodeINVITEEXPIRED
+		return nil
+	case UploadRuntimeSessionConflictCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionConflictCodeINVITEEXHAUSTED
+		return nil
+	case UploadRuntimeSessionConflictCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionConflictCodeTEAMLASTOWNER
+		return nil
+	case UploadRuntimeSessionConflictCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionConflictCodeTEAMALREADYACTIVE
+		return nil
+	case UploadRuntimeSessionConflictCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionConflictCodeTEAMNOTFOUNDING
+		return nil
+	case UploadRuntimeSessionConflictCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionConflictCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case UploadRuntimeSessionConflictCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionConflictCodeDIARYTRANSFERPENDING
+		return nil
+	case UploadRuntimeSessionConflictCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionConflictCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case UploadRuntimeSessionConflictCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionConflictCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type UploadRuntimeSessionForbidden struct {
 	Code            UploadRuntimeSessionForbiddenCode `json:"code"`
 	Detail          OptString                         `json:"detail"`
@@ -40431,7 +40400,6 @@ type UploadRuntimeSessionOK struct {
 	ContentEncoding        NilString                            `json:"contentEncoding"`
 	ContentType            string                               `json:"contentType"`
 	ID                     uuid.UUID                            `json:"id"`
-	ObjectKey              string                               `json:"objectKey"`
 	ParentSessionId        NilUUID                              `json:"parentSessionId"`
 	SessionKind            UploadRuntimeSessionOKSessionKind    `json:"sessionKind"`
 	SHA256                 string                               `json:"sha256"`
@@ -40467,11 +40435,6 @@ func (s *UploadRuntimeSessionOK) GetContentType() string {
 // GetID returns the value of ID.
 func (s *UploadRuntimeSessionOK) GetID() uuid.UUID {
 	return s.ID
-}
-
-// GetObjectKey returns the value of ObjectKey.
-func (s *UploadRuntimeSessionOK) GetObjectKey() string {
-	return s.ObjectKey
 }
 
 // GetParentSessionId returns the value of ParentSessionId.
@@ -40547,11 +40510,6 @@ func (s *UploadRuntimeSessionOK) SetContentType(val string) {
 // SetID sets the value of ID.
 func (s *UploadRuntimeSessionOK) SetID(val uuid.UUID) {
 	s.ID = val
-}
-
-// SetObjectKey sets the value of ObjectKey.
-func (s *UploadRuntimeSessionOK) SetObjectKey(val string) {
-	s.ObjectKey = val
 }
 
 // SetParentSessionId sets the value of ParentSessionId.
@@ -40723,112 +40681,6 @@ func (s *UploadRuntimeSessionOKSessionKind) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionOKSessionKindFork:
 		*s = UploadRuntimeSessionOKSessionKindFork
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UploadRuntimeSessionReq struct {
-	ContentBase64          string                             `json:"contentBase64"`
-	ParentSessionId        OptUUID                            `json:"parentSessionId"`
-	SessionKind            UploadRuntimeSessionReqSessionKind `json:"sessionKind"`
-	SourceRuntimeProfileId OptUUID                            `json:"sourceRuntimeProfileId"`
-	SourceSlotId           OptUUID                            `json:"sourceSlotId"`
-}
-
-// GetContentBase64 returns the value of ContentBase64.
-func (s *UploadRuntimeSessionReq) GetContentBase64() string {
-	return s.ContentBase64
-}
-
-// GetParentSessionId returns the value of ParentSessionId.
-func (s *UploadRuntimeSessionReq) GetParentSessionId() OptUUID {
-	return s.ParentSessionId
-}
-
-// GetSessionKind returns the value of SessionKind.
-func (s *UploadRuntimeSessionReq) GetSessionKind() UploadRuntimeSessionReqSessionKind {
-	return s.SessionKind
-}
-
-// GetSourceRuntimeProfileId returns the value of SourceRuntimeProfileId.
-func (s *UploadRuntimeSessionReq) GetSourceRuntimeProfileId() OptUUID {
-	return s.SourceRuntimeProfileId
-}
-
-// GetSourceSlotId returns the value of SourceSlotId.
-func (s *UploadRuntimeSessionReq) GetSourceSlotId() OptUUID {
-	return s.SourceSlotId
-}
-
-// SetContentBase64 sets the value of ContentBase64.
-func (s *UploadRuntimeSessionReq) SetContentBase64(val string) {
-	s.ContentBase64 = val
-}
-
-// SetParentSessionId sets the value of ParentSessionId.
-func (s *UploadRuntimeSessionReq) SetParentSessionId(val OptUUID) {
-	s.ParentSessionId = val
-}
-
-// SetSessionKind sets the value of SessionKind.
-func (s *UploadRuntimeSessionReq) SetSessionKind(val UploadRuntimeSessionReqSessionKind) {
-	s.SessionKind = val
-}
-
-// SetSourceRuntimeProfileId sets the value of SourceRuntimeProfileId.
-func (s *UploadRuntimeSessionReq) SetSourceRuntimeProfileId(val OptUUID) {
-	s.SourceRuntimeProfileId = val
-}
-
-// SetSourceSlotId sets the value of SourceSlotId.
-func (s *UploadRuntimeSessionReq) SetSourceSlotId(val OptUUID) {
-	s.SourceSlotId = val
-}
-
-type UploadRuntimeSessionReqSessionKind string
-
-const (
-	UploadRuntimeSessionReqSessionKindRoot   UploadRuntimeSessionReqSessionKind = "root"
-	UploadRuntimeSessionReqSessionKindExtend UploadRuntimeSessionReqSessionKind = "extend"
-	UploadRuntimeSessionReqSessionKindFork   UploadRuntimeSessionReqSessionKind = "fork"
-)
-
-// AllValues returns all UploadRuntimeSessionReqSessionKind values.
-func (UploadRuntimeSessionReqSessionKind) AllValues() []UploadRuntimeSessionReqSessionKind {
-	return []UploadRuntimeSessionReqSessionKind{
-		UploadRuntimeSessionReqSessionKindRoot,
-		UploadRuntimeSessionReqSessionKindExtend,
-		UploadRuntimeSessionReqSessionKindFork,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UploadRuntimeSessionReqSessionKind) MarshalText() ([]byte, error) {
-	switch s {
-	case UploadRuntimeSessionReqSessionKindRoot:
-		return []byte(s), nil
-	case UploadRuntimeSessionReqSessionKindExtend:
-		return []byte(s), nil
-	case UploadRuntimeSessionReqSessionKindFork:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UploadRuntimeSessionReqSessionKind) UnmarshalText(data []byte) error {
-	switch UploadRuntimeSessionReqSessionKind(data) {
-	case UploadRuntimeSessionReqSessionKindRoot:
-		*s = UploadRuntimeSessionReqSessionKindRoot
-		return nil
-	case UploadRuntimeSessionReqSessionKindExtend:
-		*s = UploadRuntimeSessionReqSessionKindExtend
-		return nil
-	case UploadRuntimeSessionReqSessionKindFork:
-		*s = UploadRuntimeSessionReqSessionKindFork
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -41138,6 +40990,54 @@ func (s *UploadRuntimeSessionServiceUnavailableCode) UnmarshalText(data []byte) 
 		return nil
 	case UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
 		*s = UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UploadRuntimeSessionSessionKind string
+
+const (
+	UploadRuntimeSessionSessionKindRoot   UploadRuntimeSessionSessionKind = "root"
+	UploadRuntimeSessionSessionKindExtend UploadRuntimeSessionSessionKind = "extend"
+	UploadRuntimeSessionSessionKindFork   UploadRuntimeSessionSessionKind = "fork"
+)
+
+// AllValues returns all UploadRuntimeSessionSessionKind values.
+func (UploadRuntimeSessionSessionKind) AllValues() []UploadRuntimeSessionSessionKind {
+	return []UploadRuntimeSessionSessionKind{
+		UploadRuntimeSessionSessionKindRoot,
+		UploadRuntimeSessionSessionKindExtend,
+		UploadRuntimeSessionSessionKindFork,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UploadRuntimeSessionSessionKind) MarshalText() ([]byte, error) {
+	switch s {
+	case UploadRuntimeSessionSessionKindRoot:
+		return []byte(s), nil
+	case UploadRuntimeSessionSessionKindExtend:
+		return []byte(s), nil
+	case UploadRuntimeSessionSessionKindFork:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UploadRuntimeSessionSessionKind) UnmarshalText(data []byte) error {
+	switch UploadRuntimeSessionSessionKind(data) {
+	case UploadRuntimeSessionSessionKindRoot:
+		*s = UploadRuntimeSessionSessionKindRoot
+		return nil
+	case UploadRuntimeSessionSessionKindExtend:
+		*s = UploadRuntimeSessionSessionKindExtend
+		return nil
+	case UploadRuntimeSessionSessionKindFork:
+		*s = UploadRuntimeSessionSessionKindFork
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

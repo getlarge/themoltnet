@@ -27,7 +27,6 @@ export const RuntimeSession = Type.Object(
     ]),
     sessionKind: RuntimeSessionKind,
     parentSessionId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
-    objectKey: Type.String({ minLength: 1 }),
     contentType: Type.String({ minLength: 1, maxLength: 200 }),
     contentEncoding: Type.Union([
       Type.String({ minLength: 1, maxLength: 100 }),
@@ -43,17 +42,18 @@ export const RuntimeSession = Type.Object(
 );
 export type RuntimeSession = Static<typeof RuntimeSession>;
 
-export const UploadRuntimeSessionBody = Type.Object(
+export const UploadRuntimeSessionQuery = Type.Object(
   {
     sourceSlotId: Type.Optional(Type.String({ format: 'uuid' })),
     sourceRuntimeProfileId: Type.Optional(Type.String({ format: 'uuid' })),
     sessionKind: RuntimeSessionKind,
     parentSessionId: Type.Optional(Type.String({ format: 'uuid' })),
-    contentBase64: Type.String({ minLength: 1 }),
   },
-  { $id: 'UploadRuntimeSessionBody', additionalProperties: false },
+  { $id: 'UploadRuntimeSessionQuery', additionalProperties: false },
 );
-export type UploadRuntimeSessionBody = Static<typeof UploadRuntimeSessionBody>;
+export type UploadRuntimeSessionQuery = Static<
+  typeof UploadRuntimeSessionQuery
+>;
 
 export const RuntimeSessionAttemptParams = Type.Object(
   {
@@ -69,20 +69,8 @@ export type RuntimeSessionAttemptParams = Static<
   typeof RuntimeSessionAttemptParams
 >;
 
-export const DownloadRuntimeSessionResponse = Type.Object(
-  {
-    session: RuntimeSession,
-    contentBase64: Type.String(),
-  },
-  { $id: 'DownloadRuntimeSessionResponse' },
-);
-export type DownloadRuntimeSessionResponse = Static<
-  typeof DownloadRuntimeSessionResponse
->;
-
 export const runtimeSessionSchemas = [
   RuntimeSession,
-  UploadRuntimeSessionBody,
+  UploadRuntimeSessionQuery,
   RuntimeSessionAttemptParams,
-  DownloadRuntimeSessionResponse,
 ];

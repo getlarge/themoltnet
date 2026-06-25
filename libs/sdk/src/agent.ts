@@ -1,3 +1,5 @@
+import type { Readable } from 'node:stream';
+
 import type {
   AbortTaskAttemptData,
   AcceptTransferResponses,
@@ -37,7 +39,6 @@ import type {
   DiarySearchResult,
   DiaryTagsResponse,
   DownloadRuntimeSessionData,
-  DownloadRuntimeSessionResponse,
   EntryVerifyResult,
   FailTaskData,
   FindLatestRuntimeSlotForAttemptData,
@@ -663,14 +664,15 @@ export interface RuntimeSessionsNamespace {
 
   upload(
     path: UploadRuntimeSessionData['path'],
-    body: UploadRuntimeSessionData['body'],
+    body: NodeJS.ReadableStream,
+    query: NonNullable<UploadRuntimeSessionData['query']>,
     options: RuntimeSessionRequestOptions,
   ): Promise<RuntimeSession>;
 
   download(
     path: DownloadRuntimeSessionData['path'],
     options: RuntimeSessionRequestOptions,
-  ): Promise<DownloadRuntimeSessionResponse>;
+  ): Promise<Readable>;
 }
 
 export interface RuntimeSessionRequestOptions {

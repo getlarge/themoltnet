@@ -560,6 +560,7 @@ export function createMockServices(): MockServices {
     runtimeSessionStorage: {
       putObject: vi.fn(),
       getObject: vi.fn(),
+      deleteObject: vi.fn(),
     },
     runtimeModelRepository: {
       create: vi.fn(),

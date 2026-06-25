@@ -24853,16 +24853,16 @@ func (s *Server) handleUpdateTeamMemberRoleRequest(args [2]string, argsEscaped b
 
 // handleUploadRuntimeSessionRequest handles uploadRuntimeSession operation.
 //
-// Upload or replace the durable team-scoped runtime session for a task attempt.
+// Stream or replace the durable team-scoped runtime session content for a task attempt.
 //
-// PUT /runtime-sessions/{taskId}/{attemptN}
+// PUT /runtime-sessions/{taskId}/{attemptN}/content
 func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("uploadRuntimeSession"),
 		semconv.HTTPRequestMethodKey.String("PUT"),
-		semconv.HTTPRouteKey.String("/runtime-sessions/{taskId}/{attemptN}"),
+		semconv.HTTPRouteKey.String("/runtime-sessions/{taskId}/{attemptN}/content"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
@@ -25019,21 +25019,6 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 	}
 
 	var rawBody []byte
-	request, rawBody, close, err := s.decodeUploadRuntimeSessionRequest(r)
-	if err != nil {
-		err = &ogenerrors.DecodeRequestError{
-			OperationContext: opErrContext,
-			Err:              err,
-		}
-		defer recordError("DecodeRequest", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
-	defer func() {
-		if err := close(); err != nil {
-			recordError("CloseRequest", err)
-		}
-	}()
 
 	var response UploadRuntimeSessionRes
 	if m := s.cfg.Middleware; m != nil {
@@ -25042,9 +25027,25 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 			OperationName:    UploadRuntimeSessionOperation,
 			OperationSummary: "",
 			OperationID:      "uploadRuntimeSession",
-			Body:             request,
+			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
+				{
+					Name: "sourceSlotId",
+					In:   "query",
+				}: params.SourceSlotId,
+				{
+					Name: "sourceRuntimeProfileId",
+					In:   "query",
+				}: params.SourceRuntimeProfileId,
+				{
+					Name: "sessionKind",
+					In:   "query",
+				}: params.SessionKind,
+				{
+					Name: "parentSessionId",
+					In:   "query",
+				}: params.ParentSessionId,
 				{
 					Name: "taskId",
 					In:   "path",
@@ -25062,7 +25063,7 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 		}
 
 		type (
-			Request  = *UploadRuntimeSessionReq
+			Request  = struct{}
 			Params   = UploadRuntimeSessionParams
 			Response = UploadRuntimeSessionRes
 		)
@@ -25075,12 +25076,12 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 			mreq,
 			unpackUploadRuntimeSessionParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.UploadRuntimeSession(ctx, request, params)
+				response, err = s.h.UploadRuntimeSession(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.UploadRuntimeSession(ctx, request, params)
+		response, err = s.h.UploadRuntimeSession(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
