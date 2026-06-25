@@ -242,3 +242,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  runtime-object-store:
+    image: chrislusf/seaweedfs:4.36
+    command:
+      [
+        'server',
+        '-s3',
+        '-s3.port=8333',
+        '-dir=/data',
+        '-master.volumeSizeLimitMB=64',
+        '-volume.max=16',
+      ]
+    environment:
+      AWS_ACCESS_KEY_ID: runtime-sessions
+      AWS_SECRET_ACCESS_KEY: runtime-sessions-secret

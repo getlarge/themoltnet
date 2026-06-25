@@ -144,6 +144,18 @@ export function createRuntimeSlotRepository(db: Database) {
       if (!slot) return null;
       return resolveSlot(slot);
     },
+
+    async findByIdInTeam(
+      id: string,
+      teamId: string,
+    ): Promise<RuntimeSlot | null> {
+      const [slot] = await getExecutor(db)
+        .select()
+        .from(runtimeSlots)
+        .where(and(eq(runtimeSlots.id, id), eq(runtimeSlots.teamId, teamId)))
+        .limit(1);
+      return slot ?? null;
+    },
   };
 
   async function resolveSlotLifetimeSec(

@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,7 +8,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { AgentRuntimeLogger } from '../runtime.js';
 import { makeFulfillBriefTask } from '../test-fixtures.js';
-import type { ContinuationSlotRegistry } from './polling-api.js';
+import type {
+  ContinuationSessionRegistry,
+  ContinuationSlotRegistry,
+} from './polling-api.js';
 import {
   isContinuationClaimableByThisDaemon,
   PollingApiTaskSource,
@@ -613,6 +616,66 @@ describe('PollingApiTaskSource', () => {
     expect(claim).toHaveBeenCalledWith(claimable.id, { leaseTtlSec: 60 });
   });
 
+  it('claims continuations when a durable remote session exists and the local session is missing', async () => {
+    const continuation = makeFulfillBriefTask({
+      id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+      taskType: 'freeform',
+      status: 'queued',
+      input: {
+        brief: 'continue from remote session',
+        continueFrom: {
+          taskId: '99999999-9999-4999-8999-999999999999',
+          attemptN: 1,
+        },
+      },
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [continuation], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task: continuation,
+      attempt: { taskId: continuation.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+    const findLatestSlotByTaskAttempt = vi.fn().mockResolvedValue({
+      session: { sessionDir: '/tmp/does/not/exist-remote-hydrates' },
+    });
+    const findRuntimeSessionByTaskAttempt = vi
+      .fn()
+      .mockResolvedValue({ id: 's1' });
+    const slotRegistry: ContinuationSlotRegistry = {
+      findLatestSlotByTaskAttempt,
+    };
+    const sessionRegistry: ContinuationSessionRegistry = {
+      findRuntimeSessionByTaskAttempt,
+    };
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      slotRegistry,
+      sessionRegistry,
+      logger: silentLogger,
+    });
+
+    const result = await src.claim();
+
+    expect(result?.task.id).toBe(continuation.id);
+    expect(findLatestSlotByTaskAttempt).toHaveBeenCalledWith(
+      continuation.teamId,
+      '99999999-9999-4999-8999-999999999999',
+      1,
+    );
+    expect(findRuntimeSessionByTaskAttempt).toHaveBeenCalledWith(
+      continuation.teamId,
+      '99999999-9999-4999-8999-999999999999',
+      1,
+    );
+    expect(claim).toHaveBeenCalledWith(continuation.id, { leaseTtlSec: 60 });
+  });
+
   it('drains only after all visible pages are locally unclaimable', async () => {
     const first = makeFulfillBriefTask({
       id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
@@ -703,6 +766,68 @@ describe('isContinuationClaimableByThisDaemon', () => {
     });
   });
 
+  it('returns false when a remote session exists but the producer slot is missing', async () => {
+    const findRuntimeSessionByTaskAttempt = vi
+      .fn()
+      .mockResolvedValue({ id: 's1' });
+    const sessionRegistry: ContinuationSessionRegistry = {
+      findRuntimeSessionByTaskAttempt,
+    };
+    const findLatestSlotByTaskAttempt = vi.fn().mockReturnValue(null);
+    const slotRegistry: ContinuationSlotRegistry = {
+      findLatestSlotByTaskAttempt,
+    };
+
+    await expect(
+      isContinuationClaimableByThisDaemon(
+        {
+          teamId: 'team-1',
+          input: {
+            continueFrom: { taskId: 'aaa', attemptN: 1 },
+          },
+        },
+        slotRegistry,
+        sessionRegistry,
+      ),
+    ).resolves.toEqual({
+      claimable: false,
+      reason: 'missing_producer_slot',
+      continueFrom: { taskId: 'aaa', attemptN: 1 },
+    });
+    expect(findLatestSlotByTaskAttempt).toHaveBeenCalled();
+    expect(findRuntimeSessionByTaskAttempt).not.toHaveBeenCalled();
+  });
+
+  it('returns true when producer slot exists and remote session can replace a missing local session file', async () => {
+    const findRuntimeSessionByTaskAttempt = vi
+      .fn()
+      .mockResolvedValue({ id: 's1' });
+    const sessionRegistry: ContinuationSessionRegistry = {
+      findRuntimeSessionByTaskAttempt,
+    };
+    const slotRegistry = makeSlotRegistry({
+      session: { sessionDir: '/tmp/does/not/exist-xyz-remote-123' },
+    });
+
+    await expect(
+      isContinuationClaimableByThisDaemon(
+        {
+          teamId: 'team-1',
+          input: {
+            continueFrom: { taskId: 'aaa', attemptN: 1 },
+          },
+        },
+        slotRegistry,
+        sessionRegistry,
+      ),
+    ).resolves.toEqual({ claimable: true });
+    expect(findRuntimeSessionByTaskAttempt).toHaveBeenCalledWith(
+      'team-1',
+      'aaa',
+      1,
+    );
+  });
+
   it("returns false when slot exists but sessionDir doesn't exist on disk", async () => {
     const slot = { session: { sessionDir: '/tmp/does/not/exist-xyz-123' } };
     await expect(
@@ -723,8 +848,31 @@ describe('isContinuationClaimableByThisDaemon', () => {
     });
   });
 
-  it('returns true when slot + sessionDir both exist', async () => {
+  it('returns false when the slot sessionDir exists but has no session file', async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'session-'));
+    const slot = { session: { sessionDir: tmpDir } };
+    await expect(
+      isContinuationClaimableByThisDaemon(
+        {
+          input: {
+            brief: 'x',
+            continueFrom: { taskId: 'aaa', attemptN: 1 },
+          },
+        } as never,
+        makeSlotRegistry(slot),
+      ),
+    ).resolves.toEqual({
+      claimable: false,
+      reason: 'missing_session_dir',
+      continueFrom: { taskId: 'aaa', attemptN: 1 },
+      sessionDir: tmpDir,
+    });
+  });
+
+  it('returns true when slot has a local session file', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'session-'));
+    const sessionPath = join(tmpDir, 'session-1.jsonl');
+    writeFileSync(sessionPath, '{"role":"system"}\n', 'utf8');
     const slot = { session: { sessionDir: tmpDir } };
     await expect(
       isContinuationClaimableByThisDaemon(

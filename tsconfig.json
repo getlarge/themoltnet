@@ -102,6 +102,9 @@
       "path": "libs/pi-extension"
     },
     {
+      "path": "libs/runtime-session-service"
+    },
+    {
       "path": "libs/sdk"
     },
     {

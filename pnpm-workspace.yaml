@@ -79,6 +79,7 @@ catalog:
   '@ory/client-fetch': '^1.22.34'
   '@playwright/test': '^1.55.0'
   '@scalar/fastify-api-reference': '^1.0.0'
+  '@aws-sdk/client-s3': '^3.935.0'
   typebox: '^1.2.8'
   '@tanstack/react-query': '^5.90.3'
   '@testcontainers/postgresql': '^11.0.0'

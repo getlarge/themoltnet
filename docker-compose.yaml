@@ -154,6 +154,16 @@ services:
       - redis-data:/data
     restart: unless-stopped
 
+  runtime-object-store:
+    extends:
+      file: docker-compose.base.yaml
+      service: runtime-object-store
+    ports:
+      - '8333:8333'
+    volumes:
+      - runtime-object-store-data:/data
+    restart: unless-stopped
+
 volumes:
   app-db-data:
   issue-lifecycle-db-data:
@@ -161,3 +171,4 @@ volumes:
   hydra-db-data:
   keto-db-data:
   redis-data:
+  runtime-object-store-data:

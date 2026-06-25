@@ -40,6 +40,12 @@ import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../lib/runtime-profile.js';
+import {
+  applyRuntimeSessionUploadFailure,
+  createApiRuntimeSessionStore,
+  resolveParentRuntimeSession,
+  resolveRuntimeSessionKind,
+} from '../lib/runtime-sessions.js';
 import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
@@ -132,6 +138,9 @@ export async function runOnce(argv: string[]): Promise<number> {
   activatePiCodingAgentDir(piAgentDir.path);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
+  const runtimeSessionStore = createApiRuntimeSessionStore({
+    agent: ctx.agent,
+  });
   const slotIdentity: DaemonSlotIdentity = {
     agentName: opts.agent,
     runtimeProfileId: profile.id,
@@ -145,6 +154,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       allowedWorkspaceModes: profile.allowedWorkspaceModes,
     },
     slotRegistry,
+    runtimeSessionStore,
   });
   const otelShutdown = await initWorkerOtel({
     serviceName: 'moltnet.agent-daemon.once',
@@ -386,7 +396,36 @@ export async function runOnce(argv: string[]): Promise<number> {
           claimedTask.task.id,
           claimedTask.attemptN,
         );
-        return finalizeTask(ctx.agent, output, {
+        let terminalOutput = output;
+        if (resolved?.session?.sessionDir) {
+          try {
+            const parentSession = await resolveParentRuntimeSession(
+              runtimeSessionStore,
+              claimedTask,
+            );
+            await runtimeSessionStore.uploadAttemptFinal({
+              attemptN: claimedTask.attemptN,
+              parentSessionId: parentSession?.id ?? null,
+              sessionDir: resolved.session.sessionDir,
+              sessionKind: resolveRuntimeSessionKind(claimedTask),
+              sourceRuntimeProfileId: resolved.slot.runtimeProfileId,
+              sourceSlotId: resolved.slot.id,
+              taskId: claimedTask.task.id,
+              teamId: claimedTask.task.teamId,
+            });
+          } catch (err) {
+            rootLogger.error(
+              {
+                err,
+                taskId: claimedTask.task.id,
+                attemptN: claimedTask.attemptN,
+              },
+              'agent-daemon.runtime_session_upload_failed',
+            );
+            terminalOutput = applyRuntimeSessionUploadFailure(output, err);
+          }
+        }
+        return finalizeTask(ctx.agent, terminalOutput, {
           task: claimedTask.task,
           slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
           writeCorrelationAnchors,

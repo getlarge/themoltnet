@@ -2313,6 +2313,186 @@ func decodeDiffContextPacksByIdParams(args [2]string, argsEscaped bool, r *http.
 	return params, nil
 }
 
+// DownloadRuntimeSessionParams is parameters of downloadRuntimeSession operation.
+type DownloadRuntimeSessionParams struct {
+	TaskId   uuid.UUID
+	AttemptN int
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackDownloadRuntimeSessionParams(packed middleware.Parameters) (params DownloadRuntimeSessionParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "taskId",
+			In:   "path",
+		}
+		params.TaskId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "attemptN",
+			In:   "path",
+		}
+		params.AttemptN = packed[key].(int)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDownloadRuntimeSessionParams(args [2]string, argsEscaped bool, r *http.Request) (params DownloadRuntimeSessionParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: taskId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "taskId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TaskId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "taskId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: attemptN.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "attemptN",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToInt(val)
+				if err != nil {
+					return err
+				}
+
+				params.AttemptN = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        false,
+					Max:           0,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(params.AttemptN)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "attemptN",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // FailTaskParams is parameters of failTask operation.
 type FailTaskParams struct {
 	ID uuid.UUID
@@ -4317,6 +4497,186 @@ func decodeGetRuntimeProfileParams(args [1]string, argsEscaped bool, r *http.Req
 		return params, &ogenerrors.DecodeParamError{
 			Name: "profileId",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetRuntimeSessionParams is parameters of getRuntimeSession operation.
+type GetRuntimeSessionParams struct {
+	TaskId   uuid.UUID
+	AttemptN int
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackGetRuntimeSessionParams(packed middleware.Parameters) (params GetRuntimeSessionParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "taskId",
+			In:   "path",
+		}
+		params.TaskId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "attemptN",
+			In:   "path",
+		}
+		params.AttemptN = packed[key].(int)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetRuntimeSessionParams(args [2]string, argsEscaped bool, r *http.Request) (params GetRuntimeSessionParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: taskId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "taskId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TaskId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "taskId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: attemptN.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "attemptN",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToInt(val)
+				if err != nil {
+					return err
+				}
+
+				params.AttemptN = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        false,
+					Max:           0,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(params.AttemptN)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "attemptN",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -11507,6 +11867,392 @@ func decodeUpdateTeamMemberRoleParams(args [2]string, argsEscaped bool, r *http.
 		return params, &ogenerrors.DecodeParamError{
 			Name: "subjectId",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UploadRuntimeSessionParams is parameters of uploadRuntimeSession operation.
+type UploadRuntimeSessionParams struct {
+	SourceSlotId           OptUUID `json:",omitempty,omitzero"`
+	SourceRuntimeProfileId OptUUID `json:",omitempty,omitzero"`
+	SessionKind            UploadRuntimeSessionSessionKind
+	ParentSessionId        OptUUID `json:",omitempty,omitzero"`
+	TaskId                 uuid.UUID
+	AttemptN               int
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackUploadRuntimeSessionParams(packed middleware.Parameters) (params UploadRuntimeSessionParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "sourceSlotId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.SourceSlotId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "sourceRuntimeProfileId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.SourceRuntimeProfileId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "sessionKind",
+			In:   "query",
+		}
+		params.SessionKind = packed[key].(UploadRuntimeSessionSessionKind)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "parentSessionId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ParentSessionId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "taskId",
+			In:   "path",
+		}
+		params.TaskId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "attemptN",
+			In:   "path",
+		}
+		params.AttemptN = packed[key].(int)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUploadRuntimeSessionParams(args [2]string, argsEscaped bool, r *http.Request) (params UploadRuntimeSessionParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode query: sourceSlotId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "sourceSlotId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotSourceSlotIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotSourceSlotIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.SourceSlotId.SetTo(paramsDotSourceSlotIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "sourceSlotId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: sourceRuntimeProfileId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "sourceRuntimeProfileId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotSourceRuntimeProfileIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotSourceRuntimeProfileIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.SourceRuntimeProfileId.SetTo(paramsDotSourceRuntimeProfileIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "sourceRuntimeProfileId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: sessionKind.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "sessionKind",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.SessionKind = UploadRuntimeSessionSessionKind(c)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.SessionKind.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "sessionKind",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: parentSessionId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "parentSessionId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotParentSessionIdVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotParentSessionIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ParentSessionId.SetTo(paramsDotParentSessionIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "parentSessionId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode path: taskId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "taskId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TaskId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "taskId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: attemptN.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "attemptN",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToInt(val)
+				if err != nil {
+					return err
+				}
+
+				params.AttemptN = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        false,
+					Max:           0,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(params.AttemptN)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "attemptN",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}

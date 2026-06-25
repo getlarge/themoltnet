@@ -38,6 +38,7 @@ import {
   createRenderedPackRepository,
   createRuntimeModelRepository,
   createRuntimeProfileRepository,
+  createRuntimeSessionRepository,
   createRuntimeSlotRepository,
   createSigningRequestRepository,
   createTaskRepository,
@@ -65,6 +66,7 @@ import {
   type ObservabilityContext,
   observabilityPlugin,
 } from '@moltnet/observability';
+import { createRuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
@@ -247,6 +249,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const runtimeSlotRepository = createRuntimeSlotRepository(dbConnection.db);
+  const runtimeSessionRepository = createRuntimeSessionRepository(
+    dbConnection.db,
+  );
   const runtimeModelRepository = createRuntimeModelRepository(dbConnection.db);
   const groupRepository = createGroupRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
@@ -506,6 +511,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     teamRepository,
     diaryTransferRepository,
     runtimeProfileRepository,
+    runtimeSessionRepository,
+    runtimeSessionStorage: createRuntimeSessionStorage(
+      config.runtimeSessionStorage,
+    ),
+    runtimeSessionMaxBytes:
+      config.runtimeSessionStorage.RUNTIME_SESSION_MAX_BYTES,
     runtimeSlotRepository,
     runtimeModelRepository,
     taskRepository,

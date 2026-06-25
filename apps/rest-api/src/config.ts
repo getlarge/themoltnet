@@ -96,6 +96,24 @@ export const TaskOrphanSweeperConfigSchema = Type.Object({
   TASK_ORPHAN_SWEEPER_BATCH_SIZE: Type.Number({ default: 50 }),
 });
 
+export const RuntimeSessionStorageConfigSchema = Type.Object({
+  RUNTIME_SESSION_STORAGE_ENDPOINT: Type.Optional(
+    Type.String({ minLength: 1 }),
+  ),
+  RUNTIME_SESSION_STORAGE_REGION: Type.String({ default: 'auto' }),
+  RUNTIME_SESSION_STORAGE_BUCKET: Type.String({
+    default: 'moltnet-runtime-sessions',
+  }),
+  RUNTIME_SESSION_STORAGE_ACCESS_KEY_ID: Type.Optional(
+    Type.String({ minLength: 1 }),
+  ),
+  RUNTIME_SESSION_STORAGE_SECRET_ACCESS_KEY: Type.Optional(
+    Type.String({ minLength: 1 }),
+  ),
+  RUNTIME_SESSION_STORAGE_FORCE_PATH_STYLE: Type.Boolean({ default: true }),
+  RUNTIME_SESSION_MAX_BYTES: Type.Number({ default: 10 * 1024 * 1024 }),
+});
+
 export const EmbeddingConfigSchema = Type.Object({
   /** Directory where model files are cached/loaded from (default: ./models) */
   EMBEDDING_CACHE_DIR: Type.Optional(Type.String({ minLength: 1 })),
@@ -182,6 +200,9 @@ export type PackGcConfig = Static<typeof PackGcConfigSchema>;
 export type TaskOrphanSweeperConfig = Static<
   typeof TaskOrphanSweeperConfigSchema
 >;
+export type RuntimeSessionStorageConfig = Static<
+  typeof RuntimeSessionStorageConfigSchema
+>;
 export type EmbeddingConfig = Static<typeof EmbeddingConfigSchema>;
 export type SecurityConfig = Static<typeof SecurityConfigSchema>;
 
@@ -196,6 +217,7 @@ export interface AppConfig {
   security: SecurityConfig;
   packGc: PackGcConfig;
   taskOrphanSweeper: TaskOrphanSweeperConfig;
+  runtimeSessionStorage: RuntimeSessionStorageConfig;
 }
 
 export interface ResolvedOryUrls {
@@ -332,6 +354,16 @@ export function loadTaskOrphanSweeperConfig(
   );
 }
 
+export function loadRuntimeSessionStorageConfig(
+  env: Record<string, string | undefined> = process.env,
+): RuntimeSessionStorageConfig {
+  return validateSchema(
+    'RuntimeSessionStorage',
+    RuntimeSessionStorageConfigSchema,
+    pickEnv(RuntimeSessionStorageConfigSchema, env),
+  );
+}
+
 export function loadSecurityConfig(
   env: Record<string, string | undefined> = process.env,
 ): SecurityConfig {
@@ -445,6 +477,7 @@ export function loadConfig(
     security,
     packGc: loadPackGcConfig(env),
     taskOrphanSweeper: loadTaskOrphanSweeperConfig(env),
+    runtimeSessionStorage: loadRuntimeSessionStorageConfig(env),
   };
 }
 
