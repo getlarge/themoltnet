@@ -1,8 +1,11 @@
 import { Stack, Text, useTheme } from '@themoltnet/design-system';
+import type { CSSProperties } from 'react';
 
 import { formatRelativeAge, humanizeToken } from './format.js';
 import { TaskStatusBadge } from './task-status-badge.js';
 import type { TaskLabelRenderer, TaskSummary } from './types.js';
+
+const tableMinWidth = 1180;
 
 export interface TaskQueueTableProps {
   tasks: TaskSummary[];
@@ -51,6 +54,21 @@ export function TaskQueueTable({
   const visibleSelected =
     tasks.length > 0 && tasks.every((task) => selectedTaskIds?.has(task.id));
   const columns = `${selectable ? '40px ' : ''}minmax(190px, 1.3fr) minmax(110px, .7fr) minmax(170px, 1fr) minmax(190px, 1.4fr) minmax(120px, .9fr) minmax(130px, 1fr) minmax(90px, .6fr) minmax(70px, .5fr)`;
+  const cellStyle: CSSProperties = {
+    minWidth: 0,
+    overflow: 'hidden',
+  };
+  const truncatedTextStyle: CSSProperties = {
+    display: 'block',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  };
+  const monoTruncatedTextStyle: CSSProperties = {
+    ...truncatedTextStyle,
+    fontFamily: theme.font.family.mono,
+  };
 
   return (
     <div
@@ -60,7 +78,7 @@ export function TaskQueueTable({
         borderRadius: theme.radius.lg,
       }}
     >
-      <div style={{ minWidth: 980 }}>
+      <div style={{ minWidth: tableMinWidth }}>
         <div
           style={{
             display: 'grid',
@@ -125,7 +143,7 @@ export function TaskQueueTable({
                   />
                 </span>
               ) : null}
-              <span style={{ minWidth: 0 }}>
+              <span style={cellStyle}>
                 <button
                   type="button"
                   onClick={() => {
@@ -161,48 +179,66 @@ export function TaskQueueTable({
               <span>
                 <TaskStatusBadge status={task.status} />
               </span>
-              <span style={{ minWidth: 0 }}>
+              <span style={cellStyle} title={task.tags.join(' ')}>
                 <Text
                   variant="caption"
                   color={task.tags.length > 0 ? undefined : 'muted'}
-                  style={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
+                  style={truncatedTextStyle}
                 >
                   {task.tags.length > 0
                     ? task.tags.map((tag) => `#${tag}`).join(' ')
                     : '—'}
                 </Text>
               </span>
-              <span
-                title={task.correlationId ?? undefined}
-                style={{ minWidth: 0 }}
-              >
+              <span title={task.correlationId ?? undefined} style={cellStyle}>
                 <Text
                   variant="caption"
                   color={task.correlationId ? undefined : 'muted'}
-                  style={{
-                    fontFamily: task.correlationId
-                      ? theme.font.family.mono
-                      : undefined,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
+                  style={
+                    task.correlationId
+                      ? monoTruncatedTextStyle
+                      : truncatedTextStyle
+                  }
                 >
                   {task.correlationId ?? '—'}
                 </Text>
               </span>
-              <span>
-                {renderDiaryLabel?.(task.diaryId) ?? task.diaryId ?? '—'}
+              <span style={cellStyle} title={task.diaryId ?? undefined}>
+                {renderDiaryLabel?.(task.diaryId) ?? (
+                  <Text
+                    variant="caption"
+                    color={task.diaryId ? undefined : 'muted'}
+                    style={
+                      task.diaryId ? monoTruncatedTextStyle : truncatedTextStyle
+                    }
+                  >
+                    {task.diaryId ?? '—'}
+                  </Text>
+                )}
               </span>
-              <span>
-                {renderAgentLabel?.(task.proposedByAgentId) ??
-                  task.proposedByAgentId ??
-                  task.proposedByHumanId ??
-                  '—'}
+              <span
+                style={cellStyle}
+                title={
+                  task.proposedByAgentId ?? task.proposedByHumanId ?? undefined
+                }
+              >
+                {renderAgentLabel?.(task.proposedByAgentId) ?? (
+                  <Text
+                    variant="caption"
+                    color={
+                      task.proposedByAgentId || task.proposedByHumanId
+                        ? undefined
+                        : 'muted'
+                    }
+                    style={
+                      task.proposedByAgentId || task.proposedByHumanId
+                        ? monoTruncatedTextStyle
+                        : truncatedTextStyle
+                    }
+                  >
+                    {task.proposedByAgentId ?? task.proposedByHumanId ?? '—'}
+                  </Text>
+                )}
               </span>
               <span title={task.queuedAt}>
                 {formatRelativeAge(task.queuedAt, now)}

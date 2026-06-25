@@ -40,6 +40,52 @@ describe('@moltnet/task-ui', () => {
     expect(screen.getByText('Agent 5555')).toBeInTheDocument();
   });
 
+  it('clips long table tokens inside their columns', () => {
+    const longTask = {
+      ...taskFixture,
+      title:
+        'Judge traffic fit eval: no-tracking-clear-offer / baseline-no-skill',
+      tags: [
+        'traffic-fit',
+        'eval-judge',
+        'no-tracking-clear-offer',
+        'baseline-no-skill',
+      ],
+      correlationId: '2c3dd3ff-ca01-41e2-8794-2a6188d1f462',
+      diaryId: 'e5c15e6e-339e-4247-8345-5ea7d4142997',
+      proposedByAgentId: 'a854b555-aeef-4f13-ab22-8d0b819d478e',
+    };
+
+    const { container } = renderWithTheme(
+      <TaskQueueTable tasks={[longTask]} />,
+    );
+    const table = container.querySelector('[style*="min-width: 1180px"]');
+
+    expect(table).toHaveStyle({ minWidth: '1180px' });
+    expect(screen.getByText(longTask.correlationId)).toHaveStyle({
+      display: 'block',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    });
+    expect(screen.getByText(longTask.diaryId)).toHaveStyle({
+      display: 'block',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    });
+    expect(
+      screen.getByText(
+        '#traffic-fit #eval-judge #no-tracking-clear-offer #baseline-no-skill',
+      ),
+    ).toHaveStyle({
+      display: 'block',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    });
+  });
+
   it('renders the correlation id in the task detail header', () => {
     renderWithTheme(<TaskDetailHeader task={taskFixture} />);
 
