@@ -43,33 +43,6 @@ function sortKeysDeep(value: unknown): unknown {
   return value;
 }
 
-function applyRuntimeSessionContentSpec(spec: unknown) {
-  const document = spec as {
-    paths?: Record<
-      string,
-      {
-        put?: Record<string, unknown>;
-      }
-    >;
-  };
-  const uploadOperation =
-    document.paths?.['/runtime-sessions/{taskId}/{attemptN}/content']?.put;
-  if (!uploadOperation) return;
-
-  uploadOperation.requestBody = {
-    content: {
-      'application/octet-stream': {
-        schema: {
-          description: 'Runtime session content stream.',
-          format: 'binary',
-          type: 'string',
-        },
-      },
-    },
-    description: 'Runtime session content stream.',
-  };
-}
-
 // Proxy that returns a no-op function for any property access.
 // Used as a stub for services that won't be called during spec generation.
 function createStubService(): unknown {
@@ -119,7 +92,6 @@ async function main() {
   await app.ready();
 
   const spec = app.swagger();
-  applyRuntimeSessionContentSpec(spec);
   // Sort keys + trailing newline so output matches release-please's serializer
   // exactly. Do NOT post-process with Prettier (see sortKeysDeep + .prettierignore).
   const json = JSON.stringify(sortKeysDeep(spec), null, 2) + '\n';

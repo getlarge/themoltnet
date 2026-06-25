@@ -30,6 +30,9 @@
       "path": "../../libs/task-service/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/runtime-session-service/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/context-distill/tsconfig.lib.json"
     },
     {

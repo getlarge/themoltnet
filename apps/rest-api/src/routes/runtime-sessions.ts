@@ -6,6 +6,10 @@ import {
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
 import {
+  createRuntimeSessionService,
+  serializeRuntimeSession,
+} from '@moltnet/runtime-session-service';
+import {
   RuntimeSession as RuntimeSessionSchema,
   RuntimeSessionAttemptParams as RuntimeSessionAttemptParamsSchema,
   RuntimeSessionContent as RuntimeSessionContentSchema,
@@ -14,10 +18,6 @@ import {
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
-import {
-  createRuntimeSessionService,
-  serializeRuntimeSession,
-} from '../services/runtime-sessions.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 
 function authSubject(request: {
@@ -63,6 +63,15 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
   server.put(
     '/runtime-sessions/:taskId/:attemptN/content',
     {
+      config: {
+        swaggerTransform: ({ schema, url }) => ({
+          schema: {
+            ...schema,
+            body: RuntimeSessionContentSchema,
+          },
+          url,
+        }),
+      },
       schema: {
         operationId: 'uploadRuntimeSession',
         tags: ['runtime-sessions'],

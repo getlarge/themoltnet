@@ -11,7 +11,14 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 
-import type { RuntimeSessionStorageConfig } from '../config.js';
+export interface RuntimeSessionStorageConfig {
+  RUNTIME_SESSION_STORAGE_ACCESS_KEY_ID?: string;
+  RUNTIME_SESSION_STORAGE_BUCKET: string;
+  RUNTIME_SESSION_STORAGE_ENDPOINT?: string;
+  RUNTIME_SESSION_STORAGE_FORCE_PATH_STYLE: boolean;
+  RUNTIME_SESSION_STORAGE_REGION: string;
+  RUNTIME_SESSION_STORAGE_SECRET_ACCESS_KEY?: string;
+}
 
 export interface RuntimeSessionObject {
   body: Readable;
@@ -133,14 +140,14 @@ async function ensureBucket(client: S3Client, bucket: string): Promise<void> {
 
 function createDisabledRuntimeSessionStorage(): RuntimeSessionStorage {
   return {
-    async putObject() {
-      throw new RuntimeSessionStorageNotConfiguredError();
+    putObject() {
+      return Promise.reject(new RuntimeSessionStorageNotConfiguredError());
     },
-    async getObject() {
-      throw new RuntimeSessionStorageNotConfiguredError();
+    getObject() {
+      return Promise.reject(new RuntimeSessionStorageNotConfiguredError());
     },
-    async deleteObject() {
-      throw new RuntimeSessionStorageNotConfiguredError();
+    deleteObject() {
+      return Promise.reject(new RuntimeSessionStorageNotConfiguredError());
     },
   };
 }

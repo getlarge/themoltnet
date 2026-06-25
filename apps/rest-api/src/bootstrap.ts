@@ -66,6 +66,7 @@ import {
   type ObservabilityContext,
   observabilityPlugin,
 } from '@moltnet/observability';
+import { createRuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
@@ -76,7 +77,6 @@ import type { AppConfig } from './config.js';
 import { resolveOryUrls, resolveRedisConfig } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import { createAssertDiaryReadable } from './services/diary-readable.js';
-import { createRuntimeSessionStorage } from './services/runtime-session-storage.js';
 import {
   createTaskService,
   type TaskService,

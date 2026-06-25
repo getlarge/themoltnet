@@ -41,6 +41,7 @@ export type {
 } from '@moltnet/database';
 export type { DiaryService } from '@moltnet/diary-service';
 export type { EmbeddingService } from '@moltnet/embedding-service';
+export type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import type {
   AuthContext,
   PermissionChecker,
@@ -71,10 +72,10 @@ import type {
 } from '@moltnet/database';
 import type { DiaryService } from '@moltnet/diary-service';
 import type { EmbeddingService } from '@moltnet/embedding-service';
+import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 
 import type { SecurityOptions } from './app.js';
 import type { PackGcConfig } from './config.js';
-import type { RuntimeSessionStorage } from './services/runtime-session-storage.js';
 import type { TaskService } from './services/task.service.js';
 
 declare module 'fastify' {

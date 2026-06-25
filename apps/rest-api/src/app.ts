@@ -16,6 +16,7 @@ import {
   type TeamResolver,
   type TokenValidator,
 } from '@moltnet/auth';
+import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import scalarApiReference from '@scalar/fastify-api-reference';
 import Fastify, {
   type FastifyInstance,
@@ -57,7 +58,6 @@ import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
-import type { RuntimeSessionStorage } from './services/runtime-session-storage.js';
 import type {
   AgentRepository,
   ContextPackRepository,

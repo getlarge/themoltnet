@@ -8,18 +8,18 @@ import { pipeline } from 'node:stream/promises';
 import { createGunzip, createGzip } from 'node:zlib';
 
 import type { KetoNamespace } from '@moltnet/auth';
-import type { RuntimeSession, TaskAttempt } from '@moltnet/database';
-import type { UploadRuntimeSessionQuery } from '@moltnet/tasks';
-import type { FastifyBaseLogger } from 'fastify';
-
-import { createProblem, createValidationProblem } from '../problems/index.js';
+import type { PermissionChecker } from '@moltnet/auth';
 import type {
-  PermissionChecker,
   RuntimeProfileRepository,
+  RuntimeSession,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
+  TaskAttempt,
   TaskRepository,
-} from '../types.js';
+} from '@moltnet/database';
+import type { UploadRuntimeSessionQuery } from '@moltnet/tasks';
+
+import { createProblem, createValidationProblem } from './problems.js';
 import {
   MissingRuntimeSessionObjectError,
   type RuntimeSessionObject,
@@ -28,7 +28,7 @@ import {
 } from './runtime-session-storage.js';
 
 export interface RuntimeSessionServiceDeps {
-  logger: FastifyBaseLogger;
+  logger: RuntimeSessionLogger;
   permissionChecker: PermissionChecker;
   runtimeProfileRepository: RuntimeProfileRepository;
   runtimeSessionMaxBytes: number;
@@ -36,6 +36,10 @@ export interface RuntimeSessionServiceDeps {
   runtimeSessionStorage: RuntimeSessionStorage;
   runtimeSlotRepository: RuntimeSlotRepository;
   taskRepository: TaskRepository;
+}
+
+export interface RuntimeSessionLogger {
+  warn(obj: object, msg: string): void;
 }
 
 export interface RuntimeSessionSubject {

@@ -12,12 +12,12 @@ import type {
 } from '@moltnet/auth';
 import { ContextPackService } from '@moltnet/context-pack-service';
 import type { Agent, AgentVoucher, DiaryEntry } from '@moltnet/database';
+import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 
 import { type AppOptions, buildApp } from '../src/app.js';
 import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
-import type { RuntimeSessionStorage } from '../src/services/runtime-session-storage.js';
 import type {
   AgentRepository,
   CryptoService,

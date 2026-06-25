@@ -3,10 +3,10 @@ import { promisify } from 'node:util';
 import { gzip } from 'node:zlib';
 
 import type { RuntimeSession } from '@moltnet/database';
+import { MissingRuntimeSessionObjectError } from '@moltnet/runtime-session-service';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { MissingRuntimeSessionObjectError } from '../src/services/runtime-session-storage.js';
 import {
   createMockServices,
   createTestApp,
