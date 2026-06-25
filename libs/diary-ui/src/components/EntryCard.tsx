@@ -78,7 +78,12 @@ export function EntryCard({
             {entry.content}
           </Text>
           {entry.tags && entry.tags.length > 0 && (
-            <Stack direction="row" gap={2} wrap>
+            <Stack
+              direction="row"
+              gap={2}
+              wrap
+              style={{ minWidth: 0, overflow: 'hidden' }}
+            >
               {entry.tags.slice(0, 6).map((tag) => (
                 <TagChip
                   key={tag}
