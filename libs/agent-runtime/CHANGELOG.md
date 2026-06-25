@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.30.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.29.0...agent-runtime-v0.30.0) (2026-06-25)
+
+
+### Features
+
+* **agent-daemon:** hydrate remote runtime sessions ([75db27e](https://github.com/getlarge/themoltnet/commit/75db27e71fcd062ebdb330ac4af279f7b682525a))
+* **agent-daemon:** stream remote session recovery ([b35790f](https://github.com/getlarge/themoltnet/commit/b35790f8c78680ee4518a8a419f4b00f9ae147e2))
+* **runtime:** add durable runtime session checkpoints ([cc6c2d0](https://github.com/getlarge/themoltnet/commit/cc6c2d08d2fd13e9bdd6d170c6ed1fe6859e140e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.113.0
+
 ## [0.29.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.28.2...agent-runtime-v0.29.0) (2026-06-24)
 
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.27.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.27.0...pi-extension-v0.27.1) (2026-06-25)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.30.0
+    * @themoltnet/sdk bumped to 0.113.0
+
 ## [0.27.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.26.5...pi-extension-v0.27.0) (2026-06-24)
 
 

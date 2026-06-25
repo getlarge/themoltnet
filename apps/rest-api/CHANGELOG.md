@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.18.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.17.0...rest-api-v0.18.0) (2026-06-25)
+
+
+### Features
+
+* **rest-api:** add durable runtime sessions ([39e6b59](https://github.com/getlarge/themoltnet/commit/39e6b59d976773091f8dcd651522bda71e40ca2a))
+* **runtime:** add durable runtime session checkpoints ([cc6c2d0](https://github.com/getlarge/themoltnet/commit/cc6c2d08d2fd13e9bdd6d170c6ed1fe6859e140e))
+
+
+### Bug Fixes
+
+* **rest-api:** cache SSR asset chunks ([056f9e7](https://github.com/getlarge/themoltnet/commit/056f9e7c32130903f8ba49cba269f54bd3fe1148))
+* **rest-api:** cache SSR asset chunks ([f3aaf7b](https://github.com/getlarge/themoltnet/commit/f3aaf7b1b9914f7471a61feaba6054873338769d))
+* **runtime-sessions:** harden stream checkpoint follow-ups ([61f6235](https://github.com/getlarge/themoltnet/commit/61f623518bb3330a786cf6cce28b2ec394d1b7f4))
+
 ## [0.17.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.16.0...rest-api-v0.17.0) (2026-06-24)
 
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.39.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.38.0...moltnet-api-client-v1.39.0) (2026-06-25)
+
+
+### Features
+
+* **runtime:** add durable runtime session checkpoints ([cc6c2d0](https://github.com/getlarge/themoltnet/commit/cc6c2d08d2fd13e9bdd6d170c6ed1fe6859e140e))
+
+
+### Bug Fixes
+
+* **runtime-sessions:** harden stream checkpoint follow-ups ([61f6235](https://github.com/getlarge/themoltnet/commit/61f623518bb3330a786cf6cce28b2ec394d1b7f4))
+
+
+### Codegen
+
+* **api:** regenerate runtime session clients ([edef7d3](https://github.com/getlarge/themoltnet/commit/edef7d3cf317e720aa297370ec2dca22d96d65ef))
+
 ## [1.38.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.37.0...moltnet-api-client-v1.38.0) (2026-06-24)
 
 
