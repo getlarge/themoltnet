@@ -95,9 +95,10 @@ portable across developers and machines.
 - `--heartbeat-interval-ms` — reporter heartbeat cadence. Default 60_000.
 - `--max-batch-size`, `--flush-interval-ms` — message batching for `appendMessages`.
 - `--warm-session-ttl-sec` — resumability window stamped on remote daemon
-  runtime slots after use. A slot records the persisted Pi session path plus any
-  reusable worktree for one profile/slot-key combination. Default comes from
-  the profile session/workspace TTL minimum, unless explicitly overridden.
+  runtime slots after use. Slots still control local workspace reuse and
+  same-daemon warm starts; durable Pi session checkpoints are uploaded
+  separately at attempt finalization. Default comes from the profile
+  session/workspace TTL minimum, unless explicitly overridden.
 
 `poll` and `drain` add:
 
@@ -439,11 +440,11 @@ Profile name lookup is team-scoped. `poll` and `drain` already require `--team`,
 so `--profile github-linear` resolves inside that team. `once` can run without a
 team id, so use a profile UUID for `once`.
 
-`sessionTtlSec` and `workspaceTtlSec` currently feed the daemon's default
-resumability window for remote runtime slots. The daemon has one window covering
-both persisted Pi session history and reusable workspaces, so it uses the
-smaller of the two profile TTLs unless `--warm-session-ttl-sec` is passed
-explicitly.
+`sessionTtlSec` and `workspaceTtlSec` feed the daemon's default resumability
+window for remote runtime slots. Runtime sessions are durably checkpointed at
+attempt finalization, but runtime slots still describe local workspace reuse and
+same-daemon warm starts. The daemon uses the smaller of the two profile TTLs
+unless `--warm-session-ttl-sec` is passed explicitly.
 
 Profile `context` entries are reserved for a follow-up integration. They are
 stored and returned by the API, but this daemon does not yet inject them as
@@ -497,8 +498,10 @@ Current daemon behavior:
   daemon slot under `.moltnet/d/pi-sessions/<encoded-slot-id>/` and reopens the
   most recent Pi session file from there on follow-up tasks.
 - The daemon records slot metadata through the REST API. The slot row keeps the
-  local session/workspace paths needed for affinity and resume, while the files
-  themselves still live on the daemon host.
+  local workspace paths needed for same-daemon affinity and reuse. At attempt
+  finalization, the daemon also uploads the final Pi session file to team-scoped
+  runtime-session object storage, so another daemon can hydrate the session even
+  when the source slot is unavailable.
 - For `dedicated_worktree` + `workspaceScope: session`, the daemon reuses a
   stable worktree path under `.worktrees/session-<encoded-slot-id>` instead
   of creating a fresh `.worktrees/task-<task-id>` checkout every attempt.
@@ -521,11 +524,10 @@ Current daemon behavior:
   `input.execution.workspace`. When that field is `none`, the daemon runs the
   producer in a `scratch_mount`; when it is `dedicated_worktree`, the daemon
   provisions an isolated worktree for that producer attempt.
-- `judge_eval_attempt` only resolves if the producer slot metadata and local
-  session/workspace files are available when the judge is claimed. If they are,
-  the daemon immediately forks the producer Pi session and copies the producer
-  workspace into fresh judge-owned scratch state. If the daemon cannot resolve
-  that context, the judge fails with `producer_context_missing`.
+- `judge_eval_attempt` can use a durable remote runtime session when the
+  producer's local Pi session is unavailable. Workspace copying still requires
+  producer slot/workspace metadata; if the daemon cannot resolve the required
+  producer context, the judge fails with `producer_context_missing`.
 - Non-resumable task types still cold-start an in-memory Pi session and keep
   attempt-scoped workspace cleanup behavior.
 

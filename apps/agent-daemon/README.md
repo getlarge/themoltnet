@@ -179,14 +179,12 @@ This matters for evals in particular. `run_eval` tasks declare their intended
 workspace shape in `input.execution.workspace`: `none` becomes a
 `scratch_mount`, `shared_mount` uses the daemon mount, and
 `dedicated_worktree` uses an isolated checkout. Downstream
-`judge_eval_attempt` tasks only resolve against a still-live producer
-session/workspace slot. If the producer slot or its local session/workspace
-files cannot be resolved, the judge fails with `producer_context_missing`.
-When the judge does claim in time, it immediately forks the producer session and copies the
-producer workspace into judge-owned scratch state so the running judge no
-longer depends on the producer slot after claim time. Repo-specific
-`resumeCommands` that should not run in scratch mode must still be guarded
-with `when.workspaceMode`.
+`judge_eval_attempt` tasks can hydrate the producer Pi session from durable
+runtime-session storage when the local session file is unavailable. Workspace
+copying still depends on producer slot/workspace metadata; if the daemon cannot
+resolve the required producer context, the judge fails with
+`producer_context_missing`. Repo-specific `resumeCommands` that should not run
+in scratch mode must still be guarded with `when.workspaceMode`.
 
 ### 1. Start the local stack
 
