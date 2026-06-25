@@ -23,7 +23,9 @@ interface EntriesSearchDef extends NodeDef {
 }
 
 type AgentApi = Awaited<ReturnType<MoltnetAgentNode['getAgent']>>;
-type EntrySearchBody = Parameters<AgentApi['entries']['search']>[0];
+type EntrySearchBody = NonNullable<
+  Parameters<AgentApi['entries']['search']>[0]
+>;
 
 const init: NodeInitializer = (RED): void => {
   function EntriesSearchNode(this: Node, def: EntriesSearchDef): void {

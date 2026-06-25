@@ -1,8 +1,8 @@
 import type { NodeInitializer } from 'node-red';
 import { describe, expect, it } from 'vitest';
 
-import runtimeProfile from '../src/nodes/runtime-profile.js';
 import entriesSearch from '../src/nodes/entries-search.js';
+import runtimeProfile from '../src/nodes/runtime-profile.js';
 import taskGet from '../src/nodes/task-get.js';
 import taskWait from '../src/nodes/task-wait.js';
 import tasksCreate from '../src/nodes/tasks-create.js';
