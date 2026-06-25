@@ -13,6 +13,8 @@ export type {
   RecoveryNamespace,
   RuntimeProfileRequestOptions,
   RuntimeProfilesNamespace,
+  RuntimeSessionRequestOptions,
+  RuntimeSessionsNamespace,
   RuntimeSlotsNamespace,
   SigningRequestsNamespace,
   TasksNamespace,

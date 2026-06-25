@@ -75,7 +75,11 @@ export function createApiRuntimeSlotStore(args: {
       );
       if (!resolved) return null;
       return {
-        slot: { expiresAtMs: resolved.slot.expiresAtMs },
+        slot: {
+          expiresAtMs: resolved.slot.expiresAtMs,
+          id: resolved.slot.id,
+          runtimeProfileId: resolved.slot.runtimeProfileId,
+        },
         session: resolved.slot.sessionDir
           ? {
               sessionDir: resolved.slot.sessionDir,

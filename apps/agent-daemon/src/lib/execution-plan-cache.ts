@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
 import type { DaemonSlotIdentity } from './daemon-slot-identity.js';
+import type { RuntimeSessionStore } from './runtime-sessions.js';
 import { resolveLatestPiSessionPath } from './session-files.js';
 import type { DaemonStateDirs } from './state-dir.js';
 import {
@@ -14,7 +15,9 @@ import {
 
 export interface ResolvedRuntimeSlotContext {
   slot: {
+    id: string;
     expiresAtMs: number;
+    runtimeProfileId: string | null;
   };
   session: {
     sessionDir: string;
@@ -84,8 +87,11 @@ export function createExecutionPlanCache(args: {
   warmSessionTtlSec: number;
   workspacePolicy?: RuntimeProfileWorkspacePolicy;
   slotRegistry: RuntimeSlotStore;
+  runtimeSessionStore?: RuntimeSessionStore;
 }): ExecutionPlanCache {
   const cache = new Map<string, DaemonTaskExecutionPlan>();
+  const runtimeSessionStore =
+    args.runtimeSessionStore ?? createNullRuntimeSessionStore();
 
   return {
     async getOrCreate(
@@ -107,6 +113,7 @@ export function createExecutionPlanCache(args: {
         basePlan,
         args.stateDirs,
         args.slotRegistry,
+        runtimeSessionStore,
       );
       assertPlanAllowedByWorkspacePolicy(plan, args.workspacePolicy);
       cache.set(key, plan);
@@ -114,6 +121,22 @@ export function createExecutionPlanCache(args: {
     },
     delete(claimedTask: CachedTask): void {
       cache.delete(buildClaimedTaskKey(claimedTask));
+    },
+  };
+}
+
+function createNullRuntimeSessionStore(): RuntimeSessionStore {
+  return {
+    async findRuntimeSessionByTaskAttempt() {
+      return null;
+    },
+    async hydrateSession() {
+      throw new ProducerContextResolutionError(
+        'Cannot hydrate runtime session: no runtime session store configured',
+      );
+    },
+    async uploadAttemptFinal() {
+      // Existing tests and local-only flows do not publish remote session state.
     },
   };
 }
@@ -161,29 +184,52 @@ type WarmSlotResolution =
 
 async function resolveWarmSlot(
   slotRegistry: RuntimeSlotStore,
+  runtimeSessionStore: RuntimeSessionStore,
   teamId: string,
   sourceTaskId: string,
   sourceAttemptN: number,
   stateDirs: DaemonStateDirs,
 ): Promise<WarmSlotResolution> {
+  const remoteSession =
+    await runtimeSessionStore.findRuntimeSessionByTaskAttempt(
+      teamId,
+      sourceTaskId,
+      sourceAttemptN,
+    );
   const producerContext = await slotRegistry.findLatestSlotByTaskAttempt(
     teamId,
     sourceTaskId,
     sourceAttemptN,
   );
-  if (!producerContext) return { kind: 'missing' };
+  if (!producerContext && !remoteSession) return { kind: 'missing' };
 
-  const sourceSessionPath = resolveProducerSessionPath(producerContext);
+  const sourceSessionPath = remoteSession
+    ? await runtimeSessionStore.hydrateSession({
+        attemptN: sourceAttemptN,
+        destinationDir: `${stateDirs.piSessionsDir}/remote-${sourceTaskId}-attempt-${sourceAttemptN}`,
+        taskId: sourceTaskId,
+        teamId,
+      })
+    : producerContext
+      ? resolveProducerSessionPath(producerContext)
+      : null;
   if (!sourceSessionPath) return { kind: 'no-session-path' };
 
-  const copiedWorkspaceSource = resolveProducerWorkspaceCopySource(
-    producerContext,
-    stateDirs,
-  );
+  const copiedWorkspaceSource = producerContext
+    ? resolveProducerWorkspaceCopySource(producerContext, stateDirs)
+    : dirname(dirname(stateDirs.rootDir));
 
   return {
     kind: 'found',
-    producerSlot: producerContext,
+    producerSlot: producerContext ?? {
+      session: null,
+      slot: {
+        expiresAtMs: 0,
+        id: '',
+        runtimeProfileId: null,
+      },
+      workspace: null,
+    },
     sessionPath: sourceSessionPath,
     workspacePath: copiedWorkspaceSource,
   };
@@ -194,6 +240,7 @@ async function maybeAttachWarmSlotContext(
   basePlan: DaemonTaskExecutionPlan,
   stateDirs: DaemonStateDirs,
   slotRegistry: RuntimeSlotStore,
+  runtimeSessionStore: RuntimeSessionStore,
 ): Promise<DaemonTaskExecutionPlan> {
   if (claimedTask.task.taskType === 'freeform') {
     const continueFrom = (
@@ -210,6 +257,7 @@ async function maybeAttachWarmSlotContext(
 
     const resolution = await resolveWarmSlot(
       slotRegistry,
+      runtimeSessionStore,
       claimedTask.task.teamId,
       continueFrom.taskId,
       continueFrom.attemptN,
@@ -307,6 +355,7 @@ async function maybeAttachWarmSlotContext(
 
   const resolution = await resolveWarmSlot(
     slotRegistry,
+    runtimeSessionStore,
     claimedTask.task.teamId,
     targetTaskId,
     targetAttemptN,

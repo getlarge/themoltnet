@@ -8,7 +8,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { AgentRuntimeLogger } from '../runtime.js';
 import { makeFulfillBriefTask } from '../test-fixtures.js';
-import type { ContinuationSlotRegistry } from './polling-api.js';
+import type {
+  ContinuationSessionRegistry,
+  ContinuationSlotRegistry,
+} from './polling-api.js';
 import {
   isContinuationClaimableByThisDaemon,
   PollingApiTaskSource,
@@ -613,6 +616,60 @@ describe('PollingApiTaskSource', () => {
     expect(claim).toHaveBeenCalledWith(claimable.id, { leaseTtlSec: 60 });
   });
 
+  it('claims continuations when a durable remote session exists without a local slot', async () => {
+    const continuation = makeFulfillBriefTask({
+      id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+      taskType: 'freeform',
+      status: 'queued',
+      input: {
+        brief: 'continue from remote session',
+        continueFrom: {
+          taskId: '99999999-9999-4999-8999-999999999999',
+          attemptN: 1,
+        },
+      },
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [continuation], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task: continuation,
+      attempt: { taskId: continuation.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+    const findLatestSlotByTaskAttempt = vi.fn().mockResolvedValue(null);
+    const findRuntimeSessionByTaskAttempt = vi
+      .fn()
+      .mockResolvedValue({ id: 's1' });
+    const slotRegistry: ContinuationSlotRegistry = {
+      findLatestSlotByTaskAttempt,
+    };
+    const sessionRegistry: ContinuationSessionRegistry = {
+      findRuntimeSessionByTaskAttempt,
+    };
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      slotRegistry,
+      sessionRegistry,
+      logger: silentLogger,
+    });
+
+    const result = await src.claim();
+
+    expect(result?.task.id).toBe(continuation.id);
+    expect(findRuntimeSessionByTaskAttempt).toHaveBeenCalledWith(
+      continuation.teamId,
+      '99999999-9999-4999-8999-999999999999',
+      1,
+    );
+    expect(findLatestSlotByTaskAttempt).not.toHaveBeenCalled();
+    expect(claim).toHaveBeenCalledWith(continuation.id, { leaseTtlSec: 60 });
+  });
+
   it('drains only after all visible pages are locally unclaimable', async () => {
     const first = makeFulfillBriefTask({
       id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
@@ -701,6 +758,33 @@ describe('isContinuationClaimableByThisDaemon', () => {
       reason: 'missing_producer_slot',
       continueFrom: { taskId: 'aaa', attemptN: 1 },
     });
+  });
+
+  it('returns true when a remote session exists for the source', async () => {
+    const findRuntimeSessionByTaskAttempt = vi
+      .fn()
+      .mockResolvedValue({ id: 's1' });
+    const sessionRegistry: ContinuationSessionRegistry = {
+      findRuntimeSessionByTaskAttempt,
+    };
+    const findLatestSlotByTaskAttempt = vi.fn().mockReturnValue(null);
+    const slotRegistry: ContinuationSlotRegistry = {
+      findLatestSlotByTaskAttempt,
+    };
+
+    await expect(
+      isContinuationClaimableByThisDaemon(
+        {
+          teamId: 'team-1',
+          input: {
+            continueFrom: { taskId: 'aaa', attemptN: 1 },
+          },
+        },
+        slotRegistry,
+        sessionRegistry,
+      ),
+    ).resolves.toEqual({ claimable: true });
+    expect(findLatestSlotByTaskAttempt).not.toHaveBeenCalled();
   });
 
   it("returns false when slot exists but sessionDir doesn't exist on disk", async () => {

@@ -36,6 +36,8 @@ import type {
   DiaryList,
   DiarySearchResult,
   DiaryTagsResponse,
+  DownloadRuntimeSessionData,
+  DownloadRuntimeSessionResponse,
   EntryVerifyResult,
   FailTaskData,
   FindLatestRuntimeSlotForAttemptData,
@@ -49,6 +51,7 @@ import type {
   GetProblemTypeData,
   GetPublicFeedData,
   GetRenderedPackByIdData,
+  GetRuntimeSessionData,
   GetTeamResponse,
   GetTrustGraphData,
   Health,
@@ -95,6 +98,7 @@ import type {
   RotateSecretResponse,
   RuntimeProfile,
   RuntimeProfileListResponse,
+  RuntimeSession,
   RuntimeSlot,
   SearchDiaryData,
   SearchPublicFeedData,
@@ -115,6 +119,7 @@ import type {
   UpdateRuntimeProfileData,
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleResponse,
+  UploadRuntimeSessionData,
   VerifyRecoveryChallengeData,
   VerifyResult,
   Voucher,
@@ -145,6 +150,7 @@ import { createProblemsNamespace } from './namespaces/problems.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRecoveryNamespace } from './namespaces/recovery.js';
 import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
+import { createRuntimeSessionsNamespace } from './namespaces/runtime-sessions.js';
 import { createRuntimeSlotsNamespace } from './namespaces/runtime-slots.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
@@ -649,6 +655,28 @@ export interface RuntimeSlotRequestOptions {
   teamId: string;
 }
 
+export interface RuntimeSessionsNamespace {
+  getForAttempt(
+    path: GetRuntimeSessionData['path'],
+    options: RuntimeSessionRequestOptions,
+  ): Promise<RuntimeSession | null>;
+
+  upload(
+    path: UploadRuntimeSessionData['path'],
+    body: UploadRuntimeSessionData['body'],
+    options: RuntimeSessionRequestOptions,
+  ): Promise<RuntimeSession>;
+
+  download(
+    path: DownloadRuntimeSessionData['path'],
+    options: RuntimeSessionRequestOptions,
+  ): Promise<DownloadRuntimeSessionResponse>;
+}
+
+export interface RuntimeSessionRequestOptions {
+  teamId: string;
+}
+
 // ---------------------------------------------------------------------------
 // Agent facade type
 // ---------------------------------------------------------------------------
@@ -671,6 +699,7 @@ export interface Agent {
   runtimeProfiles: RuntimeProfilesNamespace;
   tasks: TasksNamespace;
   runtimeSlots: RuntimeSlotsNamespace;
+  runtimeSessions: RuntimeSessionsNamespace;
 
   /** Return the underlying hey-api client for advanced use. */
   readonly client: Client;
@@ -711,6 +740,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const runtimeProfiles = createRuntimeProfilesNamespace(context);
   const tasks = createTasksNamespace(context);
   const runtimeSlots = createRuntimeSlotsNamespace(context);
+  const runtimeSessions = createRuntimeSessionsNamespace(context);
 
   return {
     diaries,
@@ -730,6 +760,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     runtimeProfiles,
     tasks,
     runtimeSlots,
+    runtimeSessions,
     client,
     getToken: () => tokenManager.getToken(),
   };

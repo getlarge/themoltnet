@@ -11,6 +11,7 @@ import {
   type ResolvedRuntimeSlotContext,
   type RuntimeSlotStore,
 } from './execution-plan-cache.js';
+import type { RuntimeSessionStore } from './runtime-sessions.js';
 
 const TEAM_ID = '99999999-9999-4999-8999-999999999999';
 const PROFILE_ID = 'dddddddd-0000-4000-8000-000000000004';
@@ -30,6 +31,8 @@ class InMemoryRuntimeSlotStore implements RuntimeSlotStore {
       {
         slot: {
           expiresAtMs: Date.now() + SLOT_TTL_MS,
+          id: input.slotKey,
+          runtimeProfileId: input.runtimeProfileId,
         },
         session: input.sessionDir
           ? {
@@ -346,6 +349,68 @@ describe('createExecutionPlanCache', () => {
       `${stateDirs.piSessionsDir}/continue-22222222-2222-4222-8222-222222222222-attempt-1`,
     );
     expect(plan.workspaceSeed).toBeUndefined();
+
+    await slotStore.close();
+  });
+
+  it('hydrates a remote runtime session for freeform continuations when no local slot exists', async () => {
+    const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-remote-'));
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const slotStore = new InMemoryRuntimeSlotStore();
+    let hydratedPath: string | null = null;
+    const runtimeSessionStore: RuntimeSessionStore = {
+      findRuntimeSessionByTaskAttempt: async () =>
+        ({
+          id: '99999999-9999-4999-8999-999999999999',
+        }) as Awaited<
+          ReturnType<RuntimeSessionStore['findRuntimeSessionByTaskAttempt']>
+        >,
+      hydrateSession: async (input) => {
+        mkdirSync(input.destinationDir, { recursive: true });
+        hydratedPath = join(input.destinationDir, 'session.jsonl');
+        writeFileSync(hydratedPath, '{"role":"system","content":"remote"}\n');
+        return hydratedPath;
+      },
+      uploadAttemptFinal: async () => {},
+    };
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      warmSessionTtlSec: 300,
+      slotRegistry: slotStore,
+      runtimeSessionStore,
+    });
+
+    const plan = await cache.getOrCreate({
+      attemptN: 1,
+      task: {
+        id: '22222222-2222-4222-8222-222222222222',
+        teamId: TEAM_ID,
+        taskType: 'freeform',
+        correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        input: {
+          brief: 'next step',
+          continueFrom: {
+            taskId: '11111111-1111-4111-8111-111111111111',
+            attemptN: 1,
+          },
+        },
+      } as unknown as Task,
+    });
+
+    expect(plan.sessionPersistence?.forkFromSessionPath).toBe(hydratedPath);
+    expect(plan.sessionPersistence?.sessionDir).toBe(
+      `${stateDirs.piSessionsDir}/continue-22222222-2222-4222-8222-222222222222-attempt-1`,
+    );
+    expect(plan.workspaceId).toBeNull();
+    expect(plan.worktreeBranch).toBeNull();
 
     await slotStore.close();
   });

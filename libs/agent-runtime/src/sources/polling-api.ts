@@ -25,10 +25,19 @@ export interface ContinuationSlotRegistry {
     | null;
 }
 
+export interface ContinuationSessionRegistry {
+  findRuntimeSessionByTaskAttempt(
+    teamId: string,
+    taskId: string,
+    attemptN: number,
+  ): Promise<unknown> | unknown;
+}
+
 /**
  * Claim-time affinity filter for warm-resume continuations.
  *
  * - No `continueFrom` → claimable (true).
+ * - `continueFrom` set + remote session exists → claimable (true).
  * - `continueFrom` set + no slot in the store → not claimable (the producer
  *   context is unavailable to this daemon).
  * - `continueFrom` set + slot exists but its `sessionDir` is missing on
@@ -44,6 +53,7 @@ export async function isContinuationClaimableByThisDaemon(
     input?: { continueFrom?: { taskId: string; attemptN: number } };
   },
   slotRegistry: ContinuationSlotRegistry,
+  sessionRegistry?: ContinuationSessionRegistry,
 ): Promise<
   | { claimable: true }
   | {
@@ -55,6 +65,13 @@ export async function isContinuationClaimableByThisDaemon(
 > {
   const cf = task.input?.continueFrom;
   if (!cf) return { claimable: true };
+  const remoteSession = await sessionRegistry?.findRuntimeSessionByTaskAttempt(
+    task.teamId,
+    cf.taskId,
+    cf.attemptN,
+  );
+  if (remoteSession) return { claimable: true };
+
   const slot = await slotRegistry.findLatestSlotByTaskAttempt(
     task.teamId,
     cf.taskId,
@@ -136,6 +153,11 @@ export interface PollingApiTaskSourceOptions {
    * manage runtime slots.
    */
   slotRegistry?: ContinuationSlotRegistry;
+  /**
+   * Durable runtime session store used for remote continuation hydration. When
+   * available, it supersedes local slot affinity for claim filtering.
+   */
+  sessionRegistry?: ContinuationSessionRegistry;
   /** Logger; defaults to a self-named pino instance. */
   logger?: AgentRuntimeLogger;
   /**
@@ -297,6 +319,7 @@ export class PollingApiTaskSource implements TaskSource {
             const affinity = await isContinuationClaimableByThisDaemon(
               item,
               this.opts.slotRegistry,
+              this.opts.sessionRegistry,
             );
             if (!affinity.claimable) {
               this.logger.debug(
