@@ -5,7 +5,8 @@ import { formatRelativeAge, humanizeToken } from './format.js';
 import { TaskStatusBadge } from './task-status-badge.js';
 import type { TaskLabelRenderer, TaskSummary } from './types.js';
 
-const tableMinWidth = 1180;
+const baseTableMinWidth = 1180;
+const selectableTableMinWidth = 1232;
 
 export interface TaskQueueTableProps {
   tasks: TaskSummary[];
@@ -78,7 +79,11 @@ export function TaskQueueTable({
         borderRadius: theme.radius.lg,
       }}
     >
-      <div style={{ minWidth: tableMinWidth }}>
+      <div
+        style={{
+          minWidth: selectable ? selectableTableMinWidth : baseTableMinWidth,
+        }}
+      >
         <div
           style={{
             display: 'grid',

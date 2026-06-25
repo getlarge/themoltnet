@@ -57,11 +57,11 @@ describe('@moltnet/task-ui', () => {
     };
 
     const { container } = renderWithTheme(
-      <TaskQueueTable tasks={[longTask]} />,
+      <TaskQueueTable tasks={[longTask]} onToggleTask={() => {}} />,
     );
-    const table = container.querySelector('[style*="min-width: 1180px"]');
+    const table = container.querySelector('[style*="min-width: 1232px"]');
 
-    expect(table).toHaveStyle({ minWidth: '1180px' });
+    expect(table).toHaveStyle({ minWidth: '1232px' });
     expect(screen.getByText(longTask.correlationId)).toHaveStyle({
       display: 'block',
       overflow: 'hidden',
