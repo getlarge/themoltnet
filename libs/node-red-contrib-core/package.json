@@ -43,7 +43,7 @@
     "check:pack": "tsx scripts/check-pack.ts"
   },
   "dependencies": {
-    "@themoltnet/sdk": "^0.113.0"
+    "@themoltnet/sdk": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
