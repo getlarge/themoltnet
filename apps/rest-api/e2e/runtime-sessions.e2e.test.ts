@@ -1,8 +1,9 @@
 /**
  * E2E: Runtime sessions
  *
- * Exercises durable runtime-session upload/download through the generated
- * client against the Docker stack, including the S3-compatible object store.
+ * Exercises durable runtime-session upload/download against the Docker stack,
+ * including the S3-compatible object store. Metadata uses the generated client;
+ * content uses the streaming endpoint directly.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -16,10 +17,9 @@ import {
   createTask,
   createTeam,
   createTeamInvite,
-  downloadRuntimeSession,
   getRuntimeSession,
   joinTeam,
-  uploadRuntimeSession,
+  taskHeartbeat,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -126,7 +126,50 @@ describe('Runtime sessions API', () => {
       body: { leaseTtlSec: 60 },
     });
     expect(claimError).toBeUndefined();
+    const { error: heartbeatError } = await taskHeartbeat({
+      client,
+      auth: () => teammate.accessToken,
+      path: { id: data!.id, n: claimed!.attempt.attemptN },
+      body: { leaseTtlSec: 60 },
+    });
+    expect(heartbeatError).toBeUndefined();
     return { attemptN: claimed!.attempt.attemptN, taskId: data!.id };
+  }
+
+  async function uploadRuntimeSessionContent(input: {
+    accessToken: string;
+    attemptN: number;
+    content: string;
+    taskId: string;
+  }) {
+    return fetch(
+      `${harness.baseUrl}/runtime-sessions/${input.taskId}/${input.attemptN}/content?sessionKind=root`,
+      {
+        body: input.content,
+        headers: {
+          authorization: `Bearer ${input.accessToken}`,
+          'content-type': 'application/x-ndjson',
+          'x-moltnet-team-id': teamId,
+        },
+        method: 'PUT',
+      },
+    );
+  }
+
+  async function downloadRuntimeSessionContent(input: {
+    accessToken: string;
+    attemptN: number;
+    taskId: string;
+  }) {
+    return fetch(
+      `${harness.baseUrl}/runtime-sessions/${input.taskId}/${input.attemptN}/content`,
+      {
+        headers: {
+          authorization: `Bearer ${input.accessToken}`,
+          'x-moltnet-team-id': teamId,
+        },
+      },
+    );
   }
 
   it('uploads, reads metadata, and downloads session content for a task attempt', async () => {
@@ -139,19 +182,15 @@ describe('Runtime sessions API', () => {
       '',
     ].join('\n');
 
-    const uploaded = await uploadRuntimeSession({
-      client,
-      auth: () => teammate.accessToken,
-      headers: { 'x-moltnet-team-id': teamId },
-      path: { attemptN, taskId },
-      body: {
-        contentBase64: Buffer.from(content, 'utf8').toString('base64'),
-        sessionKind: 'root',
-      },
+    const upload = await uploadRuntimeSessionContent({
+      accessToken: teammate.accessToken,
+      attemptN,
+      content,
+      taskId,
     });
-    expect(uploaded.response.status).toBe(200);
-    expect(uploaded.error).toBeUndefined();
-    expect(uploaded.data).toMatchObject({
+    expect(upload.status).toBe(200);
+    const uploaded = await upload.json();
+    expect(uploaded).toMatchObject({
       attemptN,
       checkpointKind: 'attempt_final',
       contentEncoding: 'gzip',
@@ -160,9 +199,7 @@ describe('Runtime sessions API', () => {
       taskId,
       teamId,
     });
-    expect(uploaded.data!.objectKey).toContain(
-      `teams/${teamId}/runtime-sessions/tasks/${taskId}/attempts/${attemptN}/`,
-    );
+    expect(uploaded.objectKey).toBeUndefined();
 
     const metadata = await getRuntimeSession({
       client,
@@ -172,37 +209,31 @@ describe('Runtime sessions API', () => {
     });
     expect(metadata.response.status).toBe(200);
     expect(metadata.error).toBeUndefined();
-    expect(metadata.data!.id).toBe(uploaded.data!.id);
+    expect(metadata.data!.id).toBe(uploaded.id);
 
-    const downloaded = await downloadRuntimeSession({
-      client,
-      auth: () => owner.accessToken,
-      headers: { 'x-moltnet-team-id': teamId },
-      path: { attemptN, taskId },
+    const downloaded = await downloadRuntimeSessionContent({
+      accessToken: owner.accessToken,
+      attemptN,
+      taskId,
     });
-    expect(downloaded.response.status).toBe(200);
-    expect(downloaded.error).toBeUndefined();
-    expect(
-      Buffer.from(downloaded.data!.contentBase64, 'base64').toString('utf8'),
-    ).toBe(content);
-    expect(downloaded.data!.session.id).toBe(uploaded.data!.id);
+    expect(downloaded.status).toBe(200);
+    expect(downloaded.headers.get('x-moltnet-runtime-session-id')).toBe(
+      uploaded.id,
+    );
+    expect(await downloaded.text()).toBe(content);
   });
 
   it('rejects non-members reading another team runtime session', async () => {
     const { attemptN, taskId } = await createClaimedTask(
       'runtime session outsider denial',
     );
-    const upload = await uploadRuntimeSession({
-      client,
-      auth: () => teammate.accessToken,
-      headers: { 'x-moltnet-team-id': teamId },
-      path: { attemptN, taskId },
-      body: {
-        contentBase64: Buffer.from('{"role":"system"}\n').toString('base64'),
-        sessionKind: 'root',
-      },
+    const upload = await uploadRuntimeSessionContent({
+      accessToken: teammate.accessToken,
+      attemptN,
+      content: '{"role":"system"}\n',
+      taskId,
     });
-    expect(upload.response.status).toBe(200);
+    expect(upload.status).toBe(200);
 
     const outsiderRead = await getRuntimeSession({
       client,

@@ -138,11 +138,9 @@ services:
       - '6380:6379'
 
   runtime-object-store:
-    image: chrislusf/seaweedfs:4.36
-    command: ['server', '-s3', '-s3.port=8333', '-dir=/data', '-volume.max=0']
-    environment:
-      AWS_ACCESS_KEY_ID: runtime-sessions
-      AWS_SECRET_ACCESS_KEY: runtime-sessions-secret
+    extends:
+      file: docker-compose.base.yaml
+      service: runtime-object-store
 
   rest-api:
     build:
