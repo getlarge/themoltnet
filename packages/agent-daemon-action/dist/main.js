@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import crypto$1, { createHash } from "crypto";
+import { Readable } from "node:stream";
 import { createHash as createHash$1 } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -10339,7 +10340,7 @@ var require_h2c_client = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 var require_readable = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var assert$19 = __require("node:assert");
 	var { addAbortListener: addAbortListener$1 } = __require("node:events");
-	var { Readable: Readable$3 } = __require("node:stream");
+	var { Readable: Readable$4 } = __require("node:stream");
 	var { RequestAbortedError, NotSupportedError, InvalidArgumentError, AbortError } = require_errors();
 	var util = require_util$5();
 	var { ReadableStreamFrom } = require_util$5();
@@ -10357,7 +10358,7 @@ var require_readable = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	* @extends {Readable}
 	* @see https://fetch.spec.whatwg.org/#body
 	*/
-	var BodyReadable = class extends Readable$3 {
+	var BodyReadable = class extends Readable$4 {
 		/**
 		* @param {object} opts
 		* @param {(this: Readable, size: number) => void} opts.resume
@@ -11083,7 +11084,7 @@ var require_api_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region ../../node_modules/.pnpm/undici@8.2.0/node_modules/undici/lib/api/api-pipeline.js
 var require_api_pipeline = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var { Readable: Readable$2, Duplex, PassThrough } = __require("node:stream");
+	var { Readable: Readable$3, Duplex, PassThrough } = __require("node:stream");
 	var assert$16 = __require("node:assert");
 	var { AsyncResource: AsyncResource$2 } = __require("node:async_hooks");
 	var { InvalidArgumentError, InvalidReturnValueError, RequestAbortedError } = require_errors();
@@ -11091,7 +11092,7 @@ var require_api_pipeline = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var { addSignal, removeSignal } = require_abort_signal();
 	function noop() {}
 	var kResume = Symbol("resume");
-	var PipelineRequest = class extends Readable$2 {
+	var PipelineRequest = class extends Readable$3 {
 		constructor() {
 			super({ autoDestroy: true });
 			this[kResume] = null;
@@ -11108,7 +11109,7 @@ var require_api_pipeline = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			callback(err);
 		}
 	};
-	var PipelineResponse = class extends Readable$2 {
+	var PipelineResponse = class extends Readable$3 {
 		constructor(resume) {
 			super({ autoDestroy: true });
 			this[kResume] = resume;
@@ -14981,7 +14982,7 @@ var require_cache_revalidation_handler = /* @__PURE__ */ __commonJSMin(((exports
 //#region ../../node_modules/.pnpm/undici@8.2.0/node_modules/undici/lib/interceptor/cache.js
 var require_cache$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var assert$10 = __require("node:assert");
-	var { Readable: Readable$1 } = __require("node:stream");
+	var { Readable: Readable$2 } = __require("node:stream");
 	var util = require_util$5();
 	var CacheHandler = require_cache_handler();
 	var MemoryCacheStore = require_memory_cache_store();
@@ -15088,7 +15089,7 @@ var require_cache$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	* @param {boolean} isStale
 	*/
 	function sendCachedValue(handler, opts, result, age, context, isStale) {
-		const stream = util.isStream(result.body) ? result.body : Readable$1.from(result.body ?? []);
+		const stream = util.isStream(result.body) ? result.body : Readable$2.from(result.body ?? []);
 		assert$10(!stream.destroyed, "stream should not be destroyed");
 		assert$10(!stream.readableDidRead, "stream should not be readableDidRead");
 		const controller = {
@@ -17696,7 +17697,7 @@ var require_fetch = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var { safelyExtractBody, extractBody } = require_body();
 	var { redirectStatusSet, nullBodyStatus, safeMethodsSet, requestBodyHeader, subresourceSet } = require_constants$2();
 	var EE = __require("node:events");
-	var { Readable, pipeline: pipeline$1, finished, isErrored, isReadable } = __require("node:stream");
+	var { Readable: Readable$1, pipeline: pipeline$1, finished, isErrored, isReadable } = __require("node:stream");
 	var { addAbortListener, bufferToLowerCasedHeaderName } = require_util$5();
 	var { dataURLProcessor, serializeAMimeType, minimizeSupportedMimeType } = require_data_url();
 	var { getGlobalDispatcher } = require_global();
@@ -18338,7 +18339,7 @@ var require_fetch = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 						const headersList = new HeadersList();
 						appendHeadersListFromResponseHeaders(headersList, headers, rawHeaders);
 						const location = headersList.get("location", true);
-						this.body = new Readable({ read: () => controller.resume() });
+						this.body = new Readable$1({ read: () => controller.resume() });
 						const willFollow = location && request.redirect === "follow" && redirectStatusSet.has(status);
 						const decoders = [];
 						if (request.method !== "HEAD" && request.method !== "CONNECT" && !nullBodyStatus.includes(status) && !willFollow) {
@@ -29350,6 +29351,55 @@ var updateRuntimeProfile = (options) => (options.client ?? client).patch({
 	}
 });
 /**
+* Get metadata for the durable team-scoped runtime session for a task attempt.
+*/
+var getRuntimeSession = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-sessions/{taskId}/{attemptN}",
+	...options
+});
+/**
+* Stream or replace the durable team-scoped runtime session content for a task attempt.
+*/
+var uploadRuntimeSession = (options) => (options.client ?? client).put({
+	bodySerializer: null,
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-sessions/{taskId}/{attemptN}/content",
+	...options,
+	headers: {
+		"Content-Type": "application/octet-stream",
+		...options.headers
+	}
+});
+/**
 * Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
 */
 var beginRuntimeSlot = (options) => (options.client ?? client).post({
@@ -32566,6 +32616,57 @@ function createRuntimeProfilesNamespace(context) {
 				path: { profileId }
 			});
 			if (result.error) unwrapResult(result);
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/runtime-sessions.ts
+function createRuntimeSessionsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async getForAttempt(path, options) {
+			try {
+				return unwrapResult(await getRuntimeSession({
+					client,
+					auth,
+					headers: requiredTeamHeaders(options),
+					path
+				}));
+			} catch (err) {
+				if (err instanceof MoltNetError && err.statusCode === 404) return null;
+				throw err;
+			}
+		},
+		async upload(path, body, query, options) {
+			return unwrapResult(await uploadRuntimeSession({
+				auth,
+				body,
+				client,
+				duplex: "half",
+				headers: {
+					...requiredTeamHeaders(options),
+					"content-type": "application/octet-stream"
+				},
+				path,
+				query
+			}));
+		},
+		async download(path, options) {
+			const stream = unwrapResult(await client.request({
+				auth,
+				headers: requiredTeamHeaders(options),
+				method: "GET",
+				parseAs: "stream",
+				path,
+				security: [{
+					scheme: "bearer",
+					type: "http"
+				}],
+				url: "/runtime-sessions/{taskId}/{attemptN}/content"
+			}));
+			if (stream instanceof Readable) return stream;
+			if (stream instanceof ReadableStream) return Readable.fromWeb(stream);
+			throw new MoltNetError("Unexpected runtime session download response stream", { code: "INVALID_RESPONSE" });
 		}
 	};
 }
@@ -37108,6 +37209,64 @@ _Object_({
 	updatedAt: String$1({ format: "date-time" })
 }, {
 	$id: "RuntimeProfile",
+	additionalProperties: false
+});
+//#endregion
+//#region ../../libs/tasks/src/runtime-sessions.ts
+var RuntimeSessionKind = Union([
+	Literal("root"),
+	Literal("extend"),
+	Literal("fork")
+]);
+var RuntimeSessionCheckpointKind = Union([Literal("attempt_final")]);
+_Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: String$1({ format: "uuid" }),
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 }),
+	sourceSlotId: Union([String$1({ format: "uuid" }), Null()]),
+	sourceRuntimeProfileId: Union([String$1({ format: "uuid" }), Null()]),
+	sessionKind: RuntimeSessionKind,
+	parentSessionId: Union([String$1({ format: "uuid" }), Null()]),
+	contentType: String$1({
+		minLength: 1,
+		maxLength: 200
+	}),
+	contentEncoding: Union([String$1({
+		minLength: 1,
+		maxLength: 100
+	}), Null()]),
+	sizeBytes: Integer({ minimum: 0 }),
+	sha256: String$1({
+		minLength: 64,
+		maxLength: 64
+	}),
+	storageClass: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	checkpointKind: RuntimeSessionCheckpointKind,
+	uploadedAt: String$1({ format: "date-time" })
+}, { $id: "RuntimeSession" });
+_Object_({
+	sourceSlotId: Optional(String$1({ format: "uuid" })),
+	sourceRuntimeProfileId: Optional(String$1({ format: "uuid" })),
+	sessionKind: RuntimeSessionKind,
+	parentSessionId: Optional(String$1({ format: "uuid" }))
+}, {
+	$id: "UploadRuntimeSessionQuery",
+	additionalProperties: false
+});
+String$1({
+	$id: "RuntimeSessionContent",
+	description: "Runtime session content stream.",
+	format: "binary"
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 })
+}, {
+	$id: "RuntimeSessionAttemptParams",
 	additionalProperties: false
 });
 //#endregion
@@ -42183,6 +42342,7 @@ function createAgent(options) {
 		runtimeProfiles: createRuntimeProfilesNamespace(context),
 		tasks: createTasksNamespace(context),
 		runtimeSlots: createRuntimeSlotsNamespace(context),
+		runtimeSessions: createRuntimeSessionsNamespace(context),
 		client,
 		getToken: () => tokenManager.getToken()
 	};

@@ -104,6 +104,7 @@ import type {
   DiffContextPacksByIdResponses,
   DownloadRuntimeSessionData,
   DownloadRuntimeSessionErrors,
+  DownloadRuntimeSessionResponses,
   FailTaskData,
   FailTaskErrors,
   FailTaskResponses,
@@ -2202,7 +2203,7 @@ export const downloadRuntimeSession = <ThrowOnError extends boolean = false>(
   options: Options<DownloadRuntimeSessionData, ThrowOnError>,
 ) =>
   (options.client ?? client).get<
-    unknown,
+    DownloadRuntimeSessionResponses,
     DownloadRuntimeSessionErrors,
     ThrowOnError
   >({
@@ -2230,6 +2231,7 @@ export const uploadRuntimeSession = <ThrowOnError extends boolean = false>(
     UploadRuntimeSessionErrors,
     ThrowOnError
   >({
+    bodySerializer: null,
     security: [
       { scheme: 'bearer', type: 'http' },
       { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
@@ -2241,6 +2243,10 @@ export const uploadRuntimeSession = <ThrowOnError extends boolean = false>(
     ],
     url: '/runtime-sessions/{taskId}/{attemptN}/content',
     ...options,
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      ...options.headers,
+    },
   });
 
 /**

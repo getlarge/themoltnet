@@ -37,7 +37,7 @@ function mockSession(overrides: Partial<RuntimeSession> = {}): RuntimeSession {
     parentSessionId: null,
     objectKey:
       'teams/bbbbbbbb-0000-0000-0000-000000000002/runtime-sessions/tasks/aaaaaaaa-0000-0000-0000-000000000001/attempts/1/test.jsonl.gz',
-    contentType: 'application/x-ndjson',
+    contentType: 'application/octet-stream',
     contentEncoding: 'gzip',
     sizeBytes: 24,
     sha256: 'a'.repeat(64),
@@ -92,7 +92,7 @@ describe('runtime session routes', () => {
       url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root&sourceSlotId=${SLOT_ID}`,
       headers: {
         ...TEAM_HEADERS,
-        'content-type': 'application/x-ndjson',
+        'content-type': 'application/octet-stream',
       },
       payload: Readable.from(['{"session":"one"}\n']),
     });
@@ -135,7 +135,7 @@ describe('runtime session routes', () => {
       url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root`,
       headers: {
         ...TEAM_HEADERS,
-        'content-type': 'application/x-ndjson',
+        'content-type': 'application/octet-stream',
       },
       payload: Readable.from(['{"session":"one"}\n']),
     });
@@ -153,7 +153,7 @@ describe('runtime session routes', () => {
       url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root`,
       headers: {
         ...TEAM_HEADERS,
-        'content-type': 'application/x-ndjson',
+        'content-type': 'application/octet-stream',
       },
       payload: Readable.from(['{"session":"one"}\n']),
     });
@@ -175,7 +175,7 @@ describe('runtime session routes', () => {
       url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root`,
       headers: {
         ...TEAM_HEADERS,
-        'content-type': 'application/x-ndjson',
+        'content-type': 'application/octet-stream',
       },
       payload: Readable.from(['{"session":"one"}\n']),
     });
@@ -197,7 +197,7 @@ describe('runtime session routes', () => {
       url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root`,
       headers: {
         ...TEAM_HEADERS,
-        'content-type': 'application/x-ndjson',
+        'content-type': 'application/octet-stream',
       },
       payload: Readable.from(['{"session":"one"}\n']),
     });
@@ -222,7 +222,7 @@ describe('runtime session routes', () => {
         '&parentSessionId=99999999-1111-4111-8111-999999999999',
       headers: {
         ...TEAM_HEADERS,
-        'content-type': 'application/x-ndjson',
+        'content-type': 'application/octet-stream',
       },
       payload: Readable.from(['{"session":"one"}\n']),
     });
@@ -244,7 +244,7 @@ describe('runtime session routes', () => {
     mocks.runtimeSessionStorage.getObject.mockResolvedValue({
       body: Readable.from([await gzipAsync(content)]),
       contentEncoding: null,
-      contentType: 'application/x-ndjson',
+      contentType: 'application/octet-stream',
     });
 
     const response = await app.inject({
@@ -271,7 +271,7 @@ describe('runtime session routes', () => {
       url: `/runtime-sessions/${TASK_ID}/1/content?sessionKind=root`,
       headers: {
         ...TEAM_HEADERS,
-        'content-type': 'application/x-ndjson',
+        'content-type': 'application/octet-stream',
       },
       payload: Readable.from(['{"session":"replacement"}\n']),
     });

@@ -233,6 +233,7 @@ import type {
   DiffContextPacksByIdResponse,
   DownloadRuntimeSessionData,
   DownloadRuntimeSessionError,
+  DownloadRuntimeSessionResponse,
   FailTaskData,
   FailTaskError,
   FailTaskResponse,
@@ -3047,9 +3048,9 @@ export const downloadRuntimeSessionOptions = (
   options: Options<DownloadRuntimeSessionData>,
 ) =>
   queryOptions<
-    unknown,
+    DownloadRuntimeSessionResponse,
     DownloadRuntimeSessionError,
-    unknown,
+    DownloadRuntimeSessionResponse,
     ReturnType<typeof downloadRuntimeSessionQueryKey>
   >({
     queryFn: async ({ queryKey, signal }) => {

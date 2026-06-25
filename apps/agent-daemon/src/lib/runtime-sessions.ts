@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 
+import type { TaskOutput } from '@moltnet/tasks';
 import type { Agent, RuntimeSessionsNamespace } from '@themoltnet/sdk';
 
 import { resolveLatestPiSessionPath } from './session-files.js';
@@ -63,6 +64,27 @@ export async function resolveParentRuntimeSession(
     continueFrom.taskId,
     continueFrom.attemptN,
   );
+}
+
+export function applyRuntimeSessionUploadFailure(
+  output: TaskOutput,
+  err: unknown,
+): TaskOutput {
+  if (output.status !== 'completed') return output;
+  return {
+    ...output,
+    contentSignature: undefined,
+    error: {
+      code: 'runtime_session_upload_failed',
+      message:
+        'Task completed, but durable runtime session checkpoint upload failed: ' +
+        (err instanceof Error ? err.message : String(err)),
+      retryable: true,
+    },
+    output: null,
+    outputCid: null,
+    status: 'failed',
+  };
 }
 
 export function createApiRuntimeSessionStore(args: {

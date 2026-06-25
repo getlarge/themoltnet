@@ -8,6 +8,7 @@ import {
 import {
   RuntimeSession as RuntimeSessionSchema,
   RuntimeSessionAttemptParams as RuntimeSessionAttemptParamsSchema,
+  RuntimeSessionContent as RuntimeSessionContentSchema,
   UploadRuntimeSessionQuery as UploadRuntimeSessionQuerySchema,
 } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
@@ -67,6 +68,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
         tags: ['runtime-sessions'],
         description:
           'Stream or replace the durable team-scoped runtime session content for a task attempt.',
+        consumes: ['application/octet-stream'],
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderRequiredSchema,
         params: RuntimeSessionAttemptParamsSchema,
@@ -151,6 +153,14 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
         headers: TeamHeaderRequiredSchema,
         params: RuntimeSessionAttemptParamsSchema,
         response: {
+          200: {
+            content: {
+              'application/octet-stream': {
+                schema: RuntimeSessionContentSchema,
+              },
+            },
+            description: 'Runtime session content stream.',
+          },
           400: ValidationProblemDetailsSchema,
           401: ProblemDetailsSchema,
           403: ProblemDetailsSchema,

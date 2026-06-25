@@ -7988,6 +7988,11 @@
         ],
         "type": "object"
       },
+      "RuntimeSessionContent": {
+        "description": "Runtime session content stream.",
+        "format": "binary",
+        "type": "string"
+      },
       "RuntimeSlot": {
         "properties": {
           "agentName": {
@@ -21271,6 +21276,18 @@
           }
         ],
         "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "description": "Runtime session content stream.",
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Runtime session content stream."
+          },
           "400": {
             "content": {
               "application/json": {
@@ -22423,6 +22440,18 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "description": "Runtime session content stream.",
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "description": "Runtime session content stream."
+        },
         "responses": {
           "200": {
             "content": {

@@ -11611,6 +11611,23 @@ func (s *DownloadRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 	}
 }
 
+// Runtime session content stream.
+type DownloadRuntimeSessionOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s DownloadRuntimeSessionOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+func (*DownloadRuntimeSessionOK) downloadRuntimeSessionRes() {}
+
 type DownloadRuntimeSessionServiceUnavailable struct {
 	Code            DownloadRuntimeSessionServiceUnavailableCode `json:"code"`
 	Detail          OptString                                    `json:"detail"`
@@ -40685,6 +40702,21 @@ func (s *UploadRuntimeSessionOKSessionKind) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
+}
+
+// Runtime session content stream.
+type UploadRuntimeSessionReq struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s UploadRuntimeSessionReq) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
 }
 
 type UploadRuntimeSessionServiceUnavailable struct {

@@ -743,7 +743,7 @@ type Invoker interface {
 	// Stream or replace the durable team-scoped runtime session content for a task attempt.
 	//
 	// PUT /runtime-sessions/{taskId}/{attemptN}/content
-	UploadRuntimeSession(ctx context.Context, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error)
+	UploadRuntimeSession(ctx context.Context, request UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error)
 	// VerifyAgentSignature invokes verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.
@@ -18973,12 +18973,12 @@ func (c *Client) sendUpdateTeamMemberRole(ctx context.Context, request *UpdateTe
 // Stream or replace the durable team-scoped runtime session content for a task attempt.
 //
 // PUT /runtime-sessions/{taskId}/{attemptN}/content
-func (c *Client) UploadRuntimeSession(ctx context.Context, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error) {
-	res, err := c.sendUploadRuntimeSession(ctx, params)
+func (c *Client) UploadRuntimeSession(ctx context.Context, request UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error) {
+	res, err := c.sendUploadRuntimeSession(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendUploadRuntimeSession(ctx context.Context, params UploadRuntimeSessionParams) (res UploadRuntimeSessionRes, err error) {
+func (c *Client) sendUploadRuntimeSession(ctx context.Context, request UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (res UploadRuntimeSessionRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("uploadRuntimeSession"),
 		semconv.HTTPRequestMethodKey.String("PUT"),
@@ -19130,6 +19130,9 @@ func (c *Client) sendUploadRuntimeSession(ctx context.Context, params UploadRunt
 	r, err := ht.NewRequest(ctx, "PUT", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeUploadRuntimeSessionRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
 	}
 
 	stage = "EncodeHeaderParams"

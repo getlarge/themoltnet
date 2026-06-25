@@ -25019,6 +25019,21 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 	}
 
 	var rawBody []byte
+	request, rawBody, close, err := s.decodeUploadRuntimeSessionRequest(r)
+	if err != nil {
+		err = &ogenerrors.DecodeRequestError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeRequest", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+	defer func() {
+		if err := close(); err != nil {
+			recordError("CloseRequest", err)
+		}
+	}()
 
 	var response UploadRuntimeSessionRes
 	if m := s.cfg.Middleware; m != nil {
@@ -25027,7 +25042,7 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 			OperationName:    UploadRuntimeSessionOperation,
 			OperationSummary: "",
 			OperationID:      "uploadRuntimeSession",
-			Body:             nil,
+			Body:             request,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
@@ -25063,7 +25078,7 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 		}
 
 		type (
-			Request  = struct{}
+			Request  = UploadRuntimeSessionReq
 			Params   = UploadRuntimeSessionParams
 			Response = UploadRuntimeSessionRes
 		)
@@ -25076,12 +25091,12 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 			mreq,
 			unpackUploadRuntimeSessionParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.UploadRuntimeSession(ctx, params)
+				response, err = s.h.UploadRuntimeSession(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.UploadRuntimeSession(ctx, params)
+		response, err = s.h.UploadRuntimeSession(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)

@@ -55,6 +55,13 @@ export type UploadRuntimeSessionQuery = Static<
   typeof UploadRuntimeSessionQuery
 >;
 
+export const RuntimeSessionContent = Type.String({
+  $id: 'RuntimeSessionContent',
+  description: 'Runtime session content stream.',
+  format: 'binary',
+});
+export type RuntimeSessionContent = Static<typeof RuntimeSessionContent>;
+
 export const RuntimeSessionAttemptParams = Type.Object(
   {
     taskId: Type.String({ format: 'uuid' }),
@@ -72,5 +79,6 @@ export type RuntimeSessionAttemptParams = Static<
 export const runtimeSessionSchemas = [
   RuntimeSession,
   UploadRuntimeSessionQuery,
+  RuntimeSessionContent,
   RuntimeSessionAttemptParams,
 ];

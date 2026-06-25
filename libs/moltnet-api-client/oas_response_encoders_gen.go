@@ -2435,6 +2435,20 @@ func encodeDiffContextPacksByIdResponse(response DiffContextPacksByIdRes, w http
 
 func encodeDownloadRuntimeSessionResponse(response DownloadRuntimeSessionRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
+	case *DownloadRuntimeSessionOK:
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(200)
+
+		writer := w
+		if closer, ok := response.Data.(io.Closer); ok {
+			defer closer.Close()
+		}
+		if _, err := io.Copy(writer, response); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
 	case *DownloadRuntimeSessionBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)

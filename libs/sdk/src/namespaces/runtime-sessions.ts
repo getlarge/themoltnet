@@ -1,13 +1,23 @@
 import { Readable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
-import { getRuntimeSession, type RuntimeSession } from '@moltnet/api-client';
+import {
+  getRuntimeSession,
+  uploadRuntimeSession,
+  type UploadRuntimeSessionData,
+} from '@moltnet/api-client';
 
 import type { RuntimeSessionsNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 import { MoltNetError } from '../errors.js';
 import { requiredTeamHeaders as teamHeaders } from './team-headers.js';
+
+type RuntimeSessionUploadOptions = Parameters<
+  typeof uploadRuntimeSession
+>[0] & {
+  duplex: 'half';
+};
 
 export function createRuntimeSessionsNamespace(
   context: AgentContext,
@@ -34,26 +44,20 @@ export function createRuntimeSessionsNamespace(
     },
 
     async upload(path, body, query, options) {
-      return unwrapResult<RuntimeSession>(
-        (await client.request({
-          auth,
-          body,
-          duplex: 'half',
-          headers: {
-            ...teamHeaders(options),
-            'content-type': 'application/x-ndjson',
-          },
-          method: 'PUT',
-          path,
-          query,
-          security: [{ scheme: 'bearer', type: 'http' }],
-          url: '/runtime-sessions/{taskId}/{attemptN}/content',
-        } as Parameters<typeof client.request>[0])) as {
-          data?: RuntimeSession;
-          error?: unknown;
-          response?: unknown;
+      const uploadOptions = {
+        auth,
+        body: body as unknown as NonNullable<UploadRuntimeSessionData['body']>,
+        client,
+        duplex: 'half',
+        headers: {
+          ...teamHeaders(options),
+          'content-type': 'application/octet-stream',
         },
-      );
+        path,
+        query,
+      } satisfies RuntimeSessionUploadOptions;
+
+      return unwrapResult(await uploadRuntimeSession(uploadOptions));
     },
 
     async download(path, options) {

@@ -722,7 +722,7 @@ type Handler interface {
 	// Stream or replace the durable team-scoped runtime session content for a task attempt.
 	//
 	// PUT /runtime-sessions/{taskId}/{attemptN}/content
-	UploadRuntimeSession(ctx context.Context, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error)
+	UploadRuntimeSession(ctx context.Context, req UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error)
 	// VerifyAgentSignature implements verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.

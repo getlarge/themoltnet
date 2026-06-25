@@ -1831,6 +1831,11 @@ export type RuntimeSessionAttemptParams = {
   taskId: string;
 };
 
+/**
+ * Runtime session content stream.
+ */
+export type RuntimeSessionContent = Blob | File;
+
 export type RuntimeSlot = {
   agentName: string;
   createdAtMs: number;
@@ -6922,8 +6927,21 @@ export type DownloadRuntimeSessionErrors = {
 export type DownloadRuntimeSessionError =
   DownloadRuntimeSessionErrors[keyof DownloadRuntimeSessionErrors];
 
+export type DownloadRuntimeSessionResponses = {
+  /**
+   * Runtime session content stream.
+   */
+  200: Blob | File;
+};
+
+export type DownloadRuntimeSessionResponse =
+  DownloadRuntimeSessionResponses[keyof DownloadRuntimeSessionResponses];
+
 export type UploadRuntimeSessionData = {
-  body?: never;
+  /**
+   * Runtime session content stream.
+   */
+  body?: Blob | File;
   headers: {
     /**
      * Team ID (UUID) that will own the resource. Required.
