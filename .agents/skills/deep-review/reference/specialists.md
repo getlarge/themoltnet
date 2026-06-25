@@ -72,7 +72,7 @@ Each entry below gives the `{DIMENSION_BRIEF}` text. Use a reviewer capable of t
    Brief: Diagnoseable from telemetry at 3am? Logs at the right level with correlation IDs, metrics/traces for new paths, actionable error messages. Failure modes: timeouts, partial failure, retries, idempotency, blast radius on panic. Rollout: flag? rollback? migration safety under concurrent writes?
 
 8. **Readability**
-   Brief: Naming (communicative, not verbose), function size/complexity, dead code, stale/misleading comments, magic numbers → constants, layering violations. Comments explain *why* (keep) vs *what* (delete). No lint territory, no preference.
+   Brief: Naming (communicative, not verbose), function size/complexity, dead code, stale/misleading comments, magic numbers → constants, layering violations. Comments explain _why_ (keep) vs _what_ (delete). No lint territory, no preference.
 
 ## Aggregate (after all specialists return)
 
