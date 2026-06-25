@@ -6,6 +6,16 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import {
+  bool,
+  compact,
+  csv,
+  finiteNumber,
+  nonEmpty,
+  nonNegativeInt,
+  normalizeAliases,
+  positiveInt,
+} from './query-utils.js';
 
 interface EntriesSearchDef extends NodeDef {
   agent?: string;
@@ -88,9 +98,9 @@ function buildSearchBody(
     excludeSuperseded: bool(def.excludeSuperseded),
     limit: positiveInt(def.limit),
     offset: nonNegativeInt(def.offset),
-    wRelevance: number(def.wRelevance),
-    wRecency: number(def.wRecency),
-    wImportance: number(def.wImportance),
+    wRelevance: finiteNumber(def.wRelevance),
+    wRecency: finiteNumber(def.wRecency),
+    wImportance: finiteNumber(def.wImportance),
   };
   const payload =
     msg.payload && typeof msg.payload === 'object'
@@ -104,80 +114,15 @@ function buildSearchBody(
 function normalizePayload(
   payload: Record<string, unknown>,
 ): Record<string, unknown> {
-  const normalized = { ...payload };
-  if (normalized.diary_id !== undefined && normalized.diaryId === undefined) {
-    normalized.diaryId = normalized.diary_id;
-    delete normalized.diary_id;
-  }
-  if (
-    normalized.entry_types !== undefined &&
-    normalized.entryTypes === undefined
-  ) {
-    normalized.entryTypes = normalized.entry_types;
-    delete normalized.entry_types;
-  }
-  if (
-    normalized.exclude_superseded !== undefined &&
-    normalized.excludeSuperseded === undefined
-  ) {
-    normalized.excludeSuperseded = normalized.exclude_superseded;
-    delete normalized.exclude_superseded;
-  }
-  if (
-    normalized.exclude_tags !== undefined &&
-    normalized.excludeTags === undefined
-  ) {
-    normalized.excludeTags = normalized.exclude_tags;
-    delete normalized.exclude_tags;
-  }
-  return normalized;
-}
-
-function csv(value: unknown): string[] | undefined {
-  if (Array.isArray(value)) {
-    const items = value.filter(
-      (item): item is string => typeof item === 'string',
-    );
-    return items.length > 0 ? items : undefined;
-  }
-  if (typeof value !== 'string') return undefined;
-  const items = value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-  return items.length > 0 ? items : undefined;
-}
-
-function bool(value: unknown): boolean | undefined {
-  if (typeof value === 'boolean') return value;
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-}
-
-function positiveInt(value: unknown): number | undefined {
-  const n = typeof value === 'number' ? value : Number(value);
-  return Number.isInteger(n) && n > 0 ? n : undefined;
-}
-
-function nonNegativeInt(value: unknown): number | undefined {
-  const n = typeof value === 'number' ? value : Number(value);
-  return Number.isInteger(n) && n >= 0 ? n : undefined;
-}
-
-function number(value: unknown): number | undefined {
-  const n = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(n) ? n : undefined;
-}
-
-function nonEmpty(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
-
-function compact(value: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(value).filter(([, entry]) => entry !== undefined),
-  );
+  return normalizeAliases(payload, {
+    diary_id: 'diaryId',
+    entry_types: 'entryTypes',
+    exclude_superseded: 'excludeSuperseded',
+    exclude_tags: 'excludeTags',
+    w_importance: 'wImportance',
+    w_recency: 'wRecency',
+    w_relevance: 'wRelevance',
+  });
 }
 
 export default init;

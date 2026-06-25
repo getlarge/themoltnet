@@ -6,6 +6,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { bool, compact, csv, nonEmpty, positiveInt } from './query-utils.js';
 
 interface TasksListDef extends NodeDef {
   agent?: string;
@@ -110,43 +111,6 @@ function buildTasksQuery(
       ? (msg.payload as Record<string, unknown>)
       : {};
   return compact({ ...configured, ...payload }) as ListTasksQuery;
-}
-
-function csv(value: unknown): string[] | undefined {
-  if (Array.isArray(value)) {
-    const items = value.filter(
-      (item): item is string => typeof item === 'string',
-    );
-    return items.length > 0 ? items : undefined;
-  }
-  if (typeof value !== 'string') return undefined;
-  const items = value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-  return items.length > 0 ? items : undefined;
-}
-
-function bool(value: unknown): boolean | undefined {
-  if (typeof value === 'boolean') return value;
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-}
-
-function positiveInt(value: unknown): number | undefined {
-  const n = typeof value === 'number' ? value : Number(value);
-  return Number.isInteger(n) && n > 0 ? n : undefined;
-}
-
-function nonEmpty(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
-
-function compact(value: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(value).filter(([, entry]) => entry !== undefined),
-  );
 }
 
 export default init;
