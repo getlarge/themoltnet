@@ -331,6 +331,66 @@ describe('moltnet-tasks-list', () => {
     });
   });
 
+  it('passes the full task query filter surface', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const agent = {
+      tasks: {
+        list: (query: Record<string, unknown>) => {
+          seen.push(query);
+          return Promise.resolve({ total: 0, items: [] });
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(tasksList);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-tasks-list', 'n1', {
+      agent: 'a1',
+      status: 'claimed',
+      excludeTags: 'done,stale',
+      profileId: 'profile-1',
+      correlationId: 'corr-config',
+      diaryId: 'diary-1',
+      proposedByAgentId: 'agent-1',
+      proposedByHumanId: 'human-1',
+      claimedByAgentId: 'agent-2',
+      hasAttempts: 'false',
+      queuedAfter: '2026-06-01T00:00:00Z',
+      queuedBefore: '2026-06-02T00:00:00Z',
+      completedAfter: '2026-06-03T00:00:00Z',
+      completedBefore: '2026-06-04T00:00:00Z',
+      cursor: 'cursor-1',
+    });
+
+    await red.input(node, {
+      payload: {
+        correlationId: 'corr-payload',
+        hasAttempts: true,
+      },
+    });
+
+    expect(seen).toEqual([
+      {
+        status: 'claimed',
+        excludeTags: ['done', 'stale'],
+        profileId: 'profile-1',
+        correlationId: 'corr-payload',
+        diaryId: 'diary-1',
+        proposedByAgentId: 'agent-1',
+        proposedByHumanId: 'human-1',
+        claimedByAgentId: 'agent-2',
+        hasAttempts: true,
+        queuedAfter: '2026-06-01T00:00:00Z',
+        queuedBefore: '2026-06-02T00:00:00Z',
+        completedAfter: '2026-06-03T00:00:00Z',
+        completedBefore: '2026-06-04T00:00:00Z',
+        cursor: 'cursor-1',
+      },
+    ]);
+  });
+
   it('errors when the agent has no team context', async () => {
     const red = new FakeRed();
     red.load(agentStub({ tasks: { list: () => Promise.resolve({}) } }));
@@ -379,6 +439,9 @@ describe('moltnet-entries-search', () => {
         diary_id: 'diary-override',
         exclude_tags: ['obsolete'],
         exclude_superseded: true,
+        w_importance: 0.8,
+        w_recency: 0.5,
+        w_relevance: 1.2,
       },
     });
 
@@ -391,8 +454,9 @@ describe('moltnet-entries-search', () => {
         entryTypes: ['semantic', 'episodic'],
         excludeSuperseded: true,
         limit: 10,
-        wRelevance: 1,
-        wRecency: 0.3,
+        wImportance: 0.8,
+        wRelevance: 1.2,
+        wRecency: 0.5,
       },
     ]);
     expect(outputs[0].payload).toEqual([{ id: 'e1', title: 'Decision' }]);
@@ -412,12 +476,15 @@ describe('moltnet-entries-search', () => {
     const red = new FakeRed();
     red.load(agentStub(agent));
     red.load(entriesSearch);
-    red.create('moltnet-agent', 'a1');
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).diaryId = 'diary-agent';
     const node = red.create('moltnet-entries-search', 'n1', { agent: 'a1' });
 
     await red.input(node, { payload: 'release rationale' });
 
-    expect(seen).toEqual([{ query: 'release rationale' }]);
+    expect(seen).toEqual([
+      { diaryId: 'diary-agent', query: 'release rationale' },
+    ]);
   });
 
   it('errors when no query can be resolved', async () => {
