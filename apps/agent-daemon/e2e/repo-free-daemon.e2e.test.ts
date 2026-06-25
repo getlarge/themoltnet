@@ -43,12 +43,30 @@ vi.mock('@themoltnet/pi-extension', async (importOriginal) => {
 });
 
 createPiTaskExecutorMock.mockImplementation(
-  (_options: ExecutePiTaskOptions) =>
+  (options: ExecutePiTaskOptions) =>
     async (claimedTask: ClaimedTask, reporter: TaskReporter) => {
       await reporter.open({
         taskId: claimedTask.task.id,
         attemptN: claimedTask.attemptN,
       });
+      const executionPlan = await options.makeExecutionPlan?.(claimedTask);
+      if (executionPlan?.sessionPersistence?.sessionDir) {
+        mkdirSync(executionPlan.sessionPersistence.sessionDir, {
+          recursive: true,
+        });
+        writeFileSync(
+          join(
+            executionPlan.sessionPersistence.sessionDir,
+            '20260625T000000.jsonl',
+          ),
+          JSON.stringify({
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
+            message: 'repo-free daemon e2e session checkpoint',
+          }) + '\n',
+          'utf8',
+        );
+      }
 
       const payload = {
         summary: 'Repo-free daemon e2e completed a non-coding task.',
