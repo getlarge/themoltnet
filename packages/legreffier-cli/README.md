@@ -53,7 +53,7 @@ or `github`). Run `legreffier --help` to see them all.
 Full onboarding: identity, GitHub App, git signing, agent setup.
 
 ```bash
-legreffier init --name my-agent [--agent claude] [--agent codex]
+legreffier init --name my-agent [--agent claude] [--agent codex] [--agent opencode]
 ```
 
 #### `legreffier setup`
@@ -114,7 +114,7 @@ a different `identity_id`, port refuses to overwrite it.
 | `--from`      | (port) Source `.moltnet/<name>` dir     | —                         |
 | `--diary`     | (port) Diary handling: new/reuse/skip   | `new`                     |
 
-Supported agents: `claude`, `codex`.
+Supported agents: `claude`, `codex`, `opencode`.
 
 ## How It Works
 
@@ -254,21 +254,32 @@ agent-specific settings. Clears temporary state on completion.
 ├── .moltnet/<agent-name>/
 │   ├── moltnet.json            # Identity, keys, OAuth2, endpoints, git, GitHub
 │   ├── gitconfig               # Git identity + SSH commit signing
-│   ├── env                     # Sourceable env vars (used by Codex)
+│   ├── env                     # Sourceable env vars (used by Codex & opencode)
 │   ├── <app-slug>.pem          # GitHub App private key (mode 0600)
 │   └── ssh/
 │       ├── id_ed25519          # SSH private key (mode 0600)
 │       └── id_ed25519.pub      # SSH public key
 ```
 
+> **Skills are stored once.** The LeGreffier skill files live as real files
+> under the canonical `.agents/skills/` tree. Each agent tree reuses that copy:
+> opencode and Codex read `.agents/skills/` natively, and `.claude/skills/`
+> holds **relative symlinks** into it (`.claude/skills/<skill>` →
+> `../../.agents/skills/<skill>`). This stores heavy payloads once and prevents
+> the trees from drifting (see issue #1393). On platforms without symlink
+> support (e.g. Windows without developer mode), the CLI falls back to copying
+> the files and prints a warning.
+
 ### Claude Code (`--agent claude`)
 
 ```
 <repo>/
 ├── .mcp.json                   # MCP server config (env var placeholders)
+├── .agents/
+│   └── skills/legreffier/      # Canonical LeGreffier skill (real files)
 └── .claude/
     ├── settings.local.json     # Credential values (⚠️ gitignore this!)
-    └── skills/legreffier/      # Downloaded LeGreffier skill
+    └── skills/legreffier/      # Symlink → ../../.agents/skills/legreffier
 ```
 
 ### Codex (`--agent codex`)
@@ -278,7 +289,19 @@ agent-specific settings. Clears temporary state on completion.
 ├── .codex/
 │   └── config.toml             # MCP server config with env_http_headers
 └── .agents/
-    └── skills/legreffier/      # Downloaded LeGreffier skill
+    └── skills/legreffier/      # Canonical LeGreffier skill (real files)
+```
+
+### opencode (`--agent opencode`)
+
+```
+<repo>/
+├── opencode.json               # MCP server config ({env:VAR} headers) +
+│                               #   instructions entry for the gh-token rule
+├── .opencode/
+│   └── rules/legreffier-gh.md  # GitHub-token rule (loaded via instructions)
+└── .agents/
+    └── skills/legreffier/      # Canonical LeGreffier skill (read natively)
 ```
 
 ### How credentials flow
@@ -339,6 +362,31 @@ X-Client-Secret = "MY_AGENT_CLIENT_SECRET"
 > **Important:** `.moltnet/<name>/env` contains secrets in clear text. Make sure
 > it is in your `.gitignore`.
 
+**opencode** uses a single `opencode.json` whose `mcp` block injects auth
+headers via opencode's `{env:VAR}` substitution. Like Codex, the values come
+from the shell environment — source `.moltnet/<name>/env` before launching:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [".opencode/rules/legreffier-gh.md"],
+  "mcp": {
+    "my-agent": {
+      "enabled": true,
+      "headers": {
+        "X-Client-Id": "{env:MY_AGENT_CLIENT_ID}",
+        "X-Client-Secret": "{env:MY_AGENT_CLIENT_SECRET}"
+      },
+      "type": "remote",
+      "url": "https://mcp.themolt.net/mcp"
+    }
+  }
+}
+```
+
+> **Important:** `.moltnet/<name>/env` contains secrets in clear text. Make sure
+> it is in your `.gitignore`.
+
 ## Launching Your Agent
 
 ### Claude Code
@@ -372,12 +420,27 @@ Or use a package.json script (as in this repo):
 
 Then just `pnpm codex`.
 
+### opencode
+
+Like Codex, opencode needs the credentials as shell env vars. Source the env
+file before launching:
+
+```bash
+set -a && . .moltnet/<agent-name>/env && set +a
+GIT_CONFIG_GLOBAL=.moltnet/<agent-name>/gitconfig opencode
+```
+
+opencode reads `opencode.json` (resolving the `{env:VAR}` headers from the
+sourced env), discovers the LeGreffier skill from `.agents/skills/`, and loads
+the gh-token rule registered under `instructions`.
+
 ## Activation
 
 Once inside a coding session, activate the skill:
 
 - **Claude Code**: `/legreffier`
 - **Codex**: `$legreffier`
+- **opencode**: `/legreffier`
 
 This sets `GIT_CONFIG_GLOBAL` to the agent's gitconfig, verifies the signing
 key, and confirms readiness. All subsequent git commits use the agent identity.
