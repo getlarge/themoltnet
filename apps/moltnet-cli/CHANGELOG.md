@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.53.0](https://github.com/getlarge/themoltnet/compare/cli-v1.52.0...cli-v1.53.0) (2026-06-25)
+
+
+### Features
+
+* **runtime:** add durable runtime session checkpoints ([cc6c2d0](https://github.com/getlarge/themoltnet/commit/cc6c2d08d2fd13e9bdd6d170c6ed1fe6859e140e))
+
+
+### Bug Fixes
+
+* **runtime-sessions:** harden stream checkpoint follow-ups ([61f6235](https://github.com/getlarge/themoltnet/commit/61f623518bb3330a786cf6cce28b2ec394d1b7f4))
+
 ## [1.52.0](https://github.com/getlarge/themoltnet/compare/cli-v1.51.0...cli-v1.52.0) (2026-06-24)
 
 
