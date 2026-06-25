@@ -21,6 +21,7 @@ export function TagChip({ tag, active = false, onClick }: TagChipProps) {
     <span
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
+      title={tag}
       onClick={handleClick}
       onKeyDown={(event) => {
         if (!onClick) return;
@@ -30,12 +31,20 @@ export function TagChip({ tag, active = false, onClick }: TagChipProps) {
       }}
       style={{
         display: 'inline-flex',
+        maxWidth: '100%',
+        minWidth: 0,
         cursor: onClick ? 'pointer' : 'default',
       }}
     >
       <Badge
         variant={active ? 'primary' : 'default'}
-        style={{ transition: `background ${theme.transition.fast}` }}
+        style={{
+          maxWidth: '100%',
+          minWidth: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          transition: `background ${theme.transition.fast}`,
+        }}
       >
         {tag}
       </Badge>

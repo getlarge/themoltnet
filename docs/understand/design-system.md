@@ -117,6 +117,27 @@ component-level audit lives in `libs/design-system/ACCESSIBILITY.md`. Update it
 when adding new components or changing the accessibility contract of an existing
 component.
 
+## Data tables
+
+Use tables for dense operational data that users scan, compare, filter, or act
+on repeatedly. Table surfaces must follow these rules:
+
+1. Prefer semantic `<table>` markup for plain tabular comparison. If a table
+   needs grid behavior for custom row actions or virtualization, keep the row
+   and column structure explicit with accessible names.
+2. Put the table in a horizontal overflow container before columns can collide.
+   Set a stable `min-width` that fits the declared columns, rather than relying
+   on the viewport to rescue dense layouts.
+3. Treat IDs, hashes, tags, and other unbroken tokens as constrained content:
+   grid/table cells need `min-width: 0`, token text needs `display: block`,
+   `overflow: hidden`, `text-overflow: ellipsis`, and `white-space: nowrap`,
+   with the full value available through surrounding context or a `title`.
+4. Use mono type for machine identifiers and keep labels/statuses in the normal
+   UI typeface.
+5. Do not allow text from one column to visually enter another column. When a
+   value is too important to truncate, move it to a detail view or split the
+   surface into narrower sections.
+
 ## Rules for UI builders
 
 1. **Import from `@themoltnet/design-system`** — never hardcode color hex values, font stacks, or spacing pixels
