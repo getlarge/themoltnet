@@ -10636,6 +10636,1928 @@ type DiffContextPacksByIdUnauthorized ProblemDetails
 
 func (*DiffContextPacksByIdUnauthorized) diffContextPacksByIdRes() {}
 
+// Merged schema.
+type DownloadRuntimeSessionBadRequest struct {
+	Code            DownloadRuntimeSessionBadRequestCode         `json:"code"`
+	Detail          OptString                                    `json:"detail"`
+	Instance        OptString                                    `json:"instance"`
+	Status          int                                          `json:"status"`
+	Title           string                                       `json:"title"`
+	Type            url.URL                                      `json:"type"`
+	Errors          []DownloadRuntimeSessionBadRequestErrorsItem `json:"errors"`
+	AdditionalProps DownloadRuntimeSessionBadRequestAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadRuntimeSessionBadRequest) GetCode() DownloadRuntimeSessionBadRequestCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *DownloadRuntimeSessionBadRequest) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *DownloadRuntimeSessionBadRequest) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *DownloadRuntimeSessionBadRequest) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadRuntimeSessionBadRequest) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *DownloadRuntimeSessionBadRequest) GetType() url.URL {
+	return s.Type
+}
+
+// GetErrors returns the value of Errors.
+func (s *DownloadRuntimeSessionBadRequest) GetErrors() []DownloadRuntimeSessionBadRequestErrorsItem {
+	return s.Errors
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *DownloadRuntimeSessionBadRequest) GetAdditionalProps() DownloadRuntimeSessionBadRequestAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadRuntimeSessionBadRequest) SetCode(val DownloadRuntimeSessionBadRequestCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *DownloadRuntimeSessionBadRequest) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *DownloadRuntimeSessionBadRequest) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DownloadRuntimeSessionBadRequest) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadRuntimeSessionBadRequest) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *DownloadRuntimeSessionBadRequest) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetErrors sets the value of Errors.
+func (s *DownloadRuntimeSessionBadRequest) SetErrors(val []DownloadRuntimeSessionBadRequestErrorsItem) {
+	s.Errors = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *DownloadRuntimeSessionBadRequest) SetAdditionalProps(val DownloadRuntimeSessionBadRequestAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*DownloadRuntimeSessionBadRequest) downloadRuntimeSessionRes() {}
+
+type DownloadRuntimeSessionBadRequestAdditional map[string]jx.Raw
+
+func (s *DownloadRuntimeSessionBadRequestAdditional) init() DownloadRuntimeSessionBadRequestAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type DownloadRuntimeSessionBadRequestCode string
+
+const (
+	DownloadRuntimeSessionBadRequestCodeUNAUTHORIZED                   DownloadRuntimeSessionBadRequestCode = "UNAUTHORIZED"
+	DownloadRuntimeSessionBadRequestCodeFORBIDDEN                      DownloadRuntimeSessionBadRequestCode = "FORBIDDEN"
+	DownloadRuntimeSessionBadRequestCodeNOTFOUND                       DownloadRuntimeSessionBadRequestCode = "NOT_FOUND"
+	DownloadRuntimeSessionBadRequestCodeCONFLICT                       DownloadRuntimeSessionBadRequestCode = "CONFLICT"
+	DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED               DownloadRuntimeSessionBadRequestCode = "VALIDATION_FAILED"
+	DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE               DownloadRuntimeSessionBadRequestCode = "INVALID_CHALLENGE"
+	DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE               DownloadRuntimeSessionBadRequestCode = "INVALID_SIGNATURE"
+	DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT                   DownloadRuntimeSessionBadRequestCode = "VOUCHER_LIMIT"
+	DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED              DownloadRuntimeSessionBadRequestCode = "RATE_LIMIT_EXCEEDED"
+	DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionBadRequestCode = "SERIALIZATION_EXHAUSTED"
+	DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_EXPIRED"
+	DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED DownloadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED             DownloadRuntimeSessionBadRequestCode = "REGISTRATION_FAILED"
+	DownloadRuntimeSessionBadRequestCodeUPSTREAMERROR                  DownloadRuntimeSessionBadRequestCode = "UPSTREAM_ERROR"
+	DownloadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE             DownloadRuntimeSessionBadRequestCode = "SERVICE_UNAVAILABLE"
+	DownloadRuntimeSessionBadRequestCodeINTERNALSERVERERROR            DownloadRuntimeSessionBadRequestCode = "INTERNAL_SERVER_ERROR"
+	DownloadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE          DownloadRuntimeSessionBadRequestCode = "TEAM_PERSONAL_IMMUTABLE"
+	DownloadRuntimeSessionBadRequestCodeTEAMNOTACTIVE                  DownloadRuntimeSessionBadRequestCode = "TEAM_NOT_ACTIVE"
+	DownloadRuntimeSessionBadRequestCodeINVITEEXPIRED                  DownloadRuntimeSessionBadRequestCode = "INVITE_EXPIRED"
+	DownloadRuntimeSessionBadRequestCodeINVITEEXHAUSTED                DownloadRuntimeSessionBadRequestCode = "INVITE_EXHAUSTED"
+	DownloadRuntimeSessionBadRequestCodeTEAMLASTOWNER                  DownloadRuntimeSessionBadRequestCode = "TEAM_LAST_OWNER"
+	DownloadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE              DownloadRuntimeSessionBadRequestCode = "TEAM_ALREADY_ACTIVE"
+	DownloadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING                DownloadRuntimeSessionBadRequestCode = "TEAM_NOT_FOUNDING"
+	DownloadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED        DownloadRuntimeSessionBadRequestCode = "FOUNDING_ALREADY_ACCEPTED"
+	DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING           DownloadRuntimeSessionBadRequestCode = "DIARY_TRANSFER_PENDING"
+	DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND          DownloadRuntimeSessionBadRequestCode = "DIARY_TRANSFER_NOT_FOUND"
+	DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED   DownloadRuntimeSessionBadRequestCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all DownloadRuntimeSessionBadRequestCode values.
+func (DownloadRuntimeSessionBadRequestCode) AllValues() []DownloadRuntimeSessionBadRequestCode {
+	return []DownloadRuntimeSessionBadRequestCode{
+		DownloadRuntimeSessionBadRequestCodeUNAUTHORIZED,
+		DownloadRuntimeSessionBadRequestCodeFORBIDDEN,
+		DownloadRuntimeSessionBadRequestCodeNOTFOUND,
+		DownloadRuntimeSessionBadRequestCodeCONFLICT,
+		DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED,
+		DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE,
+		DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE,
+		DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT,
+		DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED,
+		DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED,
+		DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED,
+		DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED,
+		DownloadRuntimeSessionBadRequestCodeUPSTREAMERROR,
+		DownloadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE,
+		DownloadRuntimeSessionBadRequestCodeINTERNALSERVERERROR,
+		DownloadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE,
+		DownloadRuntimeSessionBadRequestCodeTEAMNOTACTIVE,
+		DownloadRuntimeSessionBadRequestCodeINVITEEXPIRED,
+		DownloadRuntimeSessionBadRequestCodeINVITEEXHAUSTED,
+		DownloadRuntimeSessionBadRequestCodeTEAMLASTOWNER,
+		DownloadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE,
+		DownloadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING,
+		DownloadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED,
+		DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING,
+		DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND,
+		DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadRuntimeSessionBadRequestCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeFORBIDDEN:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeNOTFOUND:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
+	switch DownloadRuntimeSessionBadRequestCode(data) {
+	case DownloadRuntimeSessionBadRequestCodeUNAUTHORIZED:
+		*s = DownloadRuntimeSessionBadRequestCodeUNAUTHORIZED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeFORBIDDEN:
+		*s = DownloadRuntimeSessionBadRequestCodeFORBIDDEN
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeNOTFOUND:
+		*s = DownloadRuntimeSessionBadRequestCodeNOTFOUND
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeCONFLICT:
+		*s = DownloadRuntimeSessionBadRequestCodeCONFLICT
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
+		*s = DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
+		*s = DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
+		*s = DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT:
+		*s = DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
+		*s = DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
+		*s = DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeUPSTREAMERROR:
+		*s = DownloadRuntimeSessionBadRequestCodeUPSTREAMERROR
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE:
+		*s = DownloadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeINTERNALSERVERERROR:
+		*s = DownloadRuntimeSessionBadRequestCodeINTERNALSERVERERROR
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeTEAMNOTACTIVE:
+		*s = DownloadRuntimeSessionBadRequestCodeTEAMNOTACTIVE
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeINVITEEXPIRED:
+		*s = DownloadRuntimeSessionBadRequestCodeINVITEEXPIRED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeINVITEEXHAUSTED:
+		*s = DownloadRuntimeSessionBadRequestCodeINVITEEXHAUSTED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeTEAMLASTOWNER:
+		*s = DownloadRuntimeSessionBadRequestCodeTEAMLASTOWNER
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE:
+		*s = DownloadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING:
+		*s = DownloadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING:
+		*s = DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DownloadRuntimeSessionBadRequestErrorsItem struct {
+	Code    OptString `json:"code"`
+	Field   string    `json:"field"`
+	Message string    `json:"message"`
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) GetCode() OptString {
+	return s.Code
+}
+
+// GetField returns the value of Field.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) GetField() string {
+	return s.Field
+}
+
+// GetMessage returns the value of Message.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) GetMessage() string {
+	return s.Message
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) SetCode(val OptString) {
+	s.Code = val
+}
+
+// SetField sets the value of Field.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) SetField(val string) {
+	s.Field = val
+}
+
+// SetMessage sets the value of Message.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) SetMessage(val string) {
+	s.Message = val
+}
+
+type DownloadRuntimeSessionForbidden struct {
+	Code            DownloadRuntimeSessionForbiddenCode `json:"code"`
+	Detail          OptString                           `json:"detail"`
+	Instance        OptString                           `json:"instance"`
+	Status          int                                 `json:"status"`
+	Title           string                              `json:"title"`
+	Type            url.URL                             `json:"type"`
+	AdditionalProps DownloadRuntimeSessionForbiddenAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadRuntimeSessionForbidden) GetCode() DownloadRuntimeSessionForbiddenCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *DownloadRuntimeSessionForbidden) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *DownloadRuntimeSessionForbidden) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *DownloadRuntimeSessionForbidden) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadRuntimeSessionForbidden) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *DownloadRuntimeSessionForbidden) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *DownloadRuntimeSessionForbidden) GetAdditionalProps() DownloadRuntimeSessionForbiddenAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadRuntimeSessionForbidden) SetCode(val DownloadRuntimeSessionForbiddenCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *DownloadRuntimeSessionForbidden) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *DownloadRuntimeSessionForbidden) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DownloadRuntimeSessionForbidden) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadRuntimeSessionForbidden) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *DownloadRuntimeSessionForbidden) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *DownloadRuntimeSessionForbidden) SetAdditionalProps(val DownloadRuntimeSessionForbiddenAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*DownloadRuntimeSessionForbidden) downloadRuntimeSessionRes() {}
+
+type DownloadRuntimeSessionForbiddenAdditional map[string]jx.Raw
+
+func (s *DownloadRuntimeSessionForbiddenAdditional) init() DownloadRuntimeSessionForbiddenAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type DownloadRuntimeSessionForbiddenCode string
+
+const (
+	DownloadRuntimeSessionForbiddenCodeUNAUTHORIZED                   DownloadRuntimeSessionForbiddenCode = "UNAUTHORIZED"
+	DownloadRuntimeSessionForbiddenCodeFORBIDDEN                      DownloadRuntimeSessionForbiddenCode = "FORBIDDEN"
+	DownloadRuntimeSessionForbiddenCodeNOTFOUND                       DownloadRuntimeSessionForbiddenCode = "NOT_FOUND"
+	DownloadRuntimeSessionForbiddenCodeCONFLICT                       DownloadRuntimeSessionForbiddenCode = "CONFLICT"
+	DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED               DownloadRuntimeSessionForbiddenCode = "VALIDATION_FAILED"
+	DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE               DownloadRuntimeSessionForbiddenCode = "INVALID_CHALLENGE"
+	DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE               DownloadRuntimeSessionForbiddenCode = "INVALID_SIGNATURE"
+	DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT                   DownloadRuntimeSessionForbiddenCode = "VOUCHER_LIMIT"
+	DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED              DownloadRuntimeSessionForbiddenCode = "RATE_LIMIT_EXCEEDED"
+	DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionForbiddenCode = "SERIALIZATION_EXHAUSTED"
+	DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_EXPIRED"
+	DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED DownloadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED             DownloadRuntimeSessionForbiddenCode = "REGISTRATION_FAILED"
+	DownloadRuntimeSessionForbiddenCodeUPSTREAMERROR                  DownloadRuntimeSessionForbiddenCode = "UPSTREAM_ERROR"
+	DownloadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE             DownloadRuntimeSessionForbiddenCode = "SERVICE_UNAVAILABLE"
+	DownloadRuntimeSessionForbiddenCodeINTERNALSERVERERROR            DownloadRuntimeSessionForbiddenCode = "INTERNAL_SERVER_ERROR"
+	DownloadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE          DownloadRuntimeSessionForbiddenCode = "TEAM_PERSONAL_IMMUTABLE"
+	DownloadRuntimeSessionForbiddenCodeTEAMNOTACTIVE                  DownloadRuntimeSessionForbiddenCode = "TEAM_NOT_ACTIVE"
+	DownloadRuntimeSessionForbiddenCodeINVITEEXPIRED                  DownloadRuntimeSessionForbiddenCode = "INVITE_EXPIRED"
+	DownloadRuntimeSessionForbiddenCodeINVITEEXHAUSTED                DownloadRuntimeSessionForbiddenCode = "INVITE_EXHAUSTED"
+	DownloadRuntimeSessionForbiddenCodeTEAMLASTOWNER                  DownloadRuntimeSessionForbiddenCode = "TEAM_LAST_OWNER"
+	DownloadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE              DownloadRuntimeSessionForbiddenCode = "TEAM_ALREADY_ACTIVE"
+	DownloadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING                DownloadRuntimeSessionForbiddenCode = "TEAM_NOT_FOUNDING"
+	DownloadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED        DownloadRuntimeSessionForbiddenCode = "FOUNDING_ALREADY_ACCEPTED"
+	DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING           DownloadRuntimeSessionForbiddenCode = "DIARY_TRANSFER_PENDING"
+	DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND          DownloadRuntimeSessionForbiddenCode = "DIARY_TRANSFER_NOT_FOUND"
+	DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED   DownloadRuntimeSessionForbiddenCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all DownloadRuntimeSessionForbiddenCode values.
+func (DownloadRuntimeSessionForbiddenCode) AllValues() []DownloadRuntimeSessionForbiddenCode {
+	return []DownloadRuntimeSessionForbiddenCode{
+		DownloadRuntimeSessionForbiddenCodeUNAUTHORIZED,
+		DownloadRuntimeSessionForbiddenCodeFORBIDDEN,
+		DownloadRuntimeSessionForbiddenCodeNOTFOUND,
+		DownloadRuntimeSessionForbiddenCodeCONFLICT,
+		DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED,
+		DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE,
+		DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE,
+		DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT,
+		DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED,
+		DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED,
+		DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED,
+		DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED,
+		DownloadRuntimeSessionForbiddenCodeUPSTREAMERROR,
+		DownloadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE,
+		DownloadRuntimeSessionForbiddenCodeINTERNALSERVERERROR,
+		DownloadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE,
+		DownloadRuntimeSessionForbiddenCodeTEAMNOTACTIVE,
+		DownloadRuntimeSessionForbiddenCodeINVITEEXPIRED,
+		DownloadRuntimeSessionForbiddenCodeINVITEEXHAUSTED,
+		DownloadRuntimeSessionForbiddenCodeTEAMLASTOWNER,
+		DownloadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE,
+		DownloadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING,
+		DownloadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED,
+		DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING,
+		DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND,
+		DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadRuntimeSessionForbiddenCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeFORBIDDEN:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeNOTFOUND:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
+	switch DownloadRuntimeSessionForbiddenCode(data) {
+	case DownloadRuntimeSessionForbiddenCodeUNAUTHORIZED:
+		*s = DownloadRuntimeSessionForbiddenCodeUNAUTHORIZED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeFORBIDDEN:
+		*s = DownloadRuntimeSessionForbiddenCodeFORBIDDEN
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeNOTFOUND:
+		*s = DownloadRuntimeSessionForbiddenCodeNOTFOUND
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeCONFLICT:
+		*s = DownloadRuntimeSessionForbiddenCodeCONFLICT
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
+		*s = DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
+		*s = DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
+		*s = DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT:
+		*s = DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
+		*s = DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
+		*s = DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeUPSTREAMERROR:
+		*s = DownloadRuntimeSessionForbiddenCodeUPSTREAMERROR
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE:
+		*s = DownloadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeINTERNALSERVERERROR:
+		*s = DownloadRuntimeSessionForbiddenCodeINTERNALSERVERERROR
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeTEAMNOTACTIVE:
+		*s = DownloadRuntimeSessionForbiddenCodeTEAMNOTACTIVE
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeINVITEEXPIRED:
+		*s = DownloadRuntimeSessionForbiddenCodeINVITEEXPIRED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeINVITEEXHAUSTED:
+		*s = DownloadRuntimeSessionForbiddenCodeINVITEEXHAUSTED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeTEAMLASTOWNER:
+		*s = DownloadRuntimeSessionForbiddenCodeTEAMLASTOWNER
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE:
+		*s = DownloadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING:
+		*s = DownloadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING:
+		*s = DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DownloadRuntimeSessionNotFound struct {
+	Code            DownloadRuntimeSessionNotFoundCode `json:"code"`
+	Detail          OptString                          `json:"detail"`
+	Instance        OptString                          `json:"instance"`
+	Status          int                                `json:"status"`
+	Title           string                             `json:"title"`
+	Type            url.URL                            `json:"type"`
+	AdditionalProps DownloadRuntimeSessionNotFoundAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadRuntimeSessionNotFound) GetCode() DownloadRuntimeSessionNotFoundCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *DownloadRuntimeSessionNotFound) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *DownloadRuntimeSessionNotFound) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *DownloadRuntimeSessionNotFound) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadRuntimeSessionNotFound) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *DownloadRuntimeSessionNotFound) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *DownloadRuntimeSessionNotFound) GetAdditionalProps() DownloadRuntimeSessionNotFoundAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadRuntimeSessionNotFound) SetCode(val DownloadRuntimeSessionNotFoundCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *DownloadRuntimeSessionNotFound) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *DownloadRuntimeSessionNotFound) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DownloadRuntimeSessionNotFound) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadRuntimeSessionNotFound) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *DownloadRuntimeSessionNotFound) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *DownloadRuntimeSessionNotFound) SetAdditionalProps(val DownloadRuntimeSessionNotFoundAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*DownloadRuntimeSessionNotFound) downloadRuntimeSessionRes() {}
+
+type DownloadRuntimeSessionNotFoundAdditional map[string]jx.Raw
+
+func (s *DownloadRuntimeSessionNotFoundAdditional) init() DownloadRuntimeSessionNotFoundAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type DownloadRuntimeSessionNotFoundCode string
+
+const (
+	DownloadRuntimeSessionNotFoundCodeUNAUTHORIZED                   DownloadRuntimeSessionNotFoundCode = "UNAUTHORIZED"
+	DownloadRuntimeSessionNotFoundCodeFORBIDDEN                      DownloadRuntimeSessionNotFoundCode = "FORBIDDEN"
+	DownloadRuntimeSessionNotFoundCodeNOTFOUND                       DownloadRuntimeSessionNotFoundCode = "NOT_FOUND"
+	DownloadRuntimeSessionNotFoundCodeCONFLICT                       DownloadRuntimeSessionNotFoundCode = "CONFLICT"
+	DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED               DownloadRuntimeSessionNotFoundCode = "VALIDATION_FAILED"
+	DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE               DownloadRuntimeSessionNotFoundCode = "INVALID_CHALLENGE"
+	DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE               DownloadRuntimeSessionNotFoundCode = "INVALID_SIGNATURE"
+	DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT                   DownloadRuntimeSessionNotFoundCode = "VOUCHER_LIMIT"
+	DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED              DownloadRuntimeSessionNotFoundCode = "RATE_LIMIT_EXCEEDED"
+	DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionNotFoundCode = "SERIALIZATION_EXHAUSTED"
+	DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_EXPIRED"
+	DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED DownloadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED             DownloadRuntimeSessionNotFoundCode = "REGISTRATION_FAILED"
+	DownloadRuntimeSessionNotFoundCodeUPSTREAMERROR                  DownloadRuntimeSessionNotFoundCode = "UPSTREAM_ERROR"
+	DownloadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE             DownloadRuntimeSessionNotFoundCode = "SERVICE_UNAVAILABLE"
+	DownloadRuntimeSessionNotFoundCodeINTERNALSERVERERROR            DownloadRuntimeSessionNotFoundCode = "INTERNAL_SERVER_ERROR"
+	DownloadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE          DownloadRuntimeSessionNotFoundCode = "TEAM_PERSONAL_IMMUTABLE"
+	DownloadRuntimeSessionNotFoundCodeTEAMNOTACTIVE                  DownloadRuntimeSessionNotFoundCode = "TEAM_NOT_ACTIVE"
+	DownloadRuntimeSessionNotFoundCodeINVITEEXPIRED                  DownloadRuntimeSessionNotFoundCode = "INVITE_EXPIRED"
+	DownloadRuntimeSessionNotFoundCodeINVITEEXHAUSTED                DownloadRuntimeSessionNotFoundCode = "INVITE_EXHAUSTED"
+	DownloadRuntimeSessionNotFoundCodeTEAMLASTOWNER                  DownloadRuntimeSessionNotFoundCode = "TEAM_LAST_OWNER"
+	DownloadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE              DownloadRuntimeSessionNotFoundCode = "TEAM_ALREADY_ACTIVE"
+	DownloadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING                DownloadRuntimeSessionNotFoundCode = "TEAM_NOT_FOUNDING"
+	DownloadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED        DownloadRuntimeSessionNotFoundCode = "FOUNDING_ALREADY_ACCEPTED"
+	DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING           DownloadRuntimeSessionNotFoundCode = "DIARY_TRANSFER_PENDING"
+	DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND          DownloadRuntimeSessionNotFoundCode = "DIARY_TRANSFER_NOT_FOUND"
+	DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED   DownloadRuntimeSessionNotFoundCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all DownloadRuntimeSessionNotFoundCode values.
+func (DownloadRuntimeSessionNotFoundCode) AllValues() []DownloadRuntimeSessionNotFoundCode {
+	return []DownloadRuntimeSessionNotFoundCode{
+		DownloadRuntimeSessionNotFoundCodeUNAUTHORIZED,
+		DownloadRuntimeSessionNotFoundCodeFORBIDDEN,
+		DownloadRuntimeSessionNotFoundCodeNOTFOUND,
+		DownloadRuntimeSessionNotFoundCodeCONFLICT,
+		DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED,
+		DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE,
+		DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE,
+		DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT,
+		DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED,
+		DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED,
+		DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED,
+		DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED,
+		DownloadRuntimeSessionNotFoundCodeUPSTREAMERROR,
+		DownloadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE,
+		DownloadRuntimeSessionNotFoundCodeINTERNALSERVERERROR,
+		DownloadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE,
+		DownloadRuntimeSessionNotFoundCodeTEAMNOTACTIVE,
+		DownloadRuntimeSessionNotFoundCodeINVITEEXPIRED,
+		DownloadRuntimeSessionNotFoundCodeINVITEEXHAUSTED,
+		DownloadRuntimeSessionNotFoundCodeTEAMLASTOWNER,
+		DownloadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE,
+		DownloadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING,
+		DownloadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED,
+		DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING,
+		DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND,
+		DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadRuntimeSessionNotFoundCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeFORBIDDEN:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeNOTFOUND:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
+	switch DownloadRuntimeSessionNotFoundCode(data) {
+	case DownloadRuntimeSessionNotFoundCodeUNAUTHORIZED:
+		*s = DownloadRuntimeSessionNotFoundCodeUNAUTHORIZED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeFORBIDDEN:
+		*s = DownloadRuntimeSessionNotFoundCodeFORBIDDEN
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeNOTFOUND:
+		*s = DownloadRuntimeSessionNotFoundCodeNOTFOUND
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeCONFLICT:
+		*s = DownloadRuntimeSessionNotFoundCodeCONFLICT
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
+		*s = DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
+		*s = DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
+		*s = DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT:
+		*s = DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
+		*s = DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
+		*s = DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeUPSTREAMERROR:
+		*s = DownloadRuntimeSessionNotFoundCodeUPSTREAMERROR
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE:
+		*s = DownloadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeINTERNALSERVERERROR:
+		*s = DownloadRuntimeSessionNotFoundCodeINTERNALSERVERERROR
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeTEAMNOTACTIVE:
+		*s = DownloadRuntimeSessionNotFoundCodeTEAMNOTACTIVE
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeINVITEEXPIRED:
+		*s = DownloadRuntimeSessionNotFoundCodeINVITEEXPIRED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeINVITEEXHAUSTED:
+		*s = DownloadRuntimeSessionNotFoundCodeINVITEEXHAUSTED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeTEAMLASTOWNER:
+		*s = DownloadRuntimeSessionNotFoundCodeTEAMLASTOWNER
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE:
+		*s = DownloadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING:
+		*s = DownloadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING:
+		*s = DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DownloadRuntimeSessionOK struct {
+	ContentBase64 string                          `json:"contentBase64"`
+	Session       DownloadRuntimeSessionOKSession `json:"session"`
+}
+
+// GetContentBase64 returns the value of ContentBase64.
+func (s *DownloadRuntimeSessionOK) GetContentBase64() string {
+	return s.ContentBase64
+}
+
+// GetSession returns the value of Session.
+func (s *DownloadRuntimeSessionOK) GetSession() DownloadRuntimeSessionOKSession {
+	return s.Session
+}
+
+// SetContentBase64 sets the value of ContentBase64.
+func (s *DownloadRuntimeSessionOK) SetContentBase64(val string) {
+	s.ContentBase64 = val
+}
+
+// SetSession sets the value of Session.
+func (s *DownloadRuntimeSessionOK) SetSession(val DownloadRuntimeSessionOKSession) {
+	s.Session = val
+}
+
+func (*DownloadRuntimeSessionOK) downloadRuntimeSessionRes() {}
+
+type DownloadRuntimeSessionOKSession struct {
+	AttemptN               int                                           `json:"attemptN"`
+	CheckpointKind         DownloadRuntimeSessionOKSessionCheckpointKind `json:"checkpointKind"`
+	ContentEncoding        NilString                                     `json:"contentEncoding"`
+	ContentType            string                                        `json:"contentType"`
+	ID                     uuid.UUID                                     `json:"id"`
+	ObjectKey              string                                        `json:"objectKey"`
+	ParentSessionId        NilUUID                                       `json:"parentSessionId"`
+	SessionKind            DownloadRuntimeSessionOKSessionSessionKind    `json:"sessionKind"`
+	SHA256                 string                                        `json:"sha256"`
+	SizeBytes              int                                           `json:"sizeBytes"`
+	SourceRuntimeProfileId NilUUID                                       `json:"sourceRuntimeProfileId"`
+	SourceSlotId           NilUUID                                       `json:"sourceSlotId"`
+	StorageClass           string                                        `json:"storageClass"`
+	TaskId                 uuid.UUID                                     `json:"taskId"`
+	TeamId                 uuid.UUID                                     `json:"teamId"`
+	UploadedAt             time.Time                                     `json:"uploadedAt"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *DownloadRuntimeSessionOKSession) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetCheckpointKind returns the value of CheckpointKind.
+func (s *DownloadRuntimeSessionOKSession) GetCheckpointKind() DownloadRuntimeSessionOKSessionCheckpointKind {
+	return s.CheckpointKind
+}
+
+// GetContentEncoding returns the value of ContentEncoding.
+func (s *DownloadRuntimeSessionOKSession) GetContentEncoding() NilString {
+	return s.ContentEncoding
+}
+
+// GetContentType returns the value of ContentType.
+func (s *DownloadRuntimeSessionOKSession) GetContentType() string {
+	return s.ContentType
+}
+
+// GetID returns the value of ID.
+func (s *DownloadRuntimeSessionOKSession) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetObjectKey returns the value of ObjectKey.
+func (s *DownloadRuntimeSessionOKSession) GetObjectKey() string {
+	return s.ObjectKey
+}
+
+// GetParentSessionId returns the value of ParentSessionId.
+func (s *DownloadRuntimeSessionOKSession) GetParentSessionId() NilUUID {
+	return s.ParentSessionId
+}
+
+// GetSessionKind returns the value of SessionKind.
+func (s *DownloadRuntimeSessionOKSession) GetSessionKind() DownloadRuntimeSessionOKSessionSessionKind {
+	return s.SessionKind
+}
+
+// GetSHA256 returns the value of SHA256.
+func (s *DownloadRuntimeSessionOKSession) GetSHA256() string {
+	return s.SHA256
+}
+
+// GetSizeBytes returns the value of SizeBytes.
+func (s *DownloadRuntimeSessionOKSession) GetSizeBytes() int {
+	return s.SizeBytes
+}
+
+// GetSourceRuntimeProfileId returns the value of SourceRuntimeProfileId.
+func (s *DownloadRuntimeSessionOKSession) GetSourceRuntimeProfileId() NilUUID {
+	return s.SourceRuntimeProfileId
+}
+
+// GetSourceSlotId returns the value of SourceSlotId.
+func (s *DownloadRuntimeSessionOKSession) GetSourceSlotId() NilUUID {
+	return s.SourceSlotId
+}
+
+// GetStorageClass returns the value of StorageClass.
+func (s *DownloadRuntimeSessionOKSession) GetStorageClass() string {
+	return s.StorageClass
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *DownloadRuntimeSessionOKSession) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *DownloadRuntimeSessionOKSession) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUploadedAt returns the value of UploadedAt.
+func (s *DownloadRuntimeSessionOKSession) GetUploadedAt() time.Time {
+	return s.UploadedAt
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *DownloadRuntimeSessionOKSession) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetCheckpointKind sets the value of CheckpointKind.
+func (s *DownloadRuntimeSessionOKSession) SetCheckpointKind(val DownloadRuntimeSessionOKSessionCheckpointKind) {
+	s.CheckpointKind = val
+}
+
+// SetContentEncoding sets the value of ContentEncoding.
+func (s *DownloadRuntimeSessionOKSession) SetContentEncoding(val NilString) {
+	s.ContentEncoding = val
+}
+
+// SetContentType sets the value of ContentType.
+func (s *DownloadRuntimeSessionOKSession) SetContentType(val string) {
+	s.ContentType = val
+}
+
+// SetID sets the value of ID.
+func (s *DownloadRuntimeSessionOKSession) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetObjectKey sets the value of ObjectKey.
+func (s *DownloadRuntimeSessionOKSession) SetObjectKey(val string) {
+	s.ObjectKey = val
+}
+
+// SetParentSessionId sets the value of ParentSessionId.
+func (s *DownloadRuntimeSessionOKSession) SetParentSessionId(val NilUUID) {
+	s.ParentSessionId = val
+}
+
+// SetSessionKind sets the value of SessionKind.
+func (s *DownloadRuntimeSessionOKSession) SetSessionKind(val DownloadRuntimeSessionOKSessionSessionKind) {
+	s.SessionKind = val
+}
+
+// SetSHA256 sets the value of SHA256.
+func (s *DownloadRuntimeSessionOKSession) SetSHA256(val string) {
+	s.SHA256 = val
+}
+
+// SetSizeBytes sets the value of SizeBytes.
+func (s *DownloadRuntimeSessionOKSession) SetSizeBytes(val int) {
+	s.SizeBytes = val
+}
+
+// SetSourceRuntimeProfileId sets the value of SourceRuntimeProfileId.
+func (s *DownloadRuntimeSessionOKSession) SetSourceRuntimeProfileId(val NilUUID) {
+	s.SourceRuntimeProfileId = val
+}
+
+// SetSourceSlotId sets the value of SourceSlotId.
+func (s *DownloadRuntimeSessionOKSession) SetSourceSlotId(val NilUUID) {
+	s.SourceSlotId = val
+}
+
+// SetStorageClass sets the value of StorageClass.
+func (s *DownloadRuntimeSessionOKSession) SetStorageClass(val string) {
+	s.StorageClass = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *DownloadRuntimeSessionOKSession) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *DownloadRuntimeSessionOKSession) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUploadedAt sets the value of UploadedAt.
+func (s *DownloadRuntimeSessionOKSession) SetUploadedAt(val time.Time) {
+	s.UploadedAt = val
+}
+
+// DownloadRuntimeSessionOKSessionCheckpointKind represents sum type.
+type DownloadRuntimeSessionOKSessionCheckpointKind struct {
+	// Type selects the active sum variant, switch on this field.
+	Type                                           DownloadRuntimeSessionOKSessionCheckpointKindType
+	DownloadRuntimeSessionOKSessionCheckpointKind0 DownloadRuntimeSessionOKSessionCheckpointKind0
+}
+
+// DownloadRuntimeSessionOKSessionCheckpointKindType is oneOf type of DownloadRuntimeSessionOKSessionCheckpointKind.
+type DownloadRuntimeSessionOKSessionCheckpointKindType string
+
+// Possible values for DownloadRuntimeSessionOKSessionCheckpointKindType.
+const (
+	DownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind DownloadRuntimeSessionOKSessionCheckpointKindType = "DownloadRuntimeSessionOKSessionCheckpointKind0"
+)
+
+// IsDownloadRuntimeSessionOKSessionCheckpointKind0 reports whether DownloadRuntimeSessionOKSessionCheckpointKind is DownloadRuntimeSessionOKSessionCheckpointKind0.
+func (s DownloadRuntimeSessionOKSessionCheckpointKind) IsDownloadRuntimeSessionOKSessionCheckpointKind0() bool {
+	return s.Type == DownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind
+}
+
+// SetDownloadRuntimeSessionOKSessionCheckpointKind0 sets DownloadRuntimeSessionOKSessionCheckpointKind to DownloadRuntimeSessionOKSessionCheckpointKind0.
+func (s *DownloadRuntimeSessionOKSessionCheckpointKind) SetDownloadRuntimeSessionOKSessionCheckpointKind0(v DownloadRuntimeSessionOKSessionCheckpointKind0) {
+	s.Type = DownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind
+	s.DownloadRuntimeSessionOKSessionCheckpointKind0 = v
+}
+
+// GetDownloadRuntimeSessionOKSessionCheckpointKind0 returns DownloadRuntimeSessionOKSessionCheckpointKind0 and true boolean if DownloadRuntimeSessionOKSessionCheckpointKind is DownloadRuntimeSessionOKSessionCheckpointKind0.
+func (s DownloadRuntimeSessionOKSessionCheckpointKind) GetDownloadRuntimeSessionOKSessionCheckpointKind0() (v DownloadRuntimeSessionOKSessionCheckpointKind0, ok bool) {
+	if !s.IsDownloadRuntimeSessionOKSessionCheckpointKind0() {
+		return v, false
+	}
+	return s.DownloadRuntimeSessionOKSessionCheckpointKind0, true
+}
+
+// NewDownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind returns new DownloadRuntimeSessionOKSessionCheckpointKind from DownloadRuntimeSessionOKSessionCheckpointKind0.
+func NewDownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind(v DownloadRuntimeSessionOKSessionCheckpointKind0) DownloadRuntimeSessionOKSessionCheckpointKind {
+	var s DownloadRuntimeSessionOKSessionCheckpointKind
+	s.SetDownloadRuntimeSessionOKSessionCheckpointKind0(v)
+	return s
+}
+
+type DownloadRuntimeSessionOKSessionCheckpointKind0 string
+
+const (
+	DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal DownloadRuntimeSessionOKSessionCheckpointKind0 = "attempt_final"
+)
+
+// AllValues returns all DownloadRuntimeSessionOKSessionCheckpointKind0 values.
+func (DownloadRuntimeSessionOKSessionCheckpointKind0) AllValues() []DownloadRuntimeSessionOKSessionCheckpointKind0 {
+	return []DownloadRuntimeSessionOKSessionCheckpointKind0{
+		DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadRuntimeSessionOKSessionCheckpointKind0) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadRuntimeSessionOKSessionCheckpointKind0) UnmarshalText(data []byte) error {
+	switch DownloadRuntimeSessionOKSessionCheckpointKind0(data) {
+	case DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal:
+		*s = DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DownloadRuntimeSessionOKSessionSessionKind string
+
+const (
+	DownloadRuntimeSessionOKSessionSessionKindRoot   DownloadRuntimeSessionOKSessionSessionKind = "root"
+	DownloadRuntimeSessionOKSessionSessionKindExtend DownloadRuntimeSessionOKSessionSessionKind = "extend"
+	DownloadRuntimeSessionOKSessionSessionKindFork   DownloadRuntimeSessionOKSessionSessionKind = "fork"
+)
+
+// AllValues returns all DownloadRuntimeSessionOKSessionSessionKind values.
+func (DownloadRuntimeSessionOKSessionSessionKind) AllValues() []DownloadRuntimeSessionOKSessionSessionKind {
+	return []DownloadRuntimeSessionOKSessionSessionKind{
+		DownloadRuntimeSessionOKSessionSessionKindRoot,
+		DownloadRuntimeSessionOKSessionSessionKindExtend,
+		DownloadRuntimeSessionOKSessionSessionKindFork,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadRuntimeSessionOKSessionSessionKind) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadRuntimeSessionOKSessionSessionKindRoot:
+		return []byte(s), nil
+	case DownloadRuntimeSessionOKSessionSessionKindExtend:
+		return []byte(s), nil
+	case DownloadRuntimeSessionOKSessionSessionKindFork:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadRuntimeSessionOKSessionSessionKind) UnmarshalText(data []byte) error {
+	switch DownloadRuntimeSessionOKSessionSessionKind(data) {
+	case DownloadRuntimeSessionOKSessionSessionKindRoot:
+		*s = DownloadRuntimeSessionOKSessionSessionKindRoot
+		return nil
+	case DownloadRuntimeSessionOKSessionSessionKindExtend:
+		*s = DownloadRuntimeSessionOKSessionSessionKindExtend
+		return nil
+	case DownloadRuntimeSessionOKSessionSessionKindFork:
+		*s = DownloadRuntimeSessionOKSessionSessionKindFork
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DownloadRuntimeSessionServiceUnavailable struct {
+	Code            DownloadRuntimeSessionServiceUnavailableCode `json:"code"`
+	Detail          OptString                                    `json:"detail"`
+	Instance        OptString                                    `json:"instance"`
+	Status          int                                          `json:"status"`
+	Title           string                                       `json:"title"`
+	Type            url.URL                                      `json:"type"`
+	AdditionalProps DownloadRuntimeSessionServiceUnavailableAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadRuntimeSessionServiceUnavailable) GetCode() DownloadRuntimeSessionServiceUnavailableCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *DownloadRuntimeSessionServiceUnavailable) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *DownloadRuntimeSessionServiceUnavailable) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *DownloadRuntimeSessionServiceUnavailable) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadRuntimeSessionServiceUnavailable) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *DownloadRuntimeSessionServiceUnavailable) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *DownloadRuntimeSessionServiceUnavailable) GetAdditionalProps() DownloadRuntimeSessionServiceUnavailableAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadRuntimeSessionServiceUnavailable) SetCode(val DownloadRuntimeSessionServiceUnavailableCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *DownloadRuntimeSessionServiceUnavailable) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *DownloadRuntimeSessionServiceUnavailable) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DownloadRuntimeSessionServiceUnavailable) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadRuntimeSessionServiceUnavailable) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *DownloadRuntimeSessionServiceUnavailable) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *DownloadRuntimeSessionServiceUnavailable) SetAdditionalProps(val DownloadRuntimeSessionServiceUnavailableAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*DownloadRuntimeSessionServiceUnavailable) downloadRuntimeSessionRes() {}
+
+type DownloadRuntimeSessionServiceUnavailableAdditional map[string]jx.Raw
+
+func (s *DownloadRuntimeSessionServiceUnavailableAdditional) init() DownloadRuntimeSessionServiceUnavailableAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type DownloadRuntimeSessionServiceUnavailableCode string
+
+const (
+	DownloadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED                   DownloadRuntimeSessionServiceUnavailableCode = "UNAUTHORIZED"
+	DownloadRuntimeSessionServiceUnavailableCodeFORBIDDEN                      DownloadRuntimeSessionServiceUnavailableCode = "FORBIDDEN"
+	DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND                       DownloadRuntimeSessionServiceUnavailableCode = "NOT_FOUND"
+	DownloadRuntimeSessionServiceUnavailableCodeCONFLICT                       DownloadRuntimeSessionServiceUnavailableCode = "CONFLICT"
+	DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED               DownloadRuntimeSessionServiceUnavailableCode = "VALIDATION_FAILED"
+	DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE               DownloadRuntimeSessionServiceUnavailableCode = "INVALID_CHALLENGE"
+	DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE               DownloadRuntimeSessionServiceUnavailableCode = "INVALID_SIGNATURE"
+	DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT                   DownloadRuntimeSessionServiceUnavailableCode = "VOUCHER_LIMIT"
+	DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED              DownloadRuntimeSessionServiceUnavailableCode = "RATE_LIMIT_EXCEEDED"
+	DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
+	DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
+	DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED DownloadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED             DownloadRuntimeSessionServiceUnavailableCode = "REGISTRATION_FAILED"
+	DownloadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR                  DownloadRuntimeSessionServiceUnavailableCode = "UPSTREAM_ERROR"
+	DownloadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE             DownloadRuntimeSessionServiceUnavailableCode = "SERVICE_UNAVAILABLE"
+	DownloadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR            DownloadRuntimeSessionServiceUnavailableCode = "INTERNAL_SERVER_ERROR"
+	DownloadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE          DownloadRuntimeSessionServiceUnavailableCode = "TEAM_PERSONAL_IMMUTABLE"
+	DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE                  DownloadRuntimeSessionServiceUnavailableCode = "TEAM_NOT_ACTIVE"
+	DownloadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED                  DownloadRuntimeSessionServiceUnavailableCode = "INVITE_EXPIRED"
+	DownloadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED                DownloadRuntimeSessionServiceUnavailableCode = "INVITE_EXHAUSTED"
+	DownloadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER                  DownloadRuntimeSessionServiceUnavailableCode = "TEAM_LAST_OWNER"
+	DownloadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE              DownloadRuntimeSessionServiceUnavailableCode = "TEAM_ALREADY_ACTIVE"
+	DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING                DownloadRuntimeSessionServiceUnavailableCode = "TEAM_NOT_FOUNDING"
+	DownloadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED        DownloadRuntimeSessionServiceUnavailableCode = "FOUNDING_ALREADY_ACCEPTED"
+	DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING           DownloadRuntimeSessionServiceUnavailableCode = "DIARY_TRANSFER_PENDING"
+	DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND          DownloadRuntimeSessionServiceUnavailableCode = "DIARY_TRANSFER_NOT_FOUND"
+	DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED   DownloadRuntimeSessionServiceUnavailableCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all DownloadRuntimeSessionServiceUnavailableCode values.
+func (DownloadRuntimeSessionServiceUnavailableCode) AllValues() []DownloadRuntimeSessionServiceUnavailableCode {
+	return []DownloadRuntimeSessionServiceUnavailableCode{
+		DownloadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED,
+		DownloadRuntimeSessionServiceUnavailableCodeFORBIDDEN,
+		DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND,
+		DownloadRuntimeSessionServiceUnavailableCodeCONFLICT,
+		DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED,
+		DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE,
+		DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE,
+		DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT,
+		DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED,
+		DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
+		DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
+		DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED,
+		DownloadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR,
+		DownloadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE,
+		DownloadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR,
+		DownloadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE,
+		DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE,
+		DownloadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED,
+		DownloadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED,
+		DownloadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER,
+		DownloadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE,
+		DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING,
+		DownloadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED,
+		DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING,
+		DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND,
+		DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadRuntimeSessionServiceUnavailableCode) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeFORBIDDEN:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadRuntimeSessionServiceUnavailableCode) UnmarshalText(data []byte) error {
+	switch DownloadRuntimeSessionServiceUnavailableCode(data) {
+	case DownloadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeFORBIDDEN:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeFORBIDDEN
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeCONFLICT:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeCONFLICT
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DownloadRuntimeSessionUnauthorized struct {
+	Code            DownloadRuntimeSessionUnauthorizedCode `json:"code"`
+	Detail          OptString                              `json:"detail"`
+	Instance        OptString                              `json:"instance"`
+	Status          int                                    `json:"status"`
+	Title           string                                 `json:"title"`
+	Type            url.URL                                `json:"type"`
+	AdditionalProps DownloadRuntimeSessionUnauthorizedAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadRuntimeSessionUnauthorized) GetCode() DownloadRuntimeSessionUnauthorizedCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *DownloadRuntimeSessionUnauthorized) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *DownloadRuntimeSessionUnauthorized) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *DownloadRuntimeSessionUnauthorized) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadRuntimeSessionUnauthorized) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *DownloadRuntimeSessionUnauthorized) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *DownloadRuntimeSessionUnauthorized) GetAdditionalProps() DownloadRuntimeSessionUnauthorizedAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadRuntimeSessionUnauthorized) SetCode(val DownloadRuntimeSessionUnauthorizedCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *DownloadRuntimeSessionUnauthorized) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *DownloadRuntimeSessionUnauthorized) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DownloadRuntimeSessionUnauthorized) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadRuntimeSessionUnauthorized) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *DownloadRuntimeSessionUnauthorized) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *DownloadRuntimeSessionUnauthorized) SetAdditionalProps(val DownloadRuntimeSessionUnauthorizedAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*DownloadRuntimeSessionUnauthorized) downloadRuntimeSessionRes() {}
+
+type DownloadRuntimeSessionUnauthorizedAdditional map[string]jx.Raw
+
+func (s *DownloadRuntimeSessionUnauthorizedAdditional) init() DownloadRuntimeSessionUnauthorizedAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type DownloadRuntimeSessionUnauthorizedCode string
+
+const (
+	DownloadRuntimeSessionUnauthorizedCodeUNAUTHORIZED                   DownloadRuntimeSessionUnauthorizedCode = "UNAUTHORIZED"
+	DownloadRuntimeSessionUnauthorizedCodeFORBIDDEN                      DownloadRuntimeSessionUnauthorizedCode = "FORBIDDEN"
+	DownloadRuntimeSessionUnauthorizedCodeNOTFOUND                       DownloadRuntimeSessionUnauthorizedCode = "NOT_FOUND"
+	DownloadRuntimeSessionUnauthorizedCodeCONFLICT                       DownloadRuntimeSessionUnauthorizedCode = "CONFLICT"
+	DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED               DownloadRuntimeSessionUnauthorizedCode = "VALIDATION_FAILED"
+	DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE               DownloadRuntimeSessionUnauthorizedCode = "INVALID_CHALLENGE"
+	DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE               DownloadRuntimeSessionUnauthorizedCode = "INVALID_SIGNATURE"
+	DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT                   DownloadRuntimeSessionUnauthorizedCode = "VOUCHER_LIMIT"
+	DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED              DownloadRuntimeSessionUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
+	DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
+	DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
+	DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED DownloadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED             DownloadRuntimeSessionUnauthorizedCode = "REGISTRATION_FAILED"
+	DownloadRuntimeSessionUnauthorizedCodeUPSTREAMERROR                  DownloadRuntimeSessionUnauthorizedCode = "UPSTREAM_ERROR"
+	DownloadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE             DownloadRuntimeSessionUnauthorizedCode = "SERVICE_UNAVAILABLE"
+	DownloadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR            DownloadRuntimeSessionUnauthorizedCode = "INTERNAL_SERVER_ERROR"
+	DownloadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE          DownloadRuntimeSessionUnauthorizedCode = "TEAM_PERSONAL_IMMUTABLE"
+	DownloadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE                  DownloadRuntimeSessionUnauthorizedCode = "TEAM_NOT_ACTIVE"
+	DownloadRuntimeSessionUnauthorizedCodeINVITEEXPIRED                  DownloadRuntimeSessionUnauthorizedCode = "INVITE_EXPIRED"
+	DownloadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED                DownloadRuntimeSessionUnauthorizedCode = "INVITE_EXHAUSTED"
+	DownloadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER                  DownloadRuntimeSessionUnauthorizedCode = "TEAM_LAST_OWNER"
+	DownloadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE              DownloadRuntimeSessionUnauthorizedCode = "TEAM_ALREADY_ACTIVE"
+	DownloadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING                DownloadRuntimeSessionUnauthorizedCode = "TEAM_NOT_FOUNDING"
+	DownloadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED        DownloadRuntimeSessionUnauthorizedCode = "FOUNDING_ALREADY_ACCEPTED"
+	DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING           DownloadRuntimeSessionUnauthorizedCode = "DIARY_TRANSFER_PENDING"
+	DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND          DownloadRuntimeSessionUnauthorizedCode = "DIARY_TRANSFER_NOT_FOUND"
+	DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED   DownloadRuntimeSessionUnauthorizedCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all DownloadRuntimeSessionUnauthorizedCode values.
+func (DownloadRuntimeSessionUnauthorizedCode) AllValues() []DownloadRuntimeSessionUnauthorizedCode {
+	return []DownloadRuntimeSessionUnauthorizedCode{
+		DownloadRuntimeSessionUnauthorizedCodeUNAUTHORIZED,
+		DownloadRuntimeSessionUnauthorizedCodeFORBIDDEN,
+		DownloadRuntimeSessionUnauthorizedCodeNOTFOUND,
+		DownloadRuntimeSessionUnauthorizedCodeCONFLICT,
+		DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED,
+		DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE,
+		DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE,
+		DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT,
+		DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED,
+		DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED,
+		DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED,
+		DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED,
+		DownloadRuntimeSessionUnauthorizedCodeUPSTREAMERROR,
+		DownloadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE,
+		DownloadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR,
+		DownloadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE,
+		DownloadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE,
+		DownloadRuntimeSessionUnauthorizedCodeINVITEEXPIRED,
+		DownloadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED,
+		DownloadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER,
+		DownloadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE,
+		DownloadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING,
+		DownloadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED,
+		DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING,
+		DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND,
+		DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadRuntimeSessionUnauthorizedCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeFORBIDDEN:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeNOTFOUND:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error {
+	switch DownloadRuntimeSessionUnauthorizedCode(data) {
+	case DownloadRuntimeSessionUnauthorizedCodeUNAUTHORIZED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeUNAUTHORIZED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeFORBIDDEN:
+		*s = DownloadRuntimeSessionUnauthorizedCodeFORBIDDEN
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeNOTFOUND:
+		*s = DownloadRuntimeSessionUnauthorizedCodeNOTFOUND
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeCONFLICT:
+		*s = DownloadRuntimeSessionUnauthorizedCodeCONFLICT
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
+		*s = DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
+		*s = DownloadRuntimeSessionUnauthorizedCodeUPSTREAMERROR
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR:
+		*s = DownloadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeINVITEEXPIRED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeINVITEEXPIRED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER:
+		*s = DownloadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = DownloadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/EntryRelation
 type EntryRelation struct {
 	Confidence        NilFloat64     `json:"confidence"`
@@ -16336,6 +18258,1594 @@ func (*GetRuntimeProfileNotFound) getRuntimeProfileRes() {}
 type GetRuntimeProfileUnauthorized ProblemDetails
 
 func (*GetRuntimeProfileUnauthorized) getRuntimeProfileRes() {}
+
+// Merged schema.
+type GetRuntimeSessionBadRequest struct {
+	Code            GetRuntimeSessionBadRequestCode         `json:"code"`
+	Detail          OptString                               `json:"detail"`
+	Instance        OptString                               `json:"instance"`
+	Status          int                                     `json:"status"`
+	Title           string                                  `json:"title"`
+	Type            url.URL                                 `json:"type"`
+	Errors          []GetRuntimeSessionBadRequestErrorsItem `json:"errors"`
+	AdditionalProps GetRuntimeSessionBadRequestAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *GetRuntimeSessionBadRequest) GetCode() GetRuntimeSessionBadRequestCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *GetRuntimeSessionBadRequest) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *GetRuntimeSessionBadRequest) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *GetRuntimeSessionBadRequest) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *GetRuntimeSessionBadRequest) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *GetRuntimeSessionBadRequest) GetType() url.URL {
+	return s.Type
+}
+
+// GetErrors returns the value of Errors.
+func (s *GetRuntimeSessionBadRequest) GetErrors() []GetRuntimeSessionBadRequestErrorsItem {
+	return s.Errors
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetRuntimeSessionBadRequest) GetAdditionalProps() GetRuntimeSessionBadRequestAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *GetRuntimeSessionBadRequest) SetCode(val GetRuntimeSessionBadRequestCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *GetRuntimeSessionBadRequest) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *GetRuntimeSessionBadRequest) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *GetRuntimeSessionBadRequest) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *GetRuntimeSessionBadRequest) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *GetRuntimeSessionBadRequest) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetErrors sets the value of Errors.
+func (s *GetRuntimeSessionBadRequest) SetErrors(val []GetRuntimeSessionBadRequestErrorsItem) {
+	s.Errors = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetRuntimeSessionBadRequest) SetAdditionalProps(val GetRuntimeSessionBadRequestAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*GetRuntimeSessionBadRequest) getRuntimeSessionRes() {}
+
+type GetRuntimeSessionBadRequestAdditional map[string]jx.Raw
+
+func (s *GetRuntimeSessionBadRequestAdditional) init() GetRuntimeSessionBadRequestAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type GetRuntimeSessionBadRequestCode string
+
+const (
+	GetRuntimeSessionBadRequestCodeUNAUTHORIZED                   GetRuntimeSessionBadRequestCode = "UNAUTHORIZED"
+	GetRuntimeSessionBadRequestCodeFORBIDDEN                      GetRuntimeSessionBadRequestCode = "FORBIDDEN"
+	GetRuntimeSessionBadRequestCodeNOTFOUND                       GetRuntimeSessionBadRequestCode = "NOT_FOUND"
+	GetRuntimeSessionBadRequestCodeCONFLICT                       GetRuntimeSessionBadRequestCode = "CONFLICT"
+	GetRuntimeSessionBadRequestCodeVALIDATIONFAILED               GetRuntimeSessionBadRequestCode = "VALIDATION_FAILED"
+	GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE               GetRuntimeSessionBadRequestCode = "INVALID_CHALLENGE"
+	GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE               GetRuntimeSessionBadRequestCode = "INVALID_SIGNATURE"
+	GetRuntimeSessionBadRequestCodeVOUCHERLIMIT                   GetRuntimeSessionBadRequestCode = "VOUCHER_LIMIT"
+	GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED              GetRuntimeSessionBadRequestCode = "RATE_LIMIT_EXCEEDED"
+	GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionBadRequestCode = "SERIALIZATION_EXHAUSTED"
+	GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionBadRequestCode = "SIGNING_REQUEST_EXPIRED"
+	GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED GetRuntimeSessionBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED             GetRuntimeSessionBadRequestCode = "REGISTRATION_FAILED"
+	GetRuntimeSessionBadRequestCodeUPSTREAMERROR                  GetRuntimeSessionBadRequestCode = "UPSTREAM_ERROR"
+	GetRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE             GetRuntimeSessionBadRequestCode = "SERVICE_UNAVAILABLE"
+	GetRuntimeSessionBadRequestCodeINTERNALSERVERERROR            GetRuntimeSessionBadRequestCode = "INTERNAL_SERVER_ERROR"
+	GetRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE          GetRuntimeSessionBadRequestCode = "TEAM_PERSONAL_IMMUTABLE"
+	GetRuntimeSessionBadRequestCodeTEAMNOTACTIVE                  GetRuntimeSessionBadRequestCode = "TEAM_NOT_ACTIVE"
+	GetRuntimeSessionBadRequestCodeINVITEEXPIRED                  GetRuntimeSessionBadRequestCode = "INVITE_EXPIRED"
+	GetRuntimeSessionBadRequestCodeINVITEEXHAUSTED                GetRuntimeSessionBadRequestCode = "INVITE_EXHAUSTED"
+	GetRuntimeSessionBadRequestCodeTEAMLASTOWNER                  GetRuntimeSessionBadRequestCode = "TEAM_LAST_OWNER"
+	GetRuntimeSessionBadRequestCodeTEAMALREADYACTIVE              GetRuntimeSessionBadRequestCode = "TEAM_ALREADY_ACTIVE"
+	GetRuntimeSessionBadRequestCodeTEAMNOTFOUNDING                GetRuntimeSessionBadRequestCode = "TEAM_NOT_FOUNDING"
+	GetRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED        GetRuntimeSessionBadRequestCode = "FOUNDING_ALREADY_ACCEPTED"
+	GetRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING           GetRuntimeSessionBadRequestCode = "DIARY_TRANSFER_PENDING"
+	GetRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND          GetRuntimeSessionBadRequestCode = "DIARY_TRANSFER_NOT_FOUND"
+	GetRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED   GetRuntimeSessionBadRequestCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all GetRuntimeSessionBadRequestCode values.
+func (GetRuntimeSessionBadRequestCode) AllValues() []GetRuntimeSessionBadRequestCode {
+	return []GetRuntimeSessionBadRequestCode{
+		GetRuntimeSessionBadRequestCodeUNAUTHORIZED,
+		GetRuntimeSessionBadRequestCodeFORBIDDEN,
+		GetRuntimeSessionBadRequestCodeNOTFOUND,
+		GetRuntimeSessionBadRequestCodeCONFLICT,
+		GetRuntimeSessionBadRequestCodeVALIDATIONFAILED,
+		GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE,
+		GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE,
+		GetRuntimeSessionBadRequestCodeVOUCHERLIMIT,
+		GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED,
+		GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED,
+		GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED,
+		GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED,
+		GetRuntimeSessionBadRequestCodeUPSTREAMERROR,
+		GetRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE,
+		GetRuntimeSessionBadRequestCodeINTERNALSERVERERROR,
+		GetRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE,
+		GetRuntimeSessionBadRequestCodeTEAMNOTACTIVE,
+		GetRuntimeSessionBadRequestCodeINVITEEXPIRED,
+		GetRuntimeSessionBadRequestCodeINVITEEXHAUSTED,
+		GetRuntimeSessionBadRequestCodeTEAMLASTOWNER,
+		GetRuntimeSessionBadRequestCodeTEAMALREADYACTIVE,
+		GetRuntimeSessionBadRequestCodeTEAMNOTFOUNDING,
+		GetRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED,
+		GetRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING,
+		GetRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND,
+		GetRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
+	switch s {
+	case GetRuntimeSessionBadRequestCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeFORBIDDEN:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeNOTFOUND:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
+	switch GetRuntimeSessionBadRequestCode(data) {
+	case GetRuntimeSessionBadRequestCodeUNAUTHORIZED:
+		*s = GetRuntimeSessionBadRequestCodeUNAUTHORIZED
+		return nil
+	case GetRuntimeSessionBadRequestCodeFORBIDDEN:
+		*s = GetRuntimeSessionBadRequestCodeFORBIDDEN
+		return nil
+	case GetRuntimeSessionBadRequestCodeNOTFOUND:
+		*s = GetRuntimeSessionBadRequestCodeNOTFOUND
+		return nil
+	case GetRuntimeSessionBadRequestCodeCONFLICT:
+		*s = GetRuntimeSessionBadRequestCodeCONFLICT
+		return nil
+	case GetRuntimeSessionBadRequestCodeVALIDATIONFAILED:
+		*s = GetRuntimeSessionBadRequestCodeVALIDATIONFAILED
+		return nil
+	case GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
+		*s = GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE
+		return nil
+	case GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
+		*s = GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE
+		return nil
+	case GetRuntimeSessionBadRequestCodeVOUCHERLIMIT:
+		*s = GetRuntimeSessionBadRequestCodeVOUCHERLIMIT
+		return nil
+	case GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
+		*s = GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED
+		return nil
+	case GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
+		*s = GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED
+		return nil
+	case GetRuntimeSessionBadRequestCodeUPSTREAMERROR:
+		*s = GetRuntimeSessionBadRequestCodeUPSTREAMERROR
+		return nil
+	case GetRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE:
+		*s = GetRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE
+		return nil
+	case GetRuntimeSessionBadRequestCodeINTERNALSERVERERROR:
+		*s = GetRuntimeSessionBadRequestCodeINTERNALSERVERERROR
+		return nil
+	case GetRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = GetRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case GetRuntimeSessionBadRequestCodeTEAMNOTACTIVE:
+		*s = GetRuntimeSessionBadRequestCodeTEAMNOTACTIVE
+		return nil
+	case GetRuntimeSessionBadRequestCodeINVITEEXPIRED:
+		*s = GetRuntimeSessionBadRequestCodeINVITEEXPIRED
+		return nil
+	case GetRuntimeSessionBadRequestCodeINVITEEXHAUSTED:
+		*s = GetRuntimeSessionBadRequestCodeINVITEEXHAUSTED
+		return nil
+	case GetRuntimeSessionBadRequestCodeTEAMLASTOWNER:
+		*s = GetRuntimeSessionBadRequestCodeTEAMLASTOWNER
+		return nil
+	case GetRuntimeSessionBadRequestCodeTEAMALREADYACTIVE:
+		*s = GetRuntimeSessionBadRequestCodeTEAMALREADYACTIVE
+		return nil
+	case GetRuntimeSessionBadRequestCodeTEAMNOTFOUNDING:
+		*s = GetRuntimeSessionBadRequestCodeTEAMNOTFOUNDING
+		return nil
+	case GetRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = GetRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case GetRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING:
+		*s = GetRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING
+		return nil
+	case GetRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = GetRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case GetRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = GetRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetRuntimeSessionBadRequestErrorsItem struct {
+	Code    OptString `json:"code"`
+	Field   string    `json:"field"`
+	Message string    `json:"message"`
+}
+
+// GetCode returns the value of Code.
+func (s *GetRuntimeSessionBadRequestErrorsItem) GetCode() OptString {
+	return s.Code
+}
+
+// GetField returns the value of Field.
+func (s *GetRuntimeSessionBadRequestErrorsItem) GetField() string {
+	return s.Field
+}
+
+// GetMessage returns the value of Message.
+func (s *GetRuntimeSessionBadRequestErrorsItem) GetMessage() string {
+	return s.Message
+}
+
+// SetCode sets the value of Code.
+func (s *GetRuntimeSessionBadRequestErrorsItem) SetCode(val OptString) {
+	s.Code = val
+}
+
+// SetField sets the value of Field.
+func (s *GetRuntimeSessionBadRequestErrorsItem) SetField(val string) {
+	s.Field = val
+}
+
+// SetMessage sets the value of Message.
+func (s *GetRuntimeSessionBadRequestErrorsItem) SetMessage(val string) {
+	s.Message = val
+}
+
+type GetRuntimeSessionForbidden struct {
+	Code            GetRuntimeSessionForbiddenCode `json:"code"`
+	Detail          OptString                      `json:"detail"`
+	Instance        OptString                      `json:"instance"`
+	Status          int                            `json:"status"`
+	Title           string                         `json:"title"`
+	Type            url.URL                        `json:"type"`
+	AdditionalProps GetRuntimeSessionForbiddenAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *GetRuntimeSessionForbidden) GetCode() GetRuntimeSessionForbiddenCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *GetRuntimeSessionForbidden) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *GetRuntimeSessionForbidden) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *GetRuntimeSessionForbidden) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *GetRuntimeSessionForbidden) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *GetRuntimeSessionForbidden) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetRuntimeSessionForbidden) GetAdditionalProps() GetRuntimeSessionForbiddenAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *GetRuntimeSessionForbidden) SetCode(val GetRuntimeSessionForbiddenCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *GetRuntimeSessionForbidden) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *GetRuntimeSessionForbidden) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *GetRuntimeSessionForbidden) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *GetRuntimeSessionForbidden) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *GetRuntimeSessionForbidden) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetRuntimeSessionForbidden) SetAdditionalProps(val GetRuntimeSessionForbiddenAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*GetRuntimeSessionForbidden) getRuntimeSessionRes() {}
+
+type GetRuntimeSessionForbiddenAdditional map[string]jx.Raw
+
+func (s *GetRuntimeSessionForbiddenAdditional) init() GetRuntimeSessionForbiddenAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type GetRuntimeSessionForbiddenCode string
+
+const (
+	GetRuntimeSessionForbiddenCodeUNAUTHORIZED                   GetRuntimeSessionForbiddenCode = "UNAUTHORIZED"
+	GetRuntimeSessionForbiddenCodeFORBIDDEN                      GetRuntimeSessionForbiddenCode = "FORBIDDEN"
+	GetRuntimeSessionForbiddenCodeNOTFOUND                       GetRuntimeSessionForbiddenCode = "NOT_FOUND"
+	GetRuntimeSessionForbiddenCodeCONFLICT                       GetRuntimeSessionForbiddenCode = "CONFLICT"
+	GetRuntimeSessionForbiddenCodeVALIDATIONFAILED               GetRuntimeSessionForbiddenCode = "VALIDATION_FAILED"
+	GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE               GetRuntimeSessionForbiddenCode = "INVALID_CHALLENGE"
+	GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE               GetRuntimeSessionForbiddenCode = "INVALID_SIGNATURE"
+	GetRuntimeSessionForbiddenCodeVOUCHERLIMIT                   GetRuntimeSessionForbiddenCode = "VOUCHER_LIMIT"
+	GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED              GetRuntimeSessionForbiddenCode = "RATE_LIMIT_EXCEEDED"
+	GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionForbiddenCode = "SERIALIZATION_EXHAUSTED"
+	GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionForbiddenCode = "SIGNING_REQUEST_EXPIRED"
+	GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED GetRuntimeSessionForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED             GetRuntimeSessionForbiddenCode = "REGISTRATION_FAILED"
+	GetRuntimeSessionForbiddenCodeUPSTREAMERROR                  GetRuntimeSessionForbiddenCode = "UPSTREAM_ERROR"
+	GetRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE             GetRuntimeSessionForbiddenCode = "SERVICE_UNAVAILABLE"
+	GetRuntimeSessionForbiddenCodeINTERNALSERVERERROR            GetRuntimeSessionForbiddenCode = "INTERNAL_SERVER_ERROR"
+	GetRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE          GetRuntimeSessionForbiddenCode = "TEAM_PERSONAL_IMMUTABLE"
+	GetRuntimeSessionForbiddenCodeTEAMNOTACTIVE                  GetRuntimeSessionForbiddenCode = "TEAM_NOT_ACTIVE"
+	GetRuntimeSessionForbiddenCodeINVITEEXPIRED                  GetRuntimeSessionForbiddenCode = "INVITE_EXPIRED"
+	GetRuntimeSessionForbiddenCodeINVITEEXHAUSTED                GetRuntimeSessionForbiddenCode = "INVITE_EXHAUSTED"
+	GetRuntimeSessionForbiddenCodeTEAMLASTOWNER                  GetRuntimeSessionForbiddenCode = "TEAM_LAST_OWNER"
+	GetRuntimeSessionForbiddenCodeTEAMALREADYACTIVE              GetRuntimeSessionForbiddenCode = "TEAM_ALREADY_ACTIVE"
+	GetRuntimeSessionForbiddenCodeTEAMNOTFOUNDING                GetRuntimeSessionForbiddenCode = "TEAM_NOT_FOUNDING"
+	GetRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED        GetRuntimeSessionForbiddenCode = "FOUNDING_ALREADY_ACCEPTED"
+	GetRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING           GetRuntimeSessionForbiddenCode = "DIARY_TRANSFER_PENDING"
+	GetRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND          GetRuntimeSessionForbiddenCode = "DIARY_TRANSFER_NOT_FOUND"
+	GetRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED   GetRuntimeSessionForbiddenCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all GetRuntimeSessionForbiddenCode values.
+func (GetRuntimeSessionForbiddenCode) AllValues() []GetRuntimeSessionForbiddenCode {
+	return []GetRuntimeSessionForbiddenCode{
+		GetRuntimeSessionForbiddenCodeUNAUTHORIZED,
+		GetRuntimeSessionForbiddenCodeFORBIDDEN,
+		GetRuntimeSessionForbiddenCodeNOTFOUND,
+		GetRuntimeSessionForbiddenCodeCONFLICT,
+		GetRuntimeSessionForbiddenCodeVALIDATIONFAILED,
+		GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE,
+		GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE,
+		GetRuntimeSessionForbiddenCodeVOUCHERLIMIT,
+		GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED,
+		GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED,
+		GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED,
+		GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED,
+		GetRuntimeSessionForbiddenCodeUPSTREAMERROR,
+		GetRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE,
+		GetRuntimeSessionForbiddenCodeINTERNALSERVERERROR,
+		GetRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE,
+		GetRuntimeSessionForbiddenCodeTEAMNOTACTIVE,
+		GetRuntimeSessionForbiddenCodeINVITEEXPIRED,
+		GetRuntimeSessionForbiddenCodeINVITEEXHAUSTED,
+		GetRuntimeSessionForbiddenCodeTEAMLASTOWNER,
+		GetRuntimeSessionForbiddenCodeTEAMALREADYACTIVE,
+		GetRuntimeSessionForbiddenCodeTEAMNOTFOUNDING,
+		GetRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED,
+		GetRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING,
+		GetRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND,
+		GetRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
+	switch s {
+	case GetRuntimeSessionForbiddenCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeFORBIDDEN:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeNOTFOUND:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
+	switch GetRuntimeSessionForbiddenCode(data) {
+	case GetRuntimeSessionForbiddenCodeUNAUTHORIZED:
+		*s = GetRuntimeSessionForbiddenCodeUNAUTHORIZED
+		return nil
+	case GetRuntimeSessionForbiddenCodeFORBIDDEN:
+		*s = GetRuntimeSessionForbiddenCodeFORBIDDEN
+		return nil
+	case GetRuntimeSessionForbiddenCodeNOTFOUND:
+		*s = GetRuntimeSessionForbiddenCodeNOTFOUND
+		return nil
+	case GetRuntimeSessionForbiddenCodeCONFLICT:
+		*s = GetRuntimeSessionForbiddenCodeCONFLICT
+		return nil
+	case GetRuntimeSessionForbiddenCodeVALIDATIONFAILED:
+		*s = GetRuntimeSessionForbiddenCodeVALIDATIONFAILED
+		return nil
+	case GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
+		*s = GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE
+		return nil
+	case GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
+		*s = GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE
+		return nil
+	case GetRuntimeSessionForbiddenCodeVOUCHERLIMIT:
+		*s = GetRuntimeSessionForbiddenCodeVOUCHERLIMIT
+		return nil
+	case GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
+		*s = GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED
+		return nil
+	case GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
+		*s = GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED
+		return nil
+	case GetRuntimeSessionForbiddenCodeUPSTREAMERROR:
+		*s = GetRuntimeSessionForbiddenCodeUPSTREAMERROR
+		return nil
+	case GetRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE:
+		*s = GetRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE
+		return nil
+	case GetRuntimeSessionForbiddenCodeINTERNALSERVERERROR:
+		*s = GetRuntimeSessionForbiddenCodeINTERNALSERVERERROR
+		return nil
+	case GetRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = GetRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case GetRuntimeSessionForbiddenCodeTEAMNOTACTIVE:
+		*s = GetRuntimeSessionForbiddenCodeTEAMNOTACTIVE
+		return nil
+	case GetRuntimeSessionForbiddenCodeINVITEEXPIRED:
+		*s = GetRuntimeSessionForbiddenCodeINVITEEXPIRED
+		return nil
+	case GetRuntimeSessionForbiddenCodeINVITEEXHAUSTED:
+		*s = GetRuntimeSessionForbiddenCodeINVITEEXHAUSTED
+		return nil
+	case GetRuntimeSessionForbiddenCodeTEAMLASTOWNER:
+		*s = GetRuntimeSessionForbiddenCodeTEAMLASTOWNER
+		return nil
+	case GetRuntimeSessionForbiddenCodeTEAMALREADYACTIVE:
+		*s = GetRuntimeSessionForbiddenCodeTEAMALREADYACTIVE
+		return nil
+	case GetRuntimeSessionForbiddenCodeTEAMNOTFOUNDING:
+		*s = GetRuntimeSessionForbiddenCodeTEAMNOTFOUNDING
+		return nil
+	case GetRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = GetRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case GetRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING:
+		*s = GetRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING
+		return nil
+	case GetRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = GetRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case GetRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = GetRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetRuntimeSessionNotFound struct {
+	Code            GetRuntimeSessionNotFoundCode `json:"code"`
+	Detail          OptString                     `json:"detail"`
+	Instance        OptString                     `json:"instance"`
+	Status          int                           `json:"status"`
+	Title           string                        `json:"title"`
+	Type            url.URL                       `json:"type"`
+	AdditionalProps GetRuntimeSessionNotFoundAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *GetRuntimeSessionNotFound) GetCode() GetRuntimeSessionNotFoundCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *GetRuntimeSessionNotFound) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *GetRuntimeSessionNotFound) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *GetRuntimeSessionNotFound) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *GetRuntimeSessionNotFound) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *GetRuntimeSessionNotFound) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetRuntimeSessionNotFound) GetAdditionalProps() GetRuntimeSessionNotFoundAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *GetRuntimeSessionNotFound) SetCode(val GetRuntimeSessionNotFoundCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *GetRuntimeSessionNotFound) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *GetRuntimeSessionNotFound) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *GetRuntimeSessionNotFound) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *GetRuntimeSessionNotFound) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *GetRuntimeSessionNotFound) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetRuntimeSessionNotFound) SetAdditionalProps(val GetRuntimeSessionNotFoundAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*GetRuntimeSessionNotFound) getRuntimeSessionRes() {}
+
+type GetRuntimeSessionNotFoundAdditional map[string]jx.Raw
+
+func (s *GetRuntimeSessionNotFoundAdditional) init() GetRuntimeSessionNotFoundAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type GetRuntimeSessionNotFoundCode string
+
+const (
+	GetRuntimeSessionNotFoundCodeUNAUTHORIZED                   GetRuntimeSessionNotFoundCode = "UNAUTHORIZED"
+	GetRuntimeSessionNotFoundCodeFORBIDDEN                      GetRuntimeSessionNotFoundCode = "FORBIDDEN"
+	GetRuntimeSessionNotFoundCodeNOTFOUND                       GetRuntimeSessionNotFoundCode = "NOT_FOUND"
+	GetRuntimeSessionNotFoundCodeCONFLICT                       GetRuntimeSessionNotFoundCode = "CONFLICT"
+	GetRuntimeSessionNotFoundCodeVALIDATIONFAILED               GetRuntimeSessionNotFoundCode = "VALIDATION_FAILED"
+	GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE               GetRuntimeSessionNotFoundCode = "INVALID_CHALLENGE"
+	GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE               GetRuntimeSessionNotFoundCode = "INVALID_SIGNATURE"
+	GetRuntimeSessionNotFoundCodeVOUCHERLIMIT                   GetRuntimeSessionNotFoundCode = "VOUCHER_LIMIT"
+	GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED              GetRuntimeSessionNotFoundCode = "RATE_LIMIT_EXCEEDED"
+	GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionNotFoundCode = "SERIALIZATION_EXHAUSTED"
+	GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionNotFoundCode = "SIGNING_REQUEST_EXPIRED"
+	GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED GetRuntimeSessionNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED             GetRuntimeSessionNotFoundCode = "REGISTRATION_FAILED"
+	GetRuntimeSessionNotFoundCodeUPSTREAMERROR                  GetRuntimeSessionNotFoundCode = "UPSTREAM_ERROR"
+	GetRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE             GetRuntimeSessionNotFoundCode = "SERVICE_UNAVAILABLE"
+	GetRuntimeSessionNotFoundCodeINTERNALSERVERERROR            GetRuntimeSessionNotFoundCode = "INTERNAL_SERVER_ERROR"
+	GetRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE          GetRuntimeSessionNotFoundCode = "TEAM_PERSONAL_IMMUTABLE"
+	GetRuntimeSessionNotFoundCodeTEAMNOTACTIVE                  GetRuntimeSessionNotFoundCode = "TEAM_NOT_ACTIVE"
+	GetRuntimeSessionNotFoundCodeINVITEEXPIRED                  GetRuntimeSessionNotFoundCode = "INVITE_EXPIRED"
+	GetRuntimeSessionNotFoundCodeINVITEEXHAUSTED                GetRuntimeSessionNotFoundCode = "INVITE_EXHAUSTED"
+	GetRuntimeSessionNotFoundCodeTEAMLASTOWNER                  GetRuntimeSessionNotFoundCode = "TEAM_LAST_OWNER"
+	GetRuntimeSessionNotFoundCodeTEAMALREADYACTIVE              GetRuntimeSessionNotFoundCode = "TEAM_ALREADY_ACTIVE"
+	GetRuntimeSessionNotFoundCodeTEAMNOTFOUNDING                GetRuntimeSessionNotFoundCode = "TEAM_NOT_FOUNDING"
+	GetRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED        GetRuntimeSessionNotFoundCode = "FOUNDING_ALREADY_ACCEPTED"
+	GetRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING           GetRuntimeSessionNotFoundCode = "DIARY_TRANSFER_PENDING"
+	GetRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND          GetRuntimeSessionNotFoundCode = "DIARY_TRANSFER_NOT_FOUND"
+	GetRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED   GetRuntimeSessionNotFoundCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all GetRuntimeSessionNotFoundCode values.
+func (GetRuntimeSessionNotFoundCode) AllValues() []GetRuntimeSessionNotFoundCode {
+	return []GetRuntimeSessionNotFoundCode{
+		GetRuntimeSessionNotFoundCodeUNAUTHORIZED,
+		GetRuntimeSessionNotFoundCodeFORBIDDEN,
+		GetRuntimeSessionNotFoundCodeNOTFOUND,
+		GetRuntimeSessionNotFoundCodeCONFLICT,
+		GetRuntimeSessionNotFoundCodeVALIDATIONFAILED,
+		GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE,
+		GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE,
+		GetRuntimeSessionNotFoundCodeVOUCHERLIMIT,
+		GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED,
+		GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED,
+		GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED,
+		GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED,
+		GetRuntimeSessionNotFoundCodeUPSTREAMERROR,
+		GetRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE,
+		GetRuntimeSessionNotFoundCodeINTERNALSERVERERROR,
+		GetRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE,
+		GetRuntimeSessionNotFoundCodeTEAMNOTACTIVE,
+		GetRuntimeSessionNotFoundCodeINVITEEXPIRED,
+		GetRuntimeSessionNotFoundCodeINVITEEXHAUSTED,
+		GetRuntimeSessionNotFoundCodeTEAMLASTOWNER,
+		GetRuntimeSessionNotFoundCodeTEAMALREADYACTIVE,
+		GetRuntimeSessionNotFoundCodeTEAMNOTFOUNDING,
+		GetRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED,
+		GetRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING,
+		GetRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND,
+		GetRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
+	switch s {
+	case GetRuntimeSessionNotFoundCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeFORBIDDEN:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeNOTFOUND:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
+	switch GetRuntimeSessionNotFoundCode(data) {
+	case GetRuntimeSessionNotFoundCodeUNAUTHORIZED:
+		*s = GetRuntimeSessionNotFoundCodeUNAUTHORIZED
+		return nil
+	case GetRuntimeSessionNotFoundCodeFORBIDDEN:
+		*s = GetRuntimeSessionNotFoundCodeFORBIDDEN
+		return nil
+	case GetRuntimeSessionNotFoundCodeNOTFOUND:
+		*s = GetRuntimeSessionNotFoundCodeNOTFOUND
+		return nil
+	case GetRuntimeSessionNotFoundCodeCONFLICT:
+		*s = GetRuntimeSessionNotFoundCodeCONFLICT
+		return nil
+	case GetRuntimeSessionNotFoundCodeVALIDATIONFAILED:
+		*s = GetRuntimeSessionNotFoundCodeVALIDATIONFAILED
+		return nil
+	case GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
+		*s = GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE
+		return nil
+	case GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
+		*s = GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE
+		return nil
+	case GetRuntimeSessionNotFoundCodeVOUCHERLIMIT:
+		*s = GetRuntimeSessionNotFoundCodeVOUCHERLIMIT
+		return nil
+	case GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
+		*s = GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED
+		return nil
+	case GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
+		*s = GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED
+		return nil
+	case GetRuntimeSessionNotFoundCodeUPSTREAMERROR:
+		*s = GetRuntimeSessionNotFoundCodeUPSTREAMERROR
+		return nil
+	case GetRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE:
+		*s = GetRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE
+		return nil
+	case GetRuntimeSessionNotFoundCodeINTERNALSERVERERROR:
+		*s = GetRuntimeSessionNotFoundCodeINTERNALSERVERERROR
+		return nil
+	case GetRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = GetRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case GetRuntimeSessionNotFoundCodeTEAMNOTACTIVE:
+		*s = GetRuntimeSessionNotFoundCodeTEAMNOTACTIVE
+		return nil
+	case GetRuntimeSessionNotFoundCodeINVITEEXPIRED:
+		*s = GetRuntimeSessionNotFoundCodeINVITEEXPIRED
+		return nil
+	case GetRuntimeSessionNotFoundCodeINVITEEXHAUSTED:
+		*s = GetRuntimeSessionNotFoundCodeINVITEEXHAUSTED
+		return nil
+	case GetRuntimeSessionNotFoundCodeTEAMLASTOWNER:
+		*s = GetRuntimeSessionNotFoundCodeTEAMLASTOWNER
+		return nil
+	case GetRuntimeSessionNotFoundCodeTEAMALREADYACTIVE:
+		*s = GetRuntimeSessionNotFoundCodeTEAMALREADYACTIVE
+		return nil
+	case GetRuntimeSessionNotFoundCodeTEAMNOTFOUNDING:
+		*s = GetRuntimeSessionNotFoundCodeTEAMNOTFOUNDING
+		return nil
+	case GetRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = GetRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case GetRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING:
+		*s = GetRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING
+		return nil
+	case GetRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = GetRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case GetRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = GetRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetRuntimeSessionOK struct {
+	AttemptN               int                               `json:"attemptN"`
+	CheckpointKind         GetRuntimeSessionOKCheckpointKind `json:"checkpointKind"`
+	ContentEncoding        NilString                         `json:"contentEncoding"`
+	ContentType            string                            `json:"contentType"`
+	ID                     uuid.UUID                         `json:"id"`
+	ObjectKey              string                            `json:"objectKey"`
+	ParentSessionId        NilUUID                           `json:"parentSessionId"`
+	SessionKind            GetRuntimeSessionOKSessionKind    `json:"sessionKind"`
+	SHA256                 string                            `json:"sha256"`
+	SizeBytes              int                               `json:"sizeBytes"`
+	SourceRuntimeProfileId NilUUID                           `json:"sourceRuntimeProfileId"`
+	SourceSlotId           NilUUID                           `json:"sourceSlotId"`
+	StorageClass           string                            `json:"storageClass"`
+	TaskId                 uuid.UUID                         `json:"taskId"`
+	TeamId                 uuid.UUID                         `json:"teamId"`
+	UploadedAt             time.Time                         `json:"uploadedAt"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *GetRuntimeSessionOK) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetCheckpointKind returns the value of CheckpointKind.
+func (s *GetRuntimeSessionOK) GetCheckpointKind() GetRuntimeSessionOKCheckpointKind {
+	return s.CheckpointKind
+}
+
+// GetContentEncoding returns the value of ContentEncoding.
+func (s *GetRuntimeSessionOK) GetContentEncoding() NilString {
+	return s.ContentEncoding
+}
+
+// GetContentType returns the value of ContentType.
+func (s *GetRuntimeSessionOK) GetContentType() string {
+	return s.ContentType
+}
+
+// GetID returns the value of ID.
+func (s *GetRuntimeSessionOK) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetObjectKey returns the value of ObjectKey.
+func (s *GetRuntimeSessionOK) GetObjectKey() string {
+	return s.ObjectKey
+}
+
+// GetParentSessionId returns the value of ParentSessionId.
+func (s *GetRuntimeSessionOK) GetParentSessionId() NilUUID {
+	return s.ParentSessionId
+}
+
+// GetSessionKind returns the value of SessionKind.
+func (s *GetRuntimeSessionOK) GetSessionKind() GetRuntimeSessionOKSessionKind {
+	return s.SessionKind
+}
+
+// GetSHA256 returns the value of SHA256.
+func (s *GetRuntimeSessionOK) GetSHA256() string {
+	return s.SHA256
+}
+
+// GetSizeBytes returns the value of SizeBytes.
+func (s *GetRuntimeSessionOK) GetSizeBytes() int {
+	return s.SizeBytes
+}
+
+// GetSourceRuntimeProfileId returns the value of SourceRuntimeProfileId.
+func (s *GetRuntimeSessionOK) GetSourceRuntimeProfileId() NilUUID {
+	return s.SourceRuntimeProfileId
+}
+
+// GetSourceSlotId returns the value of SourceSlotId.
+func (s *GetRuntimeSessionOK) GetSourceSlotId() NilUUID {
+	return s.SourceSlotId
+}
+
+// GetStorageClass returns the value of StorageClass.
+func (s *GetRuntimeSessionOK) GetStorageClass() string {
+	return s.StorageClass
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *GetRuntimeSessionOK) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *GetRuntimeSessionOK) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUploadedAt returns the value of UploadedAt.
+func (s *GetRuntimeSessionOK) GetUploadedAt() time.Time {
+	return s.UploadedAt
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *GetRuntimeSessionOK) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetCheckpointKind sets the value of CheckpointKind.
+func (s *GetRuntimeSessionOK) SetCheckpointKind(val GetRuntimeSessionOKCheckpointKind) {
+	s.CheckpointKind = val
+}
+
+// SetContentEncoding sets the value of ContentEncoding.
+func (s *GetRuntimeSessionOK) SetContentEncoding(val NilString) {
+	s.ContentEncoding = val
+}
+
+// SetContentType sets the value of ContentType.
+func (s *GetRuntimeSessionOK) SetContentType(val string) {
+	s.ContentType = val
+}
+
+// SetID sets the value of ID.
+func (s *GetRuntimeSessionOK) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetObjectKey sets the value of ObjectKey.
+func (s *GetRuntimeSessionOK) SetObjectKey(val string) {
+	s.ObjectKey = val
+}
+
+// SetParentSessionId sets the value of ParentSessionId.
+func (s *GetRuntimeSessionOK) SetParentSessionId(val NilUUID) {
+	s.ParentSessionId = val
+}
+
+// SetSessionKind sets the value of SessionKind.
+func (s *GetRuntimeSessionOK) SetSessionKind(val GetRuntimeSessionOKSessionKind) {
+	s.SessionKind = val
+}
+
+// SetSHA256 sets the value of SHA256.
+func (s *GetRuntimeSessionOK) SetSHA256(val string) {
+	s.SHA256 = val
+}
+
+// SetSizeBytes sets the value of SizeBytes.
+func (s *GetRuntimeSessionOK) SetSizeBytes(val int) {
+	s.SizeBytes = val
+}
+
+// SetSourceRuntimeProfileId sets the value of SourceRuntimeProfileId.
+func (s *GetRuntimeSessionOK) SetSourceRuntimeProfileId(val NilUUID) {
+	s.SourceRuntimeProfileId = val
+}
+
+// SetSourceSlotId sets the value of SourceSlotId.
+func (s *GetRuntimeSessionOK) SetSourceSlotId(val NilUUID) {
+	s.SourceSlotId = val
+}
+
+// SetStorageClass sets the value of StorageClass.
+func (s *GetRuntimeSessionOK) SetStorageClass(val string) {
+	s.StorageClass = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *GetRuntimeSessionOK) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *GetRuntimeSessionOK) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUploadedAt sets the value of UploadedAt.
+func (s *GetRuntimeSessionOK) SetUploadedAt(val time.Time) {
+	s.UploadedAt = val
+}
+
+func (*GetRuntimeSessionOK) getRuntimeSessionRes() {}
+
+// GetRuntimeSessionOKCheckpointKind represents sum type.
+type GetRuntimeSessionOKCheckpointKind struct {
+	// Type selects the active sum variant, switch on this field.
+	Type                               GetRuntimeSessionOKCheckpointKindType
+	GetRuntimeSessionOKCheckpointKind0 GetRuntimeSessionOKCheckpointKind0
+}
+
+// GetRuntimeSessionOKCheckpointKindType is oneOf type of GetRuntimeSessionOKCheckpointKind.
+type GetRuntimeSessionOKCheckpointKindType string
+
+// Possible values for GetRuntimeSessionOKCheckpointKindType.
+const (
+	GetRuntimeSessionOKCheckpointKind0GetRuntimeSessionOKCheckpointKind GetRuntimeSessionOKCheckpointKindType = "GetRuntimeSessionOKCheckpointKind0"
+)
+
+// IsGetRuntimeSessionOKCheckpointKind0 reports whether GetRuntimeSessionOKCheckpointKind is GetRuntimeSessionOKCheckpointKind0.
+func (s GetRuntimeSessionOKCheckpointKind) IsGetRuntimeSessionOKCheckpointKind0() bool {
+	return s.Type == GetRuntimeSessionOKCheckpointKind0GetRuntimeSessionOKCheckpointKind
+}
+
+// SetGetRuntimeSessionOKCheckpointKind0 sets GetRuntimeSessionOKCheckpointKind to GetRuntimeSessionOKCheckpointKind0.
+func (s *GetRuntimeSessionOKCheckpointKind) SetGetRuntimeSessionOKCheckpointKind0(v GetRuntimeSessionOKCheckpointKind0) {
+	s.Type = GetRuntimeSessionOKCheckpointKind0GetRuntimeSessionOKCheckpointKind
+	s.GetRuntimeSessionOKCheckpointKind0 = v
+}
+
+// GetGetRuntimeSessionOKCheckpointKind0 returns GetRuntimeSessionOKCheckpointKind0 and true boolean if GetRuntimeSessionOKCheckpointKind is GetRuntimeSessionOKCheckpointKind0.
+func (s GetRuntimeSessionOKCheckpointKind) GetGetRuntimeSessionOKCheckpointKind0() (v GetRuntimeSessionOKCheckpointKind0, ok bool) {
+	if !s.IsGetRuntimeSessionOKCheckpointKind0() {
+		return v, false
+	}
+	return s.GetRuntimeSessionOKCheckpointKind0, true
+}
+
+// NewGetRuntimeSessionOKCheckpointKind0GetRuntimeSessionOKCheckpointKind returns new GetRuntimeSessionOKCheckpointKind from GetRuntimeSessionOKCheckpointKind0.
+func NewGetRuntimeSessionOKCheckpointKind0GetRuntimeSessionOKCheckpointKind(v GetRuntimeSessionOKCheckpointKind0) GetRuntimeSessionOKCheckpointKind {
+	var s GetRuntimeSessionOKCheckpointKind
+	s.SetGetRuntimeSessionOKCheckpointKind0(v)
+	return s
+}
+
+type GetRuntimeSessionOKCheckpointKind0 string
+
+const (
+	GetRuntimeSessionOKCheckpointKind0AttemptFinal GetRuntimeSessionOKCheckpointKind0 = "attempt_final"
+)
+
+// AllValues returns all GetRuntimeSessionOKCheckpointKind0 values.
+func (GetRuntimeSessionOKCheckpointKind0) AllValues() []GetRuntimeSessionOKCheckpointKind0 {
+	return []GetRuntimeSessionOKCheckpointKind0{
+		GetRuntimeSessionOKCheckpointKind0AttemptFinal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetRuntimeSessionOKCheckpointKind0) MarshalText() ([]byte, error) {
+	switch s {
+	case GetRuntimeSessionOKCheckpointKind0AttemptFinal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetRuntimeSessionOKCheckpointKind0) UnmarshalText(data []byte) error {
+	switch GetRuntimeSessionOKCheckpointKind0(data) {
+	case GetRuntimeSessionOKCheckpointKind0AttemptFinal:
+		*s = GetRuntimeSessionOKCheckpointKind0AttemptFinal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetRuntimeSessionOKSessionKind string
+
+const (
+	GetRuntimeSessionOKSessionKindRoot   GetRuntimeSessionOKSessionKind = "root"
+	GetRuntimeSessionOKSessionKindExtend GetRuntimeSessionOKSessionKind = "extend"
+	GetRuntimeSessionOKSessionKindFork   GetRuntimeSessionOKSessionKind = "fork"
+)
+
+// AllValues returns all GetRuntimeSessionOKSessionKind values.
+func (GetRuntimeSessionOKSessionKind) AllValues() []GetRuntimeSessionOKSessionKind {
+	return []GetRuntimeSessionOKSessionKind{
+		GetRuntimeSessionOKSessionKindRoot,
+		GetRuntimeSessionOKSessionKindExtend,
+		GetRuntimeSessionOKSessionKindFork,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetRuntimeSessionOKSessionKind) MarshalText() ([]byte, error) {
+	switch s {
+	case GetRuntimeSessionOKSessionKindRoot:
+		return []byte(s), nil
+	case GetRuntimeSessionOKSessionKindExtend:
+		return []byte(s), nil
+	case GetRuntimeSessionOKSessionKindFork:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetRuntimeSessionOKSessionKind) UnmarshalText(data []byte) error {
+	switch GetRuntimeSessionOKSessionKind(data) {
+	case GetRuntimeSessionOKSessionKindRoot:
+		*s = GetRuntimeSessionOKSessionKindRoot
+		return nil
+	case GetRuntimeSessionOKSessionKindExtend:
+		*s = GetRuntimeSessionOKSessionKindExtend
+		return nil
+	case GetRuntimeSessionOKSessionKindFork:
+		*s = GetRuntimeSessionOKSessionKindFork
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetRuntimeSessionUnauthorized struct {
+	Code            GetRuntimeSessionUnauthorizedCode `json:"code"`
+	Detail          OptString                         `json:"detail"`
+	Instance        OptString                         `json:"instance"`
+	Status          int                               `json:"status"`
+	Title           string                            `json:"title"`
+	Type            url.URL                           `json:"type"`
+	AdditionalProps GetRuntimeSessionUnauthorizedAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *GetRuntimeSessionUnauthorized) GetCode() GetRuntimeSessionUnauthorizedCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *GetRuntimeSessionUnauthorized) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *GetRuntimeSessionUnauthorized) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *GetRuntimeSessionUnauthorized) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *GetRuntimeSessionUnauthorized) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *GetRuntimeSessionUnauthorized) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetRuntimeSessionUnauthorized) GetAdditionalProps() GetRuntimeSessionUnauthorizedAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *GetRuntimeSessionUnauthorized) SetCode(val GetRuntimeSessionUnauthorizedCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *GetRuntimeSessionUnauthorized) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *GetRuntimeSessionUnauthorized) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *GetRuntimeSessionUnauthorized) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *GetRuntimeSessionUnauthorized) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *GetRuntimeSessionUnauthorized) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetRuntimeSessionUnauthorized) SetAdditionalProps(val GetRuntimeSessionUnauthorizedAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*GetRuntimeSessionUnauthorized) getRuntimeSessionRes() {}
+
+type GetRuntimeSessionUnauthorizedAdditional map[string]jx.Raw
+
+func (s *GetRuntimeSessionUnauthorizedAdditional) init() GetRuntimeSessionUnauthorizedAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type GetRuntimeSessionUnauthorizedCode string
+
+const (
+	GetRuntimeSessionUnauthorizedCodeUNAUTHORIZED                   GetRuntimeSessionUnauthorizedCode = "UNAUTHORIZED"
+	GetRuntimeSessionUnauthorizedCodeFORBIDDEN                      GetRuntimeSessionUnauthorizedCode = "FORBIDDEN"
+	GetRuntimeSessionUnauthorizedCodeNOTFOUND                       GetRuntimeSessionUnauthorizedCode = "NOT_FOUND"
+	GetRuntimeSessionUnauthorizedCodeCONFLICT                       GetRuntimeSessionUnauthorizedCode = "CONFLICT"
+	GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED               GetRuntimeSessionUnauthorizedCode = "VALIDATION_FAILED"
+	GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE               GetRuntimeSessionUnauthorizedCode = "INVALID_CHALLENGE"
+	GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE               GetRuntimeSessionUnauthorizedCode = "INVALID_SIGNATURE"
+	GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT                   GetRuntimeSessionUnauthorizedCode = "VOUCHER_LIMIT"
+	GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED              GetRuntimeSessionUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
+	GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
+	GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
+	GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED GetRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED             GetRuntimeSessionUnauthorizedCode = "REGISTRATION_FAILED"
+	GetRuntimeSessionUnauthorizedCodeUPSTREAMERROR                  GetRuntimeSessionUnauthorizedCode = "UPSTREAM_ERROR"
+	GetRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE             GetRuntimeSessionUnauthorizedCode = "SERVICE_UNAVAILABLE"
+	GetRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR            GetRuntimeSessionUnauthorizedCode = "INTERNAL_SERVER_ERROR"
+	GetRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE          GetRuntimeSessionUnauthorizedCode = "TEAM_PERSONAL_IMMUTABLE"
+	GetRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE                  GetRuntimeSessionUnauthorizedCode = "TEAM_NOT_ACTIVE"
+	GetRuntimeSessionUnauthorizedCodeINVITEEXPIRED                  GetRuntimeSessionUnauthorizedCode = "INVITE_EXPIRED"
+	GetRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED                GetRuntimeSessionUnauthorizedCode = "INVITE_EXHAUSTED"
+	GetRuntimeSessionUnauthorizedCodeTEAMLASTOWNER                  GetRuntimeSessionUnauthorizedCode = "TEAM_LAST_OWNER"
+	GetRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE              GetRuntimeSessionUnauthorizedCode = "TEAM_ALREADY_ACTIVE"
+	GetRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING                GetRuntimeSessionUnauthorizedCode = "TEAM_NOT_FOUNDING"
+	GetRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED        GetRuntimeSessionUnauthorizedCode = "FOUNDING_ALREADY_ACCEPTED"
+	GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING           GetRuntimeSessionUnauthorizedCode = "DIARY_TRANSFER_PENDING"
+	GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND          GetRuntimeSessionUnauthorizedCode = "DIARY_TRANSFER_NOT_FOUND"
+	GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED   GetRuntimeSessionUnauthorizedCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all GetRuntimeSessionUnauthorizedCode values.
+func (GetRuntimeSessionUnauthorizedCode) AllValues() []GetRuntimeSessionUnauthorizedCode {
+	return []GetRuntimeSessionUnauthorizedCode{
+		GetRuntimeSessionUnauthorizedCodeUNAUTHORIZED,
+		GetRuntimeSessionUnauthorizedCodeFORBIDDEN,
+		GetRuntimeSessionUnauthorizedCodeNOTFOUND,
+		GetRuntimeSessionUnauthorizedCodeCONFLICT,
+		GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED,
+		GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE,
+		GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE,
+		GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT,
+		GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED,
+		GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED,
+		GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED,
+		GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED,
+		GetRuntimeSessionUnauthorizedCodeUPSTREAMERROR,
+		GetRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE,
+		GetRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR,
+		GetRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE,
+		GetRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE,
+		GetRuntimeSessionUnauthorizedCodeINVITEEXPIRED,
+		GetRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED,
+		GetRuntimeSessionUnauthorizedCodeTEAMLASTOWNER,
+		GetRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE,
+		GetRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING,
+		GetRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED,
+		GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING,
+		GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND,
+		GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
+	switch s {
+	case GetRuntimeSessionUnauthorizedCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeFORBIDDEN:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeNOTFOUND:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error {
+	switch GetRuntimeSessionUnauthorizedCode(data) {
+	case GetRuntimeSessionUnauthorizedCodeUNAUTHORIZED:
+		*s = GetRuntimeSessionUnauthorizedCodeUNAUTHORIZED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeFORBIDDEN:
+		*s = GetRuntimeSessionUnauthorizedCodeFORBIDDEN
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeNOTFOUND:
+		*s = GetRuntimeSessionUnauthorizedCodeNOTFOUND
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeCONFLICT:
+		*s = GetRuntimeSessionUnauthorizedCodeCONFLICT
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
+		*s = GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
+		*s = GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
+		*s = GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
+		*s = GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
+		*s = GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
+		*s = GetRuntimeSessionUnauthorizedCodeUPSTREAMERROR
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = GetRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR:
+		*s = GetRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = GetRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE:
+		*s = GetRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeINVITEEXPIRED:
+		*s = GetRuntimeSessionUnauthorizedCodeINVITEEXPIRED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED:
+		*s = GetRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeTEAMLASTOWNER:
+		*s = GetRuntimeSessionUnauthorizedCodeTEAMLASTOWNER
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = GetRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = GetRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = GetRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type GetSigningRequestBadRequest ProblemDetails
 
@@ -35939,6 +39449,2009 @@ func (s *UpdateTeamMemberRoleReqRole) UnmarshalText(data []byte) error {
 type UpdateTeamMemberRoleUnauthorized ProblemDetails
 
 func (*UpdateTeamMemberRoleUnauthorized) updateTeamMemberRoleRes() {}
+
+// Merged schema.
+type UploadRuntimeSessionBadRequest struct {
+	Code            UploadRuntimeSessionBadRequestCode         `json:"code"`
+	Detail          OptString                                  `json:"detail"`
+	Instance        OptString                                  `json:"instance"`
+	Status          int                                        `json:"status"`
+	Title           string                                     `json:"title"`
+	Type            url.URL                                    `json:"type"`
+	Errors          []UploadRuntimeSessionBadRequestErrorsItem `json:"errors"`
+	AdditionalProps UploadRuntimeSessionBadRequestAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *UploadRuntimeSessionBadRequest) GetCode() UploadRuntimeSessionBadRequestCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *UploadRuntimeSessionBadRequest) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *UploadRuntimeSessionBadRequest) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *UploadRuntimeSessionBadRequest) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *UploadRuntimeSessionBadRequest) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *UploadRuntimeSessionBadRequest) GetType() url.URL {
+	return s.Type
+}
+
+// GetErrors returns the value of Errors.
+func (s *UploadRuntimeSessionBadRequest) GetErrors() []UploadRuntimeSessionBadRequestErrorsItem {
+	return s.Errors
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *UploadRuntimeSessionBadRequest) GetAdditionalProps() UploadRuntimeSessionBadRequestAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *UploadRuntimeSessionBadRequest) SetCode(val UploadRuntimeSessionBadRequestCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *UploadRuntimeSessionBadRequest) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *UploadRuntimeSessionBadRequest) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *UploadRuntimeSessionBadRequest) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *UploadRuntimeSessionBadRequest) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *UploadRuntimeSessionBadRequest) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetErrors sets the value of Errors.
+func (s *UploadRuntimeSessionBadRequest) SetErrors(val []UploadRuntimeSessionBadRequestErrorsItem) {
+	s.Errors = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *UploadRuntimeSessionBadRequest) SetAdditionalProps(val UploadRuntimeSessionBadRequestAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*UploadRuntimeSessionBadRequest) uploadRuntimeSessionRes() {}
+
+type UploadRuntimeSessionBadRequestAdditional map[string]jx.Raw
+
+func (s *UploadRuntimeSessionBadRequestAdditional) init() UploadRuntimeSessionBadRequestAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type UploadRuntimeSessionBadRequestCode string
+
+const (
+	UploadRuntimeSessionBadRequestCodeUNAUTHORIZED                   UploadRuntimeSessionBadRequestCode = "UNAUTHORIZED"
+	UploadRuntimeSessionBadRequestCodeFORBIDDEN                      UploadRuntimeSessionBadRequestCode = "FORBIDDEN"
+	UploadRuntimeSessionBadRequestCodeNOTFOUND                       UploadRuntimeSessionBadRequestCode = "NOT_FOUND"
+	UploadRuntimeSessionBadRequestCodeCONFLICT                       UploadRuntimeSessionBadRequestCode = "CONFLICT"
+	UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED               UploadRuntimeSessionBadRequestCode = "VALIDATION_FAILED"
+	UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE               UploadRuntimeSessionBadRequestCode = "INVALID_CHALLENGE"
+	UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE               UploadRuntimeSessionBadRequestCode = "INVALID_SIGNATURE"
+	UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT                   UploadRuntimeSessionBadRequestCode = "VOUCHER_LIMIT"
+	UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED              UploadRuntimeSessionBadRequestCode = "RATE_LIMIT_EXCEEDED"
+	UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionBadRequestCode = "SERIALIZATION_EXHAUSTED"
+	UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_EXPIRED"
+	UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED             UploadRuntimeSessionBadRequestCode = "REGISTRATION_FAILED"
+	UploadRuntimeSessionBadRequestCodeUPSTREAMERROR                  UploadRuntimeSessionBadRequestCode = "UPSTREAM_ERROR"
+	UploadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE             UploadRuntimeSessionBadRequestCode = "SERVICE_UNAVAILABLE"
+	UploadRuntimeSessionBadRequestCodeINTERNALSERVERERROR            UploadRuntimeSessionBadRequestCode = "INTERNAL_SERVER_ERROR"
+	UploadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE          UploadRuntimeSessionBadRequestCode = "TEAM_PERSONAL_IMMUTABLE"
+	UploadRuntimeSessionBadRequestCodeTEAMNOTACTIVE                  UploadRuntimeSessionBadRequestCode = "TEAM_NOT_ACTIVE"
+	UploadRuntimeSessionBadRequestCodeINVITEEXPIRED                  UploadRuntimeSessionBadRequestCode = "INVITE_EXPIRED"
+	UploadRuntimeSessionBadRequestCodeINVITEEXHAUSTED                UploadRuntimeSessionBadRequestCode = "INVITE_EXHAUSTED"
+	UploadRuntimeSessionBadRequestCodeTEAMLASTOWNER                  UploadRuntimeSessionBadRequestCode = "TEAM_LAST_OWNER"
+	UploadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE              UploadRuntimeSessionBadRequestCode = "TEAM_ALREADY_ACTIVE"
+	UploadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING                UploadRuntimeSessionBadRequestCode = "TEAM_NOT_FOUNDING"
+	UploadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED        UploadRuntimeSessionBadRequestCode = "FOUNDING_ALREADY_ACCEPTED"
+	UploadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING           UploadRuntimeSessionBadRequestCode = "DIARY_TRANSFER_PENDING"
+	UploadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND          UploadRuntimeSessionBadRequestCode = "DIARY_TRANSFER_NOT_FOUND"
+	UploadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED   UploadRuntimeSessionBadRequestCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all UploadRuntimeSessionBadRequestCode values.
+func (UploadRuntimeSessionBadRequestCode) AllValues() []UploadRuntimeSessionBadRequestCode {
+	return []UploadRuntimeSessionBadRequestCode{
+		UploadRuntimeSessionBadRequestCodeUNAUTHORIZED,
+		UploadRuntimeSessionBadRequestCodeFORBIDDEN,
+		UploadRuntimeSessionBadRequestCodeNOTFOUND,
+		UploadRuntimeSessionBadRequestCodeCONFLICT,
+		UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED,
+		UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE,
+		UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE,
+		UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT,
+		UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED,
+		UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED,
+		UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED,
+		UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED,
+		UploadRuntimeSessionBadRequestCodeUPSTREAMERROR,
+		UploadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE,
+		UploadRuntimeSessionBadRequestCodeINTERNALSERVERERROR,
+		UploadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE,
+		UploadRuntimeSessionBadRequestCodeTEAMNOTACTIVE,
+		UploadRuntimeSessionBadRequestCodeINVITEEXPIRED,
+		UploadRuntimeSessionBadRequestCodeINVITEEXHAUSTED,
+		UploadRuntimeSessionBadRequestCodeTEAMLASTOWNER,
+		UploadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE,
+		UploadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING,
+		UploadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED,
+		UploadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING,
+		UploadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND,
+		UploadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UploadRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
+	switch s {
+	case UploadRuntimeSessionBadRequestCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeFORBIDDEN:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UploadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
+	switch UploadRuntimeSessionBadRequestCode(data) {
+	case UploadRuntimeSessionBadRequestCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionBadRequestCodeUNAUTHORIZED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeFORBIDDEN:
+		*s = UploadRuntimeSessionBadRequestCodeFORBIDDEN
+		return nil
+	case UploadRuntimeSessionBadRequestCodeNOTFOUND:
+		*s = UploadRuntimeSessionBadRequestCodeNOTFOUND
+		return nil
+	case UploadRuntimeSessionBadRequestCodeCONFLICT:
+		*s = UploadRuntimeSessionBadRequestCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE
+		return nil
+	case UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE
+		return nil
+	case UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT
+		return nil
+	case UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionBadRequestCodeUPSTREAMERROR
+		return nil
+	case UploadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE
+		return nil
+	case UploadRuntimeSessionBadRequestCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionBadRequestCodeINTERNALSERVERERROR
+		return nil
+	case UploadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case UploadRuntimeSessionBadRequestCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionBadRequestCodeTEAMNOTACTIVE
+		return nil
+	case UploadRuntimeSessionBadRequestCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionBadRequestCodeINVITEEXPIRED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionBadRequestCodeINVITEEXHAUSTED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionBadRequestCodeTEAMLASTOWNER
+		return nil
+	case UploadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE
+		return nil
+	case UploadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING
+		return nil
+	case UploadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING
+		return nil
+	case UploadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case UploadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UploadRuntimeSessionBadRequestErrorsItem struct {
+	Code    OptString `json:"code"`
+	Field   string    `json:"field"`
+	Message string    `json:"message"`
+}
+
+// GetCode returns the value of Code.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) GetCode() OptString {
+	return s.Code
+}
+
+// GetField returns the value of Field.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) GetField() string {
+	return s.Field
+}
+
+// GetMessage returns the value of Message.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) GetMessage() string {
+	return s.Message
+}
+
+// SetCode sets the value of Code.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) SetCode(val OptString) {
+	s.Code = val
+}
+
+// SetField sets the value of Field.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) SetField(val string) {
+	s.Field = val
+}
+
+// SetMessage sets the value of Message.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) SetMessage(val string) {
+	s.Message = val
+}
+
+type UploadRuntimeSessionForbidden struct {
+	Code            UploadRuntimeSessionForbiddenCode `json:"code"`
+	Detail          OptString                         `json:"detail"`
+	Instance        OptString                         `json:"instance"`
+	Status          int                               `json:"status"`
+	Title           string                            `json:"title"`
+	Type            url.URL                           `json:"type"`
+	AdditionalProps UploadRuntimeSessionForbiddenAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *UploadRuntimeSessionForbidden) GetCode() UploadRuntimeSessionForbiddenCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *UploadRuntimeSessionForbidden) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *UploadRuntimeSessionForbidden) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *UploadRuntimeSessionForbidden) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *UploadRuntimeSessionForbidden) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *UploadRuntimeSessionForbidden) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *UploadRuntimeSessionForbidden) GetAdditionalProps() UploadRuntimeSessionForbiddenAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *UploadRuntimeSessionForbidden) SetCode(val UploadRuntimeSessionForbiddenCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *UploadRuntimeSessionForbidden) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *UploadRuntimeSessionForbidden) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *UploadRuntimeSessionForbidden) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *UploadRuntimeSessionForbidden) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *UploadRuntimeSessionForbidden) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *UploadRuntimeSessionForbidden) SetAdditionalProps(val UploadRuntimeSessionForbiddenAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*UploadRuntimeSessionForbidden) uploadRuntimeSessionRes() {}
+
+type UploadRuntimeSessionForbiddenAdditional map[string]jx.Raw
+
+func (s *UploadRuntimeSessionForbiddenAdditional) init() UploadRuntimeSessionForbiddenAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type UploadRuntimeSessionForbiddenCode string
+
+const (
+	UploadRuntimeSessionForbiddenCodeUNAUTHORIZED                   UploadRuntimeSessionForbiddenCode = "UNAUTHORIZED"
+	UploadRuntimeSessionForbiddenCodeFORBIDDEN                      UploadRuntimeSessionForbiddenCode = "FORBIDDEN"
+	UploadRuntimeSessionForbiddenCodeNOTFOUND                       UploadRuntimeSessionForbiddenCode = "NOT_FOUND"
+	UploadRuntimeSessionForbiddenCodeCONFLICT                       UploadRuntimeSessionForbiddenCode = "CONFLICT"
+	UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED               UploadRuntimeSessionForbiddenCode = "VALIDATION_FAILED"
+	UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE               UploadRuntimeSessionForbiddenCode = "INVALID_CHALLENGE"
+	UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE               UploadRuntimeSessionForbiddenCode = "INVALID_SIGNATURE"
+	UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT                   UploadRuntimeSessionForbiddenCode = "VOUCHER_LIMIT"
+	UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED              UploadRuntimeSessionForbiddenCode = "RATE_LIMIT_EXCEEDED"
+	UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionForbiddenCode = "SERIALIZATION_EXHAUSTED"
+	UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_EXPIRED"
+	UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED             UploadRuntimeSessionForbiddenCode = "REGISTRATION_FAILED"
+	UploadRuntimeSessionForbiddenCodeUPSTREAMERROR                  UploadRuntimeSessionForbiddenCode = "UPSTREAM_ERROR"
+	UploadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE             UploadRuntimeSessionForbiddenCode = "SERVICE_UNAVAILABLE"
+	UploadRuntimeSessionForbiddenCodeINTERNALSERVERERROR            UploadRuntimeSessionForbiddenCode = "INTERNAL_SERVER_ERROR"
+	UploadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE          UploadRuntimeSessionForbiddenCode = "TEAM_PERSONAL_IMMUTABLE"
+	UploadRuntimeSessionForbiddenCodeTEAMNOTACTIVE                  UploadRuntimeSessionForbiddenCode = "TEAM_NOT_ACTIVE"
+	UploadRuntimeSessionForbiddenCodeINVITEEXPIRED                  UploadRuntimeSessionForbiddenCode = "INVITE_EXPIRED"
+	UploadRuntimeSessionForbiddenCodeINVITEEXHAUSTED                UploadRuntimeSessionForbiddenCode = "INVITE_EXHAUSTED"
+	UploadRuntimeSessionForbiddenCodeTEAMLASTOWNER                  UploadRuntimeSessionForbiddenCode = "TEAM_LAST_OWNER"
+	UploadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE              UploadRuntimeSessionForbiddenCode = "TEAM_ALREADY_ACTIVE"
+	UploadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING                UploadRuntimeSessionForbiddenCode = "TEAM_NOT_FOUNDING"
+	UploadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED        UploadRuntimeSessionForbiddenCode = "FOUNDING_ALREADY_ACCEPTED"
+	UploadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING           UploadRuntimeSessionForbiddenCode = "DIARY_TRANSFER_PENDING"
+	UploadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND          UploadRuntimeSessionForbiddenCode = "DIARY_TRANSFER_NOT_FOUND"
+	UploadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED   UploadRuntimeSessionForbiddenCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all UploadRuntimeSessionForbiddenCode values.
+func (UploadRuntimeSessionForbiddenCode) AllValues() []UploadRuntimeSessionForbiddenCode {
+	return []UploadRuntimeSessionForbiddenCode{
+		UploadRuntimeSessionForbiddenCodeUNAUTHORIZED,
+		UploadRuntimeSessionForbiddenCodeFORBIDDEN,
+		UploadRuntimeSessionForbiddenCodeNOTFOUND,
+		UploadRuntimeSessionForbiddenCodeCONFLICT,
+		UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED,
+		UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE,
+		UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE,
+		UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT,
+		UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED,
+		UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED,
+		UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED,
+		UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED,
+		UploadRuntimeSessionForbiddenCodeUPSTREAMERROR,
+		UploadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE,
+		UploadRuntimeSessionForbiddenCodeINTERNALSERVERERROR,
+		UploadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE,
+		UploadRuntimeSessionForbiddenCodeTEAMNOTACTIVE,
+		UploadRuntimeSessionForbiddenCodeINVITEEXPIRED,
+		UploadRuntimeSessionForbiddenCodeINVITEEXHAUSTED,
+		UploadRuntimeSessionForbiddenCodeTEAMLASTOWNER,
+		UploadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE,
+		UploadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING,
+		UploadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED,
+		UploadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING,
+		UploadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND,
+		UploadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UploadRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
+	switch s {
+	case UploadRuntimeSessionForbiddenCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeFORBIDDEN:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UploadRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
+	switch UploadRuntimeSessionForbiddenCode(data) {
+	case UploadRuntimeSessionForbiddenCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionForbiddenCodeUNAUTHORIZED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeFORBIDDEN:
+		*s = UploadRuntimeSessionForbiddenCodeFORBIDDEN
+		return nil
+	case UploadRuntimeSessionForbiddenCodeNOTFOUND:
+		*s = UploadRuntimeSessionForbiddenCodeNOTFOUND
+		return nil
+	case UploadRuntimeSessionForbiddenCodeCONFLICT:
+		*s = UploadRuntimeSessionForbiddenCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE
+		return nil
+	case UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE
+		return nil
+	case UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT
+		return nil
+	case UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionForbiddenCodeUPSTREAMERROR
+		return nil
+	case UploadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE
+		return nil
+	case UploadRuntimeSessionForbiddenCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionForbiddenCodeINTERNALSERVERERROR
+		return nil
+	case UploadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case UploadRuntimeSessionForbiddenCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionForbiddenCodeTEAMNOTACTIVE
+		return nil
+	case UploadRuntimeSessionForbiddenCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionForbiddenCodeINVITEEXPIRED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionForbiddenCodeINVITEEXHAUSTED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionForbiddenCodeTEAMLASTOWNER
+		return nil
+	case UploadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE
+		return nil
+	case UploadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING
+		return nil
+	case UploadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING
+		return nil
+	case UploadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case UploadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UploadRuntimeSessionNotFound struct {
+	Code            UploadRuntimeSessionNotFoundCode `json:"code"`
+	Detail          OptString                        `json:"detail"`
+	Instance        OptString                        `json:"instance"`
+	Status          int                              `json:"status"`
+	Title           string                           `json:"title"`
+	Type            url.URL                          `json:"type"`
+	AdditionalProps UploadRuntimeSessionNotFoundAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *UploadRuntimeSessionNotFound) GetCode() UploadRuntimeSessionNotFoundCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *UploadRuntimeSessionNotFound) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *UploadRuntimeSessionNotFound) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *UploadRuntimeSessionNotFound) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *UploadRuntimeSessionNotFound) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *UploadRuntimeSessionNotFound) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *UploadRuntimeSessionNotFound) GetAdditionalProps() UploadRuntimeSessionNotFoundAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *UploadRuntimeSessionNotFound) SetCode(val UploadRuntimeSessionNotFoundCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *UploadRuntimeSessionNotFound) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *UploadRuntimeSessionNotFound) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *UploadRuntimeSessionNotFound) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *UploadRuntimeSessionNotFound) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *UploadRuntimeSessionNotFound) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *UploadRuntimeSessionNotFound) SetAdditionalProps(val UploadRuntimeSessionNotFoundAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*UploadRuntimeSessionNotFound) uploadRuntimeSessionRes() {}
+
+type UploadRuntimeSessionNotFoundAdditional map[string]jx.Raw
+
+func (s *UploadRuntimeSessionNotFoundAdditional) init() UploadRuntimeSessionNotFoundAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type UploadRuntimeSessionNotFoundCode string
+
+const (
+	UploadRuntimeSessionNotFoundCodeUNAUTHORIZED                   UploadRuntimeSessionNotFoundCode = "UNAUTHORIZED"
+	UploadRuntimeSessionNotFoundCodeFORBIDDEN                      UploadRuntimeSessionNotFoundCode = "FORBIDDEN"
+	UploadRuntimeSessionNotFoundCodeNOTFOUND                       UploadRuntimeSessionNotFoundCode = "NOT_FOUND"
+	UploadRuntimeSessionNotFoundCodeCONFLICT                       UploadRuntimeSessionNotFoundCode = "CONFLICT"
+	UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED               UploadRuntimeSessionNotFoundCode = "VALIDATION_FAILED"
+	UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE               UploadRuntimeSessionNotFoundCode = "INVALID_CHALLENGE"
+	UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE               UploadRuntimeSessionNotFoundCode = "INVALID_SIGNATURE"
+	UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT                   UploadRuntimeSessionNotFoundCode = "VOUCHER_LIMIT"
+	UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED              UploadRuntimeSessionNotFoundCode = "RATE_LIMIT_EXCEEDED"
+	UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionNotFoundCode = "SERIALIZATION_EXHAUSTED"
+	UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_EXPIRED"
+	UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED             UploadRuntimeSessionNotFoundCode = "REGISTRATION_FAILED"
+	UploadRuntimeSessionNotFoundCodeUPSTREAMERROR                  UploadRuntimeSessionNotFoundCode = "UPSTREAM_ERROR"
+	UploadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE             UploadRuntimeSessionNotFoundCode = "SERVICE_UNAVAILABLE"
+	UploadRuntimeSessionNotFoundCodeINTERNALSERVERERROR            UploadRuntimeSessionNotFoundCode = "INTERNAL_SERVER_ERROR"
+	UploadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE          UploadRuntimeSessionNotFoundCode = "TEAM_PERSONAL_IMMUTABLE"
+	UploadRuntimeSessionNotFoundCodeTEAMNOTACTIVE                  UploadRuntimeSessionNotFoundCode = "TEAM_NOT_ACTIVE"
+	UploadRuntimeSessionNotFoundCodeINVITEEXPIRED                  UploadRuntimeSessionNotFoundCode = "INVITE_EXPIRED"
+	UploadRuntimeSessionNotFoundCodeINVITEEXHAUSTED                UploadRuntimeSessionNotFoundCode = "INVITE_EXHAUSTED"
+	UploadRuntimeSessionNotFoundCodeTEAMLASTOWNER                  UploadRuntimeSessionNotFoundCode = "TEAM_LAST_OWNER"
+	UploadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE              UploadRuntimeSessionNotFoundCode = "TEAM_ALREADY_ACTIVE"
+	UploadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING                UploadRuntimeSessionNotFoundCode = "TEAM_NOT_FOUNDING"
+	UploadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED        UploadRuntimeSessionNotFoundCode = "FOUNDING_ALREADY_ACCEPTED"
+	UploadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING           UploadRuntimeSessionNotFoundCode = "DIARY_TRANSFER_PENDING"
+	UploadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND          UploadRuntimeSessionNotFoundCode = "DIARY_TRANSFER_NOT_FOUND"
+	UploadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED   UploadRuntimeSessionNotFoundCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all UploadRuntimeSessionNotFoundCode values.
+func (UploadRuntimeSessionNotFoundCode) AllValues() []UploadRuntimeSessionNotFoundCode {
+	return []UploadRuntimeSessionNotFoundCode{
+		UploadRuntimeSessionNotFoundCodeUNAUTHORIZED,
+		UploadRuntimeSessionNotFoundCodeFORBIDDEN,
+		UploadRuntimeSessionNotFoundCodeNOTFOUND,
+		UploadRuntimeSessionNotFoundCodeCONFLICT,
+		UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED,
+		UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE,
+		UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE,
+		UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT,
+		UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED,
+		UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED,
+		UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED,
+		UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED,
+		UploadRuntimeSessionNotFoundCodeUPSTREAMERROR,
+		UploadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE,
+		UploadRuntimeSessionNotFoundCodeINTERNALSERVERERROR,
+		UploadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE,
+		UploadRuntimeSessionNotFoundCodeTEAMNOTACTIVE,
+		UploadRuntimeSessionNotFoundCodeINVITEEXPIRED,
+		UploadRuntimeSessionNotFoundCodeINVITEEXHAUSTED,
+		UploadRuntimeSessionNotFoundCodeTEAMLASTOWNER,
+		UploadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE,
+		UploadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING,
+		UploadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED,
+		UploadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING,
+		UploadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND,
+		UploadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UploadRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
+	switch s {
+	case UploadRuntimeSessionNotFoundCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeFORBIDDEN:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UploadRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
+	switch UploadRuntimeSessionNotFoundCode(data) {
+	case UploadRuntimeSessionNotFoundCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionNotFoundCodeUNAUTHORIZED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeFORBIDDEN:
+		*s = UploadRuntimeSessionNotFoundCodeFORBIDDEN
+		return nil
+	case UploadRuntimeSessionNotFoundCodeNOTFOUND:
+		*s = UploadRuntimeSessionNotFoundCodeNOTFOUND
+		return nil
+	case UploadRuntimeSessionNotFoundCodeCONFLICT:
+		*s = UploadRuntimeSessionNotFoundCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE
+		return nil
+	case UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE
+		return nil
+	case UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT
+		return nil
+	case UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionNotFoundCodeUPSTREAMERROR
+		return nil
+	case UploadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE
+		return nil
+	case UploadRuntimeSessionNotFoundCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionNotFoundCodeINTERNALSERVERERROR
+		return nil
+	case UploadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case UploadRuntimeSessionNotFoundCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionNotFoundCodeTEAMNOTACTIVE
+		return nil
+	case UploadRuntimeSessionNotFoundCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionNotFoundCodeINVITEEXPIRED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionNotFoundCodeINVITEEXHAUSTED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionNotFoundCodeTEAMLASTOWNER
+		return nil
+	case UploadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE
+		return nil
+	case UploadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING
+		return nil
+	case UploadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING
+		return nil
+	case UploadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case UploadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UploadRuntimeSessionOK struct {
+	AttemptN               int                                  `json:"attemptN"`
+	CheckpointKind         UploadRuntimeSessionOKCheckpointKind `json:"checkpointKind"`
+	ContentEncoding        NilString                            `json:"contentEncoding"`
+	ContentType            string                               `json:"contentType"`
+	ID                     uuid.UUID                            `json:"id"`
+	ObjectKey              string                               `json:"objectKey"`
+	ParentSessionId        NilUUID                              `json:"parentSessionId"`
+	SessionKind            UploadRuntimeSessionOKSessionKind    `json:"sessionKind"`
+	SHA256                 string                               `json:"sha256"`
+	SizeBytes              int                                  `json:"sizeBytes"`
+	SourceRuntimeProfileId NilUUID                              `json:"sourceRuntimeProfileId"`
+	SourceSlotId           NilUUID                              `json:"sourceSlotId"`
+	StorageClass           string                               `json:"storageClass"`
+	TaskId                 uuid.UUID                            `json:"taskId"`
+	TeamId                 uuid.UUID                            `json:"teamId"`
+	UploadedAt             time.Time                            `json:"uploadedAt"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *UploadRuntimeSessionOK) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetCheckpointKind returns the value of CheckpointKind.
+func (s *UploadRuntimeSessionOK) GetCheckpointKind() UploadRuntimeSessionOKCheckpointKind {
+	return s.CheckpointKind
+}
+
+// GetContentEncoding returns the value of ContentEncoding.
+func (s *UploadRuntimeSessionOK) GetContentEncoding() NilString {
+	return s.ContentEncoding
+}
+
+// GetContentType returns the value of ContentType.
+func (s *UploadRuntimeSessionOK) GetContentType() string {
+	return s.ContentType
+}
+
+// GetID returns the value of ID.
+func (s *UploadRuntimeSessionOK) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetObjectKey returns the value of ObjectKey.
+func (s *UploadRuntimeSessionOK) GetObjectKey() string {
+	return s.ObjectKey
+}
+
+// GetParentSessionId returns the value of ParentSessionId.
+func (s *UploadRuntimeSessionOK) GetParentSessionId() NilUUID {
+	return s.ParentSessionId
+}
+
+// GetSessionKind returns the value of SessionKind.
+func (s *UploadRuntimeSessionOK) GetSessionKind() UploadRuntimeSessionOKSessionKind {
+	return s.SessionKind
+}
+
+// GetSHA256 returns the value of SHA256.
+func (s *UploadRuntimeSessionOK) GetSHA256() string {
+	return s.SHA256
+}
+
+// GetSizeBytes returns the value of SizeBytes.
+func (s *UploadRuntimeSessionOK) GetSizeBytes() int {
+	return s.SizeBytes
+}
+
+// GetSourceRuntimeProfileId returns the value of SourceRuntimeProfileId.
+func (s *UploadRuntimeSessionOK) GetSourceRuntimeProfileId() NilUUID {
+	return s.SourceRuntimeProfileId
+}
+
+// GetSourceSlotId returns the value of SourceSlotId.
+func (s *UploadRuntimeSessionOK) GetSourceSlotId() NilUUID {
+	return s.SourceSlotId
+}
+
+// GetStorageClass returns the value of StorageClass.
+func (s *UploadRuntimeSessionOK) GetStorageClass() string {
+	return s.StorageClass
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *UploadRuntimeSessionOK) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *UploadRuntimeSessionOK) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUploadedAt returns the value of UploadedAt.
+func (s *UploadRuntimeSessionOK) GetUploadedAt() time.Time {
+	return s.UploadedAt
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *UploadRuntimeSessionOK) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetCheckpointKind sets the value of CheckpointKind.
+func (s *UploadRuntimeSessionOK) SetCheckpointKind(val UploadRuntimeSessionOKCheckpointKind) {
+	s.CheckpointKind = val
+}
+
+// SetContentEncoding sets the value of ContentEncoding.
+func (s *UploadRuntimeSessionOK) SetContentEncoding(val NilString) {
+	s.ContentEncoding = val
+}
+
+// SetContentType sets the value of ContentType.
+func (s *UploadRuntimeSessionOK) SetContentType(val string) {
+	s.ContentType = val
+}
+
+// SetID sets the value of ID.
+func (s *UploadRuntimeSessionOK) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetObjectKey sets the value of ObjectKey.
+func (s *UploadRuntimeSessionOK) SetObjectKey(val string) {
+	s.ObjectKey = val
+}
+
+// SetParentSessionId sets the value of ParentSessionId.
+func (s *UploadRuntimeSessionOK) SetParentSessionId(val NilUUID) {
+	s.ParentSessionId = val
+}
+
+// SetSessionKind sets the value of SessionKind.
+func (s *UploadRuntimeSessionOK) SetSessionKind(val UploadRuntimeSessionOKSessionKind) {
+	s.SessionKind = val
+}
+
+// SetSHA256 sets the value of SHA256.
+func (s *UploadRuntimeSessionOK) SetSHA256(val string) {
+	s.SHA256 = val
+}
+
+// SetSizeBytes sets the value of SizeBytes.
+func (s *UploadRuntimeSessionOK) SetSizeBytes(val int) {
+	s.SizeBytes = val
+}
+
+// SetSourceRuntimeProfileId sets the value of SourceRuntimeProfileId.
+func (s *UploadRuntimeSessionOK) SetSourceRuntimeProfileId(val NilUUID) {
+	s.SourceRuntimeProfileId = val
+}
+
+// SetSourceSlotId sets the value of SourceSlotId.
+func (s *UploadRuntimeSessionOK) SetSourceSlotId(val NilUUID) {
+	s.SourceSlotId = val
+}
+
+// SetStorageClass sets the value of StorageClass.
+func (s *UploadRuntimeSessionOK) SetStorageClass(val string) {
+	s.StorageClass = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *UploadRuntimeSessionOK) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *UploadRuntimeSessionOK) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUploadedAt sets the value of UploadedAt.
+func (s *UploadRuntimeSessionOK) SetUploadedAt(val time.Time) {
+	s.UploadedAt = val
+}
+
+func (*UploadRuntimeSessionOK) uploadRuntimeSessionRes() {}
+
+// UploadRuntimeSessionOKCheckpointKind represents sum type.
+type UploadRuntimeSessionOKCheckpointKind struct {
+	// Type selects the active sum variant, switch on this field.
+	Type                                  UploadRuntimeSessionOKCheckpointKindType
+	UploadRuntimeSessionOKCheckpointKind0 UploadRuntimeSessionOKCheckpointKind0
+}
+
+// UploadRuntimeSessionOKCheckpointKindType is oneOf type of UploadRuntimeSessionOKCheckpointKind.
+type UploadRuntimeSessionOKCheckpointKindType string
+
+// Possible values for UploadRuntimeSessionOKCheckpointKindType.
+const (
+	UploadRuntimeSessionOKCheckpointKind0UploadRuntimeSessionOKCheckpointKind UploadRuntimeSessionOKCheckpointKindType = "UploadRuntimeSessionOKCheckpointKind0"
+)
+
+// IsUploadRuntimeSessionOKCheckpointKind0 reports whether UploadRuntimeSessionOKCheckpointKind is UploadRuntimeSessionOKCheckpointKind0.
+func (s UploadRuntimeSessionOKCheckpointKind) IsUploadRuntimeSessionOKCheckpointKind0() bool {
+	return s.Type == UploadRuntimeSessionOKCheckpointKind0UploadRuntimeSessionOKCheckpointKind
+}
+
+// SetUploadRuntimeSessionOKCheckpointKind0 sets UploadRuntimeSessionOKCheckpointKind to UploadRuntimeSessionOKCheckpointKind0.
+func (s *UploadRuntimeSessionOKCheckpointKind) SetUploadRuntimeSessionOKCheckpointKind0(v UploadRuntimeSessionOKCheckpointKind0) {
+	s.Type = UploadRuntimeSessionOKCheckpointKind0UploadRuntimeSessionOKCheckpointKind
+	s.UploadRuntimeSessionOKCheckpointKind0 = v
+}
+
+// GetUploadRuntimeSessionOKCheckpointKind0 returns UploadRuntimeSessionOKCheckpointKind0 and true boolean if UploadRuntimeSessionOKCheckpointKind is UploadRuntimeSessionOKCheckpointKind0.
+func (s UploadRuntimeSessionOKCheckpointKind) GetUploadRuntimeSessionOKCheckpointKind0() (v UploadRuntimeSessionOKCheckpointKind0, ok bool) {
+	if !s.IsUploadRuntimeSessionOKCheckpointKind0() {
+		return v, false
+	}
+	return s.UploadRuntimeSessionOKCheckpointKind0, true
+}
+
+// NewUploadRuntimeSessionOKCheckpointKind0UploadRuntimeSessionOKCheckpointKind returns new UploadRuntimeSessionOKCheckpointKind from UploadRuntimeSessionOKCheckpointKind0.
+func NewUploadRuntimeSessionOKCheckpointKind0UploadRuntimeSessionOKCheckpointKind(v UploadRuntimeSessionOKCheckpointKind0) UploadRuntimeSessionOKCheckpointKind {
+	var s UploadRuntimeSessionOKCheckpointKind
+	s.SetUploadRuntimeSessionOKCheckpointKind0(v)
+	return s
+}
+
+type UploadRuntimeSessionOKCheckpointKind0 string
+
+const (
+	UploadRuntimeSessionOKCheckpointKind0AttemptFinal UploadRuntimeSessionOKCheckpointKind0 = "attempt_final"
+)
+
+// AllValues returns all UploadRuntimeSessionOKCheckpointKind0 values.
+func (UploadRuntimeSessionOKCheckpointKind0) AllValues() []UploadRuntimeSessionOKCheckpointKind0 {
+	return []UploadRuntimeSessionOKCheckpointKind0{
+		UploadRuntimeSessionOKCheckpointKind0AttemptFinal,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UploadRuntimeSessionOKCheckpointKind0) MarshalText() ([]byte, error) {
+	switch s {
+	case UploadRuntimeSessionOKCheckpointKind0AttemptFinal:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UploadRuntimeSessionOKCheckpointKind0) UnmarshalText(data []byte) error {
+	switch UploadRuntimeSessionOKCheckpointKind0(data) {
+	case UploadRuntimeSessionOKCheckpointKind0AttemptFinal:
+		*s = UploadRuntimeSessionOKCheckpointKind0AttemptFinal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UploadRuntimeSessionOKSessionKind string
+
+const (
+	UploadRuntimeSessionOKSessionKindRoot   UploadRuntimeSessionOKSessionKind = "root"
+	UploadRuntimeSessionOKSessionKindExtend UploadRuntimeSessionOKSessionKind = "extend"
+	UploadRuntimeSessionOKSessionKindFork   UploadRuntimeSessionOKSessionKind = "fork"
+)
+
+// AllValues returns all UploadRuntimeSessionOKSessionKind values.
+func (UploadRuntimeSessionOKSessionKind) AllValues() []UploadRuntimeSessionOKSessionKind {
+	return []UploadRuntimeSessionOKSessionKind{
+		UploadRuntimeSessionOKSessionKindRoot,
+		UploadRuntimeSessionOKSessionKindExtend,
+		UploadRuntimeSessionOKSessionKindFork,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UploadRuntimeSessionOKSessionKind) MarshalText() ([]byte, error) {
+	switch s {
+	case UploadRuntimeSessionOKSessionKindRoot:
+		return []byte(s), nil
+	case UploadRuntimeSessionOKSessionKindExtend:
+		return []byte(s), nil
+	case UploadRuntimeSessionOKSessionKindFork:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UploadRuntimeSessionOKSessionKind) UnmarshalText(data []byte) error {
+	switch UploadRuntimeSessionOKSessionKind(data) {
+	case UploadRuntimeSessionOKSessionKindRoot:
+		*s = UploadRuntimeSessionOKSessionKindRoot
+		return nil
+	case UploadRuntimeSessionOKSessionKindExtend:
+		*s = UploadRuntimeSessionOKSessionKindExtend
+		return nil
+	case UploadRuntimeSessionOKSessionKindFork:
+		*s = UploadRuntimeSessionOKSessionKindFork
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UploadRuntimeSessionReq struct {
+	ContentBase64          string                             `json:"contentBase64"`
+	ParentSessionId        OptUUID                            `json:"parentSessionId"`
+	SessionKind            UploadRuntimeSessionReqSessionKind `json:"sessionKind"`
+	SourceRuntimeProfileId OptUUID                            `json:"sourceRuntimeProfileId"`
+	SourceSlotId           OptUUID                            `json:"sourceSlotId"`
+}
+
+// GetContentBase64 returns the value of ContentBase64.
+func (s *UploadRuntimeSessionReq) GetContentBase64() string {
+	return s.ContentBase64
+}
+
+// GetParentSessionId returns the value of ParentSessionId.
+func (s *UploadRuntimeSessionReq) GetParentSessionId() OptUUID {
+	return s.ParentSessionId
+}
+
+// GetSessionKind returns the value of SessionKind.
+func (s *UploadRuntimeSessionReq) GetSessionKind() UploadRuntimeSessionReqSessionKind {
+	return s.SessionKind
+}
+
+// GetSourceRuntimeProfileId returns the value of SourceRuntimeProfileId.
+func (s *UploadRuntimeSessionReq) GetSourceRuntimeProfileId() OptUUID {
+	return s.SourceRuntimeProfileId
+}
+
+// GetSourceSlotId returns the value of SourceSlotId.
+func (s *UploadRuntimeSessionReq) GetSourceSlotId() OptUUID {
+	return s.SourceSlotId
+}
+
+// SetContentBase64 sets the value of ContentBase64.
+func (s *UploadRuntimeSessionReq) SetContentBase64(val string) {
+	s.ContentBase64 = val
+}
+
+// SetParentSessionId sets the value of ParentSessionId.
+func (s *UploadRuntimeSessionReq) SetParentSessionId(val OptUUID) {
+	s.ParentSessionId = val
+}
+
+// SetSessionKind sets the value of SessionKind.
+func (s *UploadRuntimeSessionReq) SetSessionKind(val UploadRuntimeSessionReqSessionKind) {
+	s.SessionKind = val
+}
+
+// SetSourceRuntimeProfileId sets the value of SourceRuntimeProfileId.
+func (s *UploadRuntimeSessionReq) SetSourceRuntimeProfileId(val OptUUID) {
+	s.SourceRuntimeProfileId = val
+}
+
+// SetSourceSlotId sets the value of SourceSlotId.
+func (s *UploadRuntimeSessionReq) SetSourceSlotId(val OptUUID) {
+	s.SourceSlotId = val
+}
+
+type UploadRuntimeSessionReqSessionKind string
+
+const (
+	UploadRuntimeSessionReqSessionKindRoot   UploadRuntimeSessionReqSessionKind = "root"
+	UploadRuntimeSessionReqSessionKindExtend UploadRuntimeSessionReqSessionKind = "extend"
+	UploadRuntimeSessionReqSessionKindFork   UploadRuntimeSessionReqSessionKind = "fork"
+)
+
+// AllValues returns all UploadRuntimeSessionReqSessionKind values.
+func (UploadRuntimeSessionReqSessionKind) AllValues() []UploadRuntimeSessionReqSessionKind {
+	return []UploadRuntimeSessionReqSessionKind{
+		UploadRuntimeSessionReqSessionKindRoot,
+		UploadRuntimeSessionReqSessionKindExtend,
+		UploadRuntimeSessionReqSessionKindFork,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UploadRuntimeSessionReqSessionKind) MarshalText() ([]byte, error) {
+	switch s {
+	case UploadRuntimeSessionReqSessionKindRoot:
+		return []byte(s), nil
+	case UploadRuntimeSessionReqSessionKindExtend:
+		return []byte(s), nil
+	case UploadRuntimeSessionReqSessionKindFork:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UploadRuntimeSessionReqSessionKind) UnmarshalText(data []byte) error {
+	switch UploadRuntimeSessionReqSessionKind(data) {
+	case UploadRuntimeSessionReqSessionKindRoot:
+		*s = UploadRuntimeSessionReqSessionKindRoot
+		return nil
+	case UploadRuntimeSessionReqSessionKindExtend:
+		*s = UploadRuntimeSessionReqSessionKindExtend
+		return nil
+	case UploadRuntimeSessionReqSessionKindFork:
+		*s = UploadRuntimeSessionReqSessionKindFork
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UploadRuntimeSessionServiceUnavailable struct {
+	Code            UploadRuntimeSessionServiceUnavailableCode `json:"code"`
+	Detail          OptString                                  `json:"detail"`
+	Instance        OptString                                  `json:"instance"`
+	Status          int                                        `json:"status"`
+	Title           string                                     `json:"title"`
+	Type            url.URL                                    `json:"type"`
+	AdditionalProps UploadRuntimeSessionServiceUnavailableAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *UploadRuntimeSessionServiceUnavailable) GetCode() UploadRuntimeSessionServiceUnavailableCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *UploadRuntimeSessionServiceUnavailable) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *UploadRuntimeSessionServiceUnavailable) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *UploadRuntimeSessionServiceUnavailable) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *UploadRuntimeSessionServiceUnavailable) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *UploadRuntimeSessionServiceUnavailable) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *UploadRuntimeSessionServiceUnavailable) GetAdditionalProps() UploadRuntimeSessionServiceUnavailableAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *UploadRuntimeSessionServiceUnavailable) SetCode(val UploadRuntimeSessionServiceUnavailableCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *UploadRuntimeSessionServiceUnavailable) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *UploadRuntimeSessionServiceUnavailable) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *UploadRuntimeSessionServiceUnavailable) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *UploadRuntimeSessionServiceUnavailable) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *UploadRuntimeSessionServiceUnavailable) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *UploadRuntimeSessionServiceUnavailable) SetAdditionalProps(val UploadRuntimeSessionServiceUnavailableAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*UploadRuntimeSessionServiceUnavailable) uploadRuntimeSessionRes() {}
+
+type UploadRuntimeSessionServiceUnavailableAdditional map[string]jx.Raw
+
+func (s *UploadRuntimeSessionServiceUnavailableAdditional) init() UploadRuntimeSessionServiceUnavailableAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type UploadRuntimeSessionServiceUnavailableCode string
+
+const (
+	UploadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED                   UploadRuntimeSessionServiceUnavailableCode = "UNAUTHORIZED"
+	UploadRuntimeSessionServiceUnavailableCodeFORBIDDEN                      UploadRuntimeSessionServiceUnavailableCode = "FORBIDDEN"
+	UploadRuntimeSessionServiceUnavailableCodeNOTFOUND                       UploadRuntimeSessionServiceUnavailableCode = "NOT_FOUND"
+	UploadRuntimeSessionServiceUnavailableCodeCONFLICT                       UploadRuntimeSessionServiceUnavailableCode = "CONFLICT"
+	UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED               UploadRuntimeSessionServiceUnavailableCode = "VALIDATION_FAILED"
+	UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE               UploadRuntimeSessionServiceUnavailableCode = "INVALID_CHALLENGE"
+	UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE               UploadRuntimeSessionServiceUnavailableCode = "INVALID_SIGNATURE"
+	UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT                   UploadRuntimeSessionServiceUnavailableCode = "VOUCHER_LIMIT"
+	UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED              UploadRuntimeSessionServiceUnavailableCode = "RATE_LIMIT_EXCEEDED"
+	UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
+	UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
+	UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED             UploadRuntimeSessionServiceUnavailableCode = "REGISTRATION_FAILED"
+	UploadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR                  UploadRuntimeSessionServiceUnavailableCode = "UPSTREAM_ERROR"
+	UploadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE             UploadRuntimeSessionServiceUnavailableCode = "SERVICE_UNAVAILABLE"
+	UploadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR            UploadRuntimeSessionServiceUnavailableCode = "INTERNAL_SERVER_ERROR"
+	UploadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE          UploadRuntimeSessionServiceUnavailableCode = "TEAM_PERSONAL_IMMUTABLE"
+	UploadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE                  UploadRuntimeSessionServiceUnavailableCode = "TEAM_NOT_ACTIVE"
+	UploadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED                  UploadRuntimeSessionServiceUnavailableCode = "INVITE_EXPIRED"
+	UploadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED                UploadRuntimeSessionServiceUnavailableCode = "INVITE_EXHAUSTED"
+	UploadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER                  UploadRuntimeSessionServiceUnavailableCode = "TEAM_LAST_OWNER"
+	UploadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE              UploadRuntimeSessionServiceUnavailableCode = "TEAM_ALREADY_ACTIVE"
+	UploadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING                UploadRuntimeSessionServiceUnavailableCode = "TEAM_NOT_FOUNDING"
+	UploadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED        UploadRuntimeSessionServiceUnavailableCode = "FOUNDING_ALREADY_ACCEPTED"
+	UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING           UploadRuntimeSessionServiceUnavailableCode = "DIARY_TRANSFER_PENDING"
+	UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND          UploadRuntimeSessionServiceUnavailableCode = "DIARY_TRANSFER_NOT_FOUND"
+	UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED   UploadRuntimeSessionServiceUnavailableCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all UploadRuntimeSessionServiceUnavailableCode values.
+func (UploadRuntimeSessionServiceUnavailableCode) AllValues() []UploadRuntimeSessionServiceUnavailableCode {
+	return []UploadRuntimeSessionServiceUnavailableCode{
+		UploadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED,
+		UploadRuntimeSessionServiceUnavailableCodeFORBIDDEN,
+		UploadRuntimeSessionServiceUnavailableCodeNOTFOUND,
+		UploadRuntimeSessionServiceUnavailableCodeCONFLICT,
+		UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED,
+		UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE,
+		UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE,
+		UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT,
+		UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED,
+		UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
+		UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
+		UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED,
+		UploadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR,
+		UploadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE,
+		UploadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR,
+		UploadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE,
+		UploadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE,
+		UploadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED,
+		UploadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED,
+		UploadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER,
+		UploadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE,
+		UploadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING,
+		UploadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED,
+		UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING,
+		UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND,
+		UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UploadRuntimeSessionServiceUnavailableCode) MarshalText() ([]byte, error) {
+	switch s {
+	case UploadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeFORBIDDEN:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UploadRuntimeSessionServiceUnavailableCode) UnmarshalText(data []byte) error {
+	switch UploadRuntimeSessionServiceUnavailableCode(data) {
+	case UploadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeFORBIDDEN:
+		*s = UploadRuntimeSessionServiceUnavailableCodeFORBIDDEN
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeNOTFOUND:
+		*s = UploadRuntimeSessionServiceUnavailableCodeNOTFOUND
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeCONFLICT:
+		*s = UploadRuntimeSessionServiceUnavailableCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UploadRuntimeSessionUnauthorized struct {
+	Code            UploadRuntimeSessionUnauthorizedCode `json:"code"`
+	Detail          OptString                            `json:"detail"`
+	Instance        OptString                            `json:"instance"`
+	Status          int                                  `json:"status"`
+	Title           string                               `json:"title"`
+	Type            url.URL                              `json:"type"`
+	AdditionalProps UploadRuntimeSessionUnauthorizedAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *UploadRuntimeSessionUnauthorized) GetCode() UploadRuntimeSessionUnauthorizedCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *UploadRuntimeSessionUnauthorized) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *UploadRuntimeSessionUnauthorized) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *UploadRuntimeSessionUnauthorized) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *UploadRuntimeSessionUnauthorized) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *UploadRuntimeSessionUnauthorized) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *UploadRuntimeSessionUnauthorized) GetAdditionalProps() UploadRuntimeSessionUnauthorizedAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *UploadRuntimeSessionUnauthorized) SetCode(val UploadRuntimeSessionUnauthorizedCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *UploadRuntimeSessionUnauthorized) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *UploadRuntimeSessionUnauthorized) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *UploadRuntimeSessionUnauthorized) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *UploadRuntimeSessionUnauthorized) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *UploadRuntimeSessionUnauthorized) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *UploadRuntimeSessionUnauthorized) SetAdditionalProps(val UploadRuntimeSessionUnauthorizedAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*UploadRuntimeSessionUnauthorized) uploadRuntimeSessionRes() {}
+
+type UploadRuntimeSessionUnauthorizedAdditional map[string]jx.Raw
+
+func (s *UploadRuntimeSessionUnauthorizedAdditional) init() UploadRuntimeSessionUnauthorizedAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type UploadRuntimeSessionUnauthorizedCode string
+
+const (
+	UploadRuntimeSessionUnauthorizedCodeUNAUTHORIZED                   UploadRuntimeSessionUnauthorizedCode = "UNAUTHORIZED"
+	UploadRuntimeSessionUnauthorizedCodeFORBIDDEN                      UploadRuntimeSessionUnauthorizedCode = "FORBIDDEN"
+	UploadRuntimeSessionUnauthorizedCodeNOTFOUND                       UploadRuntimeSessionUnauthorizedCode = "NOT_FOUND"
+	UploadRuntimeSessionUnauthorizedCodeCONFLICT                       UploadRuntimeSessionUnauthorizedCode = "CONFLICT"
+	UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED               UploadRuntimeSessionUnauthorizedCode = "VALIDATION_FAILED"
+	UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE               UploadRuntimeSessionUnauthorizedCode = "INVALID_CHALLENGE"
+	UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE               UploadRuntimeSessionUnauthorizedCode = "INVALID_SIGNATURE"
+	UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT                   UploadRuntimeSessionUnauthorizedCode = "VOUCHER_LIMIT"
+	UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED              UploadRuntimeSessionUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
+	UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
+	UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
+	UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED             UploadRuntimeSessionUnauthorizedCode = "REGISTRATION_FAILED"
+	UploadRuntimeSessionUnauthorizedCodeUPSTREAMERROR                  UploadRuntimeSessionUnauthorizedCode = "UPSTREAM_ERROR"
+	UploadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE             UploadRuntimeSessionUnauthorizedCode = "SERVICE_UNAVAILABLE"
+	UploadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR            UploadRuntimeSessionUnauthorizedCode = "INTERNAL_SERVER_ERROR"
+	UploadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE          UploadRuntimeSessionUnauthorizedCode = "TEAM_PERSONAL_IMMUTABLE"
+	UploadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE                  UploadRuntimeSessionUnauthorizedCode = "TEAM_NOT_ACTIVE"
+	UploadRuntimeSessionUnauthorizedCodeINVITEEXPIRED                  UploadRuntimeSessionUnauthorizedCode = "INVITE_EXPIRED"
+	UploadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED                UploadRuntimeSessionUnauthorizedCode = "INVITE_EXHAUSTED"
+	UploadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER                  UploadRuntimeSessionUnauthorizedCode = "TEAM_LAST_OWNER"
+	UploadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE              UploadRuntimeSessionUnauthorizedCode = "TEAM_ALREADY_ACTIVE"
+	UploadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING                UploadRuntimeSessionUnauthorizedCode = "TEAM_NOT_FOUNDING"
+	UploadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED        UploadRuntimeSessionUnauthorizedCode = "FOUNDING_ALREADY_ACCEPTED"
+	UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING           UploadRuntimeSessionUnauthorizedCode = "DIARY_TRANSFER_PENDING"
+	UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND          UploadRuntimeSessionUnauthorizedCode = "DIARY_TRANSFER_NOT_FOUND"
+	UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED   UploadRuntimeSessionUnauthorizedCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all UploadRuntimeSessionUnauthorizedCode values.
+func (UploadRuntimeSessionUnauthorizedCode) AllValues() []UploadRuntimeSessionUnauthorizedCode {
+	return []UploadRuntimeSessionUnauthorizedCode{
+		UploadRuntimeSessionUnauthorizedCodeUNAUTHORIZED,
+		UploadRuntimeSessionUnauthorizedCodeFORBIDDEN,
+		UploadRuntimeSessionUnauthorizedCodeNOTFOUND,
+		UploadRuntimeSessionUnauthorizedCodeCONFLICT,
+		UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED,
+		UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE,
+		UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE,
+		UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT,
+		UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED,
+		UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED,
+		UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED,
+		UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED,
+		UploadRuntimeSessionUnauthorizedCodeUPSTREAMERROR,
+		UploadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE,
+		UploadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR,
+		UploadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE,
+		UploadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE,
+		UploadRuntimeSessionUnauthorizedCodeINVITEEXPIRED,
+		UploadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED,
+		UploadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER,
+		UploadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE,
+		UploadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING,
+		UploadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED,
+		UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING,
+		UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND,
+		UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UploadRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
+	switch s {
+	case UploadRuntimeSessionUnauthorizedCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeFORBIDDEN:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UploadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error {
+	switch UploadRuntimeSessionUnauthorizedCode(data) {
+	case UploadRuntimeSessionUnauthorizedCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionUnauthorizedCodeUNAUTHORIZED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeFORBIDDEN:
+		*s = UploadRuntimeSessionUnauthorizedCodeFORBIDDEN
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeNOTFOUND:
+		*s = UploadRuntimeSessionUnauthorizedCodeNOTFOUND
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeCONFLICT:
+		*s = UploadRuntimeSessionUnauthorizedCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionUnauthorizedCodeUPSTREAMERROR
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionUnauthorizedCodeINVITEEXPIRED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // Merged schema.
 // Ref: #/components/schemas/ValidationProblemDetails

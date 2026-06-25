@@ -316,6 +316,15 @@ func (UnimplementedHandler) DiffContextPacksById(ctx context.Context, params Dif
 	return r, ht.ErrNotImplemented
 }
 
+// DownloadRuntimeSession implements downloadRuntimeSession operation.
+//
+// Download the durable team-scoped runtime session content for a task attempt.
+//
+// GET /runtime-sessions/{taskId}/{attemptN}/content
+func (UnimplementedHandler) DownloadRuntimeSession(ctx context.Context, params DownloadRuntimeSessionParams) (r DownloadRuntimeSessionRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // FailTask implements failTask operation.
 //
 // Mark an attempt as failed with error details.
@@ -533,6 +542,15 @@ func (UnimplementedHandler) GetRuntimeModel(ctx context.Context, params GetRunti
 //
 // GET /runtime-profiles/{profileId}
 func (UnimplementedHandler) GetRuntimeProfile(ctx context.Context, params GetRuntimeProfileParams) (r GetRuntimeProfileRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetRuntimeSession implements getRuntimeSession operation.
+//
+// Get metadata for the durable team-scoped runtime session for a task attempt.
+//
+// GET /runtime-sessions/{taskId}/{attemptN}
+func (UnimplementedHandler) GetRuntimeSession(ctx context.Context, params GetRuntimeSessionParams) (r GetRuntimeSessionRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1044,6 +1062,15 @@ func (UnimplementedHandler) UpdateTaskMetadata(ctx context.Context, req OptUpdat
 //
 // PATCH /teams/{id}/members/{subjectId}
 func (UnimplementedHandler) UpdateTeamMemberRole(ctx context.Context, req *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (r UpdateTeamMemberRoleRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UploadRuntimeSession implements uploadRuntimeSession operation.
+//
+// Upload or replace the durable team-scoped runtime session for a task attempt.
+//
+// PUT /runtime-sessions/{taskId}/{attemptN}
+func (UnimplementedHandler) UploadRuntimeSession(ctx context.Context, req *UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (r UploadRuntimeSessionRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

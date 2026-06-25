@@ -102,6 +102,9 @@ import type {
   DiffContextPacksByIdData,
   DiffContextPacksByIdErrors,
   DiffContextPacksByIdResponses,
+  DownloadRuntimeSessionData,
+  DownloadRuntimeSessionErrors,
+  DownloadRuntimeSessionResponses,
   FailTaskData,
   FailTaskErrors,
   FailTaskResponses,
@@ -170,6 +173,9 @@ import type {
   GetRuntimeProfileData,
   GetRuntimeProfileErrors,
   GetRuntimeProfileResponses,
+  GetRuntimeSessionData,
+  GetRuntimeSessionErrors,
+  GetRuntimeSessionResponses,
   GetSigningRequestData,
   GetSigningRequestErrors,
   GetSigningRequestResponses,
@@ -334,6 +340,9 @@ import type {
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleErrors,
   UpdateTeamMemberRoleResponses,
+  UploadRuntimeSessionData,
+  UploadRuntimeSessionErrors,
+  UploadRuntimeSessionResponses,
   VerifyAgentSignatureData,
   VerifyAgentSignatureErrors,
   VerifyAgentSignatureResponses,
@@ -2161,6 +2170,82 @@ export const updateRuntimeProfile = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Get metadata for the durable team-scoped runtime session for a task attempt.
+ */
+export const getRuntimeSession = <ThrowOnError extends boolean = false>(
+  options: Options<GetRuntimeSessionData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetRuntimeSessionResponses,
+    GetRuntimeSessionErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-sessions/{taskId}/{attemptN}',
+    ...options,
+  });
+
+/**
+ * Upload or replace the durable team-scoped runtime session for a task attempt.
+ */
+export const uploadRuntimeSession = <ThrowOnError extends boolean = false>(
+  options: Options<UploadRuntimeSessionData, ThrowOnError>,
+) =>
+  (options.client ?? client).put<
+    UploadRuntimeSessionResponses,
+    UploadRuntimeSessionErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-sessions/{taskId}/{attemptN}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Download the durable team-scoped runtime session content for a task attempt.
+ */
+export const downloadRuntimeSession = <ThrowOnError extends boolean = false>(
+  options: Options<DownloadRuntimeSessionData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DownloadRuntimeSessionResponses,
+    DownloadRuntimeSessionErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-sessions/{taskId}/{attemptN}/content',
+    ...options,
   });
 
 /**

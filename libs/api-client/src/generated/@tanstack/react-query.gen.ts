@@ -43,6 +43,7 @@ import {
   deleteTeamInvite,
   diffContextPacksByCid,
   diffContextPacksById,
+  downloadRuntimeSession,
   failTask,
   findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
@@ -67,6 +68,7 @@ import {
   getRenderedPackById,
   getRuntimeModel,
   getRuntimeProfile,
+  getRuntimeSession,
   getSigningRequest,
   getTask,
   getTeam,
@@ -123,6 +125,7 @@ import {
   updateRuntimeProfile,
   updateTaskMetadata,
   updateTeamMemberRole,
+  uploadRuntimeSession,
   verifyAgentSignature,
   verifyCryptoSignature,
   verifyDiaryEntryById,
@@ -228,6 +231,9 @@ import type {
   DiffContextPacksByIdData,
   DiffContextPacksByIdError,
   DiffContextPacksByIdResponse,
+  DownloadRuntimeSessionData,
+  DownloadRuntimeSessionError,
+  DownloadRuntimeSessionResponse2,
   FailTaskData,
   FailTaskError,
   FailTaskResponse,
@@ -295,6 +301,9 @@ import type {
   GetRuntimeProfileData,
   GetRuntimeProfileError,
   GetRuntimeProfileResponse,
+  GetRuntimeSessionData,
+  GetRuntimeSessionError,
+  GetRuntimeSessionResponse,
   GetSigningRequestData,
   GetSigningRequestError,
   GetSigningRequestResponse,
@@ -459,6 +468,9 @@ import type {
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleError,
   UpdateTeamMemberRoleResponse,
+  UploadRuntimeSessionData,
+  UploadRuntimeSessionError,
+  UploadRuntimeSessionResponse,
   VerifyAgentSignatureData,
   VerifyAgentSignatureError,
   VerifyAgentSignatureResponse,
@@ -2996,6 +3008,89 @@ export const updateRuntimeProfileMutation = (
   };
   return mutationOptions;
 };
+
+export const getRuntimeSessionQueryKey = (
+  options: Options<GetRuntimeSessionData>,
+) => createQueryKey('getRuntimeSession', options);
+
+/**
+ * Get metadata for the durable team-scoped runtime session for a task attempt.
+ */
+export const getRuntimeSessionOptions = (
+  options: Options<GetRuntimeSessionData>,
+) =>
+  queryOptions<
+    GetRuntimeSessionResponse,
+    GetRuntimeSessionError,
+    GetRuntimeSessionResponse,
+    ReturnType<typeof getRuntimeSessionQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getRuntimeSession({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getRuntimeSessionQueryKey(options),
+  });
+
+/**
+ * Upload or replace the durable team-scoped runtime session for a task attempt.
+ */
+export const uploadRuntimeSessionMutation = (
+  options?: Partial<Options<UploadRuntimeSessionData>>,
+): UseMutationOptions<
+  UploadRuntimeSessionResponse,
+  UploadRuntimeSessionError,
+  Options<UploadRuntimeSessionData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UploadRuntimeSessionResponse,
+    UploadRuntimeSessionError,
+    Options<UploadRuntimeSessionData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await uploadRuntimeSession({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const downloadRuntimeSessionQueryKey = (
+  options: Options<DownloadRuntimeSessionData>,
+) => createQueryKey('downloadRuntimeSession', options);
+
+/**
+ * Download the durable team-scoped runtime session content for a task attempt.
+ */
+export const downloadRuntimeSessionOptions = (
+  options: Options<DownloadRuntimeSessionData>,
+) =>
+  queryOptions<
+    DownloadRuntimeSessionResponse2,
+    DownloadRuntimeSessionError,
+    DownloadRuntimeSessionResponse2,
+    ReturnType<typeof downloadRuntimeSessionQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await downloadRuntimeSession({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: downloadRuntimeSessionQueryKey(options),
+  });
 
 /**
  * Upsert a team-scoped runtime slot for audit and continuation affinity lookup.

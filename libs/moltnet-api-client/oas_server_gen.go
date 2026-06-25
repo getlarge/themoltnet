@@ -212,6 +212,12 @@ type Handler interface {
 	//
 	// GET /packs/{id}/diff/{otherId}
 	DiffContextPacksById(ctx context.Context, params DiffContextPacksByIdParams) (DiffContextPacksByIdRes, error)
+	// DownloadRuntimeSession implements downloadRuntimeSession operation.
+	//
+	// Download the durable team-scoped runtime session content for a task attempt.
+	//
+	// GET /runtime-sessions/{taskId}/{attemptN}/content
+	DownloadRuntimeSession(ctx context.Context, params DownloadRuntimeSessionParams) (DownloadRuntimeSessionRes, error)
 	// FailTask implements failTask operation.
 	//
 	// Mark an attempt as failed with error details.
@@ -360,6 +366,12 @@ type Handler interface {
 	//
 	// GET /runtime-profiles/{profileId}
 	GetRuntimeProfile(ctx context.Context, params GetRuntimeProfileParams) (GetRuntimeProfileRes, error)
+	// GetRuntimeSession implements getRuntimeSession operation.
+	//
+	// Get metadata for the durable team-scoped runtime session for a task attempt.
+	//
+	// GET /runtime-sessions/{taskId}/{attemptN}
+	GetRuntimeSession(ctx context.Context, params GetRuntimeSessionParams) (GetRuntimeSessionRes, error)
 	// GetSigningRequest implements getSigningRequest operation.
 	//
 	// Get a specific signing request by ID.
@@ -705,6 +717,12 @@ type Handler interface {
 	//
 	// PATCH /teams/{id}/members/{subjectId}
 	UpdateTeamMemberRole(ctx context.Context, req *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (UpdateTeamMemberRoleRes, error)
+	// UploadRuntimeSession implements uploadRuntimeSession operation.
+	//
+	// Upload or replace the durable team-scoped runtime session for a task attempt.
+	//
+	// PUT /runtime-sessions/{taskId}/{attemptN}
+	UploadRuntimeSession(ctx context.Context, req *UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error)
 	// VerifyAgentSignature implements verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.

@@ -133,6 +133,10 @@ type DiffContextPacksByIdRes interface {
 	diffContextPacksByIdRes()
 }
 
+type DownloadRuntimeSessionRes interface {
+	downloadRuntimeSessionRes()
+}
+
 type FailTaskRes interface {
 	failTaskRes()
 }
@@ -211,6 +215,10 @@ type GetRuntimeModelRes interface {
 
 type GetRuntimeProfileRes interface {
 	getRuntimeProfileRes()
+}
+
+type GetRuntimeSessionRes interface {
+	getRuntimeSessionRes()
 }
 
 type GetSigningRequestRes interface {
@@ -427,6 +435,10 @@ type UpdateTaskMetadataRes interface {
 
 type UpdateTeamMemberRoleRes interface {
 	updateTeamMemberRoleRes()
+}
+
+type UploadRuntimeSessionRes interface {
+	uploadRuntimeSessionRes()
 }
 
 type VerifyAgentSignatureRes interface {

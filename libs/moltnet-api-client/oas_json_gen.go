@@ -25089,6 +25089,2463 @@ func (s *DiffContextPacksByIdUnauthorized) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *DownloadRuntimeSessionBadRequest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadRuntimeSessionBadRequest) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("errors")
+		e.ArrStart()
+		for _, elem := range s.Errors {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfDownloadRuntimeSessionBadRequest = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "errors",
+}
+
+// Decode decodes DownloadRuntimeSessionBadRequest from json.
+func (s *DownloadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionBadRequest to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "errors":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				s.Errors = make([]DownloadRuntimeSessionBadRequestErrorsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem DownloadRuntimeSessionBadRequestErrorsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Errors = append(s.Errors, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"errors\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionBadRequest")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadRuntimeSessionBadRequest) {
+					name = jsonFieldsNameOfDownloadRuntimeSessionBadRequest[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadRuntimeSessionBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DownloadRuntimeSessionBadRequestAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DownloadRuntimeSessionBadRequestAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes DownloadRuntimeSessionBadRequestAdditional from json.
+func (s *DownloadRuntimeSessionBadRequestAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionBadRequestAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionBadRequestAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionBadRequestAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionBadRequestAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadRuntimeSessionBadRequestCode as json.
+func (s DownloadRuntimeSessionBadRequestCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadRuntimeSessionBadRequestCode from json.
+func (s *DownloadRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionBadRequestCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadRuntimeSessionBadRequestCode(v) {
+	case DownloadRuntimeSessionBadRequestCodeUNAUTHORIZED:
+		*s = DownloadRuntimeSessionBadRequestCodeUNAUTHORIZED
+	case DownloadRuntimeSessionBadRequestCodeFORBIDDEN:
+		*s = DownloadRuntimeSessionBadRequestCodeFORBIDDEN
+	case DownloadRuntimeSessionBadRequestCodeNOTFOUND:
+		*s = DownloadRuntimeSessionBadRequestCodeNOTFOUND
+	case DownloadRuntimeSessionBadRequestCodeCONFLICT:
+		*s = DownloadRuntimeSessionBadRequestCodeCONFLICT
+	case DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
+		*s = DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED
+	case DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
+		*s = DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE
+	case DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
+		*s = DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE
+	case DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT:
+		*s = DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT
+	case DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
+		*s = DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED
+	case DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED
+	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED
+	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
+		*s = DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED
+	case DownloadRuntimeSessionBadRequestCodeUPSTREAMERROR:
+		*s = DownloadRuntimeSessionBadRequestCodeUPSTREAMERROR
+	case DownloadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE:
+		*s = DownloadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE
+	case DownloadRuntimeSessionBadRequestCodeINTERNALSERVERERROR:
+		*s = DownloadRuntimeSessionBadRequestCodeINTERNALSERVERERROR
+	case DownloadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE
+	case DownloadRuntimeSessionBadRequestCodeTEAMNOTACTIVE:
+		*s = DownloadRuntimeSessionBadRequestCodeTEAMNOTACTIVE
+	case DownloadRuntimeSessionBadRequestCodeINVITEEXPIRED:
+		*s = DownloadRuntimeSessionBadRequestCodeINVITEEXPIRED
+	case DownloadRuntimeSessionBadRequestCodeINVITEEXHAUSTED:
+		*s = DownloadRuntimeSessionBadRequestCodeINVITEEXHAUSTED
+	case DownloadRuntimeSessionBadRequestCodeTEAMLASTOWNER:
+		*s = DownloadRuntimeSessionBadRequestCodeTEAMLASTOWNER
+	case DownloadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE:
+		*s = DownloadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE
+	case DownloadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING:
+		*s = DownloadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING
+	case DownloadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED
+	case DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING:
+		*s = DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING
+	case DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND
+	case DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = DownloadRuntimeSessionBadRequestCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionBadRequestCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionBadRequestCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) encodeFields(e *jx.Encoder) {
+	{
+		if s.Code.Set {
+			e.FieldStart("code")
+			s.Code.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("field")
+		e.Str(s.Field)
+	}
+	{
+		e.FieldStart("message")
+		e.Str(s.Message)
+	}
+}
+
+var jsonFieldsNameOfDownloadRuntimeSessionBadRequestErrorsItem = [3]string{
+	0: "code",
+	1: "field",
+	2: "message",
+}
+
+// Decode decodes DownloadRuntimeSessionBadRequestErrorsItem from json.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionBadRequestErrorsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			if err := func() error {
+				s.Code.Reset()
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "field":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Field = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"field\"")
+			}
+		case "message":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Message = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"message\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionBadRequestErrorsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadRuntimeSessionBadRequestErrorsItem) {
+					name = jsonFieldsNameOfDownloadRuntimeSessionBadRequestErrorsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionBadRequestErrorsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadRuntimeSessionForbidden) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadRuntimeSessionForbidden) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfDownloadRuntimeSessionForbidden = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes DownloadRuntimeSessionForbidden from json.
+func (s *DownloadRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionForbidden to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionForbidden")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadRuntimeSessionForbidden) {
+					name = jsonFieldsNameOfDownloadRuntimeSessionForbidden[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadRuntimeSessionForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DownloadRuntimeSessionForbiddenAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DownloadRuntimeSessionForbiddenAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes DownloadRuntimeSessionForbiddenAdditional from json.
+func (s *DownloadRuntimeSessionForbiddenAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionForbiddenAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionForbiddenAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionForbiddenAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionForbiddenAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadRuntimeSessionForbiddenCode as json.
+func (s DownloadRuntimeSessionForbiddenCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadRuntimeSessionForbiddenCode from json.
+func (s *DownloadRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionForbiddenCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadRuntimeSessionForbiddenCode(v) {
+	case DownloadRuntimeSessionForbiddenCodeUNAUTHORIZED:
+		*s = DownloadRuntimeSessionForbiddenCodeUNAUTHORIZED
+	case DownloadRuntimeSessionForbiddenCodeFORBIDDEN:
+		*s = DownloadRuntimeSessionForbiddenCodeFORBIDDEN
+	case DownloadRuntimeSessionForbiddenCodeNOTFOUND:
+		*s = DownloadRuntimeSessionForbiddenCodeNOTFOUND
+	case DownloadRuntimeSessionForbiddenCodeCONFLICT:
+		*s = DownloadRuntimeSessionForbiddenCodeCONFLICT
+	case DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
+		*s = DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED
+	case DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
+		*s = DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE
+	case DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
+		*s = DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE
+	case DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT:
+		*s = DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT
+	case DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
+		*s = DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED
+	case DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED
+	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED
+	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
+		*s = DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED
+	case DownloadRuntimeSessionForbiddenCodeUPSTREAMERROR:
+		*s = DownloadRuntimeSessionForbiddenCodeUPSTREAMERROR
+	case DownloadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE:
+		*s = DownloadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE
+	case DownloadRuntimeSessionForbiddenCodeINTERNALSERVERERROR:
+		*s = DownloadRuntimeSessionForbiddenCodeINTERNALSERVERERROR
+	case DownloadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE
+	case DownloadRuntimeSessionForbiddenCodeTEAMNOTACTIVE:
+		*s = DownloadRuntimeSessionForbiddenCodeTEAMNOTACTIVE
+	case DownloadRuntimeSessionForbiddenCodeINVITEEXPIRED:
+		*s = DownloadRuntimeSessionForbiddenCodeINVITEEXPIRED
+	case DownloadRuntimeSessionForbiddenCodeINVITEEXHAUSTED:
+		*s = DownloadRuntimeSessionForbiddenCodeINVITEEXHAUSTED
+	case DownloadRuntimeSessionForbiddenCodeTEAMLASTOWNER:
+		*s = DownloadRuntimeSessionForbiddenCodeTEAMLASTOWNER
+	case DownloadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE:
+		*s = DownloadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE
+	case DownloadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING:
+		*s = DownloadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING
+	case DownloadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED
+	case DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING:
+		*s = DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING
+	case DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND
+	case DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = DownloadRuntimeSessionForbiddenCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionForbiddenCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionForbiddenCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadRuntimeSessionNotFound) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadRuntimeSessionNotFound) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfDownloadRuntimeSessionNotFound = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes DownloadRuntimeSessionNotFound from json.
+func (s *DownloadRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionNotFound to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionNotFound")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadRuntimeSessionNotFound) {
+					name = jsonFieldsNameOfDownloadRuntimeSessionNotFound[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadRuntimeSessionNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DownloadRuntimeSessionNotFoundAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DownloadRuntimeSessionNotFoundAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes DownloadRuntimeSessionNotFoundAdditional from json.
+func (s *DownloadRuntimeSessionNotFoundAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionNotFoundAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionNotFoundAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionNotFoundAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionNotFoundAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadRuntimeSessionNotFoundCode as json.
+func (s DownloadRuntimeSessionNotFoundCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadRuntimeSessionNotFoundCode from json.
+func (s *DownloadRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionNotFoundCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadRuntimeSessionNotFoundCode(v) {
+	case DownloadRuntimeSessionNotFoundCodeUNAUTHORIZED:
+		*s = DownloadRuntimeSessionNotFoundCodeUNAUTHORIZED
+	case DownloadRuntimeSessionNotFoundCodeFORBIDDEN:
+		*s = DownloadRuntimeSessionNotFoundCodeFORBIDDEN
+	case DownloadRuntimeSessionNotFoundCodeNOTFOUND:
+		*s = DownloadRuntimeSessionNotFoundCodeNOTFOUND
+	case DownloadRuntimeSessionNotFoundCodeCONFLICT:
+		*s = DownloadRuntimeSessionNotFoundCodeCONFLICT
+	case DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
+		*s = DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED
+	case DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
+		*s = DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE
+	case DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
+		*s = DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE
+	case DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT:
+		*s = DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT
+	case DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
+		*s = DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED
+	case DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED
+	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED
+	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
+		*s = DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED
+	case DownloadRuntimeSessionNotFoundCodeUPSTREAMERROR:
+		*s = DownloadRuntimeSessionNotFoundCodeUPSTREAMERROR
+	case DownloadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE:
+		*s = DownloadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE
+	case DownloadRuntimeSessionNotFoundCodeINTERNALSERVERERROR:
+		*s = DownloadRuntimeSessionNotFoundCodeINTERNALSERVERERROR
+	case DownloadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE
+	case DownloadRuntimeSessionNotFoundCodeTEAMNOTACTIVE:
+		*s = DownloadRuntimeSessionNotFoundCodeTEAMNOTACTIVE
+	case DownloadRuntimeSessionNotFoundCodeINVITEEXPIRED:
+		*s = DownloadRuntimeSessionNotFoundCodeINVITEEXPIRED
+	case DownloadRuntimeSessionNotFoundCodeINVITEEXHAUSTED:
+		*s = DownloadRuntimeSessionNotFoundCodeINVITEEXHAUSTED
+	case DownloadRuntimeSessionNotFoundCodeTEAMLASTOWNER:
+		*s = DownloadRuntimeSessionNotFoundCodeTEAMLASTOWNER
+	case DownloadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE:
+		*s = DownloadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE
+	case DownloadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING:
+		*s = DownloadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING
+	case DownloadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED
+	case DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING:
+		*s = DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING
+	case DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND
+	case DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = DownloadRuntimeSessionNotFoundCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionNotFoundCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionNotFoundCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadRuntimeSessionOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadRuntimeSessionOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("contentBase64")
+		e.Str(s.ContentBase64)
+	}
+	{
+		e.FieldStart("session")
+		s.Session.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfDownloadRuntimeSessionOK = [2]string{
+	0: "contentBase64",
+	1: "session",
+}
+
+// Decode decodes DownloadRuntimeSessionOK from json.
+func (s *DownloadRuntimeSessionOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "contentBase64":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.ContentBase64 = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentBase64\"")
+			}
+		case "session":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Session.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"session\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadRuntimeSessionOK) {
+					name = jsonFieldsNameOfDownloadRuntimeSessionOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadRuntimeSessionOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadRuntimeSessionOKSession) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadRuntimeSessionOKSession) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("attemptN")
+		e.Int(s.AttemptN)
+	}
+	{
+		e.FieldStart("checkpointKind")
+		s.CheckpointKind.Encode(e)
+	}
+	{
+		e.FieldStart("contentEncoding")
+		s.ContentEncoding.Encode(e)
+	}
+	{
+		e.FieldStart("contentType")
+		e.Str(s.ContentType)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("objectKey")
+		e.Str(s.ObjectKey)
+	}
+	{
+		e.FieldStart("parentSessionId")
+		s.ParentSessionId.Encode(e)
+	}
+	{
+		e.FieldStart("sessionKind")
+		s.SessionKind.Encode(e)
+	}
+	{
+		e.FieldStart("sha256")
+		e.Str(s.SHA256)
+	}
+	{
+		e.FieldStart("sizeBytes")
+		e.Int(s.SizeBytes)
+	}
+	{
+		e.FieldStart("sourceRuntimeProfileId")
+		s.SourceRuntimeProfileId.Encode(e)
+	}
+	{
+		e.FieldStart("sourceSlotId")
+		s.SourceSlotId.Encode(e)
+	}
+	{
+		e.FieldStart("storageClass")
+		e.Str(s.StorageClass)
+	}
+	{
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("uploadedAt")
+		json.EncodeDateTime(e, s.UploadedAt)
+	}
+}
+
+var jsonFieldsNameOfDownloadRuntimeSessionOKSession = [16]string{
+	0:  "attemptN",
+	1:  "checkpointKind",
+	2:  "contentEncoding",
+	3:  "contentType",
+	4:  "id",
+	5:  "objectKey",
+	6:  "parentSessionId",
+	7:  "sessionKind",
+	8:  "sha256",
+	9:  "sizeBytes",
+	10: "sourceRuntimeProfileId",
+	11: "sourceSlotId",
+	12: "storageClass",
+	13: "taskId",
+	14: "teamId",
+	15: "uploadedAt",
+}
+
+// Decode decodes DownloadRuntimeSessionOKSession from json.
+func (s *DownloadRuntimeSessionOKSession) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionOKSession to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "attemptN":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"attemptN\"")
+			}
+		case "checkpointKind":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.CheckpointKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"checkpointKind\"")
+			}
+		case "contentEncoding":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.ContentEncoding.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentEncoding\"")
+			}
+		case "contentType":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Str()
+				s.ContentType = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentType\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "objectKey":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.ObjectKey = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"objectKey\"")
+			}
+		case "parentSessionId":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.ParentSessionId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"parentSessionId\"")
+			}
+		case "sessionKind":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				if err := s.SessionKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionKind\"")
+			}
+		case "sha256":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.SHA256 = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sha256\"")
+			}
+		case "sizeBytes":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.SizeBytes = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sizeBytes\"")
+			}
+		case "sourceRuntimeProfileId":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				if err := s.SourceRuntimeProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourceRuntimeProfileId\"")
+			}
+		case "sourceSlotId":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				if err := s.SourceSlotId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourceSlotId\"")
+			}
+		case "storageClass":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.StorageClass = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"storageClass\"")
+			}
+		case "taskId":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskId\"")
+			}
+		case "teamId":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "uploadedAt":
+			requiredBitSet[1] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UploadedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"uploadedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionOKSession")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadRuntimeSessionOKSession) {
+					name = jsonFieldsNameOfDownloadRuntimeSessionOKSession[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadRuntimeSessionOKSession) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionOKSession) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadRuntimeSessionOKSessionCheckpointKind as json.
+func (s DownloadRuntimeSessionOKSessionCheckpointKind) Encode(e *jx.Encoder) {
+	switch s.Type {
+	case DownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind:
+		s.DownloadRuntimeSessionOKSessionCheckpointKind0.Encode(e)
+	}
+}
+
+// Decode decodes DownloadRuntimeSessionOKSessionCheckpointKind from json.
+func (s *DownloadRuntimeSessionOKSessionCheckpointKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionOKSessionCheckpointKind to nil")
+	}
+	// Sum type type_discriminator.
+	switch t := d.Next(); t {
+	case jx.String:
+		if err := s.DownloadRuntimeSessionOKSessionCheckpointKind0.Decode(d); err != nil {
+			return err
+		}
+		s.Type = DownloadRuntimeSessionOKSessionCheckpointKind0DownloadRuntimeSessionOKSessionCheckpointKind
+	default:
+		return errors.Errorf("unexpected json type %q", t)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionOKSessionCheckpointKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionOKSessionCheckpointKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadRuntimeSessionOKSessionCheckpointKind0 as json.
+func (s DownloadRuntimeSessionOKSessionCheckpointKind0) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadRuntimeSessionOKSessionCheckpointKind0 from json.
+func (s *DownloadRuntimeSessionOKSessionCheckpointKind0) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionOKSessionCheckpointKind0 to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadRuntimeSessionOKSessionCheckpointKind0(v) {
+	case DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal:
+		*s = DownloadRuntimeSessionOKSessionCheckpointKind0AttemptFinal
+	default:
+		*s = DownloadRuntimeSessionOKSessionCheckpointKind0(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionOKSessionCheckpointKind0) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionOKSessionCheckpointKind0) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadRuntimeSessionOKSessionSessionKind as json.
+func (s DownloadRuntimeSessionOKSessionSessionKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadRuntimeSessionOKSessionSessionKind from json.
+func (s *DownloadRuntimeSessionOKSessionSessionKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionOKSessionSessionKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadRuntimeSessionOKSessionSessionKind(v) {
+	case DownloadRuntimeSessionOKSessionSessionKindRoot:
+		*s = DownloadRuntimeSessionOKSessionSessionKindRoot
+	case DownloadRuntimeSessionOKSessionSessionKindExtend:
+		*s = DownloadRuntimeSessionOKSessionSessionKindExtend
+	case DownloadRuntimeSessionOKSessionSessionKindFork:
+		*s = DownloadRuntimeSessionOKSessionSessionKindFork
+	default:
+		*s = DownloadRuntimeSessionOKSessionSessionKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionOKSessionSessionKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionOKSessionSessionKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadRuntimeSessionServiceUnavailable) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadRuntimeSessionServiceUnavailable) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfDownloadRuntimeSessionServiceUnavailable = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes DownloadRuntimeSessionServiceUnavailable from json.
+func (s *DownloadRuntimeSessionServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionServiceUnavailable to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionServiceUnavailable")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadRuntimeSessionServiceUnavailable) {
+					name = jsonFieldsNameOfDownloadRuntimeSessionServiceUnavailable[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadRuntimeSessionServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DownloadRuntimeSessionServiceUnavailableAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DownloadRuntimeSessionServiceUnavailableAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes DownloadRuntimeSessionServiceUnavailableAdditional from json.
+func (s *DownloadRuntimeSessionServiceUnavailableAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionServiceUnavailableAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionServiceUnavailableAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionServiceUnavailableAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionServiceUnavailableAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadRuntimeSessionServiceUnavailableCode as json.
+func (s DownloadRuntimeSessionServiceUnavailableCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadRuntimeSessionServiceUnavailableCode from json.
+func (s *DownloadRuntimeSessionServiceUnavailableCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionServiceUnavailableCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadRuntimeSessionServiceUnavailableCode(v) {
+	case DownloadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED
+	case DownloadRuntimeSessionServiceUnavailableCodeFORBIDDEN:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeFORBIDDEN
+	case DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND
+	case DownloadRuntimeSessionServiceUnavailableCodeCONFLICT:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeCONFLICT
+	case DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED
+	case DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE
+	case DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE
+	case DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT
+	case DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED
+	case DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED
+	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED
+	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED
+	case DownloadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR
+	case DownloadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE
+	case DownloadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE
+	case DownloadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED
+	case DownloadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE
+	case DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING
+	case DownloadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED
+	case DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING
+	case DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND
+	case DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = DownloadRuntimeSessionServiceUnavailableCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionServiceUnavailableCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionServiceUnavailableCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadRuntimeSessionUnauthorized) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadRuntimeSessionUnauthorized) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfDownloadRuntimeSessionUnauthorized = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes DownloadRuntimeSessionUnauthorized from json.
+func (s *DownloadRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionUnauthorized to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionUnauthorized")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadRuntimeSessionUnauthorized) {
+					name = jsonFieldsNameOfDownloadRuntimeSessionUnauthorized[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadRuntimeSessionUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DownloadRuntimeSessionUnauthorizedAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DownloadRuntimeSessionUnauthorizedAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes DownloadRuntimeSessionUnauthorizedAdditional from json.
+func (s *DownloadRuntimeSessionUnauthorizedAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionUnauthorizedAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadRuntimeSessionUnauthorizedAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionUnauthorizedAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionUnauthorizedAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadRuntimeSessionUnauthorizedCode as json.
+func (s DownloadRuntimeSessionUnauthorizedCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadRuntimeSessionUnauthorizedCode from json.
+func (s *DownloadRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadRuntimeSessionUnauthorizedCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadRuntimeSessionUnauthorizedCode(v) {
+	case DownloadRuntimeSessionUnauthorizedCodeUNAUTHORIZED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeUNAUTHORIZED
+	case DownloadRuntimeSessionUnauthorizedCodeFORBIDDEN:
+		*s = DownloadRuntimeSessionUnauthorizedCodeFORBIDDEN
+	case DownloadRuntimeSessionUnauthorizedCodeNOTFOUND:
+		*s = DownloadRuntimeSessionUnauthorizedCodeNOTFOUND
+	case DownloadRuntimeSessionUnauthorizedCodeCONFLICT:
+		*s = DownloadRuntimeSessionUnauthorizedCodeCONFLICT
+	case DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
+	case DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE
+	case DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE
+	case DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
+		*s = DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT
+	case DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED
+	case DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED
+	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED
+	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
+	case DownloadRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
+		*s = DownloadRuntimeSessionUnauthorizedCodeUPSTREAMERROR
+	case DownloadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE
+	case DownloadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR:
+		*s = DownloadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE
+	case DownloadRuntimeSessionUnauthorizedCodeINVITEEXPIRED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeINVITEEXPIRED
+	case DownloadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER:
+		*s = DownloadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE
+	case DownloadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = DownloadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING
+	case DownloadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED
+	case DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING
+	case DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND
+	case DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = DownloadRuntimeSessionUnauthorizedCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadRuntimeSessionUnauthorizedCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadRuntimeSessionUnauthorizedCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *EntryRelation) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -35720,6 +38177,2006 @@ func (s *GetRuntimeProfileUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *GetRuntimeProfileUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *GetRuntimeSessionBadRequest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *GetRuntimeSessionBadRequest) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("errors")
+		e.ArrStart()
+		for _, elem := range s.Errors {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfGetRuntimeSessionBadRequest = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "errors",
+}
+
+// Decode decodes GetRuntimeSessionBadRequest from json.
+func (s *GetRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionBadRequest to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "errors":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				s.Errors = make([]GetRuntimeSessionBadRequestErrorsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem GetRuntimeSessionBadRequestErrorsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Errors = append(s.Errors, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"errors\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeSessionBadRequest")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfGetRuntimeSessionBadRequest) {
+					name = jsonFieldsNameOfGetRuntimeSessionBadRequest[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeSessionBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s GetRuntimeSessionBadRequestAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s GetRuntimeSessionBadRequestAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes GetRuntimeSessionBadRequestAdditional from json.
+func (s *GetRuntimeSessionBadRequestAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionBadRequestAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeSessionBadRequestAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionBadRequestAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionBadRequestAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeSessionBadRequestCode as json.
+func (s GetRuntimeSessionBadRequestCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes GetRuntimeSessionBadRequestCode from json.
+func (s *GetRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionBadRequestCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch GetRuntimeSessionBadRequestCode(v) {
+	case GetRuntimeSessionBadRequestCodeUNAUTHORIZED:
+		*s = GetRuntimeSessionBadRequestCodeUNAUTHORIZED
+	case GetRuntimeSessionBadRequestCodeFORBIDDEN:
+		*s = GetRuntimeSessionBadRequestCodeFORBIDDEN
+	case GetRuntimeSessionBadRequestCodeNOTFOUND:
+		*s = GetRuntimeSessionBadRequestCodeNOTFOUND
+	case GetRuntimeSessionBadRequestCodeCONFLICT:
+		*s = GetRuntimeSessionBadRequestCodeCONFLICT
+	case GetRuntimeSessionBadRequestCodeVALIDATIONFAILED:
+		*s = GetRuntimeSessionBadRequestCodeVALIDATIONFAILED
+	case GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
+		*s = GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE
+	case GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
+		*s = GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE
+	case GetRuntimeSessionBadRequestCodeVOUCHERLIMIT:
+		*s = GetRuntimeSessionBadRequestCodeVOUCHERLIMIT
+	case GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
+		*s = GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED
+	case GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED
+	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED
+	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
+		*s = GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED
+	case GetRuntimeSessionBadRequestCodeUPSTREAMERROR:
+		*s = GetRuntimeSessionBadRequestCodeUPSTREAMERROR
+	case GetRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE:
+		*s = GetRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE
+	case GetRuntimeSessionBadRequestCodeINTERNALSERVERERROR:
+		*s = GetRuntimeSessionBadRequestCodeINTERNALSERVERERROR
+	case GetRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = GetRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE
+	case GetRuntimeSessionBadRequestCodeTEAMNOTACTIVE:
+		*s = GetRuntimeSessionBadRequestCodeTEAMNOTACTIVE
+	case GetRuntimeSessionBadRequestCodeINVITEEXPIRED:
+		*s = GetRuntimeSessionBadRequestCodeINVITEEXPIRED
+	case GetRuntimeSessionBadRequestCodeINVITEEXHAUSTED:
+		*s = GetRuntimeSessionBadRequestCodeINVITEEXHAUSTED
+	case GetRuntimeSessionBadRequestCodeTEAMLASTOWNER:
+		*s = GetRuntimeSessionBadRequestCodeTEAMLASTOWNER
+	case GetRuntimeSessionBadRequestCodeTEAMALREADYACTIVE:
+		*s = GetRuntimeSessionBadRequestCodeTEAMALREADYACTIVE
+	case GetRuntimeSessionBadRequestCodeTEAMNOTFOUNDING:
+		*s = GetRuntimeSessionBadRequestCodeTEAMNOTFOUNDING
+	case GetRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = GetRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED
+	case GetRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING:
+		*s = GetRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING
+	case GetRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = GetRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND
+	case GetRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = GetRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = GetRuntimeSessionBadRequestCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionBadRequestCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionBadRequestCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *GetRuntimeSessionBadRequestErrorsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *GetRuntimeSessionBadRequestErrorsItem) encodeFields(e *jx.Encoder) {
+	{
+		if s.Code.Set {
+			e.FieldStart("code")
+			s.Code.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("field")
+		e.Str(s.Field)
+	}
+	{
+		e.FieldStart("message")
+		e.Str(s.Message)
+	}
+}
+
+var jsonFieldsNameOfGetRuntimeSessionBadRequestErrorsItem = [3]string{
+	0: "code",
+	1: "field",
+	2: "message",
+}
+
+// Decode decodes GetRuntimeSessionBadRequestErrorsItem from json.
+func (s *GetRuntimeSessionBadRequestErrorsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionBadRequestErrorsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			if err := func() error {
+				s.Code.Reset()
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "field":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Field = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"field\"")
+			}
+		case "message":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Message = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"message\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeSessionBadRequestErrorsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfGetRuntimeSessionBadRequestErrorsItem) {
+					name = jsonFieldsNameOfGetRuntimeSessionBadRequestErrorsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeSessionBadRequestErrorsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionBadRequestErrorsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *GetRuntimeSessionForbidden) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *GetRuntimeSessionForbidden) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfGetRuntimeSessionForbidden = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes GetRuntimeSessionForbidden from json.
+func (s *GetRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionForbidden to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeSessionForbidden")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfGetRuntimeSessionForbidden) {
+					name = jsonFieldsNameOfGetRuntimeSessionForbidden[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeSessionForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s GetRuntimeSessionForbiddenAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s GetRuntimeSessionForbiddenAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes GetRuntimeSessionForbiddenAdditional from json.
+func (s *GetRuntimeSessionForbiddenAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionForbiddenAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeSessionForbiddenAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionForbiddenAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionForbiddenAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeSessionForbiddenCode as json.
+func (s GetRuntimeSessionForbiddenCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes GetRuntimeSessionForbiddenCode from json.
+func (s *GetRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionForbiddenCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch GetRuntimeSessionForbiddenCode(v) {
+	case GetRuntimeSessionForbiddenCodeUNAUTHORIZED:
+		*s = GetRuntimeSessionForbiddenCodeUNAUTHORIZED
+	case GetRuntimeSessionForbiddenCodeFORBIDDEN:
+		*s = GetRuntimeSessionForbiddenCodeFORBIDDEN
+	case GetRuntimeSessionForbiddenCodeNOTFOUND:
+		*s = GetRuntimeSessionForbiddenCodeNOTFOUND
+	case GetRuntimeSessionForbiddenCodeCONFLICT:
+		*s = GetRuntimeSessionForbiddenCodeCONFLICT
+	case GetRuntimeSessionForbiddenCodeVALIDATIONFAILED:
+		*s = GetRuntimeSessionForbiddenCodeVALIDATIONFAILED
+	case GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
+		*s = GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE
+	case GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
+		*s = GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE
+	case GetRuntimeSessionForbiddenCodeVOUCHERLIMIT:
+		*s = GetRuntimeSessionForbiddenCodeVOUCHERLIMIT
+	case GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
+		*s = GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED
+	case GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED
+	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED
+	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
+		*s = GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED
+	case GetRuntimeSessionForbiddenCodeUPSTREAMERROR:
+		*s = GetRuntimeSessionForbiddenCodeUPSTREAMERROR
+	case GetRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE:
+		*s = GetRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE
+	case GetRuntimeSessionForbiddenCodeINTERNALSERVERERROR:
+		*s = GetRuntimeSessionForbiddenCodeINTERNALSERVERERROR
+	case GetRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = GetRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE
+	case GetRuntimeSessionForbiddenCodeTEAMNOTACTIVE:
+		*s = GetRuntimeSessionForbiddenCodeTEAMNOTACTIVE
+	case GetRuntimeSessionForbiddenCodeINVITEEXPIRED:
+		*s = GetRuntimeSessionForbiddenCodeINVITEEXPIRED
+	case GetRuntimeSessionForbiddenCodeINVITEEXHAUSTED:
+		*s = GetRuntimeSessionForbiddenCodeINVITEEXHAUSTED
+	case GetRuntimeSessionForbiddenCodeTEAMLASTOWNER:
+		*s = GetRuntimeSessionForbiddenCodeTEAMLASTOWNER
+	case GetRuntimeSessionForbiddenCodeTEAMALREADYACTIVE:
+		*s = GetRuntimeSessionForbiddenCodeTEAMALREADYACTIVE
+	case GetRuntimeSessionForbiddenCodeTEAMNOTFOUNDING:
+		*s = GetRuntimeSessionForbiddenCodeTEAMNOTFOUNDING
+	case GetRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = GetRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED
+	case GetRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING:
+		*s = GetRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING
+	case GetRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = GetRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND
+	case GetRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = GetRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = GetRuntimeSessionForbiddenCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionForbiddenCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionForbiddenCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *GetRuntimeSessionNotFound) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *GetRuntimeSessionNotFound) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfGetRuntimeSessionNotFound = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes GetRuntimeSessionNotFound from json.
+func (s *GetRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionNotFound to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeSessionNotFound")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfGetRuntimeSessionNotFound) {
+					name = jsonFieldsNameOfGetRuntimeSessionNotFound[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeSessionNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s GetRuntimeSessionNotFoundAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s GetRuntimeSessionNotFoundAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes GetRuntimeSessionNotFoundAdditional from json.
+func (s *GetRuntimeSessionNotFoundAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionNotFoundAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeSessionNotFoundAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionNotFoundAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionNotFoundAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeSessionNotFoundCode as json.
+func (s GetRuntimeSessionNotFoundCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes GetRuntimeSessionNotFoundCode from json.
+func (s *GetRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionNotFoundCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch GetRuntimeSessionNotFoundCode(v) {
+	case GetRuntimeSessionNotFoundCodeUNAUTHORIZED:
+		*s = GetRuntimeSessionNotFoundCodeUNAUTHORIZED
+	case GetRuntimeSessionNotFoundCodeFORBIDDEN:
+		*s = GetRuntimeSessionNotFoundCodeFORBIDDEN
+	case GetRuntimeSessionNotFoundCodeNOTFOUND:
+		*s = GetRuntimeSessionNotFoundCodeNOTFOUND
+	case GetRuntimeSessionNotFoundCodeCONFLICT:
+		*s = GetRuntimeSessionNotFoundCodeCONFLICT
+	case GetRuntimeSessionNotFoundCodeVALIDATIONFAILED:
+		*s = GetRuntimeSessionNotFoundCodeVALIDATIONFAILED
+	case GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
+		*s = GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE
+	case GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
+		*s = GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE
+	case GetRuntimeSessionNotFoundCodeVOUCHERLIMIT:
+		*s = GetRuntimeSessionNotFoundCodeVOUCHERLIMIT
+	case GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
+		*s = GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED
+	case GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED
+	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED
+	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
+		*s = GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED
+	case GetRuntimeSessionNotFoundCodeUPSTREAMERROR:
+		*s = GetRuntimeSessionNotFoundCodeUPSTREAMERROR
+	case GetRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE:
+		*s = GetRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE
+	case GetRuntimeSessionNotFoundCodeINTERNALSERVERERROR:
+		*s = GetRuntimeSessionNotFoundCodeINTERNALSERVERERROR
+	case GetRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = GetRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE
+	case GetRuntimeSessionNotFoundCodeTEAMNOTACTIVE:
+		*s = GetRuntimeSessionNotFoundCodeTEAMNOTACTIVE
+	case GetRuntimeSessionNotFoundCodeINVITEEXPIRED:
+		*s = GetRuntimeSessionNotFoundCodeINVITEEXPIRED
+	case GetRuntimeSessionNotFoundCodeINVITEEXHAUSTED:
+		*s = GetRuntimeSessionNotFoundCodeINVITEEXHAUSTED
+	case GetRuntimeSessionNotFoundCodeTEAMLASTOWNER:
+		*s = GetRuntimeSessionNotFoundCodeTEAMLASTOWNER
+	case GetRuntimeSessionNotFoundCodeTEAMALREADYACTIVE:
+		*s = GetRuntimeSessionNotFoundCodeTEAMALREADYACTIVE
+	case GetRuntimeSessionNotFoundCodeTEAMNOTFOUNDING:
+		*s = GetRuntimeSessionNotFoundCodeTEAMNOTFOUNDING
+	case GetRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = GetRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED
+	case GetRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING:
+		*s = GetRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING
+	case GetRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = GetRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND
+	case GetRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = GetRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = GetRuntimeSessionNotFoundCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionNotFoundCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionNotFoundCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *GetRuntimeSessionOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *GetRuntimeSessionOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("attemptN")
+		e.Int(s.AttemptN)
+	}
+	{
+		e.FieldStart("checkpointKind")
+		s.CheckpointKind.Encode(e)
+	}
+	{
+		e.FieldStart("contentEncoding")
+		s.ContentEncoding.Encode(e)
+	}
+	{
+		e.FieldStart("contentType")
+		e.Str(s.ContentType)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("objectKey")
+		e.Str(s.ObjectKey)
+	}
+	{
+		e.FieldStart("parentSessionId")
+		s.ParentSessionId.Encode(e)
+	}
+	{
+		e.FieldStart("sessionKind")
+		s.SessionKind.Encode(e)
+	}
+	{
+		e.FieldStart("sha256")
+		e.Str(s.SHA256)
+	}
+	{
+		e.FieldStart("sizeBytes")
+		e.Int(s.SizeBytes)
+	}
+	{
+		e.FieldStart("sourceRuntimeProfileId")
+		s.SourceRuntimeProfileId.Encode(e)
+	}
+	{
+		e.FieldStart("sourceSlotId")
+		s.SourceSlotId.Encode(e)
+	}
+	{
+		e.FieldStart("storageClass")
+		e.Str(s.StorageClass)
+	}
+	{
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("uploadedAt")
+		json.EncodeDateTime(e, s.UploadedAt)
+	}
+}
+
+var jsonFieldsNameOfGetRuntimeSessionOK = [16]string{
+	0:  "attemptN",
+	1:  "checkpointKind",
+	2:  "contentEncoding",
+	3:  "contentType",
+	4:  "id",
+	5:  "objectKey",
+	6:  "parentSessionId",
+	7:  "sessionKind",
+	8:  "sha256",
+	9:  "sizeBytes",
+	10: "sourceRuntimeProfileId",
+	11: "sourceSlotId",
+	12: "storageClass",
+	13: "taskId",
+	14: "teamId",
+	15: "uploadedAt",
+}
+
+// Decode decodes GetRuntimeSessionOK from json.
+func (s *GetRuntimeSessionOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionOK to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "attemptN":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"attemptN\"")
+			}
+		case "checkpointKind":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.CheckpointKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"checkpointKind\"")
+			}
+		case "contentEncoding":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.ContentEncoding.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentEncoding\"")
+			}
+		case "contentType":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Str()
+				s.ContentType = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentType\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "objectKey":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.ObjectKey = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"objectKey\"")
+			}
+		case "parentSessionId":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.ParentSessionId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"parentSessionId\"")
+			}
+		case "sessionKind":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				if err := s.SessionKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionKind\"")
+			}
+		case "sha256":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.SHA256 = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sha256\"")
+			}
+		case "sizeBytes":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.SizeBytes = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sizeBytes\"")
+			}
+		case "sourceRuntimeProfileId":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				if err := s.SourceRuntimeProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourceRuntimeProfileId\"")
+			}
+		case "sourceSlotId":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				if err := s.SourceSlotId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourceSlotId\"")
+			}
+		case "storageClass":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.StorageClass = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"storageClass\"")
+			}
+		case "taskId":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskId\"")
+			}
+		case "teamId":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "uploadedAt":
+			requiredBitSet[1] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UploadedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"uploadedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeSessionOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfGetRuntimeSessionOK) {
+					name = jsonFieldsNameOfGetRuntimeSessionOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeSessionOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeSessionOKCheckpointKind as json.
+func (s GetRuntimeSessionOKCheckpointKind) Encode(e *jx.Encoder) {
+	switch s.Type {
+	case GetRuntimeSessionOKCheckpointKind0GetRuntimeSessionOKCheckpointKind:
+		s.GetRuntimeSessionOKCheckpointKind0.Encode(e)
+	}
+}
+
+// Decode decodes GetRuntimeSessionOKCheckpointKind from json.
+func (s *GetRuntimeSessionOKCheckpointKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionOKCheckpointKind to nil")
+	}
+	// Sum type type_discriminator.
+	switch t := d.Next(); t {
+	case jx.String:
+		if err := s.GetRuntimeSessionOKCheckpointKind0.Decode(d); err != nil {
+			return err
+		}
+		s.Type = GetRuntimeSessionOKCheckpointKind0GetRuntimeSessionOKCheckpointKind
+	default:
+		return errors.Errorf("unexpected json type %q", t)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionOKCheckpointKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionOKCheckpointKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeSessionOKCheckpointKind0 as json.
+func (s GetRuntimeSessionOKCheckpointKind0) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes GetRuntimeSessionOKCheckpointKind0 from json.
+func (s *GetRuntimeSessionOKCheckpointKind0) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionOKCheckpointKind0 to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch GetRuntimeSessionOKCheckpointKind0(v) {
+	case GetRuntimeSessionOKCheckpointKind0AttemptFinal:
+		*s = GetRuntimeSessionOKCheckpointKind0AttemptFinal
+	default:
+		*s = GetRuntimeSessionOKCheckpointKind0(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionOKCheckpointKind0) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionOKCheckpointKind0) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeSessionOKSessionKind as json.
+func (s GetRuntimeSessionOKSessionKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes GetRuntimeSessionOKSessionKind from json.
+func (s *GetRuntimeSessionOKSessionKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionOKSessionKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch GetRuntimeSessionOKSessionKind(v) {
+	case GetRuntimeSessionOKSessionKindRoot:
+		*s = GetRuntimeSessionOKSessionKindRoot
+	case GetRuntimeSessionOKSessionKindExtend:
+		*s = GetRuntimeSessionOKSessionKindExtend
+	case GetRuntimeSessionOKSessionKindFork:
+		*s = GetRuntimeSessionOKSessionKindFork
+	default:
+		*s = GetRuntimeSessionOKSessionKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionOKSessionKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionOKSessionKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *GetRuntimeSessionUnauthorized) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *GetRuntimeSessionUnauthorized) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfGetRuntimeSessionUnauthorized = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes GetRuntimeSessionUnauthorized from json.
+func (s *GetRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionUnauthorized to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeSessionUnauthorized")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfGetRuntimeSessionUnauthorized) {
+					name = jsonFieldsNameOfGetRuntimeSessionUnauthorized[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeSessionUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s GetRuntimeSessionUnauthorizedAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s GetRuntimeSessionUnauthorizedAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes GetRuntimeSessionUnauthorizedAdditional from json.
+func (s *GetRuntimeSessionUnauthorizedAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionUnauthorizedAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeSessionUnauthorizedAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionUnauthorizedAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionUnauthorizedAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeSessionUnauthorizedCode as json.
+func (s GetRuntimeSessionUnauthorizedCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes GetRuntimeSessionUnauthorizedCode from json.
+func (s *GetRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeSessionUnauthorizedCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch GetRuntimeSessionUnauthorizedCode(v) {
+	case GetRuntimeSessionUnauthorizedCodeUNAUTHORIZED:
+		*s = GetRuntimeSessionUnauthorizedCodeUNAUTHORIZED
+	case GetRuntimeSessionUnauthorizedCodeFORBIDDEN:
+		*s = GetRuntimeSessionUnauthorizedCodeFORBIDDEN
+	case GetRuntimeSessionUnauthorizedCodeNOTFOUND:
+		*s = GetRuntimeSessionUnauthorizedCodeNOTFOUND
+	case GetRuntimeSessionUnauthorizedCodeCONFLICT:
+		*s = GetRuntimeSessionUnauthorizedCodeCONFLICT
+	case GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
+		*s = GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
+	case GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
+		*s = GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE
+	case GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
+		*s = GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE
+	case GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
+		*s = GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT
+	case GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED
+	case GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED
+	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED
+	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
+		*s = GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
+	case GetRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
+		*s = GetRuntimeSessionUnauthorizedCodeUPSTREAMERROR
+	case GetRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = GetRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE
+	case GetRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR:
+		*s = GetRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR
+	case GetRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = GetRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE
+	case GetRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE:
+		*s = GetRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE
+	case GetRuntimeSessionUnauthorizedCodeINVITEEXPIRED:
+		*s = GetRuntimeSessionUnauthorizedCodeINVITEEXPIRED
+	case GetRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED:
+		*s = GetRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED
+	case GetRuntimeSessionUnauthorizedCodeTEAMLASTOWNER:
+		*s = GetRuntimeSessionUnauthorizedCodeTEAMLASTOWNER
+	case GetRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = GetRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE
+	case GetRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = GetRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING
+	case GetRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = GetRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED
+	case GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING
+	case GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND
+	case GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = GetRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = GetRuntimeSessionUnauthorizedCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeSessionUnauthorizedCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -76380,6 +80837,2556 @@ func (s *UpdateTeamMemberRoleUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateTeamMemberRoleUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UploadRuntimeSessionBadRequest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UploadRuntimeSessionBadRequest) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("errors")
+		e.ArrStart()
+		for _, elem := range s.Errors {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfUploadRuntimeSessionBadRequest = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "errors",
+}
+
+// Decode decodes UploadRuntimeSessionBadRequest from json.
+func (s *UploadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionBadRequest to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "errors":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				s.Errors = make([]UploadRuntimeSessionBadRequestErrorsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem UploadRuntimeSessionBadRequestErrorsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Errors = append(s.Errors, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"errors\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionBadRequest")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUploadRuntimeSessionBadRequest) {
+					name = jsonFieldsNameOfUploadRuntimeSessionBadRequest[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UploadRuntimeSessionBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s UploadRuntimeSessionBadRequestAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s UploadRuntimeSessionBadRequestAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes UploadRuntimeSessionBadRequestAdditional from json.
+func (s *UploadRuntimeSessionBadRequestAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionBadRequestAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionBadRequestAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionBadRequestAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionBadRequestAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UploadRuntimeSessionBadRequestCode as json.
+func (s UploadRuntimeSessionBadRequestCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UploadRuntimeSessionBadRequestCode from json.
+func (s *UploadRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionBadRequestCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UploadRuntimeSessionBadRequestCode(v) {
+	case UploadRuntimeSessionBadRequestCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionBadRequestCodeUNAUTHORIZED
+	case UploadRuntimeSessionBadRequestCodeFORBIDDEN:
+		*s = UploadRuntimeSessionBadRequestCodeFORBIDDEN
+	case UploadRuntimeSessionBadRequestCodeNOTFOUND:
+		*s = UploadRuntimeSessionBadRequestCodeNOTFOUND
+	case UploadRuntimeSessionBadRequestCodeCONFLICT:
+		*s = UploadRuntimeSessionBadRequestCodeCONFLICT
+	case UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED
+	case UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE
+	case UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE
+	case UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT
+	case UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED
+	case UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED
+	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED
+	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED
+	case UploadRuntimeSessionBadRequestCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionBadRequestCodeUPSTREAMERROR
+	case UploadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE
+	case UploadRuntimeSessionBadRequestCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionBadRequestCodeINTERNALSERVERERROR
+	case UploadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionBadRequestCodeTEAMPERSONALIMMUTABLE
+	case UploadRuntimeSessionBadRequestCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionBadRequestCodeTEAMNOTACTIVE
+	case UploadRuntimeSessionBadRequestCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionBadRequestCodeINVITEEXPIRED
+	case UploadRuntimeSessionBadRequestCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionBadRequestCodeINVITEEXHAUSTED
+	case UploadRuntimeSessionBadRequestCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionBadRequestCodeTEAMLASTOWNER
+	case UploadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionBadRequestCodeTEAMALREADYACTIVE
+	case UploadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionBadRequestCodeTEAMNOTFOUNDING
+	case UploadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionBadRequestCodeFOUNDINGALREADYACCEPTED
+	case UploadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionBadRequestCodeDIARYTRANSFERPENDING
+	case UploadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionBadRequestCodeDIARYTRANSFERNOTFOUND
+	case UploadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = UploadRuntimeSessionBadRequestCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionBadRequestCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionBadRequestCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) encodeFields(e *jx.Encoder) {
+	{
+		if s.Code.Set {
+			e.FieldStart("code")
+			s.Code.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("field")
+		e.Str(s.Field)
+	}
+	{
+		e.FieldStart("message")
+		e.Str(s.Message)
+	}
+}
+
+var jsonFieldsNameOfUploadRuntimeSessionBadRequestErrorsItem = [3]string{
+	0: "code",
+	1: "field",
+	2: "message",
+}
+
+// Decode decodes UploadRuntimeSessionBadRequestErrorsItem from json.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionBadRequestErrorsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			if err := func() error {
+				s.Code.Reset()
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "field":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Field = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"field\"")
+			}
+		case "message":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Message = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"message\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionBadRequestErrorsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUploadRuntimeSessionBadRequestErrorsItem) {
+					name = jsonFieldsNameOfUploadRuntimeSessionBadRequestErrorsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionBadRequestErrorsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UploadRuntimeSessionForbidden) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UploadRuntimeSessionForbidden) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfUploadRuntimeSessionForbidden = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes UploadRuntimeSessionForbidden from json.
+func (s *UploadRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionForbidden to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionForbidden")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUploadRuntimeSessionForbidden) {
+					name = jsonFieldsNameOfUploadRuntimeSessionForbidden[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UploadRuntimeSessionForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s UploadRuntimeSessionForbiddenAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s UploadRuntimeSessionForbiddenAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes UploadRuntimeSessionForbiddenAdditional from json.
+func (s *UploadRuntimeSessionForbiddenAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionForbiddenAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionForbiddenAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionForbiddenAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionForbiddenAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UploadRuntimeSessionForbiddenCode as json.
+func (s UploadRuntimeSessionForbiddenCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UploadRuntimeSessionForbiddenCode from json.
+func (s *UploadRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionForbiddenCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UploadRuntimeSessionForbiddenCode(v) {
+	case UploadRuntimeSessionForbiddenCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionForbiddenCodeUNAUTHORIZED
+	case UploadRuntimeSessionForbiddenCodeFORBIDDEN:
+		*s = UploadRuntimeSessionForbiddenCodeFORBIDDEN
+	case UploadRuntimeSessionForbiddenCodeNOTFOUND:
+		*s = UploadRuntimeSessionForbiddenCodeNOTFOUND
+	case UploadRuntimeSessionForbiddenCodeCONFLICT:
+		*s = UploadRuntimeSessionForbiddenCodeCONFLICT
+	case UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED
+	case UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE
+	case UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE
+	case UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT
+	case UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED
+	case UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED
+	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED
+	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED
+	case UploadRuntimeSessionForbiddenCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionForbiddenCodeUPSTREAMERROR
+	case UploadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE
+	case UploadRuntimeSessionForbiddenCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionForbiddenCodeINTERNALSERVERERROR
+	case UploadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionForbiddenCodeTEAMPERSONALIMMUTABLE
+	case UploadRuntimeSessionForbiddenCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionForbiddenCodeTEAMNOTACTIVE
+	case UploadRuntimeSessionForbiddenCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionForbiddenCodeINVITEEXPIRED
+	case UploadRuntimeSessionForbiddenCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionForbiddenCodeINVITEEXHAUSTED
+	case UploadRuntimeSessionForbiddenCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionForbiddenCodeTEAMLASTOWNER
+	case UploadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionForbiddenCodeTEAMALREADYACTIVE
+	case UploadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionForbiddenCodeTEAMNOTFOUNDING
+	case UploadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionForbiddenCodeFOUNDINGALREADYACCEPTED
+	case UploadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionForbiddenCodeDIARYTRANSFERPENDING
+	case UploadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionForbiddenCodeDIARYTRANSFERNOTFOUND
+	case UploadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = UploadRuntimeSessionForbiddenCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionForbiddenCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionForbiddenCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UploadRuntimeSessionNotFound) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UploadRuntimeSessionNotFound) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfUploadRuntimeSessionNotFound = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes UploadRuntimeSessionNotFound from json.
+func (s *UploadRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionNotFound to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionNotFound")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUploadRuntimeSessionNotFound) {
+					name = jsonFieldsNameOfUploadRuntimeSessionNotFound[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UploadRuntimeSessionNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s UploadRuntimeSessionNotFoundAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s UploadRuntimeSessionNotFoundAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes UploadRuntimeSessionNotFoundAdditional from json.
+func (s *UploadRuntimeSessionNotFoundAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionNotFoundAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionNotFoundAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionNotFoundAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionNotFoundAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UploadRuntimeSessionNotFoundCode as json.
+func (s UploadRuntimeSessionNotFoundCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UploadRuntimeSessionNotFoundCode from json.
+func (s *UploadRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionNotFoundCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UploadRuntimeSessionNotFoundCode(v) {
+	case UploadRuntimeSessionNotFoundCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionNotFoundCodeUNAUTHORIZED
+	case UploadRuntimeSessionNotFoundCodeFORBIDDEN:
+		*s = UploadRuntimeSessionNotFoundCodeFORBIDDEN
+	case UploadRuntimeSessionNotFoundCodeNOTFOUND:
+		*s = UploadRuntimeSessionNotFoundCodeNOTFOUND
+	case UploadRuntimeSessionNotFoundCodeCONFLICT:
+		*s = UploadRuntimeSessionNotFoundCodeCONFLICT
+	case UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED
+	case UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE
+	case UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE
+	case UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT
+	case UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED
+	case UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED
+	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED
+	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED
+	case UploadRuntimeSessionNotFoundCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionNotFoundCodeUPSTREAMERROR
+	case UploadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE
+	case UploadRuntimeSessionNotFoundCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionNotFoundCodeINTERNALSERVERERROR
+	case UploadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionNotFoundCodeTEAMPERSONALIMMUTABLE
+	case UploadRuntimeSessionNotFoundCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionNotFoundCodeTEAMNOTACTIVE
+	case UploadRuntimeSessionNotFoundCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionNotFoundCodeINVITEEXPIRED
+	case UploadRuntimeSessionNotFoundCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionNotFoundCodeINVITEEXHAUSTED
+	case UploadRuntimeSessionNotFoundCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionNotFoundCodeTEAMLASTOWNER
+	case UploadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionNotFoundCodeTEAMALREADYACTIVE
+	case UploadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionNotFoundCodeTEAMNOTFOUNDING
+	case UploadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionNotFoundCodeFOUNDINGALREADYACCEPTED
+	case UploadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionNotFoundCodeDIARYTRANSFERPENDING
+	case UploadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionNotFoundCodeDIARYTRANSFERNOTFOUND
+	case UploadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = UploadRuntimeSessionNotFoundCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionNotFoundCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionNotFoundCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UploadRuntimeSessionOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UploadRuntimeSessionOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("attemptN")
+		e.Int(s.AttemptN)
+	}
+	{
+		e.FieldStart("checkpointKind")
+		s.CheckpointKind.Encode(e)
+	}
+	{
+		e.FieldStart("contentEncoding")
+		s.ContentEncoding.Encode(e)
+	}
+	{
+		e.FieldStart("contentType")
+		e.Str(s.ContentType)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("objectKey")
+		e.Str(s.ObjectKey)
+	}
+	{
+		e.FieldStart("parentSessionId")
+		s.ParentSessionId.Encode(e)
+	}
+	{
+		e.FieldStart("sessionKind")
+		s.SessionKind.Encode(e)
+	}
+	{
+		e.FieldStart("sha256")
+		e.Str(s.SHA256)
+	}
+	{
+		e.FieldStart("sizeBytes")
+		e.Int(s.SizeBytes)
+	}
+	{
+		e.FieldStart("sourceRuntimeProfileId")
+		s.SourceRuntimeProfileId.Encode(e)
+	}
+	{
+		e.FieldStart("sourceSlotId")
+		s.SourceSlotId.Encode(e)
+	}
+	{
+		e.FieldStart("storageClass")
+		e.Str(s.StorageClass)
+	}
+	{
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("uploadedAt")
+		json.EncodeDateTime(e, s.UploadedAt)
+	}
+}
+
+var jsonFieldsNameOfUploadRuntimeSessionOK = [16]string{
+	0:  "attemptN",
+	1:  "checkpointKind",
+	2:  "contentEncoding",
+	3:  "contentType",
+	4:  "id",
+	5:  "objectKey",
+	6:  "parentSessionId",
+	7:  "sessionKind",
+	8:  "sha256",
+	9:  "sizeBytes",
+	10: "sourceRuntimeProfileId",
+	11: "sourceSlotId",
+	12: "storageClass",
+	13: "taskId",
+	14: "teamId",
+	15: "uploadedAt",
+}
+
+// Decode decodes UploadRuntimeSessionOK from json.
+func (s *UploadRuntimeSessionOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionOK to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "attemptN":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"attemptN\"")
+			}
+		case "checkpointKind":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.CheckpointKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"checkpointKind\"")
+			}
+		case "contentEncoding":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.ContentEncoding.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentEncoding\"")
+			}
+		case "contentType":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Str()
+				s.ContentType = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentType\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "objectKey":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.ObjectKey = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"objectKey\"")
+			}
+		case "parentSessionId":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.ParentSessionId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"parentSessionId\"")
+			}
+		case "sessionKind":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				if err := s.SessionKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionKind\"")
+			}
+		case "sha256":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.SHA256 = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sha256\"")
+			}
+		case "sizeBytes":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.SizeBytes = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sizeBytes\"")
+			}
+		case "sourceRuntimeProfileId":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				if err := s.SourceRuntimeProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourceRuntimeProfileId\"")
+			}
+		case "sourceSlotId":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				if err := s.SourceSlotId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourceSlotId\"")
+			}
+		case "storageClass":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.StorageClass = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"storageClass\"")
+			}
+		case "taskId":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskId\"")
+			}
+		case "teamId":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "uploadedAt":
+			requiredBitSet[1] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UploadedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"uploadedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUploadRuntimeSessionOK) {
+					name = jsonFieldsNameOfUploadRuntimeSessionOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UploadRuntimeSessionOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UploadRuntimeSessionOKCheckpointKind as json.
+func (s UploadRuntimeSessionOKCheckpointKind) Encode(e *jx.Encoder) {
+	switch s.Type {
+	case UploadRuntimeSessionOKCheckpointKind0UploadRuntimeSessionOKCheckpointKind:
+		s.UploadRuntimeSessionOKCheckpointKind0.Encode(e)
+	}
+}
+
+// Decode decodes UploadRuntimeSessionOKCheckpointKind from json.
+func (s *UploadRuntimeSessionOKCheckpointKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionOKCheckpointKind to nil")
+	}
+	// Sum type type_discriminator.
+	switch t := d.Next(); t {
+	case jx.String:
+		if err := s.UploadRuntimeSessionOKCheckpointKind0.Decode(d); err != nil {
+			return err
+		}
+		s.Type = UploadRuntimeSessionOKCheckpointKind0UploadRuntimeSessionOKCheckpointKind
+	default:
+		return errors.Errorf("unexpected json type %q", t)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionOKCheckpointKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionOKCheckpointKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UploadRuntimeSessionOKCheckpointKind0 as json.
+func (s UploadRuntimeSessionOKCheckpointKind0) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UploadRuntimeSessionOKCheckpointKind0 from json.
+func (s *UploadRuntimeSessionOKCheckpointKind0) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionOKCheckpointKind0 to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UploadRuntimeSessionOKCheckpointKind0(v) {
+	case UploadRuntimeSessionOKCheckpointKind0AttemptFinal:
+		*s = UploadRuntimeSessionOKCheckpointKind0AttemptFinal
+	default:
+		*s = UploadRuntimeSessionOKCheckpointKind0(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionOKCheckpointKind0) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionOKCheckpointKind0) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UploadRuntimeSessionOKSessionKind as json.
+func (s UploadRuntimeSessionOKSessionKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UploadRuntimeSessionOKSessionKind from json.
+func (s *UploadRuntimeSessionOKSessionKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionOKSessionKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UploadRuntimeSessionOKSessionKind(v) {
+	case UploadRuntimeSessionOKSessionKindRoot:
+		*s = UploadRuntimeSessionOKSessionKindRoot
+	case UploadRuntimeSessionOKSessionKindExtend:
+		*s = UploadRuntimeSessionOKSessionKindExtend
+	case UploadRuntimeSessionOKSessionKindFork:
+		*s = UploadRuntimeSessionOKSessionKindFork
+	default:
+		*s = UploadRuntimeSessionOKSessionKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionOKSessionKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionOKSessionKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UploadRuntimeSessionReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UploadRuntimeSessionReq) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("contentBase64")
+		e.Str(s.ContentBase64)
+	}
+	{
+		if s.ParentSessionId.Set {
+			e.FieldStart("parentSessionId")
+			s.ParentSessionId.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("sessionKind")
+		s.SessionKind.Encode(e)
+	}
+	{
+		if s.SourceRuntimeProfileId.Set {
+			e.FieldStart("sourceRuntimeProfileId")
+			s.SourceRuntimeProfileId.Encode(e)
+		}
+	}
+	{
+		if s.SourceSlotId.Set {
+			e.FieldStart("sourceSlotId")
+			s.SourceSlotId.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUploadRuntimeSessionReq = [5]string{
+	0: "contentBase64",
+	1: "parentSessionId",
+	2: "sessionKind",
+	3: "sourceRuntimeProfileId",
+	4: "sourceSlotId",
+}
+
+// Decode decodes UploadRuntimeSessionReq from json.
+func (s *UploadRuntimeSessionReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionReq to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "contentBase64":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.ContentBase64 = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentBase64\"")
+			}
+		case "parentSessionId":
+			if err := func() error {
+				s.ParentSessionId.Reset()
+				if err := s.ParentSessionId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"parentSessionId\"")
+			}
+		case "sessionKind":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.SessionKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sessionKind\"")
+			}
+		case "sourceRuntimeProfileId":
+			if err := func() error {
+				s.SourceRuntimeProfileId.Reset()
+				if err := s.SourceRuntimeProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourceRuntimeProfileId\"")
+			}
+		case "sourceSlotId":
+			if err := func() error {
+				s.SourceSlotId.Reset()
+				if err := s.SourceSlotId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourceSlotId\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000101,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUploadRuntimeSessionReq) {
+					name = jsonFieldsNameOfUploadRuntimeSessionReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UploadRuntimeSessionReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UploadRuntimeSessionReqSessionKind as json.
+func (s UploadRuntimeSessionReqSessionKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UploadRuntimeSessionReqSessionKind from json.
+func (s *UploadRuntimeSessionReqSessionKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionReqSessionKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UploadRuntimeSessionReqSessionKind(v) {
+	case UploadRuntimeSessionReqSessionKindRoot:
+		*s = UploadRuntimeSessionReqSessionKindRoot
+	case UploadRuntimeSessionReqSessionKindExtend:
+		*s = UploadRuntimeSessionReqSessionKindExtend
+	case UploadRuntimeSessionReqSessionKindFork:
+		*s = UploadRuntimeSessionReqSessionKindFork
+	default:
+		*s = UploadRuntimeSessionReqSessionKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionReqSessionKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionReqSessionKind) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UploadRuntimeSessionServiceUnavailable) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UploadRuntimeSessionServiceUnavailable) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfUploadRuntimeSessionServiceUnavailable = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes UploadRuntimeSessionServiceUnavailable from json.
+func (s *UploadRuntimeSessionServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionServiceUnavailable to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionServiceUnavailable")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUploadRuntimeSessionServiceUnavailable) {
+					name = jsonFieldsNameOfUploadRuntimeSessionServiceUnavailable[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UploadRuntimeSessionServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s UploadRuntimeSessionServiceUnavailableAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s UploadRuntimeSessionServiceUnavailableAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes UploadRuntimeSessionServiceUnavailableAdditional from json.
+func (s *UploadRuntimeSessionServiceUnavailableAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionServiceUnavailableAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionServiceUnavailableAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionServiceUnavailableAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionServiceUnavailableAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UploadRuntimeSessionServiceUnavailableCode as json.
+func (s UploadRuntimeSessionServiceUnavailableCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UploadRuntimeSessionServiceUnavailableCode from json.
+func (s *UploadRuntimeSessionServiceUnavailableCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionServiceUnavailableCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UploadRuntimeSessionServiceUnavailableCode(v) {
+	case UploadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeUNAUTHORIZED
+	case UploadRuntimeSessionServiceUnavailableCodeFORBIDDEN:
+		*s = UploadRuntimeSessionServiceUnavailableCodeFORBIDDEN
+	case UploadRuntimeSessionServiceUnavailableCodeNOTFOUND:
+		*s = UploadRuntimeSessionServiceUnavailableCodeNOTFOUND
+	case UploadRuntimeSessionServiceUnavailableCodeCONFLICT:
+		*s = UploadRuntimeSessionServiceUnavailableCodeCONFLICT
+	case UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED
+	case UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE
+	case UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE
+	case UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT
+	case UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED
+	case UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED
+	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED
+	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED
+	case UploadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR
+	case UploadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE
+	case UploadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionServiceUnavailableCodeINTERNALSERVERERROR
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeTEAMPERSONALIMMUTABLE
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeTEAMNOTACTIVE
+	case UploadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeINVITEEXPIRED
+	case UploadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeINVITEEXHAUSTED
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionServiceUnavailableCodeTEAMLASTOWNER
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeTEAMALREADYACTIVE
+	case UploadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionServiceUnavailableCodeTEAMNOTFOUNDING
+	case UploadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeFOUNDINGALREADYACCEPTED
+	case UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERPENDING
+	case UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERNOTFOUND
+	case UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = UploadRuntimeSessionServiceUnavailableCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionServiceUnavailableCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionServiceUnavailableCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UploadRuntimeSessionUnauthorized) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UploadRuntimeSessionUnauthorized) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfUploadRuntimeSessionUnauthorized = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes UploadRuntimeSessionUnauthorized from json.
+func (s *UploadRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionUnauthorized to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionUnauthorized")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUploadRuntimeSessionUnauthorized) {
+					name = jsonFieldsNameOfUploadRuntimeSessionUnauthorized[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UploadRuntimeSessionUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s UploadRuntimeSessionUnauthorizedAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s UploadRuntimeSessionUnauthorizedAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes UploadRuntimeSessionUnauthorizedAdditional from json.
+func (s *UploadRuntimeSessionUnauthorizedAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionUnauthorizedAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UploadRuntimeSessionUnauthorizedAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionUnauthorizedAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionUnauthorizedAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UploadRuntimeSessionUnauthorizedCode as json.
+func (s UploadRuntimeSessionUnauthorizedCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UploadRuntimeSessionUnauthorizedCode from json.
+func (s *UploadRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UploadRuntimeSessionUnauthorizedCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UploadRuntimeSessionUnauthorizedCode(v) {
+	case UploadRuntimeSessionUnauthorizedCodeUNAUTHORIZED:
+		*s = UploadRuntimeSessionUnauthorizedCodeUNAUTHORIZED
+	case UploadRuntimeSessionUnauthorizedCodeFORBIDDEN:
+		*s = UploadRuntimeSessionUnauthorizedCodeFORBIDDEN
+	case UploadRuntimeSessionUnauthorizedCodeNOTFOUND:
+		*s = UploadRuntimeSessionUnauthorizedCodeNOTFOUND
+	case UploadRuntimeSessionUnauthorizedCodeCONFLICT:
+		*s = UploadRuntimeSessionUnauthorizedCodeCONFLICT
+	case UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
+		*s = UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
+	case UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
+		*s = UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE
+	case UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
+		*s = UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE
+	case UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
+		*s = UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT
+	case UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED
+	case UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED
+	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED
+	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
+		*s = UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
+	case UploadRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
+		*s = UploadRuntimeSessionUnauthorizedCodeUPSTREAMERROR
+	case UploadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = UploadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE
+	case UploadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR:
+		*s = UploadRuntimeSessionUnauthorizedCodeINTERNALSERVERERROR
+	case UploadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = UploadRuntimeSessionUnauthorizedCodeTEAMPERSONALIMMUTABLE
+	case UploadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE:
+		*s = UploadRuntimeSessionUnauthorizedCodeTEAMNOTACTIVE
+	case UploadRuntimeSessionUnauthorizedCodeINVITEEXPIRED:
+		*s = UploadRuntimeSessionUnauthorizedCodeINVITEEXPIRED
+	case UploadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED:
+		*s = UploadRuntimeSessionUnauthorizedCodeINVITEEXHAUSTED
+	case UploadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER:
+		*s = UploadRuntimeSessionUnauthorizedCodeTEAMLASTOWNER
+	case UploadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = UploadRuntimeSessionUnauthorizedCodeTEAMALREADYACTIVE
+	case UploadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = UploadRuntimeSessionUnauthorizedCodeTEAMNOTFOUNDING
+	case UploadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = UploadRuntimeSessionUnauthorizedCodeFOUNDINGALREADYACCEPTED
+	case UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERPENDING
+	case UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERNOTFOUND
+	case UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = UploadRuntimeSessionUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = UploadRuntimeSessionUnauthorizedCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UploadRuntimeSessionUnauthorizedCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UploadRuntimeSessionUnauthorizedCode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

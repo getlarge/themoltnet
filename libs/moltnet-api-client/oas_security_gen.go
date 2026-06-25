@@ -81,6 +81,7 @@ var operationRolesBearerAuth = map[string][]string{
 	DeleteTeamInviteOperation:                []string{},
 	DiffContextPacksByCidOperation:           []string{},
 	DiffContextPacksByIdOperation:            []string{},
+	DownloadRuntimeSessionOperation:          []string{},
 	FailTaskOperation:                        []string{},
 	FindLatestRuntimeSlotForAttemptOperation: []string{},
 	FinishRuntimeSlotOperation:               []string{},
@@ -95,6 +96,7 @@ var operationRolesBearerAuth = map[string][]string{
 	GetRenderedPackByIdOperation:             []string{},
 	GetRuntimeModelOperation:                 []string{},
 	GetRuntimeProfileOperation:               []string{},
+	GetRuntimeSessionOperation:               []string{},
 	GetSigningRequestOperation:               []string{},
 	GetTaskOperation:                         []string{},
 	GetTeamOperation:                         []string{},
@@ -144,6 +146,7 @@ var operationRolesBearerAuth = map[string][]string{
 	UpdateRuntimeProfileOperation:            []string{},
 	UpdateTaskMetadataOperation:              []string{},
 	UpdateTeamMemberRoleOperation:            []string{},
+	UploadRuntimeSessionOperation:            []string{},
 	VerifyDiaryEntryByIdOperation:            []string{},
 }
 
@@ -203,6 +206,7 @@ var operationRolesCookieAuth = map[string][]string{
 	DeleteTeamInviteOperation:                []string{},
 	DiffContextPacksByCidOperation:           []string{},
 	DiffContextPacksByIdOperation:            []string{},
+	DownloadRuntimeSessionOperation:          []string{},
 	FailTaskOperation:                        []string{},
 	FindLatestRuntimeSlotForAttemptOperation: []string{},
 	FinishRuntimeSlotOperation:               []string{},
@@ -217,6 +221,7 @@ var operationRolesCookieAuth = map[string][]string{
 	GetRenderedPackByIdOperation:             []string{},
 	GetRuntimeModelOperation:                 []string{},
 	GetRuntimeProfileOperation:               []string{},
+	GetRuntimeSessionOperation:               []string{},
 	GetSigningRequestOperation:               []string{},
 	GetTaskOperation:                         []string{},
 	GetTeamOperation:                         []string{},
@@ -266,6 +271,7 @@ var operationRolesCookieAuth = map[string][]string{
 	UpdateRuntimeProfileOperation:            []string{},
 	UpdateTaskMetadataOperation:              []string{},
 	UpdateTeamMemberRoleOperation:            []string{},
+	UploadRuntimeSessionOperation:            []string{},
 	VerifyDiaryEntryByIdOperation:            []string{},
 }
 
@@ -325,6 +331,7 @@ var operationRolesSessionAuth = map[string][]string{
 	DeleteTeamInviteOperation:                []string{},
 	DiffContextPacksByCidOperation:           []string{},
 	DiffContextPacksByIdOperation:            []string{},
+	DownloadRuntimeSessionOperation:          []string{},
 	FailTaskOperation:                        []string{},
 	FindLatestRuntimeSlotForAttemptOperation: []string{},
 	FinishRuntimeSlotOperation:               []string{},
@@ -339,6 +346,7 @@ var operationRolesSessionAuth = map[string][]string{
 	GetRenderedPackByIdOperation:             []string{},
 	GetRuntimeModelOperation:                 []string{},
 	GetRuntimeProfileOperation:               []string{},
+	GetRuntimeSessionOperation:               []string{},
 	GetSigningRequestOperation:               []string{},
 	GetTaskOperation:                         []string{},
 	GetTeamOperation:                         []string{},
@@ -388,6 +396,7 @@ var operationRolesSessionAuth = map[string][]string{
 	UpdateRuntimeProfileOperation:            []string{},
 	UpdateTaskMetadataOperation:              []string{},
 	UpdateTeamMemberRoleOperation:            []string{},
+	UploadRuntimeSessionOperation:            []string{},
 	VerifyDiaryEntryByIdOperation:            []string{},
 }
 
