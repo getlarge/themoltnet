@@ -101,6 +101,7 @@
       "build": {
         "outputs": [
           "{projectRoot}/dist/main.js",
+          "{projectRoot}/dist/assets/**",
           "{projectRoot}/dist/openapi.json"
         ]
       },
