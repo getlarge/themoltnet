@@ -15,10 +15,11 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   package carries no private-package runtime dependency. `@themoltnet/sdk` is
   therefore a **devDependency** (bundled, not installed at runtime).
 - The `.html` editor files are copied to `dist/nodes/` as assets (not compiled).
-- Two **config nodes** (`moltnet-agent`, `moltnet-runtime-profile`) and six
+- Two **config nodes** (`moltnet-agent`, `moltnet-runtime-profile`) and eight
   **action nodes** (`moltnet-tasks-create`, `moltnet-task-get`,
   `moltnet-task-wait`, `moltnet-workflow-status`, `moltnet-task-builder`,
-  `moltnet-task-reader`) register and appear in the palette.
+  `moltnet-task-reader`, `moltnet-tasks-list`, `moltnet-entries-search`)
+  register and appear in the palette.
 
 ## Nodes
 
@@ -38,6 +39,12 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   wins). The task `input` and advanced fields come from `msg.payload`. See
   [Building the task request](#building-the-task-request). Holds no SDK import —
   the SDK lives only in the config node.
+- **`moltnet-tasks-list`** (palette: _tasks: list_) — lists tasks for the
+  referenced agent's team. Supports the server task filters (`status`,
+  `statuses`, `taskTypes`, `tags`, `excludeTags`, profile/correlation/diary,
+  proposer/claimer ids, attempts, date windows, `limit`, `cursor`). Node fields
+  fill the query; an object `msg.payload` overrides them. Emits task rows on
+  `msg.payload` and pagination/query metadata on `msg.tasks`.
 - **`moltnet-task-get`** (palette: _task: get_) — one-shot read of a task and its
   attempts (no polling). Emits a normalized **snapshot** on `msg.payload`:
   `{ taskId, status, terminal, accepted, acceptedAttemptN, state, attempt,
@@ -70,6 +77,13 @@ attempts, error, task }`. `state` is the accepted attempt's output artifact
   The pre-computed **`outputRef`** (`{ taskId, outputCid, role }`) chains straight
   into a downstream `task: build`'s **References from**; set an **artifact
   kind/title** to pre-parse a JSON artifact body into `msg.result.artifactBody`.
+- **`moltnet-entries-search`** (palette: _entries: search_) — searches diary
+  entries using the SDK hybrid search endpoint. Supports `diaryId`, `query`,
+  `tags`, `excludeTags`, `entryTypes`, `excludeSuperseded`, `limit`, `offset`,
+  and relevance/recency/importance weights. A string `msg.payload` is treated as
+  the query; an object `msg.payload` overrides node fields and may use camelCase
+  SDK keys or snake_case MCP-style keys. Emits entries on `msg.payload` and
+  search metadata on `msg.entries`.
 
 All nodes register a long, collision-safe `type` (`moltnet-*`) but show a short
 `paletteLabel` under the **moltnet** category, so the palette is not crowded by
@@ -172,6 +186,17 @@ the builder's context rows**, **agent output→input chaining via the reader's
 `outputRef` + the builder's References-from**, and **eval/judgment** with a
 freeform rubric. Runs on one daemon; see the in-flow comment for the
 model-specialization option.
+
+## A/B eval with judge subflow
+
+[`examples/ab-eval-with-judge.flow.json`](./examples/ab-eval-with-judge.flow.json)
+imports a reusable **A/B eval with judge** subflow plus a small demo tab. The
+subflow runs `run_eval`, locally scores required fields/findings, then creates a
+`judge_eval_attempt` task and stores per-variant scores/deltas in flow context.
+
+Fill the `moltnet-agent` config after import. Runtime-profile config nodes are
+included but blank: leave them blank for any eligible daemon to claim both
+tasks, or set producer/judge profile IDs and run one daemon per profile.
 
 ## Reproducing the issue-lifecycle shape
 

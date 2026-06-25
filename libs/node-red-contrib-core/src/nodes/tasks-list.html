@@ -1,0 +1,174 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-tasks-list', {
+    category: 'moltnet',
+    color: '#00d4c8',
+    paletteLabel: 'tasks: list',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      status: { value: '' },
+      statusList: { value: '' },
+      taskTypes: { value: '' },
+      tags: { value: '' },
+      excludeTags: { value: '' },
+      profileId: { value: '' },
+      correlationId: { value: '' },
+      diaryId: { value: '' },
+      proposedByAgentId: { value: '' },
+      proposedByHumanId: { value: '' },
+      claimedByAgentId: { value: '' },
+      hasAttempts: { value: '' },
+      queuedAfter: { value: '' },
+      queuedBefore: { value: '' },
+      completedAfter: { value: '' },
+      completedBefore: { value: '' },
+      limit: { value: 20, validate: RED.validators.number() },
+      cursor: { value: '' },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-list',
+    label: function () {
+      return this.name || 'tasks: list';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-tasks-list">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
+    <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-status"><i class="fa fa-check"></i> Status</label>
+    <input type="text" id="node-input-status" placeholder="queued" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-statusList"
+      ><i class="fa fa-check-square-o"></i> Statuses</label
+    >
+    <input
+      type="text"
+      id="node-input-statusList"
+      placeholder="waiting,queued"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-taskTypes"><i class="fa fa-cubes"></i> Types</label>
+    <input
+      type="text"
+      id="node-input-taskTypes"
+      placeholder="fulfill_brief,render_pack"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-tags"><i class="fa fa-tags"></i> Tags</label>
+    <input type="text" id="node-input-tags" placeholder="issue,triage" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-excludeTags"
+      ><i class="fa fa-ban"></i> Exclude</label
+    >
+    <input type="text" id="node-input-excludeTags" placeholder="archived" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-profileId"
+      ><i class="fa fa-id-card"></i> Profile</label
+    >
+    <input type="text" id="node-input-profileId" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-correlationId"
+      ><i class="fa fa-link"></i> Correlation</label
+    >
+    <input
+      type="text"
+      id="node-input-correlationId"
+      placeholder="msg.payload overrides"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-diaryId"><i class="fa fa-book"></i> Diary</label>
+    <input type="text" id="node-input-diaryId" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-proposedByAgentId"
+      ><i class="fa fa-user-circle"></i> Proposed agent</label
+    >
+    <input type="text" id="node-input-proposedByAgentId" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-proposedByHumanId"
+      ><i class="fa fa-user"></i> Proposed human</label
+    >
+    <input type="text" id="node-input-proposedByHumanId" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-claimedByAgentId"
+      ><i class="fa fa-hand-paper-o"></i> Claimed agent</label
+    >
+    <input type="text" id="node-input-claimedByAgentId" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-hasAttempts"
+      ><i class="fa fa-history"></i> Attempts</label
+    >
+    <select id="node-input-hasAttempts">
+      <option value="">Any</option>
+      <option value="true">Has attempts</option>
+      <option value="false">No attempts</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-queuedAfter"
+      ><i class="fa fa-clock-o"></i> Queued after</label
+    >
+    <input
+      type="text"
+      id="node-input-queuedAfter"
+      placeholder="2026-06-25T00:00:00Z"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-queuedBefore"
+      ><i class="fa fa-clock-o"></i> Queued before</label
+    >
+    <input type="text" id="node-input-queuedBefore" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-completedAfter"
+      ><i class="fa fa-calendar-check-o"></i> Done after</label
+    >
+    <input type="text" id="node-input-completedAfter" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-completedBefore"
+      ><i class="fa fa-calendar-check-o"></i> Done before</label
+    >
+    <input type="text" id="node-input-completedBefore" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-limit"><i class="fa fa-hashtag"></i> Limit</label>
+    <input type="number" id="node-input-limit" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-cursor"><i class="fa fa-forward"></i> Cursor</label>
+    <input type="text" id="node-input-cursor" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-tasks-list">
+  <p>
+    Lists MoltNet tasks for the configured agent's team. Node fields build the
+    query, and any object fields on <code>msg.payload</code> override them.
+  </p>
+  <p>
+    Emits the task array on <code>msg.payload</code>. Pagination metadata and
+    the final query are on <code>msg.tasks</code>:
+    <code>{ total, nextCursor, query }</code>.
+  </p>
+</script>
