@@ -753,8 +753,8 @@ describe('Agent daemon (e2e)', () => {
       };
       const correlationId = randomUUID();
       // Long TTL so the affinity filter's existsSync(sessionDir) check
-      // and the server-side `slotResumableUntil` future-check both pass
-      // by the time the continuation task is created and polled.
+      // still sees the local slot by the time the continuation task is
+      // created and polled.
       const warmSessionTtlSec = 600;
 
       try {
@@ -791,9 +791,8 @@ describe('Agent daemon (e2e)', () => {
         const seededMarker = `seed-marker-${parent.id}`;
         appendFileSync(seededSessionPath, `${seededMarker}\n`, 'utf8');
 
-        // Sanity: the parent's completion reported a future slotResumableUntil
-        // (otherwise the server will reject the continuation with
-        // freeform.sourceNotResumeEligible before the daemon ever sees it).
+        // Sanity: the parent's completion reported the warm-slot hint this
+        // test expects to display in diagnostics.
         const parentRow = await agent.tasks.get(parent.id);
         const parentAttempts = await agent.tasks.listAttempts(parent.id);
         const acceptedAttempt = parentAttempts.find(
@@ -1214,9 +1213,7 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   expect(outputs).toHaveLength(1);
   const [output] = outputs;
   // Mirror the production daemon: forward the runtime-slot expiry through to
-  // /complete so freeform attempts report a non-null `slotResumableUntil`,
-  // which is what `validateFreeformInputAsync` requires for continuation
-  // tasks to pass create-time async validation.
+  // /complete so freeform attempts report a non-null warm-slot hint.
   const plan = usedExecutionPlan;
   const taskForCtx =
     plan && plan.slotKey ? await args.agent.tasks.get(args.taskId) : null;

@@ -1105,7 +1105,7 @@ describe('freeform validateInputAsync — continuation', () => {
     expect(errors[0]?.code).toBe('freeform.executionWorkspaceNotInheritable');
   });
 
-  it('rejects when daemonState is null', async () => {
+  it('passes when daemonState is null', async () => {
     const errors = await validator(
       {
         brief: 'x',
@@ -1120,10 +1120,10 @@ describe('freeform validateInputAsync — continuation', () => {
           ]),
       }),
     );
-    expect(errors[0]?.code).toBe('freeform.sourceNotResumeEligible');
+    expect(errors).toEqual([]);
   });
 
-  it('rejects when slotResumableUntil is past now', async () => {
+  it('passes when slotResumableUntil is past now', async () => {
     const errors = await validator(
       {
         brief: 'x',
@@ -1143,10 +1143,10 @@ describe('freeform validateInputAsync — continuation', () => {
         ]),
       }),
     );
-    expect(errors[0]?.code).toBe('freeform.sourceResumeExpired');
+    expect(errors).toEqual([]);
   });
 
-  it('passes when daemonState is fresh', async () => {
+  it('passes when daemonState has a future slot hint', async () => {
     const errors = await validator(
       {
         brief: 'x',

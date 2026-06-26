@@ -11,6 +11,7 @@ import { makeFulfillBriefTask } from '../test-fixtures.js';
 import type {
   ContinuationSessionRegistry,
   ContinuationSlotRegistry,
+  ContinuationSourceAttemptResolver,
 } from './polling-api.js';
 import {
   isContinuationClaimableByThisDaemon,
@@ -676,6 +677,103 @@ describe('PollingApiTaskSource', () => {
     expect(claim).toHaveBeenCalledWith(continuation.id, { leaseTtlSec: 60 });
   });
 
+  it('skips remote-only fork continuations when the source branch is not recoverable', async () => {
+    const fork = makeFulfillBriefTask({
+      id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+      taskType: 'freeform',
+      status: 'queued',
+      input: {
+        brief: 'fork from remote session without branch',
+        continueFrom: {
+          taskId: '99999999-9999-4999-8999-999999999999',
+          attemptN: 1,
+          mode: 'fork',
+        },
+      },
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [fork], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>();
+    const slotRegistry: ContinuationSlotRegistry = {
+      findLatestSlotByTaskAttempt: vi.fn().mockResolvedValue(null),
+    };
+    const sessionRegistry: ContinuationSessionRegistry = {
+      findRuntimeSessionByTaskAttempt: vi.fn().mockResolvedValue({ id: 's1' }),
+    };
+    const findOutputBranch = vi.fn().mockResolvedValue(null);
+    const sourceAttemptResolver: ContinuationSourceAttemptResolver = {
+      findOutputBranch,
+    };
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      slotRegistry,
+      sessionRegistry,
+      sourceAttemptResolver,
+      logger: silentLogger,
+    });
+
+    await expect(src.claim()).resolves.toBeNull();
+    expect(findOutputBranch).toHaveBeenCalledWith({
+      taskId: '99999999-9999-4999-8999-999999999999',
+      attemptN: 1,
+    });
+    expect(claim).not.toHaveBeenCalled();
+  });
+
+  it('claims remote-only fork continuations when the source branch is recoverable', async () => {
+    const fork = makeFulfillBriefTask({
+      id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+      taskType: 'freeform',
+      status: 'queued',
+      input: {
+        brief: 'fork from remote session with branch',
+        continueFrom: {
+          taskId: '99999999-9999-4999-8999-999999999999',
+          attemptN: 1,
+          mode: 'fork',
+        },
+      },
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [fork], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task: fork,
+      attempt: { taskId: fork.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+    const slotRegistry: ContinuationSlotRegistry = {
+      findLatestSlotByTaskAttempt: vi.fn().mockResolvedValue(null),
+    };
+    const sessionRegistry: ContinuationSessionRegistry = {
+      findRuntimeSessionByTaskAttempt: vi.fn().mockResolvedValue({ id: 's1' }),
+    };
+    const sourceAttemptResolver: ContinuationSourceAttemptResolver = {
+      findOutputBranch: vi.fn().mockResolvedValue('feature/source'),
+    };
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      slotRegistry,
+      sessionRegistry,
+      sourceAttemptResolver,
+      logger: silentLogger,
+    });
+
+    const result = await src.claim();
+
+    expect(result?.task.id).toBe(fork.id);
+    expect(claim).toHaveBeenCalledWith(fork.id, { leaseTtlSec: 60 });
+  });
+
   it('drains only after all visible pages are locally unclaimable', async () => {
     const first = makeFulfillBriefTask({
       id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
@@ -796,6 +894,56 @@ describe('isContinuationClaimableByThisDaemon', () => {
       'aaa',
       1,
     );
+  });
+
+  it('returns false for a missing-slot remote fork without source branch metadata', async () => {
+    const sessionRegistry: ContinuationSessionRegistry = {
+      findRuntimeSessionByTaskAttempt: vi.fn().mockResolvedValue({ id: 's1' }),
+    };
+    const sourceAttemptResolver: ContinuationSourceAttemptResolver = {
+      findOutputBranch: vi.fn().mockResolvedValue(null),
+    };
+
+    await expect(
+      isContinuationClaimableByThisDaemon(
+        {
+          teamId: 'team-1',
+          input: {
+            continueFrom: { taskId: 'aaa', attemptN: 1, mode: 'fork' },
+          },
+        },
+        makeSlotRegistry(null),
+        sessionRegistry,
+        sourceAttemptResolver,
+      ),
+    ).resolves.toEqual({
+      claimable: false,
+      reason: 'missing_source_branch',
+      continueFrom: { taskId: 'aaa', attemptN: 1, mode: 'fork' },
+    });
+  });
+
+  it('returns true for a missing-slot remote fork with source branch metadata', async () => {
+    const sessionRegistry: ContinuationSessionRegistry = {
+      findRuntimeSessionByTaskAttempt: vi.fn().mockResolvedValue({ id: 's1' }),
+    };
+    const sourceAttemptResolver: ContinuationSourceAttemptResolver = {
+      findOutputBranch: vi.fn().mockResolvedValue('feature/source'),
+    };
+
+    await expect(
+      isContinuationClaimableByThisDaemon(
+        {
+          teamId: 'team-1',
+          input: {
+            continueFrom: { taskId: 'aaa', attemptN: 1, mode: 'fork' },
+          },
+        },
+        makeSlotRegistry(null),
+        sessionRegistry,
+        sourceAttemptResolver,
+      ),
+    ).resolves.toEqual({ claimable: true });
   });
 
   it('returns true when producer slot exists and remote session can replace a missing local session file', async () => {

@@ -8,16 +8,16 @@
  * API directly so the validator is the system under test.
  *
  * Covered scenarios (in order):
- *  1. Success path — fresh slotResumableUntil ⇒ 201 with
+ *  1. Success path — completed source attempt ⇒ 201 with
  *     continueFrom echoed on the new task.
  *  2. Source missing (random UUID) ⇒ 400, message names a missing
  *     source task.
  *  3. Source not freeform (curate_pack) ⇒ 400, message rejects
  *     non-freeform continuation.
  *  4. Source attempt not completed (still running) ⇒ 400.
- *  5. mode='fork' ⇒ 400 with the not-yet-implemented hint.
- *  6. daemonState null on completion ⇒ 400.
- *  7. slotResumableUntil in the past ⇒ 400 with expired-slot wording.
+ *  5. mode='fork' ⇒ 201 with continueFrom echoed.
+ *  6. daemonState null on completion ⇒ 201.
+ *  7. slotResumableUntil in the past + durable remote session ⇒ 201.
  *  8. correlationId auto-generated when omitted ⇒ response carries a
  *     UUID-shaped correlationId.
  *  9. Race: parent cancelled after a continuation is created ⇒ the
@@ -41,6 +41,7 @@ import {
   createTask,
   getTask,
   taskHeartbeat,
+  uploadRuntimeSession,
 } from '@moltnet/api-client';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -113,7 +114,7 @@ describe('tasks_continue server-side validation matrix', () => {
   async function claimSource(taskId: string): Promise<number> {
     const { data, error } = await claimTask({
       client,
-      auth: () => claimer.accessToken,
+      auth: () => proposer.accessToken,
       path: { id: taskId },
       body: { leaseTtlSec: 60 },
     });
@@ -122,7 +123,7 @@ describe('tasks_continue server-side validation matrix', () => {
 
     await taskHeartbeat({
       client,
-      auth: () => claimer.accessToken,
+      auth: () => proposer.accessToken,
       path: { id: taskId, n: attemptN },
       body: { leaseTtlSec: 60 },
     });
@@ -152,6 +153,7 @@ describe('tasks_continue server-side validation matrix', () => {
 
     const output = {
       summary: 'Source freeform attempt completed for tasks_continue e2e.',
+      branch: `e2e/tasks-continue-${opts.taskId.slice(0, 8)}`,
       verification: {
         inputCid,
         results: [],
@@ -178,7 +180,7 @@ describe('tasks_continue server-side validation matrix', () => {
 
     const { error } = await completeTask({
       client,
-      auth: () => claimer.accessToken,
+      auth: () => proposer.accessToken,
       path: { id: opts.taskId, n: opts.attemptN },
       body,
     });
@@ -224,6 +226,27 @@ describe('tasks_continue server-side validation matrix', () => {
     });
   }
 
+  async function uploadDurableSession(taskId: string, attemptN: number) {
+    const { error, response } = await uploadRuntimeSession({
+      client,
+      auth: () => proposer.accessToken,
+      headers: {
+        'content-type': 'application/x-ndjson',
+        'x-moltnet-team-id': proposer.personalTeamId,
+      },
+      path: { taskId, attemptN },
+      query: { sessionKind: 'root' },
+      body: new Blob(['{"role":"system","content":"durable"}\n'], {
+        type: 'application/x-ndjson',
+      }),
+    });
+    expect(
+      error,
+      `uploadDurableSession: ${response.status} ${JSON.stringify(error)}`,
+    ).toBeUndefined();
+    expect(response.status).toBe(200);
+  }
+
   function firstValidationMessage(error: unknown): string {
     const errs = (error as { errors?: { field: string; message: string }[] })
       ?.errors;
@@ -233,7 +256,7 @@ describe('tasks_continue server-side validation matrix', () => {
 
   // ── Scenarios ──────────────────────────────────────────────────────────────
 
-  it('1. success path — fresh slotResumableUntil → continuation accepted with continueFrom echoed', async () => {
+  it('1. success path — completed source → continuation accepted with continueFrom echoed', async () => {
     const sourceId = await createFreeformSource('scenario 1: success path');
     const attemptN = await claimSource(sourceId);
     await completeFreeformSource({
@@ -375,7 +398,7 @@ describe('tasks_continue server-side validation matrix', () => {
     );
   }, 60_000);
 
-  it('6. daemonState null on completion → 400 sourceNotResumeEligible', async () => {
+  it('6. daemonState null on completion → continuation accepted', async () => {
     const sourceId = await createFreeformSource('scenario 6: no daemonState');
     const attemptN = await claimSource(sourceId);
     await completeFreeformSource({
@@ -384,34 +407,47 @@ describe('tasks_continue server-side validation matrix', () => {
       eligibility: 'none',
     });
 
-    const { error, response } = await createContinuation({
+    const { data, error, response } = await createContinuation({
       taskId: sourceId,
       attemptN,
     });
 
-    expect(response.status).toBe(400);
-    expect(firstValidationMessage(error)).toMatch(
-      /input\/continueFrom.*did not report continuation eligibility/i,
+    expect(
+      error,
+      `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
+    ).toBeUndefined();
+    expect(response.status).toBe(201);
+    expect(data!.input).toEqual(
+      expect.objectContaining({
+        continueFrom: expect.objectContaining({ taskId: sourceId, attemptN }),
+      }),
     );
   }, 60_000);
 
-  it('7. slotResumableUntil expired → 400 sourceResumeExpired', async () => {
+  it('7. expired slotResumableUntil + durable session → continuation accepted', async () => {
     const sourceId = await createFreeformSource('scenario 7: expired slot');
     const attemptN = await claimSource(sourceId);
+    await uploadDurableSession(sourceId, attemptN);
     await completeFreeformSource({
       taskId: sourceId,
       attemptN,
       eligibility: 'expired',
     });
 
-    const { error, response } = await createContinuation({
+    const { data, error, response } = await createContinuation({
       taskId: sourceId,
       attemptN,
     });
 
-    expect(response.status).toBe(400);
-    expect(firstValidationMessage(error)).toMatch(
-      /input\/continueFrom.*warm slot expired/i,
+    expect(
+      error,
+      `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
+    ).toBeUndefined();
+    expect(response.status).toBe(201);
+    expect(data!.input).toEqual(
+      expect.objectContaining({
+        continueFrom: expect.objectContaining({ taskId: sourceId, attemptN }),
+      }),
     );
   }, 60_000);
 
