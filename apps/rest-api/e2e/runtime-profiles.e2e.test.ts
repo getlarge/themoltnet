@@ -168,6 +168,27 @@ describe('Runtime Profiles API', () => {
       'dedicated_worktree',
     ]);
 
+    const { data: preserved, error: preserveError } =
+      await updateRuntimeProfile({
+        client,
+        auth: () => owner.accessToken,
+        path: { profileId: created!.id },
+        body: {
+          model: 'Claude-Opus-4-1',
+        },
+      });
+    expect(preserveError).toBeUndefined();
+    expect(preserved).toMatchObject({
+      id: created!.id,
+      model: 'claude-opus-4-1',
+      thinkingLevel: 'high',
+      temperature: 0.2,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 12_000,
+      revision: 2,
+    });
+
     const { data: updated, error: updateError } = await updateRuntimeProfile({
       client,
       auth: () => owner.accessToken,
@@ -200,9 +221,10 @@ describe('Runtime Profiles API', () => {
       allowedWorkspaceModes: ['none'],
       maxTurns: 12,
       maxBashTimeouts: 1,
-      revision: 2,
+      revision: 3,
     });
-    expect(updated!.definitionCid).not.toBe(created!.definitionCid);
+    expect(preserved!.definitionCid).not.toBe(created!.definitionCid);
+    expect(updated!.definitionCid).not.toBe(preserved!.definitionCid);
 
     const { response: deleteResponse, error: deleteError } =
       await deleteRuntimeProfile({

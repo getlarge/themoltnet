@@ -71,7 +71,13 @@ describe('runtime profile routes', () => {
     mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
     mocks.runtimeProfileRepository.create.mockResolvedValue(
-      mockProfile({ thinkingLevel: 'high' }),
+      mockProfile({
+        thinkingLevel: 'high',
+        temperature: 0.2,
+        topP: 0.9,
+        topK: 40,
+        maxOutputTokens: 12_000,
+      }),
     );
 
     const response = await app.inject({
@@ -126,10 +132,10 @@ describe('runtime profile routes', () => {
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
       thinkingLevel: 'high',
-      temperature: null,
-      topP: null,
-      topK: null,
-      maxOutputTokens: null,
+      temperature: 0.2,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 12_000,
       runtimeKind: 'gondolin_pi',
       leaseTtlSec: 300,
       heartbeatIntervalMs: 60_000,
@@ -196,6 +202,47 @@ describe('runtime profile routes', () => {
         },
       ],
     });
+    expect(mocks.runtimeProfileRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid model option boundaries', async () => {
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
+
+    const cases = [
+      { temperature: -0.1 },
+      { temperature: 2.1 },
+      { topP: -0.1 },
+      { topP: 1.1 },
+      { topK: 0 },
+      { maxOutputTokens: 0 },
+      { thinkingLevel: 'extreme' },
+    ];
+
+    for (const modelOptions of cases) {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/runtime-profiles',
+        headers: {
+          authorization: 'Bearer test-token',
+          'x-moltnet-team-id': TEAM_ID,
+        },
+        payload: {
+          name: `invalid-${Object.keys(modelOptions)[0]}`,
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          sandbox: {},
+          ...modelOptions,
+        },
+      });
+
+      expect(
+        response.statusCode,
+        `${JSON.stringify(modelOptions)} -> ${response.body}`,
+      ).toBe(400);
+    }
+
     expect(mocks.runtimeProfileRepository.create).not.toHaveBeenCalled();
   });
 
@@ -346,6 +393,61 @@ describe('runtime profile routes', () => {
       PROFILE_ID,
       expect.objectContaining({
         name: 'deploy-bot',
+      }),
+    );
+  });
+
+  it('preserves model options when update omits them', async () => {
+    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.runtimeProfileRepository.findById.mockResolvedValue(
+      mockProfile({
+        thinkingLevel: 'medium',
+        temperature: 0.3,
+        topP: 0.8,
+        topK: 32,
+        maxOutputTokens: 16_000,
+      }),
+    );
+    mocks.runtimeProfileRepository.update.mockResolvedValue(
+      mockProfile({
+        model: 'claude-opus-4-1',
+        thinkingLevel: 'medium',
+        temperature: 0.3,
+        topP: 0.8,
+        topK: 32,
+        maxOutputTokens: 16_000,
+        revision: 2,
+      }),
+    );
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/runtime-profiles/${PROFILE_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: {
+        model: 'Claude-Opus-4-1',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      model: 'claude-opus-4-1',
+      thinkingLevel: 'medium',
+      temperature: 0.3,
+      topP: 0.8,
+      topK: 32,
+      maxOutputTokens: 16_000,
+      revision: 2,
+    });
+    expect(mocks.runtimeProfileRepository.update).toHaveBeenCalledWith(
+      PROFILE_ID,
+      expect.objectContaining({
+        model: 'claude-opus-4-1',
+        thinkingLevel: 'medium',
+        temperature: 0.3,
+        topP: 0.8,
+        topK: 32,
+        maxOutputTokens: 16_000,
       }),
     );
   });

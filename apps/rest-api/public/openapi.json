@@ -1857,12 +1857,12 @@
           "temperature": {
             "anyOf": [
               {
+                "type": "null"
+              },
+              {
                 "maximum": 2,
                 "minimum": 0,
                 "type": "number"
-              },
-              {
-                "type": "null"
               }
             ]
           },
@@ -1924,12 +1924,12 @@
           "topP": {
             "anyOf": [
               {
+                "type": "null"
+              },
+              {
                 "maximum": 1,
                 "minimum": 0,
                 "type": "number"
-              },
-              {
-                "type": "null"
               }
             ]
           },
@@ -7176,12 +7176,12 @@
           "temperature": {
             "anyOf": [
               {
+                "type": "null"
+              },
+              {
                 "maximum": 2,
                 "minimum": 0,
                 "type": "number"
-              },
-              {
-                "type": "null"
               }
             ]
           },
@@ -7243,12 +7243,12 @@
           "topP": {
             "anyOf": [
               {
+                "type": "null"
+              },
+              {
                 "maximum": 1,
                 "minimum": 0,
                 "type": "number"
-              },
-              {
-                "type": "null"
               }
             ]
           },
@@ -7792,12 +7792,12 @@
                 "temperature": {
                   "anyOf": [
                     {
+                      "type": "null"
+                    },
+                    {
                       "maximum": 2,
                       "minimum": 0,
                       "type": "number"
-                    },
-                    {
-                      "type": "null"
                     }
                   ]
                 },
@@ -7859,12 +7859,12 @@
                 "topP": {
                   "anyOf": [
                     {
+                      "type": "null"
+                    },
+                    {
                       "maximum": 1,
                       "minimum": 0,
                       "type": "number"
-                    },
-                    {
-                      "type": "null"
                     }
                   ]
                 },
@@ -10266,12 +10266,12 @@
           "temperature": {
             "anyOf": [
               {
+                "type": "null"
+              },
+              {
                 "maximum": 2,
                 "minimum": 0,
                 "type": "number"
-              },
-              {
-                "type": "null"
               }
             ]
           },
@@ -10333,12 +10333,12 @@
           "topP": {
             "anyOf": [
               {
+                "type": "null"
+              },
+              {
                 "maximum": 1,
                 "minimum": 0,
                 "type": "number"
-              },
-              {
-                "type": "null"
               }
             ]
           },

@@ -91,6 +91,22 @@ describe('applyPiModelOptions', () => {
         { temperature: 0.2, topP: 0.9, topK: 40 },
       ),
     ).not.toHaveProperty('top_k');
+
+    expect(
+      applyPiModelOptions(
+        {
+          anthropic_version: 'bedrock-2023-05-31',
+          thinking: { type: 'disabled' },
+          max_tokens: 4096,
+          messages: [],
+        },
+        { temperature: 0.2, topP: 0.9, topK: 40 },
+      ),
+    ).toMatchObject({
+      temperature: 0.2,
+      top_p: 0.9,
+      top_k: 40,
+    });
   });
 
   it('leaves payloads unchanged when no model options are set', () => {

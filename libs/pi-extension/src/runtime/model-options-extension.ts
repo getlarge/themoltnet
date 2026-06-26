@@ -98,7 +98,7 @@ function applyTopLevelOptions(
   options: PiModelOptions,
 ): Record<string, unknown> {
   const reasoningEnabled =
-    isRecord(payload.thinking) ||
+    hasActiveThinking(payload.thinking) ||
     'reasoning' in payload ||
     'reasoning_effort' in payload;
   const next: Record<string, unknown> = { ...payload };
@@ -164,6 +164,13 @@ function isResponsesPayload(payload: Record<string, unknown>): boolean {
 
 function isAnthropicPayload(payload: Record<string, unknown>): boolean {
   return 'anthropic_version' in payload;
+}
+
+function hasActiveThinking(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+
+  const type = value.type;
+  return type !== 'disabled' && type !== 'off' && type !== false;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -64,16 +64,16 @@ export const RuntimeProfileNullableThinkingLevel = Type.Union([
 ]);
 
 export const RuntimeProfileNullableTemperature = Type.Union([
-  Type.Number({ minimum: 0, maximum: 2 }),
   Type.Null(),
+  Type.Number({ minimum: 0, maximum: 2 }),
 ]);
 export type RuntimeProfileNullableTemperature = Static<
   typeof RuntimeProfileNullableTemperature
 >;
 
 export const RuntimeProfileNullableTopP = Type.Union([
-  Type.Number({ minimum: 0, maximum: 1 }),
   Type.Null(),
+  Type.Number({ minimum: 0, maximum: 1 }),
 ]);
 export type RuntimeProfileNullableTopP = Static<
   typeof RuntimeProfileNullableTopP

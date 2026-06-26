@@ -88,6 +88,81 @@ function validateWorkspacePolicy(input: {
   }
 }
 
+async function validateRuntimeProfileModelOptions(request: {
+  body: unknown;
+}): Promise<void> {
+  if (!isRecord(request.body)) return;
+
+  const errors: Array<{ field: string; message: string }> = [];
+  validateNullableNumberOption({
+    body: request.body,
+    errors,
+    field: 'temperature',
+    min: 0,
+    max: 2,
+  });
+  validateNullableNumberOption({
+    body: request.body,
+    errors,
+    field: 'topP',
+    min: 0,
+    max: 1,
+  });
+  validateNullableNumberOption({
+    body: request.body,
+    errors,
+    field: 'topK',
+    min: 1,
+    max: 10_000,
+    integer: true,
+  });
+  validateNullableNumberOption({
+    body: request.body,
+    errors,
+    field: 'maxOutputTokens',
+    min: 1,
+    max: 1_000_000,
+    integer: true,
+  });
+
+  if (errors.length > 0) {
+    throw createValidationProblem(
+      errors,
+      'Invalid runtime profile model options',
+    );
+  }
+}
+
+function validateNullableNumberOption(args: {
+  body: Record<string, unknown>;
+  errors: Array<{ field: string; message: string }>;
+  field: string;
+  min: number;
+  max: number;
+  integer?: boolean;
+}): void {
+  if (!Object.hasOwn(args.body, args.field)) return;
+
+  const value = args.body[args.field];
+  if (value === null || value === undefined) return;
+  const valid =
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value >= args.min &&
+    value <= args.max &&
+    (!args.integer || Number.isInteger(value));
+  if (valid) return;
+
+  args.errors.push({
+    field: args.field,
+    message: `${args.field} must be ${args.integer ? 'an integer' : 'a number'} between ${args.min} and ${args.max}, or null`,
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function serializeProfile(
   row: RuntimeProfile,
 ): Static<typeof RuntimeProfileSchema> {
@@ -231,6 +306,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-profiles',
     {
+      preValidation: validateRuntimeProfileModelOptions,
       schema: {
         operationId: 'createRuntimeProfile',
         tags: ['runtime-profiles'],
@@ -355,6 +431,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.patch(
     '/runtime-profiles/:profileId',
     {
+      preValidation: validateRuntimeProfileModelOptions,
       schema: {
         operationId: 'updateRuntimeProfile',
         tags: ['runtime-profiles'],

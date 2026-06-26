@@ -482,7 +482,7 @@ export type CreateRuntimeProfileBody = {
   };
   sessionStorageMode?: 'local';
   sessionTtlSec?: number;
-  temperature?: number | null;
+  temperature?: null | number;
   thinkingLevel?:
     | 'off'
     | 'minimal'
@@ -492,7 +492,7 @@ export type CreateRuntimeProfileBody = {
     | 'xhigh'
     | null;
   topK?: number | null;
-  topP?: number | null;
+  topP?: null | number;
   workspaceStorageMode?: 'local';
   workspaceTtlSec?: number;
 };
@@ -1699,10 +1699,10 @@ export type RuntimeProfile = {
   sessionStorageMode: 'local';
   sessionTtlSec: number;
   teamId: string;
-  temperature: number | null;
+  temperature: null | number;
   thinkingLevel: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
   topK: number | null;
-  topP: number | null;
+  topP: null | number;
   updatedAt: string;
   workspaceStorageMode: 'local';
   workspaceTtlSec: number;
@@ -1781,7 +1781,7 @@ export type RuntimeProfileListResponse = {
     sessionStorageMode: 'local';
     sessionTtlSec: number;
     teamId: string;
-    temperature: number | null;
+    temperature: null | number;
     thinkingLevel:
       | 'off'
       | 'minimal'
@@ -1791,7 +1791,7 @@ export type RuntimeProfileListResponse = {
       | 'xhigh'
       | null;
     topK: number | null;
-    topP: number | null;
+    topP: null | number;
     updatedAt: string;
     workspaceStorageMode: 'local';
     workspaceTtlSec: number;
@@ -2204,7 +2204,7 @@ export type UpdateRuntimeProfileBody = {
   };
   sessionStorageMode?: 'local';
   sessionTtlSec?: number;
-  temperature?: number | null;
+  temperature?: null | number;
   thinkingLevel?:
     | 'off'
     | 'minimal'
@@ -2214,7 +2214,7 @@ export type UpdateRuntimeProfileBody = {
     | 'xhigh'
     | null;
   topK?: number | null;
-  topP?: number | null;
+  topP?: null | number;
   workspaceStorageMode?: 'local';
   workspaceTtlSec?: number;
 };
