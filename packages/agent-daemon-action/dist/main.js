@@ -37794,6 +37794,7 @@ var FreeformArtifact = _Object_({
 });
 var FreeformOutput = _Object_({
 	summary: String$1({ minLength: 1 }),
+	branch: Optional(String$1({ minLength: 1 })),
 	artifacts: Optional(_Array_(FreeformArtifact, { maxItems: 20 })),
 	proposedTaskType: Optional(FreeformTaskTypeProposal),
 	diaryEntryIds: Optional(_Array_(String$1({ format: "uuid" }))),
@@ -37806,7 +37807,7 @@ var FreeformOutput = _Object_({
 * Server-side preflight for `freeform` task-create. Runs after the
 * sync TypeBox check passes and only kicks in when
 * `input.continueFrom` is set — i.e. the proposer is asking to
-* resume a prior freeform attempt's warm slot (#1287).
+* continue from a prior freeform attempt (#1287).
 *
 * Failure modes, in evaluation order:
 *  1. `freeform.sourceTaskNotFound` — source task id does not resolve
@@ -37814,23 +37815,17 @@ var FreeformOutput = _Object_({
 *  2. `freeform.sourceTaskTypeNotSupported` — source isn't `freeform`.
 *     v1 only supports freeform → freeform continuation.
 *  3. `freeform.sourceAttemptNotCompleted` — named attempt is missing
-*     or not in `completed` state; warm continuation only makes sense
+*     or not in `completed` state; continuation only makes sense
 *     once the parent has produced a terminal output.
 *  4. `freeform.executionWorkspaceNotInheritable` — caller set
 *     `execution.workspace` together with `continueFrom`. Workspace
-*     mode for a continuation is inherited from the parent slot
-*     (`maybeAttachWarmSlotContext` forces `dedicated_worktree` +
-*     the parent's worktreeBranch), so any caller-supplied override
-*     is silently dropped at the daemon plan stage. Reject explicitly
-*     so misconfiguration surfaces at create time.
-*  5. `freeform.sourceNotResumeEligible` — `daemonState` is null or
-*     `slotResumableUntil` is null. Older completions (pre-#1287) and
-*     daemons that opt out fall here.
-*  6. `freeform.sourceResumeExpired` — `slotResumableUntil` is in the
-*     past; the warm slot's TTL has elapsed and no daemon is
-*     guaranteed to still hold it.
+*     mode for a continuation is derived by the daemon from parent runtime
+*     context (local slot first, durable session + source attempt branch
+*     second), so any caller-supplied override is silently dropped at the
+*     daemon plan stage. Reject explicitly so misconfiguration surfaces at
+*     create time.
 *
-* Returns on the first failure (no "report all six") — the checks
+* Returns on the first failure — the checks
 * are sequential preconditions, later ones presume earlier ones hold.
 */
 async function validateFreeformInputAsync(input, ctx) {
@@ -37849,7 +37844,7 @@ async function validateFreeformInputAsync(input, ctx) {
 	}];
 	if (input.execution?.workspace) return [{
 		field: "input/execution/workspace",
-		message: "execution.workspace is inherited from the parent slot when continueFrom is set; omit it",
+		message: "execution.workspace is derived from parent runtime context when continueFrom is set; omit it",
 		code: "freeform.executionWorkspaceNotInheritable"
 	}];
 	if (ctx.deferReadinessChecks) return [];
@@ -37858,17 +37853,6 @@ async function validateFreeformInputAsync(input, ctx) {
 		field: "input/continueFrom/attemptN",
 		message: `Source attempt ${cf.attemptN} on task ${cf.taskId} is not in 'completed' state`,
 		code: "freeform.sourceAttemptNotCompleted"
-	}];
-	if (!attempt.daemonState || attempt.daemonState.slotResumableUntil === null) return [{
-		field: "input/continueFrom",
-		message: "Source attempt did not report continuation eligibility (older completion or daemon opted out)",
-		code: "freeform.sourceNotResumeEligible"
-	}];
-	const expiresAt = new Date(attempt.daemonState.slotResumableUntil).getTime();
-	if (Number.isNaN(expiresAt) || expiresAt <= Date.now()) return [{
-		field: "input/continueFrom",
-		message: `Source attempt's warm slot expired at ${attempt.daemonState.slotResumableUntil} (reported at ${attempt.daemonState.reportedAt})`,
-		code: "freeform.sourceResumeExpired"
 	}];
 	return [];
 }
@@ -41204,11 +41188,12 @@ var MAX_CLAIM_CONDITION_STATUSES = 8;
 /**
 * Daemon-asserted runtime state stamped onto a `TaskAttemptSummary` at
 * attempt-completion time. The server persists this block verbatim and
-* reads `slotResumableUntil` for `tasks_continue` create-time
-* eligibility; the daemon-side claim-affinity filter is the runtime
-* truth. The block carries its own `reportedAt` so consumers can reason
-* about staleness without reading documentation. All daemon-asserted
-* state lives here — top-level attempt fields stay server-authoritative.
+* exposes `slotResumableUntil` as a legacy/local warm-slot hint; task
+* continuation eligibility is based on the completed source attempt and
+* daemon-side claim-affinity/runtime-session recovery. The block carries
+* its own `reportedAt` so consumers can reason about staleness without
+* reading documentation. All daemon-asserted state lives here —
+* top-level attempt fields stay server-authoritative.
 *
 * Adding new fields requires explicit design review (intentional
 * boundary; see docs/superpowers/specs/2026-06-04-tasks-continue-design.md).
