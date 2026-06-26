@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.9.0...mcp-server-v0.10.0) (2026-06-26)
+
+
+### Features
+
+* **agent-daemon:** recover remote runtime branch context ([678e0f7](https://github.com/getlarge/themoltnet/commit/678e0f7c1139b14a79350f054a89d190940c5523))
+* **runtime:** recover continuations from durable sessions ([65e487a](https://github.com/getlarge/themoltnet/commit/65e487ab61cd0eab913462156f7adc04f534e0d4))
+* **runtime:** relax continuation slot gating ([96c9c2b](https://github.com/getlarge/themoltnet/commit/96c9c2b9109e0eff0afc4574699729135def2509))
+
+
+### Bug Fixes
+
+* **runtime:** sync continuation CI artifacts ([30a392a](https://github.com/getlarge/themoltnet/commit/30a392a9e5d40418a294df944061cc1ee4accac8))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.8.0...mcp-server-v0.9.0) (2026-06-24)
 
 

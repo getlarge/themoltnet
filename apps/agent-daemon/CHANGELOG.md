@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.26.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.25.1...agent-daemon-v0.26.0) (2026-06-26)
+
+
+### Features
+
+* **runtime:** recover continuations from durable sessions ([65e487a](https://github.com/getlarge/themoltnet/commit/65e487ab61cd0eab913462156f7adc04f534e0d4))
+* **runtime:** relax continuation slot gating ([96c9c2b](https://github.com/getlarge/themoltnet/commit/96c9c2b9109e0eff0afc4574699729135def2509))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.31.0
+    * @themoltnet/pi-extension bumped to 0.27.3
+
 ## [0.25.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.25.0...agent-daemon-v0.25.1) (2026-06-26)
 
 
