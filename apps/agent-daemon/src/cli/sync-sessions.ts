@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { resolveAgentContext } from '../lib/agent-context.js';
-import { isHelpFlag,SYNC_SESSIONS_HELP } from '../lib/help.js';
+import { isHelpFlag, SYNC_SESSIONS_HELP } from '../lib/help.js';
 import {
   commonOptionDefs,
   MissingRequiredOptionError,
@@ -11,6 +11,7 @@ import {
 import { syncRuntimeSessions } from '../lib/runtime-session-sync.js';
 import { createApiRuntimeSessionStore } from '../lib/runtime-sessions.js';
 import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
+import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 
 export async function runSyncSessions(argv: string[]): Promise<number> {
   if (isHelpFlag(argv)) {
@@ -55,6 +56,7 @@ export async function runSyncSessions(argv: string[]): Promise<number> {
     values['agent-root'] ?? process.cwd(),
   );
   const ctx = await resolveAgentContext(opts.agent, { agentRootDir });
+  const stateDirs = ensureDaemonStateDirs(agentRootDir);
   const result = await syncRuntimeSessions(
     {
       runtimeSessionStore: createApiRuntimeSessionStore({ agent: ctx.agent }),
@@ -66,13 +68,14 @@ export async function runSyncSessions(argv: string[]): Promise<number> {
       dryRun: values['dry-run'] === true,
       limit,
       runtimeProfileId: values['runtime-profile-id'],
+      sessionRootDir: stateDirs.piSessionsDir,
       state,
       teamId: values.team,
     },
   );
 
   console.log(JSON.stringify(result, null, 2));
-  return result.failedUpload > 0 ? 1 : 0;
+  return result.failedUpload > 0 || result.unsafeSessionPath > 0 ? 1 : 0;
 }
 
 function parseState(raw: string | undefined): 'active' | 'idle' | undefined {

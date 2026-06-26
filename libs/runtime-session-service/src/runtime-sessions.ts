@@ -47,6 +47,14 @@ export interface RuntimeSessionSubject {
   subjectNs: KetoNamespace;
 }
 
+const ATTEMPT_TERMINAL_STATUSES = new Set<TaskAttempt['status']>([
+  'completed',
+  'failed',
+  'cancelled',
+  'aborted',
+  'timed_out',
+]);
+
 export interface UploadRuntimeSessionInput extends RuntimeSessionSubject {
   attemptN: number;
   body: unknown;
@@ -86,9 +94,9 @@ export function createRuntimeSessionService(deps: RuntimeSessionServiceDeps) {
   return {
     async upload(input: UploadRuntimeSessionInput): Promise<RuntimeSession> {
       await requireTeamAccess(deps, input);
-      await requireTaskReportAccess(deps, input);
       const attempt = await assertTaskAttemptInTeam(deps, input);
       assertAttemptUploader(attempt, input.identityId);
+      await requireUploadAccess(deps, input, attempt);
       const sourceSlot = await assertSourceSlotInTeam(
         deps,
         input.query.sourceSlotId,
@@ -275,6 +283,18 @@ async function requireTaskReportAccess(
     input.subjectNs,
   );
   if (!canReport) throw createProblem('forbidden');
+}
+
+async function requireUploadAccess(
+  deps: RuntimeSessionServiceDeps,
+  input: RuntimeSessionSubject & { taskId: string },
+  attempt: TaskAttempt,
+) {
+  if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
+    await requireTaskReadAccess(deps, input);
+    return;
+  }
+  await requireTaskReportAccess(deps, input);
 }
 
 async function assertTaskAttemptInTeam(

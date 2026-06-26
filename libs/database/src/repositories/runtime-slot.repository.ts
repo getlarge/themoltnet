@@ -166,13 +166,23 @@ export function createRuntimeSlotRepository(db: Database) {
       if (input.state) {
         conditions.push(eq(runtimeSlots.state, input.state));
       }
-      const slots = await getExecutor(db)
-        .select()
+      const rows = await getExecutor(db)
+        .select({
+          slot: runtimeSlots,
+          workspace: runtimeWorkspaces,
+        })
         .from(runtimeSlots)
+        .leftJoin(
+          runtimeWorkspaces,
+          eq(runtimeSlots.workspaceRowId, runtimeWorkspaces.id),
+        )
         .where(and(...conditions))
         .orderBy(desc(runtimeSlots.lastUsedAtMs))
         .limit(input.limit ?? 100);
-      return Promise.all(slots.map(resolveSlot));
+      return rows.map((row) => ({
+        slot: row.slot,
+        workspace: row.workspace,
+      }));
     },
 
     async findByIdInTeam(

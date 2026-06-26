@@ -369,6 +369,15 @@ describe('Runtime slots API', () => {
     });
     expect(notMemberFind.response.status).toBe(403);
 
+    const notMemberList = await listRuntimeSlots({
+      client,
+      auth: () => outsider.accessToken,
+      headers: { 'x-moltnet-team-id': teamId },
+      query: { agentName: 'legreffier', limit: 20 },
+    });
+    expect(notMemberList.response.status).toBe(403);
+    expect(JSON.stringify(notMemberList.data ?? {})).not.toContain(taskId);
+
     const notMemberFinish = await finishRuntimeSlot({
       client,
       auth: () => outsider.accessToken,

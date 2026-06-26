@@ -179,13 +179,14 @@ describe('createRuntimeSessionService', () => {
     expect(storage.putObject).not.toHaveBeenCalled();
   });
 
-  it('allows the claiming agent to repair-upload after terminal finalization', async () => {
+  it('allows the claiming agent to repair-upload after terminal finalization without report access', async () => {
     vi.mocked(deps.taskRepository.findAttempt).mockResolvedValue({
       attemptN: 1,
       claimedByAgentId: AGENT_ID,
       status: 'failed',
       taskId: TASK_ID,
     } as Awaited<ReturnType<typeof deps.taskRepository.findAttempt>>);
+    vi.mocked(deps.permissionChecker.canReportTask).mockResolvedValue(false);
     vi.mocked(storage.putObject).mockImplementation(async (input) => {
       await readStream(input.body);
     });
@@ -201,6 +202,31 @@ describe('createRuntimeSessionService', () => {
     });
 
     expect(storage.putObject).toHaveBeenCalledOnce();
+    expect(deps.permissionChecker.canViewTask).toHaveBeenCalledWith(
+      TASK_ID,
+      AGENT_ID,
+      KetoNamespace.Agent,
+    );
+  });
+
+  it('rejects running upload when the claiming agent lacks report access', async () => {
+    vi.mocked(deps.permissionChecker.canReportTask).mockResolvedValue(false);
+
+    await expect(
+      subject.upload({
+        attemptN: 1,
+        body: Readable.from(['{"session":"running"}\n']),
+        identityId: AGENT_ID,
+        query: { sessionKind: 'root' },
+        subjectNs: KetoNamespace.Agent,
+        taskId: TASK_ID,
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      statusCode: 403,
+    });
+    expect(storage.putObject).not.toHaveBeenCalled();
   });
 
   it('decompresses stored gzip content when downloading', async () => {

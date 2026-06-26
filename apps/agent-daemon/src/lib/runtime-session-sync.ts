@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { realpath, stat } from 'node:fs/promises';
+import { isAbsolute, relative, resolve } from 'node:path';
 import { Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
@@ -20,6 +21,7 @@ export interface RuntimeSessionSyncInput {
   dryRun?: boolean;
   limit?: number;
   runtimeProfileId?: string;
+  sessionRootDir?: string;
   state?: 'active' | 'idle';
   teamId: string;
 }
@@ -37,6 +39,7 @@ export interface RuntimeSessionSyncResult {
   failedUpload: number;
   missingLocalFile: number;
   scanned: number;
+  unsafeSessionPath: number;
   uploaded: number;
   wouldUpload: number;
 }
@@ -50,6 +53,7 @@ export async function syncRuntimeSessions(
     failedUpload: 0,
     missingLocalFile: 0,
     scanned: 0,
+    unsafeSessionPath: 0,
     uploaded: 0,
     wouldUpload: 0,
   };
@@ -67,6 +71,13 @@ export async function syncRuntimeSessions(
       result.missingLocalFile++;
       continue;
     }
+    if (
+      input.sessionRootDir &&
+      !(await isPathInsideRoot(slot.session.sessionDir, input.sessionRootDir))
+    ) {
+      result.unsafeSessionPath++;
+      continue;
+    }
     const sessionPath = resolveLatestPiSessionPath(slot.session.sessionDir);
     if (!sessionPath || !(await fileExists(sessionPath))) {
       result.missingLocalFile++;
@@ -79,10 +90,12 @@ export async function syncRuntimeSessions(
         slot.slot.lastTaskId,
         slot.slot.lastAttemptN,
       );
-    const local = await computeCompressedSessionFingerprint(sessionPath);
-    if (remote?.sha256 === local.sha256 && remote.sizeBytes === local.bytes) {
-      result.alreadyCurrent++;
-      continue;
+    if (remote) {
+      const local = await computeCompressedSessionFingerprint(sessionPath);
+      if (remote.sha256 === local.sha256 && remote.sizeBytes === local.bytes) {
+        result.alreadyCurrent++;
+        continue;
+      }
     }
 
     if (input.dryRun) {
@@ -130,6 +143,28 @@ async function fileExists(path: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function isPathInsideRoot(path: string, root: string): Promise<boolean> {
+  const resolvedPath = resolve(path);
+  const resolvedRoot = resolve(root);
+  if (!isResolvedPathInsideRoot(resolvedPath, resolvedRoot)) return false;
+  let realResolvedPath: string;
+  let realResolvedRoot: string;
+  try {
+    [realResolvedPath, realResolvedRoot] = await Promise.all([
+      realpath(path),
+      realpath(root),
+    ]);
+  } catch {
+    return true;
+  }
+  return isResolvedPathInsideRoot(realResolvedPath, realResolvedRoot);
+}
+
+function isResolvedPathInsideRoot(path: string, root: string): boolean {
+  const rel = relative(root, path);
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
 }
 
 async function computeCompressedSessionFingerprint(

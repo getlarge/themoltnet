@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -48,6 +48,7 @@ describe('syncRuntimeSessions', () => {
       failedUpload: 0,
       missingLocalFile: 0,
       scanned: 1,
+      unsafeSessionPath: 0,
       uploaded: 1,
       wouldUpload: 0,
     });
@@ -122,6 +123,97 @@ describe('syncRuntimeSessions', () => {
     expect(result.wouldUpload).toBe(1);
     expect(uploadAttemptFinal).not.toHaveBeenCalled();
   });
+
+  it('counts missing remote sessions in dry-run mode without uploading', async () => {
+    const sessionDir = await makeSessionDir('session-dry-run.jsonl', '{}\n');
+    const uploadAttemptFinal = vi.fn();
+
+    const result = await syncRuntimeSessions(
+      makeDeps({
+        sessionDir,
+        remote: null,
+        uploadAttemptFinal,
+      }),
+      { agentName: 'legreffier', dryRun: true, teamId: TEAM_ID },
+    );
+
+    expect(result.wouldUpload).toBe(1);
+    expect(uploadAttemptFinal).not.toHaveBeenCalled();
+  });
+
+  it('uploads stale remote sessions outside dry-run mode', async () => {
+    const sessionDir = await makeSessionDir(
+      'session-stale-upload.jsonl',
+      '{}\n',
+    );
+    const uploadAttemptFinal = vi.fn().mockResolvedValue(undefined);
+
+    const result = await syncRuntimeSessions(
+      makeDeps({
+        sessionDir,
+        remote: {
+          id: 'session-1',
+          sha256: '0'.repeat(64),
+          sizeBytes: 1,
+        },
+        uploadAttemptFinal,
+      }),
+      { agentName: 'legreffier', teamId: TEAM_ID },
+    );
+
+    expect(result.uploaded).toBe(1);
+    expect(uploadAttemptFinal).toHaveBeenCalledOnce();
+  });
+
+  it('skips remote slot session dirs outside the configured session root', async () => {
+    const safeRoot = await makeTempRoot();
+    const unsafeRoot = await makeTempRoot();
+    const sessionDir = join(unsafeRoot, 'spoofed-slot');
+    await writeFile(join(unsafeRoot, 'placeholder'), '');
+    await makeSessionDirIn(sessionDir, 'session-spoofed.jsonl', '{}\n');
+    const uploadAttemptFinal = vi.fn();
+
+    const result = await syncRuntimeSessions(
+      makeDeps({
+        sessionDir,
+        remote: null,
+        uploadAttemptFinal,
+      }),
+      {
+        agentName: 'legreffier',
+        sessionRootDir: safeRoot,
+        teamId: TEAM_ID,
+      },
+    );
+
+    expect(result.unsafeSessionPath).toBe(1);
+    expect(uploadAttemptFinal).not.toHaveBeenCalled();
+  });
+
+  it('skips session dirs that symlink outside the configured session root', async () => {
+    const safeRoot = await makeTempRoot();
+    const unsafeRoot = await makeTempRoot();
+    await makeSessionDirIn(unsafeRoot, 'session-symlinked.jsonl', '{}\n');
+    const linkedSessionDir = join(safeRoot, 'linked-session');
+    await symlink(unsafeRoot, linkedSessionDir);
+    const uploadAttemptFinal = vi.fn();
+
+    const result = await syncRuntimeSessions(
+      makeDeps({
+        sessionDir: linkedSessionDir,
+        remote: null,
+        uploadAttemptFinal,
+      }),
+      {
+        agentName: 'legreffier',
+        sessionRootDir: safeRoot,
+        teamId: TEAM_ID,
+      },
+    );
+
+    expect(result.unsafeSessionPath).toBe(1);
+    expect(uploadAttemptFinal).not.toHaveBeenCalled();
+  });
 });
 
 function makeDeps(input: {
@@ -167,8 +259,23 @@ function makeDeps(input: {
 async function makeSessionDir(name: string, content: string): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'moltnet-session-sync-'));
   tempRoots.push(dir);
-  await writeFile(join(dir, name), content);
+  await makeSessionDirIn(dir, name, content);
   return dir;
+}
+
+async function makeTempRoot(): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), 'moltnet-session-sync-root-'));
+  tempRoots.push(dir);
+  return dir;
+}
+
+async function makeSessionDirIn(
+  dir: string,
+  name: string,
+  content: string,
+): Promise<void> {
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, name), content);
 }
 
 async function compressedFingerprint(
