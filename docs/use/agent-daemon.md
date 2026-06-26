@@ -357,6 +357,7 @@ const profile = await molt.runtimeProfiles.create(
     description: 'GitHub + Linear coding agent profile',
     provider: 'openai',
     model: 'gpt-5-codex',
+    thinkingLevel: 'high',
     runtimeKind: 'gondolin_pi',
     sandbox: {
       snapshot: {
@@ -382,6 +383,20 @@ const profile = await molt.runtimeProfiles.create(
     maxBatchSize: 50,
     requiredEnv: ['GITHUB_TOKEN', 'LINEAR_API_KEY'],
     requiredTools: ['git', 'gh', 'pnpm'],
+    context: [
+      {
+        slug: 'repo-rules',
+        binding: 'skill',
+        content:
+          '---\nname: repo-rules\ndescription: Repository operating rules\n---\nUse pnpm and Nx. Keep migrations and generated clients in sync.',
+      },
+      {
+        slug: 'api-contract',
+        binding: 'context_inline',
+        content:
+          'Preserve backward-compatible response shapes unless the task explicitly asks for a breaking API change.',
+      },
+    ],
   },
   { teamId },
 );
@@ -409,6 +424,83 @@ Use the SDK to create or update profiles, then create tasks with
 
 :::
 
+### Model session settings
+
+Runtime profiles can set model behavior before the daemon starts a Pi session:
+
+- `thinkingLevel`: normalized reasoning/thinking effort. Valid values are
+  `off`, `minimal`, `low`, `medium`, `high`, and `xhigh`. `null` or an omitted
+  field leaves Pi's agent default in place. Pi maps the level to
+  provider-specific controls such as OpenAI reasoning effort, Anthropic
+  extended/adaptive thinking, or Gemini thinking configuration when the selected
+  model supports it.
+- `temperature`: sampling temperature, `0..2`. Lower values are more
+  deterministic; higher values are more varied. `null` uses the provider
+  default. Pi omits temperature for Anthropic/OpenAI-compatible thinking
+  payloads where that combination is rejected.
+- `topP`: nucleus sampling probability mass, `0..1`. Tune this or
+  `temperature`, not both, unless you intentionally want both constraints.
+  `null` uses the provider default.
+- `topK`: top-k sampling cutoff, positive integer. This is less portable than
+  top-p. Pi applies it only to provider payloads with known support
+  (`config.topK` for Google-style requests and `top_k` for Anthropic payloads
+  without extended thinking).
+- `maxOutputTokens`: maximum generated tokens for one model response, positive
+  integer. This is not the context window size. `null` uses the provider/model
+  default.
+
+These are profile fields because they change execution behavior and should be
+captured in the profile definition CID. Values that are global Pi settings
+should not be hidden inside sandbox policy.
+
+Related knobs that still need executor support before becoming profile fields:
+provider timeout/retry settings and transport/cache preferences.
+
+`thinkingBudget` is intentionally not exposed as a separate runtime-profile
+field yet. Different harnesses use that name for different concepts: some mean
+named reasoning effort, some mean provider token budgets, and some accept both.
+The current profile keeps `thinkingLevel` as the portable effort control. If we
+need budgets later, use a structured field instead of adding a loose scalar.
+
+### Context entries
+
+Runtime profiles may include a small `context` array. These entries are injected
+into every task that uses the profile, before the Pi session is prompted. Use
+them for stable operator guidance that belongs to the runtime profile rather
+than to one task.
+
+Each entry has:
+
+- `slug`: short identifier, max 64 characters, letters/numbers/dash/underscore.
+- `binding`: delivery mode.
+- `content`: UTF-8 text, max 64 KiB.
+
+Bindings:
+
+| Binding          | Delivery                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------- |
+| `skill`          | Materialized as a temporary Pi skill and advertised in available skills.           |
+| `context_inline` | Written into workspace context files, including `context-pack.md` and `AGENTS.md`. |
+| `prompt_prefix`  | Prepended before the runtime/task prompt.                                          |
+| `user_inline`    | Appended to the task user prompt.                                                  |
+
+Example:
+
+```json
+[
+  {
+    "binding": "skill",
+    "content": "---\nname: repo-rules\ndescription: Repository operating rules\n---\nUse pnpm and Nx. Keep migrations and generated clients in sync.",
+    "slug": "repo-rules"
+  },
+  {
+    "binding": "context_inline",
+    "content": "Preserve backward-compatible response shapes unless the task explicitly asks for a breaking API change.",
+    "slug": "api-contract"
+  }
+]
+```
+
 Start a polling daemon with a profile:
 
 ```bash
@@ -430,8 +522,9 @@ npx @themoltnet/agent-daemon once \
 
 In daemon mode:
 
-- `provider` and `model` come from the selected profile. `--provider` and
-  `--model` are rejected; create or update a runtime profile instead.
+- `provider`, `model`, and `thinkingLevel` come from the selected profile.
+  `--provider` and `--model` are rejected; create or update a runtime profile
+  instead.
 - Sandbox policy comes from the profile, so `--sandbox` is rejected.
 - `poll` and `drain` list unrestricted tasks plus tasks whose
   `allowedProfiles` contains one of the configured profiles. Repeated

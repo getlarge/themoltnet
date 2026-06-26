@@ -37083,6 +37083,32 @@ var RuntimeProfileAllowedWorkspaceModes = _Array_(RuntimeProfileWorkspaceMode, {
 	maxItems: 3,
 	uniqueItems: true
 });
+var RuntimeProfileThinkingLevelOptions = [
+	Literal("off"),
+	Literal("minimal"),
+	Literal("low"),
+	Literal("medium"),
+	Literal("high"),
+	Literal("xhigh")
+];
+Union([...RuntimeProfileThinkingLevelOptions]);
+var RuntimeProfileNullableThinkingLevel = Union([...RuntimeProfileThinkingLevelOptions, Null()]);
+var RuntimeProfileNullableTemperature = Union([Null(), Number$1({
+	minimum: 0,
+	maximum: 2
+})]);
+var RuntimeProfileNullableTopP = Union([Null(), Number$1({
+	minimum: 0,
+	maximum: 1
+})]);
+var RuntimeProfileNullableTopK = Union([Integer({
+	minimum: 1,
+	maximum: 1e4
+}), Null()]);
+var RuntimeProfileNullableMaxOutputTokens = Union([Integer({
+	minimum: 1,
+	maximum: 1e6
+}), Null()]);
 var SandboxResumeCommandWhenSchema = _Object_({ workspaceMode: Optional(_Array_(Union([
 	Literal("shared_mount"),
 	Literal("dedicated_worktree"),
@@ -37207,6 +37233,11 @@ _Object_({
 		minLength: 1,
 		maxLength: 200
 	}),
+	thinkingLevel: RuntimeProfileNullableThinkingLevel,
+	temperature: RuntimeProfileNullableTemperature,
+	topP: RuntimeProfileNullableTopP,
+	topK: RuntimeProfileNullableTopK,
+	maxOutputTokens: RuntimeProfileNullableMaxOutputTokens,
 	runtimeKind: Literal("gondolin_pi"),
 	sandbox: RuntimeProfileSandbox,
 	sessionStorageMode: Literal("local"),

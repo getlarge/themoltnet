@@ -56,6 +56,11 @@ describe('Runtime Profiles API', () => {
       description: `${name} profile for e2e`,
       provider: 'Anthropic',
       model: 'Claude-Sonnet-4-5',
+      thinkingLevel: 'high' as const,
+      temperature: 0.2,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 12_000,
       sandbox: {
         resumeCommands: [
           {
@@ -125,6 +130,11 @@ describe('Runtime Profiles API', () => {
       teamId: owner.personalTeamId,
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
+      thinkingLevel: 'high',
+      temperature: 0.2,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 12_000,
       runtimeKind: 'gondolin_pi',
       sessionStorageMode: 'local',
       workspaceStorageMode: 'local',
@@ -158,12 +168,38 @@ describe('Runtime Profiles API', () => {
       'dedicated_worktree',
     ]);
 
+    const { data: preserved, error: preserveError } =
+      await updateRuntimeProfile({
+        client,
+        auth: () => owner.accessToken,
+        path: { profileId: created!.id },
+        body: {
+          model: 'Claude-Opus-4-1',
+        },
+      });
+    expect(preserveError).toBeUndefined();
+    expect(preserved).toMatchObject({
+      id: created!.id,
+      model: 'claude-opus-4-1',
+      thinkingLevel: 'high',
+      temperature: 0.2,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 12_000,
+      revision: 2,
+    });
+
     const { data: updated, error: updateError } = await updateRuntimeProfile({
       client,
       auth: () => owner.accessToken,
       path: { profileId: created!.id },
       body: {
         model: 'Claude-Opus-4-1',
+        thinkingLevel: 'medium',
+        temperature: null,
+        topP: null,
+        topK: null,
+        maxOutputTokens: null,
         sessionTtlSec: 3600,
         defaultWorkspaceMode: null,
         allowedWorkspaceModes: ['none'],
@@ -175,14 +211,20 @@ describe('Runtime Profiles API', () => {
     expect(updated).toMatchObject({
       id: created!.id,
       model: 'claude-opus-4-1',
+      thinkingLevel: 'medium',
+      temperature: null,
+      topP: null,
+      topK: null,
+      maxOutputTokens: null,
       sessionTtlSec: 3600,
       defaultWorkspaceMode: null,
       allowedWorkspaceModes: ['none'],
       maxTurns: 12,
       maxBashTimeouts: 1,
-      revision: 2,
+      revision: 3,
     });
-    expect(updated!.definitionCid).not.toBe(created!.definitionCid);
+    expect(preserved!.definitionCid).not.toBe(created!.definitionCid);
+    expect(updated!.definitionCid).not.toBe(preserved!.definitionCid);
 
     const { response: deleteResponse, error: deleteError } =
       await deleteRuntimeProfile({

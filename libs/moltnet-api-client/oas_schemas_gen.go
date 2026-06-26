@@ -5416,6 +5416,7 @@ type CreateRuntimeProfileBody struct {
 	LeaseTtlSec           OptInt                                              `json:"leaseTtlSec"`
 	MaxBashTimeouts       OptInt                                              `json:"maxBashTimeouts"`
 	MaxBatchSize          OptInt                                              `json:"maxBatchSize"`
+	MaxOutputTokens       OptNilInt                                           `json:"maxOutputTokens"`
 	MaxTurns              OptInt                                              `json:"maxTurns"`
 	Model                 string                                              `json:"model"`
 	Name                  string                                              `json:"name"`
@@ -5426,6 +5427,10 @@ type CreateRuntimeProfileBody struct {
 	Sandbox               CreateRuntimeProfileBodySandbox                     `json:"sandbox"`
 	SessionStorageMode    OptCreateRuntimeProfileBodySessionStorageMode       `json:"sessionStorageMode"`
 	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
+	Temperature           OptNilFloat64                                       `json:"temperature"`
+	ThinkingLevel         OptNilCreateRuntimeProfileBodyThinkingLevel         `json:"thinkingLevel"`
+	TopK                  OptNilInt                                           `json:"topK"`
+	TopP                  OptNilFloat64                                       `json:"topP"`
 	WorkspaceStorageMode  OptCreateRuntimeProfileBodyWorkspaceStorageMode     `json:"workspaceStorageMode"`
 	WorkspaceTtlSec       OptInt                                              `json:"workspaceTtlSec"`
 }
@@ -5468,6 +5473,11 @@ func (s *CreateRuntimeProfileBody) GetMaxBashTimeouts() OptInt {
 // GetMaxBatchSize returns the value of MaxBatchSize.
 func (s *CreateRuntimeProfileBody) GetMaxBatchSize() OptInt {
 	return s.MaxBatchSize
+}
+
+// GetMaxOutputTokens returns the value of MaxOutputTokens.
+func (s *CreateRuntimeProfileBody) GetMaxOutputTokens() OptNilInt {
+	return s.MaxOutputTokens
 }
 
 // GetMaxTurns returns the value of MaxTurns.
@@ -5520,6 +5530,26 @@ func (s *CreateRuntimeProfileBody) GetSessionTtlSec() OptInt {
 	return s.SessionTtlSec
 }
 
+// GetTemperature returns the value of Temperature.
+func (s *CreateRuntimeProfileBody) GetTemperature() OptNilFloat64 {
+	return s.Temperature
+}
+
+// GetThinkingLevel returns the value of ThinkingLevel.
+func (s *CreateRuntimeProfileBody) GetThinkingLevel() OptNilCreateRuntimeProfileBodyThinkingLevel {
+	return s.ThinkingLevel
+}
+
+// GetTopK returns the value of TopK.
+func (s *CreateRuntimeProfileBody) GetTopK() OptNilInt {
+	return s.TopK
+}
+
+// GetTopP returns the value of TopP.
+func (s *CreateRuntimeProfileBody) GetTopP() OptNilFloat64 {
+	return s.TopP
+}
+
 // GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
 func (s *CreateRuntimeProfileBody) GetWorkspaceStorageMode() OptCreateRuntimeProfileBodyWorkspaceStorageMode {
 	return s.WorkspaceStorageMode
@@ -5570,6 +5600,11 @@ func (s *CreateRuntimeProfileBody) SetMaxBatchSize(val OptInt) {
 	s.MaxBatchSize = val
 }
 
+// SetMaxOutputTokens sets the value of MaxOutputTokens.
+func (s *CreateRuntimeProfileBody) SetMaxOutputTokens(val OptNilInt) {
+	s.MaxOutputTokens = val
+}
+
 // SetMaxTurns sets the value of MaxTurns.
 func (s *CreateRuntimeProfileBody) SetMaxTurns(val OptInt) {
 	s.MaxTurns = val
@@ -5618,6 +5653,26 @@ func (s *CreateRuntimeProfileBody) SetSessionStorageMode(val OptCreateRuntimePro
 // SetSessionTtlSec sets the value of SessionTtlSec.
 func (s *CreateRuntimeProfileBody) SetSessionTtlSec(val OptInt) {
 	s.SessionTtlSec = val
+}
+
+// SetTemperature sets the value of Temperature.
+func (s *CreateRuntimeProfileBody) SetTemperature(val OptNilFloat64) {
+	s.Temperature = val
+}
+
+// SetThinkingLevel sets the value of ThinkingLevel.
+func (s *CreateRuntimeProfileBody) SetThinkingLevel(val OptNilCreateRuntimeProfileBodyThinkingLevel) {
+	s.ThinkingLevel = val
+}
+
+// SetTopK sets the value of TopK.
+func (s *CreateRuntimeProfileBody) SetTopK(val OptNilInt) {
+	s.TopK = val
+}
+
+// SetTopP sets the value of TopP.
+func (s *CreateRuntimeProfileBody) SetTopP(val OptNilFloat64) {
+	s.TopP = val
 }
 
 // SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
@@ -6291,6 +6346,75 @@ func (s *CreateRuntimeProfileBodySessionStorageMode) UnmarshalText(data []byte) 
 	switch CreateRuntimeProfileBodySessionStorageMode(data) {
 	case CreateRuntimeProfileBodySessionStorageModeLocal:
 		*s = CreateRuntimeProfileBodySessionStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateRuntimeProfileBodyThinkingLevel string
+
+const (
+	CreateRuntimeProfileBodyThinkingLevelOff     CreateRuntimeProfileBodyThinkingLevel = "off"
+	CreateRuntimeProfileBodyThinkingLevelMinimal CreateRuntimeProfileBodyThinkingLevel = "minimal"
+	CreateRuntimeProfileBodyThinkingLevelLow     CreateRuntimeProfileBodyThinkingLevel = "low"
+	CreateRuntimeProfileBodyThinkingLevelMedium  CreateRuntimeProfileBodyThinkingLevel = "medium"
+	CreateRuntimeProfileBodyThinkingLevelHigh    CreateRuntimeProfileBodyThinkingLevel = "high"
+	CreateRuntimeProfileBodyThinkingLevelXhigh   CreateRuntimeProfileBodyThinkingLevel = "xhigh"
+)
+
+// AllValues returns all CreateRuntimeProfileBodyThinkingLevel values.
+func (CreateRuntimeProfileBodyThinkingLevel) AllValues() []CreateRuntimeProfileBodyThinkingLevel {
+	return []CreateRuntimeProfileBodyThinkingLevel{
+		CreateRuntimeProfileBodyThinkingLevelOff,
+		CreateRuntimeProfileBodyThinkingLevelMinimal,
+		CreateRuntimeProfileBodyThinkingLevelLow,
+		CreateRuntimeProfileBodyThinkingLevelMedium,
+		CreateRuntimeProfileBodyThinkingLevelHigh,
+		CreateRuntimeProfileBodyThinkingLevelXhigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodyThinkingLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodyThinkingLevelOff:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyThinkingLevelMinimal:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyThinkingLevelLow:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyThinkingLevelMedium:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyThinkingLevelHigh:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyThinkingLevelXhigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodyThinkingLevel) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodyThinkingLevel(data) {
+	case CreateRuntimeProfileBodyThinkingLevelOff:
+		*s = CreateRuntimeProfileBodyThinkingLevelOff
+		return nil
+	case CreateRuntimeProfileBodyThinkingLevelMinimal:
+		*s = CreateRuntimeProfileBodyThinkingLevelMinimal
+		return nil
+	case CreateRuntimeProfileBodyThinkingLevelLow:
+		*s = CreateRuntimeProfileBodyThinkingLevelLow
+		return nil
+	case CreateRuntimeProfileBodyThinkingLevelMedium:
+		*s = CreateRuntimeProfileBodyThinkingLevelMedium
+		return nil
+	case CreateRuntimeProfileBodyThinkingLevelHigh:
+		*s = CreateRuntimeProfileBodyThinkingLevelHigh
+		return nil
+	case CreateRuntimeProfileBodyThinkingLevelXhigh:
+		*s = CreateRuntimeProfileBodyThinkingLevelXhigh
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -25155,6 +25279,96 @@ func (o NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Or(d Runtime
 	return d
 }
 
+// NewNilRuntimeProfileListResponseItemsItemThinkingLevel returns new NilRuntimeProfileListResponseItemsItemThinkingLevel with value set to v.
+func NewNilRuntimeProfileListResponseItemsItemThinkingLevel(v RuntimeProfileListResponseItemsItemThinkingLevel) NilRuntimeProfileListResponseItemsItemThinkingLevel {
+	return NilRuntimeProfileListResponseItemsItemThinkingLevel{
+		Value: v,
+	}
+}
+
+// NilRuntimeProfileListResponseItemsItemThinkingLevel is nullable RuntimeProfileListResponseItemsItemThinkingLevel.
+type NilRuntimeProfileListResponseItemsItemThinkingLevel struct {
+	Value RuntimeProfileListResponseItemsItemThinkingLevel
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilRuntimeProfileListResponseItemsItemThinkingLevel) SetTo(v RuntimeProfileListResponseItemsItemThinkingLevel) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilRuntimeProfileListResponseItemsItemThinkingLevel) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilRuntimeProfileListResponseItemsItemThinkingLevel) SetToNull() {
+	o.Null = true
+	var v RuntimeProfileListResponseItemsItemThinkingLevel
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilRuntimeProfileListResponseItemsItemThinkingLevel) Get() (v RuntimeProfileListResponseItemsItemThinkingLevel, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilRuntimeProfileListResponseItemsItemThinkingLevel) Or(d RuntimeProfileListResponseItemsItemThinkingLevel) RuntimeProfileListResponseItemsItemThinkingLevel {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilRuntimeProfileThinkingLevel returns new NilRuntimeProfileThinkingLevel with value set to v.
+func NewNilRuntimeProfileThinkingLevel(v RuntimeProfileThinkingLevel) NilRuntimeProfileThinkingLevel {
+	return NilRuntimeProfileThinkingLevel{
+		Value: v,
+	}
+}
+
+// NilRuntimeProfileThinkingLevel is nullable RuntimeProfileThinkingLevel.
+type NilRuntimeProfileThinkingLevel struct {
+	Value RuntimeProfileThinkingLevel
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilRuntimeProfileThinkingLevel) SetTo(v RuntimeProfileThinkingLevel) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilRuntimeProfileThinkingLevel) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilRuntimeProfileThinkingLevel) SetToNull() {
+	o.Null = true
+	var v RuntimeProfileThinkingLevel
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilRuntimeProfileThinkingLevel) Get() (v RuntimeProfileThinkingLevel, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilRuntimeProfileThinkingLevel) Or(d RuntimeProfileThinkingLevel) RuntimeProfileThinkingLevel {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilString returns new NilString with value set to v.
 func NewNilString(v string) NilString {
 	return NilString{
@@ -27699,6 +27913,74 @@ func (o OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) Or(d CreateRuntimePr
 	return d
 }
 
+// NewOptNilCreateRuntimeProfileBodyThinkingLevel returns new OptNilCreateRuntimeProfileBodyThinkingLevel with value set to v.
+func NewOptNilCreateRuntimeProfileBodyThinkingLevel(v CreateRuntimeProfileBodyThinkingLevel) OptNilCreateRuntimeProfileBodyThinkingLevel {
+	return OptNilCreateRuntimeProfileBodyThinkingLevel{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilCreateRuntimeProfileBodyThinkingLevel is optional nullable CreateRuntimeProfileBodyThinkingLevel.
+type OptNilCreateRuntimeProfileBodyThinkingLevel struct {
+	Value CreateRuntimeProfileBodyThinkingLevel
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilCreateRuntimeProfileBodyThinkingLevel was set.
+func (o OptNilCreateRuntimeProfileBodyThinkingLevel) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilCreateRuntimeProfileBodyThinkingLevel) Reset() {
+	var v CreateRuntimeProfileBodyThinkingLevel
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilCreateRuntimeProfileBodyThinkingLevel) SetTo(v CreateRuntimeProfileBodyThinkingLevel) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilCreateRuntimeProfileBodyThinkingLevel) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilCreateRuntimeProfileBodyThinkingLevel) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v CreateRuntimeProfileBodyThinkingLevel
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilCreateRuntimeProfileBodyThinkingLevel) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilCreateRuntimeProfileBodyThinkingLevel) Get() (v CreateRuntimeProfileBodyThinkingLevel, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilCreateRuntimeProfileBodyThinkingLevel) Or(d CreateRuntimeProfileBodyThinkingLevel) CreateRuntimeProfileBodyThinkingLevel {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptNilDaemonState returns new OptNilDaemonState with value set to v.
 func NewOptNilDaemonState(v DaemonState) OptNilDaemonState {
 	return OptNilDaemonState{
@@ -27761,6 +28043,142 @@ func (o OptNilDaemonState) Get() (v DaemonState, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptNilDaemonState) Or(d DaemonState) DaemonState {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilFloat64 returns new OptNilFloat64 with value set to v.
+func NewOptNilFloat64(v float64) OptNilFloat64 {
+	return OptNilFloat64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilFloat64 is optional nullable float64.
+type OptNilFloat64 struct {
+	Value float64
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilFloat64 was set.
+func (o OptNilFloat64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilFloat64) Reset() {
+	var v float64
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilFloat64) SetTo(v float64) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilFloat64) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilFloat64) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v float64
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilFloat64) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilFloat64) Get() (v float64, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilFloat64) Or(d float64) float64 {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilInt returns new OptNilInt with value set to v.
+func NewOptNilInt(v int) OptNilInt {
+	return OptNilInt{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilInt is optional nullable int.
+type OptNilInt struct {
+	Value int
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilInt was set.
+func (o OptNilInt) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilInt) Reset() {
+	var v int
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilInt) SetTo(v int) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilInt) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilInt) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v int
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilInt) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilInt) Get() (v int, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilInt) Or(d int) int {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -27965,6 +28383,74 @@ func (o OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) Get() (v UpdateRunti
 
 // Or returns value if set, or given parameter if does not.
 func (o OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) Or(d UpdateRuntimeProfileBodyDefaultWorkspaceMode) UpdateRuntimeProfileBodyDefaultWorkspaceMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilUpdateRuntimeProfileBodyThinkingLevel returns new OptNilUpdateRuntimeProfileBodyThinkingLevel with value set to v.
+func NewOptNilUpdateRuntimeProfileBodyThinkingLevel(v UpdateRuntimeProfileBodyThinkingLevel) OptNilUpdateRuntimeProfileBodyThinkingLevel {
+	return OptNilUpdateRuntimeProfileBodyThinkingLevel{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilUpdateRuntimeProfileBodyThinkingLevel is optional nullable UpdateRuntimeProfileBodyThinkingLevel.
+type OptNilUpdateRuntimeProfileBodyThinkingLevel struct {
+	Value UpdateRuntimeProfileBodyThinkingLevel
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilUpdateRuntimeProfileBodyThinkingLevel was set.
+func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilUpdateRuntimeProfileBodyThinkingLevel) Reset() {
+	var v UpdateRuntimeProfileBodyThinkingLevel
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilUpdateRuntimeProfileBodyThinkingLevel) SetTo(v UpdateRuntimeProfileBodyThinkingLevel) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilUpdateRuntimeProfileBodyThinkingLevel) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v UpdateRuntimeProfileBodyThinkingLevel
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) Get() (v UpdateRuntimeProfileBodyThinkingLevel, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) Or(d UpdateRuntimeProfileBodyThinkingLevel) UpdateRuntimeProfileBodyThinkingLevel {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -34684,6 +35170,7 @@ type RuntimeProfile struct {
 	LeaseTtlSec           int                                       `json:"leaseTtlSec"`
 	MaxBashTimeouts       int                                       `json:"maxBashTimeouts"`
 	MaxBatchSize          int                                       `json:"maxBatchSize"`
+	MaxOutputTokens       NilInt                                    `json:"maxOutputTokens"`
 	MaxTurns              int                                       `json:"maxTurns"`
 	Model                 string                                    `json:"model"`
 	Name                  string                                    `json:"name"`
@@ -34696,6 +35183,10 @@ type RuntimeProfile struct {
 	SessionStorageMode    RuntimeProfileSessionStorageMode          `json:"sessionStorageMode"`
 	SessionTtlSec         int                                       `json:"sessionTtlSec"`
 	TeamId                uuid.UUID                                 `json:"teamId"`
+	Temperature           NilFloat64                                `json:"temperature"`
+	ThinkingLevel         NilRuntimeProfileThinkingLevel            `json:"thinkingLevel"`
+	TopK                  NilInt                                    `json:"topK"`
+	TopP                  NilFloat64                                `json:"topP"`
 	UpdatedAt             time.Time                                 `json:"updatedAt"`
 	WorkspaceStorageMode  RuntimeProfileWorkspaceStorageMode        `json:"workspaceStorageMode"`
 	WorkspaceTtlSec       int                                       `json:"workspaceTtlSec"`
@@ -34766,6 +35257,11 @@ func (s *RuntimeProfile) GetMaxBatchSize() int {
 	return s.MaxBatchSize
 }
 
+// GetMaxOutputTokens returns the value of MaxOutputTokens.
+func (s *RuntimeProfile) GetMaxOutputTokens() NilInt {
+	return s.MaxOutputTokens
+}
+
 // GetMaxTurns returns the value of MaxTurns.
 func (s *RuntimeProfile) GetMaxTurns() int {
 	return s.MaxTurns
@@ -34824,6 +35320,26 @@ func (s *RuntimeProfile) GetSessionTtlSec() int {
 // GetTeamId returns the value of TeamId.
 func (s *RuntimeProfile) GetTeamId() uuid.UUID {
 	return s.TeamId
+}
+
+// GetTemperature returns the value of Temperature.
+func (s *RuntimeProfile) GetTemperature() NilFloat64 {
+	return s.Temperature
+}
+
+// GetThinkingLevel returns the value of ThinkingLevel.
+func (s *RuntimeProfile) GetThinkingLevel() NilRuntimeProfileThinkingLevel {
+	return s.ThinkingLevel
+}
+
+// GetTopK returns the value of TopK.
+func (s *RuntimeProfile) GetTopK() NilInt {
+	return s.TopK
+}
+
+// GetTopP returns the value of TopP.
+func (s *RuntimeProfile) GetTopP() NilFloat64 {
+	return s.TopP
 }
 
 // GetUpdatedAt returns the value of UpdatedAt.
@@ -34906,6 +35422,11 @@ func (s *RuntimeProfile) SetMaxBatchSize(val int) {
 	s.MaxBatchSize = val
 }
 
+// SetMaxOutputTokens sets the value of MaxOutputTokens.
+func (s *RuntimeProfile) SetMaxOutputTokens(val NilInt) {
+	s.MaxOutputTokens = val
+}
+
 // SetMaxTurns sets the value of MaxTurns.
 func (s *RuntimeProfile) SetMaxTurns(val int) {
 	s.MaxTurns = val
@@ -34964,6 +35485,26 @@ func (s *RuntimeProfile) SetSessionTtlSec(val int) {
 // SetTeamId sets the value of TeamId.
 func (s *RuntimeProfile) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
+}
+
+// SetTemperature sets the value of Temperature.
+func (s *RuntimeProfile) SetTemperature(val NilFloat64) {
+	s.Temperature = val
+}
+
+// SetThinkingLevel sets the value of ThinkingLevel.
+func (s *RuntimeProfile) SetThinkingLevel(val NilRuntimeProfileThinkingLevel) {
+	s.ThinkingLevel = val
+}
+
+// SetTopK sets the value of TopK.
+func (s *RuntimeProfile) SetTopK(val NilInt) {
+	s.TopK = val
+}
+
+// SetTopP sets the value of TopP.
+func (s *RuntimeProfile) SetTopP(val NilFloat64) {
+	s.TopP = val
 }
 
 // SetUpdatedAt sets the value of UpdatedAt.
@@ -35203,6 +35744,7 @@ type RuntimeProfileListResponseItemsItem struct {
 	LeaseTtlSec           int                                                            `json:"leaseTtlSec"`
 	MaxBashTimeouts       int                                                            `json:"maxBashTimeouts"`
 	MaxBatchSize          int                                                            `json:"maxBatchSize"`
+	MaxOutputTokens       NilInt                                                         `json:"maxOutputTokens"`
 	MaxTurns              int                                                            `json:"maxTurns"`
 	Model                 string                                                         `json:"model"`
 	Name                  string                                                         `json:"name"`
@@ -35215,6 +35757,10 @@ type RuntimeProfileListResponseItemsItem struct {
 	SessionStorageMode    RuntimeProfileListResponseItemsItemSessionStorageMode          `json:"sessionStorageMode"`
 	SessionTtlSec         int                                                            `json:"sessionTtlSec"`
 	TeamId                uuid.UUID                                                      `json:"teamId"`
+	Temperature           NilFloat64                                                     `json:"temperature"`
+	ThinkingLevel         NilRuntimeProfileListResponseItemsItemThinkingLevel            `json:"thinkingLevel"`
+	TopK                  NilInt                                                         `json:"topK"`
+	TopP                  NilFloat64                                                     `json:"topP"`
 	UpdatedAt             time.Time                                                      `json:"updatedAt"`
 	WorkspaceStorageMode  RuntimeProfileListResponseItemsItemWorkspaceStorageMode        `json:"workspaceStorageMode"`
 	WorkspaceTtlSec       int                                                            `json:"workspaceTtlSec"`
@@ -35285,6 +35831,11 @@ func (s *RuntimeProfileListResponseItemsItem) GetMaxBatchSize() int {
 	return s.MaxBatchSize
 }
 
+// GetMaxOutputTokens returns the value of MaxOutputTokens.
+func (s *RuntimeProfileListResponseItemsItem) GetMaxOutputTokens() NilInt {
+	return s.MaxOutputTokens
+}
+
 // GetMaxTurns returns the value of MaxTurns.
 func (s *RuntimeProfileListResponseItemsItem) GetMaxTurns() int {
 	return s.MaxTurns
@@ -35343,6 +35894,26 @@ func (s *RuntimeProfileListResponseItemsItem) GetSessionTtlSec() int {
 // GetTeamId returns the value of TeamId.
 func (s *RuntimeProfileListResponseItemsItem) GetTeamId() uuid.UUID {
 	return s.TeamId
+}
+
+// GetTemperature returns the value of Temperature.
+func (s *RuntimeProfileListResponseItemsItem) GetTemperature() NilFloat64 {
+	return s.Temperature
+}
+
+// GetThinkingLevel returns the value of ThinkingLevel.
+func (s *RuntimeProfileListResponseItemsItem) GetThinkingLevel() NilRuntimeProfileListResponseItemsItemThinkingLevel {
+	return s.ThinkingLevel
+}
+
+// GetTopK returns the value of TopK.
+func (s *RuntimeProfileListResponseItemsItem) GetTopK() NilInt {
+	return s.TopK
+}
+
+// GetTopP returns the value of TopP.
+func (s *RuntimeProfileListResponseItemsItem) GetTopP() NilFloat64 {
+	return s.TopP
 }
 
 // GetUpdatedAt returns the value of UpdatedAt.
@@ -35425,6 +35996,11 @@ func (s *RuntimeProfileListResponseItemsItem) SetMaxBatchSize(val int) {
 	s.MaxBatchSize = val
 }
 
+// SetMaxOutputTokens sets the value of MaxOutputTokens.
+func (s *RuntimeProfileListResponseItemsItem) SetMaxOutputTokens(val NilInt) {
+	s.MaxOutputTokens = val
+}
+
 // SetMaxTurns sets the value of MaxTurns.
 func (s *RuntimeProfileListResponseItemsItem) SetMaxTurns(val int) {
 	s.MaxTurns = val
@@ -35483,6 +36059,26 @@ func (s *RuntimeProfileListResponseItemsItem) SetSessionTtlSec(val int) {
 // SetTeamId sets the value of TeamId.
 func (s *RuntimeProfileListResponseItemsItem) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
+}
+
+// SetTemperature sets the value of Temperature.
+func (s *RuntimeProfileListResponseItemsItem) SetTemperature(val NilFloat64) {
+	s.Temperature = val
+}
+
+// SetThinkingLevel sets the value of ThinkingLevel.
+func (s *RuntimeProfileListResponseItemsItem) SetThinkingLevel(val NilRuntimeProfileListResponseItemsItemThinkingLevel) {
+	s.ThinkingLevel = val
+}
+
+// SetTopK sets the value of TopK.
+func (s *RuntimeProfileListResponseItemsItem) SetTopK(val NilInt) {
+	s.TopK = val
+}
+
+// SetTopP sets the value of TopP.
+func (s *RuntimeProfileListResponseItemsItem) SetTopP(val NilFloat64) {
+	s.TopP = val
 }
 
 // SetUpdatedAt sets the value of UpdatedAt.
@@ -36167,6 +36763,75 @@ func (s *RuntimeProfileListResponseItemsItemSessionStorageMode) UnmarshalText(da
 	}
 }
 
+type RuntimeProfileListResponseItemsItemThinkingLevel string
+
+const (
+	RuntimeProfileListResponseItemsItemThinkingLevelOff     RuntimeProfileListResponseItemsItemThinkingLevel = "off"
+	RuntimeProfileListResponseItemsItemThinkingLevelMinimal RuntimeProfileListResponseItemsItemThinkingLevel = "minimal"
+	RuntimeProfileListResponseItemsItemThinkingLevelLow     RuntimeProfileListResponseItemsItemThinkingLevel = "low"
+	RuntimeProfileListResponseItemsItemThinkingLevelMedium  RuntimeProfileListResponseItemsItemThinkingLevel = "medium"
+	RuntimeProfileListResponseItemsItemThinkingLevelHigh    RuntimeProfileListResponseItemsItemThinkingLevel = "high"
+	RuntimeProfileListResponseItemsItemThinkingLevelXhigh   RuntimeProfileListResponseItemsItemThinkingLevel = "xhigh"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemThinkingLevel values.
+func (RuntimeProfileListResponseItemsItemThinkingLevel) AllValues() []RuntimeProfileListResponseItemsItemThinkingLevel {
+	return []RuntimeProfileListResponseItemsItemThinkingLevel{
+		RuntimeProfileListResponseItemsItemThinkingLevelOff,
+		RuntimeProfileListResponseItemsItemThinkingLevelMinimal,
+		RuntimeProfileListResponseItemsItemThinkingLevelLow,
+		RuntimeProfileListResponseItemsItemThinkingLevelMedium,
+		RuntimeProfileListResponseItemsItemThinkingLevelHigh,
+		RuntimeProfileListResponseItemsItemThinkingLevelXhigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemThinkingLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemThinkingLevelOff:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemThinkingLevelMinimal:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemThinkingLevelLow:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemThinkingLevelMedium:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemThinkingLevelHigh:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemThinkingLevelXhigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemThinkingLevel) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemThinkingLevel(data) {
+	case RuntimeProfileListResponseItemsItemThinkingLevelOff:
+		*s = RuntimeProfileListResponseItemsItemThinkingLevelOff
+		return nil
+	case RuntimeProfileListResponseItemsItemThinkingLevelMinimal:
+		*s = RuntimeProfileListResponseItemsItemThinkingLevelMinimal
+		return nil
+	case RuntimeProfileListResponseItemsItemThinkingLevelLow:
+		*s = RuntimeProfileListResponseItemsItemThinkingLevelLow
+		return nil
+	case RuntimeProfileListResponseItemsItemThinkingLevelMedium:
+		*s = RuntimeProfileListResponseItemsItemThinkingLevelMedium
+		return nil
+	case RuntimeProfileListResponseItemsItemThinkingLevelHigh:
+		*s = RuntimeProfileListResponseItemsItemThinkingLevelHigh
+		return nil
+	case RuntimeProfileListResponseItemsItemThinkingLevelXhigh:
+		*s = RuntimeProfileListResponseItemsItemThinkingLevelXhigh
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type RuntimeProfileListResponseItemsItemWorkspaceStorageMode string
 
 const (
@@ -36691,6 +37356,75 @@ func (s *RuntimeProfileSessionStorageMode) UnmarshalText(data []byte) error {
 	switch RuntimeProfileSessionStorageMode(data) {
 	case RuntimeProfileSessionStorageModeLocal:
 		*s = RuntimeProfileSessionStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileThinkingLevel string
+
+const (
+	RuntimeProfileThinkingLevelOff     RuntimeProfileThinkingLevel = "off"
+	RuntimeProfileThinkingLevelMinimal RuntimeProfileThinkingLevel = "minimal"
+	RuntimeProfileThinkingLevelLow     RuntimeProfileThinkingLevel = "low"
+	RuntimeProfileThinkingLevelMedium  RuntimeProfileThinkingLevel = "medium"
+	RuntimeProfileThinkingLevelHigh    RuntimeProfileThinkingLevel = "high"
+	RuntimeProfileThinkingLevelXhigh   RuntimeProfileThinkingLevel = "xhigh"
+)
+
+// AllValues returns all RuntimeProfileThinkingLevel values.
+func (RuntimeProfileThinkingLevel) AllValues() []RuntimeProfileThinkingLevel {
+	return []RuntimeProfileThinkingLevel{
+		RuntimeProfileThinkingLevelOff,
+		RuntimeProfileThinkingLevelMinimal,
+		RuntimeProfileThinkingLevelLow,
+		RuntimeProfileThinkingLevelMedium,
+		RuntimeProfileThinkingLevelHigh,
+		RuntimeProfileThinkingLevelXhigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileThinkingLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileThinkingLevelOff:
+		return []byte(s), nil
+	case RuntimeProfileThinkingLevelMinimal:
+		return []byte(s), nil
+	case RuntimeProfileThinkingLevelLow:
+		return []byte(s), nil
+	case RuntimeProfileThinkingLevelMedium:
+		return []byte(s), nil
+	case RuntimeProfileThinkingLevelHigh:
+		return []byte(s), nil
+	case RuntimeProfileThinkingLevelXhigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileThinkingLevel) UnmarshalText(data []byte) error {
+	switch RuntimeProfileThinkingLevel(data) {
+	case RuntimeProfileThinkingLevelOff:
+		*s = RuntimeProfileThinkingLevelOff
+		return nil
+	case RuntimeProfileThinkingLevelMinimal:
+		*s = RuntimeProfileThinkingLevelMinimal
+		return nil
+	case RuntimeProfileThinkingLevelLow:
+		*s = RuntimeProfileThinkingLevelLow
+		return nil
+	case RuntimeProfileThinkingLevelMedium:
+		*s = RuntimeProfileThinkingLevelMedium
+		return nil
+	case RuntimeProfileThinkingLevelHigh:
+		*s = RuntimeProfileThinkingLevelHigh
+		return nil
+	case RuntimeProfileThinkingLevelXhigh:
+		*s = RuntimeProfileThinkingLevelXhigh
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -39851,6 +40585,7 @@ type UpdateRuntimeProfileBody struct {
 	LeaseTtlSec           OptInt                                              `json:"leaseTtlSec"`
 	MaxBashTimeouts       OptInt                                              `json:"maxBashTimeouts"`
 	MaxBatchSize          OptInt                                              `json:"maxBatchSize"`
+	MaxOutputTokens       OptNilInt                                           `json:"maxOutputTokens"`
 	MaxTurns              OptInt                                              `json:"maxTurns"`
 	Model                 OptString                                           `json:"model"`
 	Name                  OptString                                           `json:"name"`
@@ -39861,6 +40596,10 @@ type UpdateRuntimeProfileBody struct {
 	Sandbox               OptUpdateRuntimeProfileBodySandbox                  `json:"sandbox"`
 	SessionStorageMode    OptUpdateRuntimeProfileBodySessionStorageMode       `json:"sessionStorageMode"`
 	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
+	Temperature           OptNilFloat64                                       `json:"temperature"`
+	ThinkingLevel         OptNilUpdateRuntimeProfileBodyThinkingLevel         `json:"thinkingLevel"`
+	TopK                  OptNilInt                                           `json:"topK"`
+	TopP                  OptNilFloat64                                       `json:"topP"`
 	WorkspaceStorageMode  OptUpdateRuntimeProfileBodyWorkspaceStorageMode     `json:"workspaceStorageMode"`
 	WorkspaceTtlSec       OptInt                                              `json:"workspaceTtlSec"`
 }
@@ -39903,6 +40642,11 @@ func (s *UpdateRuntimeProfileBody) GetMaxBashTimeouts() OptInt {
 // GetMaxBatchSize returns the value of MaxBatchSize.
 func (s *UpdateRuntimeProfileBody) GetMaxBatchSize() OptInt {
 	return s.MaxBatchSize
+}
+
+// GetMaxOutputTokens returns the value of MaxOutputTokens.
+func (s *UpdateRuntimeProfileBody) GetMaxOutputTokens() OptNilInt {
+	return s.MaxOutputTokens
 }
 
 // GetMaxTurns returns the value of MaxTurns.
@@ -39955,6 +40699,26 @@ func (s *UpdateRuntimeProfileBody) GetSessionTtlSec() OptInt {
 	return s.SessionTtlSec
 }
 
+// GetTemperature returns the value of Temperature.
+func (s *UpdateRuntimeProfileBody) GetTemperature() OptNilFloat64 {
+	return s.Temperature
+}
+
+// GetThinkingLevel returns the value of ThinkingLevel.
+func (s *UpdateRuntimeProfileBody) GetThinkingLevel() OptNilUpdateRuntimeProfileBodyThinkingLevel {
+	return s.ThinkingLevel
+}
+
+// GetTopK returns the value of TopK.
+func (s *UpdateRuntimeProfileBody) GetTopK() OptNilInt {
+	return s.TopK
+}
+
+// GetTopP returns the value of TopP.
+func (s *UpdateRuntimeProfileBody) GetTopP() OptNilFloat64 {
+	return s.TopP
+}
+
 // GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
 func (s *UpdateRuntimeProfileBody) GetWorkspaceStorageMode() OptUpdateRuntimeProfileBodyWorkspaceStorageMode {
 	return s.WorkspaceStorageMode
@@ -40005,6 +40769,11 @@ func (s *UpdateRuntimeProfileBody) SetMaxBatchSize(val OptInt) {
 	s.MaxBatchSize = val
 }
 
+// SetMaxOutputTokens sets the value of MaxOutputTokens.
+func (s *UpdateRuntimeProfileBody) SetMaxOutputTokens(val OptNilInt) {
+	s.MaxOutputTokens = val
+}
+
 // SetMaxTurns sets the value of MaxTurns.
 func (s *UpdateRuntimeProfileBody) SetMaxTurns(val OptInt) {
 	s.MaxTurns = val
@@ -40053,6 +40822,26 @@ func (s *UpdateRuntimeProfileBody) SetSessionStorageMode(val OptUpdateRuntimePro
 // SetSessionTtlSec sets the value of SessionTtlSec.
 func (s *UpdateRuntimeProfileBody) SetSessionTtlSec(val OptInt) {
 	s.SessionTtlSec = val
+}
+
+// SetTemperature sets the value of Temperature.
+func (s *UpdateRuntimeProfileBody) SetTemperature(val OptNilFloat64) {
+	s.Temperature = val
+}
+
+// SetThinkingLevel sets the value of ThinkingLevel.
+func (s *UpdateRuntimeProfileBody) SetThinkingLevel(val OptNilUpdateRuntimeProfileBodyThinkingLevel) {
+	s.ThinkingLevel = val
+}
+
+// SetTopK sets the value of TopK.
+func (s *UpdateRuntimeProfileBody) SetTopK(val OptNilInt) {
+	s.TopK = val
+}
+
+// SetTopP sets the value of TopP.
+func (s *UpdateRuntimeProfileBody) SetTopP(val OptNilFloat64) {
+	s.TopP = val
 }
 
 // SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
@@ -40726,6 +41515,75 @@ func (s *UpdateRuntimeProfileBodySessionStorageMode) UnmarshalText(data []byte) 
 	switch UpdateRuntimeProfileBodySessionStorageMode(data) {
 	case UpdateRuntimeProfileBodySessionStorageModeLocal:
 		*s = UpdateRuntimeProfileBodySessionStorageModeLocal
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateRuntimeProfileBodyThinkingLevel string
+
+const (
+	UpdateRuntimeProfileBodyThinkingLevelOff     UpdateRuntimeProfileBodyThinkingLevel = "off"
+	UpdateRuntimeProfileBodyThinkingLevelMinimal UpdateRuntimeProfileBodyThinkingLevel = "minimal"
+	UpdateRuntimeProfileBodyThinkingLevelLow     UpdateRuntimeProfileBodyThinkingLevel = "low"
+	UpdateRuntimeProfileBodyThinkingLevelMedium  UpdateRuntimeProfileBodyThinkingLevel = "medium"
+	UpdateRuntimeProfileBodyThinkingLevelHigh    UpdateRuntimeProfileBodyThinkingLevel = "high"
+	UpdateRuntimeProfileBodyThinkingLevelXhigh   UpdateRuntimeProfileBodyThinkingLevel = "xhigh"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodyThinkingLevel values.
+func (UpdateRuntimeProfileBodyThinkingLevel) AllValues() []UpdateRuntimeProfileBodyThinkingLevel {
+	return []UpdateRuntimeProfileBodyThinkingLevel{
+		UpdateRuntimeProfileBodyThinkingLevelOff,
+		UpdateRuntimeProfileBodyThinkingLevelMinimal,
+		UpdateRuntimeProfileBodyThinkingLevelLow,
+		UpdateRuntimeProfileBodyThinkingLevelMedium,
+		UpdateRuntimeProfileBodyThinkingLevelHigh,
+		UpdateRuntimeProfileBodyThinkingLevelXhigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodyThinkingLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodyThinkingLevelOff:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyThinkingLevelMinimal:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyThinkingLevelLow:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyThinkingLevelMedium:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyThinkingLevelHigh:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyThinkingLevelXhigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodyThinkingLevel) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodyThinkingLevel(data) {
+	case UpdateRuntimeProfileBodyThinkingLevelOff:
+		*s = UpdateRuntimeProfileBodyThinkingLevelOff
+		return nil
+	case UpdateRuntimeProfileBodyThinkingLevelMinimal:
+		*s = UpdateRuntimeProfileBodyThinkingLevelMinimal
+		return nil
+	case UpdateRuntimeProfileBodyThinkingLevelLow:
+		*s = UpdateRuntimeProfileBodyThinkingLevelLow
+		return nil
+	case UpdateRuntimeProfileBodyThinkingLevelMedium:
+		*s = UpdateRuntimeProfileBodyThinkingLevelMedium
+		return nil
+	case UpdateRuntimeProfileBodyThinkingLevelHigh:
+		*s = UpdateRuntimeProfileBodyThinkingLevelHigh
+		return nil
+	case UpdateRuntimeProfileBodyThinkingLevelXhigh:
+		*s = UpdateRuntimeProfileBodyThinkingLevelXhigh
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

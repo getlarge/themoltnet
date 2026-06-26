@@ -622,8 +622,11 @@ func tryConvertMultiTypeAdditionalProps(obj map[string]any) (map[string]any, boo
 // tryConvertEnum detects the TypeBox anyOf enum pattern:
 //
 //	{anyOf: [{type: "string", enum: ["a"]}, {type: "string", enum: ["b"]}, ...]}
+//	{anyOf: [{type: "string", enum: ["a"]}, ..., {type: "null"}]}
 //
 // and returns the normalized form {type: "string", enum: ["a", "b", ...]}.
+// Nullable enum unions are normalized to the OpenAPI 3.0 nullable style that
+// ogen understands.
 // Preserves sibling keys like "description" from the parent object.
 func tryConvertEnum(obj map[string]any) (map[string]any, bool) {
 	members, ok := obj["anyOf"].([]any)
@@ -632,10 +635,15 @@ func tryConvertEnum(obj map[string]any) (map[string]any, bool) {
 	}
 
 	values := make([]any, 0, len(members))
+	nullable := false
 	for _, m := range members {
 		member, ok := m.(map[string]any)
 		if !ok {
 			return nil, false
+		}
+		if member["type"] == "null" && len(member) == 1 {
+			nullable = true
+			continue
 		}
 		if member["type"] != "string" {
 			return nil, false
@@ -645,6 +653,9 @@ func tryConvertEnum(obj map[string]any) (map[string]any, bool) {
 			return nil, false
 		}
 		values = append(values, enum[0])
+	}
+	if len(values) == 0 {
+		return nil, false
 	}
 
 	out := make(map[string]any, len(obj)+1)
@@ -656,5 +667,8 @@ func tryConvertEnum(obj map[string]any) (map[string]any, bool) {
 	}
 	out["type"] = "string"
 	out["enum"] = values
+	if nullable {
+		out["nullable"] = true
+	}
 	return out, true
 }

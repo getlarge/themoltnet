@@ -9,7 +9,10 @@ import {
   TeamHeaderOptionalSchema,
 } from '@moltnet/models';
 import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
-import { RuntimeProfile as RuntimeProfileSchema } from '@moltnet/tasks';
+import {
+  RuntimeProfile as RuntimeProfileSchema,
+  type RuntimeProfileThinkingLevel,
+} from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
@@ -85,6 +88,81 @@ function validateWorkspacePolicy(input: {
   }
 }
 
+async function validateRuntimeProfileModelOptions(request: {
+  body: unknown;
+}): Promise<void> {
+  if (!isRecord(request.body)) return;
+
+  const errors: Array<{ field: string; message: string }> = [];
+  validateNullableNumberOption({
+    body: request.body,
+    errors,
+    field: 'temperature',
+    min: 0,
+    max: 2,
+  });
+  validateNullableNumberOption({
+    body: request.body,
+    errors,
+    field: 'topP',
+    min: 0,
+    max: 1,
+  });
+  validateNullableNumberOption({
+    body: request.body,
+    errors,
+    field: 'topK',
+    min: 1,
+    max: 10_000,
+    integer: true,
+  });
+  validateNullableNumberOption({
+    body: request.body,
+    errors,
+    field: 'maxOutputTokens',
+    min: 1,
+    max: 1_000_000,
+    integer: true,
+  });
+
+  if (errors.length > 0) {
+    throw createValidationProblem(
+      errors,
+      'Invalid runtime profile model options',
+    );
+  }
+}
+
+function validateNullableNumberOption(args: {
+  body: Record<string, unknown>;
+  errors: Array<{ field: string; message: string }>;
+  field: string;
+  min: number;
+  max: number;
+  integer?: boolean;
+}): void {
+  if (!Object.hasOwn(args.body, args.field)) return;
+
+  const value = args.body[args.field];
+  if (value === null || value === undefined) return;
+  const valid =
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value >= args.min &&
+    value <= args.max &&
+    (!args.integer || Number.isInteger(value));
+  if (valid) return;
+
+  args.errors.push({
+    field: args.field,
+    message: `${args.field} must be ${args.integer ? 'an integer' : 'a number'} between ${args.min} and ${args.max}, or null`,
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function serializeProfile(
   row: RuntimeProfile,
 ): Static<typeof RuntimeProfileSchema> {
@@ -95,6 +173,12 @@ function serializeProfile(
     description: row.description ?? null,
     provider: row.provider,
     model: row.model,
+    thinkingLevel:
+      (row.thinkingLevel as RuntimeProfileThinkingLevel | null) ?? null,
+    temperature: row.temperature ?? null,
+    topP: row.topP ?? null,
+    topK: row.topK ?? null,
+    maxOutputTokens: row.maxOutputTokens ?? null,
     runtimeKind: 'gondolin_pi',
     sandbox: row.sandbox as Record<string, unknown>,
     sessionStorageMode: 'local',
@@ -127,6 +211,11 @@ type ProfileDefinitionInput = {
   description?: string | null;
   provider: string;
   model: string;
+  thinkingLevel?: RuntimeProfileThinkingLevel | null;
+  temperature?: number | null;
+  topP?: number | null;
+  topK?: number | null;
+  maxOutputTokens?: number | null;
   runtimeKind?: 'gondolin_pi';
   sandbox: unknown;
   sessionStorageMode?: 'local';
@@ -154,6 +243,11 @@ async function computeProfileDefinitionCid(
     description: input.description ?? null,
     provider: input.provider.toLowerCase(),
     model: input.model.toLowerCase(),
+    thinkingLevel: input.thinkingLevel ?? null,
+    temperature: input.temperature ?? null,
+    topP: input.topP ?? null,
+    topK: input.topK ?? null,
+    maxOutputTokens: input.maxOutputTokens ?? null,
     runtimeKind: input.runtimeKind ?? 'gondolin_pi',
     sandbox: input.sandbox,
     sessionStorageMode: input.sessionStorageMode ?? 'local',
@@ -212,6 +306,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-profiles',
     {
+      preValidation: validateRuntimeProfileModelOptions,
       schema: {
         operationId: 'createRuntimeProfile',
         tags: ['runtime-profiles'],
@@ -259,6 +354,11 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           description: body.description ?? null,
           provider: body.provider.toLowerCase(),
           model: body.model.toLowerCase(),
+          thinkingLevel: body.thinkingLevel ?? null,
+          temperature: body.temperature ?? null,
+          topP: body.topP ?? null,
+          topK: body.topK ?? null,
+          maxOutputTokens: body.maxOutputTokens ?? null,
           runtimeKind: body.runtimeKind ?? 'gondolin_pi',
           sandbox: body.sandbox,
           sessionStorageMode: body.sessionStorageMode ?? 'local',
@@ -331,6 +431,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.patch(
     '/runtime-profiles/:profileId',
     {
+      preValidation: validateRuntimeProfileModelOptions,
       schema: {
         operationId: 'updateRuntimeProfile',
         tags: ['runtime-profiles'],
@@ -371,6 +472,21 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
             : existing.description,
         provider: (body.provider ?? existing.provider).toLowerCase(),
         model: (body.model ?? existing.model).toLowerCase(),
+        thinkingLevel:
+          'thinkingLevel' in body
+            ? (body.thinkingLevel ?? null)
+            : ((existing.thinkingLevel as RuntimeProfileThinkingLevel | null) ??
+              null),
+        temperature:
+          'temperature' in body
+            ? (body.temperature ?? null)
+            : (existing.temperature ?? null),
+        topP: 'topP' in body ? (body.topP ?? null) : (existing.topP ?? null),
+        topK: 'topK' in body ? (body.topK ?? null) : (existing.topK ?? null),
+        maxOutputTokens:
+          'maxOutputTokens' in body
+            ? (body.maxOutputTokens ?? null)
+            : (existing.maxOutputTokens ?? null),
         runtimeKind: body.runtimeKind ?? 'gondolin_pi',
         sandbox: body.sandbox ?? existing.sandbox,
         sessionStorageMode: body.sessionStorageMode ?? 'local',

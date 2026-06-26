@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import {
   check,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -40,6 +41,11 @@ export function defineRuntimeProfilesTable({
       description: text('description'),
       provider: varchar('provider', { length: 100 }).notNull(),
       model: varchar('model', { length: 200 }).notNull(),
+      thinkingLevel: varchar('thinking_level', { length: 16 }),
+      temperature: doublePrecision('temperature'),
+      topP: doublePrecision('top_p'),
+      topK: integer('top_k'),
+      maxOutputTokens: integer('max_output_tokens'),
       runtimeKind: runtimeKindEnum('runtime_kind')
         .notNull()
         .default('gondolin_pi'),
@@ -126,6 +132,23 @@ export function defineRuntimeProfilesTable({
       check(
         'runtime_profiles_max_bash_timeouts_non_negative',
         sql`max_bash_timeouts >= 0`,
+      ),
+      check(
+        'runtime_profiles_thinking_level_valid',
+        sql`thinking_level IS NULL OR thinking_level = ANY(ARRAY['off','minimal','low','medium','high','xhigh']::text[])`,
+      ),
+      check(
+        'runtime_profiles_temperature_range',
+        sql`temperature IS NULL OR (temperature >= 0 AND temperature <= 2)`,
+      ),
+      check(
+        'runtime_profiles_top_p_range',
+        sql`top_p IS NULL OR (top_p >= 0 AND top_p <= 1)`,
+      ),
+      check('runtime_profiles_top_k_positive', sql`top_k IS NULL OR top_k > 0`),
+      check(
+        'runtime_profiles_max_output_tokens_positive',
+        sql`max_output_tokens IS NULL OR max_output_tokens > 0`,
       ),
       check(
         'runtime_profiles_default_workspace_mode_valid',

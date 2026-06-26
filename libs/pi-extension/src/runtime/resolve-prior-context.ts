@@ -11,7 +11,10 @@
  * to a `prior_context_resolve_failed` event so the agent runs without
  * a Prior context section rather than crashing the attempt.
  */
-import type { FreeformArtifact, FreeformOutput } from '@moltnet/tasks';
+import type {
+  FreeformArtifact,
+  FreeformOutput,
+} from '@themoltnet/agent-runtime';
 import type { Agent } from '@themoltnet/sdk';
 
 export interface ResolvedPriorContext {

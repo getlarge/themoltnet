@@ -1,14 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { continueRecent, forkFrom, list, inMemory, createAgentSession, reload } =
-  vi.hoisted(() => ({
-    continueRecent: vi.fn(),
-    forkFrom: vi.fn(),
-    list: vi.fn(),
-    inMemory: vi.fn(),
-    createAgentSession: vi.fn(),
-    reload: vi.fn(),
-  }));
+const {
+  continueRecent,
+  forkFrom,
+  list,
+  inMemory,
+  createAgentSession,
+  reload,
+  resourceLoaderArgs,
+} = vi.hoisted(() => ({
+  continueRecent: vi.fn(),
+  forkFrom: vi.fn(),
+  list: vi.fn(),
+  inMemory: vi.fn(),
+  createAgentSession: vi.fn(),
+  reload: vi.fn(),
+  resourceLoaderArgs: [] as Array<{ extensionFactories?: unknown[] }>,
+}));
 
 vi.mock('@earendil-works/pi-coding-agent', () => ({
   SessionManager: {
@@ -18,6 +26,10 @@ vi.mock('@earendil-works/pi-coding-agent', () => ({
     inMemory,
   },
   DefaultResourceLoader: class {
+    constructor(args: { extensionFactories?: unknown[] }) {
+      resourceLoaderArgs.push(args);
+    }
+
     async reload() {
       await reload();
     }
@@ -39,6 +51,7 @@ describe('buildAgentSession', () => {
     inMemory.mockReset();
     createAgentSession.mockReset();
     reload.mockReset();
+    resourceLoaderArgs.length = 0;
 
     continueRecent.mockReturnValue({ kind: 'continued' });
     forkFrom.mockReturnValue({ kind: 'forked' });
@@ -54,6 +67,7 @@ describe('buildAgentSession', () => {
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
+      thinkingLevel: 'high',
       customTools: [],
       appendSystemPrompt: ['runtime'],
       otelSpanAttrs: {},
@@ -67,6 +81,40 @@ describe('buildAgentSession', () => {
       '/sessions/judge',
     );
     expect(forkFrom).not.toHaveBeenCalled();
+    expect(createAgentSession).toHaveBeenCalledWith(
+      expect.objectContaining({ thinkingLevel: 'high' }),
+    );
+  });
+
+  it('registers model option extensions only when model options are set', async () => {
+    await buildAgentSession({
+      mountPath: '/guest/workspace',
+      cwdPath: '/guest/workspace',
+      piAuthDir: '/agent',
+      modelHandle: {} as never,
+      customTools: [],
+      appendSystemPrompt: ['runtime'],
+      otelSpanAttrs: {},
+      agentName: 'local-eval-943',
+    });
+
+    await buildAgentSession({
+      mountPath: '/guest/workspace',
+      cwdPath: '/guest/workspace',
+      piAuthDir: '/agent',
+      modelHandle: {} as never,
+      temperature: 0.2,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 12_000,
+      customTools: [],
+      appendSystemPrompt: ['runtime'],
+      otelSpanAttrs: {},
+      agentName: 'local-eval-943',
+    });
+
+    expect(resourceLoaderArgs[0]?.extensionFactories).toHaveLength(1);
+    expect(resourceLoaderArgs[1]?.extensionFactories).toHaveLength(2);
   });
 
   it('forks from the producer session when requested', async () => {

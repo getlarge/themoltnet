@@ -1,7 +1,10 @@
 import { accessSync, constants } from 'node:fs';
 import { delimiter, isAbsolute, resolve } from 'node:path';
 
-import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
+import type {
+  RuntimeProfileThinkingLevel,
+  RuntimeProfileWorkspaceMode,
+} from '@moltnet/tasks';
 import type { SandboxConfig } from '@themoltnet/pi-extension';
 import type { Agent } from '@themoltnet/sdk';
 
@@ -13,6 +16,11 @@ export interface ResolvedRuntimeProfile {
   teamId: string;
   provider: string;
   model: string;
+  thinkingLevel: RuntimeProfileThinkingLevel | null;
+  temperature: number | null;
+  topP: number | null;
+  topK: number | null;
+  maxOutputTokens: number | null;
   leaseTtlSec: number;
   heartbeatIntervalMs: number;
   maxBatchSize: number;
@@ -73,6 +81,11 @@ export async function resolveRuntimeProfile(options: {
     teamId: profile.teamId,
     provider: profile.provider,
     model: profile.model,
+    thinkingLevel: profile.thinkingLevel ?? null,
+    temperature: profile.temperature ?? null,
+    topP: profile.topP ?? null,
+    topK: profile.topK ?? null,
+    maxOutputTokens: profile.maxOutputTokens ?? null,
     leaseTtlSec: profile.leaseTtlSec,
     heartbeatIntervalMs: profile.heartbeatIntervalMs,
     maxBatchSize: profile.maxBatchSize,
@@ -168,7 +181,21 @@ async function resolveProfileByName(options: {
         'Use the profile UUID instead.',
     );
   }
-  return matches[0];
+  const profile = matches[0] as RuntimeProfile & {
+    thinkingLevel?: RuntimeProfileThinkingLevel | null;
+    temperature?: number | null;
+    topP?: number | null;
+    topK?: number | null;
+    maxOutputTokens?: number | null;
+  };
+  return {
+    ...profile,
+    thinkingLevel: profile.thinkingLevel ?? null,
+    temperature: profile.temperature ?? null,
+    topP: profile.topP ?? null,
+    topK: profile.topK ?? null,
+    maxOutputTokens: profile.maxOutputTokens ?? null,
+  };
 }
 
 function isExecutableOnPath(
