@@ -1,0 +1,17 @@
+name: Agent Daemon Live E2E
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
+
+concurrency:
+  group: agent-daemon-live-e2e
+  cancel-in-progress: false
+
+jobs:
+  live:
+    uses: ./.github/workflows/_agent-daemon-e2e.yml
+    with:
+      live-llm: true
+    secrets: inherit

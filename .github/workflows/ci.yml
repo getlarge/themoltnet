@@ -34,6 +34,7 @@ jobs:
       base: ${{ steps.shas-fallback.outputs.base }}
       head: ${{ steps.shas-fallback.outputs.head }}
       e2e-node: ${{ steps.compute.outputs.e2e-node }}
+      e2e-agent-daemon: ${{ steps.compute.outputs.e2e-agent-daemon }}
       e2e-browser: ${{ steps.compute.outputs.e2e-browser }}
       e2e-mcp: ${{ steps.compute.outputs.e2e-mcp }}
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
@@ -105,12 +106,19 @@ jobs:
             return 1
           }
 
-          # Node e2e: rest-api + agent-daemon (REST/queue suites). mcp-server
-          # e2e moved to the dedicated MCP job below.
-          if contains "@moltnet/rest-api" "@themoltnet/agent-daemon"; then
+          # Node e2e: rest-api queue/API suites. mcp-server and agent-daemon
+          # have dedicated jobs below so they do not contend with rest-api's
+          # sponsor-flow restart.
+          if contains "@moltnet/rest-api"; then
             echo "e2e-node=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-node=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if contains "@themoltnet/agent-daemon"; then
+            echo "e2e-agent-daemon=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e-agent-daemon=false" >> "$GITHUB_OUTPUT"
           fi
 
           if contains "@moltnet/console"; then
@@ -764,15 +772,26 @@ jobs:
       - name: Run REST API E2E tests
         if: needs.affected.outputs.e2e-node == 'true'
         run: pnpm exec nx run @moltnet/rest-api:e2e
-      - name: Run agent-daemon E2E tests
-        if: needs.affected.outputs.e2e-node == 'true'
-        run: pnpm exec nx run @themoltnet/agent-daemon:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-node == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
       - name: Teardown Docker Compose
         if: always() && needs.affected.outputs.e2e-node == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+
+  e2e-agent-daemon:
+    name: E2E Tests (Agent Daemon)
+    needs: [affected, build-and-push]
+    if: needs.affected.outputs.e2e-agent-daemon == 'true'
+    uses: ./.github/workflows/_agent-daemon-e2e.yml
+    with:
+      live-llm: false
+      rest-api-image: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
+      mcp-server-image: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
+      db-migrate-image: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
+      console-image: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+      mcp-host-image: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+    secrets: inherit
 
   e2e-browser:
     name: E2E Tests (Browser)
