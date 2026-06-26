@@ -1,0 +1,178 @@
+name: Compose E2E
+
+on:
+  workflow_call:
+    inputs:
+      run-suite:
+        description: Whether to run the suite or report an affected-skip.
+        required: false
+        type: boolean
+        default: true
+      suite-name:
+        description: Human-readable suite name.
+        required: true
+        type: string
+      suite-slug:
+        description: Stable slug for concurrency groups.
+        required: true
+        type: string
+      timeout-minutes:
+        required: false
+        type: number
+        default: 15
+      run-command:
+        description: Bash commands that execute the suite.
+        required: true
+        type: string
+      test-env:
+        description: Optional KEY=value lines appended to GITHUB_ENV.
+        required: false
+        type: string
+        default: ''
+      playwright-package:
+        description: Optional package whose Playwright chromium install is needed.
+        required: false
+        type: string
+        default: ''
+      setup-go:
+        required: false
+        type: boolean
+        default: false
+      live-llm:
+        description: Enable skipped-by-default live LLM specs.
+        required: false
+        type: boolean
+        default: false
+      rest-api-image:
+        required: false
+        type: string
+        default: ghcr.io/getlarge/themoltnet/rest-api:latest
+      mcp-server-image:
+        required: false
+        type: string
+        default: ghcr.io/getlarge/themoltnet/mcp-server:latest
+      db-migrate-image:
+        required: false
+        type: string
+        default: ghcr.io/getlarge/themoltnet/db-migrate:latest
+      console-image:
+        required: false
+        type: string
+        default: ghcr.io/getlarge/themoltnet/console:latest
+      mcp-host-image:
+        required: false
+        type: string
+        default: ghcr.io/getlarge/themoltnet/mcp-host:latest
+    secrets:
+      OLLAMA_API_KEY:
+        required: false
+
+env:
+  NX_LOAD_DOT_ENV_FILES: 'false'
+
+jobs:
+  e2e:
+    name: E2E Tests (${{ inputs.suite-name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: e2e-${{ inputs.suite-slug }}-${{ inputs.live-llm && github.ref || github.run_id }}
+      cancel-in-progress: false
+    env:
+      REST_API_IMAGE: ${{ inputs.rest-api-image }}
+      MCP_SERVER_IMAGE: ${{ inputs.mcp-server-image }}
+      DB_MIGRATE_IMAGE: ${{ inputs.db-migrate-image }}
+      CONSOLE_IMAGE: ${{ inputs.console-image }}
+      MCP_HOST_IMAGE: ${{ inputs.mcp-host-image }}
+      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
+      ORY_HYDRA_ADMIN_URL: http://localhost:4445
+      ORY_HYDRA_PUBLIC_URL: http://localhost:4444
+      ORY_KETO_PUBLIC_URL: http://localhost:4466
+      ORY_KETO_ADMIN_URL: http://localhost:4467
+      ORY_KRATOS_ADMIN_URL: http://localhost:4434
+      ORY_KRATOS_PUBLIC_URL: http://localhost:4433
+      SERVER_BASE_URL: http://localhost:8080
+      API_URL: http://localhost:8080
+      REST_API_URL: http://localhost:8080
+      MCP_SERVER_URL: http://localhost:8001
+      BASE_URL: http://localhost:8082
+      CONSOLE_BASE_URL: http://localhost:5174
+      MAILSLURPER_API_URL: http://localhost:4437
+      ORY_ACTION_API_KEY: local-dev-webhook-key
+      MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E: ${{ inputs.live-llm && '1' || '0' }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+    steps:
+      - name: Skip if ${{ inputs.suite-name }} E2E not affected
+        if: ${{ inputs.run-suite != true }}
+        run: echo "${{ inputs.suite-name }} E2E projects not affected; suite not required."
+
+      - uses: actions/checkout@v6
+        if: ${{ inputs.run-suite }}
+      - uses: pnpm/action-setup@v5
+        if: ${{ inputs.run-suite }}
+      - uses: actions/setup-node@v6
+        if: ${{ inputs.run-suite }}
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - uses: actions/setup-go@v6
+        if: ${{ inputs.run-suite && inputs.setup-go }}
+        with:
+          go-version: '1.25'
+      - run: pnpm install --frozen-lockfile
+        if: ${{ inputs.run-suite }}
+      - name: Apply suite environment
+        if: ${{ inputs.run-suite && inputs.test-env != '' }}
+        shell: bash
+        run: |
+          while IFS= read -r line; do
+            if [ -n "$line" ]; then
+              echo "$line" >> "$GITHUB_ENV"
+            fi
+          done <<'EOF'
+          ${{ inputs.test-env }}
+          EOF
+      - name: Get Playwright version
+        id: pw-version
+        if: ${{ inputs.run-suite && inputs.playwright-package != '' }}
+        run: echo "version=$(pnpm --silent --filter '${{ inputs.playwright-package }}' exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: pw-cache
+        if: ${{ inputs.run-suite && inputs.playwright-package != '' }}
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.pw-version.outputs.version }}
+      - name: Install Playwright browsers
+        if: ${{ inputs.run-suite && inputs.playwright-package != '' && steps.pw-cache.outputs.cache-hit != 'true' }}
+        run: pnpm --filter '${{ inputs.playwright-package }}' exec playwright install chromium
+      - name: Install Playwright system deps
+        if: ${{ inputs.run-suite && inputs.playwright-package != '' }}
+        run: pnpm --filter '${{ inputs.playwright-package }}' exec playwright install-deps chromium
+      - name: Log in to GHCR
+        if: ${{ inputs.run-suite }}
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Start Docker Compose stack
+        if: ${{ inputs.run-suite }}
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+      - name: Run ${{ inputs.suite-name }} E2E tests
+        if: ${{ inputs.run-suite }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ${{ inputs.run-command }}
+      - name: Docker Compose logs
+        if: ${{ failure() && inputs.run-suite }}
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+      - name: Teardown Docker Compose
+        if: ${{ always() && inputs.run-suite }}
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans

@@ -708,174 +708,75 @@ jobs:
   # their own docker compose stack and stay outside DTE per issue #985 scope.
   e2e-node:
     name: E2E Tests (Node)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: read
     needs: [affected, build-and-push]
-    env:
-      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
-      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
-      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
-      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
-      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
-      # Pre-set the URLs the e2e tests need. Without this, Nx's bin/nx.js
-      # loads workspace-root .env at startup; our .env is dotenvx-encrypted,
-      # so plain-dotenv pulls ciphertext into DATABASE_URL and pg silently
-      # falls back to its ::1:5432 default. Values mirror docker-compose.base
-      # host-port mappings.
-      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
-      ORY_HYDRA_ADMIN_URL: http://localhost:4445
-      ORY_HYDRA_PUBLIC_URL: http://localhost:4444
-      ORY_KETO_PUBLIC_URL: http://localhost:4466
-      ORY_KETO_ADMIN_URL: http://localhost:4467
-      ORY_KRATOS_ADMIN_URL: http://localhost:4434
-      ORY_KRATOS_PUBLIC_URL: http://localhost:4433
-      SERVER_BASE_URL: http://localhost:8080
-      # Must match the value injected into the rest-api container in
-      # docker-compose.e2e.yaml. The test reads it from process.env to sign
-      # webhook calls; if the encrypted .env gets loaded first, the test
-      # uses ciphertext and the server returns 403.
-      ORY_ACTION_API_KEY: local-dev-webhook-key
-    steps:
-      - name: Skip if Node E2E not affected
-        if: needs.affected.outputs.e2e-node != 'true'
-        run: echo "Node E2E projects not affected; E2E Tests (Node) not required."
-
-      - uses: actions/checkout@v6
-        if: needs.affected.outputs.e2e-node == 'true'
-      - uses: pnpm/action-setup@v5
-        if: needs.affected.outputs.e2e-node == 'true'
-      - uses: actions/setup-node@v6
-        if: needs.affected.outputs.e2e-node == 'true'
-        with:
-          node-version: 22.19.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: needs.affected.outputs.e2e-node == 'true'
-      - name: Log in to GHCR
-        if: needs.affected.outputs.e2e-node == 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Start Docker Compose stack
-        if: needs.affected.outputs.e2e-node == 'true'
-        env:
-          COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
-      # rest-api e2e MUST run first: its setup restarts the rest-api container
+    uses: ./.github/workflows/_e2e-compose.yml
+    with:
+      run-suite: ${{ needs.affected.outputs.e2e-node == 'true' }}
+      suite-name: Node
+      suite-slug: node
+      rest-api-image: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
+      mcp-server-image: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
+      db-migrate-image: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
+      console-image: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+      mcp-host-image: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      # rest-api e2e MUST run alone: its setup restarts the rest-api container
       # (sponsor flow), which would invalidate any in-flight test in another
       # suite running against the same stack.
-      - name: Run REST API E2E tests
-        if: needs.affected.outputs.e2e-node == 'true'
-        run: pnpm exec nx run @moltnet/rest-api:e2e
-      - name: Docker Compose logs
-        if: failure() && needs.affected.outputs.e2e-node == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
-      - name: Teardown Docker Compose
-        if: always() && needs.affected.outputs.e2e-node == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+      run-command: pnpm exec nx run @moltnet/rest-api:e2e
+    secrets: inherit
 
   e2e-agent-daemon:
     name: E2E Tests (Agent Daemon)
     needs: [affected, build-and-push]
-    if: needs.affected.outputs.e2e-agent-daemon == 'true'
-    uses: ./.github/workflows/_agent-daemon-e2e.yml
+    uses: ./.github/workflows/_e2e-compose.yml
     with:
+      run-suite: ${{ needs.affected.outputs.e2e-agent-daemon == 'true' }}
+      suite-name: Agent Daemon
+      suite-slug: agent-daemon
       live-llm: false
       rest-api-image: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       mcp-server-image: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
       db-migrate-image: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
       console-image: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
       mcp-host-image: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      run-command: |
+        if [ "$MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E" = "1" ]; then
+          pnpm exec nx run @themoltnet/agent-daemon:e2e --skipNxCache
+        else
+          pnpm exec nx run @themoltnet/agent-daemon:e2e
+        fi
     secrets: inherit
 
   e2e-browser:
     name: E2E Tests (Browser)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: read
     needs: [affected, build-and-push]
-    env:
-      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
-      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
-      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
-      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
-      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
-    steps:
-      - name: Skip if Browser E2E not affected
-        if: needs.affected.outputs.e2e-browser != 'true'
-        run: echo "Browser E2E projects not affected; E2E Tests (Browser) not required."
-
-      - uses: actions/checkout@v6
-        if: needs.affected.outputs.e2e-browser == 'true'
-      - uses: pnpm/action-setup@v5
-        if: needs.affected.outputs.e2e-browser == 'true'
-      - uses: actions/setup-node@v6
-        if: needs.affected.outputs.e2e-browser == 'true'
-        with:
-          node-version: 22.19.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: needs.affected.outputs.e2e-browser == 'true'
-      - name: Get Playwright version
-        id: pw-version
-        if: needs.affected.outputs.e2e-browser == 'true'
-        run: echo "version=$(pnpm --silent --filter @moltnet/console exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
-      - name: Cache Playwright browsers
-        id: pw-cache
-        if: needs.affected.outputs.e2e-browser == 'true'
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ steps.pw-version.outputs.version }}
-      - name: Install Playwright browsers
-        if: needs.affected.outputs.e2e-browser == 'true' && steps.pw-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @moltnet/console exec playwright install chromium
-      - name: Install Playwright system deps
-        if: needs.affected.outputs.e2e-browser == 'true'
-        run: pnpm --filter @moltnet/console exec playwright install-deps chromium
-      - name: Log in to GHCR
-        if: needs.affected.outputs.e2e-browser == 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Start Docker Compose stack
-        if: needs.affected.outputs.e2e-browser == 'true'
-        env:
-          COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
-      - name: Run Console Browser E2E tests
-        if: needs.affected.outputs.e2e-browser == 'true'
-        env:
-          KRATOS_PUBLIC_URL: http://localhost:4433
-          REST_API_URL: http://localhost:8080
-          CONSOLE_BASE_URL: http://localhost:5174
-          MAILSLURPER_API_URL: http://localhost:4437
-          # task-continue.e2e provisions a real agent via @moltnet/bootstrap,
-          # which talks directly to the Ory admin APIs and the app DB. Mirror
-          # the host-port mappings the e2e Docker stack publishes (see
-          # docker-compose.base.yaml + docker-compose.e2e.yaml).
-          DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
-          ORY_HYDRA_ADMIN_URL: http://localhost:4445
-          ORY_HYDRA_PUBLIC_URL: http://localhost:4444
-          ORY_KETO_PUBLIC_URL: http://localhost:4466
-          ORY_KETO_ADMIN_URL: http://localhost:4467
-          ORY_KRATOS_ADMIN_URL: http://localhost:4434
-        run: pnpm exec nx run @moltnet/console:e2e
-      - name: Docker Compose logs
-        if: failure() && needs.affected.outputs.e2e-browser == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
-      - name: Teardown Docker Compose
-        if: always() && needs.affected.outputs.e2e-browser == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+    uses: ./.github/workflows/_e2e-compose.yml
+    with:
+      run-suite: ${{ needs.affected.outputs.e2e-browser == 'true' }}
+      suite-name: Browser
+      suite-slug: browser
+      playwright-package: '@moltnet/console'
+      rest-api-image: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
+      mcp-server-image: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
+      db-migrate-image: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
+      console-image: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+      mcp-host-image: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      # task-continue.e2e provisions a real agent via @moltnet/bootstrap,
+      # which talks directly to the Ory admin APIs and the app DB. Mirror
+      # the host-port mappings the e2e Docker stack publishes.
+      test-env: |
+        KRATOS_PUBLIC_URL=http://localhost:4433
+        REST_API_URL=http://localhost:8080
+        CONSOLE_BASE_URL=http://localhost:5174
+        MAILSLURPER_API_URL=http://localhost:4437
+        DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
+        ORY_HYDRA_ADMIN_URL=http://localhost:4445
+        ORY_HYDRA_PUBLIC_URL=http://localhost:4444
+        ORY_KETO_PUBLIC_URL=http://localhost:4466
+        ORY_KETO_ADMIN_URL=http://localhost:4467
+        ORY_KRATOS_ADMIN_URL=http://localhost:4434
+      run-command: pnpm exec nx run @moltnet/console:e2e
+    secrets: inherit
 
   # MCP e2e: the mcp-server node suite + the mcp-host browser suite, against a
   # dedicated copy of the compose stack. Split out of the Node/Browser jobs so a
@@ -884,96 +785,33 @@ jobs:
   # MCP-only PRs — see issue #1236).
   e2e-mcp:
     name: E2E Tests (MCP)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: read
     needs: [affected, build-and-push]
-    env:
-      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
-      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
-      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
-      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
-      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
-    steps:
-      - name: Skip if MCP E2E not affected
-        if: needs.affected.outputs.e2e-mcp != 'true'
-        run: echo "MCP E2E projects not affected; E2E Tests (MCP) not required."
-
-      - uses: actions/checkout@v6
-        if: needs.affected.outputs.e2e-mcp == 'true'
-      - uses: pnpm/action-setup@v5
-        if: needs.affected.outputs.e2e-mcp == 'true'
-      - uses: actions/setup-node@v6
-        if: needs.affected.outputs.e2e-mcp == 'true'
-        with:
-          node-version: 22.19.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: needs.affected.outputs.e2e-mcp == 'true'
-      - name: Get Playwright version
-        id: pw-version
-        if: needs.affected.outputs.e2e-mcp == 'true'
-        run: echo "version=$(pnpm --silent --filter @moltnet/mcp-host-e2e exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
-      - name: Cache Playwright browsers
-        id: pw-cache
-        if: needs.affected.outputs.e2e-mcp == 'true'
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ steps.pw-version.outputs.version }}
-      - name: Install Playwright browsers
-        if: needs.affected.outputs.e2e-mcp == 'true' && steps.pw-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @moltnet/mcp-host-e2e exec playwright install chromium
-      - name: Install Playwright system deps
-        if: needs.affected.outputs.e2e-mcp == 'true'
-        run: pnpm --filter @moltnet/mcp-host-e2e exec playwright install-deps chromium
-      - name: Log in to GHCR
-        if: needs.affected.outputs.e2e-mcp == 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Start Docker Compose stack
-        if: needs.affected.outputs.e2e-mcp == 'true'
-        env:
-          COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
-      - name: Run MCP server E2E tests
-        if: needs.affected.outputs.e2e-mcp == 'true'
-        env:
-          DATABASE_URL: postgresql://moltnet:moltnet_secret@127.0.0.1:5433/moltnet
-          MCP_SERVER_URL: http://127.0.0.1:8001
-          REST_API_URL: http://127.0.0.1:8080
-          ORY_HYDRA_PUBLIC_URL: http://127.0.0.1:4444
-          ORY_HYDRA_ADMIN_URL: http://127.0.0.1:4445
-          ORY_KETO_PUBLIC_URL: http://127.0.0.1:4466
-          ORY_KETO_ADMIN_URL: http://127.0.0.1:4467
-          ORY_KRATOS_PUBLIC_URL: http://127.0.0.1:4433
-          ORY_KRATOS_ADMIN_URL: http://127.0.0.1:4434
-        run: pnpm exec nx run @moltnet/mcp-server:e2e
-      - name: Run MCP Host Browser E2E tests
-        if: needs.affected.outputs.e2e-mcp == 'true'
-        env:
-          BASE_URL: http://127.0.0.1:8082
-          MCP_SERVER_URL: http://127.0.0.1:8001
-          REST_API_URL: http://127.0.0.1:8080
-          DATABASE_URL: postgresql://moltnet:moltnet_secret@127.0.0.1:5433/moltnet
-          ORY_HYDRA_PUBLIC_URL: http://127.0.0.1:4444
-          ORY_HYDRA_ADMIN_URL: http://127.0.0.1:4445
-          ORY_KETO_PUBLIC_URL: http://127.0.0.1:4466
-          ORY_KETO_ADMIN_URL: http://127.0.0.1:4467
-          ORY_KRATOS_PUBLIC_URL: http://127.0.0.1:4433
-          ORY_KRATOS_ADMIN_URL: http://127.0.0.1:4434
-        run: pnpm exec nx run @moltnet/mcp-host-e2e:e2e
-      - name: Docker Compose logs
-        if: failure() && needs.affected.outputs.e2e-mcp == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
-      - name: Teardown Docker Compose
-        if: always() && needs.affected.outputs.e2e-mcp == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+    uses: ./.github/workflows/_e2e-compose.yml
+    with:
+      run-suite: ${{ needs.affected.outputs.e2e-mcp == 'true' }}
+      suite-name: MCP
+      suite-slug: mcp
+      playwright-package: '@moltnet/mcp-host-e2e'
+      rest-api-image: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
+      mcp-server-image: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
+      db-migrate-image: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
+      console-image: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+      mcp-host-image: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      test-env: |
+        BASE_URL=http://127.0.0.1:8082
+        MCP_SERVER_URL=http://127.0.0.1:8001
+        REST_API_URL=http://127.0.0.1:8080
+        DATABASE_URL=postgresql://moltnet:moltnet_secret@127.0.0.1:5433/moltnet
+        ORY_HYDRA_PUBLIC_URL=http://127.0.0.1:4444
+        ORY_HYDRA_ADMIN_URL=http://127.0.0.1:4445
+        ORY_KETO_PUBLIC_URL=http://127.0.0.1:4466
+        ORY_KETO_ADMIN_URL=http://127.0.0.1:4467
+        ORY_KRATOS_PUBLIC_URL=http://127.0.0.1:4433
+        ORY_KRATOS_ADMIN_URL=http://127.0.0.1:4434
+      run-command: |
+        pnpm exec nx run @moltnet/mcp-server:e2e
+        pnpm exec nx run @moltnet/mcp-host-e2e:e2e
+    secrets: inherit
 
   # Go CLI e2e runs in parallel with the Node and browser e2e jobs. It brings
   # up its own copy of the compose stack (~45s overhead) but does not contend
@@ -981,61 +819,21 @@ jobs:
   # path.
   e2e-go-cli:
     name: E2E Tests (Go CLI)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: read
     needs: [affected, build-and-push]
-    env:
-      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
-      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
-      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
-      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
-      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
-    steps:
-      - name: Skip if Go CLI E2E not affected
-        if: needs.affected.outputs.e2e-go-cli != 'true'
-        run: echo "Go CLI E2E projects not affected; E2E Tests (Go CLI) not required."
-
-      - uses: actions/checkout@v6
-        if: needs.affected.outputs.e2e-go-cli == 'true'
-      - uses: pnpm/action-setup@v5
-        if: needs.affected.outputs.e2e-go-cli == 'true'
-      - uses: actions/setup-node@v6
-        if: needs.affected.outputs.e2e-go-cli == 'true'
-        with:
-          node-version: 22.19.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: needs.affected.outputs.e2e-go-cli == 'true'
-      - uses: actions/setup-go@v6
-        if: needs.affected.outputs.e2e-go-cli == 'true'
-        with:
-          go-version: '1.25'
-      - name: Log in to GHCR
-        if: needs.affected.outputs.e2e-go-cli == 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Start Docker Compose stack
-        if: needs.affected.outputs.e2e-go-cli == 'true'
-        env:
-          COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
-      - name: Run Go CLI E2E tests
-        if: needs.affected.outputs.e2e-go-cli == 'true'
-        env:
-          API_URL: http://localhost:8080
-        run: go test -tags e2e -v -timeout 120s ./apps/moltnet-cli/...
-      - name: Docker Compose logs
-        if: failure() && needs.affected.outputs.e2e-go-cli == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
-      - name: Teardown Docker Compose
-        if: always() && needs.affected.outputs.e2e-go-cli == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+    uses: ./.github/workflows/_e2e-compose.yml
+    with:
+      run-suite: ${{ needs.affected.outputs.e2e-go-cli == 'true' }}
+      suite-name: Go CLI
+      suite-slug: go-cli
+      setup-go: true
+      rest-api-image: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
+      mcp-server-image: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
+      db-migrate-image: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
+      console-image: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+      mcp-host-image: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      test-env: API_URL=http://localhost:8080
+      run-command: go test -tags e2e -v -timeout 120s ./apps/moltnet-cli/...
+    secrets: inherit
 
   go-otel-extension:
     # The oryintrospectionauth extension deliberately lives OUTSIDE go.work
