@@ -1,5 +1,5 @@
 {
-  "id": "0dfc1248-7dad-4089-9c6c-bb4fd6f13d91",
+  "id": "da70cc01-c7fd-4f85-b5da-bec2f91fe54e",
   "prevId": "12e23c6b-d65b-498e-a1fd-3ad38ad80cf0",
   "version": "7",
   "dialect": "postgresql",
@@ -2565,6 +2565,30 @@
           "primaryKey": false,
           "notNull": false
         },
+        "temperature": {
+          "name": "temperature",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "top_p": {
+          "name": "top_p",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "top_k": {
+          "name": "top_k",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "max_output_tokens": {
+          "name": "max_output_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "runtime_kind": {
           "name": "runtime_kind",
           "type": "runtime_profile_runtime_kind",
@@ -2836,6 +2860,22 @@
         "runtime_profiles_thinking_level_valid": {
           "name": "runtime_profiles_thinking_level_valid",
           "value": "thinking_level IS NULL OR thinking_level = ANY(ARRAY['off','minimal','low','medium','high','xhigh']::text[])"
+        },
+        "runtime_profiles_temperature_range": {
+          "name": "runtime_profiles_temperature_range",
+          "value": "temperature IS NULL OR (temperature >= 0 AND temperature <= 2)"
+        },
+        "runtime_profiles_top_p_range": {
+          "name": "runtime_profiles_top_p_range",
+          "value": "top_p IS NULL OR (top_p >= 0 AND top_p <= 1)"
+        },
+        "runtime_profiles_top_k_positive": {
+          "name": "runtime_profiles_top_k_positive",
+          "value": "top_k IS NULL OR top_k > 0"
+        },
+        "runtime_profiles_max_output_tokens_positive": {
+          "name": "runtime_profiles_max_output_tokens_positive",
+          "value": "max_output_tokens IS NULL OR max_output_tokens > 0"
         },
         "runtime_profiles_default_workspace_mode_valid": {
           "name": "runtime_profiles_default_workspace_mode_valid",
