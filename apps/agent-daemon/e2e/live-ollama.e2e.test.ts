@@ -11,7 +11,7 @@ import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
 const LIVE_PROVIDER = 'ollama-cloud';
-const LIVE_MODEL = 'gemma3:12b-cloud';
+const LIVE_MODEL = 'qwen3.5:cloud';
 
 const describeLive = describe.skipIf(process.env[LIVE_LLM_FLAG] !== '1');
 

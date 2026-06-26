@@ -33,9 +33,6 @@
       "baseUrl": "https://ollama.com/v1",
       "models": [
         {
-          "id": "gemma3:12b-cloud"
-        },
-        {
           "id": "minimax-m3:cloud"
         },
         {
