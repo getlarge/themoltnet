@@ -43,12 +43,11 @@ export interface FinalizeContext {
 }
 
 /**
- * Build the `daemonState` payload for a `/complete` call. Only freeform
- * attempts that ran with a runtime slot are eligible for continuation
- * (`tasks_continue`, see issue #1287). Other task types and slot-less
- * freeform completions report `null` for `slotResumableUntil`, which
- * the server persists verbatim — continuations against such attempts
- * fail validation with `freeform.sourceNotResumeEligible`.
+ * Build the `daemonState` payload for a `/complete` call. Freeform
+ * attempts report the local warm-slot hint when one exists; slot-less
+ * freeform completions report `null` for `slotResumableUntil`. The server
+ * persists this verbatim as diagnostic/runtime metadata, not as the
+ * continuation eligibility gate.
  *
  * Returns `null` for non-freeform task types so the field is omitted
  * from the request body (the server treats null and absent the same).

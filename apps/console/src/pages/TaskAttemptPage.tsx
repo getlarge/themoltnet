@@ -126,16 +126,15 @@ export function TaskAttemptPage({
             Badge appears only on completed freeform attempts that ever
             reported a slotResumableUntil. Running/claimed attempts whose
             daemons happen to publish a heartbeat-time slot would render
-            a misleading "Resumable until …" otherwise. The expired path
-            still surfaces the timestamp (muted) so the user understands
-            why Continue isn't offered.
+            a misleading local-session hint otherwise. The expired path
+            still surfaces the timestamp as historical metadata.
           */}
           {(eligibility.eligible || eligibility.expired) &&
           eligibility.resumableUntil ? (
             <Tooltip
               content={
                 eligibility.expired
-                  ? 'The warm slot TTL has elapsed; the daemon no longer guarantees a resumable session for this attempt.'
+                  ? 'The warm slot TTL has elapsed; remote runtime sessions may still make this attempt continuable.'
                   : 'Daemon-local hint: the executor reported the warm slot would survive at least this long. Restart or eviction can shorten it.'
               }
             >

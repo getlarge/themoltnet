@@ -67,6 +67,13 @@ export interface RuntimeSlotStore {
   close(): Promise<void>;
 }
 
+export interface SourceAttemptResolver {
+  findOutputBranch(input: {
+    taskId: string;
+    attemptN: number;
+  }): Promise<string | null>;
+}
+
 type CachedTask = Pick<ClaimedTask, 'task' | 'attemptN'>;
 
 export interface ExecutionPlanCache {
@@ -88,10 +95,13 @@ export function createExecutionPlanCache(args: {
   workspacePolicy?: RuntimeProfileWorkspacePolicy;
   slotRegistry: RuntimeSlotStore;
   runtimeSessionStore?: RuntimeSessionStore;
+  sourceAttemptResolver?: SourceAttemptResolver;
 }): ExecutionPlanCache {
   const cache = new Map<string, DaemonTaskExecutionPlan>();
   const runtimeSessionStore =
     args.runtimeSessionStore ?? createNullRuntimeSessionStore();
+  const sourceAttemptResolver =
+    args.sourceAttemptResolver ?? createNullSourceAttemptResolver();
 
   return {
     async getOrCreate(
@@ -114,6 +124,7 @@ export function createExecutionPlanCache(args: {
         args.stateDirs,
         args.slotRegistry,
         runtimeSessionStore,
+        sourceAttemptResolver,
       );
       assertPlanAllowedByWorkspacePolicy(plan, args.workspacePolicy);
       cache.set(key, plan);
@@ -125,14 +136,24 @@ export function createExecutionPlanCache(args: {
   };
 }
 
+function createNullSourceAttemptResolver(): SourceAttemptResolver {
+  return {
+    findOutputBranch() {
+      return Promise.resolve(null);
+    },
+  };
+}
+
 function createNullRuntimeSessionStore(): RuntimeSessionStore {
   return {
-    async findRuntimeSessionByTaskAttempt() {
-      return null;
+    findRuntimeSessionByTaskAttempt() {
+      return Promise.resolve(null);
     },
-    async hydrateSession() {
-      throw new ProducerContextResolutionError(
-        'Cannot hydrate runtime session: no runtime session store configured',
+    hydrateSession() {
+      return Promise.reject(
+        new ProducerContextResolutionError(
+          'Cannot hydrate runtime session: no runtime session store configured',
+        ),
       );
     },
     async uploadAttemptFinal() {
@@ -179,8 +200,34 @@ type WarmSlotResolution =
       sessionPath: string;
       workspacePath: string;
     }
+  | {
+      kind: 'remote-session';
+      sessionPath: string;
+    }
   | { kind: 'missing' }
   | { kind: 'no-session-path' };
+
+async function hydrateRemoteRuntimeSession(
+  runtimeSessionStore: RuntimeSessionStore,
+  teamId: string,
+  sourceTaskId: string,
+  sourceAttemptN: number,
+  stateDirs: DaemonStateDirs,
+): Promise<string | null> {
+  const remoteSession =
+    await runtimeSessionStore.findRuntimeSessionByTaskAttempt(
+      teamId,
+      sourceTaskId,
+      sourceAttemptN,
+    );
+  if (!remoteSession) return null;
+  return runtimeSessionStore.hydrateSession({
+    attemptN: sourceAttemptN,
+    destinationDir: `${stateDirs.piSessionsDir}/remote-${sourceTaskId}-attempt-${sourceAttemptN}`,
+    taskId: sourceTaskId,
+    teamId,
+  });
+}
 
 async function resolveWarmSlot(
   slotRegistry: RuntimeSlotStore,
@@ -195,26 +242,29 @@ async function resolveWarmSlot(
     sourceTaskId,
     sourceAttemptN,
   );
-  if (!producerContext) return { kind: 'missing' };
+  if (!producerContext) {
+    const remoteSessionPath = await hydrateRemoteRuntimeSession(
+      runtimeSessionStore,
+      teamId,
+      sourceTaskId,
+      sourceAttemptN,
+      stateDirs,
+    );
+    return remoteSessionPath
+      ? { kind: 'remote-session', sessionPath: remoteSessionPath }
+      : { kind: 'missing' };
+  }
 
   const localSessionPath = resolveProducerSessionPath(producerContext);
-  const remoteSession = localSessionPath
-    ? null
-    : await runtimeSessionStore.findRuntimeSessionByTaskAttempt(
+  const sourceSessionPath = localSessionPath
+    ? localSessionPath
+    : await hydrateRemoteRuntimeSession(
+        runtimeSessionStore,
         teamId,
         sourceTaskId,
         sourceAttemptN,
+        stateDirs,
       );
-  const sourceSessionPath = localSessionPath
-    ? localSessionPath
-    : remoteSession
-      ? await runtimeSessionStore.hydrateSession({
-          attemptN: sourceAttemptN,
-          destinationDir: `${stateDirs.piSessionsDir}/remote-${sourceTaskId}-attempt-${sourceAttemptN}`,
-          taskId: sourceTaskId,
-          teamId,
-        })
-      : null;
   if (!sourceSessionPath) return { kind: 'no-session-path' };
 
   const copiedWorkspaceSource = resolveProducerWorkspaceCopySource(
@@ -236,6 +286,7 @@ async function maybeAttachWarmSlotContext(
   stateDirs: DaemonStateDirs,
   slotRegistry: RuntimeSlotStore,
   runtimeSessionStore: RuntimeSessionStore,
+  sourceAttemptResolver: SourceAttemptResolver,
 ): Promise<DaemonTaskExecutionPlan> {
   if (claimedTask.task.taskType === 'freeform') {
     const continueFrom = (
@@ -261,7 +312,7 @@ async function maybeAttachWarmSlotContext(
 
     if (resolution.kind === 'missing') {
       throw new ProducerContextResolutionError(
-        `Continuation source task ${continueFrom.taskId} attempt ${continueFrom.attemptN} has no live runtime slot on this daemon — claim affinity filter should have prevented this claim`,
+        `Continuation source task ${continueFrom.taskId} attempt ${continueFrom.attemptN} has no local runtime slot or durable runtime session — claim affinity filter should have prevented this claim`,
       );
     }
     if (resolution.kind === 'no-session-path') {
@@ -271,6 +322,50 @@ async function maybeAttachWarmSlotContext(
     }
 
     const sessionDir = `${stateDirs.piSessionsDir}/continue-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
+    if (resolution.kind === 'remote-session') {
+      const recoveredBranch = await sourceAttemptResolver.findOutputBranch({
+        attemptN: continueFrom.attemptN,
+        taskId: continueFrom.taskId,
+      });
+      if (continueFrom.mode === 'fork') {
+        if (recoveredBranch) {
+          const forkWorkspaceId = `fork-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
+          const forkBranch = buildForkBranch(
+            recoveredBranch,
+            claimedTask.task.id,
+            claimedTask.attemptN,
+          );
+          return {
+            ...basePlan,
+            workspaceMode: 'dedicated_worktree',
+            workspaceId: forkWorkspaceId,
+            worktreeBranch: forkBranch,
+            worktreeBaseRef: recoveredBranch,
+            workspaceKind: 'fork',
+            sessionPersistence: {
+              sessionDir,
+              forkFromSessionPath: resolution.sessionPath,
+            },
+          };
+        }
+        throw new ProducerContextResolutionError(
+          `Cannot fork continuation of ${continueFrom.taskId}/${continueFrom.attemptN}: durable runtime session is available but the source attempt output did not report a branch`,
+        );
+      }
+      return {
+        ...basePlan,
+        workspaceMode: 'dedicated_worktree',
+        workspaceId: recoveredBranch
+          ? `extend-${continueFrom.taskId}-attempt-${continueFrom.attemptN}`
+          : null,
+        worktreeBranch: recoveredBranch,
+        sessionPersistence: {
+          sessionDir,
+          forkFromSessionPath: resolution.sessionPath,
+        },
+      };
+    }
+
     const parentBranch =
       resolution.producerSlot.workspace?.worktreeBranch ?? null;
 
@@ -289,7 +384,11 @@ async function maybeAttachWarmSlotContext(
       // collide (the second `git worktree add` would hit an already-checked-out
       // branch). Include the child task id (mirrors forkWorkspaceId).
       const forkWorkspaceId = `fork-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
-      const forkBranch = `${parentBranch}-fork-${claimedTask.task.id.slice(0, 8)}-${claimedTask.attemptN}`;
+      const forkBranch = buildForkBranch(
+        parentBranch,
+        claimedTask.task.id,
+        claimedTask.attemptN,
+      );
       return {
         ...basePlan,
         workspaceMode: 'dedicated_worktree',
@@ -367,6 +466,11 @@ async function maybeAttachWarmSlotContext(
       `Producer task ${targetTaskId} attempt ${targetAttemptN} has no persisted Pi session path`,
     );
   }
+  if (resolution.kind === 'remote-session') {
+    throw new ProducerContextResolutionError(
+      `Producer task ${targetTaskId} attempt ${targetAttemptN} has a durable runtime session but no workspace metadata to copy`,
+    );
+  }
 
   return {
     ...basePlan,
@@ -382,6 +486,14 @@ async function maybeAttachWarmSlotContext(
       forkFromSessionPath: resolution.sessionPath,
     },
   };
+}
+
+function buildForkBranch(
+  parentBranch: string,
+  childTaskId: string,
+  childAttemptN: number,
+): string {
+  return `${parentBranch}-fork-${childTaskId.slice(0, 8)}-${childAttemptN}`;
 }
 
 function resolveProducerSessionPath(

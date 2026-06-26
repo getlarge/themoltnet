@@ -49,6 +49,7 @@ import {
 import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
+import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 
@@ -141,6 +142,9 @@ export async function runOnce(argv: string[]): Promise<number> {
   const runtimeSessionStore = createApiRuntimeSessionStore({
     agent: ctx.agent,
   });
+  const sourceAttemptResolver = createApiSourceAttemptResolver({
+    agent: ctx.agent,
+  });
   const slotIdentity: DaemonSlotIdentity = {
     agentName: opts.agent,
     runtimeProfileId: profile.id,
@@ -155,6 +159,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     },
     slotRegistry,
     runtimeSessionStore,
+    sourceAttemptResolver,
   });
   const otelShutdown = await initWorkerOtel({
     serviceName: 'moltnet.agent-daemon.once',

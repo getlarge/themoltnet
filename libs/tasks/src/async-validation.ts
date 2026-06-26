@@ -119,8 +119,7 @@ export interface AsyncTaskValidationContext {
    * `resolveTask` — returns `[]` if the caller can't read the task
    * (indistinguishable from "task has no attempts yet"). Used by
    * task types whose validators need to inspect per-attempt state
-   * (e.g. `freeform.continueFrom` checks the source attempt's
-   * `daemonState.slotResumableUntil`).
+   * (e.g. `freeform.continueFrom` checks the source attempt status).
    */
   listAttempts(taskId: string): Promise<TaskAttempt[]>;
 

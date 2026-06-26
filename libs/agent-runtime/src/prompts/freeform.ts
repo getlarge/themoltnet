@@ -91,6 +91,8 @@ export function buildFreeformUserPrompt(
     '3. Complete the requested work when it is safe and bounded.',
     '4. If the request reveals a recurring task shape, include a',
     '   `proposedTaskType` in the final output with a concise rationale.',
+    '5. If you changed code on a branch, include that branch in',
+    '   `branch` so future continuations can recover git context.',
   ].join('\n');
 
   const sections: PromptSection[] = [
@@ -139,6 +141,7 @@ export function buildFreeformUserPrompt(
         shapeSketch: [
           '{',
           '  "summary": "<2-5 sentence result>",',
+          '  "branch": "<branch name when code changed; omit for prose-only work>",',
           '  "artifacts": [{ "kind": "...", "title": "...", "description": "...", "body": "<inline content up to 64 KiB; preferred for textual output so it persists with the task>", "url": "...", "path": "<worktree-ephemeral; not persisted after completion>" }],',
           '  "proposedTaskType": { "name": "...", "rationale": "...", "inputShape": {}, "outputShape": {} },',
           '  "diaryEntryIds": ["..."],',

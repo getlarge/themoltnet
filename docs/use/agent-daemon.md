@@ -501,7 +501,7 @@ Current daemon behavior:
   local workspace paths needed for same-daemon affinity and reuse. At attempt
   finalization, the daemon also uploads the final Pi session file to team-scoped
   runtime-session object storage, so a daemon can hydrate the session when the
-  source slot metadata is still available but the local session file is not.
+  source slot metadata or local session file is not available.
 - For `dedicated_worktree` + `workspaceScope: session`, the daemon reuses a
   stable worktree path under `.worktrees/session-<encoded-slot-id>` instead
   of creating a fresh `.worktrees/task-<task-id>` checkout every attempt.
@@ -510,7 +510,7 @@ Current daemon behavior:
   request `input.execution.workspace` as `none`, `shared_mount`, or
   `dedicated_worktree`. `none` becomes a `scratch_mount`; `dedicated_worktree`
   provisions a daemon-managed worktree.
-- `freeform.input.continueFrom` is the warm-resume path. Prefer the MCP
+- `freeform.input.continueFrom` is the continuation path. Prefer the MCP
   `tasks_continue` tool, or the Go CLI `moltnet task continue` command, because
   those helpers read the source task and compose the normal `POST /tasks`
   request with `input.continueFrom`, source team/diary/correlation context, and
@@ -519,16 +519,21 @@ Current daemon behavior:
   override it. The server rejects `input.execution.workspace` when
   `input.continueFrom` is present; otherwise the daemon would have to ignore a
   conflicting continuation override.
+  Runtime-session storage is the durable source for the Pi conversation; daemon
+  slot metadata is still the source for same-daemon workspace reuse. If only
+  the durable session remains, `extend` resumes the conversation and can recover
+  branch context from source attempt output when the parent reported it. `fork`
+  still requires a recovered parent branch from either slot metadata or source
+  attempt output.
 - `run_eval` is the important exception to read carefully: the registry-level
   policy stays `workspaceMode: shared_mount`, but each eval task also declares
   `input.execution.workspace`. When that field is `none`, the daemon runs the
   producer in a `scratch_mount`; when it is `dedicated_worktree`, the daemon
   provisions an isolated worktree for that producer attempt.
-- `judge_eval_attempt` can use a durable remote runtime session when producer
-  slot/workspace metadata is available but the producer's local Pi session is
-  unavailable. Workspace copying still requires producer slot/workspace
-  metadata; if the daemon cannot resolve the required producer context, the
-  judge fails with `producer_context_missing`.
+- `judge_eval_attempt` can use a durable remote runtime session when the
+  producer's local Pi session is unavailable. Workspace copying still requires
+  producer slot/workspace metadata; if the daemon cannot resolve the required
+  producer workspace context, the judge fails with `producer_context_missing`.
 - Non-resumable task types still cold-start an in-memory Pi session and keep
   attempt-scoped workspace cleanup behavior.
 

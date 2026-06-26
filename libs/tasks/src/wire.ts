@@ -97,11 +97,12 @@ const MAX_CLAIM_CONDITION_STATUSES = 8;
 /**
  * Daemon-asserted runtime state stamped onto a `TaskAttemptSummary` at
  * attempt-completion time. The server persists this block verbatim and
- * reads `slotResumableUntil` for `tasks_continue` create-time
- * eligibility; the daemon-side claim-affinity filter is the runtime
- * truth. The block carries its own `reportedAt` so consumers can reason
- * about staleness without reading documentation. All daemon-asserted
- * state lives here — top-level attempt fields stay server-authoritative.
+ * exposes `slotResumableUntil` as a legacy/local warm-slot hint; task
+ * continuation eligibility is based on the completed source attempt and
+ * daemon-side claim-affinity/runtime-session recovery. The block carries
+ * its own `reportedAt` so consumers can reason about staleness without
+ * reading documentation. All daemon-asserted state lives here —
+ * top-level attempt fields stay server-authoritative.
  *
  * Adding new fields requires explicit design review (intentional
  * boundary; see docs/superpowers/specs/2026-06-04-tasks-continue-design.md).
@@ -112,8 +113,8 @@ export const DaemonState = Type.Object(
     reportedAt: IsoTimestamp,
     /**
      * Daemon-asserted "this attempt's warm slot is alive until T". `null`
-     * = not eligible for continuation (task type unsupported, slot already
-     * evicted at completion, daemon opted out).
+     * means no local warm-slot hint was available; it does not make a
+     * completed source attempt ineligible for continuation.
      */
     slotResumableUntil: Type.Union([IsoTimestamp, Type.Null()]),
   },

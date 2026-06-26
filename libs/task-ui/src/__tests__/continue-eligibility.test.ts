@@ -73,38 +73,38 @@ describe('canContinueAttempt', () => {
     expect(result.expired).toBe(false);
   });
 
-  it('ineligible when daemonState is missing', () => {
+  it('eligible when daemonState is missing', () => {
     const result = canContinueAttempt(
       task('freeform'),
       attempt('completed', null, false),
       NOW,
     );
 
-    expect(result.eligible).toBe(false);
+    expect(result.eligible).toBe(true);
     expect(result.resumableUntil).toBeNull();
     expect(result.expired).toBe(false);
   });
 
-  it('ineligible when slotResumableUntil is null', () => {
+  it('eligible when slotResumableUntil is null', () => {
     const result = canContinueAttempt(
       task('freeform'),
       attempt('completed', null),
       NOW,
     );
 
-    expect(result.eligible).toBe(false);
+    expect(result.eligible).toBe(true);
     expect(result.resumableUntil).toBeNull();
     expect(result.expired).toBe(false);
   });
 
-  it('ineligible + expired when slotResumableUntil is in the past', () => {
+  it('eligible + expired when slotResumableUntil is in the past', () => {
     const result = canContinueAttempt(
       task('freeform'),
       attempt('completed', PAST),
       NOW,
     );
 
-    expect(result.eligible).toBe(false);
+    expect(result.eligible).toBe(true);
     expect(result.resumableUntil?.toISOString()).toBe(PAST);
     expect(result.expired).toBe(true);
   });
