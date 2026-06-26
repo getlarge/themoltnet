@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -269,6 +270,15 @@ async function expectRuntimeState(input: {
     { teamId: input.teamId },
   );
   expect(session).toBeTruthy();
+  const downloaded = await input.agent.runtimeSessions.download(
+    {
+      attemptN: input.attemptN,
+      taskId: input.taskId,
+    },
+    { teamId: input.teamId },
+  );
+  const downloadedSession = await collectStreamText(downloaded);
+  expect(downloadedSession).toContain(input.expectedMessageFragment);
 
   const messages = await input.agent.tasks.listMessages(
     input.taskId,
@@ -277,6 +287,16 @@ async function expectRuntimeState(input: {
   const serializedMessages = JSON.stringify(messages);
   expect(serializedMessages).toContain('execute_start');
   expect(serializedMessages).toContain(input.expectedMessageFragment);
+}
+
+async function collectStreamText(
+  stream: AsyncIterable<Uint8Array>,
+): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 function writeAgentCredentials(input: {
