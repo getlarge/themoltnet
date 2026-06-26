@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.113.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.113.0...sdk-v0.113.1) (2026-06-26)
+
+
+### Bug Fixes
+
+* **sdk:** remove Node types from public declarations ([2a7a52a](https://github.com/getlarge/themoltnet/commit/2a7a52a281da93f5daf2a11ee18f9841322eca6a))
+* **sdk:** remove Node types from public declarations ([17b8be1](https://github.com/getlarge/themoltnet/commit/17b8be109cdcc2cdae954852478cfa47242eefd2))
+
 ## [0.113.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.112.0...sdk-v0.113.0) (2026-06-25)
 
 

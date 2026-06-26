@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.2](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.3.1...node-red-contrib-core-v0.3.2) (2026-06-26)
+
+
+### Bug Fixes
+
+* **node-red:** use workspace SDK dependency ([b249cba](https://github.com/getlarge/themoltnet/commit/b249cba1d8921491da8c6964398621458f52adad))
+* **node-red:** use workspace SDK dependency ([418f773](https://github.com/getlarge/themoltnet/commit/418f773c508101c5c45c2ca211e6cc3bb42ec3b7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.113.1
+
 ## [0.3.1](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.3.0...node-red-contrib-core-v0.3.1) (2026-06-25)
 
 
