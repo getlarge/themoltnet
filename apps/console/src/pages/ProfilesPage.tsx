@@ -21,7 +21,13 @@ import {
   Tooltip,
   useTheme,
 } from '@themoltnet/design-system';
-import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
+import {
+  type ChangeEvent,
+  Fragment,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import { getApiClient } from '../api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -94,6 +100,24 @@ const EMPTY_FORM: ProfileFormState = {
 const RUNTIME_PROFILE_DOCS_HREF =
   'https://docs.themolt.net/use/agent-daemon.html#remote-runtime-profiles';
 const NEW_PROFILE_ID = '__new_runtime_profile__';
+const CONTEXT_JSON_EXAMPLE = JSON.stringify(
+  [
+    {
+      slug: 'repo-rules',
+      binding: 'skill',
+      content:
+        '---\nname: repo-rules\ndescription: Repository operating rules\n---\nUse pnpm and Nx. Keep migrations and generated clients in sync.',
+    },
+    {
+      slug: 'api-contract',
+      binding: 'context_inline',
+      content:
+        'Preserve backward-compatible response shapes unless the task explicitly asks for a breaking API change.',
+    },
+  ],
+  null,
+  2,
+);
 
 const FIELD_HELP = {
   sessionTtlSec:
@@ -129,8 +153,27 @@ const FIELD_HELP = {
   sandboxJson:
     'Pi sandbox policy for the runtime, including filesystem/network rules passed to the executor.',
   contextJson:
-    'Context entries injected into tasks that use this profile, such as skills, prompt prefixes, or inline context blocks.',
+    'Optional context entries injected into every task that uses this profile. Use skill for Pi skills, context_inline for workspace context files, prompt_prefix for system/task prompt prefixing, or user_inline for user prompt suffixing.',
 } as const;
+
+const CONTEXT_BINDINGS: Array<{ binding: string; delivery: string }> = [
+  {
+    binding: 'skill',
+    delivery: 'temporary Pi skill advertised in available skills',
+  },
+  {
+    binding: 'context_inline',
+    delivery: 'workspace context files plus context-pack.md and AGENTS.md',
+  },
+  {
+    binding: 'prompt_prefix',
+    delivery: 'prepended before the runtime/task prompt',
+  },
+  {
+    binding: 'user_inline',
+    delivery: 'appended to the task user prompt',
+  },
+];
 
 export function ProfilesPage() {
   const theme = useTheme();
@@ -651,11 +694,16 @@ export function ProfilesPage() {
               rows={8}
             />
             <LabeledTextarea
-              label="Context JSON"
+              label="Injected context"
               help={FIELD_HELP.contextJson}
               value={form.contextJson}
               onChange={(value) => updateField('contextJson', value)}
               rows={5}
+            />
+            <ContextReference
+              onInsertExample={() =>
+                updateField('contextJson', CONTEXT_JSON_EXAMPLE)
+              }
             />
 
             {formError ? (
@@ -701,6 +749,59 @@ export function ProfilesPage() {
         </Card>
       </div>
     </Stack>
+  );
+}
+
+function ContextReference({
+  onInsertExample,
+}: {
+  onInsertExample: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gap: theme.spacing[2],
+        border: `1px solid ${theme.color.border.DEFAULT}`,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing[3],
+        background: theme.color.bg.surface,
+      }}
+    >
+      <Stack
+        direction="row"
+        justify="space-between"
+        align="center"
+        gap={2}
+        wrap
+      >
+        <Text variant="caption" color="muted">
+          Context entries are optional. Each entry needs slug, binding, and
+          content.
+        </Text>
+        <Button variant="secondary" size="sm" onClick={onInsertExample}>
+          Insert example
+        </Button>
+      </Stack>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(8rem, 0.4fr) minmax(12rem, 1fr)',
+          gap: theme.spacing[2],
+          fontSize: theme.font.size.sm,
+        }}
+      >
+        {CONTEXT_BINDINGS.map((item) => (
+          <Fragment key={item.binding}>
+            <code style={{ color: theme.color.text.DEFAULT }}>
+              {item.binding}
+            </code>
+            <Text variant="caption">{item.delivery}</Text>
+          </Fragment>
+        ))}
+      </div>
+    </div>
   );
 }
 

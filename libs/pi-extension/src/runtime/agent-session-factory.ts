@@ -38,13 +38,13 @@ import {
   SessionManager,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
-import type { RuntimeProfileThinkingLevel } from '@moltnet/tasks';
 
 import { createPiOtelExtension } from '../otel/index.js';
 import {
   createPiModelOptionsExtension,
   hasPiModelOptions,
 } from './model-options-extension.js';
+import type { PiThinkingLevel } from './pi-thinking-level.js';
 
 export interface BuildAgentSessionArgs {
   /** Host directory mounted into the VM. */
@@ -56,7 +56,7 @@ export interface BuildAgentSessionArgs {
   /** Resolved pi model handle (provider + model id). */
   modelHandle: Model<Api>;
   /** Optional runtime-profile thinking/reasoning level applied at session start. */
-  thinkingLevel?: RuntimeProfileThinkingLevel | null;
+  thinkingLevel?: PiThinkingLevel | null;
   /** Optional runtime-profile sampling temperature applied to provider requests. */
   temperature?: number | null;
   /** Optional runtime-profile nucleus sampling probability mass. */

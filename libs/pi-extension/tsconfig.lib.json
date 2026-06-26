@@ -29,9 +29,6 @@
       "path": "../agent-runtime/tsconfig.lib.json"
     },
     {
-      "path": "../tasks/tsconfig.lib.json"
-    },
-    {
       "path": "../crypto-service/tsconfig.lib.json"
     }
   ]

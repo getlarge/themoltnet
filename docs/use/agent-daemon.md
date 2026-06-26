@@ -373,6 +373,20 @@ const profile = await molt.runtimeProfiles.create(
     maxBatchSize: 50,
     requiredEnv: ['GITHUB_TOKEN', 'LINEAR_API_KEY'],
     requiredTools: ['git', 'gh', 'pnpm'],
+    context: [
+      {
+        slug: 'repo-rules',
+        binding: 'skill',
+        content:
+          '---\nname: repo-rules\ndescription: Repository operating rules\n---\nUse pnpm and Nx. Keep migrations and generated clients in sync.',
+      },
+      {
+        slug: 'api-contract',
+        binding: 'context_inline',
+        content:
+          'Preserve backward-compatible response shapes unless the task explicitly asks for a breaking API change.',
+      },
+    ],
   },
   { teamId },
 );
@@ -430,9 +444,52 @@ captured in the profile definition CID. Values that are global Pi settings
 should not be hidden inside sandbox policy.
 
 Related knobs that still need executor support before becoming profile fields:
-provider timeout/retry settings, transport/cache preferences, and per-level
-thinking token budgets for providers that use token budgets instead of named
-effort levels.
+provider timeout/retry settings and transport/cache preferences.
+
+`thinkingBudget` is intentionally not exposed as a separate runtime-profile
+field yet. Different harnesses use that name for different concepts: some mean
+named reasoning effort, some mean provider token budgets, and some accept both.
+The current profile keeps `thinkingLevel` as the portable effort control. If we
+need budgets later, use a structured field instead of adding a loose scalar.
+
+### Context entries
+
+Runtime profiles may include a small `context` array. These entries are injected
+into every task that uses the profile, before the Pi session is prompted. Use
+them for stable operator guidance that belongs to the runtime profile rather
+than to one task.
+
+Each entry has:
+
+- `slug`: short identifier, max 64 characters, letters/numbers/dash/underscore.
+- `binding`: delivery mode.
+- `content`: UTF-8 text, max 64 KiB.
+
+Bindings:
+
+| Binding          | Delivery                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------- |
+| `skill`          | Materialized as a temporary Pi skill and advertised in available skills.           |
+| `context_inline` | Written into workspace context files, including `context-pack.md` and `AGENTS.md`. |
+| `prompt_prefix`  | Prepended before the runtime/task prompt.                                          |
+| `user_inline`    | Appended to the task user prompt.                                                  |
+
+Example:
+
+```json
+[
+  {
+    "binding": "skill",
+    "content": "---\nname: repo-rules\ndescription: Repository operating rules\n---\nUse pnpm and Nx. Keep migrations and generated clients in sync.",
+    "slug": "repo-rules"
+  },
+  {
+    "binding": "context_inline",
+    "content": "Preserve backward-compatible response shapes unless the task explicitly asks for a breaking API change.",
+    "slug": "api-contract"
+  }
+]
+```
 
 Start a polling daemon with a profile:
 

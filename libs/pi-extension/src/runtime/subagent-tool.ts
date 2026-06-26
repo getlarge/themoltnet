@@ -38,7 +38,6 @@ import type {
   ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
-import type { RuntimeProfileThinkingLevel } from '@moltnet/tasks';
 import type { SubagentContractRegistry } from '@themoltnet/agent-runtime';
 import { type Static, type TObject, Type } from 'typebox';
 import { Value } from 'typebox/value';
@@ -47,6 +46,7 @@ import {
   buildAgentSession as defaultBuildAgentSession,
   type BuildAgentSessionArgs,
 } from './agent-session-factory.js';
+import type { PiThinkingLevel } from './pi-thinking-level.js';
 
 const SUBAGENT_SUBMIT_TOOL_NAME = 'submit_subagent_output';
 
@@ -90,7 +90,7 @@ export interface CreateSubagentToolArgs {
   /** Resolved pi model handle — subagents share it. */
   modelHandle: Model<Api>;
   /** Runtime-profile thinking/reasoning level — subagents inherit it. */
-  thinkingLevel?: RuntimeProfileThinkingLevel | null;
+  thinkingLevel?: PiThinkingLevel | null;
   /** Runtime-profile sampling temperature — subagents inherit it. */
   temperature?: number | null;
   /** Runtime-profile nucleus sampling probability mass — subagents inherit it. */

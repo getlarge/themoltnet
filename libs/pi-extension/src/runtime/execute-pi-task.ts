@@ -30,12 +30,9 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
-  FREEFORM_TYPE,
-  type RuntimeProfileThinkingLevel,
-} from '@moltnet/tasks';
-import {
   buildTaskUserPrompt,
   type ClaimedTask,
+  FREEFORM_TYPE,
   type SubagentContractRegistry,
   TaskContext,
   type TaskOutput,
@@ -63,6 +60,7 @@ import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
 import type { PiTaskExecutionPlanFactory } from './execution-plan.js';
 import { injectTaskContext } from './inject-task-context.js';
+import type { PiThinkingLevel } from './pi-thinking-level.js';
 import {
   type ContinueFromPointer,
   resolvePriorContext,
@@ -131,7 +129,7 @@ export interface ExecutePiTaskOptions {
    * configured default; explicit `off` disables provider thinking where
    * supported.
    */
-  thinkingLevel?: RuntimeProfileThinkingLevel | null;
+  thinkingLevel?: PiThinkingLevel | null;
   /** Optional sampling temperature. Null/undefined means provider default. */
   temperature?: number | null;
   /** Optional nucleus-sampling probability mass. Null/undefined means provider default. */
