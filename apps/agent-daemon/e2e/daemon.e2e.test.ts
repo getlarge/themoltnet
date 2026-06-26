@@ -43,6 +43,11 @@ import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../src/lib/runtime-profile.js';
+import {
+  createApiRuntimeSessionStore,
+  resolveRuntimeSessionKind,
+  type RuntimeSessionStore,
+} from '../src/lib/runtime-sessions.js';
 import { createApiRuntimeSlotStore } from '../src/lib/runtime-slots.js';
 import { resolveLatestPiSessionPath } from '../src/lib/session-files.js';
 import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
@@ -857,6 +862,111 @@ describe('Agent daemon (e2e)', () => {
         await slotStore.close();
       }
     }, 60_000);
+
+    it('claims and hydrates a continuation from a durable runtime session when local slot files are gone', async () => {
+      const mountRoot = mkdtempSync(
+        join(tmpdir(), 'daemon-remote-continue-e2e-'),
+      );
+      tempRoots.push(mountRoot);
+
+      const stateDirs = ensureDaemonStateDirs(mountRoot);
+      const slotStore = createApiRuntimeSlotStore({
+        agent,
+      });
+      const runtimeSessionStore = createApiRuntimeSessionStore({
+        agent,
+      });
+      const runtimeProfile = await createRuntimeProfile(
+        `slot-remote-continue-${randomUUID()}`,
+      );
+      const slotIdentity: DaemonSlotIdentity = {
+        agentName: 'e2e-daemon',
+        runtimeProfileId: runtimeProfile.id,
+      };
+      const correlationId = randomUUID();
+      const warmSessionTtlSec = 600;
+
+      try {
+        const parent = await proposeFreeformTask(correlationId);
+        const seededMarker = `remote-seed-marker-${parent.id}`;
+        const parentRun = await runStubbedSlotAwareTask({
+          agent,
+          taskId: parent.id,
+          mountRoot,
+          stateDirs,
+          slotStore,
+          slotIdentity,
+          provider: runtimeProfile.provider,
+          model: runtimeProfile.model,
+          warmSessionTtlSec,
+          runtimeSessionStore,
+          sessionMarker: seededMarker,
+        });
+        expect(parentRun.output.status).toBe('completed');
+
+        const seeded = await slotStore.findLatestSlotByTaskAttempt(
+          teamId,
+          parent.id,
+          parentRun.output.attemptN,
+        );
+        const seededSessionDir = seeded?.session?.sessionDir as string;
+        const seededSessionPath = seeded?.session?.sessionPath as string;
+        expect(seeded?.slot.id).toBeTruthy();
+        expect(seededSessionDir).toBeTruthy();
+        expect(seededSessionPath).toBeTruthy();
+        expect(existsSync(seededSessionPath)).toBe(true);
+        expect(readFileSync(seededSessionPath, 'utf8')).toContain(seededMarker);
+
+        rmSync(seededSessionDir, { recursive: true, force: true });
+        expect(existsSync(seededSessionPath)).toBe(false);
+
+        const continuation = await proposeFreeformTask(randomUUID(), {
+          taskId: parent.id,
+          attemptN: parentRun.output.attemptN,
+        });
+
+        const claimingSource = new PollingApiTaskSource({
+          agent,
+          teamId,
+          taskTypes: ['freeform'],
+          leaseTtlSec: 60,
+          stopWhenEmpty: true,
+          slotRegistry: slotStore,
+          sessionRegistry: runtimeSessionStore,
+          logger: silentLogger,
+        });
+        const claimed = await claimingSource.claim();
+        expect(claimed?.task.id).toBe(continuation.id);
+
+        const planCache = createExecutionPlanCache({
+          stateDirs,
+          slotIdentity,
+          warmSessionTtlSec,
+          slotRegistry: slotStore,
+          runtimeSessionStore,
+        });
+        const continuationPlan = await planCache.getOrCreate(claimed!);
+        const forkPath =
+          continuationPlan.sessionPersistence?.forkFromSessionPath;
+        expect(forkPath).toBeTruthy();
+        expect(forkPath).not.toBe(seededSessionPath);
+        expect(forkPath).toContain(
+          `remote-${parent.id}-attempt-${parentRun.output.attemptN}`,
+        );
+        expect(existsSync(forkPath!)).toBe(true);
+        expect(readFileSync(forkPath!, 'utf8')).toContain(seededMarker);
+        expect(continuationPlan.sessionPersistence?.sessionDir).toContain(
+          `continue-${continuation.id}-attempt-${claimed!.attemptN}`,
+        );
+
+        await agent.tasks.cancel(continuation.id, {
+          reason:
+            'cleanup after durable runtime-session continuation claim assertion',
+        });
+      } finally {
+        await slotStore.close();
+      }
+    }, 60_000);
   });
 
   describe('Task.allowedProfiles filter', () => {
@@ -1091,6 +1201,8 @@ interface StubbedSlotAwareTaskArgs {
   provider: string;
   model: string;
   warmSessionTtlSec: number;
+  runtimeSessionStore?: RuntimeSessionStore;
+  sessionMarker?: string;
 }
 
 async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
@@ -1142,6 +1254,9 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
           appendFileSync(sessionPath, `${claimedTask.task.id}\n`, 'utf8');
         } else {
           writeFileSync(sessionPath, `${claimedTask.task.id}\n`, 'utf8');
+        }
+        if (args.sessionMarker) {
+          appendFileSync(sessionPath, `${args.sessionMarker}\n`, 'utf8');
         }
         if (worktreePath) {
           writeFileSync(
@@ -1217,19 +1332,44 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   const plan = usedExecutionPlan;
   const taskForCtx =
     plan && plan.slotKey ? await args.agent.tasks.get(args.taskId) : null;
-  const slotForCtx =
+  const resolvedSlot =
     plan && plan.slotKey
-      ? ((
-          await args.slotStore.findLatestSlotByTaskAttempt(
-            taskForCtx.teamId,
-            args.taskId,
-            output.attemptN,
-          )
-        )?.slot ?? null)
+      ? await args.slotStore.findLatestSlotByTaskAttempt(
+          taskForCtx.teamId,
+          args.taskId,
+          output.attemptN,
+        )
       : null;
+  if (
+    args.runtimeSessionStore &&
+    taskForCtx &&
+    resolvedSlot?.session?.sessionDir
+  ) {
+    const parentSession = await args.runtimeSessionStore
+      .findRuntimeSessionByTaskAttempt(
+        taskForCtx.teamId,
+        args.taskId,
+        output.attemptN,
+      )
+      .catch(() => null);
+    if (!parentSession) {
+      await args.runtimeSessionStore.uploadAttemptFinal({
+        attemptN: output.attemptN,
+        sessionDir: resolvedSlot.session.sessionDir,
+        sessionKind: resolveRuntimeSessionKind({
+          attemptN: output.attemptN,
+          task: taskForCtx,
+        }),
+        sourceRuntimeProfileId: resolvedSlot.slot.runtimeProfileId,
+        sourceSlotId: resolvedSlot.slot.id,
+        taskId: args.taskId,
+        teamId: taskForCtx.teamId,
+      });
+    }
+  }
   await finalizeTask(args.agent, output, {
     task: taskForCtx ?? undefined,
-    slot: slotForCtx ? { expiresAtMs: slotForCtx.expiresAtMs } : null,
+    slot: resolvedSlot ? { expiresAtMs: resolvedSlot.slot.expiresAtMs } : null,
   });
   return {
     output,
