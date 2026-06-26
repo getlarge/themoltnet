@@ -29400,6 +29400,28 @@ var uploadRuntimeSession = (options) => (options.client ?? client).put({
 	}
 });
 /**
+* List recent team-scoped runtime slots for repair/sync.
+*/
+var listRuntimeSlots = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-slots",
+	...options
+});
+/**
 * Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
 */
 var beginRuntimeSlot = (options) => (options.client ?? client).post({
@@ -32703,6 +32725,15 @@ function createRuntimeSlotsNamespace(context) {
 				if (err instanceof MoltNetError && err.statusCode === 404) return null;
 				throw err;
 			}
+		},
+		async list(query, options) {
+			const filteredQuery = Object.fromEntries(Object.entries(query).filter(([, value]) => value !== void 0));
+			return unwrapResult(await listRuntimeSlots({
+				auth,
+				client,
+				headers: requiredTeamHeaders(options),
+				query: filteredQuery
+			})).items;
 		}
 	};
 }
@@ -37287,7 +37318,7 @@ var RuntimeWorkspace = _Object_({
 	createdAtMs: Integer({ minimum: 0 }),
 	lastUsedAtMs: Integer({ minimum: 0 })
 }, { $id: "RuntimeWorkspace" });
-_Object_({
+_Object_({ items: _Array_(_Object_({
 	slot: _Object_({
 		id: String$1({ format: "uuid" }),
 		teamId: String$1({ format: "uuid" }),
@@ -37320,7 +37351,7 @@ _Object_({
 		expiresAtMs: Integer({ minimum: 0 })
 	}, { $id: "RuntimeSlot" }),
 	workspace: Union([RuntimeWorkspace, Null()])
-}, { $id: "ResolvedRuntimeSlot" });
+}, { $id: "ResolvedRuntimeSlot" })) }, { $id: "RuntimeSlotListResponse" });
 _Object_({
 	agentName: String$1({
 		minLength: 1,
@@ -37379,6 +37410,21 @@ _Object_({
 	attemptN: Integer({ minimum: 1 })
 }, {
 	$id: "FindLatestRuntimeSlotForAttemptQuery",
+	additionalProperties: false
+});
+_Object_({
+	agentName: Optional(String$1({
+		minLength: 1,
+		maxLength: 100
+	})),
+	runtimeProfileId: Optional(String$1({ format: "uuid" })),
+	state: Optional(RuntimeSlotState),
+	limit: Optional(Integer({
+		minimum: 1,
+		maximum: 200
+	}))
+}, {
+	$id: "ListRuntimeSlotsQuery",
 	additionalProperties: false
 });
 //#endregion
