@@ -820,6 +820,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
+      - name: Install Gondolin sandbox dependencies
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends qemu-utils qemu-system-x86
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         uses: docker/login-action@v4
