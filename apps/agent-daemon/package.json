@@ -83,6 +83,9 @@
           "{projectRoot}/vitest.config.e2e.ts",
           "{projectRoot}/e2e/**/*",
           {
+            "env": "MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E"
+          },
+          {
             "externalDependencies": [
               "vitest"
             ]

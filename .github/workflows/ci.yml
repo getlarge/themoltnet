@@ -34,6 +34,7 @@ jobs:
       base: ${{ steps.shas-fallback.outputs.base }}
       head: ${{ steps.shas-fallback.outputs.head }}
       e2e-node: ${{ steps.compute.outputs.e2e-node }}
+      e2e-agent-daemon: ${{ steps.compute.outputs.e2e-agent-daemon }}
       e2e-browser: ${{ steps.compute.outputs.e2e-browser }}
       e2e-mcp: ${{ steps.compute.outputs.e2e-mcp }}
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
@@ -105,12 +106,19 @@ jobs:
             return 1
           }
 
-          # Node e2e: rest-api + agent-daemon (REST/queue suites). mcp-server
-          # e2e moved to the dedicated MCP job below.
-          if contains "@moltnet/rest-api" "@themoltnet/agent-daemon"; then
+          # Node e2e: rest-api queue/API suites. mcp-server and agent-daemon
+          # have dedicated jobs below so they do not contend with rest-api's
+          # sponsor-flow restart.
+          if contains "@moltnet/rest-api"; then
             echo "e2e-node=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-node=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if contains "@themoltnet/agent-daemon"; then
+            echo "e2e-agent-daemon=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e-agent-daemon=false" >> "$GITHUB_OUTPUT"
           fi
 
           if contains "@moltnet/console"; then
@@ -764,14 +772,87 @@ jobs:
       - name: Run REST API E2E tests
         if: needs.affected.outputs.e2e-node == 'true'
         run: pnpm exec nx run @moltnet/rest-api:e2e
-      - name: Run agent-daemon E2E tests
-        if: needs.affected.outputs.e2e-node == 'true'
-        run: pnpm exec nx run @themoltnet/agent-daemon:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-node == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
       - name: Teardown Docker Compose
         if: always() && needs.affected.outputs.e2e-node == 'true'
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+
+  e2e-agent-daemon:
+    name: E2E Tests (Agent Daemon)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    needs: [affected, build-and-push]
+    env:
+      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
+      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
+      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
+      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
+      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
+      ORY_HYDRA_ADMIN_URL: http://localhost:4445
+      ORY_HYDRA_PUBLIC_URL: http://localhost:4444
+      ORY_KETO_PUBLIC_URL: http://localhost:4466
+      ORY_KETO_ADMIN_URL: http://localhost:4467
+      ORY_KRATOS_ADMIN_URL: http://localhost:4434
+      ORY_KRATOS_PUBLIC_URL: http://localhost:4433
+      SERVER_BASE_URL: http://localhost:8080
+      ORY_ACTION_API_KEY: local-dev-webhook-key
+      MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E: '1'
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+    steps:
+      - name: Skip if Agent Daemon E2E not affected
+        if: needs.affected.outputs.e2e-agent-daemon != 'true'
+        run: echo "Agent Daemon E2E project not affected; E2E Tests (Agent Daemon) not required."
+
+      - uses: actions/checkout@v6
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+      - uses: pnpm/action-setup@v5
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+      - uses: actions/setup-node@v6
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+      - name: Install Gondolin sandbox dependencies
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends qemu-utils qemu-system-x86
+      - name: Cache Gondolin snapshots
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/moltnet/gondolin
+          key: ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-agent-daemon-e2e-${{ hashFiles('libs/pi-extension/src/snapshot.ts', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-agent-daemon-e2e-
+      - name: Log in to GHCR
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start Docker Compose stack
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+      - name: Run agent-daemon E2E tests
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        run: pnpm exec nx run @themoltnet/agent-daemon:e2e --skipNxCache
+      - name: Docker Compose logs
+        if: failure() && needs.affected.outputs.e2e-agent-daemon == 'true'
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+      - name: Teardown Docker Compose
+        if: always() && needs.affected.outputs.e2e-agent-daemon == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
 
   e2e-browser:

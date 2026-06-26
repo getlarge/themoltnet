@@ -5,9 +5,8 @@
  * brought up by CI (or the developer) before the suite runs; we only
  * verify health here.
  *
- * Daemon e2e runs after the rest-api suite which has already restarted
- * the rest-api container with SPONSOR_AGENT_ID. We don't restart it
- * again — that would race other suites running against the same stack.
+ * The daemon suite bootstraps its own agents through @moltnet/bootstrap and
+ * does not require the rest-api suite's SPONSOR_AGENT_ID restart path.
  */
 
 async function waitForHealthy(url: string, maxAttempts = 60): Promise<void> {
