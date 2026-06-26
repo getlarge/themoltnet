@@ -19,6 +19,9 @@ import type {
 import {
   createBashTool,
   createEditTool,
+  createFindTool,
+  createGrepTool,
+  createLsTool,
   createReadTool,
   createWriteTool,
 } from '@earendil-works/pi-coding-agent';
@@ -39,8 +42,11 @@ import { ensureSnapshot, type SandboxConfig } from './snapshot.js';
 import {
   createGondolinBashOps,
   createGondolinEditOps,
+  createGondolinFindOps,
+  createGondolinLsOps,
   createGondolinReadOps,
   createGondolinWriteOps,
+  executeGondolinGrep,
 } from './tool-operations.js';
 import { activateAgentEnv, findMainWorktree, resumeVm } from './vm-manager.js';
 
@@ -92,6 +98,9 @@ export default function moltnetExtension(pi: ExtensionAPI) {
   const localWrite = createWriteTool(localCwd);
   const localEdit = createEditTool(localCwd);
   const localBash = createBashTool(localCwd);
+  const localLs = createLsTool(localCwd);
+  const localFind = createFindTool(localCwd);
+  const localGrep = createGrepTool(localCwd);
   const initialGuestWorkspace = path.resolve(localCwd);
 
   let vm: VM | null = null;
@@ -235,7 +244,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     return { systemPrompt: modified };
   });
 
-  // -- Tool overrides (read/write/edit/bash → VM) ----------------------------
+  // -- Built-in tool overrides (filesystem/search/shell → VM) ----------------
 
   pi.registerTool({
     ...localRead,
@@ -279,6 +288,42 @@ export default function moltnetExtension(pi: ExtensionAPI) {
         operations: createGondolinBashOps(activeVm, localCwd, guestWorkspace),
       });
       return tool.execute(id, params, signal, onUpdate);
+    },
+  });
+
+  pi.registerTool({
+    ...localLs,
+    async execute(id, params, signal, onUpdate, ctx) {
+      const activeVm = await ensureVm(ctx);
+      const tool = createLsTool(localCwd, {
+        operations: createGondolinLsOps(activeVm, localCwd, guestWorkspace),
+      });
+      return tool.execute(id, params, signal, onUpdate);
+    },
+  });
+
+  pi.registerTool({
+    ...localFind,
+    async execute(id, params, signal, onUpdate, ctx) {
+      const activeVm = await ensureVm(ctx);
+      const tool = createFindTool(localCwd, {
+        operations: createGondolinFindOps(activeVm, localCwd, guestWorkspace),
+      });
+      return tool.execute(id, params, signal, onUpdate);
+    },
+  });
+
+  pi.registerTool({
+    ...localGrep,
+    async execute(_id, params, signal, _onUpdate, ctx) {
+      const activeVm = await ensureVm(ctx);
+      return executeGondolinGrep(
+        activeVm,
+        localCwd,
+        guestWorkspace,
+        params,
+        signal,
+      );
     },
   });
 

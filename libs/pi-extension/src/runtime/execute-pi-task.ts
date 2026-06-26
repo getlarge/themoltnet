@@ -4,7 +4,7 @@
  *
  * This is the pi-specific task executor. It owns:
  *   - VM lifecycle (ensureSnapshot + resumeVm + close)
- *   - Gondolin-redirected tool wiring (read/write/edit/bash → VM)
+ *   - Gondolin-redirected tool wiring (read/write/edit/bash/ls/find/grep → VM)
  *   - MoltNet custom tools (diary entries, pack render/judge, etc.)
  *   - pi createAgentSession + event → TaskReporter bridge
  *
@@ -17,6 +17,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+import type { VM } from '@earendil-works/gondolin';
 import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
 import type {
   AgentSession,
@@ -25,6 +26,9 @@ import type {
 import {
   createBashToolDefinition,
   createEditToolDefinition,
+  createFindToolDefinition,
+  createGrepToolDefinition,
+  createLsToolDefinition,
   createReadToolDefinition,
   createWriteToolDefinition,
 } from '@earendil-works/pi-coding-agent';
@@ -53,8 +57,11 @@ import { ensureSnapshot, type SandboxConfig } from '../snapshot.js';
 import {
   createGondolinBashOps,
   createGondolinEditOps,
+  createGondolinFindOps,
+  createGondolinLsOps,
   createGondolinReadOps,
   createGondolinWriteOps,
+  executeGondolinGrep,
 } from '../tool-operations.js';
 import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
@@ -108,6 +115,50 @@ export type TurnEventHandlerFactory = (
 ) => TurnEventHandler;
 
 const noopTurnEventHandler: TurnEventHandler = () => {};
+
+export function createGondolinToolDefinitions(config: {
+  vm: VM;
+  mountPath: string;
+  guestWorkspace: string;
+}): ToolDefinition[] {
+  const { vm, mountPath, guestWorkspace } = config;
+  const grepTool = createGrepToolDefinition(mountPath);
+  return [
+    createReadToolDefinition(mountPath, {
+      operations: createGondolinReadOps(vm, mountPath, guestWorkspace),
+    }),
+    createWriteToolDefinition(mountPath, {
+      operations: createGondolinWriteOps(vm, mountPath, guestWorkspace),
+    }),
+    createEditToolDefinition(mountPath, {
+      operations: createGondolinEditOps(vm, mountPath, guestWorkspace),
+    }),
+    createBashToolDefinition(mountPath, {
+      operations: createGondolinBashOps(vm, mountPath, guestWorkspace),
+    }),
+    createLsToolDefinition(mountPath, {
+      operations: createGondolinLsOps(vm, mountPath, guestWorkspace),
+    }),
+    createFindToolDefinition(mountPath, {
+      operations: createGondolinFindOps(vm, mountPath, guestWorkspace),
+    }),
+    {
+      ...grepTool,
+      async execute(
+        ...args: Parameters<typeof grepTool.execute>
+      ): ReturnType<typeof grepTool.execute> {
+        const [_id, params, signal] = args;
+        return executeGondolinGrep(
+          vm,
+          mountPath,
+          guestWorkspace,
+          params,
+          signal,
+        );
+      },
+    },
+  ] as unknown as ToolDefinition[];
+}
 
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
@@ -604,39 +655,14 @@ export async function executePiTask(
     }
 
     // pi's createAgentSession only treats `tools:` as a name-filter; the actual
-    // read/write/edit/bash implementations are rebuilt from defaults inside the
+    // built-in tool implementations are rebuilt from defaults inside the
     // session unless we route them through customTools, which DOES override the
     // default by name at definition-registry merge time (AgentSession._refreshToolRegistry).
-    const gondolinCustomTools = [
-      createReadToolDefinition(mountPath, {
-        operations: createGondolinReadOps(
-          managed.vm,
-          mountPath,
-          managed.guestWorkspace,
-        ),
-      }),
-      createWriteToolDefinition(mountPath, {
-        operations: createGondolinWriteOps(
-          managed.vm,
-          mountPath,
-          managed.guestWorkspace,
-        ),
-      }),
-      createEditToolDefinition(mountPath, {
-        operations: createGondolinEditOps(
-          managed.vm,
-          mountPath,
-          managed.guestWorkspace,
-        ),
-      }),
-      createBashToolDefinition(mountPath, {
-        operations: createGondolinBashOps(
-          managed.vm,
-          mountPath,
-          managed.guestWorkspace,
-        ),
-      }),
-    ] as unknown as ToolDefinition[];
+    const gondolinCustomTools = createGondolinToolDefinitions({
+      vm: managed.vm,
+      mountPath,
+      guestWorkspace: managed.guestWorkspace,
+    });
 
     // Per-task-type submit-output tool. Captured payload (when the
     // model calls the tool with valid args) becomes the authoritative

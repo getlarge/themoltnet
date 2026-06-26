@@ -8,7 +8,7 @@
  *
  * Each invocation creates a fresh `AgentSession.inMemory()` via
  * `buildAgentSession` that shares the parent's VM, model, and
- * inherited custom tools (Gondolin-routed Read/Write/Edit/Bash plus
+ * inherited custom tools (Gondolin-routed built-ins plus
  * the moltnet_* tools), but with:
  *
  *   - its own conversation history (no parent context bias)
@@ -103,7 +103,7 @@ export interface CreateSubagentToolArgs {
   agentName: string;
   /**
    * Custom tools every subagent inherits (Gondolin-routed
-   * Read/Write/Edit/Bash + moltnet_* tools, etc). MUST NOT include
+   * built-ins + moltnet_* tools, etc). MUST NOT include
    * the parent's submit-output tool, the parent's `subagent` tool,
    * or any other parent-only artefact — the caller is responsible
    * for filtering. The subagent appends its own submit tool.
@@ -403,7 +403,7 @@ function subagentToolDescription(): string {
     '',
     'The subagent starts with no conversation history and only the `task` ',
     'string you provide as its instructions. It runs in the same VM with ',
-    'the same tools you have (Gondolin-routed Read/Write/Edit/Bash, ',
+    'the same tools you have (Gondolin-routed built-ins, ',
     'moltnet_* tools), and is expected to call ',
     `\`${SUBAGENT_SUBMIT_TOOL_NAME}\` with a payload matching the named `,
     'contract before its session ends.',

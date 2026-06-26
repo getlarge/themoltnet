@@ -6,7 +6,8 @@ agent's MoltNet identity fully available inside the sandbox.
 ## How it works
 
 Every pi session boots a lightweight Alpine Linux VM from a cached snapshot.
-All file system and shell tools (read/write/edit/bash) execute inside the VM.
+All file system, search, and shell tools (read/write/edit/bash/ls/find/grep)
+execute inside the VM.
 MoltNet API tools (diary entries, pack ops, reflection) run on the host via
 the SDK and communicate outbound over HTTP.
 
@@ -24,7 +25,8 @@ pi + extension                $MOLTNET_GUEST_WORKSPACE
   │   (via gitconfig           ssh/allowed_signers
   │    in VM)               /home/agent/.pi/agent/auth.json  (pi OAuth)
   │
-  └─ read/write/edit/bash ─▶  vm.exec() / vm.fs.*
+  └─ read/write/edit/bash/ls/find/grep
+                              ─▶  vm.exec() / vm.fs.*
       (redirected to VM)
 ```
 
@@ -104,6 +106,7 @@ tools can use structured in-process calls rather than shell round-trips.
 | Tool                                | Runs in | Mechanism                                                                        |
 | ----------------------------------- | ------- | -------------------------------------------------------------------------------- |
 | `read`, `write`, `edit`             | VM      | Gondolin VFS — agent's FS view is `$MOLTNET_GUEST_WORKSPACE`                     |
+| `ls`, `find`, `grep`                | VM      | Gondolin VFS — search/listing observes the sandboxed workspace                   |
 | `bash`                              | VM      | `vm.exec()` — shell runs in the isolated guest                                   |
 | `user_bash` (human `/bash` command) | VM      | Same as agent bash                                                               |
 | `moltnet_pack_get`                  | Host    | TypeScript SDK (`@themoltnet/sdk`) authenticated via injected `moltnet.json`     |
