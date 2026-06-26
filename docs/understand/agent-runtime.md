@@ -191,23 +191,25 @@ Adding a new type is a matter of registering it in `@moltnet/tasks` with its inp
 tool, and daemon execution policy. It is the discovery lane for work whose
 shape is not stable enough to deserve its own task type yet. Standalone
 freeform tasks may request a narrow workspace hint through
-`input.execution.workspace`, and `input.continueFrom` warm-resumes a completed
-freeform attempt. Continuations inherit the parent daemon slot's workspace mode;
-callers cannot override it on the continuation task.
+`input.execution.workspace`, and `input.continueFrom` continues from a
+completed freeform attempt. Continuations inherit parent runtime state when it
+is available; callers cannot override workspace mode on the continuation task.
 
 #### Daemon slot & workspace lifecycle
 
 The daemon records **runtime slots** through the REST API so related tasks can
-reuse a warm Pi session and its git worktree. A slot is keyed by team, provider,
-model, and slot key. The row stores the local session/workspace paths and is
-linked to attempts for audit; the files still live on the daemon host.
+reuse local Pi sessions and git worktrees when they are still present on the
+same host. A slot is keyed by team, provider, model, and slot key. The row
+stores local session/workspace paths and is linked to attempts for audit.
 
-Continuation is intentionally profile-agnostic. A daemon that can claim the
-task may resolve the parent slot through the API, verify that the recorded local
-session path still exists, and then reuse or fork the parent workspace according
-to `continueFrom.mode`. This is what lets a continuation under a different
-compatible profile share the parent's branch when the local workspace is still
-available.
+At attempt finalization, the daemon also uploads the final Pi session file as a
+team-scoped **runtime session** object. Continuation is intentionally
+profile-agnostic: a daemon that can claim the task first prefers a verified
+local slot session, then falls back to the durable runtime session when the slot
+row or local file is gone. Local slot metadata still owns same-daemon workspace
+reuse, while source attempt output can recover the parent branch when the slot
+row disappeared. `extend` shares that recovered branch when available, and
+`fork` requires it so git can cut the new branch from the parent tip.
 
 ```mermaid
 sequenceDiagram
@@ -215,11 +217,17 @@ sequenceDiagram
     participant API as REST API
     participant B as continuation daemon
     participant W as local workspace/session
+    participant S as runtime-session storage
     A->>API: upsert runtime slot for attempt
     A->>W: write Pi session + workspace
+    A->>S: upload final Pi session
     B->>API: resolve latest producer slot(taskId, attemptN)
-    B->>W: verify recorded session/workspace path
-    B->>W: extend reuses branch, fork copies into new workspace
+    alt local session exists
+        B->>W: verify recorded session/workspace path
+    else local slot/session missing
+        B->>S: download durable Pi session
+    end
+    B->>W: extend reuses recorded branch when available; fork requires it
 ```
 
 A `fork` continuation does not share: it gets its own workspace on a new branch

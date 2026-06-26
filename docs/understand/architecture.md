@@ -17,7 +17,7 @@ Technical diagrams covering entities, system architecture, and user flows.
    - [Team Founding Flow](#team-founding-flow)
    - [Diary Transfer Flow](#diary-transfer-flow)
    - [Task Claim & Dispatch Flow](#task-claim--dispatch-flow)
-   - [Continuation resolution (warm resume)](#continuation-resolution-warm-resume)
+   - [Continuation resolution (durable resume)](#continuation-resolution-durable-resume)
 4. [Keto Permission Model](#keto-permission-model)
 5. [Recovery Flow](#recovery-flow)
 6. [Auth Reference](#auth-reference)
@@ -860,23 +860,26 @@ sequenceDiagram
     Note over DBOS: Explicit /cancel at any point →<br/>task cancelled with reason
 ```
 
-### Continuation resolution (warm resume)
+### Continuation resolution (durable resume)
 
 A freeform task carrying `input.continueFrom` is a continuation. After it is
-claimed, the daemon resolves runtime-slot context through the runtime-slot API
-before running Pi:
+claimed, the daemon resolves runtime context before running Pi:
 
-1. **Affinity filter** (claim time) — the daemon only claims a continuation if
-   the producer slot for `(taskId, attemptN)` resolves and the recorded parent
-   session still exists on disk. The lookup is profile-agnostic, so a different
-   compatible runtime profile can pick up the work.
+1. **Affinity filter** (claim time) — the daemon claims a continuation if the
+   producer has either a verified local session path or a durable runtime
+   session object for `(taskId, attemptN)`. The lookup is profile-agnostic, so a
+   different compatible runtime profile can pick up the work.
 2. **Plan** (`maybeAttachWarmSlotContext`) — branches on `continueFrom.mode`:
-   `extend` reuses the parent's workspace + branch; `fork` allocates a fresh
-   workspace and a new branch derived from the parent, passing the parent branch
-   as the worktree base ref.
+   `extend` reuses the parent's workspace + branch when slot metadata records
+   it, otherwise it hydrates the durable session and recovers the branch from
+   source attempt output when present; `fork` allocates a fresh workspace and a
+   new branch derived from the parent, so it still requires that recovered
+   parent branch.
 3. **Worktree** (`prepareTaskWorkspace`) — `extend` checks out the shared branch;
    `fork` runs `git worktree add -b <fork-branch> <dir> <parent-branch>`, cutting
-   the new branch from the parent tip.
+   the new branch from the parent tip. Remote-only continuations run without
+   inventing a parent branch; they use source attempt output when it reports
+   one.
 4. **Session** (`SessionManager.forkFrom`) — copies the parent's Pi `.jsonl` into
    a fresh session dir, rebinding cwd to the (extend or fork) worktree.
 
@@ -884,15 +887,22 @@ before running Pi:
 sequenceDiagram
     participant D as Daemon
     participant R as Runtime slot API
+    participant S as Runtime session storage
     participant G as git
     participant Pi as Pi session
     D->>R: findLatestProducerSlot(taskId, attemptN)
-    alt mode = extend (default)
+    alt local slot session exists
+        D->>Pi: fork session from recorded parent path
+    else remote runtime session exists
+        D->>S: download parent session
+        D->>Pi: fork session from hydrated path
+    end
+    alt mode = extend + parent branch recovered
         D->>G: reuse parent branch (shared worktree)
-        D->>Pi: fork session from recorded parent path
-    else mode = fork
+    else mode = fork + parent branch recovered
         D->>G: worktree add -b <branch>-fork-N <dir> <parentBranch>
-        D->>Pi: fork session from recorded parent path
+    else remote-only
+        D->>G: no inherited branch
     end
     D->>Pi: forkFrom(parent session) → new sessionDir (cwd = worktree)
 ```

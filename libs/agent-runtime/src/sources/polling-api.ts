@@ -41,19 +41,20 @@ export interface ContinuationSessionRegistry {
     teamId: string,
     taskId: string,
     attemptN: number,
-  ): Promise<unknown> | unknown;
+  ): Promise<unknown>;
 }
 
 /**
- * Claim-time affinity filter for warm-resume continuations.
+ * Claim-time affinity filter for continuations.
  *
  * - No `continueFrom` → claimable (true).
- * - `continueFrom` set + remote session exists + slot exists → claimable
- *   even if the slot's local session file is unavailable.
- * - `continueFrom` set + no slot in the store → not claimable (the producer
- *   context is unavailable to this daemon).
+ * - `continueFrom` set + remote session exists → claimable, even if the
+ *   producer slot row is absent or its local session file is unavailable.
+ * - `continueFrom` set + no slot in the store + no remote session → not
+ *   claimable (the producer context is unavailable to this daemon).
  * - `continueFrom` set + slot exists but its `sessionDir` is missing on
- *   disk → not claimable (stale slot row, slot directory was wiped).
+ *   disk and no remote session exists → not claimable (stale slot row, slot
+ *   directory was wiped).
  * - `continueFrom` set + slot exists + `sessionDir` present on disk →
  *   claimable.
  *
@@ -83,6 +84,13 @@ export async function isContinuationClaimableByThisDaemon(
     cf.attemptN,
   );
   if (!slot) {
+    const remoteSession =
+      await sessionRegistry?.findRuntimeSessionByTaskAttempt(
+        task.teamId,
+        cf.taskId,
+        cf.attemptN,
+      );
+    if (remoteSession) return { claimable: true };
     return {
       claimable: false,
       reason: 'missing_producer_slot',

@@ -53,6 +53,7 @@ import {
 import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
+import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 
@@ -184,6 +185,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const runtimeSessionStore = createApiRuntimeSessionStore({
     agent: ctx.agent,
   });
+  const sourceAttemptResolver = createApiSourceAttemptResolver({
+    agent: ctx.agent,
+  });
   const runtimes = new Map<string, ProfileRuntime>();
   for (const profile of profiles) {
     const common = parseCommonOptions(values, {
@@ -217,6 +221,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       },
       slotRegistry,
       runtimeSessionStore,
+      sourceAttemptResolver,
     });
     runtimes.set(profile.id, {
       common,

@@ -39,7 +39,11 @@ Current daemon behavior:
   `.moltnet/d/pi-sessions/<encoded-slot-id>/` and reopen the most recent
   session file on follow-up tasks.
 - The daemon records slot metadata through the REST API, including the local Pi
-  session path and any reusable worktree path needed for affinity and resume.
+  session path and any reusable worktree path needed for same-daemon affinity
+  and workspace reuse.
+- At attempt finalization, the daemon uploads the final Pi session file to
+  team-scoped runtime-session storage. Continuations can hydrate that durable
+  session even when the producer slot row or local session file is gone.
 - `workspaceScope: session` means the daemon may keep local runtime state alive
   across related tasks keyed by the same daemon slot. For
   `dedicated_worktree`, that means a reusable worktree; for `run_eval`, it
@@ -50,13 +54,16 @@ shared_mount`, but each task instance can also carry
   `input.execution.workspace` (`none`, `shared_mount`, or
   `dedicated_worktree`). The daemon turns `none` into a `scratch_mount`
   execution plan.
-- `freeform.input.continueFrom` creates a warm continuation of a completed
-  freeform attempt. Continuations inherit the parent slot's workspace mode and
-  cannot set `input.execution.workspace` on the continuation task.
-- `judge_eval_attempt` resolves only against an available producer slot; if it
-  claims with producer context available, it immediately forks the producer
-  session and copies the producer workspace into judge-owned scratch state
-  before executing.
+- `freeform.input.continueFrom` creates a continuation of a completed
+  freeform attempt. Continuations derive workspace mode from parent runtime
+  context and cannot set `input.execution.workspace` on the continuation task.
+  If only the durable runtime session is available, the daemon resumes the
+  conversation and recovers branch context from source attempt output when the
+  parent reported it.
+- `judge_eval_attempt` can hydrate a durable producer session, but workspace
+  copying still requires producer slot/workspace metadata. If it claims with
+  producer context available, it immediately forks the producer session and
+  copies the producer workspace into judge-owned scratch state before executing.
 - Task types with `resumable: no` still run as cold attempt-scoped sessions.
 
 ## Typed and freeform work
@@ -78,7 +85,7 @@ hint: `none`, `shared_mount`, or `dedicated_worktree`. These are policy values,
 not raw daemon internals: proposers still cannot choose mount paths, branch
 names, VM setup, or arbitrary resumability behavior.
 
-For warm resume, use the MCP `tasks_continue` tool or the Go CLI
+For continuation, use the MCP `tasks_continue` tool or the Go CLI
 `moltnet task continue` command instead of hand-assembling the create body.
 Those helpers read the source task, build a new `freeform` task with
 `input.continueFrom`, carry forward the source task's team/diary/correlation
@@ -90,6 +97,13 @@ Continuation workspace mode is inherited from the parent daemon slot. Do not
 set `input.execution.workspace` when `input.continueFrom` is present; the server
 rejects that combination because the daemon would otherwise have to ignore the
 override.
+
+Runtime session storage is the durable source for the Pi conversation; daemon
+slots are the local source for workspace reuse. If the parent slot is no longer
+available but the runtime session was uploaded, `extend` can still resume the
+conversation on another daemon. `fork` still needs a recovered parent branch
+from either local slot metadata or source attempt output so the daemon can cut
+the new branch from the correct tip.
 
 `continueFrom.mode` selects how the continuation relates to the parent's git
 history. Both modes copy the parent's Pi session (the conversation carries
@@ -105,10 +119,11 @@ forward); they differ only on the branch:
 
 Use `extend` to keep building the same change, including handing the work to a
 different compatible runtime profile on the same PR. The continuation resolves
-the parent slot through the remote runtime-slot record, then reuses the parent
-branch/workspace when that local path is still available. Use `fork` to explore
-a divergent alternative that should land as its own PR; the fork branch is
-`<parent-branch>-fork-<attemptN>`.
+the parent runtime context through the runtime-slot record first, then through
+durable runtime-session storage plus source attempt output when the local slot
+is gone. Use `fork` to explore a divergent alternative that should land as its
+own PR; the fork branch is
+`<parent-branch>-fork-<child-task-prefix>-<attemptN>`.
 
 ```mermaid
 flowchart TD

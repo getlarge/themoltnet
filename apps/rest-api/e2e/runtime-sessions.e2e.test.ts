@@ -34,6 +34,7 @@ describe('Runtime sessions API', () => {
   let teammate: TestAgent;
   let outsider: TestAgent;
   let teamId: string;
+  let otherTeamId: string;
   let diaryId: string;
 
   beforeAll(async () => {
@@ -80,6 +81,14 @@ describe('Runtime sessions API', () => {
       body: { code: invite!.code },
     });
     expect(joinError).toBeUndefined();
+
+    const { data: otherTeam, error: otherTeamError } = await createTeam({
+      client,
+      auth: () => teammate.accessToken,
+      body: { name: `runtime-sessions-other-${randomUUID()}` },
+    });
+    expect(otherTeamError).toBeUndefined();
+    otherTeamId = otherTeam!.id;
 
     const { data: diary, error: diaryError } = await createDiary({
       client,
@@ -142,6 +151,7 @@ describe('Runtime sessions API', () => {
     attemptN: number;
     content: string;
     taskId: string;
+    teamId?: string;
   }) {
     return uploadRuntimeSession({
       client,
@@ -149,7 +159,7 @@ describe('Runtime sessions API', () => {
       body: new Blob([input.content], { type: 'application/x-ndjson' }),
       headers: {
         'content-type': 'application/x-ndjson',
-        'x-moltnet-team-id': teamId,
+        'x-moltnet-team-id': input.teamId ?? teamId,
       },
       path: { attemptN: input.attemptN, taskId: input.taskId },
       query: { sessionKind: 'root' },
@@ -160,12 +170,13 @@ describe('Runtime sessions API', () => {
     accessToken: string;
     attemptN: number;
     taskId: string;
+    teamId?: string;
   }) {
     return downloadRuntimeSession({
       client,
       auth: () => input.accessToken,
       headers: {
-        'x-moltnet-team-id': teamId,
+        'x-moltnet-team-id': input.teamId ?? teamId,
       },
       path: { attemptN: input.attemptN, taskId: input.taskId },
     });
@@ -222,9 +233,50 @@ describe('Runtime sessions API', () => {
       downloaded.response.headers.get('x-moltnet-runtime-session-id'),
     ).toBe(uploaded.id);
     expect(await downloaded.data!.text()).toBe(content);
+
+    const teammateDownload = await downloadRuntimeSessionContent({
+      accessToken: teammate.accessToken,
+      attemptN,
+      taskId,
+    });
+    expect(teammateDownload.response.status).toBe(200);
+    expect(teammateDownload.error).toBeUndefined();
+    expect(await teammateDownload.data!.text()).toBe(content);
   });
 
-  it('rejects non-members reading another team runtime session', async () => {
+  it('rejects runtime session upload by a team member who did not claim the attempt', async () => {
+    const { attemptN, taskId } = await createClaimedTask(
+      'runtime session non-claimant upload denial',
+    );
+
+    const upload = await uploadRuntimeSessionContent({
+      accessToken: owner.accessToken,
+      attemptN,
+      content: '{"role":"system","content":"not claimant"}\n',
+      taskId,
+    });
+
+    expect(upload.response.status).toBe(403);
+  });
+
+  it('rejects runtime session upload when the team header does not own the task', async () => {
+    const { attemptN, taskId } = await createClaimedTask(
+      'runtime session wrong team upload denial',
+    );
+
+    const upload = await uploadRuntimeSessionContent({
+      accessToken: teammate.accessToken,
+      attemptN,
+      content: '{"role":"system","content":"wrong team"}\n',
+      taskId,
+      teamId: otherTeamId,
+    });
+
+    expect(upload.response.status).toBe(400);
+    expect(upload.error).toBeDefined();
+  });
+
+  it('rejects non-members reading or uploading another team runtime session', async () => {
     const { attemptN, taskId } = await createClaimedTask(
       'runtime session outsider denial',
     );
@@ -244,5 +296,20 @@ describe('Runtime sessions API', () => {
       path: { attemptN, taskId },
     });
     expect([403, 404]).toContain(outsiderRead.response.status);
+
+    const outsiderDownload = await downloadRuntimeSessionContent({
+      accessToken: outsider.accessToken,
+      attemptN,
+      taskId,
+    });
+    expect([403, 404]).toContain(outsiderDownload.response.status);
+
+    const outsiderUpload = await uploadRuntimeSessionContent({
+      accessToken: outsider.accessToken,
+      attemptN,
+      content: '{"role":"system","content":"overwrite"}\n',
+      taskId,
+    });
+    expect([403, 404]).toContain(outsiderUpload.response.status);
   });
 });

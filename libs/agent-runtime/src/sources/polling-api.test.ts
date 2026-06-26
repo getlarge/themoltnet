@@ -766,7 +766,7 @@ describe('isContinuationClaimableByThisDaemon', () => {
     });
   });
 
-  it('returns false when a remote session exists but the producer slot is missing', async () => {
+  it('returns true when a remote session exists but the producer slot is missing', async () => {
     const findRuntimeSessionByTaskAttempt = vi
       .fn()
       .mockResolvedValue({ id: 's1' });
@@ -789,13 +789,13 @@ describe('isContinuationClaimableByThisDaemon', () => {
         slotRegistry,
         sessionRegistry,
       ),
-    ).resolves.toEqual({
-      claimable: false,
-      reason: 'missing_producer_slot',
-      continueFrom: { taskId: 'aaa', attemptN: 1 },
-    });
+    ).resolves.toEqual({ claimable: true });
     expect(findLatestSlotByTaskAttempt).toHaveBeenCalled();
-    expect(findRuntimeSessionByTaskAttempt).not.toHaveBeenCalled();
+    expect(findRuntimeSessionByTaskAttempt).toHaveBeenCalledWith(
+      'team-1',
+      'aaa',
+      1,
+    );
   });
 
   it('returns true when producer slot exists and remote session can replace a missing local session file', async () => {

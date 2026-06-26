@@ -149,7 +149,7 @@ type _TaskCreateInputMatchesApi = AssertSchemaToApi<
  * Keys use camelCase here (rather than the snake_case convention used by
  * the rest of the task tool surface) because every field maps 1:1 onto
  * the `freeform` task input shape and we want the MCP surface to read
- * the same as the wire schema for the warm-resume code path.
+ * the same as the wire schema for the continuation code path.
  */
 export const TaskContinueSchema = Type.Object(
   {
@@ -164,7 +164,7 @@ export const TaskContinueSchema = Type.Object(
     brief: Type.String({
       minLength: 1,
       description:
-        'New work request for the continuation. The daemon resumes the source attempt’s warm slot and applies this brief as the next user turn.',
+        'New work request for the continuation. The daemon resumes the source attempt conversation and applies this brief as the next user turn.',
     }),
     title: Type.Optional(Type.String({ minLength: 1 })),
     expectedOutput: Type.Optional(Type.String({ minLength: 1 })),
@@ -172,17 +172,15 @@ export const TaskContinueSchema = Type.Object(
       Type.Array(Type.String({ minLength: 1 }), { maxItems: 20 }),
     ),
     // execution.workspace deliberately omitted: workspace mode for a
-    // continuation is inherited from the parent slot via
-    // maybeAttachWarmSlotContext (forces dedicated_worktree + the
-    // parent's worktreeBranch). Any caller-supplied override would be
-    // silently ignored at the daemon plan stage, so the server-side
-    // validator rejects it explicitly when continueFrom + execution are
-    // both set on the constructed input.
+    // continuation is derived from parent runtime context by the daemon.
+    // Any caller-supplied override would be silently ignored at the daemon
+    // plan stage, so the server-side validator rejects it explicitly when
+    // continueFrom + execution are both set on the constructed input.
     successCriteria: Type.Optional(SuccessCriteria),
     mode: Type.Optional(
       Type.Union([Type.Literal('extend'), Type.Literal('fork')], {
         description:
-          "Continuation mode. 'extend' (default) continues on the parent's branch/worktree — same PR — and may run under a different agent profile. 'fork' cuts a NEW branch from the parent's tip into a fresh worktree, diverging into a separate PR. Both copy the parent Pi session.",
+          "Continuation mode. 'extend' (default) continues the parent conversation and branch when branch metadata is available. 'fork' cuts a NEW branch from the parent's tip into a fresh worktree, diverging into a separate PR. Both copy the parent Pi session.",
       }),
     ),
   },

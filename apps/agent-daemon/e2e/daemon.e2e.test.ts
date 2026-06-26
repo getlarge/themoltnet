@@ -148,11 +148,11 @@ describe('Agent daemon (e2e)', () => {
     return agent.tasks.create(
       {
         taskType: 'freeform',
-        title: 'Freeform warm-resume e2e',
+        title: 'Freeform continuation e2e',
         diaryId,
         correlationId,
         input: {
-          brief: 'Exercise freeform tasks_continue warm-resume path in e2e',
+          brief: 'Exercise freeform tasks_continue path in e2e',
           ...(continueFrom ? { continueFrom } : {}),
         },
       },

@@ -33,9 +33,9 @@ export const FreeformContinueFrom = Type.Object(
     taskId: Type.String({ format: 'uuid' }),
     attemptN: Type.Integer({ minimum: 1 }),
     /**
-     * v1 wire schema only. `'extend'` (default) resumes the parent slot in
-     * place. `'fork'` is the API surface for the future copy-on-write
-     * continuation tracked in #1293; v1 server-side validator rejects it.
+     * `'extend'` (default) continues the parent conversation and branch when
+     * branch metadata is available. `'fork'` cuts a new branch from the parent
+     * branch into a fresh worktree.
      */
     mode: Type.Optional(
       Type.Union([Type.Literal('extend'), Type.Literal('fork')]),
@@ -80,9 +80,8 @@ export const FreeformInput = Type.Object(
      */
     execution: Type.Optional(FreeformExecutionOptions),
     /**
-     * When set, the daemon treats this task as a warm-resume continuation
-     * of the named source attempt. See docs/superpowers/specs/2026-06-04-
-     * tasks-continue-design.md.
+     * When set, the daemon treats this task as a continuation of the named
+     * source attempt.
      */
     continueFrom: Type.Optional(FreeformContinueFrom),
   },
@@ -113,6 +112,11 @@ export const FreeformOutput = Type.Object(
   {
     /** 2-5 sentence result summary. */
     summary: Type.String({ minLength: 1 }),
+    /**
+     * Branch used for code-changing freeform work. Optional because many
+     * exploratory tasks produce prose or inline artifacts only.
+     */
+    branch: Type.Optional(Type.String({ minLength: 1 })),
     artifacts: Type.Optional(Type.Array(FreeformArtifact, { maxItems: 20 })),
     proposedTaskType: Type.Optional(FreeformTaskTypeProposal),
     diaryEntryIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
@@ -130,7 +134,7 @@ export type FreeformOutput = Static<typeof FreeformOutput>;
  * Server-side preflight for `freeform` task-create. Runs after the
  * sync TypeBox check passes and only kicks in when
  * `input.continueFrom` is set — i.e. the proposer is asking to
- * resume a prior freeform attempt's warm slot (#1287).
+ * continue from a prior freeform attempt (#1287).
  *
  * Failure modes, in evaluation order:
  *  1. `freeform.sourceTaskNotFound` — source task id does not resolve
@@ -138,21 +142,20 @@ export type FreeformOutput = Static<typeof FreeformOutput>;
  *  2. `freeform.sourceTaskTypeNotSupported` — source isn't `freeform`.
  *     v1 only supports freeform → freeform continuation.
  *  3. `freeform.sourceAttemptNotCompleted` — named attempt is missing
- *     or not in `completed` state; warm continuation only makes sense
+ *     or not in `completed` state; continuation only makes sense
  *     once the parent has produced a terminal output.
  *  4. `freeform.executionWorkspaceNotInheritable` — caller set
  *     `execution.workspace` together with `continueFrom`. Workspace
- *     mode for a continuation is inherited from the parent slot
- *     (`maybeAttachWarmSlotContext` forces `dedicated_worktree` +
- *     the parent's worktreeBranch), so any caller-supplied override
- *     is silently dropped at the daemon plan stage. Reject explicitly
- *     so misconfiguration surfaces at create time.
+ *     mode for a continuation is derived by the daemon from parent runtime
+ *     context (local slot first, durable session + source attempt branch
+ *     second), so any caller-supplied override is silently dropped at the
+ *     daemon plan stage. Reject explicitly so misconfiguration surfaces at
+ *     create time.
  *  5. `freeform.sourceNotResumeEligible` — `daemonState` is null or
  *     `slotResumableUntil` is null. Older completions (pre-#1287) and
  *     daemons that opt out fall here.
  *  6. `freeform.sourceResumeExpired` — `slotResumableUntil` is in the
- *     past; the warm slot's TTL has elapsed and no daemon is
- *     guaranteed to still hold it.
+ *     past; the parent was not in the resumability window when validated.
  *
  * Returns on the first failure (no "report all six") — the checks
  * are sequential preconditions, later ones presume earlier ones hold.
@@ -185,18 +188,17 @@ export async function validateFreeformInputAsync(
     ];
   }
 
-  // Stable check: workspace mode for a continuation is inherited from
-  // the parent slot via maybeAttachWarmSlotContext (forces
-  // dedicated_worktree + the parent's worktreeBranch). A caller-supplied
-  // execution.workspace would be silently overridden at the daemon plan
-  // stage, so reject it at create time rather than let it look honored.
+  // Stable check: workspace mode for a continuation is derived by the
+  // daemon from parent runtime context. A caller-supplied execution.workspace
+  // would be silently overridden at the daemon plan stage, so reject it at
+  // create time rather than let it look honored.
   const execution = (input as Partial<FreeformInput>).execution;
   if (execution?.workspace) {
     return [
       {
         field: 'input/execution/workspace',
         message:
-          'execution.workspace is inherited from the parent slot when continueFrom is set; omit it',
+          'execution.workspace is derived from parent runtime context when continueFrom is set; omit it',
         code: 'freeform.executionWorkspaceNotInheritable',
       },
     ];
@@ -240,7 +242,7 @@ export async function validateFreeformInputAsync(
     return [
       {
         field: 'input/continueFrom',
-        message: `Source attempt's warm slot expired at ${attempt.daemonState.slotResumableUntil} (reported at ${attempt.daemonState.reportedAt})`,
+        message: `Source attempt's continuation eligibility expired at ${attempt.daemonState.slotResumableUntil} (reported at ${attempt.daemonState.reportedAt})`,
         code: 'freeform.sourceResumeExpired',
       },
     ];

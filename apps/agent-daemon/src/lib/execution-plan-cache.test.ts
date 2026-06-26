@@ -10,6 +10,7 @@ import {
   ProducerContextResolutionError,
   type ResolvedRuntimeSlotContext,
   type RuntimeSlotStore,
+  type SourceAttemptResolver,
 } from './execution-plan-cache.js';
 import type { RuntimeSessionStore } from './runtime-sessions.js';
 
@@ -85,6 +86,16 @@ class InMemoryRuntimeSlotStore implements RuntimeSlotStore {
   async close(): Promise<void> {
     // Test fake has no external resources.
   }
+}
+
+function sourceAttemptResolverWithBranch(
+  branch: string | null,
+): SourceAttemptResolver {
+  return {
+    findOutputBranch() {
+      return Promise.resolve(branch);
+    },
+  };
 }
 
 function attemptKey(teamId: string, taskId: string, attemptN: number): string {
@@ -429,6 +440,263 @@ describe('createExecutionPlanCache', () => {
     expect(plan.worktreeBranch).toBeNull();
 
     await slotStore.close();
+  });
+
+  it('hydrates a remote runtime session for freeform continuations when the producer slot is missing', async () => {
+    const mountRoot = mkdtempSync(
+      join(tmpdir(), 'daemon-exec-plan-remote-only-'),
+    );
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const slotStore = new InMemoryRuntimeSlotStore();
+    let hydratedPath: string | null = null;
+    const runtimeSessionStore: RuntimeSessionStore = {
+      findRuntimeSessionByTaskAttempt: async (teamId, taskId, attemptN) => {
+        expect([teamId, taskId, attemptN]).toEqual([
+          TEAM_ID,
+          '11111111-1111-4111-8111-111111111111',
+          1,
+        ]);
+        return {
+          id: '99999999-9999-4999-8999-999999999999',
+        } as Awaited<
+          ReturnType<RuntimeSessionStore['findRuntimeSessionByTaskAttempt']>
+        >;
+      },
+      hydrateSession: async (input) => {
+        mkdirSync(input.destinationDir, { recursive: true });
+        hydratedPath = join(input.destinationDir, 'session.jsonl');
+        writeFileSync(hydratedPath, '{"role":"system","content":"remote"}\n');
+        return hydratedPath;
+      },
+      uploadAttemptFinal: async () => {},
+    };
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      warmSessionTtlSec: 300,
+      slotRegistry: slotStore,
+      runtimeSessionStore,
+    });
+
+    const plan = await cache.getOrCreate({
+      attemptN: 1,
+      task: {
+        id: '22222222-2222-4222-8222-222222222222',
+        teamId: TEAM_ID,
+        taskType: 'freeform',
+        correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        input: {
+          brief: 'next step',
+          continueFrom: {
+            taskId: '11111111-1111-4111-8111-111111111111',
+            attemptN: 1,
+          },
+        },
+      } as unknown as Task,
+    });
+
+    expect(plan.sessionPersistence?.forkFromSessionPath).toBe(hydratedPath);
+    expect(plan.sessionPersistence?.sessionDir).toBe(
+      `${stateDirs.piSessionsDir}/continue-22222222-2222-4222-8222-222222222222-attempt-1`,
+    );
+    expect(plan.workspaceMode).toBe('dedicated_worktree');
+    expect(plan.workspaceId).toBeNull();
+    expect(plan.worktreeBranch).toBeNull();
+    expect(plan.workspaceSeed).toBeUndefined();
+
+    await slotStore.close();
+  });
+
+  it('recovers a branch from source attempt output for remote-only freeform extend', async () => {
+    const mountRoot = mkdtempSync(
+      join(tmpdir(), 'daemon-exec-plan-remote-extend-branch-'),
+    );
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const runtimeSessionStore: RuntimeSessionStore = {
+      findRuntimeSessionByTaskAttempt: async () =>
+        ({
+          id: '99999999-9999-4999-8999-999999999999',
+        }) as Awaited<
+          ReturnType<RuntimeSessionStore['findRuntimeSessionByTaskAttempt']>
+        >,
+      hydrateSession: async (input) => {
+        mkdirSync(input.destinationDir, { recursive: true });
+        const hydratedPath = join(input.destinationDir, 'session.jsonl');
+        writeFileSync(hydratedPath, '{"role":"system","content":"remote"}\n');
+        return hydratedPath;
+      },
+      uploadAttemptFinal: async () => {},
+    };
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      warmSessionTtlSec: 300,
+      slotRegistry: new InMemoryRuntimeSlotStore(),
+      runtimeSessionStore,
+      sourceAttemptResolver: sourceAttemptResolverWithBranch('feat/parent'),
+    });
+
+    const plan = await cache.getOrCreate({
+      attemptN: 1,
+      task: {
+        id: '22222222-2222-4222-8222-222222222222',
+        teamId: TEAM_ID,
+        taskType: 'freeform',
+        correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        input: {
+          brief: 'next step',
+          continueFrom: {
+            taskId: '11111111-1111-4111-8111-111111111111',
+            attemptN: 1,
+          },
+        },
+      } as unknown as Task,
+    });
+
+    expect(plan.workspaceMode).toBe('dedicated_worktree');
+    expect(plan.workspaceId).toBe(
+      'extend-11111111-1111-4111-8111-111111111111-attempt-1',
+    );
+    expect(plan.worktreeBranch).toBe('feat/parent');
+    expect(plan.worktreeBaseRef).toBeUndefined();
+    expect(plan.workspaceSeed).toBeUndefined();
+  });
+
+  it('forks from a branch recovered from source attempt output for remote-only runtime sessions', async () => {
+    const mountRoot = mkdtempSync(
+      join(tmpdir(), 'daemon-exec-plan-remote-fork-'),
+    );
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const runtimeSessionStore: RuntimeSessionStore = {
+      findRuntimeSessionByTaskAttempt: async () =>
+        ({
+          id: '99999999-9999-4999-8999-999999999999',
+        }) as Awaited<
+          ReturnType<RuntimeSessionStore['findRuntimeSessionByTaskAttempt']>
+        >,
+      hydrateSession: async (input) => {
+        mkdirSync(input.destinationDir, { recursive: true });
+        const hydratedPath = join(input.destinationDir, 'session.jsonl');
+        writeFileSync(hydratedPath, '{"role":"system","content":"remote"}\n');
+        return hydratedPath;
+      },
+      uploadAttemptFinal: async () => {},
+    };
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      warmSessionTtlSec: 300,
+      slotRegistry: new InMemoryRuntimeSlotStore(),
+      runtimeSessionStore,
+      sourceAttemptResolver: sourceAttemptResolverWithBranch('feat/parent'),
+    });
+
+    const plan = await cache.getOrCreate({
+      attemptN: 1,
+      task: {
+        id: '22222222-2222-4222-8222-222222222222',
+        teamId: TEAM_ID,
+        taskType: 'freeform',
+        correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        input: {
+          brief: 'diverge',
+          continueFrom: {
+            taskId: '11111111-1111-4111-8111-111111111111',
+            attemptN: 1,
+            mode: 'fork',
+          },
+        },
+      } as unknown as Task,
+    });
+
+    expect(plan.workspaceMode).toBe('dedicated_worktree');
+    expect(plan.workspaceId).toBe(
+      'fork-22222222-2222-4222-8222-222222222222-attempt-1',
+    );
+    expect(plan.worktreeBranch).toBe('feat/parent-fork-22222222-1');
+    expect(plan.worktreeBaseRef).toBe('feat/parent');
+    expect(plan.workspaceKind).toBe('fork');
+    expect(plan.workspaceSeed).toBeUndefined();
+  });
+
+  it('fails remote-only fork when the source attempt output has no branch', async () => {
+    const mountRoot = mkdtempSync(
+      join(tmpdir(), 'daemon-exec-plan-remote-fork-missing-branch-'),
+    );
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const runtimeSessionStore: RuntimeSessionStore = {
+      findRuntimeSessionByTaskAttempt: async () =>
+        ({
+          id: '99999999-9999-4999-8999-999999999999',
+        }) as Awaited<
+          ReturnType<RuntimeSessionStore['findRuntimeSessionByTaskAttempt']>
+        >,
+      hydrateSession: async (input) => {
+        mkdirSync(input.destinationDir, { recursive: true });
+        const hydratedPath = join(input.destinationDir, 'session.jsonl');
+        writeFileSync(hydratedPath, '{"role":"system","content":"remote"}\n');
+        return hydratedPath;
+      },
+      uploadAttemptFinal: async () => {},
+    };
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      warmSessionTtlSec: 300,
+      slotRegistry: new InMemoryRuntimeSlotStore(),
+      runtimeSessionStore,
+      sourceAttemptResolver: sourceAttemptResolverWithBranch(null),
+    });
+
+    await expect(
+      cache.getOrCreate({
+        attemptN: 1,
+        task: {
+          id: '22222222-2222-4222-8222-222222222222',
+          teamId: TEAM_ID,
+          taskType: 'freeform',
+          correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          input: {
+            brief: 'diverge',
+            continueFrom: {
+              taskId: '11111111-1111-4111-8111-111111111111',
+              attemptN: 1,
+              mode: 'fork',
+            },
+          },
+        } as unknown as Task,
+      }),
+    ).rejects.toThrow(
+      'durable runtime session is available but the source attempt output did not report a branch',
+    );
   });
 
   it('uses the local producer session instead of downloading when both local and remote exist', async () => {
