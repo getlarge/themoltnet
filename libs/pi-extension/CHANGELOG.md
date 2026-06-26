@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.28.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.28.0...pi-extension-v0.28.1) (2026-06-26)
+
+
+### Bug Fixes
+
+* **pi-extension:** route filesystem search through Gondolin ([6039071](https://github.com/getlarge/themoltnet/commit/6039071082f7cb4926d0fc3a5b268a9cca42d2cc))
+* **pi-extension:** route filesystem search through Gondolin ([d178c86](https://github.com/getlarge/themoltnet/commit/d178c8640a6692736df6bd750b5c9ddc199340e6))
+
 ## [0.28.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.27.3...pi-extension-v0.28.0) (2026-06-26)
 
 
