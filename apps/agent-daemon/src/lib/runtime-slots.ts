@@ -97,6 +97,44 @@ export function createApiRuntimeSlotStore(args: {
       } satisfies ResolvedRuntimeSlotContext;
     },
 
+    async listSlots(input) {
+      const query = {
+        agentName: input.agentName,
+        ...(input.limit === undefined ? {} : { limit: input.limit }),
+        ...(input.runtimeProfileId === undefined
+          ? {}
+          : { runtimeProfileId: input.runtimeProfileId }),
+        ...(input.state === undefined ? {} : { state: input.state }),
+      };
+      const slots = await agent.runtimeSlots.list(query, {
+        teamId: input.teamId,
+      });
+      return slots.map((resolved) => ({
+        slot: {
+          expiresAtMs: resolved.slot.expiresAtMs,
+          id: resolved.slot.id,
+          lastAttemptN: resolved.slot.lastAttemptN,
+          lastTaskId: resolved.slot.lastTaskId,
+          runtimeProfileId: resolved.slot.runtimeProfileId,
+          taskType: resolved.slot.taskType,
+        },
+        session: resolved.slot.sessionDir
+          ? {
+              sessionDir: resolved.slot.sessionDir,
+              sessionPath: resolved.slot.sessionPath,
+            }
+          : null,
+        workspace: resolved.workspace
+          ? {
+              kind: resolved.workspace.kind,
+              workspaceId: resolved.workspace.workspaceId,
+              worktreeBranch: resolved.workspace.worktreeBranch,
+              worktreePath: resolved.workspace.worktreePath,
+            }
+          : null,
+      }));
+    },
+
     async close() {
       // HTTP client lifetime is owned by the SDK Agent.
     },

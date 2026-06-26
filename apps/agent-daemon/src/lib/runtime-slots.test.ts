@@ -7,9 +7,26 @@ describe('runtime slots', () => {
   it('writes and resolves team-scoped runtime slots through the SDK', async () => {
     const begin = vi.fn().mockResolvedValue({});
     const finish = vi.fn().mockResolvedValue({});
+    const list = vi.fn().mockResolvedValue([
+      {
+        slot: {
+          expiresAtMs: 1234,
+          id: 'slot-id',
+          lastAttemptN: 1,
+          lastTaskId: 'aaaaaaaa-0000-0000-0000-000000000001',
+          runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
+          sessionDir: '/tmp/session',
+          sessionPath: '/tmp/session/1.jsonl',
+          taskType: 'freeform',
+        },
+        workspace: null,
+      },
+    ]);
     const findLatestForAttempt = vi.fn().mockResolvedValue({
       slot: {
         expiresAtMs: 1234,
+        id: 'slot-id',
+        runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
         sessionDir: '/tmp/session',
         sessionPath: '/tmp/session/1.jsonl',
       },
@@ -21,7 +38,7 @@ describe('runtime slots', () => {
       },
     });
     const agent = {
-      runtimeSlots: { begin, findLatestForAttempt, finish },
+      runtimeSlots: { begin, findLatestForAttempt, finish, list },
     } as unknown as Agent;
     const store = createApiRuntimeSlotStore({ agent });
 
@@ -60,6 +77,10 @@ describe('runtime slots', () => {
       'aaaaaaaa-0000-0000-0000-000000000001',
       1,
     );
+    const listed = await store.listSlots({
+      agentName: 'legreffier',
+      teamId: 'bbbbbbbb-0000-0000-0000-000000000002',
+    });
 
     expect(begin).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -87,13 +108,26 @@ describe('runtime slots', () => {
         sessionDir: '/tmp/session',
         sessionPath: '/tmp/session/1.jsonl',
       },
-      slot: { expiresAtMs: 1234 },
+      slot: {
+        expiresAtMs: 1234,
+        id: 'slot-id',
+        runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
+      },
       workspace: {
         kind: 'origin',
         workspaceId: 'workspace-a',
         worktreeBranch: 'issue-1414',
         worktreePath: '/tmp/worktree',
       },
+    });
+    expect(list).toHaveBeenCalledWith(
+      { agentName: 'legreffier' },
+      { teamId: 'bbbbbbbb-0000-0000-0000-000000000002' },
+    );
+    expect(listed[0]?.slot).toMatchObject({
+      lastAttemptN: 1,
+      lastTaskId: 'aaaaaaaa-0000-0000-0000-000000000001',
+      taskType: 'freeform',
     });
   });
 });

@@ -33,6 +33,9 @@ npx @themoltnet/agent-daemon once --task-id <uuid> --agent <name> --profile <uui
 # Poll until the queue has nothing claimable, then exit. Useful for
 # batch eval runs and demos.
 npx @themoltnet/agent-daemon drain --team <team-uuid> --agent <name> --profile <uuid|name> [...]
+
+# Repair durable runtime-session uploads from local daemon slots.
+npx @themoltnet/agent-daemon sync-sessions --team <team-uuid> --agent <name> --dry-run
 ```
 
 Run `npx @themoltnet/agent-daemon <command> --help` for full per-subcommand
@@ -99,6 +102,13 @@ portable across developers and machines.
   same-daemon warm starts; durable Pi session checkpoints are uploaded
   separately at attempt finalization. Default comes from the profile
   session/workspace TTL minimum, unless explicitly overridden.
+
+`sync-sessions` scans recent runtime slots for the selected team/agent,
+compares local Pi session files with the durable runtime-session object, and
+uploads missing or stale sessions. Run it with `--dry-run` first; omit
+`--dry-run` when the reported `wouldUpload` count matches the repair you
+expect. Use `--state active|idle`, `--runtime-profile-id`, and `--limit` to
+narrow the scan.
 
 `poll` and `drain` add:
 
@@ -502,6 +512,8 @@ Current daemon behavior:
   finalization, the daemon also uploads the final Pi session file to team-scoped
   runtime-session object storage, so a daemon can hydrate the session when the
   source slot metadata or local session file is not available.
+  If final upload failed but the original daemon still has local slot state,
+  `sync-sessions` can repair the durable object from those local Pi files.
 - For `dedicated_worktree` + `workspaceScope: session`, the daemon reuses a
   stable worktree path under `.worktrees/session-<encoded-slot-id>` instead
   of creating a fresh `.worktrees/task-<task-id>` checkout every attempt.

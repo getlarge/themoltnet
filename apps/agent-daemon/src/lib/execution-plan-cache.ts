@@ -31,6 +31,19 @@ export interface ResolvedRuntimeSlotContext {
   } | null;
 }
 
+export interface ListedRuntimeSlotContext {
+  slot: {
+    id: string;
+    expiresAtMs: number;
+    lastAttemptN: number;
+    lastTaskId: string;
+    runtimeProfileId: string | null;
+    taskType: string;
+  };
+  session: ResolvedRuntimeSlotContext['session'];
+  workspace: ResolvedRuntimeSlotContext['workspace'];
+}
+
 export interface RuntimeSlotStore {
   beginSlot(input: {
     teamId: string;
@@ -64,6 +77,13 @@ export interface RuntimeSlotStore {
     taskId: string,
     attemptN: number,
   ): Promise<ResolvedRuntimeSlotContext | null>;
+  listSlots(input: {
+    agentName?: string;
+    limit?: number;
+    runtimeProfileId?: string;
+    state?: 'active' | 'idle';
+    teamId: string;
+  }): Promise<ListedRuntimeSlotContext[]>;
   close(): Promise<void>;
 }
 

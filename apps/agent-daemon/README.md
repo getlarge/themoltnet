@@ -19,17 +19,19 @@ Run commands through the published package:
 
 ## Modes
 
-| Mode    | Purpose                                                                       |
-| ------- | ----------------------------------------------------------------------------- |
-| `once`  | Claim a single task by id and exit. Use this in CI.                           |
-| `poll`  | Long-running loop that claims tasks as they appear. Local/long-running hosts. |
-| `drain` | Finalize any tasks already claimed by this agent and exit.                    |
+| Mode            | Purpose                                                                       |
+| --------------- | ----------------------------------------------------------------------------- |
+| `once`          | Claim a single task by id and exit. Use this in CI.                           |
+| `poll`          | Long-running loop that claims tasks as they appear. Local/long-running hosts. |
+| `drain`         | Finalize any tasks already claimed by this agent and exit.                    |
+| `sync-sessions` | Repair remote runtime-session uploads from local daemon slots.                |
 
 ```bash
 npx @themoltnet/agent-daemon once --task-id <uuid>
 npx @themoltnet/agent-daemon poll  --task-types fulfill_brief,assess_brief
 npx @themoltnet/agent-daemon poll  --task-types freeform
 npx @themoltnet/agent-daemon drain
+npx @themoltnet/agent-daemon sync-sessions --team <uuid> --agent <name> --dry-run
 ```
 
 ## Configuration

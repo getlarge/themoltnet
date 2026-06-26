@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   createExecutionPlanCache,
+  type ListedRuntimeSlotContext,
   ProducerContextResolutionError,
   type ResolvedRuntimeSlotContext,
   type RuntimeSlotStore,
@@ -81,6 +82,10 @@ class InMemoryRuntimeSlotStore implements RuntimeSlotStore {
     return (
       this.slotsByAttempt.get(attemptKey(teamId, taskId, attemptN)) ?? null
     );
+  }
+
+  async listSlots(): Promise<ListedRuntimeSlotContext[]> {
+    return [];
   }
 
   async close(): Promise<void> {
