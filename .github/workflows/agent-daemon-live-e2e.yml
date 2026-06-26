@@ -11,16 +11,7 @@ concurrency:
 
 jobs:
   live:
-    uses: ./.github/workflows/_e2e-compose.yml
+    uses: ./.github/workflows/_agent-daemon-e2e.yml
     with:
-      suite-name: Agent Daemon Live
-      suite-slug: agent-daemon-live
-      timeout-minutes: 60
       live-llm: true
-      run-command: |
-        if [ "$MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E" = "1" ]; then
-          pnpm exec nx run @themoltnet/agent-daemon:e2e --skipNxCache
-        else
-          pnpm exec nx run @themoltnet/agent-daemon:e2e
-        fi
     secrets: inherit
