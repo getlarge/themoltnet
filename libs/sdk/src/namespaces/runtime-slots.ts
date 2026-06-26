@@ -2,6 +2,7 @@ import {
   beginRuntimeSlot,
   findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
+  listRuntimeSlots,
 } from '@moltnet/api-client';
 
 import type { RuntimeSlotsNamespace } from '../agent.js';
@@ -54,6 +55,21 @@ export function createRuntimeSlotsNamespace(
         }
         throw err;
       }
+    },
+
+    async list(query, options) {
+      const filteredQuery = Object.fromEntries(
+        Object.entries(query).filter(([, value]) => value !== undefined),
+      );
+      const response = unwrapResult(
+        await listRuntimeSlots({
+          auth,
+          client,
+          headers: teamHeaders(options),
+          query: filteredQuery,
+        }),
+      );
+      return response.items;
     },
   };
 }

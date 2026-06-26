@@ -769,6 +769,15 @@ func (UnimplementedHandler) ListRuntimeProfiles(ctx context.Context, params List
 	return r, ht.ErrNotImplemented
 }
 
+// ListRuntimeSlots implements listRuntimeSlots operation.
+//
+// List recent team-scoped runtime slots for repair/sync.
+//
+// GET /runtime-slots
+func (UnimplementedHandler) ListRuntimeSlots(ctx context.Context, params ListRuntimeSlotsParams) (r ListRuntimeSlotsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListSigningRequests implements listSigningRequests operation.
 //
 // List signing requests for the authenticated agent.

@@ -17,6 +17,7 @@ import {
   createTeam,
   createTeamInvite,
   downloadRuntimeSession,
+  failTask,
   getRuntimeSession,
   joinTeam,
   taskHeartbeat,
@@ -311,5 +312,34 @@ describe('Runtime sessions API', () => {
       taskId,
     });
     expect([403, 404]).toContain(outsiderUpload.response.status);
+  });
+
+  it('allows the claiming agent to repair-upload after attempt finalization', async () => {
+    const { attemptN, taskId } = await createClaimedTask(
+      'runtime session repair after terminal',
+    );
+    const failed = await failTask({
+      client,
+      auth: () => teammate.accessToken,
+      path: { id: taskId, n: attemptN },
+      body: {
+        error: {
+          code: 'executor_failed',
+          message: 'terminal before checkpoint upload',
+          retryable: true,
+        },
+      },
+    });
+    expect(failed.error).toBeUndefined();
+
+    const upload = await uploadRuntimeSessionContent({
+      accessToken: teammate.accessToken,
+      attemptN,
+      content: '{"role":"system","content":"repair upload"}\n',
+      taskId,
+    });
+
+    expect(upload.response.status).toBe(200);
+    expect(upload.error).toBeUndefined();
   });
 });

@@ -128,6 +128,7 @@ export {
   type BeginRuntimeSlotInput,
   createRuntimeSlotRepository,
   type FinishRuntimeSlotInput,
+  type ListRuntimeSlotsInput,
   type ResolvedRuntimeSlot,
   type RuntimeSlotRepository,
 } from './repositories/runtime-slot.repository.js';

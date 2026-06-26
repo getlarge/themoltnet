@@ -309,6 +309,10 @@ type ListRuntimeProfilesRes interface {
 	listRuntimeProfilesRes()
 }
 
+type ListRuntimeSlotsRes interface {
+	listRuntimeSlotsRes()
+}
+
 type ListSigningRequestsRes interface {
 	listSigningRequestsRes()
 }

@@ -21111,6 +21111,1742 @@ type ListRuntimeProfilesUnauthorized ProblemDetails
 
 func (*ListRuntimeProfilesUnauthorized) listRuntimeProfilesRes() {}
 
+// Merged schema.
+type ListRuntimeSlotsBadRequest struct {
+	Code            ListRuntimeSlotsBadRequestCode         `json:"code"`
+	Detail          OptString                              `json:"detail"`
+	Instance        OptString                              `json:"instance"`
+	Status          int                                    `json:"status"`
+	Title           string                                 `json:"title"`
+	Type            url.URL                                `json:"type"`
+	Errors          []ListRuntimeSlotsBadRequestErrorsItem `json:"errors"`
+	AdditionalProps ListRuntimeSlotsBadRequestAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *ListRuntimeSlotsBadRequest) GetCode() ListRuntimeSlotsBadRequestCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *ListRuntimeSlotsBadRequest) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *ListRuntimeSlotsBadRequest) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *ListRuntimeSlotsBadRequest) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *ListRuntimeSlotsBadRequest) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *ListRuntimeSlotsBadRequest) GetType() url.URL {
+	return s.Type
+}
+
+// GetErrors returns the value of Errors.
+func (s *ListRuntimeSlotsBadRequest) GetErrors() []ListRuntimeSlotsBadRequestErrorsItem {
+	return s.Errors
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *ListRuntimeSlotsBadRequest) GetAdditionalProps() ListRuntimeSlotsBadRequestAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *ListRuntimeSlotsBadRequest) SetCode(val ListRuntimeSlotsBadRequestCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *ListRuntimeSlotsBadRequest) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *ListRuntimeSlotsBadRequest) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ListRuntimeSlotsBadRequest) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *ListRuntimeSlotsBadRequest) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *ListRuntimeSlotsBadRequest) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetErrors sets the value of Errors.
+func (s *ListRuntimeSlotsBadRequest) SetErrors(val []ListRuntimeSlotsBadRequestErrorsItem) {
+	s.Errors = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *ListRuntimeSlotsBadRequest) SetAdditionalProps(val ListRuntimeSlotsBadRequestAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*ListRuntimeSlotsBadRequest) listRuntimeSlotsRes() {}
+
+type ListRuntimeSlotsBadRequestAdditional map[string]jx.Raw
+
+func (s *ListRuntimeSlotsBadRequestAdditional) init() ListRuntimeSlotsBadRequestAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type ListRuntimeSlotsBadRequestCode string
+
+const (
+	ListRuntimeSlotsBadRequestCodeUNAUTHORIZED                   ListRuntimeSlotsBadRequestCode = "UNAUTHORIZED"
+	ListRuntimeSlotsBadRequestCodeFORBIDDEN                      ListRuntimeSlotsBadRequestCode = "FORBIDDEN"
+	ListRuntimeSlotsBadRequestCodeNOTFOUND                       ListRuntimeSlotsBadRequestCode = "NOT_FOUND"
+	ListRuntimeSlotsBadRequestCodeCONFLICT                       ListRuntimeSlotsBadRequestCode = "CONFLICT"
+	ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED               ListRuntimeSlotsBadRequestCode = "VALIDATION_FAILED"
+	ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE               ListRuntimeSlotsBadRequestCode = "INVALID_CHALLENGE"
+	ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE               ListRuntimeSlotsBadRequestCode = "INVALID_SIGNATURE"
+	ListRuntimeSlotsBadRequestCodeVOUCHERLIMIT                   ListRuntimeSlotsBadRequestCode = "VOUCHER_LIMIT"
+	ListRuntimeSlotsBadRequestCodeRATELIMITEXCEEDED              ListRuntimeSlotsBadRequestCode = "RATE_LIMIT_EXCEEDED"
+	ListRuntimeSlotsBadRequestCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsBadRequestCode = "SERIALIZATION_EXHAUSTED"
+	ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsBadRequestCode = "SIGNING_REQUEST_EXPIRED"
+	ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED ListRuntimeSlotsBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED             ListRuntimeSlotsBadRequestCode = "REGISTRATION_FAILED"
+	ListRuntimeSlotsBadRequestCodeUPSTREAMERROR                  ListRuntimeSlotsBadRequestCode = "UPSTREAM_ERROR"
+	ListRuntimeSlotsBadRequestCodeSERVICEUNAVAILABLE             ListRuntimeSlotsBadRequestCode = "SERVICE_UNAVAILABLE"
+	ListRuntimeSlotsBadRequestCodeINTERNALSERVERERROR            ListRuntimeSlotsBadRequestCode = "INTERNAL_SERVER_ERROR"
+	ListRuntimeSlotsBadRequestCodeTEAMPERSONALIMMUTABLE          ListRuntimeSlotsBadRequestCode = "TEAM_PERSONAL_IMMUTABLE"
+	ListRuntimeSlotsBadRequestCodeTEAMNOTACTIVE                  ListRuntimeSlotsBadRequestCode = "TEAM_NOT_ACTIVE"
+	ListRuntimeSlotsBadRequestCodeINVITEEXPIRED                  ListRuntimeSlotsBadRequestCode = "INVITE_EXPIRED"
+	ListRuntimeSlotsBadRequestCodeINVITEEXHAUSTED                ListRuntimeSlotsBadRequestCode = "INVITE_EXHAUSTED"
+	ListRuntimeSlotsBadRequestCodeTEAMLASTOWNER                  ListRuntimeSlotsBadRequestCode = "TEAM_LAST_OWNER"
+	ListRuntimeSlotsBadRequestCodeTEAMALREADYACTIVE              ListRuntimeSlotsBadRequestCode = "TEAM_ALREADY_ACTIVE"
+	ListRuntimeSlotsBadRequestCodeTEAMNOTFOUNDING                ListRuntimeSlotsBadRequestCode = "TEAM_NOT_FOUNDING"
+	ListRuntimeSlotsBadRequestCodeFOUNDINGALREADYACCEPTED        ListRuntimeSlotsBadRequestCode = "FOUNDING_ALREADY_ACCEPTED"
+	ListRuntimeSlotsBadRequestCodeDIARYTRANSFERPENDING           ListRuntimeSlotsBadRequestCode = "DIARY_TRANSFER_PENDING"
+	ListRuntimeSlotsBadRequestCodeDIARYTRANSFERNOTFOUND          ListRuntimeSlotsBadRequestCode = "DIARY_TRANSFER_NOT_FOUND"
+	ListRuntimeSlotsBadRequestCodeDIARYTRANSFERALREADYRESOLVED   ListRuntimeSlotsBadRequestCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all ListRuntimeSlotsBadRequestCode values.
+func (ListRuntimeSlotsBadRequestCode) AllValues() []ListRuntimeSlotsBadRequestCode {
+	return []ListRuntimeSlotsBadRequestCode{
+		ListRuntimeSlotsBadRequestCodeUNAUTHORIZED,
+		ListRuntimeSlotsBadRequestCodeFORBIDDEN,
+		ListRuntimeSlotsBadRequestCodeNOTFOUND,
+		ListRuntimeSlotsBadRequestCodeCONFLICT,
+		ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED,
+		ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE,
+		ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE,
+		ListRuntimeSlotsBadRequestCodeVOUCHERLIMIT,
+		ListRuntimeSlotsBadRequestCodeRATELIMITEXCEEDED,
+		ListRuntimeSlotsBadRequestCodeSERIALIZATIONEXHAUSTED,
+		ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED,
+		ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED,
+		ListRuntimeSlotsBadRequestCodeUPSTREAMERROR,
+		ListRuntimeSlotsBadRequestCodeSERVICEUNAVAILABLE,
+		ListRuntimeSlotsBadRequestCodeINTERNALSERVERERROR,
+		ListRuntimeSlotsBadRequestCodeTEAMPERSONALIMMUTABLE,
+		ListRuntimeSlotsBadRequestCodeTEAMNOTACTIVE,
+		ListRuntimeSlotsBadRequestCodeINVITEEXPIRED,
+		ListRuntimeSlotsBadRequestCodeINVITEEXHAUSTED,
+		ListRuntimeSlotsBadRequestCodeTEAMLASTOWNER,
+		ListRuntimeSlotsBadRequestCodeTEAMALREADYACTIVE,
+		ListRuntimeSlotsBadRequestCodeTEAMNOTFOUNDING,
+		ListRuntimeSlotsBadRequestCodeFOUNDINGALREADYACCEPTED,
+		ListRuntimeSlotsBadRequestCodeDIARYTRANSFERPENDING,
+		ListRuntimeSlotsBadRequestCodeDIARYTRANSFERNOTFOUND,
+		ListRuntimeSlotsBadRequestCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListRuntimeSlotsBadRequestCode) MarshalText() ([]byte, error) {
+	switch s {
+	case ListRuntimeSlotsBadRequestCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeFORBIDDEN:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeNOTFOUND:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListRuntimeSlotsBadRequestCode) UnmarshalText(data []byte) error {
+	switch ListRuntimeSlotsBadRequestCode(data) {
+	case ListRuntimeSlotsBadRequestCodeUNAUTHORIZED:
+		*s = ListRuntimeSlotsBadRequestCodeUNAUTHORIZED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeFORBIDDEN:
+		*s = ListRuntimeSlotsBadRequestCodeFORBIDDEN
+		return nil
+	case ListRuntimeSlotsBadRequestCodeNOTFOUND:
+		*s = ListRuntimeSlotsBadRequestCodeNOTFOUND
+		return nil
+	case ListRuntimeSlotsBadRequestCodeCONFLICT:
+		*s = ListRuntimeSlotsBadRequestCodeCONFLICT
+		return nil
+	case ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED:
+		*s = ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE:
+		*s = ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE
+		return nil
+	case ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE:
+		*s = ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE
+		return nil
+	case ListRuntimeSlotsBadRequestCodeVOUCHERLIMIT:
+		*s = ListRuntimeSlotsBadRequestCodeVOUCHERLIMIT
+		return nil
+	case ListRuntimeSlotsBadRequestCodeRATELIMITEXCEEDED:
+		*s = ListRuntimeSlotsBadRequestCodeRATELIMITEXCEEDED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = ListRuntimeSlotsBadRequestCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED:
+		*s = ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeUPSTREAMERROR:
+		*s = ListRuntimeSlotsBadRequestCodeUPSTREAMERROR
+		return nil
+	case ListRuntimeSlotsBadRequestCodeSERVICEUNAVAILABLE:
+		*s = ListRuntimeSlotsBadRequestCodeSERVICEUNAVAILABLE
+		return nil
+	case ListRuntimeSlotsBadRequestCodeINTERNALSERVERERROR:
+		*s = ListRuntimeSlotsBadRequestCodeINTERNALSERVERERROR
+		return nil
+	case ListRuntimeSlotsBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = ListRuntimeSlotsBadRequestCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case ListRuntimeSlotsBadRequestCodeTEAMNOTACTIVE:
+		*s = ListRuntimeSlotsBadRequestCodeTEAMNOTACTIVE
+		return nil
+	case ListRuntimeSlotsBadRequestCodeINVITEEXPIRED:
+		*s = ListRuntimeSlotsBadRequestCodeINVITEEXPIRED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeINVITEEXHAUSTED:
+		*s = ListRuntimeSlotsBadRequestCodeINVITEEXHAUSTED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeTEAMLASTOWNER:
+		*s = ListRuntimeSlotsBadRequestCodeTEAMLASTOWNER
+		return nil
+	case ListRuntimeSlotsBadRequestCodeTEAMALREADYACTIVE:
+		*s = ListRuntimeSlotsBadRequestCodeTEAMALREADYACTIVE
+		return nil
+	case ListRuntimeSlotsBadRequestCodeTEAMNOTFOUNDING:
+		*s = ListRuntimeSlotsBadRequestCodeTEAMNOTFOUNDING
+		return nil
+	case ListRuntimeSlotsBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = ListRuntimeSlotsBadRequestCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeDIARYTRANSFERPENDING:
+		*s = ListRuntimeSlotsBadRequestCodeDIARYTRANSFERPENDING
+		return nil
+	case ListRuntimeSlotsBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = ListRuntimeSlotsBadRequestCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case ListRuntimeSlotsBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = ListRuntimeSlotsBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListRuntimeSlotsBadRequestErrorsItem struct {
+	Code    OptString `json:"code"`
+	Field   string    `json:"field"`
+	Message string    `json:"message"`
+}
+
+// GetCode returns the value of Code.
+func (s *ListRuntimeSlotsBadRequestErrorsItem) GetCode() OptString {
+	return s.Code
+}
+
+// GetField returns the value of Field.
+func (s *ListRuntimeSlotsBadRequestErrorsItem) GetField() string {
+	return s.Field
+}
+
+// GetMessage returns the value of Message.
+func (s *ListRuntimeSlotsBadRequestErrorsItem) GetMessage() string {
+	return s.Message
+}
+
+// SetCode sets the value of Code.
+func (s *ListRuntimeSlotsBadRequestErrorsItem) SetCode(val OptString) {
+	s.Code = val
+}
+
+// SetField sets the value of Field.
+func (s *ListRuntimeSlotsBadRequestErrorsItem) SetField(val string) {
+	s.Field = val
+}
+
+// SetMessage sets the value of Message.
+func (s *ListRuntimeSlotsBadRequestErrorsItem) SetMessage(val string) {
+	s.Message = val
+}
+
+type ListRuntimeSlotsForbidden struct {
+	Code            ListRuntimeSlotsForbiddenCode `json:"code"`
+	Detail          OptString                     `json:"detail"`
+	Instance        OptString                     `json:"instance"`
+	Status          int                           `json:"status"`
+	Title           string                        `json:"title"`
+	Type            url.URL                       `json:"type"`
+	AdditionalProps ListRuntimeSlotsForbiddenAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *ListRuntimeSlotsForbidden) GetCode() ListRuntimeSlotsForbiddenCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *ListRuntimeSlotsForbidden) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *ListRuntimeSlotsForbidden) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *ListRuntimeSlotsForbidden) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *ListRuntimeSlotsForbidden) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *ListRuntimeSlotsForbidden) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *ListRuntimeSlotsForbidden) GetAdditionalProps() ListRuntimeSlotsForbiddenAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *ListRuntimeSlotsForbidden) SetCode(val ListRuntimeSlotsForbiddenCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *ListRuntimeSlotsForbidden) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *ListRuntimeSlotsForbidden) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ListRuntimeSlotsForbidden) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *ListRuntimeSlotsForbidden) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *ListRuntimeSlotsForbidden) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *ListRuntimeSlotsForbidden) SetAdditionalProps(val ListRuntimeSlotsForbiddenAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*ListRuntimeSlotsForbidden) listRuntimeSlotsRes() {}
+
+type ListRuntimeSlotsForbiddenAdditional map[string]jx.Raw
+
+func (s *ListRuntimeSlotsForbiddenAdditional) init() ListRuntimeSlotsForbiddenAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type ListRuntimeSlotsForbiddenCode string
+
+const (
+	ListRuntimeSlotsForbiddenCodeUNAUTHORIZED                   ListRuntimeSlotsForbiddenCode = "UNAUTHORIZED"
+	ListRuntimeSlotsForbiddenCodeFORBIDDEN                      ListRuntimeSlotsForbiddenCode = "FORBIDDEN"
+	ListRuntimeSlotsForbiddenCodeNOTFOUND                       ListRuntimeSlotsForbiddenCode = "NOT_FOUND"
+	ListRuntimeSlotsForbiddenCodeCONFLICT                       ListRuntimeSlotsForbiddenCode = "CONFLICT"
+	ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED               ListRuntimeSlotsForbiddenCode = "VALIDATION_FAILED"
+	ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE               ListRuntimeSlotsForbiddenCode = "INVALID_CHALLENGE"
+	ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE               ListRuntimeSlotsForbiddenCode = "INVALID_SIGNATURE"
+	ListRuntimeSlotsForbiddenCodeVOUCHERLIMIT                   ListRuntimeSlotsForbiddenCode = "VOUCHER_LIMIT"
+	ListRuntimeSlotsForbiddenCodeRATELIMITEXCEEDED              ListRuntimeSlotsForbiddenCode = "RATE_LIMIT_EXCEEDED"
+	ListRuntimeSlotsForbiddenCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsForbiddenCode = "SERIALIZATION_EXHAUSTED"
+	ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsForbiddenCode = "SIGNING_REQUEST_EXPIRED"
+	ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED ListRuntimeSlotsForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED             ListRuntimeSlotsForbiddenCode = "REGISTRATION_FAILED"
+	ListRuntimeSlotsForbiddenCodeUPSTREAMERROR                  ListRuntimeSlotsForbiddenCode = "UPSTREAM_ERROR"
+	ListRuntimeSlotsForbiddenCodeSERVICEUNAVAILABLE             ListRuntimeSlotsForbiddenCode = "SERVICE_UNAVAILABLE"
+	ListRuntimeSlotsForbiddenCodeINTERNALSERVERERROR            ListRuntimeSlotsForbiddenCode = "INTERNAL_SERVER_ERROR"
+	ListRuntimeSlotsForbiddenCodeTEAMPERSONALIMMUTABLE          ListRuntimeSlotsForbiddenCode = "TEAM_PERSONAL_IMMUTABLE"
+	ListRuntimeSlotsForbiddenCodeTEAMNOTACTIVE                  ListRuntimeSlotsForbiddenCode = "TEAM_NOT_ACTIVE"
+	ListRuntimeSlotsForbiddenCodeINVITEEXPIRED                  ListRuntimeSlotsForbiddenCode = "INVITE_EXPIRED"
+	ListRuntimeSlotsForbiddenCodeINVITEEXHAUSTED                ListRuntimeSlotsForbiddenCode = "INVITE_EXHAUSTED"
+	ListRuntimeSlotsForbiddenCodeTEAMLASTOWNER                  ListRuntimeSlotsForbiddenCode = "TEAM_LAST_OWNER"
+	ListRuntimeSlotsForbiddenCodeTEAMALREADYACTIVE              ListRuntimeSlotsForbiddenCode = "TEAM_ALREADY_ACTIVE"
+	ListRuntimeSlotsForbiddenCodeTEAMNOTFOUNDING                ListRuntimeSlotsForbiddenCode = "TEAM_NOT_FOUNDING"
+	ListRuntimeSlotsForbiddenCodeFOUNDINGALREADYACCEPTED        ListRuntimeSlotsForbiddenCode = "FOUNDING_ALREADY_ACCEPTED"
+	ListRuntimeSlotsForbiddenCodeDIARYTRANSFERPENDING           ListRuntimeSlotsForbiddenCode = "DIARY_TRANSFER_PENDING"
+	ListRuntimeSlotsForbiddenCodeDIARYTRANSFERNOTFOUND          ListRuntimeSlotsForbiddenCode = "DIARY_TRANSFER_NOT_FOUND"
+	ListRuntimeSlotsForbiddenCodeDIARYTRANSFERALREADYRESOLVED   ListRuntimeSlotsForbiddenCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all ListRuntimeSlotsForbiddenCode values.
+func (ListRuntimeSlotsForbiddenCode) AllValues() []ListRuntimeSlotsForbiddenCode {
+	return []ListRuntimeSlotsForbiddenCode{
+		ListRuntimeSlotsForbiddenCodeUNAUTHORIZED,
+		ListRuntimeSlotsForbiddenCodeFORBIDDEN,
+		ListRuntimeSlotsForbiddenCodeNOTFOUND,
+		ListRuntimeSlotsForbiddenCodeCONFLICT,
+		ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED,
+		ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE,
+		ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE,
+		ListRuntimeSlotsForbiddenCodeVOUCHERLIMIT,
+		ListRuntimeSlotsForbiddenCodeRATELIMITEXCEEDED,
+		ListRuntimeSlotsForbiddenCodeSERIALIZATIONEXHAUSTED,
+		ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED,
+		ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED,
+		ListRuntimeSlotsForbiddenCodeUPSTREAMERROR,
+		ListRuntimeSlotsForbiddenCodeSERVICEUNAVAILABLE,
+		ListRuntimeSlotsForbiddenCodeINTERNALSERVERERROR,
+		ListRuntimeSlotsForbiddenCodeTEAMPERSONALIMMUTABLE,
+		ListRuntimeSlotsForbiddenCodeTEAMNOTACTIVE,
+		ListRuntimeSlotsForbiddenCodeINVITEEXPIRED,
+		ListRuntimeSlotsForbiddenCodeINVITEEXHAUSTED,
+		ListRuntimeSlotsForbiddenCodeTEAMLASTOWNER,
+		ListRuntimeSlotsForbiddenCodeTEAMALREADYACTIVE,
+		ListRuntimeSlotsForbiddenCodeTEAMNOTFOUNDING,
+		ListRuntimeSlotsForbiddenCodeFOUNDINGALREADYACCEPTED,
+		ListRuntimeSlotsForbiddenCodeDIARYTRANSFERPENDING,
+		ListRuntimeSlotsForbiddenCodeDIARYTRANSFERNOTFOUND,
+		ListRuntimeSlotsForbiddenCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListRuntimeSlotsForbiddenCode) MarshalText() ([]byte, error) {
+	switch s {
+	case ListRuntimeSlotsForbiddenCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeFORBIDDEN:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeNOTFOUND:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListRuntimeSlotsForbiddenCode) UnmarshalText(data []byte) error {
+	switch ListRuntimeSlotsForbiddenCode(data) {
+	case ListRuntimeSlotsForbiddenCodeUNAUTHORIZED:
+		*s = ListRuntimeSlotsForbiddenCodeUNAUTHORIZED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeFORBIDDEN:
+		*s = ListRuntimeSlotsForbiddenCodeFORBIDDEN
+		return nil
+	case ListRuntimeSlotsForbiddenCodeNOTFOUND:
+		*s = ListRuntimeSlotsForbiddenCodeNOTFOUND
+		return nil
+	case ListRuntimeSlotsForbiddenCodeCONFLICT:
+		*s = ListRuntimeSlotsForbiddenCodeCONFLICT
+		return nil
+	case ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED:
+		*s = ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE:
+		*s = ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE
+		return nil
+	case ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE:
+		*s = ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE
+		return nil
+	case ListRuntimeSlotsForbiddenCodeVOUCHERLIMIT:
+		*s = ListRuntimeSlotsForbiddenCodeVOUCHERLIMIT
+		return nil
+	case ListRuntimeSlotsForbiddenCodeRATELIMITEXCEEDED:
+		*s = ListRuntimeSlotsForbiddenCodeRATELIMITEXCEEDED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = ListRuntimeSlotsForbiddenCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED:
+		*s = ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeUPSTREAMERROR:
+		*s = ListRuntimeSlotsForbiddenCodeUPSTREAMERROR
+		return nil
+	case ListRuntimeSlotsForbiddenCodeSERVICEUNAVAILABLE:
+		*s = ListRuntimeSlotsForbiddenCodeSERVICEUNAVAILABLE
+		return nil
+	case ListRuntimeSlotsForbiddenCodeINTERNALSERVERERROR:
+		*s = ListRuntimeSlotsForbiddenCodeINTERNALSERVERERROR
+		return nil
+	case ListRuntimeSlotsForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = ListRuntimeSlotsForbiddenCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case ListRuntimeSlotsForbiddenCodeTEAMNOTACTIVE:
+		*s = ListRuntimeSlotsForbiddenCodeTEAMNOTACTIVE
+		return nil
+	case ListRuntimeSlotsForbiddenCodeINVITEEXPIRED:
+		*s = ListRuntimeSlotsForbiddenCodeINVITEEXPIRED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeINVITEEXHAUSTED:
+		*s = ListRuntimeSlotsForbiddenCodeINVITEEXHAUSTED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeTEAMLASTOWNER:
+		*s = ListRuntimeSlotsForbiddenCodeTEAMLASTOWNER
+		return nil
+	case ListRuntimeSlotsForbiddenCodeTEAMALREADYACTIVE:
+		*s = ListRuntimeSlotsForbiddenCodeTEAMALREADYACTIVE
+		return nil
+	case ListRuntimeSlotsForbiddenCodeTEAMNOTFOUNDING:
+		*s = ListRuntimeSlotsForbiddenCodeTEAMNOTFOUNDING
+		return nil
+	case ListRuntimeSlotsForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = ListRuntimeSlotsForbiddenCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeDIARYTRANSFERPENDING:
+		*s = ListRuntimeSlotsForbiddenCodeDIARYTRANSFERPENDING
+		return nil
+	case ListRuntimeSlotsForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = ListRuntimeSlotsForbiddenCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case ListRuntimeSlotsForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = ListRuntimeSlotsForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListRuntimeSlotsNotFound struct {
+	Code            ListRuntimeSlotsNotFoundCode `json:"code"`
+	Detail          OptString                    `json:"detail"`
+	Instance        OptString                    `json:"instance"`
+	Status          int                          `json:"status"`
+	Title           string                       `json:"title"`
+	Type            url.URL                      `json:"type"`
+	AdditionalProps ListRuntimeSlotsNotFoundAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *ListRuntimeSlotsNotFound) GetCode() ListRuntimeSlotsNotFoundCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *ListRuntimeSlotsNotFound) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *ListRuntimeSlotsNotFound) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *ListRuntimeSlotsNotFound) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *ListRuntimeSlotsNotFound) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *ListRuntimeSlotsNotFound) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *ListRuntimeSlotsNotFound) GetAdditionalProps() ListRuntimeSlotsNotFoundAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *ListRuntimeSlotsNotFound) SetCode(val ListRuntimeSlotsNotFoundCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *ListRuntimeSlotsNotFound) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *ListRuntimeSlotsNotFound) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ListRuntimeSlotsNotFound) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *ListRuntimeSlotsNotFound) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *ListRuntimeSlotsNotFound) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *ListRuntimeSlotsNotFound) SetAdditionalProps(val ListRuntimeSlotsNotFoundAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*ListRuntimeSlotsNotFound) listRuntimeSlotsRes() {}
+
+type ListRuntimeSlotsNotFoundAdditional map[string]jx.Raw
+
+func (s *ListRuntimeSlotsNotFoundAdditional) init() ListRuntimeSlotsNotFoundAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type ListRuntimeSlotsNotFoundCode string
+
+const (
+	ListRuntimeSlotsNotFoundCodeUNAUTHORIZED                   ListRuntimeSlotsNotFoundCode = "UNAUTHORIZED"
+	ListRuntimeSlotsNotFoundCodeFORBIDDEN                      ListRuntimeSlotsNotFoundCode = "FORBIDDEN"
+	ListRuntimeSlotsNotFoundCodeNOTFOUND                       ListRuntimeSlotsNotFoundCode = "NOT_FOUND"
+	ListRuntimeSlotsNotFoundCodeCONFLICT                       ListRuntimeSlotsNotFoundCode = "CONFLICT"
+	ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED               ListRuntimeSlotsNotFoundCode = "VALIDATION_FAILED"
+	ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE               ListRuntimeSlotsNotFoundCode = "INVALID_CHALLENGE"
+	ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE               ListRuntimeSlotsNotFoundCode = "INVALID_SIGNATURE"
+	ListRuntimeSlotsNotFoundCodeVOUCHERLIMIT                   ListRuntimeSlotsNotFoundCode = "VOUCHER_LIMIT"
+	ListRuntimeSlotsNotFoundCodeRATELIMITEXCEEDED              ListRuntimeSlotsNotFoundCode = "RATE_LIMIT_EXCEEDED"
+	ListRuntimeSlotsNotFoundCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsNotFoundCode = "SERIALIZATION_EXHAUSTED"
+	ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsNotFoundCode = "SIGNING_REQUEST_EXPIRED"
+	ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED ListRuntimeSlotsNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED             ListRuntimeSlotsNotFoundCode = "REGISTRATION_FAILED"
+	ListRuntimeSlotsNotFoundCodeUPSTREAMERROR                  ListRuntimeSlotsNotFoundCode = "UPSTREAM_ERROR"
+	ListRuntimeSlotsNotFoundCodeSERVICEUNAVAILABLE             ListRuntimeSlotsNotFoundCode = "SERVICE_UNAVAILABLE"
+	ListRuntimeSlotsNotFoundCodeINTERNALSERVERERROR            ListRuntimeSlotsNotFoundCode = "INTERNAL_SERVER_ERROR"
+	ListRuntimeSlotsNotFoundCodeTEAMPERSONALIMMUTABLE          ListRuntimeSlotsNotFoundCode = "TEAM_PERSONAL_IMMUTABLE"
+	ListRuntimeSlotsNotFoundCodeTEAMNOTACTIVE                  ListRuntimeSlotsNotFoundCode = "TEAM_NOT_ACTIVE"
+	ListRuntimeSlotsNotFoundCodeINVITEEXPIRED                  ListRuntimeSlotsNotFoundCode = "INVITE_EXPIRED"
+	ListRuntimeSlotsNotFoundCodeINVITEEXHAUSTED                ListRuntimeSlotsNotFoundCode = "INVITE_EXHAUSTED"
+	ListRuntimeSlotsNotFoundCodeTEAMLASTOWNER                  ListRuntimeSlotsNotFoundCode = "TEAM_LAST_OWNER"
+	ListRuntimeSlotsNotFoundCodeTEAMALREADYACTIVE              ListRuntimeSlotsNotFoundCode = "TEAM_ALREADY_ACTIVE"
+	ListRuntimeSlotsNotFoundCodeTEAMNOTFOUNDING                ListRuntimeSlotsNotFoundCode = "TEAM_NOT_FOUNDING"
+	ListRuntimeSlotsNotFoundCodeFOUNDINGALREADYACCEPTED        ListRuntimeSlotsNotFoundCode = "FOUNDING_ALREADY_ACCEPTED"
+	ListRuntimeSlotsNotFoundCodeDIARYTRANSFERPENDING           ListRuntimeSlotsNotFoundCode = "DIARY_TRANSFER_PENDING"
+	ListRuntimeSlotsNotFoundCodeDIARYTRANSFERNOTFOUND          ListRuntimeSlotsNotFoundCode = "DIARY_TRANSFER_NOT_FOUND"
+	ListRuntimeSlotsNotFoundCodeDIARYTRANSFERALREADYRESOLVED   ListRuntimeSlotsNotFoundCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all ListRuntimeSlotsNotFoundCode values.
+func (ListRuntimeSlotsNotFoundCode) AllValues() []ListRuntimeSlotsNotFoundCode {
+	return []ListRuntimeSlotsNotFoundCode{
+		ListRuntimeSlotsNotFoundCodeUNAUTHORIZED,
+		ListRuntimeSlotsNotFoundCodeFORBIDDEN,
+		ListRuntimeSlotsNotFoundCodeNOTFOUND,
+		ListRuntimeSlotsNotFoundCodeCONFLICT,
+		ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED,
+		ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE,
+		ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE,
+		ListRuntimeSlotsNotFoundCodeVOUCHERLIMIT,
+		ListRuntimeSlotsNotFoundCodeRATELIMITEXCEEDED,
+		ListRuntimeSlotsNotFoundCodeSERIALIZATIONEXHAUSTED,
+		ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED,
+		ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED,
+		ListRuntimeSlotsNotFoundCodeUPSTREAMERROR,
+		ListRuntimeSlotsNotFoundCodeSERVICEUNAVAILABLE,
+		ListRuntimeSlotsNotFoundCodeINTERNALSERVERERROR,
+		ListRuntimeSlotsNotFoundCodeTEAMPERSONALIMMUTABLE,
+		ListRuntimeSlotsNotFoundCodeTEAMNOTACTIVE,
+		ListRuntimeSlotsNotFoundCodeINVITEEXPIRED,
+		ListRuntimeSlotsNotFoundCodeINVITEEXHAUSTED,
+		ListRuntimeSlotsNotFoundCodeTEAMLASTOWNER,
+		ListRuntimeSlotsNotFoundCodeTEAMALREADYACTIVE,
+		ListRuntimeSlotsNotFoundCodeTEAMNOTFOUNDING,
+		ListRuntimeSlotsNotFoundCodeFOUNDINGALREADYACCEPTED,
+		ListRuntimeSlotsNotFoundCodeDIARYTRANSFERPENDING,
+		ListRuntimeSlotsNotFoundCodeDIARYTRANSFERNOTFOUND,
+		ListRuntimeSlotsNotFoundCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListRuntimeSlotsNotFoundCode) MarshalText() ([]byte, error) {
+	switch s {
+	case ListRuntimeSlotsNotFoundCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeFORBIDDEN:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeNOTFOUND:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListRuntimeSlotsNotFoundCode) UnmarshalText(data []byte) error {
+	switch ListRuntimeSlotsNotFoundCode(data) {
+	case ListRuntimeSlotsNotFoundCodeUNAUTHORIZED:
+		*s = ListRuntimeSlotsNotFoundCodeUNAUTHORIZED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeFORBIDDEN:
+		*s = ListRuntimeSlotsNotFoundCodeFORBIDDEN
+		return nil
+	case ListRuntimeSlotsNotFoundCodeNOTFOUND:
+		*s = ListRuntimeSlotsNotFoundCodeNOTFOUND
+		return nil
+	case ListRuntimeSlotsNotFoundCodeCONFLICT:
+		*s = ListRuntimeSlotsNotFoundCodeCONFLICT
+		return nil
+	case ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED:
+		*s = ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE:
+		*s = ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE
+		return nil
+	case ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE:
+		*s = ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE
+		return nil
+	case ListRuntimeSlotsNotFoundCodeVOUCHERLIMIT:
+		*s = ListRuntimeSlotsNotFoundCodeVOUCHERLIMIT
+		return nil
+	case ListRuntimeSlotsNotFoundCodeRATELIMITEXCEEDED:
+		*s = ListRuntimeSlotsNotFoundCodeRATELIMITEXCEEDED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = ListRuntimeSlotsNotFoundCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED:
+		*s = ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeUPSTREAMERROR:
+		*s = ListRuntimeSlotsNotFoundCodeUPSTREAMERROR
+		return nil
+	case ListRuntimeSlotsNotFoundCodeSERVICEUNAVAILABLE:
+		*s = ListRuntimeSlotsNotFoundCodeSERVICEUNAVAILABLE
+		return nil
+	case ListRuntimeSlotsNotFoundCodeINTERNALSERVERERROR:
+		*s = ListRuntimeSlotsNotFoundCodeINTERNALSERVERERROR
+		return nil
+	case ListRuntimeSlotsNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = ListRuntimeSlotsNotFoundCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case ListRuntimeSlotsNotFoundCodeTEAMNOTACTIVE:
+		*s = ListRuntimeSlotsNotFoundCodeTEAMNOTACTIVE
+		return nil
+	case ListRuntimeSlotsNotFoundCodeINVITEEXPIRED:
+		*s = ListRuntimeSlotsNotFoundCodeINVITEEXPIRED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeINVITEEXHAUSTED:
+		*s = ListRuntimeSlotsNotFoundCodeINVITEEXHAUSTED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeTEAMLASTOWNER:
+		*s = ListRuntimeSlotsNotFoundCodeTEAMLASTOWNER
+		return nil
+	case ListRuntimeSlotsNotFoundCodeTEAMALREADYACTIVE:
+		*s = ListRuntimeSlotsNotFoundCodeTEAMALREADYACTIVE
+		return nil
+	case ListRuntimeSlotsNotFoundCodeTEAMNOTFOUNDING:
+		*s = ListRuntimeSlotsNotFoundCodeTEAMNOTFOUNDING
+		return nil
+	case ListRuntimeSlotsNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = ListRuntimeSlotsNotFoundCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeDIARYTRANSFERPENDING:
+		*s = ListRuntimeSlotsNotFoundCodeDIARYTRANSFERPENDING
+		return nil
+	case ListRuntimeSlotsNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = ListRuntimeSlotsNotFoundCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case ListRuntimeSlotsNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = ListRuntimeSlotsNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListRuntimeSlotsOK struct {
+	Items []ListRuntimeSlotsOKItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *ListRuntimeSlotsOK) GetItems() []ListRuntimeSlotsOKItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *ListRuntimeSlotsOK) SetItems(val []ListRuntimeSlotsOKItemsItem) {
+	s.Items = val
+}
+
+func (*ListRuntimeSlotsOK) listRuntimeSlotsRes() {}
+
+type ListRuntimeSlotsOKItemsItem struct {
+	Slot      ListRuntimeSlotsOKItemsItemSlot         `json:"slot"`
+	Workspace NilListRuntimeSlotsOKItemsItemWorkspace `json:"workspace"`
+}
+
+// GetSlot returns the value of Slot.
+func (s *ListRuntimeSlotsOKItemsItem) GetSlot() ListRuntimeSlotsOKItemsItemSlot {
+	return s.Slot
+}
+
+// GetWorkspace returns the value of Workspace.
+func (s *ListRuntimeSlotsOKItemsItem) GetWorkspace() NilListRuntimeSlotsOKItemsItemWorkspace {
+	return s.Workspace
+}
+
+// SetSlot sets the value of Slot.
+func (s *ListRuntimeSlotsOKItemsItem) SetSlot(val ListRuntimeSlotsOKItemsItemSlot) {
+	s.Slot = val
+}
+
+// SetWorkspace sets the value of Workspace.
+func (s *ListRuntimeSlotsOKItemsItem) SetWorkspace(val NilListRuntimeSlotsOKItemsItemWorkspace) {
+	s.Workspace = val
+}
+
+type ListRuntimeSlotsOKItemsItemSlot struct {
+	AgentName        string                               `json:"agentName"`
+	CreatedAtMs      int                                  `json:"createdAtMs"`
+	ExpiresAtMs      int                                  `json:"expiresAtMs"`
+	ID               uuid.UUID                            `json:"id"`
+	LastAttemptN     int                                  `json:"lastAttemptN"`
+	LastTaskId       uuid.UUID                            `json:"lastTaskId"`
+	LastUsedAtMs     int                                  `json:"lastUsedAtMs"`
+	Model            string                               `json:"model"`
+	Provider         string                               `json:"provider"`
+	RuntimeProfileId NilUUID                              `json:"runtimeProfileId"`
+	SessionDir       NilString                            `json:"sessionDir"`
+	SessionPath      NilString                            `json:"sessionPath"`
+	SlotKey          string                               `json:"slotKey"`
+	State            ListRuntimeSlotsOKItemsItemSlotState `json:"state"`
+	TaskType         string                               `json:"taskType"`
+	TeamId           uuid.UUID                            `json:"teamId"`
+	WorkspaceRowId   NilUUID                              `json:"workspaceRowId"`
+}
+
+// GetAgentName returns the value of AgentName.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetAgentName() string {
+	return s.AgentName
+}
+
+// GetCreatedAtMs returns the value of CreatedAtMs.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetCreatedAtMs() int {
+	return s.CreatedAtMs
+}
+
+// GetExpiresAtMs returns the value of ExpiresAtMs.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetExpiresAtMs() int {
+	return s.ExpiresAtMs
+}
+
+// GetID returns the value of ID.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetLastAttemptN returns the value of LastAttemptN.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetLastAttemptN() int {
+	return s.LastAttemptN
+}
+
+// GetLastTaskId returns the value of LastTaskId.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetLastTaskId() uuid.UUID {
+	return s.LastTaskId
+}
+
+// GetLastUsedAtMs returns the value of LastUsedAtMs.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetLastUsedAtMs() int {
+	return s.LastUsedAtMs
+}
+
+// GetModel returns the value of Model.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetProvider() string {
+	return s.Provider
+}
+
+// GetRuntimeProfileId returns the value of RuntimeProfileId.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetRuntimeProfileId() NilUUID {
+	return s.RuntimeProfileId
+}
+
+// GetSessionDir returns the value of SessionDir.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetSessionDir() NilString {
+	return s.SessionDir
+}
+
+// GetSessionPath returns the value of SessionPath.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetSessionPath() NilString {
+	return s.SessionPath
+}
+
+// GetSlotKey returns the value of SlotKey.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetSlotKey() string {
+	return s.SlotKey
+}
+
+// GetState returns the value of State.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetState() ListRuntimeSlotsOKItemsItemSlotState {
+	return s.State
+}
+
+// GetTaskType returns the value of TaskType.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetTaskType() string {
+	return s.TaskType
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetWorkspaceRowId returns the value of WorkspaceRowId.
+func (s *ListRuntimeSlotsOKItemsItemSlot) GetWorkspaceRowId() NilUUID {
+	return s.WorkspaceRowId
+}
+
+// SetAgentName sets the value of AgentName.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetAgentName(val string) {
+	s.AgentName = val
+}
+
+// SetCreatedAtMs sets the value of CreatedAtMs.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetCreatedAtMs(val int) {
+	s.CreatedAtMs = val
+}
+
+// SetExpiresAtMs sets the value of ExpiresAtMs.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetExpiresAtMs(val int) {
+	s.ExpiresAtMs = val
+}
+
+// SetID sets the value of ID.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetLastAttemptN sets the value of LastAttemptN.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetLastAttemptN(val int) {
+	s.LastAttemptN = val
+}
+
+// SetLastTaskId sets the value of LastTaskId.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetLastTaskId(val uuid.UUID) {
+	s.LastTaskId = val
+}
+
+// SetLastUsedAtMs sets the value of LastUsedAtMs.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetLastUsedAtMs(val int) {
+	s.LastUsedAtMs = val
+}
+
+// SetModel sets the value of Model.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetRuntimeProfileId sets the value of RuntimeProfileId.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetRuntimeProfileId(val NilUUID) {
+	s.RuntimeProfileId = val
+}
+
+// SetSessionDir sets the value of SessionDir.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetSessionDir(val NilString) {
+	s.SessionDir = val
+}
+
+// SetSessionPath sets the value of SessionPath.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetSessionPath(val NilString) {
+	s.SessionPath = val
+}
+
+// SetSlotKey sets the value of SlotKey.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetSlotKey(val string) {
+	s.SlotKey = val
+}
+
+// SetState sets the value of State.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetState(val ListRuntimeSlotsOKItemsItemSlotState) {
+	s.State = val
+}
+
+// SetTaskType sets the value of TaskType.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetTaskType(val string) {
+	s.TaskType = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetWorkspaceRowId sets the value of WorkspaceRowId.
+func (s *ListRuntimeSlotsOKItemsItemSlot) SetWorkspaceRowId(val NilUUID) {
+	s.WorkspaceRowId = val
+}
+
+type ListRuntimeSlotsOKItemsItemSlotState string
+
+const (
+	ListRuntimeSlotsOKItemsItemSlotStateActive ListRuntimeSlotsOKItemsItemSlotState = "active"
+	ListRuntimeSlotsOKItemsItemSlotStateIdle   ListRuntimeSlotsOKItemsItemSlotState = "idle"
+)
+
+// AllValues returns all ListRuntimeSlotsOKItemsItemSlotState values.
+func (ListRuntimeSlotsOKItemsItemSlotState) AllValues() []ListRuntimeSlotsOKItemsItemSlotState {
+	return []ListRuntimeSlotsOKItemsItemSlotState{
+		ListRuntimeSlotsOKItemsItemSlotStateActive,
+		ListRuntimeSlotsOKItemsItemSlotStateIdle,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListRuntimeSlotsOKItemsItemSlotState) MarshalText() ([]byte, error) {
+	switch s {
+	case ListRuntimeSlotsOKItemsItemSlotStateActive:
+		return []byte(s), nil
+	case ListRuntimeSlotsOKItemsItemSlotStateIdle:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListRuntimeSlotsOKItemsItemSlotState) UnmarshalText(data []byte) error {
+	switch ListRuntimeSlotsOKItemsItemSlotState(data) {
+	case ListRuntimeSlotsOKItemsItemSlotStateActive:
+		*s = ListRuntimeSlotsOKItemsItemSlotStateActive
+		return nil
+	case ListRuntimeSlotsOKItemsItemSlotStateIdle:
+		*s = ListRuntimeSlotsOKItemsItemSlotStateIdle
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListRuntimeSlotsOKItemsItemWorkspace struct {
+	CreatedAtMs    int                                      `json:"createdAtMs"`
+	ID             uuid.UUID                                `json:"id"`
+	Kind           ListRuntimeSlotsOKItemsItemWorkspaceKind `json:"kind"`
+	LastUsedAtMs   int                                      `json:"lastUsedAtMs"`
+	TeamId         uuid.UUID                                `json:"teamId"`
+	WorkspaceId    string                                   `json:"workspaceId"`
+	WorktreeBranch NilString                                `json:"worktreeBranch"`
+	WorktreePath   string                                   `json:"worktreePath"`
+}
+
+// GetCreatedAtMs returns the value of CreatedAtMs.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) GetCreatedAtMs() int {
+	return s.CreatedAtMs
+}
+
+// GetID returns the value of ID.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetKind returns the value of Kind.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) GetKind() ListRuntimeSlotsOKItemsItemWorkspaceKind {
+	return s.Kind
+}
+
+// GetLastUsedAtMs returns the value of LastUsedAtMs.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) GetLastUsedAtMs() int {
+	return s.LastUsedAtMs
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetWorkspaceId returns the value of WorkspaceId.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) GetWorkspaceId() string {
+	return s.WorkspaceId
+}
+
+// GetWorktreeBranch returns the value of WorktreeBranch.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) GetWorktreeBranch() NilString {
+	return s.WorktreeBranch
+}
+
+// GetWorktreePath returns the value of WorktreePath.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) GetWorktreePath() string {
+	return s.WorktreePath
+}
+
+// SetCreatedAtMs sets the value of CreatedAtMs.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) SetCreatedAtMs(val int) {
+	s.CreatedAtMs = val
+}
+
+// SetID sets the value of ID.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetKind sets the value of Kind.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) SetKind(val ListRuntimeSlotsOKItemsItemWorkspaceKind) {
+	s.Kind = val
+}
+
+// SetLastUsedAtMs sets the value of LastUsedAtMs.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) SetLastUsedAtMs(val int) {
+	s.LastUsedAtMs = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetWorkspaceId sets the value of WorkspaceId.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) SetWorkspaceId(val string) {
+	s.WorkspaceId = val
+}
+
+// SetWorktreeBranch sets the value of WorktreeBranch.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) SetWorktreeBranch(val NilString) {
+	s.WorktreeBranch = val
+}
+
+// SetWorktreePath sets the value of WorktreePath.
+func (s *ListRuntimeSlotsOKItemsItemWorkspace) SetWorktreePath(val string) {
+	s.WorktreePath = val
+}
+
+type ListRuntimeSlotsOKItemsItemWorkspaceKind string
+
+const (
+	ListRuntimeSlotsOKItemsItemWorkspaceKindOrigin  ListRuntimeSlotsOKItemsItemWorkspaceKind = "origin"
+	ListRuntimeSlotsOKItemsItemWorkspaceKindFork    ListRuntimeSlotsOKItemsItemWorkspaceKind = "fork"
+	ListRuntimeSlotsOKItemsItemWorkspaceKindScratch ListRuntimeSlotsOKItemsItemWorkspaceKind = "scratch"
+)
+
+// AllValues returns all ListRuntimeSlotsOKItemsItemWorkspaceKind values.
+func (ListRuntimeSlotsOKItemsItemWorkspaceKind) AllValues() []ListRuntimeSlotsOKItemsItemWorkspaceKind {
+	return []ListRuntimeSlotsOKItemsItemWorkspaceKind{
+		ListRuntimeSlotsOKItemsItemWorkspaceKindOrigin,
+		ListRuntimeSlotsOKItemsItemWorkspaceKindFork,
+		ListRuntimeSlotsOKItemsItemWorkspaceKindScratch,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListRuntimeSlotsOKItemsItemWorkspaceKind) MarshalText() ([]byte, error) {
+	switch s {
+	case ListRuntimeSlotsOKItemsItemWorkspaceKindOrigin:
+		return []byte(s), nil
+	case ListRuntimeSlotsOKItemsItemWorkspaceKindFork:
+		return []byte(s), nil
+	case ListRuntimeSlotsOKItemsItemWorkspaceKindScratch:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListRuntimeSlotsOKItemsItemWorkspaceKind) UnmarshalText(data []byte) error {
+	switch ListRuntimeSlotsOKItemsItemWorkspaceKind(data) {
+	case ListRuntimeSlotsOKItemsItemWorkspaceKindOrigin:
+		*s = ListRuntimeSlotsOKItemsItemWorkspaceKindOrigin
+		return nil
+	case ListRuntimeSlotsOKItemsItemWorkspaceKindFork:
+		*s = ListRuntimeSlotsOKItemsItemWorkspaceKindFork
+		return nil
+	case ListRuntimeSlotsOKItemsItemWorkspaceKindScratch:
+		*s = ListRuntimeSlotsOKItemsItemWorkspaceKindScratch
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListRuntimeSlotsState string
+
+const (
+	ListRuntimeSlotsStateActive ListRuntimeSlotsState = "active"
+	ListRuntimeSlotsStateIdle   ListRuntimeSlotsState = "idle"
+)
+
+// AllValues returns all ListRuntimeSlotsState values.
+func (ListRuntimeSlotsState) AllValues() []ListRuntimeSlotsState {
+	return []ListRuntimeSlotsState{
+		ListRuntimeSlotsStateActive,
+		ListRuntimeSlotsStateIdle,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListRuntimeSlotsState) MarshalText() ([]byte, error) {
+	switch s {
+	case ListRuntimeSlotsStateActive:
+		return []byte(s), nil
+	case ListRuntimeSlotsStateIdle:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListRuntimeSlotsState) UnmarshalText(data []byte) error {
+	switch ListRuntimeSlotsState(data) {
+	case ListRuntimeSlotsStateActive:
+		*s = ListRuntimeSlotsStateActive
+		return nil
+	case ListRuntimeSlotsStateIdle:
+		*s = ListRuntimeSlotsStateIdle
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListRuntimeSlotsUnauthorized struct {
+	Code            ListRuntimeSlotsUnauthorizedCode `json:"code"`
+	Detail          OptString                        `json:"detail"`
+	Instance        OptString                        `json:"instance"`
+	Status          int                              `json:"status"`
+	Title           string                           `json:"title"`
+	Type            url.URL                          `json:"type"`
+	AdditionalProps ListRuntimeSlotsUnauthorizedAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *ListRuntimeSlotsUnauthorized) GetCode() ListRuntimeSlotsUnauthorizedCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *ListRuntimeSlotsUnauthorized) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *ListRuntimeSlotsUnauthorized) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *ListRuntimeSlotsUnauthorized) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *ListRuntimeSlotsUnauthorized) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *ListRuntimeSlotsUnauthorized) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *ListRuntimeSlotsUnauthorized) GetAdditionalProps() ListRuntimeSlotsUnauthorizedAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *ListRuntimeSlotsUnauthorized) SetCode(val ListRuntimeSlotsUnauthorizedCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *ListRuntimeSlotsUnauthorized) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *ListRuntimeSlotsUnauthorized) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ListRuntimeSlotsUnauthorized) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *ListRuntimeSlotsUnauthorized) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *ListRuntimeSlotsUnauthorized) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *ListRuntimeSlotsUnauthorized) SetAdditionalProps(val ListRuntimeSlotsUnauthorizedAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*ListRuntimeSlotsUnauthorized) listRuntimeSlotsRes() {}
+
+type ListRuntimeSlotsUnauthorizedAdditional map[string]jx.Raw
+
+func (s *ListRuntimeSlotsUnauthorizedAdditional) init() ListRuntimeSlotsUnauthorizedAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type ListRuntimeSlotsUnauthorizedCode string
+
+const (
+	ListRuntimeSlotsUnauthorizedCodeUNAUTHORIZED                   ListRuntimeSlotsUnauthorizedCode = "UNAUTHORIZED"
+	ListRuntimeSlotsUnauthorizedCodeFORBIDDEN                      ListRuntimeSlotsUnauthorizedCode = "FORBIDDEN"
+	ListRuntimeSlotsUnauthorizedCodeNOTFOUND                       ListRuntimeSlotsUnauthorizedCode = "NOT_FOUND"
+	ListRuntimeSlotsUnauthorizedCodeCONFLICT                       ListRuntimeSlotsUnauthorizedCode = "CONFLICT"
+	ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED               ListRuntimeSlotsUnauthorizedCode = "VALIDATION_FAILED"
+	ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE               ListRuntimeSlotsUnauthorizedCode = "INVALID_CHALLENGE"
+	ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE               ListRuntimeSlotsUnauthorizedCode = "INVALID_SIGNATURE"
+	ListRuntimeSlotsUnauthorizedCodeVOUCHERLIMIT                   ListRuntimeSlotsUnauthorizedCode = "VOUCHER_LIMIT"
+	ListRuntimeSlotsUnauthorizedCodeRATELIMITEXCEEDED              ListRuntimeSlotsUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
+	ListRuntimeSlotsUnauthorizedCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
+	ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
+	ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED ListRuntimeSlotsUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED             ListRuntimeSlotsUnauthorizedCode = "REGISTRATION_FAILED"
+	ListRuntimeSlotsUnauthorizedCodeUPSTREAMERROR                  ListRuntimeSlotsUnauthorizedCode = "UPSTREAM_ERROR"
+	ListRuntimeSlotsUnauthorizedCodeSERVICEUNAVAILABLE             ListRuntimeSlotsUnauthorizedCode = "SERVICE_UNAVAILABLE"
+	ListRuntimeSlotsUnauthorizedCodeINTERNALSERVERERROR            ListRuntimeSlotsUnauthorizedCode = "INTERNAL_SERVER_ERROR"
+	ListRuntimeSlotsUnauthorizedCodeTEAMPERSONALIMMUTABLE          ListRuntimeSlotsUnauthorizedCode = "TEAM_PERSONAL_IMMUTABLE"
+	ListRuntimeSlotsUnauthorizedCodeTEAMNOTACTIVE                  ListRuntimeSlotsUnauthorizedCode = "TEAM_NOT_ACTIVE"
+	ListRuntimeSlotsUnauthorizedCodeINVITEEXPIRED                  ListRuntimeSlotsUnauthorizedCode = "INVITE_EXPIRED"
+	ListRuntimeSlotsUnauthorizedCodeINVITEEXHAUSTED                ListRuntimeSlotsUnauthorizedCode = "INVITE_EXHAUSTED"
+	ListRuntimeSlotsUnauthorizedCodeTEAMLASTOWNER                  ListRuntimeSlotsUnauthorizedCode = "TEAM_LAST_OWNER"
+	ListRuntimeSlotsUnauthorizedCodeTEAMALREADYACTIVE              ListRuntimeSlotsUnauthorizedCode = "TEAM_ALREADY_ACTIVE"
+	ListRuntimeSlotsUnauthorizedCodeTEAMNOTFOUNDING                ListRuntimeSlotsUnauthorizedCode = "TEAM_NOT_FOUNDING"
+	ListRuntimeSlotsUnauthorizedCodeFOUNDINGALREADYACCEPTED        ListRuntimeSlotsUnauthorizedCode = "FOUNDING_ALREADY_ACCEPTED"
+	ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERPENDING           ListRuntimeSlotsUnauthorizedCode = "DIARY_TRANSFER_PENDING"
+	ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERNOTFOUND          ListRuntimeSlotsUnauthorizedCode = "DIARY_TRANSFER_NOT_FOUND"
+	ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED   ListRuntimeSlotsUnauthorizedCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all ListRuntimeSlotsUnauthorizedCode values.
+func (ListRuntimeSlotsUnauthorizedCode) AllValues() []ListRuntimeSlotsUnauthorizedCode {
+	return []ListRuntimeSlotsUnauthorizedCode{
+		ListRuntimeSlotsUnauthorizedCodeUNAUTHORIZED,
+		ListRuntimeSlotsUnauthorizedCodeFORBIDDEN,
+		ListRuntimeSlotsUnauthorizedCodeNOTFOUND,
+		ListRuntimeSlotsUnauthorizedCodeCONFLICT,
+		ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED,
+		ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE,
+		ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE,
+		ListRuntimeSlotsUnauthorizedCodeVOUCHERLIMIT,
+		ListRuntimeSlotsUnauthorizedCodeRATELIMITEXCEEDED,
+		ListRuntimeSlotsUnauthorizedCodeSERIALIZATIONEXHAUSTED,
+		ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED,
+		ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED,
+		ListRuntimeSlotsUnauthorizedCodeUPSTREAMERROR,
+		ListRuntimeSlotsUnauthorizedCodeSERVICEUNAVAILABLE,
+		ListRuntimeSlotsUnauthorizedCodeINTERNALSERVERERROR,
+		ListRuntimeSlotsUnauthorizedCodeTEAMPERSONALIMMUTABLE,
+		ListRuntimeSlotsUnauthorizedCodeTEAMNOTACTIVE,
+		ListRuntimeSlotsUnauthorizedCodeINVITEEXPIRED,
+		ListRuntimeSlotsUnauthorizedCodeINVITEEXHAUSTED,
+		ListRuntimeSlotsUnauthorizedCodeTEAMLASTOWNER,
+		ListRuntimeSlotsUnauthorizedCodeTEAMALREADYACTIVE,
+		ListRuntimeSlotsUnauthorizedCodeTEAMNOTFOUNDING,
+		ListRuntimeSlotsUnauthorizedCodeFOUNDINGALREADYACCEPTED,
+		ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERPENDING,
+		ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERNOTFOUND,
+		ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListRuntimeSlotsUnauthorizedCode) MarshalText() ([]byte, error) {
+	switch s {
+	case ListRuntimeSlotsUnauthorizedCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeFORBIDDEN:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeNOTFOUND:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListRuntimeSlotsUnauthorizedCode) UnmarshalText(data []byte) error {
+	switch ListRuntimeSlotsUnauthorizedCode(data) {
+	case ListRuntimeSlotsUnauthorizedCodeUNAUTHORIZED:
+		*s = ListRuntimeSlotsUnauthorizedCodeUNAUTHORIZED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeFORBIDDEN:
+		*s = ListRuntimeSlotsUnauthorizedCodeFORBIDDEN
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeNOTFOUND:
+		*s = ListRuntimeSlotsUnauthorizedCodeNOTFOUND
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeCONFLICT:
+		*s = ListRuntimeSlotsUnauthorizedCodeCONFLICT
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED:
+		*s = ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE:
+		*s = ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE:
+		*s = ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeVOUCHERLIMIT:
+		*s = ListRuntimeSlotsUnauthorizedCodeVOUCHERLIMIT
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = ListRuntimeSlotsUnauthorizedCodeRATELIMITEXCEEDED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = ListRuntimeSlotsUnauthorizedCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED:
+		*s = ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeUPSTREAMERROR:
+		*s = ListRuntimeSlotsUnauthorizedCodeUPSTREAMERROR
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = ListRuntimeSlotsUnauthorizedCodeSERVICEUNAVAILABLE
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeINTERNALSERVERERROR:
+		*s = ListRuntimeSlotsUnauthorizedCodeINTERNALSERVERERROR
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = ListRuntimeSlotsUnauthorizedCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeTEAMNOTACTIVE:
+		*s = ListRuntimeSlotsUnauthorizedCodeTEAMNOTACTIVE
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeINVITEEXPIRED:
+		*s = ListRuntimeSlotsUnauthorizedCodeINVITEEXPIRED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeINVITEEXHAUSTED:
+		*s = ListRuntimeSlotsUnauthorizedCodeINVITEEXHAUSTED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeTEAMLASTOWNER:
+		*s = ListRuntimeSlotsUnauthorizedCodeTEAMLASTOWNER
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = ListRuntimeSlotsUnauthorizedCodeTEAMALREADYACTIVE
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = ListRuntimeSlotsUnauthorizedCodeTEAMNOTFOUNDING
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = ListRuntimeSlotsUnauthorizedCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERPENDING
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = ListRuntimeSlotsUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type ListSigningRequestsBadRequest ProblemDetails
 
 func (*ListSigningRequestsBadRequest) listSigningRequestsRes() {}
@@ -23278,6 +25014,51 @@ func (o NilInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o NilInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilListRuntimeSlotsOKItemsItemWorkspace returns new NilListRuntimeSlotsOKItemsItemWorkspace with value set to v.
+func NewNilListRuntimeSlotsOKItemsItemWorkspace(v ListRuntimeSlotsOKItemsItemWorkspace) NilListRuntimeSlotsOKItemsItemWorkspace {
+	return NilListRuntimeSlotsOKItemsItemWorkspace{
+		Value: v,
+	}
+}
+
+// NilListRuntimeSlotsOKItemsItemWorkspace is nullable ListRuntimeSlotsOKItemsItemWorkspace.
+type NilListRuntimeSlotsOKItemsItemWorkspace struct {
+	Value ListRuntimeSlotsOKItemsItemWorkspace
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilListRuntimeSlotsOKItemsItemWorkspace) SetTo(v ListRuntimeSlotsOKItemsItemWorkspace) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilListRuntimeSlotsOKItemsItemWorkspace) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilListRuntimeSlotsOKItemsItemWorkspace) SetToNull() {
+	o.Null = true
+	var v ListRuntimeSlotsOKItemsItemWorkspace
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilListRuntimeSlotsOKItemsItemWorkspace) Get() (v ListRuntimeSlotsOKItemsItemWorkspace, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilListRuntimeSlotsOKItemsItemWorkspace) Or(d ListRuntimeSlotsOKItemsItemWorkspace) ListRuntimeSlotsOKItemsItemWorkspace {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -25798,6 +27579,52 @@ func (o OptListEntryRelationsDirection) Get() (v ListEntryRelationsDirection, ok
 
 // Or returns value if set, or given parameter if does not.
 func (o OptListEntryRelationsDirection) Or(d ListEntryRelationsDirection) ListEntryRelationsDirection {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptListRuntimeSlotsState returns new OptListRuntimeSlotsState with value set to v.
+func NewOptListRuntimeSlotsState(v ListRuntimeSlotsState) OptListRuntimeSlotsState {
+	return OptListRuntimeSlotsState{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListRuntimeSlotsState is optional ListRuntimeSlotsState.
+type OptListRuntimeSlotsState struct {
+	Value ListRuntimeSlotsState
+	Set   bool
+}
+
+// IsSet returns true if OptListRuntimeSlotsState was set.
+func (o OptListRuntimeSlotsState) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListRuntimeSlotsState) Reset() {
+	var v ListRuntimeSlotsState
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListRuntimeSlotsState) SetTo(v ListRuntimeSlotsState) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListRuntimeSlotsState) Get() (v ListRuntimeSlotsState, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListRuntimeSlotsState) Or(d ListRuntimeSlotsState) ListRuntimeSlotsState {
 	if v, ok := o.Get(); ok {
 		return v
 	}

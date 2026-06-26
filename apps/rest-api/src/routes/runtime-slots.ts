@@ -10,8 +10,10 @@ import {
   BeginRuntimeSlotBody as BeginRuntimeSlotBodySchema,
   FindLatestRuntimeSlotForAttemptQuery as FindLatestRuntimeSlotForAttemptQuerySchema,
   FinishRuntimeSlotBody as FinishRuntimeSlotBodySchema,
+  ListRuntimeSlotsQuery as ListRuntimeSlotsQuerySchema,
   ResolvedRuntimeSlot as ResolvedRuntimeSlotSchema,
   RuntimeSlot as RuntimeSlotSchema,
+  RuntimeSlotListResponse as RuntimeSlotListResponseSchema,
 } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
 
@@ -132,6 +134,39 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
         teamId,
       });
       return serializeRuntimeSlot(slot);
+    },
+  );
+
+  server.get(
+    '/runtime-slots',
+    {
+      config: { rateLimit: fastify.rateLimitConfig.read },
+      schema: {
+        operationId: 'listRuntimeSlots',
+        tags: ['runtime-slots'],
+        description: 'List recent team-scoped runtime slots for repair/sync.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        querystring: ListRuntimeSlotsQuerySchema,
+        response: {
+          200: RuntimeSlotListResponseSchema,
+          400: ValidationProblemDetailsSchema,
+          401: ProblemDetailsSchema,
+          403: ProblemDetailsSchema,
+          404: ProblemDetailsSchema,
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectNs } = authSubject(request);
+      const teamId = requireCurrentTeamId(request, 'runtime slots');
+      const items = await runtimeSlots.list({
+        identityId,
+        query: request.query,
+        subjectNs,
+        teamId,
+      });
+      return { items: items.map(serializeResolvedRuntimeSlot) };
     },
   );
 

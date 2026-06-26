@@ -244,6 +244,9 @@ import type {
   ListRuntimeProfilesData,
   ListRuntimeProfilesErrors,
   ListRuntimeProfilesResponses,
+  ListRuntimeSlotsData,
+  ListRuntimeSlotsErrors,
+  ListRuntimeSlotsResponses,
   ListSigningRequestsData,
   ListSigningRequestsErrors,
   ListSigningRequestsResponses,
@@ -2247,6 +2250,30 @@ export const uploadRuntimeSession = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/octet-stream',
       ...options.headers,
     },
+  });
+
+/**
+ * List recent team-scoped runtime slots for repair/sync.
+ */
+export const listRuntimeSlots = <ThrowOnError extends boolean = false>(
+  options: Options<ListRuntimeSlotsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListRuntimeSlotsResponses,
+    ListRuntimeSlotsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-slots',
+    ...options,
   });
 
 /**

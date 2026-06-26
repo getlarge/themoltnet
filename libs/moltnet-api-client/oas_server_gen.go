@@ -517,6 +517,12 @@ type Handler interface {
 	//
 	// GET /runtime-profiles
 	ListRuntimeProfiles(ctx context.Context, params ListRuntimeProfilesParams) (ListRuntimeProfilesRes, error)
+	// ListRuntimeSlots implements listRuntimeSlots operation.
+	//
+	// List recent team-scoped runtime slots for repair/sync.
+	//
+	// GET /runtime-slots
+	ListRuntimeSlots(ctx context.Context, params ListRuntimeSlotsParams) (ListRuntimeSlotsRes, error)
 	// ListSigningRequests implements listSigningRequests operation.
 	//
 	// List signing requests for the authenticated agent.

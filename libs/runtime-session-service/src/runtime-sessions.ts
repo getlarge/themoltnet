@@ -318,10 +318,10 @@ function assertAttemptUploader(attempt: TaskAttempt, identityId: string) {
       'Only the claiming agent may upload this runtime session',
     );
   }
-  if (attempt.status !== 'running') {
+  if (attempt.status === 'claimed') {
     throw createProblem(
       'conflict',
-      'Runtime sessions can only be uploaded for a running attempt',
+      'Runtime sessions can only be uploaded after the attempt has started',
     );
   }
 }

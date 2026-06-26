@@ -22,6 +22,7 @@ import {
   findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
   joinTeam,
+  listRuntimeSlots,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -242,6 +243,36 @@ describe('Runtime slots API', () => {
       '/tmp/moltnet/e2e-sessions/producer-finished.jsonl',
     );
     expect(resolved!.workspace?.workspaceId).toBe('workspace-e2e');
+  });
+
+  it('lists recent runtime slots for team-scoped repair discovery', async () => {
+    const { attemptN, taskId } = await createClaimedSlotTask(
+      'slot list repair discovery',
+    );
+    await beginSlot(
+      taskId,
+      attemptN,
+      '/tmp/moltnet/e2e-sessions/list-repair.jsonl',
+    );
+
+    const { data, error, response } = await listRuntimeSlots({
+      client,
+      auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': teamId },
+      query: { agentName: 'legreffier', limit: 20 },
+    });
+
+    expect(error).toBeUndefined();
+    expect(response.status).toBe(200);
+    expect(
+      data!.items.some(
+        (item) =>
+          item.slot.lastTaskId === taskId &&
+          item.slot.lastAttemptN === attemptN &&
+          item.slot.sessionPath ===
+            '/tmp/moltnet/e2e-sessions/list-repair.jsonl',
+      ),
+    ).toBe(true);
   });
 
   it('rejects a stale finish after the same slot has moved to a newer task attempt', async () => {

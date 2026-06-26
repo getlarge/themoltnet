@@ -88,6 +88,7 @@ const (
 	ListProblemTypesOperation                OperationName = "ListProblemTypes"
 	ListRuntimeModelsOperation               OperationName = "ListRuntimeModels"
 	ListRuntimeProfilesOperation             OperationName = "ListRuntimeProfiles"
+	ListRuntimeSlotsOperation                OperationName = "ListRuntimeSlots"
 	ListSigningRequestsOperation             OperationName = "ListSigningRequests"
 	ListTaskAttemptsOperation                OperationName = "ListTaskAttempts"
 	ListTaskMessagesOperation                OperationName = "ListTaskMessages"

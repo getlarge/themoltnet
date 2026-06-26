@@ -179,6 +179,30 @@ describe('createRuntimeSessionService', () => {
     expect(storage.putObject).not.toHaveBeenCalled();
   });
 
+  it('allows the claiming agent to repair-upload after terminal finalization', async () => {
+    vi.mocked(deps.taskRepository.findAttempt).mockResolvedValue({
+      attemptN: 1,
+      claimedByAgentId: AGENT_ID,
+      status: 'failed',
+      taskId: TASK_ID,
+    } as Awaited<ReturnType<typeof deps.taskRepository.findAttempt>>);
+    vi.mocked(storage.putObject).mockImplementation(async (input) => {
+      await readStream(input.body);
+    });
+
+    await subject.upload({
+      attemptN: 1,
+      body: Readable.from(['{"session":"repair"}\n']),
+      identityId: AGENT_ID,
+      query: { sessionKind: 'root' },
+      subjectNs: KetoNamespace.Agent,
+      taskId: TASK_ID,
+      teamId: TEAM_ID,
+    });
+
+    expect(storage.putObject).toHaveBeenCalledOnce();
+  });
+
   it('decompresses stored gzip content when downloading', async () => {
     const content = '{"session":"download"}\n';
     vi.mocked(
