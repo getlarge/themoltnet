@@ -67,6 +67,8 @@ import type {
   ListDiaryTagsData,
   ListPendingTransfersResponses,
   ListProblemTypesResponse,
+  ListRuntimeSlotsData,
+  ListRuntimeSlotsResponse,
   ListSigningRequestsData,
   ListTaskMessagesData,
   ListTaskSchemasResponse,
@@ -648,6 +650,11 @@ export interface RuntimeSlotsNamespace {
     query: FindLatestRuntimeSlotForAttemptData['query'],
     options: RuntimeSlotRequestOptions,
   ): Promise<ResolvedRuntimeSlot | null>;
+
+  list(
+    query: NonNullable<ListRuntimeSlotsData['query']>,
+    options: RuntimeSlotRequestOptions,
+  ): Promise<ListRuntimeSlotsResponse['items']>;
 }
 
 export interface RuntimeSlotRequestOptions {

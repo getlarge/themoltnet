@@ -8,6 +8,7 @@ import type {
   BeginRuntimeSlotBody,
   FindLatestRuntimeSlotForAttemptQuery,
   FinishRuntimeSlotBody,
+  ListRuntimeSlotsQuery,
 } from '@moltnet/tasks';
 
 import {
@@ -46,6 +47,11 @@ export interface FinishRuntimeSlotInput extends RuntimeSlotSubject {
 
 export interface FindLatestRuntimeSlotInput extends RuntimeSlotSubject {
   query: FindLatestRuntimeSlotForAttemptQuery;
+  teamId: string;
+}
+
+export interface ListRuntimeSlotsInput extends RuntimeSlotSubject {
+  query: ListRuntimeSlotsQuery;
   teamId: string;
 }
 
@@ -118,6 +124,24 @@ export function createRuntimeSlotService(deps: RuntimeSlotServiceDeps) {
       );
       if (!resolved) throw createProblem('not-found');
       return resolved;
+    },
+
+    async list(input: ListRuntimeSlotsInput): Promise<ResolvedRuntimeSlot[]> {
+      await requireTeamAccess(deps, input);
+      if (input.query.runtimeProfileId) {
+        await assertProfileInTeam(
+          deps,
+          input.query.runtimeProfileId,
+          input.teamId,
+        );
+      }
+      return deps.runtimeSlotRepository.list({
+        agentName: input.query.agentName,
+        limit: input.query.limit,
+        runtimeProfileId: input.query.runtimeProfileId,
+        state: input.query.state,
+        teamId: input.teamId,
+      });
     },
   };
 }

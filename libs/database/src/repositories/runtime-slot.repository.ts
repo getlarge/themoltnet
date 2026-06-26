@@ -49,6 +49,14 @@ export interface ResolvedRuntimeSlot {
   workspace: RuntimeWorkspace | null;
 }
 
+export interface ListRuntimeSlotsInput {
+  teamId: string;
+  agentName?: string;
+  runtimeProfileId?: string;
+  state?: RuntimeSlot['state'];
+  limit?: number;
+}
+
 export function createRuntimeSlotRepository(db: Database) {
   return {
     async begin(input: BeginRuntimeSlotInput): Promise<RuntimeSlot> {
@@ -143,6 +151,38 @@ export function createRuntimeSlotRepository(db: Database) {
         .limit(1);
       if (!slot) return null;
       return resolveSlot(slot);
+    },
+
+    async list(input: ListRuntimeSlotsInput): Promise<ResolvedRuntimeSlot[]> {
+      const conditions = [eq(runtimeSlots.teamId, input.teamId)];
+      if (input.agentName) {
+        conditions.push(eq(runtimeSlots.agentName, input.agentName));
+      }
+      if (input.runtimeProfileId) {
+        conditions.push(
+          eq(runtimeSlots.runtimeProfileId, input.runtimeProfileId),
+        );
+      }
+      if (input.state) {
+        conditions.push(eq(runtimeSlots.state, input.state));
+      }
+      const rows = await getExecutor(db)
+        .select({
+          slot: runtimeSlots,
+          workspace: runtimeWorkspaces,
+        })
+        .from(runtimeSlots)
+        .leftJoin(
+          runtimeWorkspaces,
+          eq(runtimeSlots.workspaceRowId, runtimeWorkspaces.id),
+        )
+        .where(and(...conditions))
+        .orderBy(desc(runtimeSlots.lastUsedAtMs))
+        .limit(input.limit ?? 100);
+      return rows.map((row) => ({
+        slot: row.slot,
+        workspace: row.workspace,
+      }));
     },
 
     async findByIdInTeam(

@@ -64,6 +64,14 @@ export const ResolvedRuntimeSlot = Type.Object(
 );
 export type ResolvedRuntimeSlot = Static<typeof ResolvedRuntimeSlot>;
 
+export const RuntimeSlotListResponse = Type.Object(
+  {
+    items: Type.Array(ResolvedRuntimeSlot),
+  },
+  { $id: 'RuntimeSlotListResponse' },
+);
+export type RuntimeSlotListResponse = Static<typeof RuntimeSlotListResponse>;
+
 export const BeginRuntimeSlotBody = Type.Object(
   {
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
@@ -114,11 +122,27 @@ export type FindLatestRuntimeSlotForAttemptQuery = Static<
   typeof FindLatestRuntimeSlotForAttemptQuery
 >;
 
+export const ListRuntimeSlotsQuery = Type.Object(
+  {
+    agentName: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
+    runtimeProfileId: Type.Optional(Type.String({ format: 'uuid' })),
+    state: Type.Optional(RuntimeSlotState),
+    limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200 })),
+  },
+  {
+    $id: 'ListRuntimeSlotsQuery',
+    additionalProperties: false,
+  },
+);
+export type ListRuntimeSlotsQuery = Static<typeof ListRuntimeSlotsQuery>;
+
 export const runtimeSlotSchemas = [
   RuntimeWorkspace,
   RuntimeSlot,
   ResolvedRuntimeSlot,
+  RuntimeSlotListResponse,
   BeginRuntimeSlotBody,
   FinishRuntimeSlotBody,
   FindLatestRuntimeSlotForAttemptQuery,
+  ListRuntimeSlotsQuery,
 ];

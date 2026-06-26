@@ -92,6 +92,7 @@ import {
   listProblemTypes,
   listRuntimeModels,
   listRuntimeProfiles,
+  listRuntimeSlots,
   listSigningRequests,
   listTaskAttempts,
   listTaskMessages,
@@ -372,6 +373,9 @@ import type {
   ListRuntimeProfilesData,
   ListRuntimeProfilesError,
   ListRuntimeProfilesResponse,
+  ListRuntimeSlotsData,
+  ListRuntimeSlotsError,
+  ListRuntimeSlotsResponse,
   ListSigningRequestsData,
   ListSigningRequestsError,
   ListSigningRequestsResponse,
@@ -3091,6 +3095,34 @@ export const uploadRuntimeSessionMutation = (
   };
   return mutationOptions;
 };
+
+export const listRuntimeSlotsQueryKey = (
+  options: Options<ListRuntimeSlotsData>,
+) => createQueryKey('listRuntimeSlots', options);
+
+/**
+ * List recent team-scoped runtime slots for repair/sync.
+ */
+export const listRuntimeSlotsOptions = (
+  options: Options<ListRuntimeSlotsData>,
+) =>
+  queryOptions<
+    ListRuntimeSlotsResponse,
+    ListRuntimeSlotsError,
+    ListRuntimeSlotsResponse,
+    ReturnType<typeof listRuntimeSlotsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listRuntimeSlots({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listRuntimeSlotsQueryKey(options),
+  });
 
 /**
  * Upsert a team-scoped runtime slot for audit and continuation affinity lookup.

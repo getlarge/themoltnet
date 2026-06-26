@@ -5,6 +5,7 @@ import './instrumentation.js';
 import { runDrain } from './cli/drain.js';
 import { runOnce } from './cli/once.js';
 import { runPoll } from './cli/poll.js';
+import { runSyncSessions } from './cli/sync-sessions.js';
 import { ROOT_USAGE } from './lib/help.js';
 
 async function main(): Promise<number> {
@@ -16,6 +17,8 @@ async function main(): Promise<number> {
       return runOnce(rest);
     case 'drain':
       return runDrain(rest);
+    case 'sync-sessions':
+      return runSyncSessions(rest);
     case '-h':
     case '--help':
       console.log(ROOT_USAGE);

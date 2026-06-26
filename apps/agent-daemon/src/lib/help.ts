@@ -51,6 +51,8 @@ Commands:
   once      Claim and execute one specific queued task by id, then exit.
   drain     Poll until the queue has nothing claimable, then exit.
             Useful for batch eval runs and demos.
+  sync-sessions
+            Repair durable runtime-session checkpoints from local slot files.
 
 Run \`agent-daemon <command> --help\` for command-specific flags.
 
@@ -144,6 +146,35 @@ Example:
     --task-types judge_pack \\
     --agent legreffier \\
     --profile eval-judge`;
+
+export const SYNC_SESSIONS_HELP = `\
+agent-daemon sync-sessions — repair durable runtime-session checkpoints.
+
+Usage:
+  agent-daemon sync-sessions --team <uuid> --agent <name> [...]
+
+Scans this daemon's team-scoped runtime slots, compares local Pi session files
+with durable runtime-session metadata, and uploads missing or stale checkpoints.
+
+Required:
+  --team <uuid>               Team whose runtime slots to inspect.
+  -a, --agent <name>          MoltNet agent identity. Reads credentials
+                              from <agent-root>/.moltnet/<name>/moltnet.json.
+
+Optional:
+  --runtime-profile-id <uuid> Limit repair to one runtime profile.
+  --state <active|idle>       Limit scanned slots by state. Default: all.
+  --limit <n>                 Max slots to scan, 1..200. Default: 100.
+  --dry-run                   Report missing/stale sessions without uploading.
+  --agent-root <path>         Directory that owns .moltnet/<agent>. Default:
+                              CWD, with git root fallback when available.
+  --debug                     Accepted for consistency; no extra output yet.
+
+Example:
+  agent-daemon sync-sessions \\
+    --team 6743b4b1-6b93-46e2-a048-19490f04f91a \\
+    --agent legreffier \\
+    --state idle`;
 
 export function isHelpFlag(args: readonly string[]): boolean {
   return args.includes('--help') || args.includes('-h');
