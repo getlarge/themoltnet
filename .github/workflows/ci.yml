@@ -802,7 +802,8 @@ jobs:
       ORY_KRATOS_PUBLIC_URL: http://localhost:4433
       SERVER_BASE_URL: http://localhost:8080
       ORY_ACTION_API_KEY: local-dev-webhook-key
-      MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E: '0'
+      MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E: '1'
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
     steps:
       - name: Skip if Agent Daemon E2E not affected
         if: needs.affected.outputs.e2e-agent-daemon != 'true'
@@ -833,7 +834,7 @@ jobs:
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
       - name: Run agent-daemon E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
-        run: pnpm exec nx run @themoltnet/agent-daemon:e2e
+        run: pnpm exec nx run @themoltnet/agent-daemon:e2e --skipNxCache
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-agent-daemon == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
