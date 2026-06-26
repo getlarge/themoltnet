@@ -3,7 +3,7 @@ import type { TaskAttemptSummary, TaskSummary } from './types.js';
 export interface ContinueEligibility {
   /** True when the UI should expose the Continue affordance. */
   eligible: boolean;
-  /** Parsed slot TTL; null when the daemon never reported one. */
+  /** Parsed legacy slot TTL hint; null when the daemon never reported one. */
   resumableUntil: Date | null;
   /**
    * True when the slot was reported but is now in the past. Lets the UI
@@ -29,7 +29,7 @@ export function canContinueAttempt(
   const expired = resumableUntil !== null && !inFuture;
 
   const eligible =
-    task.taskType === 'freeform' && attempt.status === 'completed' && inFuture;
+    task.taskType === 'freeform' && attempt.status === 'completed';
 
   return { eligible, resumableUntil, expired };
 }

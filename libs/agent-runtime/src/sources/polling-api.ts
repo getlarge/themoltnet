@@ -44,12 +44,22 @@ export interface ContinuationSessionRegistry {
   ): Promise<unknown>;
 }
 
+export interface ContinuationSourceAttemptResolver {
+  findOutputBranch(input: {
+    taskId: string;
+    attemptN: number;
+  }): Promise<string | null>;
+}
+
 /**
  * Claim-time affinity filter for continuations.
  *
  * - No `continueFrom` → claimable (true).
- * - `continueFrom` set + remote session exists → claimable, even if the
+ * - `continueFrom` set + mode=extend + remote session exists → claimable,
+ *   even if the
  *   producer slot row is absent or its local session file is unavailable.
+ * - `continueFrom` set + mode=fork + remote session exists → claimable only
+ *   when the source attempt output carries branch metadata.
  * - `continueFrom` set + no slot in the store + no remote session → not
  *   claimable (the producer context is unavailable to this daemon).
  * - `continueFrom` set + slot exists but its `sessionDir` is missing on
@@ -63,16 +73,26 @@ export interface ContinuationSessionRegistry {
 export async function isContinuationClaimableByThisDaemon(
   task: {
     teamId: string;
-    input?: { continueFrom?: { taskId: string; attemptN: number } };
+    input?: {
+      continueFrom?: {
+        taskId: string;
+        attemptN: number;
+        mode?: 'extend' | 'fork';
+      };
+    };
   },
   slotRegistry: ContinuationSlotRegistry,
   sessionRegistry?: ContinuationSessionRegistry,
+  sourceAttemptResolver?: ContinuationSourceAttemptResolver,
 ): Promise<
   | { claimable: true }
   | {
       claimable: false;
-      reason: 'missing_producer_slot' | 'missing_session_dir';
-      continueFrom: { taskId: string; attemptN: number };
+      reason:
+        | 'missing_producer_slot'
+        | 'missing_session_dir'
+        | 'missing_source_branch';
+      continueFrom: { taskId: string; attemptN: number; mode?: string };
       sessionDir?: string | null;
     }
 > {
@@ -90,7 +110,9 @@ export async function isContinuationClaimableByThisDaemon(
         cf.taskId,
         cf.attemptN,
       );
-    if (remoteSession) return { claimable: true };
+    if (remoteSession) {
+      return isRemoteSessionClaimable(cf, sourceAttemptResolver);
+    }
     return {
       claimable: false,
       reason: 'missing_producer_slot',
@@ -104,7 +126,9 @@ export async function isContinuationClaimableByThisDaemon(
         cf.taskId,
         cf.attemptN,
       );
-    if (remoteSession) return { claimable: true };
+    if (remoteSession) {
+      return isRemoteSessionClaimable(cf, sourceAttemptResolver);
+    }
     return {
       claimable: false,
       reason: 'missing_session_dir',
@@ -113,6 +137,30 @@ export async function isContinuationClaimableByThisDaemon(
     };
   }
   return { claimable: true };
+}
+
+async function isRemoteSessionClaimable(
+  cf: { taskId: string; attemptN: number; mode?: 'extend' | 'fork' },
+  sourceAttemptResolver?: ContinuationSourceAttemptResolver,
+): Promise<
+  | { claimable: true }
+  | {
+      claimable: false;
+      reason: 'missing_source_branch';
+      continueFrom: { taskId: string; attemptN: number; mode?: string };
+    }
+> {
+  if (cf.mode !== 'fork') return { claimable: true };
+  const branch = await sourceAttemptResolver?.findOutputBranch({
+    taskId: cf.taskId,
+    attemptN: cf.attemptN,
+  });
+  if (branch) return { claimable: true };
+  return {
+    claimable: false,
+    reason: 'missing_source_branch',
+    continueFrom: cf,
+  };
 }
 
 function hasLocalSessionFile(
@@ -201,6 +249,11 @@ export interface PollingApiTaskSourceOptions {
    * available, it supersedes local slot affinity for claim filtering.
    */
   sessionRegistry?: ContinuationSessionRegistry;
+  /**
+   * Source attempt lookup used to prove remote-only fork continuations can
+   * recover a parent branch before this daemon claims them.
+   */
+  sourceAttemptResolver?: ContinuationSourceAttemptResolver;
   /** Logger; defaults to a self-named pino instance. */
   logger?: AgentRuntimeLogger;
   /**
@@ -363,6 +416,7 @@ export class PollingApiTaskSource implements TaskSource {
               item,
               this.opts.slotRegistry,
               this.opts.sessionRegistry,
+              this.opts.sourceAttemptResolver,
             );
             if (!affinity.claimable) {
               this.logger.debug(

@@ -173,7 +173,7 @@ export async function handleTasksContinue(
   //    correlationId / allowedProfiles / requiredExecutorTrustLevel to
   //    construct a coherent CreateTaskRequest; the server-side async
   //    validator handles the deeper preconditions (source taskType,
-  //    attempt status, slotResumableUntil) on the POST /tasks call.
+  //    attempt status) on the POST /tasks call.
   const { data: source, error: getErr } = await getTask({
     client: deps.client,
     auth: () => token,

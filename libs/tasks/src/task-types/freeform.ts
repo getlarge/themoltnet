@@ -151,13 +151,8 @@ export type FreeformOutput = Static<typeof FreeformOutput>;
  *     second), so any caller-supplied override is silently dropped at the
  *     daemon plan stage. Reject explicitly so misconfiguration surfaces at
  *     create time.
- *  5. `freeform.sourceNotResumeEligible` — `daemonState` is null or
- *     `slotResumableUntil` is null. Older completions (pre-#1287) and
- *     daemons that opt out fall here.
- *  6. `freeform.sourceResumeExpired` — `slotResumableUntil` is in the
- *     past; the parent was not in the resumability window when validated.
  *
- * Returns on the first failure (no "report all six") — the checks
+ * Returns on the first failure — the checks
  * are sequential preconditions, later ones presume earlier ones hold.
  */
 export async function validateFreeformInputAsync(
@@ -204,8 +199,8 @@ export async function validateFreeformInputAsync(
     ];
   }
 
-  // Readiness checks: parent attempt completed, daemon-reported
-  // eligibility, fresh TTL. When `ctx.deferReadinessChecks` is true
+  // Readiness check: parent attempt completed. When
+  // `ctx.deferReadinessChecks` is true
   // (set by task-service when the create carries an unsatisfied
   // claim condition such as the auto-injected `task_status: completed`
   // gate `tasks_continue` injects), these are re-evaluated when the
@@ -222,28 +217,6 @@ export async function validateFreeformInputAsync(
         field: 'input/continueFrom/attemptN',
         message: `Source attempt ${cf.attemptN} on task ${cf.taskId} is not in 'completed' state`,
         code: 'freeform.sourceAttemptNotCompleted',
-      },
-    ];
-  }
-
-  if (!attempt.daemonState || attempt.daemonState.slotResumableUntil === null) {
-    return [
-      {
-        field: 'input/continueFrom',
-        message:
-          'Source attempt did not report continuation eligibility (older completion or daemon opted out)',
-        code: 'freeform.sourceNotResumeEligible',
-      },
-    ];
-  }
-
-  const expiresAt = new Date(attempt.daemonState.slotResumableUntil).getTime();
-  if (Number.isNaN(expiresAt) || expiresAt <= Date.now()) {
-    return [
-      {
-        field: 'input/continueFrom',
-        message: `Source attempt's continuation eligibility expired at ${attempt.daemonState.slotResumableUntil} (reported at ${attempt.daemonState.reportedAt})`,
-        code: 'freeform.sourceResumeExpired',
       },
     ];
   }

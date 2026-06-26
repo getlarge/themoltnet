@@ -358,6 +358,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         // session is neither remotely durable nor locally available.
         slotRegistry,
         sessionRegistry: runtimeSessionStore,
+        sourceAttemptResolver,
       }),
       makeReporter: (claimedTask) => {
         const selected = runtimeForClaimedTask(runtimes, claimedTask);
