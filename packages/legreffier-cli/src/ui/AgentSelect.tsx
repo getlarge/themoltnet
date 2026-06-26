@@ -25,6 +25,12 @@ const AGENTS: AgentOption[] = [
     available: true,
   },
   {
+    id: 'opencode',
+    label: 'opencode',
+    description: 'opencode.json + .agents/skills/ + /legreffier skill',
+    available: true,
+  },
+  {
     id: 'cursor',
     label: 'Cursor',
     description: 'coming soon',

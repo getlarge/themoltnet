@@ -5,7 +5,8 @@ import { type McpConfig, writeMcpConfig } from '@themoltnet/sdk';
 
 import {
   buildGhTokenRule,
-  downloadSkills,
+  installCanonicalSkills,
+  linkSkills,
   writeSettingsLocal,
 } from '../setup.js';
 import type { AgentAdapter, AgentAdapterOptions } from './types.js';
@@ -32,7 +33,11 @@ export class ClaudeAdapter implements AgentAdapter {
   }
 
   async writeSkills(repoDir: string): Promise<void> {
-    await downloadSkills(repoDir, '.claude/skills');
+    // Store skills once under `.agents/skills/` and symlink them into
+    // `.claude/skills/` — Claude's loader follows the directory symlinks
+    // (see issue #1393).
+    await installCanonicalSkills(repoDir);
+    await linkSkills(repoDir, '.claude/skills');
   }
 
   async writeSettings(opts: AgentAdapterOptions): Promise<void> {

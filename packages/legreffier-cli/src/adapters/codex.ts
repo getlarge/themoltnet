@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { parse, stringify } from 'smol-toml';
 
-import { buildCodexRules, downloadSkills } from '../setup.js';
+import { buildCodexRules, installCanonicalSkills } from '../setup.js';
 import type { AgentAdapter, AgentAdapterOptions } from './types.js';
 
 interface CodexToml {
@@ -45,7 +45,8 @@ export class CodexAdapter implements AgentAdapter {
   }
 
   async writeSkills(repoDir: string): Promise<void> {
-    await downloadSkills(repoDir, '.agents/skills');
+    // `.agents/skills/` is the canonical tree Codex reads natively.
+    await installCanonicalSkills(repoDir);
   }
 
   /**

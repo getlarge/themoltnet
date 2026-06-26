@@ -1,5 +1,13 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import {
+  cp,
+  mkdir,
+  readFile,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import { dirname, join, relative } from 'node:path';
 
 /** Pinned to the release tag — updated by release-please. */
 const SKILL_VERSION = 'legreffier-v0.1.0';
@@ -85,6 +93,77 @@ export async function downloadSkills(
       const filePath = join(destDir, file);
       await mkdir(dirname(filePath), { recursive: true });
       await writeFile(filePath, content, 'utf-8');
+    }
+  }
+}
+
+/**
+ * Canonical, single-source-of-truth location for installed skills.
+ *
+ * Every managed agent tree links back to this directory instead of holding a
+ * duplicate copy: Codex reads `.agents/skills/` natively, opencode discovers it
+ * natively too, and Claude's `.claude/skills/` is populated with relative
+ * symlinks into here. Storing the real bytes once avoids drift between trees
+ * (see issue #1393).
+ */
+export const CANONICAL_SKILL_DIR = '.agents/skills';
+
+/**
+ * Install the canonical skill tree under `.agents/skills/` (real files).
+ * Idempotent — re-running overwrites files with the latest release payload.
+ */
+export async function installCanonicalSkills(repoDir: string): Promise<void> {
+  await downloadSkills(repoDir, CANONICAL_SKILL_DIR);
+}
+
+/**
+ * Link an agent's skill directory to the canonical `.agents/skills/` copy.
+ *
+ * Creates one **relative** symlink per skill — `<skillDir>/<name>` →
+ * `../../.agents/skills/<name>` — so heavy skill payloads are stored once and
+ * the link resolves in fresh clones and git worktrees. Skills missing from the
+ * canonical tree (e.g. a failed download) are skipped silently; the missing
+ * payload was already warned about by `installCanonicalSkills`.
+ *
+ * Falls back to copying the real files (with a warning) when the platform
+ * cannot create symlinks — e.g. Windows checkouts without developer mode or
+ * `git config core.symlinks=false`. A no-op when `skillDir` is the canonical
+ * dir itself.
+ */
+export async function linkSkills(
+  repoDir: string,
+  skillDir: string,
+): Promise<void> {
+  if (skillDir === CANONICAL_SKILL_DIR) return;
+
+  for (const skill of SKILLS) {
+    const canonicalPath = join(repoDir, CANONICAL_SKILL_DIR, skill.name);
+    try {
+      await stat(canonicalPath);
+    } catch {
+      // Canonical copy missing (download failed/skipped) — nothing to link to.
+      continue;
+    }
+
+    const linkPath = join(repoDir, skillDir, skill.name);
+    await mkdir(dirname(linkPath), { recursive: true });
+    // Replace any stale link, real dir, or copy left by a previous run so the
+    // link is recreated cleanly and points at the current canonical tree.
+    await rm(linkPath, { recursive: true, force: true });
+
+    const relTarget = relative(dirname(linkPath), canonicalPath);
+    try {
+      await symlink(relTarget, linkPath, 'dir');
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === 'EPERM' || code === 'ENOSYS') {
+        process.stderr.write(
+          `Warning: symlinks unsupported on this platform; copying skill "${skill.name}" into ${skillDir} instead.\n`,
+        );
+        await cp(canonicalPath, linkPath, { recursive: true });
+      } else {
+        throw err;
+      }
     }
   }
 }

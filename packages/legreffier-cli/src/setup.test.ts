@@ -1,7 +1,9 @@
 import {
   appendFile,
+  lstat,
   mkdir,
   readFile,
+  readlink,
   rm,
   stat,
   writeFile,
@@ -17,7 +19,10 @@ import {
   buildCodexRules,
   buildGhTokenRule,
   buildPermissions,
+  CANONICAL_SKILL_DIR,
   downloadSkills,
+  installCanonicalSkills,
+  linkSkills,
   writeSettingsLocal,
 } from './setup.js';
 
@@ -143,6 +148,93 @@ describe('downloadSkills', () => {
 
     expect(skill).toContain('/main/');
     expect(template).toContain('/main/');
+  });
+});
+
+describe('installCanonicalSkills', () => {
+  it('downloads skills into the canonical .agents/skills tree', async () => {
+    vi.stubGlobal('fetch', async (url: string) => ({
+      ok: true,
+      text: async () => `# Skill content for ${url}`,
+    }));
+
+    await installCanonicalSkills(tmpRepo);
+
+    expect(CANONICAL_SKILL_DIR).toBe('.agents/skills');
+    const content = await readFile(
+      join(tmpRepo, '.agents', 'skills', 'legreffier', 'SKILL.md'),
+      'utf-8',
+    );
+    expect(content).toContain('Skill content');
+  });
+});
+
+describe('linkSkills', () => {
+  it('symlinks each skill into the target tree with a relative target', async () => {
+    vi.stubGlobal('fetch', async (url: string) => ({
+      ok: true,
+      text: async () => `# Skill content for ${url}`,
+    }));
+    await installCanonicalSkills(tmpRepo);
+
+    await linkSkills(tmpRepo, '.claude/skills');
+
+    const linkPath = join(tmpRepo, '.claude', 'skills', 'legreffier');
+    const info = await lstat(linkPath);
+    expect(info.isSymbolicLink()).toBe(true);
+
+    // Relative target — resolves in fresh clones and worktrees.
+    const target = await readlink(linkPath);
+    expect(target).toBe(join('..', '..', '.agents', 'skills', 'legreffier'));
+
+    // Content is readable through the link.
+    const content = await readFile(join(linkPath, 'SKILL.md'), 'utf-8');
+    expect(content).toContain('Skill content');
+  });
+
+  it('is a no-op when the target is the canonical dir itself', async () => {
+    vi.stubGlobal('fetch', async (url: string) => ({
+      ok: true,
+      text: async () => `# Skill content for ${url}`,
+    }));
+    await installCanonicalSkills(tmpRepo);
+
+    await linkSkills(tmpRepo, CANONICAL_SKILL_DIR);
+
+    // Canonical tree stays as real files, not a self-referential symlink.
+    const info = await lstat(join(tmpRepo, '.agents', 'skills', 'legreffier'));
+    expect(info.isSymbolicLink()).toBe(false);
+    expect(info.isDirectory()).toBe(true);
+  });
+
+  it('replaces a stale real directory left by a previous copy-based run', async () => {
+    vi.stubGlobal('fetch', async (url: string) => ({
+      ok: true,
+      text: async () => `# Skill content for ${url}`,
+    }));
+    await installCanonicalSkills(tmpRepo);
+
+    // Simulate an old duplicated copy in the Claude tree.
+    const linkPath = join(tmpRepo, '.claude', 'skills', 'legreffier');
+    await mkdir(linkPath, { recursive: true });
+    await writeFile(join(linkPath, 'SKILL.md'), 'stale copy', 'utf-8');
+
+    await linkSkills(tmpRepo, '.claude/skills');
+
+    const info = await lstat(linkPath);
+    expect(info.isSymbolicLink()).toBe(true);
+    const content = await readFile(join(linkPath, 'SKILL.md'), 'utf-8');
+    expect(content).toContain('Skill content');
+    expect(content).not.toContain('stale copy');
+  });
+
+  it('skips skills missing from the canonical tree', async () => {
+    // No canonical download happened — nothing to link to.
+    await linkSkills(tmpRepo, '.claude/skills');
+
+    await expect(
+      lstat(join(tmpRepo, '.claude', 'skills', 'legreffier')),
+    ).rejects.toThrow();
   });
 });
 

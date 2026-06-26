@@ -28,9 +28,9 @@ export const commonArgs = {
   agent: {
     type: 'string',
     description:
-      'Agent client to configure (repeatable: --agent claude --agent codex). Accepts: claude, codex.',
+      'Agent client to configure (repeatable: --agent claude --agent codex). Accepts: claude, codex, opencode.',
     alias: 'a',
-    valueHint: 'claude|codex',
+    valueHint: 'claude|codex|opencode',
   },
   'api-url': {
     type: 'string',
