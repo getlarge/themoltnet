@@ -407,26 +407,35 @@ jobs:
   check-dist-agent-daemon-action:
     name: agent-daemon-action dist sync
     needs: [affected]
-    if: needs.affected.outputs.agent-daemon-action == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
     steps:
+      - name: Skip if action package not affected
+        if: needs.affected.outputs.agent-daemon-action != 'true'
+        run: echo "agent-daemon-action not affected; dist sync not required."
+
       - uses: actions/checkout@v6
+        if: needs.affected.outputs.agent-daemon-action == 'true'
       - uses: pnpm/action-setup@v5
+        if: needs.affected.outputs.agent-daemon-action == 'true'
       - uses: actions/setup-node@v6
+        if: needs.affected.outputs.agent-daemon-action == 'true'
         with:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: needs.affected.outputs.agent-daemon-action == 'true'
 
       - name: Rebuild bundle
+        if: needs.affected.outputs.agent-daemon-action == 'true'
         run: |
           rm -rf packages/agent-daemon-action/dist
           pnpm --filter @themoltnet/agent-daemon-action run build
 
       - name: Diff against committed dist
+        if: needs.affected.outputs.agent-daemon-action == 'true'
         run: |
           if ! git diff --ignore-space-at-eol --text \
                 --exit-code packages/agent-daemon-action/dist/main.js; then
@@ -697,7 +706,6 @@ jobs:
       contents: read
       packages: read
     needs: [affected, build-and-push]
-    if: needs.affected.outputs.e2e-node == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -723,20 +731,30 @@ jobs:
       # uses ciphertext and the server returns 403.
       ORY_ACTION_API_KEY: local-dev-webhook-key
     steps:
+      - name: Skip if Node E2E not affected
+        if: needs.affected.outputs.e2e-node != 'true'
+        run: echo "Node E2E projects not affected; E2E Tests (Node) not required."
+
       - uses: actions/checkout@v6
+        if: needs.affected.outputs.e2e-node == 'true'
       - uses: pnpm/action-setup@v5
+        if: needs.affected.outputs.e2e-node == 'true'
       - uses: actions/setup-node@v6
+        if: needs.affected.outputs.e2e-node == 'true'
         with:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: needs.affected.outputs.e2e-node == 'true'
       - name: Log in to GHCR
+        if: needs.affected.outputs.e2e-node == 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Start Docker Compose stack
+        if: needs.affected.outputs.e2e-node == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
@@ -744,14 +762,16 @@ jobs:
       # (sponsor flow), which would invalidate any in-flight test in another
       # suite running against the same stack.
       - name: Run REST API E2E tests
+        if: needs.affected.outputs.e2e-node == 'true'
         run: pnpm exec nx run @moltnet/rest-api:e2e
       - name: Run agent-daemon E2E tests
+        if: needs.affected.outputs.e2e-node == 'true'
         run: pnpm exec nx run @themoltnet/agent-daemon:e2e
       - name: Docker Compose logs
-        if: failure()
+        if: failure() && needs.affected.outputs.e2e-node == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
       - name: Teardown Docker Compose
-        if: always()
+        if: always() && needs.affected.outputs.e2e-node == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
 
   e2e-browser:
@@ -762,7 +782,6 @@ jobs:
       contents: read
       packages: read
     needs: [affected, build-and-push]
-    if: needs.affected.outputs.e2e-browser == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -770,38 +789,52 @@ jobs:
       CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
       MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
     steps:
+      - name: Skip if Browser E2E not affected
+        if: needs.affected.outputs.e2e-browser != 'true'
+        run: echo "Browser E2E projects not affected; E2E Tests (Browser) not required."
+
       - uses: actions/checkout@v6
+        if: needs.affected.outputs.e2e-browser == 'true'
       - uses: pnpm/action-setup@v5
+        if: needs.affected.outputs.e2e-browser == 'true'
       - uses: actions/setup-node@v6
+        if: needs.affected.outputs.e2e-browser == 'true'
         with:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: needs.affected.outputs.e2e-browser == 'true'
       - name: Get Playwright version
         id: pw-version
+        if: needs.affected.outputs.e2e-browser == 'true'
         run: echo "version=$(pnpm --silent --filter @moltnet/console exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browsers
         id: pw-cache
+        if: needs.affected.outputs.e2e-browser == 'true'
         uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.pw-version.outputs.version }}
       - name: Install Playwright browsers
-        if: steps.pw-cache.outputs.cache-hit != 'true'
+        if: needs.affected.outputs.e2e-browser == 'true' && steps.pw-cache.outputs.cache-hit != 'true'
         run: pnpm --filter @moltnet/console exec playwright install chromium
       - name: Install Playwright system deps
+        if: needs.affected.outputs.e2e-browser == 'true'
         run: pnpm --filter @moltnet/console exec playwright install-deps chromium
       - name: Log in to GHCR
+        if: needs.affected.outputs.e2e-browser == 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Start Docker Compose stack
+        if: needs.affected.outputs.e2e-browser == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
       - name: Run Console Browser E2E tests
+        if: needs.affected.outputs.e2e-browser == 'true'
         env:
           KRATOS_PUBLIC_URL: http://localhost:4433
           REST_API_URL: http://localhost:8080
@@ -819,10 +852,10 @@ jobs:
           ORY_KRATOS_ADMIN_URL: http://localhost:4434
         run: pnpm exec nx run @moltnet/console:e2e
       - name: Docker Compose logs
-        if: failure()
+        if: failure() && needs.affected.outputs.e2e-browser == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
       - name: Teardown Docker Compose
-        if: always()
+        if: always() && needs.affected.outputs.e2e-browser == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
 
   # MCP e2e: the mcp-server node suite + the mcp-host browser suite, against a
@@ -838,7 +871,6 @@ jobs:
       contents: read
       packages: read
     needs: [affected, build-and-push]
-    if: needs.affected.outputs.e2e-mcp == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -846,38 +878,52 @@ jobs:
       CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
       MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
     steps:
+      - name: Skip if MCP E2E not affected
+        if: needs.affected.outputs.e2e-mcp != 'true'
+        run: echo "MCP E2E projects not affected; E2E Tests (MCP) not required."
+
       - uses: actions/checkout@v6
+        if: needs.affected.outputs.e2e-mcp == 'true'
       - uses: pnpm/action-setup@v5
+        if: needs.affected.outputs.e2e-mcp == 'true'
       - uses: actions/setup-node@v6
+        if: needs.affected.outputs.e2e-mcp == 'true'
         with:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: needs.affected.outputs.e2e-mcp == 'true'
       - name: Get Playwright version
         id: pw-version
+        if: needs.affected.outputs.e2e-mcp == 'true'
         run: echo "version=$(pnpm --silent --filter @moltnet/mcp-host-e2e exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browsers
         id: pw-cache
+        if: needs.affected.outputs.e2e-mcp == 'true'
         uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.pw-version.outputs.version }}
       - name: Install Playwright browsers
-        if: steps.pw-cache.outputs.cache-hit != 'true'
+        if: needs.affected.outputs.e2e-mcp == 'true' && steps.pw-cache.outputs.cache-hit != 'true'
         run: pnpm --filter @moltnet/mcp-host-e2e exec playwright install chromium
       - name: Install Playwright system deps
+        if: needs.affected.outputs.e2e-mcp == 'true'
         run: pnpm --filter @moltnet/mcp-host-e2e exec playwright install-deps chromium
       - name: Log in to GHCR
+        if: needs.affected.outputs.e2e-mcp == 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Start Docker Compose stack
+        if: needs.affected.outputs.e2e-mcp == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
       - name: Run MCP server E2E tests
+        if: needs.affected.outputs.e2e-mcp == 'true'
         env:
           DATABASE_URL: postgresql://moltnet:moltnet_secret@127.0.0.1:5433/moltnet
           MCP_SERVER_URL: http://127.0.0.1:8001
@@ -890,6 +936,7 @@ jobs:
           ORY_KRATOS_ADMIN_URL: http://127.0.0.1:4434
         run: pnpm exec nx run @moltnet/mcp-server:e2e
       - name: Run MCP Host Browser E2E tests
+        if: needs.affected.outputs.e2e-mcp == 'true'
         env:
           BASE_URL: http://127.0.0.1:8082
           MCP_SERVER_URL: http://127.0.0.1:8001
@@ -903,10 +950,10 @@ jobs:
           ORY_KRATOS_ADMIN_URL: http://127.0.0.1:4434
         run: pnpm exec nx run @moltnet/mcp-host-e2e:e2e
       - name: Docker Compose logs
-        if: failure()
+        if: failure() && needs.affected.outputs.e2e-mcp == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
       - name: Teardown Docker Compose
-        if: always()
+        if: always() && needs.affected.outputs.e2e-mcp == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
 
   # Go CLI e2e runs in parallel with the Node and browser e2e jobs. It brings
@@ -921,7 +968,6 @@ jobs:
       contents: read
       packages: read
     needs: [affected, build-and-push]
-    if: needs.affected.outputs.e2e-go-cli == 'true'
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -929,35 +975,47 @@ jobs:
       CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
       MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
     steps:
+      - name: Skip if Go CLI E2E not affected
+        if: needs.affected.outputs.e2e-go-cli != 'true'
+        run: echo "Go CLI E2E projects not affected; E2E Tests (Go CLI) not required."
+
       - uses: actions/checkout@v6
+        if: needs.affected.outputs.e2e-go-cli == 'true'
       - uses: pnpm/action-setup@v5
+        if: needs.affected.outputs.e2e-go-cli == 'true'
       - uses: actions/setup-node@v6
+        if: needs.affected.outputs.e2e-go-cli == 'true'
         with:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: needs.affected.outputs.e2e-go-cli == 'true'
       - uses: actions/setup-go@v6
+        if: needs.affected.outputs.e2e-go-cli == 'true'
         with:
           go-version: '1.25'
       - name: Log in to GHCR
+        if: needs.affected.outputs.e2e-go-cli == 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Start Docker Compose stack
+        if: needs.affected.outputs.e2e-go-cli == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
       - name: Run Go CLI E2E tests
+        if: needs.affected.outputs.e2e-go-cli == 'true'
         env:
           API_URL: http://localhost:8080
         run: go test -tags e2e -v -timeout 120s ./apps/moltnet-cli/...
       - name: Docker Compose logs
-        if: failure()
+        if: failure() && needs.affected.outputs.e2e-go-cli == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
       - name: Teardown Docker Compose
-        if: always()
+        if: always() && needs.affected.outputs.e2e-go-cli == 'true'
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
 
   go-otel-extension:
@@ -1049,7 +1107,6 @@ jobs:
     # any e2e suite runs (they all share the compose stack). landing has no
     # e2e consumer, so it's gated independently on whether the landing project
     # is affected. The matrix `needed` field carries the per-image condition.
-    if: needs.affected.outputs.e2e-any == 'true' || needs.affected.outputs.landing == 'true'
     strategy:
       fail-fast: false
       matrix:
