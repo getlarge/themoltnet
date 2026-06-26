@@ -1,5 +1,3 @@
-import type { Readable } from 'node:stream';
-
 import type {
   AbortTaskAttemptData,
   AcceptTransferResponses,
@@ -664,7 +662,7 @@ export interface RuntimeSessionsNamespace {
 
   upload(
     path: UploadRuntimeSessionData['path'],
-    body: NodeJS.ReadableStream,
+    body: RuntimeSessionUploadBody,
     query: NonNullable<UploadRuntimeSessionData['query']>,
     options: RuntimeSessionRequestOptions,
   ): Promise<RuntimeSession>;
@@ -672,12 +670,22 @@ export interface RuntimeSessionsNamespace {
   download(
     path: DownloadRuntimeSessionData['path'],
     options: RuntimeSessionRequestOptions,
-  ): Promise<Readable>;
+  ): Promise<RuntimeSessionDownloadStream>;
 }
 
 export interface RuntimeSessionRequestOptions {
   teamId: string;
 }
+
+export type RuntimeSessionUploadBody =
+  | AsyncIterable<Uint8Array>
+  | ReadableStream<Uint8Array>
+  | Blob
+  | ArrayBuffer
+  | Uint8Array
+  | string;
+
+export type RuntimeSessionDownloadStream = AsyncIterable<Uint8Array>;
 
 // ---------------------------------------------------------------------------
 // Agent facade type
