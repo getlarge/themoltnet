@@ -15,6 +15,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  createGondolinToolDefinitions,
   describeToolErrorMessage,
   isBashTimeoutResult,
   shouldEmitToolCallError,
@@ -86,6 +87,26 @@ describe('extractJsonObject', () => {
   it('falls back from malformed fence to raw text scan', () => {
     const txt = '```json\nnot json\n```\n\n{"real":true}';
     expect(extractJsonObject(txt)).toEqual({ real: true });
+  });
+});
+
+describe('createGondolinToolDefinitions', () => {
+  it('registers the full VM-routed built-in tool surface', () => {
+    const tools = createGondolinToolDefinitions({
+      vm: {} as never,
+      mountPath: '/Users/ed/project',
+      guestWorkspace: '/workspace',
+    });
+
+    expect(tools.map((tool) => tool.name)).toEqual([
+      'read',
+      'write',
+      'edit',
+      'bash',
+      'ls',
+      'find',
+      'grep',
+    ]);
   });
 });
 
