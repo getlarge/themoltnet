@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.40.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.39.0...moltnet-api-client-v1.40.0) (2026-06-26)
+
+
+### Features
+
+* add runtime profile model options ([4a364a2](https://github.com/getlarge/themoltnet/commit/4a364a2c6e91593c335a84d84ec27ab32e003977))
+* **runtime:** add runtime-session sync repair ([0e1e12b](https://github.com/getlarge/themoltnet/commit/0e1e12b8828e48f33c4a7afaec18cae16a4c71bb))
+* **runtime:** expose session repair API ([1958c0e](https://github.com/getlarge/themoltnet/commit/1958c0e3b1d996ddfef06f9c3a056caaf14413b1))
+
 ## [1.39.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.38.0...moltnet-api-client-v1.39.0) (2026-06-25)
 
 
