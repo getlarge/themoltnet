@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Source of truth is .agents/skills/ (real files). Each shared skill lives
+# there once and .claude/skills/<skill> is a relative symlink into it, so the
+# trees cannot drift. Extra .agents/skills entries are allowed for
+# Codex/opencode-only or plugin-provided skills.
+CLAUDE_DIR=".claude/skills"
+AGENTS_DIR=".agents/skills"
+failed=0
+
+for dir in "$CLAUDE_DIR" "$AGENTS_DIR"; do
+  if [ ! -d "$dir" ]; then
+    echo "::error::Required directory '$dir' does not exist"
+    exit 1
+  fi
+done
+
+# Every entry in .claude/skills must be a relative symlink resolving to the
+# matching canonical skill under .agents/skills.
+while IFS= read -r entry; do
+  skill=$(basename "$entry")
+  expected="../../.agents/skills/$skill"
+
+  if [ ! -L "$entry" ]; then
+    echo "::error::'$entry' must be a symlink into $AGENTS_DIR (real files belong in $AGENTS_DIR; symlink with: ln -s $expected $entry)"
+    failed=1
+    continue
+  fi
+
+  target=$(readlink "$entry")
+  if [ "$target" != "$expected" ]; then
+    echo "::error::'$entry' points at '$target' but must point at the relative target '$expected'"
+    failed=1
+  fi
+
+  if [ ! -d "$AGENTS_DIR/$skill" ]; then
+    echo "::error::Canonical skill '$AGENTS_DIR/$skill' (target of $entry) does not exist"
+    failed=1
+  fi
+done < <(find "$CLAUDE_DIR" -mindepth 1 -maxdepth 1 | sort)
+
+if [ "$failed" -ne 0 ]; then
+  echo ""
+  echo "Skill sync failed. Source of truth is .agents/skills/ (real files)."
+  echo "Each shared skill must be a single relative symlink at .claude/skills/<skill> -> ../../.agents/skills/<skill>."
+  exit 1
+fi
+
+echo "OK: every .claude/skills entry is a relative symlink into .agents/skills. Extra .agents/skills entries are allowed."
