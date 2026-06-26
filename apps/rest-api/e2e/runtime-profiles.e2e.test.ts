@@ -56,6 +56,11 @@ describe('Runtime Profiles API', () => {
       description: `${name} profile for e2e`,
       provider: 'Anthropic',
       model: 'Claude-Sonnet-4-5',
+      thinkingLevel: 'high' as const,
+      temperature: 0.2,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 12_000,
       sandbox: {
         resumeCommands: [
           {
@@ -125,6 +130,11 @@ describe('Runtime Profiles API', () => {
       teamId: owner.personalTeamId,
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
+      thinkingLevel: 'high',
+      temperature: 0.2,
+      topP: 0.9,
+      topK: 40,
+      maxOutputTokens: 12_000,
       runtimeKind: 'gondolin_pi',
       sessionStorageMode: 'local',
       workspaceStorageMode: 'local',
@@ -164,6 +174,11 @@ describe('Runtime Profiles API', () => {
       path: { profileId: created!.id },
       body: {
         model: 'Claude-Opus-4-1',
+        thinkingLevel: 'medium',
+        temperature: null,
+        topP: null,
+        topK: null,
+        maxOutputTokens: null,
         sessionTtlSec: 3600,
         defaultWorkspaceMode: null,
         allowedWorkspaceModes: ['none'],
@@ -175,6 +190,11 @@ describe('Runtime Profiles API', () => {
     expect(updated).toMatchObject({
       id: created!.id,
       model: 'claude-opus-4-1',
+      thinkingLevel: 'medium',
+      temperature: null,
+      topP: null,
+      topK: null,
+      maxOutputTokens: null,
       sessionTtlSec: 3600,
       defaultWorkspaceMode: null,
       allowedWorkspaceModes: ['none'],

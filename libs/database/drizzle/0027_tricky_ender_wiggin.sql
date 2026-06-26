@@ -1,0 +1,2 @@
+ALTER TABLE "runtime_profiles" ADD COLUMN "thinking_level" varchar(16);--> statement-breakpoint
+ALTER TABLE "runtime_profiles" ADD CONSTRAINT "runtime_profiles_thinking_level_valid" CHECK (thinking_level IS NULL OR thinking_level = ANY(ARRAY['off','minimal','low','medium','high','xhigh']::text[]));

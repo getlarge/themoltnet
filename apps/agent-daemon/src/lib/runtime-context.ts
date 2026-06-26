@@ -5,6 +5,11 @@ export interface DaemonRuntimeContext {
   profileName: string;
   provider: string;
   model: string;
+  thinkingLevel: string | null;
+  temperature: number | null;
+  topP: number | null;
+  topK: number | null;
+  maxOutputTokens: number | null;
 }
 
 const storage = new AsyncLocalStorage<DaemonRuntimeContext>();

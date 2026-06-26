@@ -38,8 +38,13 @@ import {
   SessionManager,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
+import type { RuntimeProfileThinkingLevel } from '@moltnet/tasks';
 
 import { createPiOtelExtension } from '../otel/index.js';
+import {
+  createPiModelOptionsExtension,
+  hasPiModelOptions,
+} from './model-options-extension.js';
 
 export interface BuildAgentSessionArgs {
   /** Host directory mounted into the VM. */
@@ -50,6 +55,16 @@ export interface BuildAgentSessionArgs {
   piAuthDir: string;
   /** Resolved pi model handle (provider + model id). */
   modelHandle: Model<Api>;
+  /** Optional runtime-profile thinking/reasoning level applied at session start. */
+  thinkingLevel?: RuntimeProfileThinkingLevel | null;
+  /** Optional runtime-profile sampling temperature applied to provider requests. */
+  temperature?: number | null;
+  /** Optional runtime-profile nucleus sampling probability mass. */
+  topP?: number | null;
+  /** Optional runtime-profile top-k sampling cutoff. */
+  topK?: number | null;
+  /** Optional runtime-profile generated output token cap. */
+  maxOutputTokens?: number | null;
   /** Pre-built customTools array. Caller composes Gondolin + MoltNet + submit tools. */
   customTools: ToolDefinition[];
   /** System-prompt fragments appended after pi's defaults. Parent passes the
@@ -90,11 +105,20 @@ export async function buildAgentSession(
     agentName: args.agentName,
     spanAttributes: args.otelSpanAttrs,
   });
+  const modelOptions = {
+    temperature: args.temperature,
+    topP: args.topP,
+    topK: args.topK,
+    maxOutputTokens: args.maxOutputTokens,
+  };
+  const extensionFactories = hasPiModelOptions(modelOptions)
+    ? [piOtelExtension, createPiModelOptionsExtension(modelOptions)]
+    : [piOtelExtension];
 
   const resourceLoader = new DefaultResourceLoader({
     cwd: args.cwdPath,
     agentDir: args.piAuthDir,
-    extensionFactories: [piOtelExtension],
+    extensionFactories,
     appendSystemPrompt: args.appendSystemPrompt,
     skillsOverride: args.skillsOverride ?? NO_SKILLS,
   });
@@ -112,6 +136,7 @@ export async function buildAgentSession(
     agentDir: args.piAuthDir,
     cwd: args.cwdPath,
     model: args.modelHandle,
+    thinkingLevel: args.thinkingLevel ?? undefined,
     customTools: args.customTools,
     sessionManager,
     resourceLoader,

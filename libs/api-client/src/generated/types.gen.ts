@@ -438,6 +438,7 @@ export type CreateRuntimeProfileBody = {
   leaseTtlSec?: number;
   maxBashTimeouts?: number;
   maxBatchSize?: number;
+  maxOutputTokens?: number | null;
   maxTurns?: number;
   model: string;
   name: string;
@@ -481,6 +482,17 @@ export type CreateRuntimeProfileBody = {
   };
   sessionStorageMode?: 'local';
   sessionTtlSec?: number;
+  temperature?: number | null;
+  thinkingLevel?:
+    | 'off'
+    | 'minimal'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'xhigh'
+    | null;
+  topK?: number | null;
+  topP?: number | null;
   workspaceStorageMode?: 'local';
   workspaceTtlSec?: number;
 };
@@ -1641,6 +1653,7 @@ export type RuntimeProfile = {
   leaseTtlSec: number;
   maxBashTimeouts: number;
   maxBatchSize: number;
+  maxOutputTokens: number | null;
   maxTurns: number;
   model: string;
   name: string;
@@ -1686,6 +1699,10 @@ export type RuntimeProfile = {
   sessionStorageMode: 'local';
   sessionTtlSec: number;
   teamId: string;
+  temperature: number | null;
+  thinkingLevel: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
+  topK: number | null;
+  topP: number | null;
   updatedAt: string;
   workspaceStorageMode: 'local';
   workspaceTtlSec: number;
@@ -1718,6 +1735,7 @@ export type RuntimeProfileListResponse = {
     leaseTtlSec: number;
     maxBashTimeouts: number;
     maxBatchSize: number;
+    maxOutputTokens: number | null;
     maxTurns: number;
     model: string;
     name: string;
@@ -1763,6 +1781,17 @@ export type RuntimeProfileListResponse = {
     sessionStorageMode: 'local';
     sessionTtlSec: number;
     teamId: string;
+    temperature: number | null;
+    thinkingLevel:
+      | 'off'
+      | 'minimal'
+      | 'low'
+      | 'medium'
+      | 'high'
+      | 'xhigh'
+      | null;
+    topK: number | null;
+    topP: number | null;
     updatedAt: string;
     workspaceStorageMode: 'local';
     workspaceTtlSec: number;
@@ -2131,6 +2160,7 @@ export type UpdateRuntimeProfileBody = {
   leaseTtlSec?: number;
   maxBashTimeouts?: number;
   maxBatchSize?: number;
+  maxOutputTokens?: number | null;
   maxTurns?: number;
   model?: string;
   name?: string;
@@ -2174,6 +2204,17 @@ export type UpdateRuntimeProfileBody = {
   };
   sessionStorageMode?: 'local';
   sessionTtlSec?: number;
+  temperature?: number | null;
+  thinkingLevel?:
+    | 'off'
+    | 'minimal'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'xhigh'
+    | null;
+  topK?: number | null;
+  topP?: number | null;
   workspaceStorageMode?: 'local';
   workspaceTtlSec?: number;
 };

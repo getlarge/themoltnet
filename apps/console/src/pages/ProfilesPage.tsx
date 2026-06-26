@@ -31,12 +31,26 @@ type RuntimeProfileWorkspaceMode =
   | 'none'
   | 'shared_mount'
   | 'dedicated_worktree';
+type RuntimeProfileThinkingLevel =
+  | 'off'
+  | 'minimal'
+  | 'low'
+  | 'medium'
+  | 'high'
+  | 'xhigh';
+type RuntimeProfileListItem = Omit<RuntimeProfile, 'thinkingLevel'> &
+  Partial<Pick<RuntimeProfile, 'thinkingLevel'>>;
 
 interface ProfileFormState {
   name: string;
   description: string;
   provider: string;
   model: string;
+  thinkingLevel: RuntimeProfileThinkingLevel | '';
+  temperature: string;
+  topP: string;
+  topK: string;
+  maxOutputTokens: string;
   sandboxJson: string;
   sessionTtlSec: string;
   workspaceTtlSec: string;
@@ -57,6 +71,11 @@ const EMPTY_FORM: ProfileFormState = {
   description: '',
   provider: '',
   model: '',
+  thinkingLevel: '',
+  temperature: '',
+  topP: '',
+  topK: '',
+  maxOutputTokens: '',
   sandboxJson: '{}',
   sessionTtlSec: '1800',
   workspaceTtlSec: '1800',
@@ -91,6 +110,14 @@ const FIELD_HELP = {
     'Maximum tool-use turns allowed for one attempt. Use 0 to disable the profile default.',
   maxBashTimeouts:
     'Maximum bash tool timeouts allowed before the daemon stops the attempt. Use 0 to disable.',
+  thinkingLevel:
+    'Reasoning/thinking effort applied when the Pi session starts. Leave unset to use the agent default.',
+  temperature:
+    'Sampling temperature. Leave blank for provider default. Lower is more deterministic; higher is more varied.',
+  topP: 'Nucleus sampling probability mass. Leave blank for provider default. Usually tune temperature or top-p, not both.',
+  topK: 'Top-k sampling cutoff. Leave blank for provider default. Applied only to providers that support top-k.',
+  maxOutputTokens:
+    'Maximum generated output tokens. Leave blank for provider/model default.',
   defaultWorkspaceMode:
     'Workspace mode this profile chooses when a task does not request one. Task type defaults apply when unset.',
   allowedWorkspaceModes:
@@ -134,7 +161,7 @@ export function ProfilesPage() {
   });
 
   const profiles = useMemo(
-    () => profilesQuery.data?.items ?? [],
+    () => (profilesQuery.data?.items ?? []).map(normalizeRuntimeProfile),
     [profilesQuery.data],
   );
   const runtimeModels = useMemo(
@@ -424,6 +451,58 @@ export function ProfilesPage() {
                 onChange={(value) => updateField('model', value)}
                 list="runtime-profile-model-options"
                 required
+              />
+              <LabeledSelect
+                label="Thinking level"
+                help={FIELD_HELP.thinkingLevel}
+                value={form.thinkingLevel}
+                onChange={(value) =>
+                  updateField(
+                    'thinkingLevel',
+                    value as ProfileFormState['thinkingLevel'],
+                  )
+                }
+                options={[
+                  { value: '', label: 'Agent default' },
+                  { value: 'off', label: 'Off' },
+                  { value: 'minimal', label: 'Minimal' },
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' },
+                  { value: 'xhigh', label: 'Extra high' },
+                ]}
+              />
+              <LabeledInput
+                label="Temperature"
+                help={FIELD_HELP.temperature}
+                value={form.temperature}
+                onChange={(value) => updateField('temperature', value)}
+                inputMode="decimal"
+                placeholder="Provider default"
+              />
+              <LabeledInput
+                label="Top-p"
+                help={FIELD_HELP.topP}
+                value={form.topP}
+                onChange={(value) => updateField('topP', value)}
+                inputMode="decimal"
+                placeholder="Provider default"
+              />
+              <LabeledInput
+                label="Top-k"
+                help={FIELD_HELP.topK}
+                value={form.topK}
+                onChange={(value) => updateField('topK', value)}
+                inputMode="numeric"
+                placeholder="Provider default"
+              />
+              <LabeledInput
+                label="Max output tokens"
+                help={FIELD_HELP.maxOutputTokens}
+                value={form.maxOutputTokens}
+                onChange={(value) => updateField('maxOutputTokens', value)}
+                inputMode="numeric"
+                placeholder="Provider default"
               />
             </div>
 
@@ -740,6 +819,7 @@ function LabeledInput({
   onChange,
   list,
   placeholder,
+  inputMode,
   required = false,
   type = 'text',
 }: {
@@ -749,6 +829,7 @@ function LabeledInput({
   onChange: (value: string) => void;
   list?: string;
   placeholder?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
   required?: boolean;
   type?: 'number' | 'text';
 }) {
@@ -762,6 +843,7 @@ function LabeledInput({
         type={type}
         list={list}
         placeholder={placeholder}
+        inputMode={inputMode}
         onChange={(event: ChangeEvent<HTMLInputElement>) =>
           onChange(event.target.value)
         }
@@ -882,6 +964,13 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
     description: profile.description ?? '',
     provider: profile.provider,
     model: profile.model,
+    thinkingLevel: profile.thinkingLevel ?? '',
+    temperature:
+      profile.temperature === null ? '' : String(profile.temperature),
+    topP: profile.topP === null ? '' : String(profile.topP),
+    topK: profile.topK === null ? '' : String(profile.topK),
+    maxOutputTokens:
+      profile.maxOutputTokens === null ? '' : String(profile.maxOutputTokens),
     sandboxJson: JSON.stringify(profile.sandbox, null, 2),
     sessionTtlSec: String(profile.sessionTtlSec),
     workspaceTtlSec: String(profile.workspaceTtlSec),
@@ -895,6 +984,19 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
     requiredEnv: profile.requiredEnv.join(', '),
     requiredTools: profile.requiredTools.join(', '),
     contextJson: JSON.stringify(profile.context, null, 2),
+  };
+}
+
+function normalizeRuntimeProfile(
+  profile: RuntimeProfileListItem,
+): RuntimeProfile {
+  return {
+    ...profile,
+    thinkingLevel: profile.thinkingLevel ?? null,
+    temperature: profile.temperature ?? null,
+    topP: profile.topP ?? null,
+    topK: profile.topK ?? null,
+    maxOutputTokens: profile.maxOutputTokens ?? null,
   };
 }
 
@@ -928,6 +1030,17 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
       : {}),
     provider: requireText(form.provider, 'Provider'),
     model: requireText(form.model, 'Model'),
+    thinkingLevel: form.thinkingLevel || null,
+    temperature: parseOptionalNumber(form.temperature, 'Temperature', {
+      min: 0,
+      max: 2,
+    }),
+    topP: parseOptionalNumber(form.topP, 'Top-p', { min: 0, max: 1 }),
+    topK: parseOptionalPositiveInt(form.topK, 'Top-k'),
+    maxOutputTokens: parseOptionalPositiveInt(
+      form.maxOutputTokens,
+      'Max output tokens',
+    ),
     runtimeKind: 'gondolin_pi',
     sandbox,
     sessionStorageMode: 'local',
@@ -994,6 +1107,30 @@ function parseNonNegativeInt(value: string, label: string): number {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 0) {
     throw new Error(`${label} must be a non-negative integer.`);
+  }
+  return parsed;
+}
+
+function parseOptionalNumber(
+  value: string,
+  label: string,
+  range: { min: number; max: number },
+): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < range.min || parsed > range.max) {
+    throw new Error(`${label} must be between ${range.min} and ${range.max}.`);
+  }
+  return parsed;
+}
+
+function parseOptionalPositiveInt(value: string, label: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`${label} must be a positive integer.`);
   }
   return parsed;
 }

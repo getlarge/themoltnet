@@ -42,6 +42,59 @@ export type RuntimeProfileAllowedWorkspaceModes = Static<
   typeof RuntimeProfileAllowedWorkspaceModes
 >;
 
+const RuntimeProfileThinkingLevelOptions = [
+  Type.Literal('off'),
+  Type.Literal('minimal'),
+  Type.Literal('low'),
+  Type.Literal('medium'),
+  Type.Literal('high'),
+  Type.Literal('xhigh'),
+] as const;
+
+export const RuntimeProfileThinkingLevel = Type.Union([
+  ...RuntimeProfileThinkingLevelOptions,
+]);
+export type RuntimeProfileThinkingLevel = Static<
+  typeof RuntimeProfileThinkingLevel
+>;
+
+export const RuntimeProfileNullableThinkingLevel = Type.Union([
+  ...RuntimeProfileThinkingLevelOptions,
+  Type.Null(),
+]);
+
+export const RuntimeProfileNullableTemperature = Type.Union([
+  Type.Number({ minimum: 0, maximum: 2 }),
+  Type.Null(),
+]);
+export type RuntimeProfileNullableTemperature = Static<
+  typeof RuntimeProfileNullableTemperature
+>;
+
+export const RuntimeProfileNullableTopP = Type.Union([
+  Type.Number({ minimum: 0, maximum: 1 }),
+  Type.Null(),
+]);
+export type RuntimeProfileNullableTopP = Static<
+  typeof RuntimeProfileNullableTopP
+>;
+
+export const RuntimeProfileNullableTopK = Type.Union([
+  Type.Integer({ minimum: 1, maximum: 10_000 }),
+  Type.Null(),
+]);
+export type RuntimeProfileNullableTopK = Static<
+  typeof RuntimeProfileNullableTopK
+>;
+
+export const RuntimeProfileNullableMaxOutputTokens = Type.Union([
+  Type.Integer({ minimum: 1, maximum: 1_000_000 }),
+  Type.Null(),
+]);
+export type RuntimeProfileNullableMaxOutputTokens = Static<
+  typeof RuntimeProfileNullableMaxOutputTokens
+>;
+
 const SandboxResumeCommandWhenSchema = Type.Object(
   {
     workspaceMode: Type.Optional(
@@ -224,6 +277,11 @@ export const RuntimeProfile = Type.Object(
     description: Type.Union([Type.String({ maxLength: 4096 }), Type.Null()]),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
+    thinkingLevel: RuntimeProfileNullableThinkingLevel,
+    temperature: RuntimeProfileNullableTemperature,
+    topP: RuntimeProfileNullableTopP,
+    topK: RuntimeProfileNullableTopK,
+    maxOutputTokens: RuntimeProfileNullableMaxOutputTokens,
     runtimeKind: Type.Literal('gondolin_pi'),
     sandbox: RuntimeProfileSandbox,
     sessionStorageMode: Type.Literal('local'),

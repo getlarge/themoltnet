@@ -54,6 +54,7 @@ describe('buildAgentSession', () => {
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
+      thinkingLevel: 'high',
       customTools: [],
       appendSystemPrompt: ['runtime'],
       otelSpanAttrs: {},
@@ -67,6 +68,9 @@ describe('buildAgentSession', () => {
       '/sessions/judge',
     );
     expect(forkFrom).not.toHaveBeenCalled();
+    expect(createAgentSession).toHaveBeenCalledWith(
+      expect.objectContaining({ thinkingLevel: 'high' }),
+    );
   });
 
   it('forks from the producer session when requested', async () => {

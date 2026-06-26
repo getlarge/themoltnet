@@ -38,6 +38,7 @@ import type {
   ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
+import type { RuntimeProfileThinkingLevel } from '@moltnet/tasks';
 import type { SubagentContractRegistry } from '@themoltnet/agent-runtime';
 import { type Static, type TObject, Type } from 'typebox';
 import { Value } from 'typebox/value';
@@ -88,6 +89,16 @@ export interface CreateSubagentToolArgs {
   piAuthDir: string;
   /** Resolved pi model handle — subagents share it. */
   modelHandle: Model<Api>;
+  /** Runtime-profile thinking/reasoning level — subagents inherit it. */
+  thinkingLevel?: RuntimeProfileThinkingLevel | null;
+  /** Runtime-profile sampling temperature — subagents inherit it. */
+  temperature?: number | null;
+  /** Runtime-profile nucleus sampling probability mass — subagents inherit it. */
+  topP?: number | null;
+  /** Runtime-profile top-k sampling cutoff — subagents inherit it. */
+  topK?: number | null;
+  /** Runtime-profile generated output token cap — subagents inherit it. */
+  maxOutputTokens?: number | null;
   /** Agent name for telemetry. */
   agentName: string;
   /**
@@ -269,6 +280,11 @@ export function createSubagentTool(
         cwdPath: args.cwdPath ?? args.mountPath,
         piAuthDir: args.piAuthDir,
         modelHandle: args.modelHandle,
+        thinkingLevel: args.thinkingLevel,
+        temperature: args.temperature,
+        topP: args.topP,
+        topK: args.topK,
+        maxOutputTokens: args.maxOutputTokens,
         agentName: args.agentName,
         customTools: [...args.inheritedCustomTools, submitTool],
         appendSystemPrompt: [args.parentRuntimeInstructor, subagentInstructor],

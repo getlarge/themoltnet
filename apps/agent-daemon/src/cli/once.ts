@@ -170,6 +170,23 @@ export async function runOnce(argv: string[]): Promise<number> {
       'moltnet.agent.name': opts.agent,
       'moltnet.llm.provider': profile.provider,
       'moltnet.llm.model': profile.model,
+      ...(profile.thinkingLevel
+        ? { 'moltnet.llm.thinking_level': profile.thinkingLevel }
+        : {}),
+      ...(profile.temperature !== null
+        ? { 'moltnet.llm.temperature': String(profile.temperature) }
+        : {}),
+      ...(profile.topP !== null
+        ? { 'moltnet.llm.top_p': String(profile.topP) }
+        : {}),
+      ...(profile.topK !== null
+        ? { 'moltnet.llm.top_k': String(profile.topK) }
+        : {}),
+      ...(profile.maxOutputTokens !== null
+        ? {
+            'moltnet.llm.max_output_tokens': String(profile.maxOutputTokens),
+          }
+        : {}),
       'moltnet.runtime_profile.id': profile.id,
     },
   });
@@ -183,6 +200,11 @@ export async function runOnce(argv: string[]): Promise<number> {
     agent: opts.agent,
     provider: profile.provider,
     model: profile.model,
+    thinkingLevel: profile.thinkingLevel,
+    temperature: profile.temperature,
+    topP: profile.topP,
+    topK: profile.topK,
+    maxOutputTokens: profile.maxOutputTokens,
     runtimeProfileId: profile.id,
     runtimeProfileName: profile.name,
   });
@@ -267,6 +289,11 @@ export async function runOnce(argv: string[]): Promise<number> {
       mountPath: sandbox.rootDir,
       provider: profile.provider,
       model: profile.model,
+      thinkingLevel: profile.thinkingLevel,
+      temperature: profile.temperature,
+      topP: profile.topP,
+      topK: profile.topK,
+      maxOutputTokens: profile.maxOutputTokens,
       sandboxConfig: sandbox.config,
       makeExecutionPlan: (claimedTask) =>
         executionPlans.getOrCreate(claimedTask),
@@ -341,6 +368,11 @@ export async function runOnce(argv: string[]): Promise<number> {
             profileName: profile.name,
             provider: profile.provider,
             model: profile.model,
+            thinkingLevel: profile.thinkingLevel,
+            temperature: profile.temperature,
+            topP: profile.topP,
+            topK: profile.topK,
+            maxOutputTokens: profile.maxOutputTokens,
           },
           () => rawExecuteTask(claimedTask, reporter),
         );

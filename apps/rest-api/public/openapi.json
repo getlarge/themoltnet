@@ -1611,6 +1611,18 @@
             "minimum": 1,
             "type": "integer"
           },
+          "maxOutputTokens": {
+            "anyOf": [
+              {
+                "maximum": 1000000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "maxTurns": {
             "maximum": 10000,
             "minimum": 0,
@@ -1841,6 +1853,85 @@
             "maximum": 86400,
             "minimum": 1,
             "type": "integer"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "maximum": 2,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "thinkingLevel": {
+            "anyOf": [
+              {
+                "enum": [
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "minimal"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "low"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "medium"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "high"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "xhigh"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topK": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topP": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "workspaceStorageMode": {
             "enum": [
@@ -6831,6 +6922,18 @@
             "minimum": 1,
             "type": "integer"
           },
+          "maxOutputTokens": {
+            "anyOf": [
+              {
+                "maximum": 1000000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "maxTurns": {
             "maximum": 10000,
             "minimum": 0,
@@ -7070,6 +7173,85 @@
             "format": "uuid",
             "type": "string"
           },
+          "temperature": {
+            "anyOf": [
+              {
+                "maximum": 2,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "thinkingLevel": {
+            "anyOf": [
+              {
+                "enum": [
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "minimal"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "low"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "medium"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "high"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "xhigh"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topK": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topP": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "updatedAt": {
             "format": "date-time",
             "type": "string"
@@ -7093,6 +7275,11 @@
           "description",
           "provider",
           "model",
+          "thinkingLevel",
+          "temperature",
+          "topP",
+          "topK",
+          "maxOutputTokens",
           "runtimeKind",
           "sandbox",
           "sessionStorageMode",
@@ -7351,6 +7538,18 @@
                   "minimum": 1,
                   "type": "integer"
                 },
+                "maxOutputTokens": {
+                  "anyOf": [
+                    {
+                      "maximum": 1000000,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "maxTurns": {
                   "maximum": 10000,
                   "minimum": 0,
@@ -7590,6 +7789,85 @@
                   "format": "uuid",
                   "type": "string"
                 },
+                "temperature": {
+                  "anyOf": [
+                    {
+                      "maximum": 2,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "thinkingLevel": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "off"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "minimal"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "low"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "medium"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "high"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "xhigh"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "topK": {
+                  "anyOf": [
+                    {
+                      "maximum": 10000,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "topP": {
+                  "anyOf": [
+                    {
+                      "maximum": 1,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "updatedAt": {
                   "format": "date-time",
                   "type": "string"
@@ -7613,6 +7891,11 @@
                 "description",
                 "provider",
                 "model",
+                "thinkingLevel",
+                "temperature",
+                "topP",
+                "topK",
+                "maxOutputTokens",
                 "runtimeKind",
                 "sandbox",
                 "sessionStorageMode",
@@ -9737,6 +10020,18 @@
             "minimum": 1,
             "type": "integer"
           },
+          "maxOutputTokens": {
+            "anyOf": [
+              {
+                "maximum": 1000000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "maxTurns": {
             "maximum": 10000,
             "minimum": 0,
@@ -9967,6 +10262,85 @@
             "maximum": 86400,
             "minimum": 1,
             "type": "integer"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "maximum": 2,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "thinkingLevel": {
+            "anyOf": [
+              {
+                "enum": [
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "minimal"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "low"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "medium"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "high"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "xhigh"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topK": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topP": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "workspaceStorageMode": {
             "enum": [

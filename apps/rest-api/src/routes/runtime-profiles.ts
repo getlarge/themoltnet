@@ -9,7 +9,10 @@ import {
   TeamHeaderOptionalSchema,
 } from '@moltnet/models';
 import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
-import { RuntimeProfile as RuntimeProfileSchema } from '@moltnet/tasks';
+import {
+  RuntimeProfile as RuntimeProfileSchema,
+  type RuntimeProfileThinkingLevel,
+} from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
@@ -95,6 +98,12 @@ function serializeProfile(
     description: row.description ?? null,
     provider: row.provider,
     model: row.model,
+    thinkingLevel:
+      (row.thinkingLevel as RuntimeProfileThinkingLevel | null) ?? null,
+    temperature: row.temperature ?? null,
+    topP: row.topP ?? null,
+    topK: row.topK ?? null,
+    maxOutputTokens: row.maxOutputTokens ?? null,
     runtimeKind: 'gondolin_pi',
     sandbox: row.sandbox as Record<string, unknown>,
     sessionStorageMode: 'local',
@@ -127,6 +136,11 @@ type ProfileDefinitionInput = {
   description?: string | null;
   provider: string;
   model: string;
+  thinkingLevel?: RuntimeProfileThinkingLevel | null;
+  temperature?: number | null;
+  topP?: number | null;
+  topK?: number | null;
+  maxOutputTokens?: number | null;
   runtimeKind?: 'gondolin_pi';
   sandbox: unknown;
   sessionStorageMode?: 'local';
@@ -154,6 +168,11 @@ async function computeProfileDefinitionCid(
     description: input.description ?? null,
     provider: input.provider.toLowerCase(),
     model: input.model.toLowerCase(),
+    thinkingLevel: input.thinkingLevel ?? null,
+    temperature: input.temperature ?? null,
+    topP: input.topP ?? null,
+    topK: input.topK ?? null,
+    maxOutputTokens: input.maxOutputTokens ?? null,
     runtimeKind: input.runtimeKind ?? 'gondolin_pi',
     sandbox: input.sandbox,
     sessionStorageMode: input.sessionStorageMode ?? 'local',
@@ -259,6 +278,11 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           description: body.description ?? null,
           provider: body.provider.toLowerCase(),
           model: body.model.toLowerCase(),
+          thinkingLevel: body.thinkingLevel ?? null,
+          temperature: body.temperature ?? null,
+          topP: body.topP ?? null,
+          topK: body.topK ?? null,
+          maxOutputTokens: body.maxOutputTokens ?? null,
           runtimeKind: body.runtimeKind ?? 'gondolin_pi',
           sandbox: body.sandbox,
           sessionStorageMode: body.sessionStorageMode ?? 'local',
@@ -371,6 +395,21 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
             : existing.description,
         provider: (body.provider ?? existing.provider).toLowerCase(),
         model: (body.model ?? existing.model).toLowerCase(),
+        thinkingLevel:
+          'thinkingLevel' in body
+            ? (body.thinkingLevel ?? null)
+            : ((existing.thinkingLevel as RuntimeProfileThinkingLevel | null) ??
+              null),
+        temperature:
+          'temperature' in body
+            ? (body.temperature ?? null)
+            : (existing.temperature ?? null),
+        topP: 'topP' in body ? (body.topP ?? null) : (existing.topP ?? null),
+        topK: 'topK' in body ? (body.topK ?? null) : (existing.topK ?? null),
+        maxOutputTokens:
+          'maxOutputTokens' in body
+            ? (body.maxOutputTokens ?? null)
+            : (existing.maxOutputTokens ?? null),
         runtimeKind: body.runtimeKind ?? 'gondolin_pi',
         sandbox: body.sandbox ?? existing.sandbox,
         sessionStorageMode: body.sessionStorageMode ?? 'local',

@@ -29,7 +29,10 @@ import {
   createWriteToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
-import { FREEFORM_TYPE } from '@moltnet/tasks';
+import {
+  FREEFORM_TYPE,
+  type RuntimeProfileThinkingLevel,
+} from '@moltnet/tasks';
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
@@ -123,6 +126,20 @@ export interface ExecutePiTaskOptions {
   /** LLM selection. */
   provider: string;
   model: string;
+  /**
+   * Runtime-profile reasoning/thinking level. Null/undefined means use Pi's
+   * configured default; explicit `off` disables provider thinking where
+   * supported.
+   */
+  thinkingLevel?: RuntimeProfileThinkingLevel | null;
+  /** Optional sampling temperature. Null/undefined means provider default. */
+  temperature?: number | null;
+  /** Optional nucleus-sampling probability mass. Null/undefined means provider default. */
+  topP?: number | null;
+  /** Optional top-k sampling cutoff. Null/undefined means provider default. */
+  topK?: number | null;
+  /** Optional cap on generated output tokens. Null/undefined means provider/model default. */
+  maxOutputTokens?: number | null;
   /** Extra hosts to allow in the sandbox egress policy. */
   extraAllowedHosts?: string[];
   /** Sandbox overrides (env, VFS shadows, resources). */
@@ -731,6 +748,11 @@ export async function executePiTask(
           cwdPath,
           piAuthDir,
           modelHandle,
+          thinkingLevel: opts.thinkingLevel,
+          temperature: opts.temperature,
+          topP: opts.topP,
+          topK: opts.topK,
+          maxOutputTokens: opts.maxOutputTokens,
           agentName: opts.agentName,
           inheritedCustomTools: [...gondolinCustomTools, ...moltnetTools],
           parentRuntimeInstructor: runtimeInstructor,
@@ -752,6 +774,11 @@ export async function executePiTask(
         cwdPath,
         piAuthDir,
         modelHandle,
+        thinkingLevel: opts.thinkingLevel,
+        temperature: opts.temperature,
+        topP: opts.topP,
+        topK: opts.topK,
+        maxOutputTokens: opts.maxOutputTokens,
         agentName: opts.agentName,
         customTools: [
           ...gondolinCustomTools,

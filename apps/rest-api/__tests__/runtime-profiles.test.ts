@@ -20,6 +20,11 @@ function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
     description: 'Linear triage and GitHub implementation profile',
     provider: 'anthropic',
     model: 'claude-sonnet-4-5',
+    thinkingLevel: null,
+    temperature: null,
+    topP: null,
+    topK: null,
+    maxOutputTokens: null,
     runtimeKind: 'gondolin_pi',
     sandbox: {},
     sessionStorageMode: 'local',
@@ -65,7 +70,9 @@ describe('runtime profile routes', () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
-    mocks.runtimeProfileRepository.create.mockResolvedValue(mockProfile());
+    mocks.runtimeProfileRepository.create.mockResolvedValue(
+      mockProfile({ thinkingLevel: 'high' }),
+    );
 
     const response = await app.inject({
       method: 'POST',
@@ -79,6 +86,11 @@ describe('runtime profile routes', () => {
         description: 'Linear triage and GitHub implementation profile',
         provider: 'Anthropic',
         model: 'Claude-Sonnet-4-5',
+        thinkingLevel: 'high',
+        temperature: 0.2,
+        topP: 0.9,
+        topK: 40,
+        maxOutputTokens: 12_000,
         sandbox: {
           resumeCommands: [
             {
@@ -113,6 +125,11 @@ describe('runtime profile routes', () => {
       name: 'linear-github',
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
+      thinkingLevel: 'high',
+      temperature: null,
+      topP: null,
+      topK: null,
+      maxOutputTokens: null,
       runtimeKind: 'gondolin_pi',
       leaseTtlSec: 300,
       heartbeatIntervalMs: 60_000,
@@ -127,6 +144,11 @@ describe('runtime profile routes', () => {
         teamId: TEAM_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
+        thinkingLevel: 'high',
+        temperature: 0.2,
+        topP: 0.9,
+        topK: 40,
+        maxOutputTokens: 12_000,
         leaseTtlSec: 900,
         heartbeatIntervalMs: 15_000,
         maxBatchSize: 10,
