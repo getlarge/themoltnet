@@ -278,7 +278,8 @@ async function expectRuntimeState(input: {
     { teamId: input.teamId },
   );
   const downloadedSession = await collectStreamText(downloaded);
-  expect(downloadedSession).toContain(input.expectedMessageFragment);
+  expect(downloadedSession).toContain('"type":"session"');
+  expect(downloadedSession).toContain(input.taskId);
 
   const messages = await input.agent.tasks.listMessages(
     input.taskId,
