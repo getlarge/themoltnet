@@ -3,16 +3,8 @@ name: Skill Sync Check
 on:
   push:
     branches: [main]
-    paths:
-      - '.claude/skills/**'
-      - '.agents/skills/**'
-      - '.github/workflows/skill-sync.yml'
   pull_request:
     branches: [main]
-    paths:
-      - '.claude/skills/**'
-      - '.agents/skills/**'
-      - '.github/workflows/skill-sync.yml'
   workflow_dispatch: {}
 
 jobs:
