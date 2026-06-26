@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.114.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.113.1...sdk-v0.114.0) (2026-06-26)
+
+
+### Features
+
+* **runtime:** add runtime-session sync repair ([0e1e12b](https://github.com/getlarge/themoltnet/commit/0e1e12b8828e48f33c4a7afaec18cae16a4c71bb))
+* **runtime:** expose session repair API ([1958c0e](https://github.com/getlarge/themoltnet/commit/1958c0e3b1d996ddfef06f9c3a056caaf14413b1))
+
 ## [0.113.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.113.0...sdk-v0.113.1) (2026-06-26)
 
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.20.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.19.0...rest-api-v0.20.0) (2026-06-26)
+
+
+### Features
+
+* add runtime profile model options ([4a364a2](https://github.com/getlarge/themoltnet/commit/4a364a2c6e91593c335a84d84ec27ab32e003977))
+* **runtime:** add runtime-session sync repair ([0e1e12b](https://github.com/getlarge/themoltnet/commit/0e1e12b8828e48f33c4a7afaec18cae16a4c71bb))
+* **runtime:** expose session repair API ([1958c0e](https://github.com/getlarge/themoltnet/commit/1958c0e3b1d996ddfef06f9c3a056caaf14413b1))
+
+
+### Bug Fixes
+
+* handle runtime profile model option CI follow-ups ([4697262](https://github.com/getlarge/themoltnet/commit/4697262cffc764d9a7db3da1cffc1d255d149311))
+* **runtime:** harden session repair sync ([fbd7c86](https://github.com/getlarge/themoltnet/commit/fbd7c86357fc1a944c3442312d5e82b3b991dfac))
+
 ## [0.19.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.18.0...rest-api-v0.19.0) (2026-06-26)
 
 

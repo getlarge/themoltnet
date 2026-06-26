@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.28.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.27.3...pi-extension-v0.28.0) (2026-06-26)
+
+
+### Features
+
+* add runtime profile model options ([4a364a2](https://github.com/getlarge/themoltnet/commit/4a364a2c6e91593c335a84d84ec27ab32e003977))
+
+
+### Bug Fixes
+
+* address runtime profile review follow-ups ([66dec23](https://github.com/getlarge/themoltnet/commit/66dec23f99ff1238c81412dab34ff349478b3a1c))
+* handle runtime profile model option CI follow-ups ([4697262](https://github.com/getlarge/themoltnet/commit/4697262cffc764d9a7db3da1cffc1d255d149311))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.31.1
+    * @themoltnet/sdk bumped to 0.114.0
+
 ## [0.27.3](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.27.2...pi-extension-v0.27.3) (2026-06-26)
 
 

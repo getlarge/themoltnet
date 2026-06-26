@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.27.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.26.0...agent-daemon-v0.27.0) (2026-06-26)
+
+
+### Features
+
+* add live Ollama agent-daemon e2e workflow ([18ebc92](https://github.com/getlarge/themoltnet/commit/18ebc920035d46cb3c400efd6fded2a0c5c4a6e0))
+* add runtime profile model options ([4a364a2](https://github.com/getlarge/themoltnet/commit/4a364a2c6e91593c335a84d84ec27ab32e003977))
+* **agent-daemon:** add live Ollama e2e workflow ([b0f2071](https://github.com/getlarge/themoltnet/commit/b0f2071a0ca8f52008cfffecc9b05fa4fd54c58a))
+* **agent-daemon:** add session sync repair command ([52c32e3](https://github.com/getlarge/themoltnet/commit/52c32e31dfc1ea3a790b530669d085d4e5f83f4a))
+* **runtime:** add runtime-session sync repair ([0e1e12b](https://github.com/getlarge/themoltnet/commit/0e1e12b8828e48f33c4a7afaec18cae16a4c71bb))
+
+
+### Bug Fixes
+
+* **agent-daemon:** assert live session download shape ([c59e6a1](https://github.com/getlarge/themoltnet/commit/c59e6a16be9c7b3c6b8a936a479bf05d20c2045c))
+* **agent-daemon:** use tool-capable Ollama model ([8f22d01](https://github.com/getlarge/themoltnet/commit/8f22d01913dbffddeaac690d488de56a9ce8ca5f))
+* **runtime:** harden session repair sync ([fbd7c86](https://github.com/getlarge/themoltnet/commit/fbd7c86357fc1a944c3442312d5e82b3b991dfac))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.31.1
+    * @themoltnet/pi-extension bumped to 0.28.0
+    * @themoltnet/sdk bumped to 0.114.0
+
 ## [0.26.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.25.1...agent-daemon-v0.26.0) (2026-06-26)
 
 
