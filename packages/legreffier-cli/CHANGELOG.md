@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.23...legreffier-v0.34.0) (2026-06-26)
+
+
+### Features
+
+* **legreffier-cli:** add opencode agent support, dedupe skills via .agents symlinks ([bd18e82](https://github.com/getlarge/themoltnet/commit/bd18e82d03203b12b866d11b94a0ea70bd668514))
+
 ## [0.33.23](https://github.com/getlarge/themoltnet/compare/legreffier-v0.33.22...legreffier-v0.33.23) (2026-06-26)
 
 

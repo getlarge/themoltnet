@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.54.0](https://github.com/getlarge/themoltnet/compare/cli-v1.53.0...cli-v1.54.0) (2026-06-26)
+
+
+### Features
+
+* **runtime:** recover continuations from durable sessions ([65e487a](https://github.com/getlarge/themoltnet/commit/65e487ab61cd0eab913462156f7adc04f534e0d4))
+
+
+### Bug Fixes
+
+* **runtime:** sync continuation CI artifacts ([30a392a](https://github.com/getlarge/themoltnet/commit/30a392a9e5d40418a294df944061cc1ee4accac8))
+
 ## [1.53.0](https://github.com/getlarge/themoltnet/compare/cli-v1.52.0...cli-v1.53.0) (2026-06-25)
 
 

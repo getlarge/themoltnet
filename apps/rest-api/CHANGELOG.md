@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.18.0...rest-api-v0.19.0) (2026-06-26)
+
+
+### Features
+
+* **agent-daemon:** recover remote runtime branch context ([678e0f7](https://github.com/getlarge/themoltnet/commit/678e0f7c1139b14a79350f054a89d190940c5523))
+* **runtime:** recover continuations from durable sessions ([65e487a](https://github.com/getlarge/themoltnet/commit/65e487ab61cd0eab913462156f7adc04f534e0d4))
+
 ## [0.18.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.17.0...rest-api-v0.18.0) (2026-06-25)
 
 
