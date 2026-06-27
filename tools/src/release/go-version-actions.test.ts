@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  afterAllProjectsVersioned,
+  createGoReleaseValidationCommands,
   escapeGoProxyPath,
   findGoRequireVersion,
   normalizeGoModuleVersion,
@@ -116,5 +118,57 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
         process.env.GOPROXY = originalGoProxy;
       }
     }
+  });
+
+  it('plans GOWORK=off release validation commands for configured roots', () => {
+    expect(
+      createGoReleaseValidationCommands('/repo', {
+        goReleaseValidationRoots: ['apps/moltnet-cli'],
+      }),
+    ).toEqual([
+      {
+        root: 'apps/moltnet-cli',
+        command: 'go',
+        args: ['mod', 'tidy'],
+        env: {
+          GOWORK: 'off',
+          GOPROXY: 'direct',
+        },
+        changedFiles: ['apps/moltnet-cli/go.mod', 'apps/moltnet-cli/go.sum'],
+      },
+      {
+        root: 'apps/moltnet-cli',
+        command: 'go',
+        args: ['build', './...'],
+        env: {
+          GOWORK: 'off',
+          GOPROXY: 'direct',
+        },
+        changedFiles: [],
+      },
+    ]);
+  });
+
+  it('lets the release validation GOPROXY be overridden', () => {
+    const commands = createGoReleaseValidationCommands('/repo', {
+      goReleaseValidationRoots: ['apps/moltnet-cli'],
+      goReleaseGoproxy: 'https://proxy.golang.org,direct',
+    });
+
+    expect(commands.map((command) => command.env.GOPROXY)).toEqual([
+      'https://proxy.golang.org,direct',
+      'https://proxy.golang.org,direct',
+    ]);
+  });
+
+  it('does not run Go release validation during dry-run', async () => {
+    const result = await afterAllProjectsVersioned('/repo', {
+      dryRun: true,
+      rootVersionActionsOptions: {
+        goReleaseValidationRoots: ['apps/moltnet-cli'],
+      },
+    });
+
+    expect(result).toEqual({ changedFiles: [], deletedFiles: [] });
   });
 });

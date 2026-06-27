@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { ProjectGraph, Tree } from '@nx/devkit';
@@ -9,6 +11,15 @@ type CurrentVersionResolverMetadata =
       registry?: unknown;
     }
   | undefined;
+type AfterVersionOptions = {
+  dryRun?: boolean;
+  verbose?: boolean;
+};
+type GoAfterVersionOptions = {
+  goReleaseValidationRoots?: unknown;
+  goReleaseGoproxy?: unknown;
+  skipGoReleaseValidation?: unknown;
+};
 
 export function readText(tree: Pick<Tree, 'read'>, path: string) {
   return tree.read(path, 'utf-8') ?? null;
@@ -153,6 +164,58 @@ export function resolveGoProxyUrl(metadata: CurrentVersionResolverMetadata) {
   return null;
 }
 
+export function resolveGoReleaseValidationRoots(
+  cwd: string,
+  options: GoAfterVersionOptions = {},
+) {
+  if (Array.isArray(options.goReleaseValidationRoots)) {
+    return options.goReleaseValidationRoots.filter(
+      (root): root is string => typeof root === 'string' && root.length > 0,
+    );
+  }
+
+  return existsSync(join(cwd, 'apps/moltnet-cli/go.mod'))
+    ? ['apps/moltnet-cli']
+    : [];
+}
+
+export function createGoReleaseValidationCommands(
+  cwd: string,
+  options: GoAfterVersionOptions = {},
+) {
+  if (options.skipGoReleaseValidation === true) {
+    return [];
+  }
+
+  const goProxy =
+    typeof options.goReleaseGoproxy === 'string'
+      ? options.goReleaseGoproxy
+      : 'direct';
+
+  return resolveGoReleaseValidationRoots(cwd, options).flatMap((root) => [
+    {
+      root,
+      command: 'go',
+      args: ['mod', 'tidy'],
+      env: {
+        GOWORK: 'off',
+        GOPROXY: goProxy,
+      },
+      changedFiles: [join(root, 'go.mod'), join(root, 'go.sum')],
+    },
+    {
+      root,
+      command: 'go',
+      args: ['build', './...'],
+      env: {
+        GOWORK: 'off',
+        GOPROXY: goProxy,
+      },
+      changedFiles: [],
+    },
+  ]);
+}
+
 async function readLatestVersionFromGoProxy(
   modulePath: string,
   proxyUrl: string,
@@ -170,6 +233,74 @@ async function readLatestVersionFromGoProxy(
 
   const payload = (await response.json()) as { Version?: string };
   return payload.Version ? normalizeGoModuleVersion(payload.Version) : null;
+}
+
+export async function afterAllProjectsVersioned(
+  cwd: string,
+  {
+    dryRun,
+    verbose,
+    rootVersionActionsOptions,
+  }: AfterVersionOptions & {
+    rootVersionActionsOptions?: GoAfterVersionOptions;
+  },
+) {
+  const commands = createGoReleaseValidationCommands(
+    cwd,
+    rootVersionActionsOptions,
+  );
+
+  if (commands.length === 0) {
+    if (verbose) {
+      console.log(
+        '\nSkipped Go release validation; no configured roots found.',
+      );
+    }
+    return { changedFiles: [], deletedFiles: [] };
+  }
+
+  const changedFiles = new Set<string>();
+  for (const command of commands) {
+    const displayCommand = `${Object.entries(command.env)
+      .map(([key, value]) => `${key}=${value}`)
+      .join(' ')} ${command.command} ${command.args.join(' ')}`;
+
+    if (dryRun) {
+      if (verbose) {
+        console.log(
+          `Would run Go release validation in ${command.root}, but --dry-run was set:`,
+        );
+        console.log(displayCommand);
+      }
+      continue;
+    }
+
+    if (verbose) {
+      console.log(`Running Go release validation in ${command.root}:`);
+      console.log(displayCommand);
+    }
+
+    execFileSync(command.command, command.args, {
+      cwd: join(cwd, command.root),
+      env: {
+        ...process.env,
+        ...command.env,
+      },
+      stdio: 'inherit',
+      windowsHide: true,
+    });
+
+    for (const file of command.changedFiles) {
+      if (existsSync(join(cwd, file))) {
+        changedFiles.add(file);
+      }
+    }
+  }
+
+  return {
+    changedFiles: Array.from(changedFiles),
+    deletedFiles: [],
+  };
 }
 
 export default class GoVersionActions extends VersionActions {
