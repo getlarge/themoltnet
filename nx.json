@@ -95,6 +95,145 @@
     },
     "@nx-go/nx-go"
   ],
+  "release": {
+    "changelog": {
+      "projectChangelogs": true,
+      "workspaceChangelog": {
+        "createRelease": false,
+        "renderOptions": {
+          "applyUsernameToAuthors": true
+        }
+      }
+    },
+    "conventionalCommits": {
+      "types": {
+        "chore": {
+          "changelog": {
+            "hidden": true
+          },
+          "semverBump": "none"
+        },
+        "ci": {
+          "changelog": {
+            "hidden": true
+          },
+          "semverBump": "none"
+        },
+        "docs": {
+          "changelog": {
+            "hidden": true
+          },
+          "semverBump": "none"
+        },
+        "feat": {
+          "changelog": {
+            "title": "Features"
+          },
+          "semverBump": "minor"
+        },
+        "fix": {
+          "changelog": {
+            "title": "Bug Fixes"
+          },
+          "semverBump": "patch"
+        },
+        "perf": {
+          "changelog": {
+            "title": "Performance"
+          },
+          "semverBump": "patch"
+        },
+        "refactor": {
+          "changelog": {
+            "title": "Refactoring"
+          },
+          "semverBump": "patch"
+        },
+        "test": {
+          "changelog": {
+            "hidden": true
+          },
+          "semverBump": "none"
+        }
+      }
+    },
+    "docker": {
+      "preVersionCommand": "node tools/release/docker-preversion.mjs",
+      "registryUrl": "ghcr.io",
+      "skipVersionActions": false,
+      "versionSchemes": {
+        "default": "ci-{shortCommitSha}",
+        "prerelease": "{versionActionsVersion}",
+        "production": "{versionActionsVersion}"
+      }
+    },
+    "groups": {
+      "cli": {
+        "projects": [
+          "moltnet-cli",
+          "@themoltnet/cli",
+          "@themoltnet/cli-darwin-arm64",
+          "@themoltnet/cli-darwin-x64",
+          "@themoltnet/cli-linux-arm64",
+          "@themoltnet/cli-linux-x64",
+          "@themoltnet/cli-win32-arm64",
+          "@themoltnet/cli-win32-x64"
+        ],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+          "pattern": "cli-v{version}"
+        }
+      },
+      "docker-images": {
+        "projects": [
+          "@moltnet/console",
+          "@moltnet/database",
+          "@moltnet/landing",
+          "@moltnet/mcp-host",
+          "@moltnet/mcp-server",
+          "@moltnet/rest-api"
+        ],
+        "projectsRelationship": "independent",
+        "releaseTag": {
+          "pattern": "{projectName}-v{version}"
+        }
+      },
+      "go-modules": {
+        "projects": ["dspy-adapters", "moltnet-api-client"],
+        "projectsRelationship": "independent",
+        "releaseTag": {
+          "pattern": "libs/{projectName}/v{version}"
+        },
+        "version": {
+          "currentVersionResolver": "git-tag",
+          "versionActions": "./tools/src/release/go-version-actions.ts"
+        }
+      },
+      "npm-packages": {
+        "projects": [
+          "@themoltnet/agent-daemon",
+          "@themoltnet/agent-runtime",
+          "@themoltnet/design-system",
+          "@themoltnet/github-agent",
+          "@themoltnet/legreffier",
+          "@themoltnet/node-red-contrib-core",
+          "@themoltnet/pi-extension",
+          "@themoltnet/sdk"
+        ],
+        "projectsRelationship": "independent",
+        "releaseTag": {
+          "pattern": "{projectName}-v{version}"
+        }
+      }
+    },
+    "version": {
+      "currentVersionResolver": "disk",
+      "deleteVersionPlans": true,
+      "specifierSource": "conventional-commits",
+      "updateDependents": "auto"
+    },
+    "versionPlans": true
+  },
   "sync": {
     "applyChanges": true
   },

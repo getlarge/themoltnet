@@ -40,6 +40,11 @@
     "drizzle"
   ],
   "nx": {
+    "release": {
+      "docker": {
+        "repositoryName": "getlarge/themoltnet/db-migrate"
+      }
+    },
     "tags": [
       "type:data-access",
       "scope:platform",
