@@ -116,6 +116,13 @@ Every task type ends in a structured output payload that must match its `*Output
 
 The submit-tool path was added in [#986](https://github.com/getlarge/themoltnet/issues/986) after the original parser-only design produced false-failed attempts when the agent did the work but reported it as prose ("ok", "done") instead of JSON. The strict closing block in every prompt builder (see `libs/agent-runtime/src/prompts/final-output.ts`) describes both affordances and why the tool path is preferred.
 
+Large files do not belong in the structured output JSON. The Pi executor also
+registers `moltnet_upload_task_artifact`, which streams a file from the task
+workspace into task-artifact storage for the active attempt and returns a CID.
+Use the structured output to reference that CID, title, kind, and a concise
+summary. `moltnet_list_task_artifacts` lets continuations and judge tasks see
+the metadata later.
+
 **Outcomes are instrumented** via the OTel counter `agent_runtime.task_output.parse_result` with labels `{task_type, model, code}`. Codes:
 
 - `success` — parser captured a valid payload.

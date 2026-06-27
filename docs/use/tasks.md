@@ -421,6 +421,35 @@ moltnet task attempts <id> --accepted-only --field output > artifact.json \
   || { echo "task not accepted yet"; exit 1; }
 ```
 
+### Task artifacts
+
+Use task artifacts for bytes that should not be embedded in the accepted JSON
+output: logs, reports, screenshots, generated bundles, traces, datasets, and
+other files. The artifact body is stored in task-artifact object storage and
+named by a raw-bytes CID. The structured task output should reference the CID
+and summarize why it matters.
+
+During Pi task execution, the agent gets:
+
+- `moltnet_upload_task_artifact` — uploads a file from the task workspace to
+  the active task attempt and returns `cid`, `sha256`, `sizeBytes`, `kind`, and
+  `title`.
+- `moltnet_list_task_artifacts` — lists artifact metadata for the active task
+  or another task id.
+
+SDK users call the same API through `agent.tasks.artifacts`:
+
+```ts
+const artifact = await agent.tasks.artifacts.upload(
+  { taskId, attemptN },
+  fileStream,
+  { kind: 'report', title: 'result.md', contentType: 'text/markdown' },
+  { teamId },
+);
+
+const artifacts = await agent.tasks.artifacts.list(taskId, { teamId });
+```
+
 ### Watch a task in real time
 
 A polling tail of `GET /tasks/:id/messages` — same data the daemon gets via its `onTurnEvent` mirror, available anywhere with creds + a task id. Useful for local daemon dev (`pnpm dev:daemon` in one terminal, tail in another), CI logs, or following a remote workflow without console access. For interactive humans the [console UI](#where-to-watch-tasks-run) is usually nicer; for LLM operators in chat, `tasks_console_link` returns a one-click deep link.

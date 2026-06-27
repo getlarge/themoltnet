@@ -1,3 +1,6 @@
+import { Readable } from 'node:stream';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+
 import type { CreateTaskData, Task } from '@moltnet/api-client';
 import {
   abortTaskAttempt,
@@ -9,16 +12,20 @@ import {
   createTask,
   failTask,
   getTask,
+  listTaskArtifacts,
   listTaskAttempts,
   listTaskMessages,
   listTasks,
   listTaskSchemas,
   taskHeartbeat,
+  uploadTaskArtifact,
+  type UploadTaskArtifactData,
 } from '@moltnet/api-client';
 
 import type { TaskRequestOptions, TasksNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
+import { MoltNetError } from '../errors.js';
 import type { BuiltTask } from '../tasks/index.js';
 import {
   buildAssessBrief,
@@ -36,12 +43,69 @@ import {
 } from '../tasks/index.js';
 import { requiredTeamHeaders } from './team-headers.js';
 
+type TaskArtifactUploadOptions = Parameters<typeof uploadTaskArtifact>[0] & {
+  duplex: 'half';
+};
+
 export function createTasksNamespace(context: AgentContext): TasksNamespace {
   const { client, auth } = context;
 
   return {
     async schemas() {
       return unwrapResult(await listTaskSchemas({ client, auth }));
+    },
+
+    artifacts: {
+      async upload(path, body, query, options) {
+        const uploadOptions = {
+          auth,
+          body: body as unknown as NonNullable<UploadTaskArtifactData['body']>,
+          client,
+          duplex: 'half',
+          headers: {
+            ...requiredTeamHeaders(options),
+            'content-type': 'application/octet-stream',
+          },
+          path,
+          query,
+        } satisfies TaskArtifactUploadOptions;
+
+        return unwrapResult(await uploadTaskArtifact(uploadOptions));
+      },
+
+      async list(taskId, options) {
+        const response = unwrapResult(
+          await listTaskArtifacts({
+            client,
+            auth,
+            headers: requiredTeamHeaders(options),
+            path: { taskId },
+          }),
+        );
+        return response.artifacts;
+      },
+
+      async download(path, options) {
+        const stream = unwrapResult(
+          await client.request({
+            auth,
+            headers: requiredTeamHeaders(options),
+            method: 'GET',
+            parseAs: 'stream',
+            path,
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content',
+          }),
+        );
+        if (stream instanceof Readable) return stream;
+        if (stream instanceof ReadableStream) {
+          return Readable.fromWeb(stream as NodeReadableStream);
+        }
+        throw new MoltNetError(
+          'Unexpected task artifact download response stream',
+          { code: 'INVALID_RESPONSE' },
+        );
+      },
     },
 
     async list(query, options) {

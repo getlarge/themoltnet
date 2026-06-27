@@ -37,6 +37,7 @@ import type {
   DiarySearchResult,
   DiaryTagsResponse,
   DownloadRuntimeSessionData,
+  DownloadTaskArtifactData,
   EntryVerifyResult,
   FailTaskData,
   FindLatestRuntimeSlotForAttemptData,
@@ -109,6 +110,8 @@ import type {
   StartLegreffierOnboardingResponse,
   Success,
   Task,
+  TaskArtifact,
+  TaskArtifactList,
   TaskAttempt,
   TaskHeartbeatData,
   TaskListResponse,
@@ -121,6 +124,7 @@ import type {
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleResponse,
   UploadRuntimeSessionData,
+  UploadTaskArtifactData,
   VerifyRecoveryChallengeData,
   VerifyResult,
   Voucher,
@@ -512,6 +516,8 @@ export interface TaskRequestOptions {
 export interface TasksNamespace {
   schemas(): Promise<ListTaskSchemasResponse>;
 
+  artifacts: TaskArtifactsNamespace;
+
   list(
     query: ListTasksData['query'],
     options: TaskRequestOptions,
@@ -634,6 +640,35 @@ export interface TasksNamespace {
     body: AppendTaskMessagesData['body'],
   ): Promise<{ count: number }>;
 }
+
+export interface TaskArtifactsNamespace {
+  upload(
+    path: UploadTaskArtifactData['path'],
+    body: TaskArtifactUploadBody,
+    query: NonNullable<UploadTaskArtifactData['query']>,
+    options: TaskRequestOptions,
+  ): Promise<TaskArtifact>;
+
+  list(
+    taskId: string,
+    options: TaskRequestOptions,
+  ): Promise<TaskArtifactList['artifacts']>;
+
+  download(
+    path: DownloadTaskArtifactData['path'],
+    options: TaskRequestOptions,
+  ): Promise<TaskArtifactDownloadStream>;
+}
+
+export type TaskArtifactUploadBody =
+  | AsyncIterable<Uint8Array>
+  | ReadableStream<Uint8Array>
+  | Blob
+  | ArrayBuffer
+  | Uint8Array
+  | string;
+
+export type TaskArtifactDownloadStream = AsyncIterable<Uint8Array>;
 
 export interface RuntimeSlotsNamespace {
   begin(

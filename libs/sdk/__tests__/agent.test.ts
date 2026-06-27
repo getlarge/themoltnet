@@ -43,6 +43,7 @@ import {
   listProblemTypes,
   listRuntimeProfiles,
   listSigningRequests,
+  listTaskArtifacts,
   listTasks,
   listTaskSchemas,
   listTeamInvites,
@@ -62,6 +63,7 @@ import {
   updateDiaryEntryById,
   updateRuntimeProfile,
   updateTeamMemberRole,
+  uploadTaskArtifact,
   verifyAgentSignature,
   verifyCryptoSignature,
   verifyDiaryEntryById,
@@ -141,6 +143,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     rejectTransfer: vi.fn(),
     listTaskSchemas: vi.fn(),
     listTasks: vi.fn(),
+    listTaskArtifacts: vi.fn(),
     createTask: vi.fn(),
     batchDeleteTasks: vi.fn(),
     claimTask: vi.fn(),
@@ -150,6 +153,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     listTaskAttempts: vi.fn(),
     listTaskMessages: vi.fn(),
     appendTaskMessages: vi.fn(),
+    uploadTaskArtifact: vi.fn(),
   };
 });
 
@@ -537,6 +541,102 @@ describe('Agent facade', () => {
             mode: 'accept-risk',
             reason: 'cleanup duplicate terminal tasks',
           },
+        }),
+      );
+    });
+
+    it('tasks.artifacts.upload calls uploadTaskArtifact with task path and team header', async () => {
+      const artifact = {
+        id: 'artifact-1',
+        teamId: 'team-1',
+        taskId: 'task-1',
+        attemptN: 1,
+        kind: 'log',
+        title: 'trace.log',
+        contentType: 'text/plain',
+        contentEncoding: null,
+        sizeBytes: 12,
+        sha256: 'a'.repeat(64),
+        cid: 'bafkreia',
+        createdByAgentId: 'agent-1',
+        expiresAt: null,
+        createdAt: '2026-06-27T10:00:00.000Z',
+      };
+      vi.mocked(uploadTaskArtifact).mockResolvedValueOnce({
+        data: artifact,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const body = new Uint8Array([1, 2, 3]);
+      const result = await agent.tasks.artifacts.upload(
+        { taskId: 'task-1', attemptN: 1 },
+        body,
+        {
+          kind: 'log',
+          title: 'trace.log',
+          contentType: 'text/plain',
+        },
+        { teamId: 'team-1' },
+      );
+
+      expect(result).toEqual(artifact);
+      expect(uploadTaskArtifact).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          body,
+          duplex: 'half',
+          headers: {
+            'content-type': 'application/octet-stream',
+            'x-moltnet-team-id': 'team-1',
+          },
+          path: { taskId: 'task-1', attemptN: 1 },
+          query: {
+            kind: 'log',
+            title: 'trace.log',
+            contentType: 'text/plain',
+          },
+        }),
+      );
+    });
+
+    it('tasks.artifacts.list returns artifact items', async () => {
+      const artifacts = [
+        {
+          id: 'artifact-1',
+          teamId: 'team-1',
+          taskId: 'task-1',
+          attemptN: 1,
+          kind: 'log',
+          title: 'trace.log',
+          contentType: 'text/plain',
+          contentEncoding: null,
+          sizeBytes: 12,
+          sha256: 'a'.repeat(64),
+          cid: 'bafkreia',
+          createdByAgentId: 'agent-1',
+          expiresAt: null,
+          createdAt: '2026-06-27T10:00:00.000Z',
+        },
+      ];
+      vi.mocked(listTaskArtifacts).mockResolvedValueOnce({
+        data: { artifacts },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.tasks.artifacts.list('task-1', {
+        teamId: 'team-1',
+      });
+
+      expect(result).toEqual(artifacts);
+      expect(listTaskArtifacts).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          headers: { 'x-moltnet-team-id': 'team-1' },
+          path: { taskId: 'task-1' },
         }),
       );
     });
