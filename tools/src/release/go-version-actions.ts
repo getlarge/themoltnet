@@ -1,0 +1,204 @@
+import { join } from 'node:path';
+
+import type { ProjectGraph, Tree } from '@nx/devkit';
+import { VersionActions } from 'nx/release';
+
+type TreeLike = Pick<Tree, 'read' | 'write'>;
+
+export function readText(tree: Pick<Tree, 'read'>, path: string) {
+  return tree.read(path, 'utf-8') ?? null;
+}
+
+export function readGoModulePath(
+  tree: Pick<Tree, 'read'>,
+  projectRoot: string,
+) {
+  const goModPath = join(projectRoot, 'go.mod');
+  const goMod = readText(tree, goModPath);
+  const match = goMod?.match(/^module\s+(\S+)/m);
+  if (!match) {
+    throw new Error(`Unable to read Go module path from ${goModPath}`);
+  }
+  return match[1];
+}
+
+function parseRequireLine(line: string) {
+  const match = line.match(/^(\s*)(\S+)(\s+)(v\S+)(.*)$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    indent: match[1],
+    modulePath: match[2],
+    separator: match[3],
+    version: match[4],
+    suffix: match[5],
+  };
+}
+
+export function findGoRequireVersion(goMod: string, modulePath: string) {
+  let inRequireBlock = false;
+
+  for (const line of goMod.split('\n')) {
+    if (/^\s*require\s*\(\s*$/.test(line)) {
+      inRequireBlock = true;
+      continue;
+    }
+    if (inRequireBlock && /^\s*\)\s*$/.test(line)) {
+      inRequireBlock = false;
+      continue;
+    }
+
+    if (inRequireBlock) {
+      const parsed = parseRequireLine(line);
+      if (parsed?.modulePath === modulePath) {
+        return parsed.version;
+      }
+      continue;
+    }
+
+    const singleRequireMatch = line.match(
+      /^(\s*)require\s+(\S+)(\s+)(v\S+)(.*)$/,
+    );
+    if (singleRequireMatch?.[2] === modulePath) {
+      return singleRequireMatch[4];
+    }
+  }
+
+  return null;
+}
+
+export function updateGoRequireVersions(
+  goMod: string,
+  dependenciesToUpdate: Record<string, string>,
+) {
+  const updatedModules: string[] = [];
+  let inRequireBlock = false;
+
+  const lines = goMod.split('\n').map((line) => {
+    if (/^\s*require\s*\(\s*$/.test(line)) {
+      inRequireBlock = true;
+      return line;
+    }
+    if (inRequireBlock && /^\s*\)\s*$/.test(line)) {
+      inRequireBlock = false;
+      return line;
+    }
+
+    if (inRequireBlock) {
+      const parsed = parseRequireLine(line);
+      if (!parsed) {
+        return line;
+      }
+      const version = dependenciesToUpdate[parsed.modulePath];
+      if (!version) {
+        return line;
+      }
+      const nextVersion = version.startsWith('v') ? version : `v${version}`;
+      updatedModules.push(`${parsed.modulePath}@${nextVersion}`);
+      return `${parsed.indent}${parsed.modulePath}${parsed.separator}${nextVersion}${parsed.suffix}`;
+    }
+
+    const singleRequireMatch = line.match(
+      /^(\s*)require\s+(\S+)(\s+)(v\S+)(.*)$/,
+    );
+    if (!singleRequireMatch) {
+      return line;
+    }
+
+    const version = dependenciesToUpdate[singleRequireMatch[2]];
+    if (!version) {
+      return line;
+    }
+    const nextVersion = version.startsWith('v') ? version : `v${version}`;
+    updatedModules.push(`${singleRequireMatch[2]}@${nextVersion}`);
+    return `${singleRequireMatch[1]}require ${singleRequireMatch[2]}${singleRequireMatch[3]}${nextVersion}${singleRequireMatch[5]}`;
+  });
+
+  return {
+    goMod: lines.join('\n'),
+    updatedModules,
+  };
+}
+
+export default class GoVersionActions extends VersionActions {
+  validManifestFilenames = ['go.mod'];
+
+  // Go module versions are resolved from VCS tags by Nx. go.mod has the module
+  // path and dependency requirements, but no source-of-truth project version.
+  async readCurrentVersionFromSourceManifest() {
+    return null;
+  }
+
+  // Public Go modules do not have an npm-like registry version endpoint here.
+  // Keep git tags as the only supported current-version resolver.
+  async readCurrentVersionFromRegistry() {
+    return null;
+  }
+
+  async readCurrentVersionOfDependency(
+    tree: Tree,
+    projectGraph: ProjectGraph,
+    dependencyProjectName: string,
+  ) {
+    const goModPath = join(this.projectGraphNode.data.root, 'go.mod');
+    const goMod = readText(tree, goModPath);
+    if (!goMod) {
+      return { currentVersion: null, dependencyCollection: null };
+    }
+
+    const dependencyRoot = projectGraph.nodes[dependencyProjectName]?.data.root;
+    if (!dependencyRoot) {
+      return { currentVersion: null, dependencyCollection: null };
+    }
+
+    const modulePath = readGoModulePath(tree, dependencyRoot);
+    const currentVersion = findGoRequireVersion(goMod, modulePath);
+
+    return {
+      currentVersion,
+      dependencyCollection: currentVersion ? 'require' : null,
+    };
+  }
+
+  async updateProjectVersion() {
+    return [
+      `Go module ${this.projectGraphNode.name} is versioned by git tags; go.mod has no project version field.`,
+    ];
+  }
+
+  async updateProjectDependencies(
+    tree: TreeLike,
+    projectGraph: ProjectGraph,
+    dependenciesToUpdate: Record<string, string>,
+  ) {
+    const entries = Object.entries(dependenciesToUpdate);
+    if (entries.length === 0) {
+      return [];
+    }
+
+    const goModPath = join(this.projectGraphNode.data.root, 'go.mod');
+    const goMod = readText(tree, goModPath);
+    if (!goMod) {
+      return [];
+    }
+
+    const moduleVersions: Record<string, string> = {};
+    for (const [dependencyProjectName, rawVersion] of entries) {
+      const dependencyRoot =
+        projectGraph.nodes[dependencyProjectName]?.data.root;
+      if (!dependencyRoot) {
+        continue;
+      }
+      moduleVersions[readGoModulePath(tree, dependencyRoot)] = rawVersion;
+    }
+
+    const result = updateGoRequireVersions(goMod, moduleVersions);
+    if (result.updatedModules.length === 0) {
+      return [];
+    }
+
+    tree.write(goModPath, result.goMod);
+    return [`Updated ${result.updatedModules.join(', ')} in ${goModPath}`];
+  }
+}

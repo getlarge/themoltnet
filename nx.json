@@ -158,7 +158,7 @@
       }
     },
     "docker": {
-      "preVersionCommand": "node tools/release/docker-preversion.cjs",
+      "preVersionCommand": "node tools/release/docker-preversion.mjs",
       "registryUrl": "ghcr.io",
       "skipVersionActions": false,
       "versionSchemes": {
@@ -206,7 +206,7 @@
         },
         "version": {
           "currentVersionResolver": "git-tag",
-          "versionActions": "./tools/release/go-version-actions.cjs"
+          "versionActions": "./tools/src/release/go-version-actions.ts"
         }
       },
       "npm-packages": {
