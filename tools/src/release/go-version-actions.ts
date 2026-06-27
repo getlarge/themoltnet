@@ -4,6 +4,11 @@ import type { ProjectGraph, Tree } from '@nx/devkit';
 import { VersionActions } from 'nx/release';
 
 type TreeLike = Pick<Tree, 'read' | 'write'>;
+type CurrentVersionResolverMetadata =
+  | {
+      registry?: unknown;
+    }
+  | undefined;
 
 export function readText(tree: Pick<Tree, 'read'>, path: string) {
   return tree.read(path, 'utf-8') ?? null;
@@ -121,6 +126,52 @@ export function updateGoRequireVersions(
   };
 }
 
+export function escapeGoProxyPath(modulePath: string) {
+  return modulePath.replace(/[A-Z]/g, (match) => `!${match.toLowerCase()}`);
+}
+
+export function normalizeGoModuleVersion(version: string) {
+  return version.startsWith('v') ? version.slice(1) : version;
+}
+
+export function resolveGoProxyUrl(metadata: CurrentVersionResolverMetadata) {
+  const configuredRegistry =
+    typeof metadata?.registry === 'string' ? metadata.registry : null;
+  const goProxy = configuredRegistry ?? process.env.GOPROXY;
+  if (!goProxy) {
+    return 'https://proxy.golang.org';
+  }
+
+  for (const candidate of goProxy.split(/[,|]/)) {
+    const proxy = candidate.trim();
+    if (!proxy || proxy === 'direct' || proxy === 'off') {
+      continue;
+    }
+    return proxy.replace(/\/+$/, '');
+  }
+
+  return null;
+}
+
+async function readLatestVersionFromGoProxy(
+  modulePath: string,
+  proxyUrl: string,
+) {
+  const url = `${proxyUrl}/${escapeGoProxyPath(modulePath)}/@latest`;
+  const response = await fetch(url);
+  if (response.status === 404 || response.status === 410) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(
+      `Go proxy lookup failed for ${modulePath}: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const payload = (await response.json()) as { Version?: string };
+  return payload.Version ? normalizeGoModuleVersion(payload.Version) : null;
+}
+
 export default class GoVersionActions extends VersionActions {
   validManifestFilenames = ['go.mod'];
 
@@ -130,10 +181,24 @@ export default class GoVersionActions extends VersionActions {
     return null;
   }
 
-  // Public Go modules do not have an npm-like registry version endpoint here.
-  // Keep git tags as the only supported current-version resolver.
-  async readCurrentVersionFromRegistry() {
-    return null;
+  async readCurrentVersionFromRegistry(
+    tree: Tree,
+    currentVersionResolverMetadata: CurrentVersionResolverMetadata,
+  ) {
+    const modulePath = readGoModulePath(tree, this.projectGraphNode.data.root);
+    const proxyUrl = resolveGoProxyUrl(currentVersionResolverMetadata);
+    if (!proxyUrl) {
+      return {
+        currentVersion: null,
+        logText:
+          'GOPROXY resolves to direct/off only; use git-tag resolution for private direct modules',
+      };
+    }
+
+    return {
+      currentVersion: await readLatestVersionFromGoProxy(modulePath, proxyUrl),
+      logText: `from Go proxy ${proxyUrl}`,
+    };
   }
 
   async readCurrentVersionOfDependency(

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  escapeGoProxyPath,
   findGoRequireVersion,
+  normalizeGoModuleVersion,
+  resolveGoProxyUrl,
   updateGoRequireVersions,
 } from './go-version-actions';
 
@@ -77,5 +80,41 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
     expect(result.goMod).toBe(
       'require github.com/getlarge/themoltnet/libs/moltnet-api-client v0.3.0\n',
     );
+  });
+
+  it('escapes module paths for Go proxy requests', () => {
+    expect(escapeGoProxyPath('github.com/Acme/FooBar')).toBe(
+      'github.com/!acme/!foo!bar',
+    );
+  });
+
+  it('normalizes Go module versions for Nx semver calculations', () => {
+    expect(normalizeGoModuleVersion('v1.2.3')).toBe('1.2.3');
+    expect(normalizeGoModuleVersion('1.2.3')).toBe('1.2.3');
+  });
+
+  it('resolves Go proxy URL from metadata or GOPROXY', () => {
+    const originalGoProxy = process.env.GOPROXY;
+    try {
+      delete process.env.GOPROXY;
+      expect(resolveGoProxyUrl({})).toBe('https://proxy.golang.org');
+      expect(
+        resolveGoProxyUrl({
+          registry: 'https://proxy.example.test/',
+        }),
+      ).toBe('https://proxy.example.test');
+
+      process.env.GOPROXY = 'direct,https://proxy.internal.test,off';
+      expect(resolveGoProxyUrl({})).toBe('https://proxy.internal.test');
+
+      process.env.GOPROXY = 'direct,off';
+      expect(resolveGoProxyUrl({})).toBeNull();
+    } finally {
+      if (originalGoProxy === undefined) {
+        delete process.env.GOPROXY;
+      } else {
+        process.env.GOPROXY = originalGoProxy;
+      }
+    }
   });
 });
