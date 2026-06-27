@@ -1,5 +1,5 @@
 {
-  "name": "@moltnet/runtime-session-service",
+  "name": "@moltnet/blob-storage",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
   "private": true,
@@ -13,14 +13,6 @@
   "scripts": {
     "test": "vitest run --passWithNoTests"
   },
-  "dependencies": {
-    "@aws-sdk/client-s3": "catalog:",
-    "@moltnet/auth": "workspace:*",
-    "@moltnet/blob-storage": "workspace:*",
-    "@moltnet/database": "workspace:*",
-    "@moltnet/models": "workspace:*",
-    "@moltnet/tasks": "workspace:*"
-  },
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:",
@@ -28,8 +20,8 @@
   },
   "nx": {
     "tags": [
-      "type:feature",
-      "scope:runtime",
+      "type:util",
+      "scope:storage",
       "platform:server"
     ]
   }

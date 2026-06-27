@@ -1514,6 +1514,65 @@ export const runtimeSessions = pgTable(
 export type RuntimeSession = typeof runtimeSessions.$inferSelect;
 export type NewRuntimeSession = typeof runtimeSessions.$inferInsert;
 
+export const taskArtifacts = pgTable(
+  'task_artifacts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    attemptN: integer('attempt_n').notNull(),
+    kind: varchar('kind', { length: 100 }).notNull(),
+    title: varchar('title', { length: 255 }).notNull(),
+    objectKey: text('object_key').notNull(),
+    contentType: varchar('content_type', { length: 200 }).notNull(),
+    contentEncoding: varchar('content_encoding', { length: 100 }),
+    sizeBytes: integer('size_bytes').notNull(),
+    sha256: varchar('sha256', { length: 64 }).notNull(),
+    cid: varchar('cid', { length: 100 }).notNull(),
+    createdByAgentId: uuid('created_by_agent_id')
+      .notNull()
+      .references(() => agents.identityId, { onDelete: 'restrict' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('task_artifacts_attempt_cid_idx').on(
+      table.teamId,
+      table.taskId,
+      table.attemptN,
+      table.cid,
+    ),
+    index('task_artifacts_team_cid_idx').on(table.teamId, table.cid),
+    index('task_artifacts_object_key_idx').on(table.objectKey),
+    index('task_artifacts_task_attempt_idx').on(
+      table.teamId,
+      table.taskId,
+      table.attemptN,
+    ),
+    index('task_artifacts_expires_idx')
+      .on(table.expiresAt)
+      .where(sql`expires_at IS NOT NULL`),
+    foreignKey({
+      columns: [table.taskId, table.attemptN],
+      foreignColumns: [taskAttempts.taskId, taskAttempts.attemptN],
+    }).onDelete('cascade'),
+    check('task_artifacts_size_bytes_non_negative', sql`size_bytes >= 0`),
+    check('task_artifacts_sha256_hex', sql`sha256 ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export type TaskArtifact = typeof taskArtifacts.$inferSelect;
+export type NewTaskArtifact = typeof taskArtifacts.$inferInsert;
+
 // ── Task Messages ──────────────────────────────────────────
 
 export const taskMessages = pgTable(

@@ -105,6 +105,9 @@ import type {
   DownloadRuntimeSessionData,
   DownloadRuntimeSessionErrors,
   DownloadRuntimeSessionResponses,
+  DownloadTaskArtifactData,
+  DownloadTaskArtifactErrors,
+  DownloadTaskArtifactResponses,
   FailTaskData,
   FailTaskErrors,
   FailTaskResponses,
@@ -250,6 +253,9 @@ import type {
   ListSigningRequestsData,
   ListSigningRequestsErrors,
   ListSigningRequestsResponses,
+  ListTaskArtifactsData,
+  ListTaskArtifactsErrors,
+  ListTaskArtifactsResponses,
   ListTaskAttemptsData,
   ListTaskAttemptsErrors,
   ListTaskAttemptsResponses,
@@ -346,6 +352,9 @@ import type {
   UploadRuntimeSessionData,
   UploadRuntimeSessionErrors,
   UploadRuntimeSessionResponses,
+  UploadTaskArtifactData,
+  UploadTaskArtifactErrors,
+  UploadTaskArtifactResponses,
   VerifyAgentSignatureData,
   VerifyAgentSignatureErrors,
   VerifyAgentSignatureResponses,
@@ -2754,6 +2763,83 @@ export const claimTask = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * List task artifact metadata for the current team.
+ */
+export const listTaskArtifacts = <ThrowOnError extends boolean = false>(
+  options: Options<ListTaskArtifactsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListTaskArtifactsResponses,
+    ListTaskArtifactsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{taskId}/artifacts',
+    ...options,
+  });
+
+/**
+ * Upload immutable content-addressed artifact content for a task attempt.
+ */
+export const uploadTaskArtifact = <ThrowOnError extends boolean = false>(
+  options: Options<UploadTaskArtifactData, ThrowOnError>,
+) =>
+  (options.client ?? client).put<
+    UploadTaskArtifactResponses,
+    UploadTaskArtifactErrors,
+    ThrowOnError
+  >({
+    bodySerializer: null,
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{taskId}/attempts/{attemptN}/artifacts',
+    ...options,
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Download immutable task artifact content by CID.
+ */
+export const downloadTaskArtifact = <ThrowOnError extends boolean = false>(
+  options: Options<DownloadTaskArtifactData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DownloadTaskArtifactResponses,
+    DownloadTaskArtifactErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content',
+    ...options,
   });
 
 /**

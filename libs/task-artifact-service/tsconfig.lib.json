@@ -23,13 +23,10 @@
       "path": "../blob-storage/tsconfig.lib.json"
     },
     {
+      "path": "../crypto-service/tsconfig.lib.json"
+    },
+    {
       "path": "../database/tsconfig.lib.json"
-    },
-    {
-      "path": "../models/tsconfig.lib.json"
-    },
-    {
-      "path": "../tasks/tsconfig.lib.json"
     }
   ]
 }

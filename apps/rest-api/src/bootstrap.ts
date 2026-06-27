@@ -41,6 +41,7 @@ import {
   createRuntimeSessionRepository,
   createRuntimeSlotRepository,
   createSigningRequestRepository,
+  createTaskArtifactRepository,
   createTaskRepository,
   createTeamRepository,
   createVoucherRepository,
@@ -67,6 +68,7 @@ import {
   observabilityPlugin,
 } from '@moltnet/observability';
 import { createRuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import { createTaskArtifactStorage } from '@moltnet/task-artifact-service';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
@@ -252,6 +254,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const runtimeSessionRepository = createRuntimeSessionRepository(
     dbConnection.db,
   );
+  const taskArtifactRepository = createTaskArtifactRepository(dbConnection.db);
   const runtimeModelRepository = createRuntimeModelRepository(dbConnection.db);
   const groupRepository = createGroupRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
@@ -515,8 +518,11 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     runtimeSessionStorage: createRuntimeSessionStorage(
       config.runtimeSessionStorage,
     ),
+    taskArtifactRepository,
+    taskArtifactStorage: createTaskArtifactStorage(config.taskArtifactStorage),
     runtimeSessionMaxBytes:
       config.runtimeSessionStorage.RUNTIME_SESSION_MAX_BYTES,
+    taskArtifactMaxBytes: config.taskArtifactStorage.TASK_ARTIFACT_MAX_BYTES,
     runtimeSlotRepository,
     runtimeModelRepository,
     taskRepository,

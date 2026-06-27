@@ -13,6 +13,7 @@ import type {
 import { ContextPackService } from '@moltnet/context-pack-service';
 import type { Agent, AgentVoucher, DiaryEntry } from '@moltnet/database';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 
@@ -34,6 +35,7 @@ import type {
   RuntimeSessionRepository,
   RuntimeSlotRepository,
   SigningRequestRepository,
+  TaskArtifactRepository,
   TaskRepository,
   TaskService,
   TeamRepository,
@@ -252,6 +254,12 @@ export interface MockServices {
   };
   runtimeSessionStorage: {
     [K in keyof RuntimeSessionStorage]: ReturnType<typeof vi.fn>;
+  };
+  taskArtifactRepository: {
+    [K in keyof TaskArtifactRepository]: ReturnType<typeof vi.fn>;
+  };
+  taskArtifactStorage: {
+    [K in keyof TaskArtifactStorage]: ReturnType<typeof vi.fn>;
   };
   runtimeSlotRepository: {
     [K in keyof RuntimeSlotRepository]: ReturnType<typeof vi.fn>;
@@ -562,6 +570,17 @@ export function createMockServices(): MockServices {
       getObject: vi.fn(),
       deleteObject: vi.fn(),
     },
+    taskArtifactRepository: {
+      createForAttempt: vi.fn(),
+      findByCidForAttempt: vi.fn(),
+      listForTask: vi.fn().mockResolvedValue([]),
+    },
+    taskArtifactStorage: {
+      putObject: vi.fn(),
+      getObject: vi.fn(),
+      headObject: vi.fn(),
+      deleteObject: vi.fn(),
+    },
     runtimeModelRepository: {
       create: vi.fn(),
       findById: vi.fn(),
@@ -758,7 +777,12 @@ export async function createTestApp(
       mocks.runtimeSessionRepository as unknown as RuntimeSessionRepository,
     runtimeSessionStorage:
       mocks.runtimeSessionStorage as unknown as RuntimeSessionStorage,
+    taskArtifactRepository:
+      mocks.taskArtifactRepository as unknown as TaskArtifactRepository,
+    taskArtifactStorage:
+      mocks.taskArtifactStorage as unknown as TaskArtifactStorage,
     runtimeSessionMaxBytes: 1024 * 1024,
+    taskArtifactMaxBytes: 1024 * 1024,
     runtimeSlotRepository:
       mocks.runtimeSlotRepository as unknown as RuntimeSlotRepository,
     runtimeModelRepository:

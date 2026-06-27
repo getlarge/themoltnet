@@ -44,6 +44,7 @@ import {
   diffContextPacksByCid,
   diffContextPacksById,
   downloadRuntimeSession,
+  downloadTaskArtifact,
   failTask,
   findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
@@ -94,6 +95,7 @@ import {
   listRuntimeProfiles,
   listRuntimeSlots,
   listSigningRequests,
+  listTaskArtifacts,
   listTaskAttempts,
   listTaskMessages,
   listTasks,
@@ -127,6 +129,7 @@ import {
   updateTaskMetadata,
   updateTeamMemberRole,
   uploadRuntimeSession,
+  uploadTaskArtifact,
   verifyAgentSignature,
   verifyCryptoSignature,
   verifyDiaryEntryById,
@@ -235,6 +238,9 @@ import type {
   DownloadRuntimeSessionData,
   DownloadRuntimeSessionError,
   DownloadRuntimeSessionResponse,
+  DownloadTaskArtifactData,
+  DownloadTaskArtifactError,
+  DownloadTaskArtifactResponse,
   FailTaskData,
   FailTaskError,
   FailTaskResponse,
@@ -379,6 +385,9 @@ import type {
   ListSigningRequestsData,
   ListSigningRequestsError,
   ListSigningRequestsResponse,
+  ListTaskArtifactsData,
+  ListTaskArtifactsError,
+  ListTaskArtifactsResponse,
   ListTaskAttemptsData,
   ListTaskAttemptsError,
   ListTaskAttemptsResponse,
@@ -475,6 +484,9 @@ import type {
   UploadRuntimeSessionData,
   UploadRuntimeSessionError,
   UploadRuntimeSessionResponse,
+  UploadTaskArtifactData,
+  UploadTaskArtifactError,
+  UploadTaskArtifactResponse,
   VerifyAgentSignatureData,
   VerifyAgentSignatureError,
   VerifyAgentSignatureResponse,
@@ -3657,6 +3669,89 @@ export const claimTaskMutation = (
   };
   return mutationOptions;
 };
+
+export const listTaskArtifactsQueryKey = (
+  options: Options<ListTaskArtifactsData>,
+) => createQueryKey('listTaskArtifacts', options);
+
+/**
+ * List task artifact metadata for the current team.
+ */
+export const listTaskArtifactsOptions = (
+  options: Options<ListTaskArtifactsData>,
+) =>
+  queryOptions<
+    ListTaskArtifactsResponse,
+    ListTaskArtifactsError,
+    ListTaskArtifactsResponse,
+    ReturnType<typeof listTaskArtifactsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listTaskArtifacts({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listTaskArtifactsQueryKey(options),
+  });
+
+/**
+ * Upload immutable content-addressed artifact content for a task attempt.
+ */
+export const uploadTaskArtifactMutation = (
+  options?: Partial<Options<UploadTaskArtifactData>>,
+): UseMutationOptions<
+  UploadTaskArtifactResponse,
+  UploadTaskArtifactError,
+  Options<UploadTaskArtifactData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UploadTaskArtifactResponse,
+    UploadTaskArtifactError,
+    Options<UploadTaskArtifactData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await uploadTaskArtifact({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const downloadTaskArtifactQueryKey = (
+  options: Options<DownloadTaskArtifactData>,
+) => createQueryKey('downloadTaskArtifact', options);
+
+/**
+ * Download immutable task artifact content by CID.
+ */
+export const downloadTaskArtifactOptions = (
+  options: Options<DownloadTaskArtifactData>,
+) =>
+  queryOptions<
+    DownloadTaskArtifactResponse,
+    DownloadTaskArtifactError,
+    DownloadTaskArtifactResponse,
+    ReturnType<typeof downloadTaskArtifactQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await downloadTaskArtifact({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: downloadTaskArtifactQueryKey(options),
+  });
 
 export const listTeamsQueryKey = (options?: Options<ListTeamsData>) =>
   createQueryKey('listTeams', options);

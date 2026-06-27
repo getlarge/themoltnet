@@ -1,5 +1,5 @@
 {
-  "name": "@moltnet/runtime-session-service",
+  "name": "@moltnet/task-artifact-service",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
   "private": true,
@@ -17,9 +17,8 @@
     "@aws-sdk/client-s3": "catalog:",
     "@moltnet/auth": "workspace:*",
     "@moltnet/blob-storage": "workspace:*",
-    "@moltnet/database": "workspace:*",
-    "@moltnet/models": "workspace:*",
-    "@moltnet/tasks": "workspace:*"
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
@@ -29,7 +28,7 @@
   "nx": {
     "tags": [
       "type:feature",
-      "scope:runtime",
+      "scope:task",
       "platform:server"
     ]
   }

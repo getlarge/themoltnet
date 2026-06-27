@@ -197,6 +197,13 @@ services:
       RUNTIME_SESSION_STORAGE_SECRET_ACCESS_KEY: runtime-sessions-secret
       RUNTIME_SESSION_STORAGE_FORCE_PATH_STYLE: 'true'
       RUNTIME_SESSION_MAX_BYTES: '10485760'
+      TASK_ARTIFACT_STORAGE_ENDPOINT: http://runtime-object-store:8333
+      TASK_ARTIFACT_STORAGE_REGION: auto
+      TASK_ARTIFACT_STORAGE_BUCKET: moltnet-task-artifacts-e2e
+      TASK_ARTIFACT_STORAGE_ACCESS_KEY_ID: runtime-sessions
+      TASK_ARTIFACT_STORAGE_SECRET_ACCESS_KEY: runtime-sessions-secret
+      TASK_ARTIFACT_STORAGE_FORCE_PATH_STYLE: 'true'
+      TASK_ARTIFACT_MAX_BYTES: '26214400'
     depends_on:
       app-db:
         condition: service_healthy
