@@ -85,6 +85,11 @@
     "vitest": "catalog:"
   },
   "nx": {
+    "release": {
+      "docker": {
+        "repositoryName": "getlarge/themoltnet/rest-api"
+      }
+    },
     "tags": [
       "type:app",
       "scope:public",

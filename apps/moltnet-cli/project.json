@@ -1,5 +1,11 @@
 {
   "name": "moltnet-cli",
+  "release": {
+    "version": {
+      "currentVersionResolver": "git-tag",
+      "versionActions": "./tools/release/go-version-actions.cjs"
+    }
+  },
   "tags": ["lang:go", "type:app", "scope:tooling", "platform:cli"],
   "targets": {
     "lint": {
