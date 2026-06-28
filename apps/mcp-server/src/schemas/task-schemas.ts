@@ -8,14 +8,20 @@
 import type {
   CreateTaskData,
   CreateTaskResponses,
+  DownloadTaskArtifactData,
+  DownloadTaskArtifactResponses,
   GetTaskData,
   GetTaskResponses,
+  ListTaskArtifactsData,
+  ListTaskArtifactsResponses,
   ListTaskAttemptsData,
   ListTaskAttemptsResponses,
   ListTaskMessagesData,
   ListTaskMessagesResponses,
   ListTaskSchemasResponses,
   ListTasksResponses,
+  UploadTaskArtifactData,
+  UploadTaskArtifactResponses,
 } from '@moltnet/api-client';
 import {
   ClaimConditionDefinition,
@@ -336,6 +342,124 @@ type _TaskMessagesListInputMatchesApi = AssertSchemaToApi<
   TaskMessagesListInput
 >;
 
+export const TaskArtifactsListSchema = Type.Object({
+  task_id: Type.String({
+    format: 'uuid',
+    description: 'Task ID.',
+  }),
+  team_id: Type.String({
+    format: 'uuid',
+    description: 'Team ID that owns the task.',
+  }),
+  limit: Type.Optional(
+    Type.Integer({
+      minimum: 1,
+      maximum: 100,
+      description:
+        'Maximum artifacts to return. Defaults to the REST API value.',
+    }),
+  ),
+  cursor: Type.Optional(
+    Type.String({
+      description:
+        'Pagination cursor from a previous tasks_artifacts_list response.',
+    }),
+  ),
+});
+type ListArtifactsPath = PathOf<ListTaskArtifactsData>;
+type ListArtifactsQuery = QueryOf<ListTaskArtifactsData>;
+export type TaskArtifactsListInput = {
+  task_id: ListArtifactsPath['taskId'];
+  team_id: TeamIdHeaderOf<ListTaskArtifactsData>;
+  limit?: ListArtifactsQuery['limit'];
+  cursor?: ListArtifactsQuery['cursor'];
+};
+type _TaskArtifactsListInputMatchesApi = AssertSchemaToApi<
+  Static<typeof TaskArtifactsListSchema>,
+  TaskArtifactsListInput
+>;
+
+export const TaskArtifactUploadSchema = Type.Object({
+  task_id: Type.String({
+    format: 'uuid',
+    description: 'Task ID.',
+  }),
+  attempt_n: Type.Integer({
+    minimum: 1,
+    description: 'Attempt number.',
+  }),
+  team_id: Type.String({
+    format: 'uuid',
+    description: 'Team ID that owns the task.',
+  }),
+  kind: Type.String({
+    minLength: 1,
+    description: 'Artifact kind, e.g. report, diff, trace.',
+  }),
+  title: Type.String({
+    minLength: 1,
+    description: 'Artifact title, usually a filename.',
+  }),
+  content_base64: Type.String({
+    minLength: 1,
+    description: 'Base64-encoded artifact bytes.',
+  }),
+  content_type: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Content type metadata, e.g. text/markdown.',
+    }),
+  ),
+  content_encoding: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Optional content encoding metadata, e.g. gzip.',
+    }),
+  ),
+});
+type UploadArtifactPath = PathOf<UploadTaskArtifactData>;
+type UploadArtifactQuery = QueryOf<UploadTaskArtifactData>;
+export type TaskArtifactUploadInput = {
+  task_id: UploadArtifactPath['taskId'];
+  attempt_n: UploadArtifactPath['attemptN'];
+  team_id: TeamIdHeaderOf<UploadTaskArtifactData>;
+  kind: UploadArtifactQuery['kind'];
+  title: UploadArtifactQuery['title'];
+  content_base64: string;
+  content_type?: UploadArtifactQuery['contentType'];
+  content_encoding?: UploadArtifactQuery['contentEncoding'];
+};
+
+export const TaskArtifactDownloadSchema = Type.Object({
+  task_id: Type.String({
+    format: 'uuid',
+    description: 'Task ID.',
+  }),
+  attempt_n: Type.Integer({
+    minimum: 1,
+    description: 'Attempt number.',
+  }),
+  team_id: Type.String({
+    format: 'uuid',
+    description: 'Team ID that owns the task.',
+  }),
+  cid: Type.String({
+    minLength: 1,
+    description: 'Artifact CID.',
+  }),
+});
+type DownloadArtifactPath = PathOf<DownloadTaskArtifactData>;
+export type TaskArtifactDownloadInput = {
+  task_id: DownloadArtifactPath['taskId'];
+  attempt_n: DownloadArtifactPath['attemptN'];
+  team_id: TeamIdHeaderOf<DownloadTaskArtifactData>;
+  cid: DownloadArtifactPath['cid'];
+};
+type _TaskArtifactDownloadInputMatchesApi = AssertSchemaToApi<
+  Static<typeof TaskArtifactDownloadSchema>,
+  TaskArtifactDownloadInput
+>;
+
 export const TaskConsoleLinkSchema = Type.Object({
   id: Type.String({
     format: 'uuid',
@@ -372,6 +496,35 @@ export const TaskAttemptsListOutputSchema = Type.Object({
 });
 export const TaskMessagesListOutputSchema = Type.Object({
   items: Type.Array(TaskMessage),
+});
+
+const TaskArtifactMetadataSchema = Type.Object({
+  id: Type.String(),
+  teamId: Type.String(),
+  taskId: Type.String(),
+  attemptN: Type.Integer(),
+  kind: Type.String(),
+  title: Type.String(),
+  contentType: Type.String(),
+  contentEncoding: Type.Union([Type.String(), Type.Null()]),
+  sizeBytes: Type.Integer({ minimum: 0 }),
+  cid: Type.String(),
+  createdByAgentId: Type.String(),
+  expiresAt: Type.Union([Type.String(), Type.Null()]),
+  createdAt: Type.String(),
+});
+
+export const TaskArtifactsListOutputSchema = Type.Object({
+  artifacts: Type.Array(TaskArtifactMetadataSchema),
+  nextCursor: Type.Union([Type.String(), Type.Null()]),
+});
+export const TaskArtifactUploadOutputSchema = TaskArtifactMetadataSchema;
+export const TaskArtifactDownloadOutputSchema = Type.Object({
+  artifactId: Type.Union([Type.String(), Type.Null()]),
+  cid: Type.Union([Type.String(), Type.Null()]),
+  contentType: Type.Union([Type.String(), Type.Null()]),
+  contentEncoding: Type.Union([Type.String(), Type.Null()]),
+  contentBase64: Type.String(),
 });
 
 export const TaskConsoleLinkOutputSchema = Type.Object({
@@ -535,6 +688,26 @@ const _TaskAttemptsOutputMatchesApi: AssertOutputMatchesApi<
 const _TaskMessagesOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskMessagesListOutputSchema>,
   { items: ResponseOf<ListTaskMessagesResponses> }
+> = true;
+const _TaskArtifactsListOutputMatchesApi: AssertOutputMatchesApi<
+  Static<typeof TaskArtifactsListOutputSchema>,
+  ResponseOf<ListTaskArtifactsResponses>
+> = true;
+const _TaskArtifactUploadOutputMatchesApi: AssertOutputMatchesApi<
+  Static<typeof TaskArtifactUploadOutputSchema>,
+  ResponseOf<UploadTaskArtifactResponses>
+> = true;
+type TaskArtifactDownloadOutput = Omit<
+  Static<typeof TaskArtifactDownloadOutputSchema>,
+  'contentBase64'
+> & {
+  contentBase64: string;
+};
+type _TaskArtifactDownloadOutputIncludesApi =
+  ResponseOf<DownloadTaskArtifactResponses> extends Blob | File ? true : never;
+const _TaskSchemasDownloadOutputShape: AssertOutputMatchesApi<
+  Static<typeof TaskArtifactDownloadOutputSchema>,
+  TaskArtifactDownloadOutput
 > = true;
 const _TaskSchemasOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskSchemasOutputSchema>,

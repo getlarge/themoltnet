@@ -78,6 +78,9 @@ vi.mock('@moltnet/api-client', () => ({
   createTask: vi.fn(),
   getTask: vi.fn(),
   listTasks: vi.fn(),
+  listTaskArtifacts: vi.fn(),
+  uploadTaskArtifact: vi.fn(),
+  downloadTaskArtifact: vi.fn(),
   listTaskAttempts: vi.fn(),
   listTaskMessages: vi.fn(),
 }));
@@ -384,6 +387,9 @@ describe('buildApp', () => {
     expect(toolNames).toContain('tasks_list');
     expect(toolNames).toContain('tasks_attempts_list');
     expect(toolNames).toContain('tasks_messages_list');
+    expect(toolNames).toContain('tasks_artifacts_list');
+    expect(toolNames).toContain('tasks_artifacts_upload');
+    expect(toolNames).toContain('tasks_artifacts_download');
     expect(toolNames).toContain('tasks_console_link');
     // old names must NOT appear
     expect(toolNames).not.toContain('diary_create');
@@ -579,6 +585,18 @@ describe('buildApp', () => {
         {
           "inputSchema": "2a5a9330f4f278d3",
           "name": "tasks_app_open",
+        },
+        {
+          "inputSchema": "317b3e44c5c788a4",
+          "name": "tasks_artifacts_download",
+        },
+        {
+          "inputSchema": "d635cf5e76b422d5",
+          "name": "tasks_artifacts_list",
+        },
+        {
+          "inputSchema": "73c4908a186697bc",
+          "name": "tasks_artifacts_upload",
         },
         {
           "inputSchema": "8f3230eca1e8976a",

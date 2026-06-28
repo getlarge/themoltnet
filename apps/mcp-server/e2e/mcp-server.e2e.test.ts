@@ -135,13 +135,16 @@ describe('MCP Server E2E', () => {
       // Teams (2)
       expect(toolNames).toContain('teams_list');
       expect(toolNames).toContain('team_members_list');
-      // Tasks (8)
+      // Tasks (11)
       expect(toolNames).toContain('tasks_schemas');
       expect(toolNames).toContain('tasks_create');
       expect(toolNames).toContain('tasks_get');
       expect(toolNames).toContain('tasks_list');
       expect(toolNames).toContain('tasks_attempts_list');
       expect(toolNames).toContain('tasks_messages_list');
+      expect(toolNames).toContain('tasks_artifacts_list');
+      expect(toolNames).toContain('tasks_artifacts_upload');
+      expect(toolNames).toContain('tasks_artifacts_download');
       expect(toolNames).toContain('tasks_console_link');
       expect(toolNames).toContain('tasks_app_open');
     });

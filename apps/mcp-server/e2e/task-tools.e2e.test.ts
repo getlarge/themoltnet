@@ -6,6 +6,8 @@
  * uses REST to create attempt/message state and MCP to inspect it.
  */
 
+import { Buffer } from 'node:buffer';
+
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import {
   appendTaskMessages,
@@ -424,5 +426,117 @@ describe('Task Tools E2E', () => {
         }),
       ]),
     );
+  });
+
+  it('uploads, lists, and downloads task artifacts through MCP', async () => {
+    requireSetup();
+    const taskId = await createCuratePackTask();
+    const apiClient = createClient({ baseUrl: harness.restApiUrl });
+
+    const { data: claimed, error: claimError } = await claimTask({
+      client: apiClient,
+      auth: () => harness.agent.accessToken,
+      path: { id: taskId },
+      body: { leaseTtlSec: 30 },
+    });
+    expect(
+      claimError,
+      `claimTask error: ${JSON.stringify(claimError)}`,
+    ).toBeUndefined();
+    const attemptN = claimed!.attempt.attemptN;
+
+    const { error: heartbeatError } = await taskHeartbeat({
+      client: apiClient,
+      auth: () => harness.agent.accessToken,
+      path: { id: taskId, n: attemptN },
+      body: { leaseTtlSec: 30 },
+    });
+    expect(
+      heartbeatError,
+      `taskHeartbeat error: ${JSON.stringify(heartbeatError)}`,
+    ).toBeUndefined();
+
+    const content = 'artifact bytes from mcp e2e';
+    const uploadResult = await client.callTool({
+      name: 'tasks_artifacts_upload',
+      arguments: {
+        task_id: taskId,
+        attempt_n: attemptN,
+        team_id: harness.personalTeamId,
+        kind: 'report',
+        title: 'mcp-e2e.txt',
+        content_type: 'text/plain',
+        content_base64: Buffer.from(content, 'utf8').toString('base64'),
+      },
+    });
+    const uploaded = parseToolResult<{
+      taskId: string;
+      attemptN: number;
+      cid: string;
+      kind: string;
+      title: string;
+      contentType: string;
+    }>(uploadResult);
+    expect(
+      uploadResult.isError,
+      `tasks_artifacts_upload error: ${uploaded.content[0].text}`,
+    ).toBeUndefined();
+    expect(uploaded.parsed).toMatchObject({
+      taskId,
+      attemptN,
+      kind: 'report',
+      title: 'mcp-e2e.txt',
+      contentType: 'text/plain',
+    });
+    expect(uploaded.parsed.cid).toBeTruthy();
+
+    const listResult = await client.callTool({
+      name: 'tasks_artifacts_list',
+      arguments: {
+        task_id: taskId,
+        team_id: harness.personalTeamId,
+        limit: 20,
+      },
+    });
+    const listed = parseToolResult<{
+      artifacts: Array<{ taskId: string; attemptN: number; cid: string }>;
+    }>(listResult);
+    expect(
+      listResult.isError,
+      `tasks_artifacts_list error: ${listed.content[0].text}`,
+    ).toBeUndefined();
+    expect(listed.parsed.artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          taskId,
+          attemptN,
+          cid: uploaded.parsed.cid,
+        }),
+      ]),
+    );
+
+    const downloadResult = await client.callTool({
+      name: 'tasks_artifacts_download',
+      arguments: {
+        task_id: taskId,
+        attempt_n: attemptN,
+        team_id: harness.personalTeamId,
+        cid: uploaded.parsed.cid,
+      },
+    });
+    const downloaded = parseToolResult<{
+      cid: string;
+      contentType: string;
+      contentBase64: string;
+    }>(downloadResult);
+    expect(
+      downloadResult.isError,
+      `tasks_artifacts_download error: ${downloaded.content[0].text}`,
+    ).toBeUndefined();
+    expect(downloaded.parsed.cid).toBe(uploaded.parsed.cid);
+    expect(downloaded.parsed.contentType).toBe('text/plain');
+    expect(
+      Buffer.from(downloaded.parsed.contentBase64, 'base64').toString('utf8'),
+    ).toBe(content);
   });
 });

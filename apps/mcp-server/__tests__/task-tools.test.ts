@@ -1,3 +1,5 @@
+import { Buffer } from 'node:buffer';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -5,6 +7,9 @@ import {
   TasksSchemasInputSchema,
 } from '../src/schemas/task-schemas.js';
 import {
+  handleTaskArtifactDownload,
+  handleTaskArtifactsList,
+  handleTaskArtifactUpload,
   handleTasksAttemptsList,
   handleTasksConsoleLink,
   handleTasksCreate,
@@ -26,25 +31,32 @@ import {
 
 vi.mock('@moltnet/api-client', () => ({
   createTask: vi.fn(),
+  downloadTaskArtifact: vi.fn(),
   getTask: vi.fn(),
+  listTaskArtifacts: vi.fn(),
   listTaskAttempts: vi.fn(),
   listTaskMessages: vi.fn(),
   listTasks: vi.fn(),
   listTaskSchemas: vi.fn(),
+  uploadTaskArtifact: vi.fn(),
 }));
 
 import {
   createTask,
+  downloadTaskArtifact,
   getTask,
+  listTaskArtifacts,
   listTaskAttempts,
   listTaskMessages,
   listTasks,
   listTaskSchemas,
+  uploadTaskArtifact,
 } from '@moltnet/api-client';
 
 const TASK_ID = '110e8400-e29b-41d4-a716-446655440091';
 const TEAM_ID = '220e8400-e29b-41d4-a716-446655440091';
 const ATTEMPT_N = 1;
+const ARTIFACT_CID = 'bafkreiartifact';
 
 const taskInput = {
   diaryId: DIARY_ID,
@@ -76,6 +88,22 @@ const mockTask = {
   maxAttempts: 1,
   dispatchTimeoutSec: null,
   runningTimeoutSec: null,
+};
+
+const mockArtifact = {
+  id: '440e8400-e29b-41d4-a716-446655440091',
+  teamId: TEAM_ID,
+  taskId: TASK_ID,
+  attemptN: ATTEMPT_N,
+  kind: 'report',
+  title: 'result.md',
+  contentType: 'text/markdown',
+  contentEncoding: null,
+  sizeBytes: 12,
+  cid: ARTIFACT_CID,
+  createdByAgentId: '330e8400-e29b-41d4-a716-446655440091',
+  expiresAt: null,
+  createdAt: '2026-04-26T10:00:03.000Z',
 };
 
 describe('Task tools', () => {
@@ -427,6 +455,123 @@ describe('Task tools', () => {
         }),
       );
       expect(parseResult<{ items: unknown[] }>(result).items).toHaveLength(1);
+    });
+  });
+
+  describe('task artifacts', () => {
+    it('lists artifact metadata for a task', async () => {
+      vi.mocked(listTaskArtifacts).mockResolvedValue(
+        sdkOk({
+          artifacts: [mockArtifact],
+          nextCursor: 'cursor-2',
+        }) as never,
+      );
+
+      const result = await handleTaskArtifactsList(
+        {
+          task_id: TASK_ID,
+          team_id: TEAM_ID,
+          limit: 25,
+          cursor: 'cursor-1',
+        },
+        deps,
+        context,
+      );
+
+      expect(listTaskArtifacts).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: { 'x-moltnet-team-id': TEAM_ID },
+          path: { taskId: TASK_ID },
+          query: { limit: 25, cursor: 'cursor-1' },
+        }),
+      );
+      const parsed = parseResult<{ artifacts: (typeof mockArtifact)[] }>(
+        result,
+      );
+      expect(parsed.artifacts[0]?.cid).toBe(ARTIFACT_CID);
+    });
+
+    it('uploads base64 artifact bytes', async () => {
+      vi.mocked(uploadTaskArtifact).mockResolvedValue(
+        sdkOk(mockArtifact, 201) as never,
+      );
+
+      const result = await handleTaskArtifactUpload(
+        {
+          task_id: TASK_ID,
+          attempt_n: ATTEMPT_N,
+          team_id: TEAM_ID,
+          kind: 'report',
+          title: 'result.md',
+          content_type: 'text/markdown',
+          content_base64: Buffer.from('artifact-body').toString('base64'),
+        },
+        deps,
+        context,
+      );
+
+      expect(uploadTaskArtifact).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: { 'x-moltnet-team-id': TEAM_ID },
+          path: { taskId: TASK_ID, attemptN: ATTEMPT_N },
+          query: expect.objectContaining({
+            kind: 'report',
+            title: 'result.md',
+            contentType: 'text/markdown',
+          }),
+          body: expect.any(Blob),
+        }),
+      );
+      const call = vi.mocked(uploadTaskArtifact).mock.calls[0]?.[0] as {
+        body: Blob;
+      };
+      await expect(call.body.text()).resolves.toBe('artifact-body');
+      expect(parseResult<typeof mockArtifact>(result).cid).toBe(ARTIFACT_CID);
+    });
+
+    it('downloads artifact bytes as base64 with response headers', async () => {
+      vi.mocked(downloadTaskArtifact).mockResolvedValue({
+        data: new Blob(['artifact-body']),
+        error: undefined,
+        request: {} as Request,
+        response: new Response(null, {
+          headers: {
+            'x-moltnet-task-artifact-id': mockArtifact.id,
+            'x-moltnet-task-artifact-cid': ARTIFACT_CID,
+            'x-moltnet-task-artifact-content-type': 'text/markdown',
+          },
+        }),
+      } as never);
+
+      const result = await handleTaskArtifactDownload(
+        {
+          task_id: TASK_ID,
+          attempt_n: ATTEMPT_N,
+          team_id: TEAM_ID,
+          cid: ARTIFACT_CID,
+        },
+        deps,
+        context,
+      );
+
+      expect(downloadTaskArtifact).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: { 'x-moltnet-team-id': TEAM_ID },
+          path: { taskId: TASK_ID, attemptN: ATTEMPT_N, cid: ARTIFACT_CID },
+        }),
+      );
+      const parsed = parseResult<{
+        artifactId: string;
+        cid: string;
+        contentType: string;
+        contentBase64: string;
+      }>(result);
+      expect(parsed.artifactId).toBe(mockArtifact.id);
+      expect(parsed.cid).toBe(ARTIFACT_CID);
+      expect(parsed.contentType).toBe('text/markdown');
+      expect(Buffer.from(parsed.contentBase64, 'base64').toString('utf8')).toBe(
+        'artifact-body',
+      );
     });
   });
 

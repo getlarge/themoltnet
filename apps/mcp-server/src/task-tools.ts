@@ -5,18 +5,26 @@
  * stay out of this MCP surface and remain owned by runtimes/daemons.
  */
 
+import { Buffer } from 'node:buffer';
+
 import {
   createTask,
+  downloadTaskArtifact,
   getTask,
+  listTaskArtifacts,
   listTaskAttempts,
   listTaskMessages,
   listTasks,
   listTaskSchemas,
+  uploadTaskArtifact,
 } from '@moltnet/api-client';
 import { validateTaskCreateRequest } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
 
 import type {
+  TaskArtifactDownloadInput,
+  TaskArtifactsListInput,
+  TaskArtifactUploadInput,
   TaskAttemptsListInput,
   TaskConsoleLinkInput,
   TaskContinueInput,
@@ -27,6 +35,12 @@ import type {
   TasksSchemasInput,
 } from './schemas/task-schemas.js';
 import {
+  TaskArtifactDownloadOutputSchema,
+  TaskArtifactDownloadSchema,
+  TaskArtifactsListOutputSchema,
+  TaskArtifactsListSchema,
+  TaskArtifactUploadOutputSchema,
+  TaskArtifactUploadSchema,
   TaskAttemptsListOutputSchema,
   TaskAttemptsListSchema,
   TaskConsoleLinkOutputSchema,
@@ -392,6 +406,114 @@ export async function handleTasksMessagesList(
   return structuredResult({ items: data });
 }
 
+export async function handleTaskArtifactsList(
+  args: TaskArtifactsListInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'tasks_artifacts_list' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await listTaskArtifacts({
+    client: deps.client,
+    auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
+    path: { taskId: args.task_id },
+    query: {
+      limit: args.limit,
+      cursor: args.cursor,
+    },
+  });
+
+  if (error || !data) {
+    deps.logger.error(
+      { tool: 'tasks_artifacts_list', err: error },
+      'tool.error',
+    );
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to list task artifacts'),
+    );
+  }
+
+  return structuredResult(data);
+}
+
+export async function handleTaskArtifactUpload(
+  args: TaskArtifactUploadInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'tasks_artifacts_upload' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const body = Buffer.from(args.content_base64, 'base64');
+  const { data, error } = await uploadTaskArtifact({
+    client: deps.client,
+    auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
+    path: { taskId: args.task_id, attemptN: args.attempt_n },
+    query: {
+      kind: args.kind,
+      title: args.title,
+      contentType: args.content_type,
+      contentEncoding: args.content_encoding,
+    },
+    body: new Blob([body]),
+  });
+
+  if (error || !data) {
+    deps.logger.error(
+      { tool: 'tasks_artifacts_upload', err: error },
+      'tool.error',
+    );
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to upload task artifact'),
+    );
+  }
+
+  return structuredResult(data);
+}
+
+export async function handleTaskArtifactDownload(
+  args: TaskArtifactDownloadInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'tasks_artifacts_download' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error, response } = await downloadTaskArtifact({
+    client: deps.client,
+    auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
+    path: { taskId: args.task_id, attemptN: args.attempt_n, cid: args.cid },
+  });
+
+  if (error || !data) {
+    deps.logger.error(
+      { tool: 'tasks_artifacts_download', err: error },
+      'tool.error',
+    );
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to download task artifact'),
+    );
+  }
+
+  const bytes = Buffer.from(await data.arrayBuffer());
+  return structuredResult({
+    artifactId: response.headers.get('x-moltnet-task-artifact-id'),
+    cid: response.headers.get('x-moltnet-task-artifact-cid'),
+    contentType: response.headers.get('x-moltnet-task-artifact-content-type'),
+    contentEncoding: response.headers.get(
+      'x-moltnet-task-artifact-content-encoding',
+    ),
+    contentBase64: bytes.toString('base64'),
+  });
+}
+
 export function handleTasksConsoleLink(
   args: TaskConsoleLinkInput,
   deps: McpDeps,
@@ -488,6 +610,42 @@ export function registerTaskTools(
     },
     async (args: TaskMessagesListInput, ctx: HandlerContext) =>
       handleTasksMessagesList(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'tasks_artifacts_list',
+      description:
+        'List immutable artifact metadata for a task. Read-only; returns metadata and pagination cursor, not bytes.',
+      inputSchema: TaskArtifactsListSchema,
+      outputSchema: TaskArtifactsListOutputSchema,
+    },
+    async (args: TaskArtifactsListInput, ctx: HandlerContext) =>
+      handleTaskArtifactsList(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'tasks_artifacts_upload',
+      description:
+        'Upload base64-encoded bytes as an immutable artifact for a task attempt. Only the claiming agent can upload for its attempt.',
+      inputSchema: TaskArtifactUploadSchema,
+      outputSchema: TaskArtifactUploadOutputSchema,
+    },
+    async (args: TaskArtifactUploadInput, ctx: HandlerContext) =>
+      handleTaskArtifactUpload(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'tasks_artifacts_download',
+      description:
+        'Download immutable task artifact content by task, attempt, and CID. Returns base64 bytes plus artifact response headers.',
+      inputSchema: TaskArtifactDownloadSchema,
+      outputSchema: TaskArtifactDownloadOutputSchema,
+    },
+    async (args: TaskArtifactDownloadInput, ctx: HandlerContext) =>
+      handleTaskArtifactDownload(args, deps, ctx),
   );
 
   fastify.mcpAddTool(
