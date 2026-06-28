@@ -37677,10 +37677,6 @@ _Object_({
 			maxLength: 100
 		}), Null()]),
 		sizeBytes: Integer({ minimum: 0 }),
-		sha256: String$1({
-			minLength: 64,
-			maxLength: 64
-		}),
 		cid: String$1({
 			minLength: 1,
 			maxLength: 100
@@ -41485,7 +41481,7 @@ var TaskRef = _Object_({
 	})),
 	artifact: Optional(_Object_({
 		cid: Cid,
-		attemptN: Optional(Integer({ minimum: 1 })),
+		attemptN: Integer({ minimum: 1 }),
 		kind: Optional(String$1({
 			minLength: 1,
 			maxLength: 100
@@ -41864,11 +41860,16 @@ var TaskBuilder = class {
 	artifactReference(source, role) {
 		let ref;
 		if ("artifactRef" in source && typeof source.artifactRef === "function") ref = source.artifactRef(role);
-		else if ("artifact" in source && source.artifact?.cid) ref = {
-			...source,
-			role
-		};
-		else {
+		else if ("artifact" in source && source.artifact?.cid) {
+			if (typeof source.artifact.attemptN !== "number" || !Number.isInteger(source.artifact.attemptN) || source.artifact.attemptN < 1) throw new TaskBuildError([{
+				field: "references/artifact/attemptN",
+				message: "artifact reference is missing required attemptN"
+			}]);
+			ref = {
+				...source,
+				role
+			};
+		} else {
 			const s = source;
 			const errors = [];
 			if (!s.outputCid) errors.push({
@@ -41879,14 +41880,19 @@ var TaskBuilder = class {
 				field: "references/artifact/cid",
 				message: "artifact reference is missing required cid"
 			});
+			if (typeof s.attemptN !== "number" || !Number.isInteger(s.attemptN) || s.attemptN < 1) errors.push({
+				field: "references/artifact/attemptN",
+				message: "artifact reference is missing required attemptN"
+			});
 			if (errors.length > 0) throw new TaskBuildError(errors);
+			const attemptN = s.attemptN;
 			ref = {
 				taskId: s.taskId ?? null,
 				outputCid: s.outputCid,
 				role,
 				artifact: {
 					cid: s.artifactCid,
-					...s.attemptN !== void 0 ? { attemptN: s.attemptN } : {},
+					attemptN,
 					...s.kind ? { kind: s.kind } : {},
 					...s.title ? { title: s.title } : {},
 					...s.contentType ? { contentType: s.contentType } : {}
@@ -42378,7 +42384,6 @@ function createTasksNamespace(context) {
 					cid: header(result.response, "x-moltnet-task-artifact-cid"),
 					contentEncoding: header(result.response, "x-moltnet-task-artifact-content-encoding"),
 					contentType: header(result.response, "x-moltnet-task-artifact-content-type"),
-					sha256: header(result.response, "x-moltnet-task-artifact-sha256"),
 					stream: normalizedStream
 				};
 				throw new MoltNetError("Unexpected task artifact download response stream", { code: "INVALID_RESPONSE" });
