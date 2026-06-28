@@ -1,18 +1,22 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 if (process.env.NX_DRY_RUN === 'true') {
   console.log('Skipping Docker pre-version build during nx release dry-run.');
   process.exit(0);
 }
 
-const releaseDockerProjects = [
-  '@moltnet/console',
-  '@moltnet/database',
-  '@moltnet/landing',
-  '@moltnet/mcp-host',
-  '@moltnet/mcp-server',
-  '@moltnet/rest-api',
-];
+const nxConfig = JSON.parse(readFileSync('nx.json', 'utf8'));
+const releaseDockerProjects =
+  nxConfig.release?.groups?.['docker-images']?.projects ?? [];
+if (
+  !Array.isArray(releaseDockerProjects) ||
+  releaseDockerProjects.length === 0
+) {
+  throw new Error(
+    'No projects configured in nx.json release.groups.docker-images',
+  );
+}
 
 const projects =
   process.env.NX_RELEASE_DOCKER_PROJECTS?.split(',')
