@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.10.0...mcp-server-v0.11.0) (2026-06-28)
+
+
+### Features
+
+* **release:** spike nx release migration ([a7a1189](https://github.com/getlarge/themoltnet/commit/a7a1189f793006861d4d7685b5efcb14f0027481))
+* **release:** spike Nx Release migration ([6f90b37](https://github.com/getlarge/themoltnet/commit/6f90b375ac76b776eb05ea93dfdb39204a6dd740))
+
+
+### Bug Fixes
+
+* implement remote task artifacts storage ([1c4dcc5](https://github.com/getlarge/themoltnet/commit/1c4dcc5e3e5a941a7b396e3fecdabc9d0e5f0b5c))
+* **task-artifacts:** repair ci fallout ([b12333c](https://github.com/getlarge/themoltnet/commit/b12333c79d587d62f24b3844e76afe3c495f26b4))
+* **task-artifacts:** sync ci artifacts ([628cc8a](https://github.com/getlarge/themoltnet/commit/628cc8a122731c33ab908874bc48e9cafa75f6df))
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.9.0...mcp-server-v0.10.0) (2026-06-26)
 
 

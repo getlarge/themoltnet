@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.32.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.31.1...agent-runtime-v0.32.0) (2026-06-28)
+
+
+### Features
+
+* **task-artifacts:** expose agent artifact tools ([7b3b3bf](https://github.com/getlarge/themoltnet/commit/7b3b3bfb96011fe9ebe0a0e411e4dca0821767e7))
+
+
+### Bug Fixes
+
+* implement remote task artifacts storage ([1c4dcc5](https://github.com/getlarge/themoltnet/commit/1c4dcc5e3e5a941a7b396e3fecdabc9d0e5f0b5c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.115.0
+
 ## [0.31.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.31.0...agent-runtime-v0.31.1) (2026-06-26)
 
 

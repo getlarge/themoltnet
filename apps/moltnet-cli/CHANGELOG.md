@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.55.0](https://github.com/getlarge/themoltnet/compare/cli-v1.54.0...cli-v1.55.0) (2026-06-28)
+
+
+### Features
+
+* **release:** spike nx release migration ([a7a1189](https://github.com/getlarge/themoltnet/commit/a7a1189f793006861d4d7685b5efcb14f0027481))
+* **release:** spike Nx Release migration ([6f90b37](https://github.com/getlarge/themoltnet/commit/6f90b375ac76b776eb05ea93dfdb39204a6dd740))
+
 ## [1.54.0](https://github.com/getlarge/themoltnet/compare/cli-v1.53.0...cli-v1.54.0) (2026-06-26)
 
 

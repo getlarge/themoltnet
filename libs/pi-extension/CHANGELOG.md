@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.29.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.28.1...pi-extension-v0.29.0) (2026-06-28)
+
+
+### Features
+
+* **task-artifacts:** expose agent artifact tools ([7b3b3bf](https://github.com/getlarge/themoltnet/commit/7b3b3bfb96011fe9ebe0a0e411e4dca0821767e7))
+* **tasks:** expose artifacts to agents ([b21c489](https://github.com/getlarge/themoltnet/commit/b21c489f2d43b28d9e79a03c0ff78737a361c627))
+
+
+### Bug Fixes
+
+* implement remote task artifacts storage ([1c4dcc5](https://github.com/getlarge/themoltnet/commit/1c4dcc5e3e5a941a7b396e3fecdabc9d0e5f0b5c))
+* **task-artifacts:** address deep review findings ([d7dfe16](https://github.com/getlarge/themoltnet/commit/d7dfe1609b15e747923464401a4d6224ea076cf6))
+* **task-artifacts:** address latest review feedback ([597621d](https://github.com/getlarge/themoltnet/commit/597621d6979cc2c846dd73d0677f0bb395493211))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.32.0
+    * @themoltnet/sdk bumped to 0.115.0
+
 ## [0.28.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.28.0...pi-extension-v0.28.1) (2026-06-26)
 
 
