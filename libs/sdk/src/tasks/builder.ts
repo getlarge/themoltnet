@@ -39,6 +39,19 @@ export type ReferenceSource =
   | { taskId: string | null; outputCid: string }
   | { outputRef(role: ReferenceRole): TaskRef };
 
+export type ArtifactReferenceSource =
+  | TaskRef
+  | {
+      taskId: string | null;
+      outputCid: string;
+      artifactCid: string;
+      attemptN?: number;
+      kind?: string;
+      title?: string;
+      contentType?: string;
+    }
+  | { artifactRef(role: ReferenceRole): TaskRef };
+
 /**
  * Task types that receive the auto-injected `submit-output` gate at create
  * time. Mirrors `PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE` in
@@ -210,7 +223,71 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
           },
         ]);
       }
-      ref = { taskId: s.taskId ?? null, outputCid: s.outputCid, role };
+      ref = {
+        ...(s as TaskRef),
+        taskId: s.taskId ?? null,
+        outputCid: s.outputCid,
+        role,
+      };
+    }
+    this.refs.push(ref);
+    return this;
+  }
+
+  /**
+   * Add a reference to a persistent task artifact while retaining the accepted
+   * output CID as the provenance anchor.
+   *
+   * @param source - A result reader, raw artifact reference, or `TaskRef`.
+   * @param role - The role the referenced artifact plays.
+   * @returns This builder, for chaining.
+   * @throws {TaskBuildError} when output or artifact CID is missing.
+   */
+  artifactReference(
+    source: ArtifactReferenceSource,
+    role: ReferenceRole,
+  ): this {
+    let ref: TaskRef;
+    if ('artifactRef' in source && typeof source.artifactRef === 'function') {
+      ref = source.artifactRef(role);
+    } else if ('artifact' in source && source.artifact?.cid) {
+      ref = { ...source, role } as TaskRef;
+    } else {
+      const s = source as {
+        taskId: string | null;
+        outputCid?: string;
+        artifactCid?: string;
+        attemptN?: number;
+        kind?: string;
+        title?: string;
+        contentType?: string;
+      };
+      const errors = [];
+      if (!s.outputCid) {
+        errors.push({
+          field: 'references/outputCid',
+          message: 'reference is missing required outputCid',
+        });
+      }
+      if (!s.artifactCid) {
+        errors.push({
+          field: 'references/artifact/cid',
+          message: 'artifact reference is missing required cid',
+        });
+      }
+      if (errors.length > 0) throw new TaskBuildError(errors);
+      ref = {
+        taskId: s.taskId ?? null,
+        outputCid: s.outputCid as string,
+        role,
+        artifact: {
+          cid: s.artifactCid as string,
+          ...(s.attemptN !== undefined ? { attemptN: s.attemptN } : {}),
+          ...(s.kind ? { kind: s.kind } : {}),
+          ...(s.title ? { title: s.title } : {}),
+          ...(s.contentType ? { contentType: s.contentType } : {}),
+        },
+      };
     }
     this.refs.push(ref);
     return this;

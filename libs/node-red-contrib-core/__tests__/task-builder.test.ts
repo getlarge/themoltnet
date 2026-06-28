@@ -157,6 +157,35 @@ describe('moltnet-task-builder references + gates + execution', () => {
     ]);
   });
 
+  it('preserves artifact metadata when the msg path carries artifactRef', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      referencesFrom: 'result.artifactRef',
+      referencesRole: 'context',
+    });
+    const { outputs } = await red.input(node, {
+      payload: {},
+      result: {
+        artifactRef: {
+          taskId: 't1',
+          outputCid: 'bafyOUT',
+          role: 'judged_work',
+          artifact: { cid: 'bafkreiART', attemptN: 1, kind: 'report' },
+        },
+      },
+    } as Record<string, unknown>);
+    const payload = outputs[0].payload as Record<string, unknown>;
+    expect(payload.references).toEqual([
+      {
+        taskId: 't1',
+        outputCid: 'bafyOUT',
+        role: 'context',
+        artifact: { cid: 'bafkreiART', attemptN: 1, kind: 'report' },
+      },
+    ]);
+  });
+
   it('adds submit-output gate and execution workspace', async () => {
     const { red, node } = setup({
       taskType: 'freeform',

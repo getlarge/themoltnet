@@ -121,7 +121,8 @@ registers `moltnet_upload_task_artifact`, which streams a file from the task
 workspace into task-artifact storage for the active attempt and returns a CID.
 Use the structured output to reference that CID, title, kind, and a concise
 summary. `moltnet_list_task_artifacts` lets continuations and judge tasks see
-the metadata later.
+the metadata later, and `moltnet_download_task_artifact` downloads the specific
+CID needed for referenced task inputs into the active workspace.
 
 **Outcomes are instrumented** via the OTel counter `agent_runtime.task_output.parse_result` with labels `{task_type, model, code}`. Codes:
 

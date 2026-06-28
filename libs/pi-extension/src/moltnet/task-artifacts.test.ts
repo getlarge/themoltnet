@@ -1,6 +1,14 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -67,6 +75,7 @@ function makeConfig(input: {
             title: 'result.txt',
           },
         ]),
+        download: vi.fn(async () => Readable.from(['artifact bytes'])),
       },
     },
   };
@@ -175,6 +184,78 @@ describe('moltnet_upload_task_artifact', () => {
           filePath: path.join(outside, 'secret.txt'),
           kind: 'report',
           title: 'secret.txt',
+        }),
+      ).rejects.toThrow(/escapes workspace/i);
+    } finally {
+      await rm(cwd, { force: true, recursive: true });
+      await rm(outside, { force: true, recursive: true });
+    }
+  });
+
+  it('rejects symlinks escaping the workspace', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
+    const outside = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-outside-'));
+    try {
+      await writeFile(path.join(outside, 'secret.txt'), 'hello');
+      await symlink(path.join(outside, 'secret.txt'), path.join(cwd, 'leak'));
+      const tool = findTool(
+        makeConfig({ cwd }),
+        'moltnet_upload_task_artifact',
+      );
+
+      await expect(
+        callTool(tool, {
+          filePath: 'leak',
+          kind: 'report',
+          title: 'leak',
+        }),
+      ).rejects.toThrow(/escapes workspace/i);
+    } finally {
+      await rm(cwd, { force: true, recursive: true });
+      await rm(outside, { force: true, recursive: true });
+    }
+  });
+});
+
+describe('moltnet_download_task_artifact', () => {
+  it('downloads artifact content into a new workspace file', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
+    try {
+      await mkdir(path.join(cwd, 'inputs'));
+      const tool = findTool(
+        makeConfig({ cwd }),
+        'moltnet_download_task_artifact',
+      );
+
+      const result = await callTool(tool, {
+        attemptN: 2,
+        cid: 'bafkreia',
+        outputPath: 'inputs/result.txt',
+      });
+
+      await expect(
+        readFile(path.join(cwd, 'inputs/result.txt'), 'utf8'),
+      ).resolves.toBe('artifact bytes');
+      expect(JSON.stringify(result)).toContain('result.txt');
+    } finally {
+      await rm(cwd, { force: true, recursive: true });
+    }
+  });
+
+  it('rejects download paths escaping the workspace', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
+    const outside = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-outside-'));
+    try {
+      const tool = findTool(
+        makeConfig({ cwd }),
+        'moltnet_download_task_artifact',
+      );
+
+      await expect(
+        callTool(tool, {
+          attemptN: 2,
+          cid: 'bafkreia',
+          outputPath: path.join(outside, 'result.txt'),
         }),
       ).rejects.toThrow(/escapes workspace/i);
     } finally {

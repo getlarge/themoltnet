@@ -35,7 +35,13 @@ describe('createResultReader (freeform)', () => {
   const output = {
     summary: 'Did the thing',
     artifacts: [
-      { kind: 'patch', title: 'fix', body: '{"changed":3}' },
+      {
+        kind: 'patch',
+        title: 'fix',
+        body: '{"changed":3}',
+        cid: 'bafkreiPATCH',
+        contentType: 'text/x-diff',
+      },
       { kind: 'note', title: 'log', body: 'hello' },
     ],
   };
@@ -75,6 +81,27 @@ describe('createResultReader (freeform)', () => {
       outputCid: 'bafyOUT',
       role: 'context',
     });
+  });
+
+  it('artifactRef(role) carries outputCid and artifact CID metadata', () => {
+    const r = createResultReader(freeformTask(), freeformAttempt(output));
+    expect(r.artifactRef('patch', 'context')).toEqual({
+      taskId: 'task-1',
+      outputCid: 'bafyOUT',
+      role: 'context',
+      artifact: {
+        cid: 'bafkreiPATCH',
+        attemptN: 1,
+        kind: 'patch',
+        title: 'fix',
+        contentType: 'text/x-diff',
+      },
+    });
+  });
+
+  it('artifactRef throws when the matching artifact has no CID', () => {
+    const r = createResultReader(freeformTask(), freeformAttempt(output));
+    expect(() => r.artifactRef('note', 'context')).toThrow(TaskResultError);
   });
 
   it('throws when output is null', () => {

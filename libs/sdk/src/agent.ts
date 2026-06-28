@@ -71,6 +71,7 @@ import type {
   ListRuntimeSlotsData,
   ListRuntimeSlotsResponse,
   ListSigningRequestsData,
+  ListTaskArtifactsData,
   ListTaskMessagesData,
   ListTaskSchemasResponse,
   ListTasksData,
@@ -652,7 +653,14 @@ export interface TaskArtifactsNamespace {
   list(
     taskId: string,
     options: TaskRequestOptions,
+    query?: ListTaskArtifactsData['query'],
   ): Promise<TaskArtifactList['artifacts']>;
+
+  listPage(
+    taskId: string,
+    query: ListTaskArtifactsData['query'] | undefined,
+    options: TaskRequestOptions,
+  ): Promise<TaskArtifactList>;
 
   download(
     path: DownloadTaskArtifactData['path'],

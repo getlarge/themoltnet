@@ -12,7 +12,11 @@ import { TaskResultError } from './errors.js';
 export interface FreeformArtifactLike {
   kind: string;
   title: string;
+  cid?: string;
+  contentType?: string;
+  contentEncoding?: string;
   description?: string;
+  sizeBytes?: number;
   url?: string;
   path?: string;
   body?: string;
@@ -169,6 +173,42 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
    */
   outputRef(role: ReferenceRole): TaskRef {
     return { taskId: this.taskId, outputCid: this.outputCid, role };
+  }
+
+  /**
+   * Build a `TaskRef` that anchors a downstream task to this accepted output
+   * and points at one persistent task artifact by CID.
+   *
+   * @param filter - Artifact object or a filter resolved against output artifacts.
+   * @param role - The role this artifact plays in the downstream task.
+   * @returns A `TaskRef` with `artifact.cid` populated.
+   * @throws {TaskResultError} if no matching artifact has a CID.
+   */
+  artifactRef(
+    filter: ArtifactFilter | FreeformArtifactLike,
+    role: ReferenceRole,
+  ): TaskRef {
+    const artifact =
+      typeof filter === 'object' && 'cid' in filter && 'kind' in filter
+        ? filter
+        : this.artifact(filter as ArtifactFilter);
+    if (!artifact?.cid) {
+      throw new TaskResultError([
+        { field: 'artifacts/cid', message: 'no matching artifact with a cid' },
+      ]);
+    }
+    return {
+      taskId: this.taskId,
+      outputCid: this.outputCid,
+      role,
+      artifact: {
+        cid: artifact.cid,
+        attemptN: this.accepted.attemptN,
+        kind: artifact.kind,
+        title: artifact.title,
+        ...(artifact.contentType ? { contentType: artifact.contentType } : {}),
+      },
+    };
   }
 }
 

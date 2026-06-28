@@ -163,6 +163,61 @@ describe('buildTask (generic core)', () => {
     ).toThrow(/outputCid/);
   });
 
+  it('artifactReference() carries artifact CID metadata in task refs', () => {
+    const { body } = buildTask('assess_brief', {
+      targetTaskId: '11111111-1111-1111-1111-111111111111',
+      successCriteria: JUDGMENT_CRITERIA,
+    })
+      .team(TEAM)
+      .diary(DIARY)
+      .artifactReference(
+        {
+          taskId: '22222222-2222-2222-2222-222222222222',
+          outputCid: 'bafyOUT',
+          artifactCid: 'bafkreiART',
+          attemptN: 1,
+          kind: 'report',
+          title: 'report.md',
+          contentType: 'text/markdown',
+        },
+        'judged_work',
+      )
+      .build();
+    expect(body.references).toEqual([
+      {
+        taskId: '22222222-2222-2222-2222-222222222222',
+        outputCid: 'bafyOUT',
+        role: 'judged_work',
+        artifact: {
+          cid: 'bafkreiART',
+          attemptN: 1,
+          kind: 'report',
+          title: 'report.md',
+          contentType: 'text/markdown',
+        },
+      },
+    ]);
+  });
+
+  it('artifactReference() throws if artifact CID is missing', () => {
+    expect(() =>
+      buildTask('assess_brief', {
+        targetTaskId: '11111111-1111-1111-1111-111111111111',
+        successCriteria: JUDGMENT_CRITERIA,
+      })
+        .team(TEAM)
+        .diary(DIARY)
+        .artifactReference(
+          {
+            taskId: '22222222-2222-2222-2222-222222222222',
+            outputCid: 'bafyOUT',
+          } as never,
+          'judged_work',
+        )
+        .build(),
+    ).toThrow(/artifact.*cid/i);
+  });
+
   it('context() does not mutate a caller-supplied context array', () => {
     const shared = [
       { slug: 'seed', binding: 'context_inline' as const, content: 'x' },

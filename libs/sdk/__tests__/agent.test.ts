@@ -621,7 +621,7 @@ describe('Agent facade', () => {
         },
       ];
       vi.mocked(listTaskArtifacts).mockResolvedValueOnce({
-        data: { artifacts },
+        data: { artifacts, nextCursor: null },
         error: undefined,
       } as any);
 
@@ -637,6 +637,27 @@ describe('Agent facade', () => {
           auth: mockAuth,
           headers: { 'x-moltnet-team-id': 'team-1' },
           path: { taskId: 'task-1' },
+        }),
+      );
+    });
+
+    it('tasks.artifacts.listPage returns pagination metadata', async () => {
+      vi.mocked(listTaskArtifacts).mockResolvedValueOnce({
+        data: { artifacts: [], nextCursor: 'cursor-2' },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.tasks.artifacts.listPage(
+        'task-1',
+        { limit: 10, cursor: 'cursor-1' },
+        { teamId: 'team-1' },
+      );
+
+      expect(result).toEqual({ artifacts: [], nextCursor: 'cursor-2' });
+      expect(listTaskArtifacts).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { limit: 10, cursor: 'cursor-1' },
         }),
       );
     });

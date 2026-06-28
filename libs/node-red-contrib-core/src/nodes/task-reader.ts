@@ -72,6 +72,10 @@ const init: NodeInitializer = (RED): void => {
         out.result = {
           summary: reader.summary,
           outputRef: reader.outputRef(role),
+          artifactRef:
+            artifact?.cid !== undefined
+              ? reader.artifactRef(artifact, role)
+              : undefined,
           artifact,
           artifactBody,
           accepted: reader.accepted,

@@ -73,16 +73,29 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
         return unwrapResult(await uploadTaskArtifact(uploadOptions));
       },
 
-      async list(taskId, options) {
+      async list(taskId, options, query) {
         const response = unwrapResult(
           await listTaskArtifacts({
             client,
             auth,
             headers: requiredTeamHeaders(options),
             path: { taskId },
+            query,
           }),
         );
         return response.artifacts;
+      },
+
+      async listPage(taskId, query, options) {
+        return unwrapResult(
+          await listTaskArtifacts({
+            client,
+            auth,
+            headers: requiredTeamHeaders(options),
+            path: { taskId },
+            query,
+          }),
+        );
       },
 
       async download(path, options) {

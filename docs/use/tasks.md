@@ -436,6 +436,8 @@ During Pi task execution, the agent gets:
   `title`.
 - `moltnet_list_task_artifacts` — lists artifact metadata for the active task
   or another task id.
+- `moltnet_download_task_artifact` — downloads a chosen `taskId`/`attemptN`/CID
+  into a new file under the active task workspace for inspection or reuse.
 
 SDK users call the same API through `agent.tasks.artifacts`:
 
