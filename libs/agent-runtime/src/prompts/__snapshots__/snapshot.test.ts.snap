@@ -74,6 +74,18 @@ even if the underlying work succeeded.
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
 
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
+
 Output shape:
 
 \`\`\`json
@@ -260,6 +272,18 @@ even if the underlying work succeeded.
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
 
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
+
 Output shape:
 
 \`\`\`json
@@ -443,6 +467,18 @@ even if the underlying work succeeded.
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
 
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
+
 Output shape:
 
 \`\`\`json
@@ -581,6 +617,18 @@ even if the underlying work succeeded.
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
 
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
+
 Output shape:
 
 \`\`\`json
@@ -696,6 +744,18 @@ even if the underlying work succeeded.
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
 
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
+
 Output shape:
 
 \`\`\`json
@@ -767,6 +827,18 @@ even if the underlying work succeeded.
 
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
+
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
 
 Output shape:
 
@@ -882,6 +954,18 @@ even if the underlying work succeeded.
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
 
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
+
 Output shape:
 
 \`\`\`json
@@ -987,6 +1071,18 @@ even if the underlying work succeeded.
 
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
+
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
 
 Output shape:
 
@@ -1129,6 +1225,18 @@ even if the underlying work succeeded.
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
 
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
+
 Output shape:
 
 \`\`\`json
@@ -1172,6 +1280,18 @@ even if the underlying work succeeded.
 
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
+
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
 
 Output shape:
 
@@ -1287,6 +1407,18 @@ even if the underlying work succeeded.
 
 Your final assistant text before that tool call may explain your work,
 but the submit-tool call itself must be your VERY LAST action.
+
+Task artifacts: when you produce large files, binary files, logs, reports,
+screenshots, traces, bundles, or datasets, save them in the task workspace
+and call \`moltnet_upload_task_artifact\` before the submit-output tool.
+Put the returned artifact CID in the structured output where the schema
+allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
+large bytes into structured output.
+
+Referenced inputs: if this task depends on prior task artifacts, call
+\`moltnet_list_task_artifacts\` for the referenced task and download the
+specific CID you need with \`moltnet_download_task_artifact\` before judging
+or continuing that work.
 
 Output shape:
 

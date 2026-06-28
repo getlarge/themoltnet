@@ -1,15 +1,6 @@
-import { Readable } from 'node:stream';
-import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import type { Readable } from 'node:stream';
 
-import {
-  CreateBucketCommand,
-  DeleteObjectCommand,
-  GetObjectCommand,
-  HeadBucketCommand,
-  NoSuchKey,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
+import { createS3CompatibleObjectStorage } from '@moltnet/blob-storage';
 
 export interface RuntimeSessionStorageConfig {
   RUNTIME_SESSION_STORAGE_ACCESS_KEY_ID?: string;
@@ -65,77 +56,25 @@ export function createRuntimeSessionStorage(
     return createDisabledRuntimeSessionStorage();
   }
 
-  const client = new S3Client({
-    endpoint: config.RUNTIME_SESSION_STORAGE_ENDPOINT,
-    forcePathStyle: config.RUNTIME_SESSION_STORAGE_FORCE_PATH_STYLE,
-    region: config.RUNTIME_SESSION_STORAGE_REGION,
-    credentials: {
+  const storage = createS3CompatibleObjectStorage(
+    {
       accessKeyId: config.RUNTIME_SESSION_STORAGE_ACCESS_KEY_ID,
+      bucket: config.RUNTIME_SESSION_STORAGE_BUCKET,
+      endpoint: config.RUNTIME_SESSION_STORAGE_ENDPOINT,
+      forcePathStyle: config.RUNTIME_SESSION_STORAGE_FORCE_PATH_STYLE,
+      region: config.RUNTIME_SESSION_STORAGE_REGION,
       secretAccessKey: config.RUNTIME_SESSION_STORAGE_SECRET_ACCESS_KEY,
     },
-  });
-  const bucket = config.RUNTIME_SESSION_STORAGE_BUCKET;
-  let bucketReady: Promise<void> | null = null;
+    {
+      missingObjectError: (key) => new MissingRuntimeSessionObjectError(key),
+    },
+  );
 
   return {
-    async putObject(input) {
-      bucketReady ??= ensureBucket(client, bucket);
-      await bucketReady;
-      await client.send(
-        new PutObjectCommand({
-          Body: input.body,
-          Bucket: bucket,
-          ContentEncoding: input.contentEncoding ?? undefined,
-          ContentLength: input.contentLength,
-          ContentType: input.contentType,
-          Key: input.key,
-        }),
-      );
-    },
-
-    async getObject(key) {
-      bucketReady ??= ensureBucket(client, bucket);
-      await bucketReady;
-      try {
-        const object = await client.send(
-          new GetObjectCommand({
-            Bucket: bucket,
-            Key: key,
-          }),
-        );
-        return {
-          body: object.Body ? toReadable(object.Body) : Readable.from([]),
-          contentEncoding: object.ContentEncoding,
-          contentType: object.ContentType,
-        };
-      } catch (err) {
-        if (err instanceof NoSuchKey || hasS3NoSuchKeyName(err)) {
-          throw new MissingRuntimeSessionObjectError(key);
-        }
-        throw err;
-      }
-    },
-
-    async deleteObject(key) {
-      bucketReady ??= ensureBucket(client, bucket);
-      await bucketReady;
-      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-    },
+    putObject: (input) => storage.putObject(input),
+    getObject: (key) => storage.getObject(key),
+    deleteObject: (key) => storage.deleteObject(key),
   };
-}
-
-async function ensureBucket(client: S3Client, bucket: string): Promise<void> {
-  try {
-    await client.send(new HeadBucketCommand({ Bucket: bucket }));
-    return;
-  } catch (err) {
-    if (!isBucketMissing(err)) throw err;
-  }
-  try {
-    await client.send(new CreateBucketCommand({ Bucket: bucket }));
-  } catch (err) {
-    if (!isBucketAlreadyOwned(err)) throw err;
-  }
 }
 
 function createDisabledRuntimeSessionStorage(): RuntimeSessionStorage {
@@ -150,60 +89,4 @@ function createDisabledRuntimeSessionStorage(): RuntimeSessionStorage {
       return Promise.reject(new RuntimeSessionStorageNotConfiguredError());
     },
   };
-}
-
-function toReadable(body: unknown): Readable {
-  if (body instanceof Readable) return body;
-  if (
-    typeof body === 'object' &&
-    body !== null &&
-    'transformToWebStream' in body &&
-    typeof (body as { transformToWebStream?: unknown }).transformToWebStream ===
-      'function'
-  ) {
-    return Readable.fromWeb(
-      (
-        body as { transformToWebStream(): NodeReadableStream }
-      ).transformToWebStream(),
-    );
-  }
-  if (
-    typeof body === 'object' &&
-    body !== null &&
-    Symbol.asyncIterator in body
-  ) {
-    return Readable.from(body as AsyncIterable<Uint8Array>);
-  }
-  throw new TypeError('Unsupported runtime session object body stream');
-}
-
-function hasS3NoSuchKeyName(err: unknown): boolean {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as { name?: unknown }).name === 'NoSuchKey'
-  );
-}
-
-function isBucketMissing(err: unknown): boolean {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    ('$metadata' in err || 'name' in err) &&
-    ((err as { $metadata?: { httpStatusCode?: number } }).$metadata
-      ?.httpStatusCode === 404 ||
-      (err as { name?: unknown }).name === 'NotFound' ||
-      (err as { name?: unknown }).name === 'NoSuchBucket')
-  );
-}
-
-function isBucketAlreadyOwned(err: unknown): boolean {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    ((err as { name?: unknown }).name === 'BucketAlreadyOwnedByYou' ||
-      (err as { name?: unknown }).name === 'BucketAlreadyExists')
-  );
 }

@@ -97,6 +97,14 @@ export const FreeformArtifact = Type.Object(
     url: Type.Optional(Type.String({ minLength: 1 })),
     path: Type.Optional(Type.String({ minLength: 1 })),
     /**
+     * Persistent task-artifact CID produced with `moltnet_upload_task_artifact`.
+     * Use this for large or binary bytes stored outside the structured output.
+     */
+    cid: Type.Optional(Type.String({ minLength: 1 })),
+    contentType: Type.Optional(Type.String({ minLength: 1 })),
+    contentEncoding: Type.Optional(Type.String({ minLength: 1 })),
+    sizeBytes: Type.Optional(Type.Integer({ minimum: 0 })),
+    /**
      * Inline artifact content, up to 64 KiB. Matches the diary-entry content
      * cap so structured editors and renderers can handle either uniformly.
      * For larger or binary content use `path` (worktree-ephemeral) or `url`

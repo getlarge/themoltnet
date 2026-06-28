@@ -21,7 +21,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { computeJsonCid } from '@moltnet/crypto-service';
+import { computeBytesCid, computeJsonCid } from '@moltnet/crypto-service';
 import {
   AgentRuntime,
   type AgentRuntimeLogger,
@@ -370,6 +370,97 @@ describe('Agent daemon (e2e)', () => {
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('completed');
     expect(final.acceptedAttemptN).toBe(1);
+  }, 60_000);
+
+  it('runtime execution can upload and transmit task artifact CIDs', async () => {
+    const correlationId = randomUUID();
+    const created = await proposeFreeformTask(correlationId);
+
+    const runtime = new AgentRuntime({
+      source: new PollingApiTaskSource({
+        agent: agent,
+        teamId: teamId,
+        taskTypes: ['freeform'],
+        leaseTtlSec: 60,
+        stopWhenEmpty: true,
+        logger: silentLogger,
+      }),
+      makeReporter: () =>
+        new ApiTaskReporter({
+          tasks: agent.tasks,
+          leaseTtlSec: 60,
+          heartbeatIntervalMs: 0,
+        }),
+      executeTask: async (claimedTask, reporter) => {
+        await reporter.open({
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+        });
+        const artifactBytes = new TextEncoder().encode(
+          `daemon artifact for ${claimedTask.task.id}`,
+        );
+        const artifactCid = await computeBytesCid(artifactBytes);
+        const artifact = await agent.tasks.artifacts.upload(
+          {
+            attemptN: claimedTask.attemptN,
+            taskId: claimedTask.task.id,
+          },
+          artifactBytes,
+          {
+            contentType: 'text/plain',
+            kind: 'report',
+            title: 'daemon-artifact.txt',
+          },
+          { teamId },
+        );
+        expect(artifact.cid).toBe(artifactCid);
+
+        const stubOutput = {
+          summary: `daemon artifact output for ${claimedTask.task.id}`,
+          artifacts: [
+            {
+              kind: 'report',
+              title: 'daemon-artifact.txt',
+              cid: artifact.cid,
+              contentType: artifact.contentType,
+              sizeBytes: artifact.sizeBytes,
+            },
+          ],
+          verification: buildProducerVerification(claimedTask.task.inputCid),
+        };
+        const output = {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          status: 'completed' as const,
+          output: stubOutput,
+          outputCid: await computeJsonCid(stubOutput),
+          usage: { inputTokens: 1, outputTokens: 1 },
+          durationMs: 1,
+        };
+        await reporter.finalize(output.usage);
+        await reporter.close();
+        return output;
+      },
+    });
+
+    const outputs = await runtime.start();
+    expect(outputs).toHaveLength(1);
+    await finalizeTask(agent, outputs[0]);
+
+    const reader = await agent.tasks.readResult(created.id);
+    const artifactRef = reader.artifactRef('report', 'context');
+    expect(artifactRef).toMatchObject({
+      taskId: created.id,
+      artifact: {
+        attemptN: 1,
+        kind: 'report',
+        title: 'daemon-artifact.txt',
+      },
+    });
+    const artifacts = await agent.tasks.artifacts.list(created.id, { teamId });
+    expect(artifacts.map((artifact) => artifact.cid)).toContain(
+      artifactRef.artifact?.cid,
+    );
   }, 60_000);
 
   it('runtime.start() can drive a full pr_review judgment loop with a stub executor', async () => {

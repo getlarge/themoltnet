@@ -1,14 +1,13 @@
-import { createHash } from 'node:crypto';
-import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { Transform, type TransformCallback } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
+import { createReadStream } from 'node:fs';
 import { createGunzip, createGzip } from 'node:zlib';
 
 import type { KetoNamespace } from '@moltnet/auth';
 import type { PermissionChecker } from '@moltnet/auth';
+import {
+  BlobBodyNotReadableError,
+  BlobTooLargeError,
+  stageReadableToTempFile,
+} from '@moltnet/blob-storage';
 import type {
   RuntimeProfileRepository,
   RuntimeSession,
@@ -173,17 +172,6 @@ export function createRuntimeSessionService(deps: RuntimeSessionServiceDeps) {
       } catch (err) {
         if (err instanceof RuntimeSessionStorageNotConfiguredError) {
           throw createProblem('service-unavailable', err.message);
-        }
-        if (err instanceof RuntimeSessionTooLargeError) {
-          throw createValidationProblem(
-            [
-              {
-                field: 'body',
-                message: `Runtime session exceeds ${deps.runtimeSessionMaxBytes} bytes`,
-              },
-            ],
-            'runtime session exceeds max size',
-          );
         }
         if (objectUploaded && objectKey) {
           await deleteObjectBestEffort(deps, objectKey);
@@ -421,53 +409,6 @@ async function assertParentSessionInTeam(
   return parent;
 }
 
-class RuntimeSessionTooLargeError extends Error {
-  constructor(readonly maxBytes: number) {
-    super(`Runtime session exceeds ${maxBytes} bytes`);
-    this.name = 'RuntimeSessionTooLargeError';
-  }
-}
-
-class RawByteLimitTransform extends Transform {
-  bytes = 0;
-
-  constructor(private readonly maxBytes: number) {
-    super();
-  }
-
-  override _transform(
-    chunk: Buffer,
-    _encoding: BufferEncoding,
-    callback: TransformCallback,
-  ) {
-    this.bytes += chunk.byteLength;
-    if (this.bytes > this.maxBytes) {
-      callback(new RuntimeSessionTooLargeError(this.maxBytes));
-      return;
-    }
-    callback(null, chunk);
-  }
-}
-
-class HashAndCountTransform extends Transform {
-  readonly hash = createHash('sha256');
-  bytes = 0;
-
-  override _transform(
-    chunk: Buffer,
-    _encoding: BufferEncoding,
-    callback: TransformCallback,
-  ) {
-    this.bytes += chunk.byteLength;
-    this.hash.update(chunk);
-    callback(null, chunk);
-  }
-
-  digest() {
-    return this.hash.digest('hex');
-  }
-}
-
 interface StagedRuntimeSessionUpload {
   path: string;
   sha256: string;
@@ -479,51 +420,45 @@ async function stageRuntimeSessionUpload(
   body: unknown,
   maxBytes: number,
 ): Promise<StagedRuntimeSessionUpload> {
-  if (!isReadableStream(body)) {
-    throw createValidationProblem(
-      [
-        {
-          field: 'body',
-          message: 'runtime session content must be a stream',
-        },
-      ],
-      'runtime session content is required',
-    );
-  }
-
-  const dir = await mkdtemp(join(tmpdir(), 'moltnet-runtime-session-'));
-  const path = join(dir, 'session.jsonl.gz');
-  const rawLimit = new RawByteLimitTransform(maxBytes);
-  const compressedHash = new HashAndCountTransform();
-
   try {
-    await pipeline(
+    const staged = await stageReadableToTempFile({
       body,
-      rawLimit,
-      createGzip(),
-      compressedHash,
-      createWriteStream(path),
-    );
+      fileName: 'session.jsonl.gz',
+      maxBytes,
+      tmpPrefix: 'moltnet-runtime-session-',
+      transforms: [createGzip()],
+    });
+    return {
+      compressedSizeBytes: staged.sizeBytes,
+      path: staged.path,
+      sha256: staged.sha256,
+      dispose: () => staged.dispose(),
+    };
   } catch (err) {
-    await rm(dir, { force: true, recursive: true });
+    if (err instanceof BlobBodyNotReadableError) {
+      throw createValidationProblem(
+        [
+          {
+            field: 'body',
+            message: 'runtime session content must be a stream',
+          },
+        ],
+        'runtime session content is required',
+      );
+    }
+    if (err instanceof BlobTooLargeError) {
+      throw createValidationProblem(
+        [
+          {
+            field: 'body',
+            message: `Runtime session exceeds ${err.maxBytes} bytes`,
+          },
+        ],
+        'runtime session exceeds max size',
+      );
+    }
     throw err;
   }
-
-  return {
-    compressedSizeBytes: compressedHash.bytes,
-    path,
-    sha256: compressedHash.digest(),
-    dispose: () => rm(dir, { force: true, recursive: true }),
-  };
-}
-
-function isReadableStream(value: unknown): value is NodeJS.ReadableStream {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'pipe' in value &&
-    typeof (value as { pipe?: unknown }).pipe === 'function'
-  );
 }
 
 async function deleteReplacedObjectIfNeeded(

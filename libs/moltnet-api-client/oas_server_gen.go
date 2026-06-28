@@ -218,6 +218,12 @@ type Handler interface {
 	//
 	// GET /runtime-sessions/{taskId}/{attemptN}/content
 	DownloadRuntimeSession(ctx context.Context, params DownloadRuntimeSessionParams) (DownloadRuntimeSessionRes, error)
+	// DownloadTaskArtifact implements downloadTaskArtifact operation.
+	//
+	// Download immutable task artifact content by CID.
+	//
+	// GET /tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content
+	DownloadTaskArtifact(ctx context.Context, params DownloadTaskArtifactParams) (DownloadTaskArtifactRes, error)
 	// FailTask implements failTask operation.
 	//
 	// Mark an attempt as failed with error details.
@@ -529,6 +535,12 @@ type Handler interface {
 	//
 	// GET /crypto/signing-requests
 	ListSigningRequests(ctx context.Context, params ListSigningRequestsParams) (ListSigningRequestsRes, error)
+	// ListTaskArtifacts implements listTaskArtifacts operation.
+	//
+	// List task artifact metadata for the current team.
+	//
+	// GET /tasks/{taskId}/artifacts
+	ListTaskArtifacts(ctx context.Context, params ListTaskArtifactsParams) (ListTaskArtifactsRes, error)
 	// ListTaskAttempts implements listTaskAttempts operation.
 	//
 	// List all attempts for a task.
@@ -729,6 +741,12 @@ type Handler interface {
 	//
 	// PUT /runtime-sessions/{taskId}/{attemptN}/content
 	UploadRuntimeSession(ctx context.Context, req UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (UploadRuntimeSessionRes, error)
+	// UploadTaskArtifact implements uploadTaskArtifact operation.
+	//
+	// Upload immutable content-addressed artifact content for a task attempt.
+	//
+	// PUT /tasks/{taskId}/attempts/{attemptN}/artifacts
+	UploadTaskArtifact(ctx context.Context, req UploadTaskArtifactReq, params UploadTaskArtifactParams) (UploadTaskArtifactRes, error)
 	// VerifyAgentSignature implements verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.

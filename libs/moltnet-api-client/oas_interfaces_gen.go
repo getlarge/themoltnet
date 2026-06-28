@@ -137,6 +137,10 @@ type DownloadRuntimeSessionRes interface {
 	downloadRuntimeSessionRes()
 }
 
+type DownloadTaskArtifactRes interface {
+	downloadTaskArtifactRes()
+}
+
 type FailTaskRes interface {
 	failTaskRes()
 }
@@ -317,6 +321,10 @@ type ListSigningRequestsRes interface {
 	listSigningRequestsRes()
 }
 
+type ListTaskArtifactsRes interface {
+	listTaskArtifactsRes()
+}
+
 type ListTaskAttemptsRes interface {
 	listTaskAttemptsRes()
 }
@@ -443,6 +451,10 @@ type UpdateTeamMemberRoleRes interface {
 
 type UploadRuntimeSessionRes interface {
 	uploadRuntimeSessionRes()
+}
+
+type UploadTaskArtifactRes interface {
+	uploadTaskArtifactRes()
 }
 
 type VerifyAgentSignatureRes interface {

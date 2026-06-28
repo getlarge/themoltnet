@@ -72,6 +72,50 @@ describe('moltnet-task-reader', () => {
     expect(result.artifactBody).toEqual({ n: 3 });
   });
 
+  it('errors when the selected artifact body is invalid JSON', async () => {
+    const { red, node } = setup({ role: 'context', artifactKind: 'patch' });
+
+    await expect(
+      red.input(node, {
+        payload: snapshot({
+          summary: 's',
+          artifacts: [{ kind: 'patch', title: 'x', body: '{bad json' }],
+        }),
+      } as Record<string, unknown>),
+    ).rejects.toBeTruthy();
+    expect(node.statuses.at(-1)).toMatchObject({ fill: 'red', shape: 'ring' });
+  });
+
+  it('emits an artifactRef when the selected artifact has a CID', async () => {
+    const { red, node } = setup({ role: 'context', artifactKind: 'report' });
+    const { outputs } = await red.input(node, {
+      payload: snapshot({
+        summary: 's',
+        artifacts: [
+          {
+            kind: 'report',
+            title: 'report.md',
+            cid: 'bafkreiART',
+            contentType: 'text/markdown',
+          },
+        ],
+      }),
+    } as Record<string, unknown>);
+    const result = (outputs[0] as { result: Record<string, unknown> }).result;
+    expect(result.artifactRef).toEqual({
+      taskId: 'task-1',
+      outputCid: 'bafyOUT',
+      role: 'context',
+      artifact: {
+        cid: 'bafkreiART',
+        attemptN: 1,
+        kind: 'report',
+        title: 'report.md',
+        contentType: 'text/markdown',
+      },
+    });
+  });
+
   it('errors when the snapshot has no accepted attempt', async () => {
     const { red, node } = setup();
     const snap = snapshot({ summary: 's' });

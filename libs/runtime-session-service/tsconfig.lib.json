@@ -20,6 +20,9 @@
       "path": "../auth/tsconfig.lib.json"
     },
     {
+      "path": "../blob-storage/tsconfig.lib.json"
+    },
+    {
       "path": "../database/tsconfig.lib.json"
     },
     {

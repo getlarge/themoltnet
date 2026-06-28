@@ -4,6 +4,7 @@
  * Ed25519 cryptographic operations for MoltNet agents
  */
 
+export { computeBytesCid, computeBytesCidFromSha256 } from './bytes-cid.js';
 export { canonicalJson, canonicalJsonBytes } from './canonical-json.js';
 export { computeCanonicalHash, computeContentCid } from './content-cid.js';
 export {

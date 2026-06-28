@@ -37,6 +37,7 @@ import type {
   DiarySearchResult,
   DiaryTagsResponse,
   DownloadRuntimeSessionData,
+  DownloadTaskArtifactData,
   EntryVerifyResult,
   FailTaskData,
   FindLatestRuntimeSlotForAttemptData,
@@ -70,6 +71,7 @@ import type {
   ListRuntimeSlotsData,
   ListRuntimeSlotsResponse,
   ListSigningRequestsData,
+  ListTaskArtifactsData,
   ListTaskMessagesData,
   ListTaskSchemasResponse,
   ListTasksData,
@@ -109,6 +111,8 @@ import type {
   StartLegreffierOnboardingResponse,
   Success,
   Task,
+  TaskArtifact,
+  TaskArtifactList,
   TaskAttempt,
   TaskHeartbeatData,
   TaskListResponse,
@@ -121,6 +125,7 @@ import type {
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleResponse,
   UploadRuntimeSessionData,
+  UploadTaskArtifactData,
   VerifyRecoveryChallengeData,
   VerifyResult,
   Voucher,
@@ -512,6 +517,8 @@ export interface TaskRequestOptions {
 export interface TasksNamespace {
   schemas(): Promise<ListTaskSchemasResponse>;
 
+  artifacts: TaskArtifactsNamespace;
+
   list(
     query: ListTasksData['query'],
     options: TaskRequestOptions,
@@ -633,6 +640,48 @@ export interface TasksNamespace {
     n: number,
     body: AppendTaskMessagesData['body'],
   ): Promise<{ count: number }>;
+}
+
+export interface TaskArtifactsNamespace {
+  upload(
+    path: UploadTaskArtifactData['path'],
+    body: TaskArtifactUploadBody,
+    query: NonNullable<UploadTaskArtifactData['query']>,
+    options: TaskRequestOptions,
+  ): Promise<TaskArtifact>;
+
+  list(
+    taskId: string,
+    options: TaskRequestOptions,
+    query?: ListTaskArtifactsData['query'],
+  ): Promise<TaskArtifactList['artifacts']>;
+
+  listPage(
+    taskId: string,
+    query: ListTaskArtifactsData['query'] | undefined,
+    options: TaskRequestOptions,
+  ): Promise<TaskArtifactList>;
+
+  download(
+    path: DownloadTaskArtifactData['path'],
+    options: TaskRequestOptions,
+  ): Promise<TaskArtifactDownload>;
+}
+
+export type TaskArtifactUploadBody =
+  | AsyncIterable<Uint8Array>
+  | ReadableStream<Uint8Array>
+  | Blob
+  | ArrayBuffer
+  | Uint8Array
+  | string;
+
+export interface TaskArtifactDownload {
+  artifactId: string | null;
+  cid: string | null;
+  contentEncoding: string | null;
+  contentType: string | null;
+  stream: AsyncIterable<Uint8Array>;
 }
 
 export interface RuntimeSlotsNamespace {

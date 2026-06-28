@@ -17,6 +17,7 @@ import {
   type TokenValidator,
 } from '@moltnet/auth';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import scalarApiReference from '@scalar/fastify-api-reference';
 import Fastify, {
   type FastifyInstance,
@@ -54,6 +55,7 @@ import { runtimeProfileRoutes } from './routes/runtime-profiles.js';
 import { runtimeSessionRoutes } from './routes/runtime-sessions.js';
 import { runtimeSlotRoutes } from './routes/runtime-slots.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
+import { taskArtifactRoutes } from './routes/task-artifacts.js';
 import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
 import { vouchRoutes } from './routes/vouch.js';
@@ -78,6 +80,7 @@ import type {
   RuntimeSessionRepository,
   RuntimeSlotRepository,
   SigningRequestRepository,
+  TaskArtifactRepository,
   TaskRepository,
   TaskService,
   TeamRepository,
@@ -112,6 +115,8 @@ export interface SecurityOptions {
   rateLimitRegistration: number;
   /** Max requests per minute for readiness probes (default: 12) */
   rateLimitReadiness: number;
+  /** Max requests per minute for task artifact uploads (default: 20) */
+  rateLimitTaskArtifactUpload: number;
   /** Shared per-identity budget for authenticated GET reads (default: 150). */
   rateLimitGlobalRead: number;
   /**
@@ -155,6 +160,8 @@ export interface AppOptions {
   runtimeProfileRepository: RuntimeProfileRepository;
   runtimeSessionRepository: RuntimeSessionRepository;
   runtimeSessionStorage: RuntimeSessionStorage;
+  taskArtifactRepository: TaskArtifactRepository;
+  taskArtifactStorage: TaskArtifactStorage;
   runtimeSlotRepository: RuntimeSlotRepository;
   runtimeModelRepository: RuntimeModelRepository;
   taskRepository: TaskRepository;
@@ -178,6 +185,7 @@ export interface AppOptions {
   security: SecurityOptions;
   packGcConfig: PackGcConfig;
   runtimeSessionMaxBytes: number;
+  taskArtifactMaxBytes: number;
   /**
    * Optional ioredis client for the shared rate-limit store. When omitted, the
    * rate limiter uses an in-memory store. Constructed and owned by the caller
@@ -332,6 +340,7 @@ export async function registerApiRoutes(
     legreffierStatusLimit: options.security.rateLimitLegreffierStatus,
     registrationLimit: options.security.rateLimitRegistration,
     readinessLimit: options.security.rateLimitReadiness,
+    taskArtifactUploadLimit: options.security.rateLimitTaskArtifactUpload,
     readLimit: options.security.rateLimitGlobalRead,
     redis: options.rateLimitRedis,
     allowList: options.security.rateLimitAllowList,
@@ -360,12 +369,15 @@ export async function registerApiRoutes(
   decorateSafe('runtimeProfileRepository', options.runtimeProfileRepository);
   decorateSafe('runtimeSessionRepository', options.runtimeSessionRepository);
   decorateSafe('runtimeSessionStorage', options.runtimeSessionStorage);
+  decorateSafe('taskArtifactRepository', options.taskArtifactRepository);
+  decorateSafe('taskArtifactStorage', options.taskArtifactStorage);
   decorateSafe('runtimeSlotRepository', options.runtimeSlotRepository);
   decorateSafe('runtimeModelRepository', options.runtimeModelRepository);
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('packGcConfig', options.packGcConfig);
   decorateSafe('runtimeSessionMaxBytes', options.runtimeSessionMaxBytes);
+  decorateSafe('taskArtifactMaxBytes', options.taskArtifactMaxBytes);
   decorateSafe('taskRepository', options.taskRepository);
   decorateSafe('taskService', options.taskService);
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
@@ -407,6 +419,7 @@ export async function registerApiRoutes(
   await app.register(groupRoutes);
   await app.register(runtimeSlotRoutes);
   await app.register(runtimeSessionRoutes);
+  await app.register(taskArtifactRoutes);
   await app.register(runtimeProfileRoutes);
   await app.register(runtimeModelRoutes);
   await app.register(vouchRoutes);

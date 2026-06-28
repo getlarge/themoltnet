@@ -51,6 +51,9 @@
       "path": "libs/auth"
     },
     {
+      "path": "libs/blob-storage"
+    },
+    {
       "path": "libs/bootstrap"
     },
     {
@@ -109,6 +112,9 @@
     },
     {
       "path": "libs/task-mcp-app"
+    },
+    {
+      "path": "libs/task-artifact-service"
     },
     {
       "path": "libs/task-service"

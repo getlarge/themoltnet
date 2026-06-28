@@ -196,6 +196,13 @@
       "when": 1782469785690,
       "tag": "0027_tricky_ender_wiggin",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1782588427241,
+      "tag": "0028_fat_northstar",
+      "breakpoints": true
     }
   ],
   "version": "7"

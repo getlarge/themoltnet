@@ -3733,6 +3733,21 @@
         },
         "type": "object"
       },
+      "ListTaskArtifactsQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "cursor": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "limit": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "ListTaskSchemasResponse": {
         "properties": {
           "items": {
@@ -9084,6 +9099,39 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "artifact": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "attemptN": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "cid": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "contentType": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "kind": {
+                      "maxLength": 100,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "title": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "cid",
+                    "attemptN"
+                  ],
+                  "type": "object"
+                },
                 "external": {
                   "properties": {
                     "commit_sha": {
@@ -9329,6 +9377,271 @@
           "maxAttempts",
           "dispatchTimeoutSec",
           "runningTimeoutSec"
+        ],
+        "type": "object"
+      },
+      "TaskArtifact": {
+        "properties": {
+          "attemptN": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "cid": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "contentEncoding": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contentType": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdByAgentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sizeBytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "teamId",
+          "taskId",
+          "attemptN",
+          "kind",
+          "title",
+          "contentType",
+          "contentEncoding",
+          "sizeBytes",
+          "cid",
+          "createdByAgentId",
+          "expiresAt",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "TaskArtifactAttemptParams": {
+        "additionalProperties": false,
+        "properties": {
+          "attemptN": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId",
+          "attemptN"
+        ],
+        "type": "object"
+      },
+      "TaskArtifactContent": {
+        "description": "Task artifact content stream.",
+        "format": "binary",
+        "type": "string"
+      },
+      "TaskArtifactContentParams": {
+        "additionalProperties": false,
+        "properties": {
+          "attemptN": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "cid": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId",
+          "attemptN",
+          "cid"
+        ],
+        "type": "object"
+      },
+      "TaskArtifactList": {
+        "properties": {
+          "artifacts": {
+            "items": {
+              "properties": {
+                "attemptN": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "cid": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "contentEncoding": {
+                  "anyOf": [
+                    {
+                      "maxLength": 100,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "contentType": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "createdAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "createdByAgentId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "anyOf": [
+                    {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "kind": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "sizeBytes": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "taskId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "teamId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "title": {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "teamId",
+                "taskId",
+                "attemptN",
+                "kind",
+                "title",
+                "contentType",
+                "contentEncoding",
+                "sizeBytes",
+                "cid",
+                "createdByAgentId",
+                "expiresAt",
+                "createdAt"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "artifacts",
+          "nextCursor"
+        ],
+        "type": "object"
+      },
+      "TaskArtifactTaskParams": {
+        "additionalProperties": false,
+        "properties": {
+          "taskId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId"
         ],
         "type": "object"
       },
@@ -9882,6 +10195,39 @@
       "TaskRef": {
         "additionalProperties": false,
         "properties": {
+          "artifact": {
+            "additionalProperties": false,
+            "properties": {
+              "attemptN": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "cid": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "contentType": {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "kind": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "title": {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "cid",
+              "attemptN"
+            ],
+            "type": "object"
+          },
           "external": {
             "properties": {
               "commit_sha": {
@@ -10695,6 +11041,36 @@
         },
         "required": [
           "sessionKind"
+        ],
+        "type": "object"
+      },
+      "UploadTaskArtifactQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "contentEncoding": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "contentType": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "kind": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title"
         ],
         "type": "object"
       },
@@ -31329,6 +31705,3445 @@
         ],
         "tags": [
           "tasks"
+        ]
+      }
+    },
+    "/tasks/{taskId}/artifacts": {
+      "get": {
+        "description": "List task artifact metadata for the current team.",
+        "operationId": "listTaskArtifacts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "artifacts": {
+                      "items": {
+                        "properties": {
+                          "attemptN": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "cid": {
+                            "maxLength": 100,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "contentEncoding": {
+                            "anyOf": [
+                              {
+                                "maxLength": 100,
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "contentType": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "createdByAgentId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "expiresAt": {
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "kind": {
+                            "maxLength": 100,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "sizeBytes": {
+                            "minimum": 0,
+                            "type": "integer"
+                          },
+                          "taskId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "teamId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "title": {
+                            "maxLength": 255,
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "teamId",
+                          "taskId",
+                          "attemptN",
+                          "kind",
+                          "title",
+                          "contentType",
+                          "contentEncoding",
+                          "sizeBytes",
+                          "cid",
+                          "createdByAgentId",
+                          "expiresAt",
+                          "createdAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "nextCursor": {
+                      "anyOf": [
+                        {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "artifacts",
+                    "nextCursor"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "code": {
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "UNAUTHORIZED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "FORBIDDEN"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "NOT_FOUND"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "CONFLICT"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "VALIDATION_FAILED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVALID_CHALLENGE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVALID_SIGNATURE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "VOUCHER_LIMIT"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "RATE_LIMIT_EXCEEDED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SERIALIZATION_EXHAUSTED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SIGNING_REQUEST_EXPIRED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SIGNING_REQUEST_ALREADY_COMPLETED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "REGISTRATION_FAILED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "UPSTREAM_ERROR"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SERVICE_UNAVAILABLE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INTERNAL_SERVER_ERROR"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_PERSONAL_IMMUTABLE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_NOT_ACTIVE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVITE_EXPIRED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVITE_EXHAUSTED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_LAST_OWNER"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_ALREADY_ACTIVE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_NOT_FOUNDING"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "FOUNDING_ALREADY_ACCEPTED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "DIARY_TRANSFER_PENDING"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "DIARY_TRANSFER_NOT_FOUND"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "DIARY_TRANSFER_ALREADY_RESOLVED"
+                              ],
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "detail": {
+                          "type": "string"
+                        },
+                        "instance": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "maximum": 599,
+                          "minimum": 100,
+                          "type": "integer"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "format": "uri",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "title",
+                        "status",
+                        "code"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "errors": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "code": {
+                                "type": "string"
+                              },
+                              "field": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "field",
+                              "message"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "errors"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "task-artifacts"
+        ]
+      }
+    },
+    "/tasks/{taskId}/attempts/{attemptN}/artifacts": {
+      "put": {
+        "description": "Upload immutable content-addressed artifact content for a task attempt.",
+        "operationId": "uploadTaskArtifact",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contentType",
+            "required": false,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contentEncoding",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "attemptN",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "description": "Task artifact content stream.",
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "description": "Task artifact content stream."
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "attemptN": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "cid": {
+                      "maxLength": 100,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "contentEncoding": {
+                      "anyOf": [
+                        {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "contentType": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "createdByAgentId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "maxLength": 100,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "sizeBytes": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "taskId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "teamId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "title": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "teamId",
+                    "taskId",
+                    "attemptN",
+                    "kind",
+                    "title",
+                    "contentType",
+                    "contentEncoding",
+                    "sizeBytes",
+                    "cid",
+                    "createdByAgentId",
+                    "expiresAt",
+                    "createdAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "code": {
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "UNAUTHORIZED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "FORBIDDEN"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "NOT_FOUND"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "CONFLICT"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "VALIDATION_FAILED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVALID_CHALLENGE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVALID_SIGNATURE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "VOUCHER_LIMIT"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "RATE_LIMIT_EXCEEDED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SERIALIZATION_EXHAUSTED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SIGNING_REQUEST_EXPIRED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SIGNING_REQUEST_ALREADY_COMPLETED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "REGISTRATION_FAILED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "UPSTREAM_ERROR"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SERVICE_UNAVAILABLE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INTERNAL_SERVER_ERROR"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_PERSONAL_IMMUTABLE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_NOT_ACTIVE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVITE_EXPIRED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVITE_EXHAUSTED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_LAST_OWNER"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_ALREADY_ACTIVE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_NOT_FOUNDING"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "FOUNDING_ALREADY_ACCEPTED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "DIARY_TRANSFER_PENDING"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "DIARY_TRANSFER_NOT_FOUND"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "DIARY_TRANSFER_ALREADY_RESOLVED"
+                              ],
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "detail": {
+                          "type": "string"
+                        },
+                        "instance": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "maximum": 599,
+                          "minimum": 100,
+                          "type": "integer"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "format": "uri",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "title",
+                        "status",
+                        "code"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "errors": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "code": {
+                                "type": "string"
+                              },
+                              "field": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "field",
+                              "message"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "errors"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "task-artifacts"
+        ]
+      }
+    },
+    "/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content": {
+      "get": {
+        "description": "Download immutable task artifact content by CID.",
+        "operationId": "downloadTaskArtifact",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "attemptN",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cid",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "description": "Task artifact content stream.",
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Task artifact content stream.",
+            "headers": {
+              "x-moltnet-task-artifact-cid": {
+                "description": "CIDv1 raw-bytes identifier for the artifact.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-moltnet-task-artifact-content-encoding": {
+                "description": "Content encoding recorded at upload time, empty when unset.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-moltnet-task-artifact-content-type": {
+                "description": "Content type recorded at upload time.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-moltnet-task-artifact-id": {
+                "description": "Artifact metadata row id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "code": {
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "UNAUTHORIZED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "FORBIDDEN"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "NOT_FOUND"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "CONFLICT"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "VALIDATION_FAILED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVALID_CHALLENGE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVALID_SIGNATURE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "VOUCHER_LIMIT"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "RATE_LIMIT_EXCEEDED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SERIALIZATION_EXHAUSTED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SIGNING_REQUEST_EXPIRED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SIGNING_REQUEST_ALREADY_COMPLETED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "REGISTRATION_FAILED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "UPSTREAM_ERROR"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SERVICE_UNAVAILABLE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INTERNAL_SERVER_ERROR"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_PERSONAL_IMMUTABLE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_NOT_ACTIVE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVITE_EXPIRED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "INVITE_EXHAUSTED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_LAST_OWNER"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_ALREADY_ACTIVE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "TEAM_NOT_FOUNDING"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "FOUNDING_ALREADY_ACCEPTED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "DIARY_TRANSFER_PENDING"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "DIARY_TRANSFER_NOT_FOUND"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "DIARY_TRANSFER_ALREADY_RESOLVED"
+                              ],
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "detail": {
+                          "type": "string"
+                        },
+                        "instance": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "maximum": 599,
+                          "minimum": 100,
+                          "type": "integer"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "format": "uri",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "title",
+                        "status",
+                        "code"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "errors": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "code": {
+                                "type": "string"
+                              },
+                              "field": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "field",
+                              "message"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "errors"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "code": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "UNAUTHORIZED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FORBIDDEN"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_CHALLENGE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVALID_SIGNATURE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "VOUCHER_LIMIT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "RATE_LIMIT_EXCEEDED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERIALIZATION_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "REGISTRATION_FAILED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UPSTREAM_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SERVICE_UNAVAILABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INTERNAL_SERVER_ERROR"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_PERSONAL_IMMUTABLE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXPIRED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "INVITE_EXHAUSTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_LAST_OWNER"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_ALREADY_ACTIVE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "TEAM_NOT_FOUNDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "FOUNDING_ALREADY_ACCEPTED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_PENDING"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_NOT_FOUND"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "DIARY_TRANSFER_ALREADY_RESOLVED"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "maximum": 599,
+                      "minimum": 100,
+                      "type": "integer"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "format": "uri",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "code"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "task-artifacts"
         ]
       }
     },

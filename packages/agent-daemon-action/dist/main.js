@@ -29840,6 +29840,55 @@ var claimTask = (options) => (options.client ?? client).post({
 	}
 });
 /**
+* List task artifact metadata for the current team.
+*/
+var listTaskArtifacts = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{taskId}/artifacts",
+	...options
+});
+/**
+* Upload immutable content-addressed artifact content for a task attempt.
+*/
+var uploadTaskArtifact = (options) => (options.client ?? client).put({
+	bodySerializer: null,
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{taskId}/attempts/{attemptN}/artifacts",
+	...options,
+	headers: {
+		"Content-Type": "application/octet-stream",
+		...options.headers
+	}
+});
+/**
 * List teams the caller belongs to.
 */
 var listTeams = (options) => (options?.client ?? client).get({
@@ -37605,6 +37654,97 @@ var VerificationRecord = _Object_({
 	$id: "VerificationRecord",
 	additionalProperties: false
 });
+_Object_({
+	artifacts: _Array_(_Object_({
+		id: String$1({ format: "uuid" }),
+		teamId: String$1({ format: "uuid" }),
+		taskId: String$1({ format: "uuid" }),
+		attemptN: Integer({ minimum: 1 }),
+		kind: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		title: String$1({
+			minLength: 1,
+			maxLength: 255
+		}),
+		contentType: String$1({
+			minLength: 1,
+			maxLength: 200
+		}),
+		contentEncoding: Union([String$1({
+			minLength: 1,
+			maxLength: 100
+		}), Null()]),
+		sizeBytes: Integer({ minimum: 0 }),
+		cid: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		createdByAgentId: String$1({ format: "uuid" }),
+		expiresAt: Union([String$1({ format: "date-time" }), Null()]),
+		createdAt: String$1({ format: "date-time" })
+	}, { $id: "TaskArtifact" })),
+	nextCursor: Union([String$1({ minLength: 1 }), Null()])
+}, { $id: "TaskArtifactList" });
+_Object_({
+	limit: Optional(Integer({
+		minimum: 1,
+		maximum: 100
+	})),
+	cursor: Optional(String$1({ minLength: 1 }))
+}, {
+	$id: "ListTaskArtifactsQuery",
+	additionalProperties: false
+});
+_Object_({
+	kind: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	title: String$1({
+		minLength: 1,
+		maxLength: 255
+	}),
+	contentType: Optional(String$1({
+		minLength: 1,
+		maxLength: 200
+	})),
+	contentEncoding: Optional(String$1({
+		minLength: 1,
+		maxLength: 100
+	}))
+}, {
+	$id: "UploadTaskArtifactQuery",
+	additionalProperties: false
+});
+String$1({
+	$id: "TaskArtifactContent",
+	description: "Task artifact content stream.",
+	format: "binary"
+});
+_Object_({ taskId: String$1({ format: "uuid" }) }, {
+	$id: "TaskArtifactTaskParams",
+	additionalProperties: false
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 })
+}, {
+	$id: "TaskArtifactAttemptParams",
+	additionalProperties: false
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 }),
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	})
+}, {
+	$id: "TaskArtifactContentParams",
+	additionalProperties: false
+});
 new TextEncoder();
 new TextDecoder();
 //#endregion
@@ -37864,6 +38004,10 @@ var FreeformArtifact = _Object_({
 	description: Optional(String$1({ minLength: 1 })),
 	url: Optional(String$1({ minLength: 1 })),
 	path: Optional(String$1({ minLength: 1 })),
+	cid: Optional(String$1({ minLength: 1 })),
+	contentType: Optional(String$1({ minLength: 1 })),
+	contentEncoding: Optional(String$1({ minLength: 1 })),
+	sizeBytes: Optional(Integer({ minimum: 0 })),
 	body: Optional(String$1({ maxLength: 65536 }))
 }, {
 	$id: "FreeformArtifact",
@@ -41334,7 +41478,23 @@ var TaskRef = _Object_({
 		url: Optional(String$1()),
 		commit_sha: Optional(String$1()),
 		snapshot_cid: Optional(Cid)
-	}))
+	})),
+	artifact: Optional(_Object_({
+		cid: Cid,
+		attemptN: Integer({ minimum: 1 }),
+		kind: Optional(String$1({
+			minLength: 1,
+			maxLength: 100
+		})),
+		title: Optional(String$1({
+			minLength: 1,
+			maxLength: 255
+		})),
+		contentType: Optional(String$1({
+			minLength: 1,
+			maxLength: 200
+		}))
+	}, { additionalProperties: false }))
 }, {
 	$id: "TaskRef",
 	additionalProperties: false
@@ -41679,9 +41839,64 @@ var TaskBuilder = class {
 				message: "reference is missing required outputCid"
 			}]);
 			ref = {
+				...s,
 				taskId: s.taskId ?? null,
 				outputCid: s.outputCid,
 				role
+			};
+		}
+		this.refs.push(ref);
+		return this;
+	}
+	/**
+	* Add a reference to a persistent task artifact while retaining the accepted
+	* output CID as the provenance anchor.
+	*
+	* @param source - A result reader, raw artifact reference, or `TaskRef`.
+	* @param role - The role the referenced artifact plays.
+	* @returns This builder, for chaining.
+	* @throws {TaskBuildError} when output or artifact CID is missing.
+	*/
+	artifactReference(source, role) {
+		let ref;
+		if ("artifactRef" in source && typeof source.artifactRef === "function") ref = source.artifactRef(role);
+		else if ("artifact" in source && source.artifact?.cid) {
+			if (typeof source.artifact.attemptN !== "number" || !Number.isInteger(source.artifact.attemptN) || source.artifact.attemptN < 1) throw new TaskBuildError([{
+				field: "references/artifact/attemptN",
+				message: "artifact reference is missing required attemptN"
+			}]);
+			ref = {
+				...source,
+				role
+			};
+		} else {
+			const s = source;
+			const errors = [];
+			if (!s.outputCid) errors.push({
+				field: "references/outputCid",
+				message: "reference is missing required outputCid"
+			});
+			if (!s.artifactCid) errors.push({
+				field: "references/artifact/cid",
+				message: "artifact reference is missing required cid"
+			});
+			if (typeof s.attemptN !== "number" || !Number.isInteger(s.attemptN) || s.attemptN < 1) errors.push({
+				field: "references/artifact/attemptN",
+				message: "artifact reference is missing required attemptN"
+			});
+			if (errors.length > 0) throw new TaskBuildError(errors);
+			const attemptN = s.attemptN;
+			ref = {
+				taskId: s.taskId ?? null,
+				outputCid: s.outputCid,
+				role,
+				artifact: {
+					cid: s.artifactCid,
+					attemptN,
+					...s.kind ? { kind: s.kind } : {},
+					...s.title ? { title: s.title } : {},
+					...s.contentType ? { contentType: s.contentType } : {}
+				}
 			};
 		}
 		this.refs.push(ref);
@@ -42065,6 +42280,34 @@ var TaskResultReader = class {
 			role
 		};
 	}
+	/**
+	* Build a `TaskRef` that anchors a downstream task to this accepted output
+	* and points at one persistent task artifact by CID.
+	*
+	* @param filter - Artifact object or a filter resolved against output artifacts.
+	* @param role - The role this artifact plays in the downstream task.
+	* @returns A `TaskRef` with `artifact.cid` populated.
+	* @throws {TaskResultError} if no matching artifact has a CID.
+	*/
+	artifactRef(filter, role) {
+		const artifact = typeof filter === "object" && "cid" in filter && "kind" in filter ? filter : this.artifact(filter);
+		if (!artifact?.cid) throw new TaskResultError([{
+			field: "artifacts/cid",
+			message: "no matching artifact with a cid"
+		}]);
+		return {
+			taskId: this.taskId,
+			outputCid: this.outputCid,
+			role,
+			artifact: {
+				cid: artifact.cid,
+				attemptN: this.accepted.attemptN,
+				kind: artifact.kind,
+				title: artifact.title,
+				...artifact.contentType ? { contentType: artifact.contentType } : {}
+			}
+		};
+	}
 };
 /**
 * Validate and construct a {@link TaskResultReader} from a task and its
@@ -42088,6 +42331,63 @@ function createTasksNamespace(context) {
 				client,
 				auth
 			}));
+		},
+		artifacts: {
+			async upload(path, body, query, options) {
+				return unwrapResult(await uploadTaskArtifact({
+					auth,
+					body,
+					client,
+					duplex: "half",
+					headers: {
+						...requiredTeamHeaders(options),
+						"content-type": "application/octet-stream"
+					},
+					path,
+					query
+				}));
+			},
+			async list(taskId, options, query) {
+				return unwrapResult(await listTaskArtifacts({
+					client,
+					auth,
+					headers: requiredTeamHeaders(options),
+					path: { taskId },
+					query
+				})).artifacts;
+			},
+			async listPage(taskId, query, options) {
+				return unwrapResult(await listTaskArtifacts({
+					client,
+					auth,
+					headers: requiredTeamHeaders(options),
+					path: { taskId },
+					query
+				}));
+			},
+			async download(path, options) {
+				const result = await client.request({
+					auth,
+					headers: requiredTeamHeaders(options),
+					method: "GET",
+					parseAs: "stream",
+					path,
+					security: [{
+						scheme: "bearer",
+						type: "http"
+					}],
+					url: "/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content"
+				});
+				const normalizedStream = normalizeDownloadStream(unwrapResult(result));
+				if (normalizedStream) return {
+					artifactId: header(result.response, "x-moltnet-task-artifact-id"),
+					cid: header(result.response, "x-moltnet-task-artifact-cid"),
+					contentEncoding: header(result.response, "x-moltnet-task-artifact-content-encoding"),
+					contentType: header(result.response, "x-moltnet-task-artifact-content-type"),
+					stream: normalizedStream
+				};
+				throw new MoltNetError("Unexpected task artifact download response stream", { code: "INVALID_RESPONSE" });
+			}
 		},
 		async list(query, options) {
 			return unwrapResult(await listTasks({
@@ -42256,6 +42556,33 @@ function createTasksNamespace(context) {
 			}));
 		}
 	};
+}
+function header(response, name) {
+	const value = response?.headers.get(name) ?? null;
+	return value === "" ? null : value;
+}
+function normalizeDownloadStream(stream) {
+	if (isAsyncIterable(stream)) return stream;
+	if (isReadableStream(stream)) return readableStreamToAsyncIterable(stream);
+	return null;
+}
+function isAsyncIterable(value) {
+	return typeof value === "object" && value !== null && Symbol.asyncIterator in value && typeof value[Symbol.asyncIterator] === "function";
+}
+function isReadableStream(value) {
+	return typeof value === "object" && value !== null && "getReader" in value && typeof value.getReader === "function";
+}
+async function* readableStreamToAsyncIterable(stream) {
+	const reader = stream.getReader();
+	try {
+		while (true) {
+			const result = await reader.read();
+			if (result.done) return;
+			yield result.value;
+		}
+	} finally {
+		reader.releaseLock();
+	}
 }
 //#endregion
 //#region ../../libs/sdk/src/namespaces/teams.ts

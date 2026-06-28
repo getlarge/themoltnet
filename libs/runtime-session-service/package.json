@@ -14,8 +14,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "catalog:",
     "@moltnet/auth": "workspace:*",
+    "@moltnet/blob-storage": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/tasks": "workspace:*"

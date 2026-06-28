@@ -114,6 +114,22 @@ export const RuntimeSessionStorageConfigSchema = Type.Object({
   RUNTIME_SESSION_MAX_BYTES: Type.Number({ default: 10 * 1024 * 1024 }),
 });
 
+export const TaskArtifactStorageConfigSchema = Type.Object({
+  TASK_ARTIFACT_STORAGE_ENDPOINT: Type.Optional(Type.String({ minLength: 1 })),
+  TASK_ARTIFACT_STORAGE_REGION: Type.String({ default: 'auto' }),
+  TASK_ARTIFACT_STORAGE_BUCKET: Type.String({
+    default: 'moltnet-task-artifacts',
+  }),
+  TASK_ARTIFACT_STORAGE_ACCESS_KEY_ID: Type.Optional(
+    Type.String({ minLength: 1 }),
+  ),
+  TASK_ARTIFACT_STORAGE_SECRET_ACCESS_KEY: Type.Optional(
+    Type.String({ minLength: 1 }),
+  ),
+  TASK_ARTIFACT_STORAGE_FORCE_PATH_STYLE: Type.Boolean({ default: true }),
+  TASK_ARTIFACT_MAX_BYTES: Type.Number({ default: 25 * 1024 * 1024 }),
+});
+
 export const EmbeddingConfigSchema = Type.Object({
   /** Directory where model files are cached/loaded from (default: ./models) */
   EMBEDDING_CACHE_DIR: Type.Optional(Type.String({ minLength: 1 })),
@@ -139,6 +155,7 @@ export const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_LEGREFFIER_STATUS: Type.Number({ default: 120 }),
   RATE_LIMIT_REGISTRATION: Type.Number({ default: 5 }),
   RATE_LIMIT_READINESS: Type.Number({ default: 12 }),
+  RATE_LIMIT_TASK_ARTIFACT_UPLOAD: Type.Number({ default: 20 }),
   // Shared per-identity budget for authenticated GET reads, kept separate from
   // and more generous than RATE_LIMIT_GLOBAL_AUTH (mutations) so read bursts
   // (console board/poll/search fanout) cannot starve writes. Sized from observed
@@ -203,6 +220,9 @@ export type TaskOrphanSweeperConfig = Static<
 export type RuntimeSessionStorageConfig = Static<
   typeof RuntimeSessionStorageConfigSchema
 >;
+export type TaskArtifactStorageConfig = Static<
+  typeof TaskArtifactStorageConfigSchema
+>;
 export type EmbeddingConfig = Static<typeof EmbeddingConfigSchema>;
 export type SecurityConfig = Static<typeof SecurityConfigSchema>;
 
@@ -218,6 +238,7 @@ export interface AppConfig {
   packGc: PackGcConfig;
   taskOrphanSweeper: TaskOrphanSweeperConfig;
   runtimeSessionStorage: RuntimeSessionStorageConfig;
+  taskArtifactStorage: TaskArtifactStorageConfig;
 }
 
 export interface ResolvedOryUrls {
@@ -364,6 +385,16 @@ export function loadRuntimeSessionStorageConfig(
   );
 }
 
+export function loadTaskArtifactStorageConfig(
+  env: Record<string, string | undefined> = process.env,
+): TaskArtifactStorageConfig {
+  return validateSchema(
+    'TaskArtifactStorage',
+    TaskArtifactStorageConfigSchema,
+    pickEnv(TaskArtifactStorageConfigSchema, env),
+  );
+}
+
 export function loadSecurityConfig(
   env: Record<string, string | undefined> = process.env,
 ): SecurityConfig {
@@ -478,6 +509,7 @@ export function loadConfig(
     packGc: loadPackGcConfig(env),
     taskOrphanSweeper: loadTaskOrphanSweeperConfig(env),
     runtimeSessionStorage: loadRuntimeSessionStorageConfig(env),
+    taskArtifactStorage: loadTaskArtifactStorageConfig(env),
   };
 }
 
@@ -496,6 +528,8 @@ const allSchemas: TObject[] = [
   SecurityConfigSchema,
   PackGcConfigSchema,
   TaskOrphanSweeperConfigSchema,
+  RuntimeSessionStorageConfigSchema,
+  TaskArtifactStorageConfigSchema,
 ];
 
 /**

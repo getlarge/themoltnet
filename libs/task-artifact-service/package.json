@@ -1,0 +1,34 @@
+{
+  "name": "@moltnet/task-artifact-service",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@moltnet/auth": "workspace:*",
+    "@moltnet/blob-storage": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:feature",
+      "scope:task",
+      "platform:server"
+    ]
+  }
+}

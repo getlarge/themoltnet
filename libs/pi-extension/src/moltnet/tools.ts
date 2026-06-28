@@ -6,6 +6,10 @@
  * so agent credentials never touch the VM filesystem.
  */
 import { execFileSync } from 'node:child_process';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { realpath, stat } from 'node:fs/promises';
+import path from 'node:path';
+import { pipeline } from 'node:stream/promises';
 
 import { Type } from '@earendil-works/pi-ai';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
@@ -154,6 +158,42 @@ function shouldAutoApproveHostExec(
   if (policy === true) return true;
   if (!Array.isArray(policy)) return false;
   return policy.some((rule) => hostExecMatchesAutoApproveRule(params, rule));
+}
+
+async function resolveWorkspaceFilePath(
+  cwd: string,
+  filePath: string,
+): Promise<string> {
+  const resolved = path.isAbsolute(filePath)
+    ? path.resolve(filePath)
+    : path.resolve(cwd, filePath);
+  const [realCwd, realResolved] = await Promise.all([
+    realpath(cwd),
+    realpath(resolved),
+  ]);
+  const rel = path.relative(realCwd, realResolved);
+  if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(`task artifact path escapes workspace: ${filePath}`);
+  }
+  return realResolved;
+}
+
+async function resolveWorkspaceOutputPath(
+  cwd: string,
+  filePath: string,
+): Promise<string> {
+  const resolved = path.isAbsolute(filePath)
+    ? path.resolve(filePath)
+    : path.resolve(cwd, filePath);
+  const [realCwd, realParent] = await Promise.all([
+    realpath(cwd),
+    realpath(path.dirname(resolved)),
+  ]);
+  const rel = path.relative(realCwd, realParent);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(`task artifact output path escapes workspace: ${filePath}`);
+  }
+  return resolved;
 }
 
 interface TaskFilterShorthand {
@@ -902,6 +942,226 @@ export function createMoltNetTools(
     },
   });
 
+  const uploadTaskArtifact = defineTool({
+    name: 'moltnet_upload_task_artifact',
+    label: 'Upload MoltNet Task Artifact',
+    description:
+      'Upload a file from the current task workspace as an immutable task artifact. ' +
+      'Only available during an active task attempt; the tool attaches the artifact ' +
+      'to the active taskId/attemptN and returns metadata including cid, ' +
+      'sizeBytes, kind, and title. Use this for large logs, reports, build outputs, ' +
+      'screenshots, generated files, or other bytes that should be referenced by CID ' +
+      'instead of pasted into structured task output.',
+    parameters: Type.Object({
+      filePath: Type.String({
+        description:
+          'Path to a file under the current task workspace. Relative paths are resolved from the workspace root.',
+      }),
+      kind: Type.String({
+        description:
+          'Artifact category, e.g. log, report, patch, screenshot, bundle, dataset, trace.',
+      }),
+      title: Type.String({
+        description: 'Human-readable artifact title, usually the file name.',
+      }),
+      contentType: Type.Optional(
+        Type.String({
+          description:
+            'MIME type. Defaults to application/octet-stream when omitted.',
+        }),
+      ),
+      contentEncoding: Type.Optional(
+        Type.String({
+          description:
+            'Optional content encoding if the file is already encoded, e.g. gzip.',
+        }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent, teamId } = ensureConnected(config);
+      if (!teamId) {
+        throw new Error('moltnet_upload_task_artifact requires a team context');
+      }
+      const taskCtx = config.getTaskContext?.() ?? null;
+      if (!taskCtx) {
+        throw new Error(
+          'moltnet_upload_task_artifact is only available during an active task attempt',
+        );
+      }
+      const cwd = config.getHostCwd?.() ?? process.cwd();
+      const resolved = await resolveWorkspaceFilePath(cwd, params.filePath);
+      const info = await stat(resolved);
+      if (!info.isFile()) {
+        throw new Error(`task artifact path is not a file: ${params.filePath}`);
+      }
+
+      const artifact = await agent.tasks.artifacts.upload(
+        { taskId: taskCtx.taskId, attemptN: taskCtx.attemptN },
+        createReadStream(resolved),
+        {
+          kind: params.kind,
+          title: params.title,
+          contentType: params.contentType ?? 'application/octet-stream',
+          contentEncoding: params.contentEncoding,
+        },
+        { teamId },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                ...artifact,
+                filePath: path.relative(cwd, resolved),
+                localSizeBytes: info.size,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  const listTaskArtifacts = defineTool({
+    name: 'moltnet_list_task_artifacts',
+    label: 'List MoltNet Task Artifacts',
+    description:
+      'List immutable artifacts attached to a task, including each artifact CID, ' +
+      'attempt number, kind, title, content type, size, uploader, and creation time. ' +
+      'Use this when judging or continuing work that references task artifacts.',
+    parameters: Type.Object({
+      taskId: Type.Optional(
+        Type.String({
+          description:
+            'Task ID. Defaults to the active task when running inside a task attempt.',
+        }),
+      ),
+      limit: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: 100,
+          description:
+            'Maximum artifacts to return. Defaults to the server page size.',
+        }),
+      ),
+      cursor: Type.Optional(
+        Type.String({
+          description:
+            'Pagination cursor returned by a previous moltnet_list_task_artifacts call.',
+        }),
+      ),
+    }),
+    async execute(_id, params) {
+      const { agent, teamId } = ensureConnected(config);
+      if (!teamId) {
+        throw new Error('moltnet_list_task_artifacts requires a team context');
+      }
+      const taskId = params.taskId ?? config.getTaskContext?.()?.taskId;
+      if (!taskId) {
+        throw new Error(
+          'moltnet_list_task_artifacts requires taskId outside an active task',
+        );
+      }
+      const page = await agent.tasks.artifacts.listPage(
+        taskId,
+        { cursor: params.cursor, limit: params.limit },
+        { teamId },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(page, null, 2),
+          },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  const downloadTaskArtifact = defineTool({
+    name: 'moltnet_download_task_artifact',
+    label: 'Download MoltNet Task Artifact',
+    description:
+      'Download immutable task artifact bytes by taskId, attemptN, and CID into ' +
+      'a new file in the current task workspace. Use moltnet_list_task_artifacts ' +
+      'first to choose the correct CID for referenced task inputs.',
+    parameters: Type.Object({
+      taskId: Type.Optional(
+        Type.String({
+          description:
+            'Task ID. Defaults to the active task when running inside a task attempt.',
+        }),
+      ),
+      attemptN: Type.Integer({
+        minimum: 1,
+        description: 'Attempt number that produced the artifact.',
+      }),
+      cid: Type.String({
+        minLength: 1,
+        description: 'Artifact CID returned by moltnet_list_task_artifacts.',
+      }),
+      outputPath: Type.String({
+        description:
+          'New file path under the current task workspace. The tool refuses to overwrite existing files.',
+      }),
+    }),
+    async execute(_id, params) {
+      const { agent, teamId } = ensureConnected(config);
+      if (!teamId) {
+        throw new Error(
+          'moltnet_download_task_artifact requires a team context',
+        );
+      }
+      const taskId = params.taskId ?? config.getTaskContext?.()?.taskId;
+      if (!taskId) {
+        throw new Error(
+          'moltnet_download_task_artifact requires taskId outside an active task',
+        );
+      }
+      const cwd = config.getHostCwd?.() ?? process.cwd();
+      const outputPath = await resolveWorkspaceOutputPath(
+        cwd,
+        params.outputPath,
+      );
+      const download = await agent.tasks.artifacts.download(
+        { taskId, attemptN: params.attemptN, cid: params.cid },
+        { teamId },
+      );
+      await pipeline(
+        download.stream,
+        createWriteStream(outputPath, { flags: 'wx' }),
+      );
+      const info = await stat(outputPath);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              {
+                taskId,
+                attemptN: params.attemptN,
+                cid: params.cid,
+                artifactId: download.artifactId,
+                contentType: download.contentType,
+                contentEncoding: download.contentEncoding,
+                outputPath: path.relative(cwd, outputPath),
+                sizeBytes: info.size,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+        details: {},
+      };
+    },
+  });
+
   const reviewSessionErrors = defineTool({
     name: 'moltnet_review_session_errors',
     label: 'Review Session Tool Errors',
@@ -1076,6 +1336,9 @@ export function createMoltNetTools(
     getTask,
     listTaskAttempts,
     listTaskMessages,
+    uploadTaskArtifact,
+    listTaskArtifacts,
+    downloadTaskArtifact,
     reviewSessionErrors,
     hostExec,
   ];

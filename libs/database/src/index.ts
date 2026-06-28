@@ -142,6 +142,15 @@ export {
   type TaskRepository,
 } from './repositories/task.repository.js';
 export {
+  type CreateTaskArtifactInput,
+  createTaskArtifactRepository,
+  decodeTaskArtifactCursor,
+  type ListTaskArtifactsInput,
+  type ListTaskArtifactsResult,
+  TaskArtifactConflictError,
+  type TaskArtifactRepository,
+} from './repositories/task-artifact.repository.js';
+export {
   type CreateFoundingAcceptanceInput,
   type CreateInviteInput,
   type CreateTeamInput,

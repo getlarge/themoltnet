@@ -8686,6 +8686,542 @@ func (s DownloadRuntimeSessionUnauthorizedCode) Validate() error {
 	}
 }
 
+func (s *DownloadTaskArtifactBadRequest) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if s.Errors == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "errors",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s DownloadTaskArtifactBadRequestCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *DownloadTaskArtifactForbidden) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s DownloadTaskArtifactForbiddenCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *DownloadTaskArtifactNotFound) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s DownloadTaskArtifactNotFoundCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *DownloadTaskArtifactServiceUnavailable) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s DownloadTaskArtifactServiceUnavailableCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *DownloadTaskArtifactUnauthorized) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s DownloadTaskArtifactUnauthorizedCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *EntryRelation) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -14592,6 +15128,683 @@ func (s *ListSigningRequestsUnauthorized) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s *ListTaskArtifactsBadRequest) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if s.Errors == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "errors",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ListTaskArtifactsBadRequestCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ListTaskArtifactsForbidden) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ListTaskArtifactsForbiddenCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ListTaskArtifactsNotFound) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ListTaskArtifactsNotFoundCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ListTaskArtifactsOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Artifacts == nil {
+			return errors.New("nil is invalid value")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Artifacts {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "artifacts",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.NextCursor.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "nextCursor",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *ListTaskArtifactsOKArtifactsItem) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.AttemptN)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "attemptN",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Cid)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "cid",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ContentEncoding.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     100,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "contentEncoding",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     200,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.ContentType)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "contentType",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Kind)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "kind",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.SizeBytes)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "sizeBytes",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     255,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Title)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "title",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *ListTaskArtifactsUnauthorized) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ListTaskArtifactsUnauthorizedCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *ListTaskAttemptsForbidden) Validate() error {
@@ -22424,6 +23637,24 @@ func (s *TaskRef) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if value, ok := s.Artifact.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "artifact",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.External.Get(); ok {
 			if err := func() error {
 				if err := value.Validate(); err != nil {
@@ -22472,6 +23703,152 @@ func (s *TaskRef) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "role",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *TaskRefArtifact) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.AttemptN)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "attemptN",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Cid)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "cid",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ContentType.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     200,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "contentType",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Kind.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     100,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "kind",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Title.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     255,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "title",
 			Error: err,
 		})
 	}
@@ -22605,6 +23982,24 @@ func (s *TaskReferencesItem) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if value, ok := s.Artifact.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "artifact",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.External.Get(); ok {
 			if err := func() error {
 				if err := value.Validate(); err != nil {
@@ -22653,6 +24048,152 @@ func (s *TaskReferencesItem) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "role",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *TaskReferencesItemArtifact) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.AttemptN)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "attemptN",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Cid)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "cid",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ContentType.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     200,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "contentType",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Kind.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     100,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "kind",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Title.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     255,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "title",
 			Error: err,
 		})
 	}
@@ -26374,6 +27915,718 @@ func (s *UploadRuntimeSessionUnauthorized) Validate() error {
 }
 
 func (s UploadRuntimeSessionUnauthorizedCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *UploadTaskArtifactBadRequest) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if s.Errors == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "errors",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s UploadTaskArtifactBadRequestCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *UploadTaskArtifactForbidden) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s UploadTaskArtifactForbiddenCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *UploadTaskArtifactNotFound) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s UploadTaskArtifactNotFoundCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *UploadTaskArtifactOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.AttemptN)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "attemptN",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Cid)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "cid",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ContentEncoding.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     100,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "contentEncoding",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     200,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.ContentType)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "contentType",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Kind)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "kind",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.SizeBytes)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "sizeBytes",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     255,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Title)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "title",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *UploadTaskArtifactServiceUnavailable) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s UploadTaskArtifactServiceUnavailableCode) Validate() error {
+	switch s {
+	case "UNAUTHORIZED":
+		return nil
+	case "FORBIDDEN":
+		return nil
+	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
+		return nil
+	case "VALIDATION_FAILED":
+		return nil
+	case "INVALID_CHALLENGE":
+		return nil
+	case "INVALID_SIGNATURE":
+		return nil
+	case "VOUCHER_LIMIT":
+		return nil
+	case "RATE_LIMIT_EXCEEDED":
+		return nil
+	case "SERIALIZATION_EXHAUSTED":
+		return nil
+	case "SIGNING_REQUEST_EXPIRED":
+		return nil
+	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "REGISTRATION_FAILED":
+		return nil
+	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
+		return nil
+	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
+		return nil
+	case "TEAM_ALREADY_ACTIVE":
+		return nil
+	case "TEAM_NOT_FOUNDING":
+		return nil
+	case "FOUNDING_ALREADY_ACCEPTED":
+		return nil
+	case "DIARY_TRANSFER_PENDING":
+		return nil
+	case "DIARY_TRANSFER_NOT_FOUND":
+		return nil
+	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *UploadTaskArtifactUnauthorized) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Code.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "code",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           100,
+			MaxSet:        true,
+			Max:           599,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Status)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s UploadTaskArtifactUnauthorizedCode) Validate() error {
 	switch s {
 	case "UNAUTHORIZED":
 		return nil
