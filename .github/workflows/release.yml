@@ -12,7 +12,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, agent-runtime, agent-daemon
+          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, agent-runtime, node-red-theme, agent-daemon
         required: false
         type: string
 
@@ -60,6 +60,8 @@ jobs:
       pi-extension-tag-name: ${{ steps.release.outputs['libs/pi-extension--tag_name'] }}
       node-red-release-created: ${{ steps.release.outputs['libs/node-red-contrib-core--release_created'] }}
       node-red-tag-name: ${{ steps.release.outputs['libs/node-red-contrib-core--tag_name'] }}
+      node-red-theme-release-created: ${{ steps.release.outputs['libs/node-red-theme--release_created'] }}
+      node-red-theme-tag-name: ${{ steps.release.outputs['libs/node-red-theme--tag_name'] }}
       design-system-release-created: ${{ steps.release.outputs['libs/design-system--release_created'] }}
       design-system-tag-name: ${{ steps.release.outputs['libs/design-system--tag_name'] }}
       agent-daemon-release-created: ${{ steps.release.outputs['apps/agent-daemon--release_created'] }}
@@ -103,6 +105,8 @@ jobs:
       pi-extension-tag: ${{ steps.resolve.outputs.pi-extension-tag }}
       node-red: ${{ steps.resolve.outputs.node-red }}
       node-red-tag: ${{ steps.resolve.outputs.node-red-tag }}
+      node-red-theme: ${{ steps.resolve.outputs.node-red-theme }}
+      node-red-theme-tag: ${{ steps.resolve.outputs.node-red-theme-tag }}
       design-system: ${{ steps.resolve.outputs.design-system }}
       design-system-tag: ${{ steps.resolve.outputs.design-system-tag }}
       agent-daemon: ${{ steps.resolve.outputs.agent-daemon }}
@@ -137,6 +141,8 @@ jobs:
           RP_PI_EXTENSION_TAG: ${{ needs.release-please.outputs.pi-extension-tag-name }}
           RP_NODE_RED_CREATED: ${{ needs.release-please.outputs.node-red-release-created }}
           RP_NODE_RED_TAG: ${{ needs.release-please.outputs.node-red-tag-name }}
+          RP_NODE_RED_THEME_CREATED: ${{ needs.release-please.outputs.node-red-theme-release-created }}
+          RP_NODE_RED_THEME_TAG: ${{ needs.release-please.outputs.node-red-theme-tag-name }}
           RP_DESIGN_SYSTEM_CREATED: ${{ needs.release-please.outputs.design-system-release-created }}
           RP_DESIGN_SYSTEM_TAG: ${{ needs.release-please.outputs.design-system-tag-name }}
           RP_AGENT_DAEMON_CREATED: ${{ needs.release-please.outputs.agent-daemon-release-created }}
@@ -196,6 +202,7 @@ jobs:
           resolve "agent-runtime" "$RP_AGENT_RUNTIME_CREATED" "$RP_AGENT_RUNTIME_TAG" "agent-runtime"
           resolve "pi-extension" "$RP_PI_EXTENSION_CREATED" "$RP_PI_EXTENSION_TAG" "pi-extension"
           resolve "node-red"     "$RP_NODE_RED_CREATED"  "$RP_NODE_RED_TAG"  "node-red-contrib-core"
+          resolve "node-red-theme" "$RP_NODE_RED_THEME_CREATED" "$RP_NODE_RED_THEME_TAG" "node-red-theme"
           resolve "agent-daemon" "$RP_AGENT_DAEMON_CREATED" "$RP_AGENT_DAEMON_TAG" "agent-daemon"
 
           # Forward version outputs
@@ -306,6 +313,46 @@ jobs:
 
       - name: Publish Node-RED release
         run: gh release edit "${{ needs.resolve-publish.outputs.node-red-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-node-red-theme:
+    name: Publish Node-RED theme to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.node-red-theme == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec nx run @themoltnet/node-red-theme:build
+
+      - run: pnpm exec nx run @themoltnet/node-red-theme:test
+
+      - run: pnpm exec nx run @themoltnet/node-red-theme:check:pack
+
+      - name: Publish @themoltnet/node-red-theme
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/node-red-theme publish --no-git-checks --access public --provenance
+
+      - name: Publish Node-RED theme release
+        run: gh release edit "${{ needs.resolve-publish.outputs.node-red-theme-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

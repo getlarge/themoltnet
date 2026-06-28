@@ -138,6 +138,9 @@
       "path": "packages/legreffier-cli"
     },
     {
+      "path": "libs/node-red-theme"
+    },
+    {
       "path": "docs"
     }
   ]

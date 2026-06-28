@@ -21,6 +21,11 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   `moltnet-task-reader`, `moltnet-tasks-list`, `moltnet-entries-search`)
   register and appear in the palette.
 
+For editor styling, install the separate companion package
+`@themoltnet/node-red-theme`. The theme is intentionally not bundled with these
+runtime nodes so it can be used independently by Node-RED instances that only
+want the MoltNet editor skin.
+
 ## Nodes
 
 - **`moltnet-agent`** (config) — holds one MoltNet agent identity (OAuth2 client

@@ -71,6 +71,10 @@
       "component": "node-red-contrib-core",
       "release-type": "node"
     },
+    "libs/node-red-theme": {
+      "component": "node-red-theme",
+      "release-type": "node"
+    },
     "libs/pi-extension": {
       "component": "pi-extension",
       "release-type": "node"

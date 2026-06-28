@@ -215,6 +215,7 @@
           "@themoltnet/github-agent",
           "@themoltnet/legreffier",
           "@themoltnet/node-red-contrib-core",
+          "@themoltnet/node-red-theme",
           "@themoltnet/pi-extension",
           "@themoltnet/sdk"
         ],
