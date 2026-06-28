@@ -88,7 +88,12 @@ type CreatePlanOptions = {
 type RunOptions = CreatePlanOptions & {
   dryRun?: boolean;
   verbose?: boolean;
+  commandRunner?: CommandRunner;
 };
+type CommandRunner = (
+  command: GoArtifactCommand,
+  env?: Record<string, string>,
+) => void;
 
 const defaultBuilds: GoReleaseBuild[] = [
   { goos: 'linux', goarch: 'amd64' },
@@ -134,11 +139,10 @@ function resolveTemplate(
   values: Record<string, string | undefined>,
 ) {
   return template.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g, (_, key: string) => {
-    const value = values[key];
-    if (value === undefined) {
+    if (!Object.hasOwn(values, key)) {
       throw new Error(`Unknown Go artifact template value: ${key}`);
     }
-    return value;
+    return values[key] ?? '';
   });
 }
 
@@ -230,7 +234,8 @@ export function createGoArtifactReleasePlan(
   );
   const builds = config.builds.length > 0 ? config.builds : defaultBuilds;
   const archiveNameTemplate =
-    config.archives?.nameTemplate ?? '{binary}_{version}_{goos}_{goarch}';
+    config.archives?.nameTemplate ??
+    '{binary}_{version}_{goos}_{goarch}{goarm}{goamd64}';
 
   const buildSteps = builds.map((build) => {
     const values = artifactContext(config, build, version, shortCommit);
@@ -346,26 +351,35 @@ function runCommand(
   });
 }
 
-function archiveBinary(step: GoArtifactBuildStep) {
+function archiveBinary(
+  step: GoArtifactBuildStep,
+  commandRunner: CommandRunner,
+) {
   mkdirSync(dirname(step.archivePath), { recursive: true });
   if (step.archiveFormat === 'tar.gz') {
-    runCommand({
-      command: 'tar',
-      args: [
-        '-czf',
-        step.archivePath,
-        '-C',
-        dirname(step.binaryPath),
-        basename(step.binaryPath),
-      ],
-    });
+    commandRunner(
+      {
+        command: 'tar',
+        args: [
+          '-czf',
+          step.archivePath,
+          '-C',
+          dirname(step.binaryPath),
+          basename(step.binaryPath),
+        ],
+      },
+      {},
+    );
     return;
   }
 
-  runCommand({
-    command: 'zip',
-    args: ['-j', '-q', step.archivePath, step.binaryPath],
-  });
+  commandRunner(
+    {
+      command: 'zip',
+      args: ['-j', '-q', step.archivePath, step.binaryPath],
+    },
+    {},
+  );
 }
 
 function writeChecksums(checksumFile: string, archivePaths: string[]) {
@@ -432,6 +446,8 @@ export function runGoArtifactPublisher(
   options: RunOptions = {},
 ) {
   const plan = createGoArtifactReleasePlan(config, options);
+  const commandRunner = options.commandRunner ?? runCommand;
+
   if (options.dryRun) {
     printGoArtifactReleasePlan(plan);
     return plan;
@@ -442,8 +458,8 @@ export function runGoArtifactPublisher(
       process.stdout.write(`${formatCommand(step.command, step.env)}\n`);
     }
     mkdirSync(dirname(step.binaryPath), { recursive: true });
-    runCommand(step.command, step.env);
-    archiveBinary(step);
+    commandRunner(step.command, step.env);
+    archiveBinary(step, commandRunner);
     copyPackageBinary(step);
   }
 
@@ -455,7 +471,7 @@ export function runGoArtifactPublisher(
   }
 
   for (const command of plan.uploadCommands) {
-    runCommand(command);
+    commandRunner(command, {});
   }
 
   return plan;
