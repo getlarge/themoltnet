@@ -1,6 +1,3 @@
-import { Readable } from 'node:stream';
-import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
-
 import type { CreateTaskData, Task } from '@moltnet/api-client';
 import {
   abortTaskAttempt,
@@ -109,12 +106,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
           url: '/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content',
         });
         const stream = unwrapResult(result);
-        const normalizedStream =
-          stream instanceof Readable
-            ? stream
-            : stream instanceof ReadableStream
-              ? Readable.fromWeb(stream as NodeReadableStream)
-              : null;
+        const normalizedStream = normalizeDownloadStream(stream);
         if (normalizedStream) {
           return {
             artifactId: header(result.response, 'x-moltnet-task-artifact-id'),
@@ -292,4 +284,51 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
 function header(response: Response | undefined, name: string): string | null {
   const value = response?.headers.get(name) ?? null;
   return value === '' ? null : value;
+}
+
+function normalizeDownloadStream(
+  stream: unknown,
+): AsyncIterable<Uint8Array> | null {
+  if (isAsyncIterable(stream)) {
+    return stream;
+  }
+  if (isReadableStream(stream)) {
+    return readableStreamToAsyncIterable(stream);
+  }
+  return null;
+}
+
+function isAsyncIterable(value: unknown): value is AsyncIterable<Uint8Array> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    Symbol.asyncIterator in value &&
+    typeof value[Symbol.asyncIterator] === 'function'
+  );
+}
+
+function isReadableStream(value: unknown): value is ReadableStream<Uint8Array> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'getReader' in value &&
+    typeof value.getReader === 'function'
+  );
+}
+
+async function* readableStreamToAsyncIterable(
+  stream: ReadableStream<Uint8Array>,
+): AsyncIterable<Uint8Array> {
+  const reader = stream.getReader();
+  try {
+    while (true) {
+      const result = await reader.read();
+      if (result.done) {
+        return;
+      }
+      yield result.value;
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
