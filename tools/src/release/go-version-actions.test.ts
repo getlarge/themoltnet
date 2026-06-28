@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   afterAllProjectsVersioned,
@@ -6,10 +6,24 @@ import {
   escapeGoProxyPath,
   findGoRequireVersion,
   normalizeGoModuleVersion,
+  readLatestVersionFromGoProxy,
   resolveGoProxyUrl,
   shouldRunGoReleaseValidation,
   updateGoRequireVersions,
 } from './go-version-actions';
+
+function goProxyResponse(
+  status: number,
+  statusText: string,
+  payload: unknown = {},
+) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    statusText,
+    json: async () => payload,
+  } as Response;
+}
 
 describe('go version actions helpers', () => {
   it('reads versions from single-line and block require declarations', () => {
@@ -124,6 +138,7 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
   it('plans GOWORK=off release validation commands for configured roots', () => {
     expect(
       createGoReleaseValidationCommands('/repo', {
+        goReleaseGoproxy: 'direct',
         goReleaseValidationRoots: ['apps/moltnet-cli'],
       }),
     ).toEqual([
@@ -150,6 +165,19 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
     ]);
   });
 
+  it('does not infer repository-specific validation roots by default', () => {
+    expect(
+      shouldRunGoReleaseValidation({}, [
+        'nx',
+        'release',
+        'version',
+        '--groups',
+        'go-modules',
+      ]),
+    ).toBe(false);
+    expect(createGoReleaseValidationCommands('/repo')).toEqual([]);
+  });
+
   it('lets the release validation GOPROXY be overridden', () => {
     const commands = createGoReleaseValidationCommands('/repo', {
       goReleaseValidationRoots: ['apps/moltnet-cli'],
@@ -163,8 +191,18 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
   });
 
   it('skips release validation for docker-only release groups', () => {
+    const options = {
+      goReleaseValidationGroups: ['go-modules', 'cli'],
+      goReleaseValidationProjects: [
+        'moltnet-cli',
+        'dspy-adapters',
+        'moltnet-api-client',
+      ],
+      goReleaseValidationRoots: ['apps/moltnet-cli'],
+    };
+
     expect(
-      shouldRunGoReleaseValidation({}, [
+      shouldRunGoReleaseValidation(options, [
         'nx',
         'release',
         'version',
@@ -177,6 +215,7 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
         '/repo',
         {
           goReleaseValidationRoots: ['apps/moltnet-cli'],
+          goReleaseValidationGroups: ['go-modules', 'cli'],
         },
         ['nx', 'release', 'version', '--groups=docker-images'],
       ),
@@ -184,8 +223,18 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
   });
 
   it('runs release validation for go and cli release selections', () => {
+    const options = {
+      goReleaseValidationGroups: ['go-modules', 'cli'],
+      goReleaseValidationProjects: [
+        'moltnet-cli',
+        'dspy-adapters',
+        'moltnet-api-client',
+      ],
+      goReleaseValidationRoots: ['apps/moltnet-cli'],
+    };
+
     expect(
-      shouldRunGoReleaseValidation({}, [
+      shouldRunGoReleaseValidation(options, [
         'nx',
         'release',
         'version',
@@ -194,13 +243,55 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
       ]),
     ).toBe(true);
     expect(
-      shouldRunGoReleaseValidation({}, [
+      shouldRunGoReleaseValidation(options, [
         'nx',
         'release',
         'version',
         '--projects=moltnet-cli',
       ]),
     ).toBe(true);
+  });
+
+  it('retries transient Go proxy lookup failures', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network reset'))
+      .mockResolvedValueOnce(goProxyResponse(502, 'Bad Gateway'))
+      .mockResolvedValueOnce(
+        goProxyResponse(200, 'OK', {
+          Version: 'v1.2.3',
+        }),
+      );
+
+    await expect(
+      readLatestVersionFromGoProxy(
+        'github.com/getlarge/themoltnet/libs/moltnet-api-client',
+        'https://proxy.example.test',
+        {
+          fetchImpl,
+          retryDelaysMs: [0, 0],
+        },
+      ),
+    ).resolves.toBe('1.2.3');
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not retry missing Go proxy modules', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(goProxyResponse(404, 'Not Found'));
+
+    await expect(
+      readLatestVersionFromGoProxy(
+        'github.com/getlarge/themoltnet/libs/missing',
+        'https://proxy.example.test',
+        {
+          fetchImpl,
+          retryDelaysMs: [0, 0],
+        },
+      ),
+    ).resolves.toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it('does not run Go release validation during dry-run', async () => {

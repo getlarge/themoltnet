@@ -1,5 +1,4 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { ProjectGraph, Tree } from '@nx/devkit';
@@ -23,6 +22,11 @@ type GoAfterVersionOptions = {
   selectedReleaseGroups?: unknown;
   selectedProjects?: unknown;
   skipGoReleaseValidation?: unknown;
+};
+type FetchLike = typeof fetch;
+type GoProxyLookupOptions = {
+  fetchImpl?: FetchLike;
+  retryDelaysMs?: number[];
 };
 
 export function readText(tree: Pick<Tree, 'read'>, path: string) {
@@ -149,6 +153,10 @@ export function normalizeGoModuleVersion(version: string) {
   return version.startsWith('v') ? version.slice(1) : version;
 }
 
+function sleep(ms: number) {
+  return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : null;
+}
+
 export function resolveGoProxyUrl(metadata: CurrentVersionResolverMetadata) {
   const configuredRegistry =
     typeof metadata?.registry === 'string' ? metadata.registry : null;
@@ -169,7 +177,7 @@ export function resolveGoProxyUrl(metadata: CurrentVersionResolverMetadata) {
 }
 
 export function resolveGoReleaseValidationRoots(
-  cwd: string,
+  _cwd: string,
   options: GoAfterVersionOptions = {},
 ) {
   if (Array.isArray(options.goReleaseValidationRoots)) {
@@ -178,9 +186,7 @@ export function resolveGoReleaseValidationRoots(
     );
   }
 
-  return existsSync(join(cwd, 'apps/moltnet-cli/go.mod'))
-    ? ['apps/moltnet-cli']
-    : [];
+  return [];
 }
 
 function parseOptionList(value: unknown) {
@@ -225,6 +231,10 @@ export function shouldRunGoReleaseValidation(
     return false;
   }
 
+  if (resolveGoReleaseValidationRoots('', options).length === 0) {
+    return false;
+  }
+
   const selectedGroups = [
     ...parseOptionList(options.selectedReleaseGroups),
     ...readCliOptionList(argv, ['--groups', '-g']),
@@ -235,23 +245,15 @@ export function shouldRunGoReleaseValidation(
   ];
 
   const goGroups = parseOptionList(options.goReleaseValidationGroups);
-  const groupsToValidate =
-    goGroups.length > 0 ? goGroups : ['go-modules', 'cli'];
 
   const goProjects = parseOptionList(options.goReleaseValidationProjects);
-  const projectsToValidate =
-    goProjects.length > 0
-      ? goProjects
-      : ['moltnet-cli', 'dspy-adapters', 'moltnet-api-client'];
 
-  if (selectedGroups.length > 0) {
-    return selectedGroups.some((group) => groupsToValidate.includes(group));
+  if (selectedGroups.length > 0 && goGroups.length > 0) {
+    return selectedGroups.some((group) => goGroups.includes(group));
   }
 
-  if (selectedProjects.length > 0) {
-    return selectedProjects.some((project) =>
-      projectsToValidate.includes(project),
-    );
+  if (selectedProjects.length > 0 && goProjects.length > 0) {
+    return selectedProjects.some((project) => goProjects.includes(project));
   }
 
   return true;
@@ -269,7 +271,7 @@ export function createGoReleaseValidationCommands(
   const goProxy =
     typeof options.goReleaseGoproxy === 'string'
       ? options.goReleaseGoproxy
-      : 'direct';
+      : null;
 
   return resolveGoReleaseValidationRoots(cwd, options).flatMap((root) => [
     {
@@ -278,7 +280,7 @@ export function createGoReleaseValidationCommands(
       args: ['mod', 'tidy'],
       env: {
         GOWORK: 'off',
-        GOPROXY: goProxy,
+        ...(goProxy ? { GOPROXY: goProxy } : {}),
       },
       changedFiles: [join(root, 'go.mod'), join(root, 'go.sum')],
     },
@@ -288,30 +290,76 @@ export function createGoReleaseValidationCommands(
       args: ['build', './...'],
       env: {
         GOWORK: 'off',
-        GOPROXY: goProxy,
+        ...(goProxy ? { GOPROXY: goProxy } : {}),
       },
       changedFiles: [],
     },
   ]);
 }
 
-async function readLatestVersionFromGoProxy(
+function shouldRetryGoProxyResponse(status: number) {
+  return status === 429 || status >= 500;
+}
+
+async function waitForGoProxyRetry(delays: number[], attempt: number) {
+  const delay = delays[attempt];
+  if (delay === undefined) {
+    return;
+  }
+  await sleep(delay);
+}
+
+function createGoProxyLookupError(
+  modulePath: string,
+  response: Pick<Response, 'status' | 'statusText'>,
+) {
+  return new Error(
+    `Go proxy lookup failed for ${modulePath}: ${response.status} ${response.statusText}`,
+  );
+}
+
+export async function readLatestVersionFromGoProxy(
   modulePath: string,
   proxyUrl: string,
+  options: GoProxyLookupOptions = {},
 ) {
   const url = `${proxyUrl}/${escapeGoProxyPath(modulePath)}/@latest`;
-  const response = await fetch(url);
-  if (response.status === 404 || response.status === 410) {
-    return null;
-  }
-  if (!response.ok) {
-    throw new Error(
-      `Go proxy lookup failed for ${modulePath}: ${response.status} ${response.statusText}`,
-    );
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const retryDelaysMs = options.retryDelaysMs ?? [250, 1_000];
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetchImpl(url);
+    } catch (error) {
+      lastError = error;
+      await waitForGoProxyRetry(retryDelaysMs, attempt);
+      continue;
+    }
+
+    if (response.status === 404 || response.status === 410) {
+      return null;
+    }
+    if (!response.ok) {
+      const error = createGoProxyLookupError(modulePath, response);
+      if (!shouldRetryGoProxyResponse(response.status)) {
+        throw error;
+      }
+      lastError = error;
+      await waitForGoProxyRetry(retryDelaysMs, attempt);
+      continue;
+    }
+
+    const payload = (await response.json()) as { Version?: string };
+    return payload.Version ? normalizeGoModuleVersion(payload.Version) : null;
   }
 
-  const payload = (await response.json()) as { Version?: string };
-  return payload.Version ? normalizeGoModuleVersion(payload.Version) : null;
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error(`Go proxy lookup failed for ${modulePath}: no response`);
 }
 
 export async function afterAllProjectsVersioned(
@@ -379,9 +427,7 @@ export async function afterAllProjectsVersioned(
     });
 
     for (const file of command.changedFiles) {
-      if (existsSync(join(cwd, file))) {
-        changedFiles.add(file);
-      }
+      changedFiles.add(file);
     }
   }
 

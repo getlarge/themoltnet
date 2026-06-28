@@ -228,7 +228,17 @@
       "currentVersionResolver": "disk",
       "deleteVersionPlans": true,
       "specifierSource": "conventional-commits",
-      "updateDependents": "auto"
+      "updateDependents": "auto",
+      "versionActionsOptions": {
+        "goReleaseGoproxy": "direct",
+        "goReleaseValidationGroups": ["go-modules", "cli"],
+        "goReleaseValidationProjects": [
+          "moltnet-cli",
+          "dspy-adapters",
+          "moltnet-api-client"
+        ],
+        "goReleaseValidationRoots": ["apps/moltnet-cli"]
+      }
     },
     "versionPlans": true
   },
