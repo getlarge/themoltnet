@@ -1,5 +1,6 @@
 import { isAbsolute, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { parseArgs } from 'node:util';
 
 import {
   type GoArtifactPublisherConfig,
@@ -12,11 +13,30 @@ export function resolveConfigPath(cwd: string, configPath: string) {
 }
 
 export function createCliRunOptions(argv = process.argv, env = process.env) {
+  const { values } = parseArgs({
+    args: argv.slice(2),
+    allowPositionals: false,
+    options: {
+      config: {
+        type: 'string',
+      },
+      'dry-run': {
+        type: 'boolean',
+      },
+      'skip-upload': {
+        type: 'boolean',
+      },
+      verbose: {
+        type: 'boolean',
+      },
+    },
+  });
+
   return {
-    configPath: readOptionFromArgv(argv, '--config'),
-    dryRun: argv.includes('--dry-run') || env.NX_DRY_RUN === 'true',
-    verbose: argv.includes('--verbose'),
-    skipUpload: argv.includes('--skip-upload'),
+    configPath: values.config ?? null,
+    dryRun: values['dry-run'] === true || env.NX_DRY_RUN === 'true',
+    verbose: values.verbose === true,
+    skipUpload: values['skip-upload'] === true,
   };
 }
 
@@ -33,16 +53,6 @@ export function applyCliOverrides(
       provider: 'none' as const,
     },
   };
-}
-
-function readOptionFromArgv(argv: string[], name: string) {
-  const prefix = `${name}=`;
-  const index = argv.indexOf(name);
-  if (index >= 0) {
-    return argv[index + 1] ?? null;
-  }
-  const option = argv.find((arg) => arg.startsWith(prefix));
-  return option ? option.slice(prefix.length) : null;
 }
 
 export function main(
