@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.40.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.40.0...moltnet-api-client-v1.40.1) (2026-06-28)
+
+
+### Bug Fixes
+
+* implement remote task artifacts storage ([1c4dcc5](https://github.com/getlarge/themoltnet/commit/1c4dcc5e3e5a941a7b396e3fecdabc9d0e5f0b5c))
+* **task-artifacts:** address latest review feedback ([597621d](https://github.com/getlarge/themoltnet/commit/597621d6979cc2c846dd73d0677f0bb395493211))
+
+
+### Codegen
+
+* **api:** regenerate task artifact clients ([a6f4c43](https://github.com/getlarge/themoltnet/commit/a6f4c4344f27ca3c668253af56188a4c5f6870ed))
+
 ## [1.40.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.39.0...moltnet-api-client-v1.40.0) (2026-06-26)
 
 

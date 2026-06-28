@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.27.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.27.1...agent-daemon-v0.27.2) (2026-06-28)
+
+
+### Bug Fixes
+
+* implement remote task artifacts storage ([1c4dcc5](https://github.com/getlarge/themoltnet/commit/1c4dcc5e3e5a941a7b396e3fecdabc9d0e5f0b5c))
+* **task-artifacts:** address deep review findings ([d7dfe16](https://github.com/getlarge/themoltnet/commit/d7dfe1609b15e747923464401a4d6224ea076cf6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.32.0
+    * @themoltnet/pi-extension bumped to 0.29.0
+    * @themoltnet/sdk bumped to 0.115.0
+
 ## [0.27.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.27.0...agent-daemon-v0.27.1) (2026-06-26)
 
 

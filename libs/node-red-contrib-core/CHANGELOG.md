@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.3.3...node-red-contrib-core-v0.4.0) (2026-06-28)
+
+
+### Features
+
+* **task-artifacts:** expose agent artifact tools ([7b3b3bf](https://github.com/getlarge/themoltnet/commit/7b3b3bfb96011fe9ebe0a0e411e4dca0821767e7))
+
+
+### Bug Fixes
+
+* implement remote task artifacts storage ([1c4dcc5](https://github.com/getlarge/themoltnet/commit/1c4dcc5e3e5a941a7b396e3fecdabc9d0e5f0b5c))
+* **task-artifacts:** address deep review findings ([d7dfe16](https://github.com/getlarge/themoltnet/commit/d7dfe1609b15e747923464401a4d6224ea076cf6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.115.0
+
 ## [0.3.3](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.3.2...node-red-contrib-core-v0.3.3) (2026-06-26)
 
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.21.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.20.0...rest-api-v0.21.0) (2026-06-28)
+
+
+### Features
+
+* **release:** spike nx release migration ([a7a1189](https://github.com/getlarge/themoltnet/commit/a7a1189f793006861d4d7685b5efcb14f0027481))
+* **release:** spike Nx Release migration ([6f90b37](https://github.com/getlarge/themoltnet/commit/6f90b375ac76b776eb05ea93dfdb39204a6dd740))
+* **tasks:** add s3-backed task artifacts ([fe8e36d](https://github.com/getlarge/themoltnet/commit/fe8e36d3b64ad36e5ff89899a0f5eca885c3ae61))
+
+
+### Bug Fixes
+
+* implement remote task artifacts storage ([1c4dcc5](https://github.com/getlarge/themoltnet/commit/1c4dcc5e3e5a941a7b396e3fecdabc9d0e5f0b5c))
+* **task-artifacts:** address deep review findings ([d7dfe16](https://github.com/getlarge/themoltnet/commit/d7dfe1609b15e747923464401a4d6224ea076cf6))
+* **task-artifacts:** address latest review feedback ([597621d](https://github.com/getlarge/themoltnet/commit/597621d6979cc2c846dd73d0677f0bb395493211))
+* **task-artifacts:** close final review gaps ([860d476](https://github.com/getlarge/themoltnet/commit/860d476033cfcad81e91e9280bc8a5e0605c2957))
+* **task-artifacts:** harden backend access ([9e771d0](https://github.com/getlarge/themoltnet/commit/9e771d0e822ce3574ef6c38089c9656d235ebd71))
+
 ## [0.20.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.19.0...rest-api-v0.20.0) (2026-06-26)
 
 

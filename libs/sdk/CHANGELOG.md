@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.115.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.114.0...sdk-v0.115.0) (2026-06-28)
+
+
+### Features
+
+* **task-artifacts:** expose agent artifact tools ([7b3b3bf](https://github.com/getlarge/themoltnet/commit/7b3b3bfb96011fe9ebe0a0e411e4dca0821767e7))
+* **tasks:** expose artifacts to agents ([b21c489](https://github.com/getlarge/themoltnet/commit/b21c489f2d43b28d9e79a03c0ff78737a361c627))
+
+
+### Bug Fixes
+
+* implement remote task artifacts storage ([1c4dcc5](https://github.com/getlarge/themoltnet/commit/1c4dcc5e3e5a941a7b396e3fecdabc9d0e5f0b5c))
+* **task-artifacts:** address deep review findings ([d7dfe16](https://github.com/getlarge/themoltnet/commit/d7dfe1609b15e747923464401a4d6224ea076cf6))
+* **task-artifacts:** address latest review feedback ([597621d](https://github.com/getlarge/themoltnet/commit/597621d6979cc2c846dd73d0677f0bb395493211))
+* **task-artifacts:** close final review gaps ([860d476](https://github.com/getlarge/themoltnet/commit/860d476033cfcad81e91e9280bc8a5e0605c2957))
+* **task-artifacts:** repair ci fallout ([b12333c](https://github.com/getlarge/themoltnet/commit/b12333c79d587d62f24b3844e76afe3c495f26b4))
+
 ## [0.114.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.113.1...sdk-v0.114.0) (2026-06-26)
 
 
