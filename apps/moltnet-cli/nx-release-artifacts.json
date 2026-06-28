@@ -1,0 +1,78 @@
+{
+  "archives": {
+    "nameTemplate": "{binary}_{version}_{goos}_{goarch}"
+  },
+  "artifactStore": {
+    "create": false,
+    "draft": true,
+    "finalize": false,
+    "provider": "github",
+    "releaseTag": "cli-v{version}",
+    "upload": true
+  },
+  "binary": "moltnet",
+  "builds": [
+    {
+      "goarch": "amd64",
+      "goos": "linux",
+      "packageBinary": {
+        "path": "packages/cli/npm/linux-x64/bin/moltnet"
+      }
+    },
+    {
+      "goarch": "arm64",
+      "goos": "linux",
+      "packageBinary": {
+        "path": "packages/cli/npm/linux-arm64/bin/moltnet"
+      }
+    },
+    {
+      "goarch": "amd64",
+      "goos": "darwin",
+      "packageBinary": {
+        "path": "packages/cli/npm/darwin-x64/bin/moltnet"
+      }
+    },
+    {
+      "goarch": "arm64",
+      "goos": "darwin",
+      "packageBinary": {
+        "path": "packages/cli/npm/darwin-arm64/bin/moltnet"
+      }
+    },
+    {
+      "goarch": "amd64",
+      "goos": "windows",
+      "packageBinary": {
+        "path": "packages/cli/npm/win32-x64/bin/moltnet.exe"
+      }
+    },
+    {
+      "goarch": "arm64",
+      "goos": "windows",
+      "packageBinary": {
+        "path": "packages/cli/npm/win32-arm64/bin/moltnet.exe"
+      }
+    }
+  ],
+  "checksums": {
+    "algorithm": "sha256",
+    "fileName": "checksums.txt"
+  },
+  "distDir": "apps/moltnet-cli/dist/nx-release",
+  "env": {
+    "CGO_ENABLED": "0",
+    "GOWORK": "off"
+  },
+  "ldflags": [
+    "-s",
+    "-w",
+    "-X main.version={version}",
+    "-X main.commit={shortCommit}"
+  ],
+  "main": ".",
+  "projectRoot": "apps/moltnet-cli",
+  "version": {
+    "packageJson": "packages/cli/package.json"
+  }
+}

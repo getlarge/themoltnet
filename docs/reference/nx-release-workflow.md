@@ -67,6 +67,55 @@ The generic Go version action must not contain MoltNet-specific project names or
 paths. Repository-specific validation groups, projects, roots, and GOPROXY live
 in `nx.json` `release.version.versionActionsOptions`.
 
+## Go CLI Artifacts
+
+The Go CLI release artifact step is owned by the `moltnet-cli:nx-release-publish`
+target. It calls `tools/src/release/go-artifact-publisher.cli.ts` with
+`apps/moltnet-cli/nx-release-artifacts.json`.
+
+That config is the local shape we want to extract into a generic Nx Go release
+plugin:
+
+- Build a GOOS/GOARCH matrix with `GOWORK=off` and `CGO_ENABLED=0`.
+- Inject `{version}` and `{shortCommit}` into Go ldflags.
+- Archive Unix binaries as `.tar.gz` and Windows binaries as `.zip`.
+- Write `checksums.txt` in sha256sum-compatible format.
+- Stage binaries into the npm platform packages before npm publishing.
+- Upload archives and checksums to the configurable artifact store.
+
+The six npm platform packages declare `implicitDependencies` on `moltnet-cli`.
+Their generated `nx-release-publish` targets depend on `^nx-release-publish`,
+so Nx runs `moltnet-cli:nx-release-publish` before publishing those packages.
+
+The only artifact store currently implemented is GitHub Releases:
+
+```json
+{
+  "artifactStore": {
+    "finalize": false,
+    "provider": "github",
+    "releaseTag": "cli-v{version}",
+    "upload": true
+  }
+}
+```
+
+Use `provider: "none"` when testing a different publisher or when a downstream
+CI job owns upload. Homebrew/cask publishing is intentionally out of scope for
+the first Nx-native CLI release.
+
+Dry-run the artifact step after `nx release version --dry-run`:
+
+```bash
+pnpm exec nx run moltnet-cli:nx-release-publish -- --dry-run --verbose
+```
+
+Build archives and stage npm package binaries locally without uploading:
+
+```bash
+pnpm exec nx run moltnet-cli:nx-release-publish -- --skip-upload --verbose
+```
+
 ## Docker Images
 
 Docker releases use Nx native Docker release support. The pre-version helper
