@@ -6,6 +6,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { withAgent } from './agent-call.js';
 
 /**
  * `moltnet-workflow-status` — reads the tasks of one workflow run (by
@@ -67,12 +68,13 @@ const init: NodeInitializer = (RED): void => {
           if (!teamId) {
             throw new Error('workflow-status: agent teamId is required');
           }
-          const agent = await agentNode.getAgent();
           const query = {
             correlationId,
             limit: def.limit && def.limit > 0 ? def.limit : 50,
           } as ListTasksQuery;
-          const res = await agent.tasks.list(query, { teamId });
+          const res = await withAgent(agentNode, (agent) =>
+            agent.tasks.list(query, { teamId }),
+          );
 
           const rows: StatusRow[] = res.items.map((t) => ({
             taskId: t.id,

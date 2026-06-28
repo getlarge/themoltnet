@@ -9,6 +9,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { withAgent } from './agent-call.js';
 import type { MoltnetRuntimeProfileNode } from './runtime-profile.js';
 
 /**
@@ -50,15 +51,23 @@ const init: NodeInitializer = (RED): void => {
           def.runtimeProfile,
         ) as MoltnetRuntimeProfileNode | null)
       : null;
+    const active = new Map<number, string>();
+    let nextInvocationId = 0;
 
     this.on('input', (msg: NodeMessageInFlow, send, done) => {
+      const invocationId = ++nextInvocationId;
+      let label = describeMessage(msg);
       const run = async (): Promise<void> => {
         try {
           if (!agentNode || typeof agentNode.getAgent !== 'function') {
             throw new Error('tasks-create: no moltnet-agent configured');
           }
-          this.status({ fill: 'blue', shape: 'dot', text: 'creating…' });
-          const agent = await agentNode.getAgent();
+          active.set(invocationId, label);
+          this.status({
+            fill: 'blue',
+            shape: 'dot',
+            text: statusText('creating', label, active.size),
+          });
 
           // The task body is composed upstream by moltnet-task-builder and
           // arrives on msg.payload (taskType, title, tags, input, references,
@@ -71,6 +80,8 @@ const init: NodeInitializer = (RED): void => {
               : {};
 
           if (!base.taskType) base.taskType = 'freeform';
+          label = describeTaskBody(base, label);
+          active.set(invocationId, label);
           // Runtime-profile config node: a routing gate set here (not in the
           // builder) since it pairs with which daemon claims the task. Only
           // fills the gap when msg.payload didn't already set allowedProfiles.
@@ -102,9 +113,11 @@ const init: NodeInitializer = (RED): void => {
           if (correlationId) base.correlationId = correlationId;
 
           const { teamId, ...createBody } = base;
-          const task = await agent.tasks.create(createBody as CreateTaskBody, {
-            teamId: teamId as string,
-          });
+          const task = await withAgent(agentNode, (agent) =>
+            agent.tasks.create(createBody as CreateTaskBody, {
+              teamId: teamId as string,
+            }),
+          );
 
           // Emit on a clone so fan-out wires don't share a mutated message.
           // The resolved correlationId is echoed onto msg.correlationId so
@@ -112,15 +125,21 @@ const init: NodeInitializer = (RED): void => {
           const out = RED.util.cloneMessage(msg);
           if (correlationId) out.correlationId = correlationId;
           out.payload = task;
+          active.delete(invocationId);
           this.status({
             fill: 'green',
             shape: 'dot',
-            text: `task ${task.id ?? 'created'}`,
+            text: statusText(`created ${shortId(task.id)}`, label, active.size),
           });
           send(out);
           done();
         } catch (err) {
-          this.status({ fill: 'red', shape: 'ring', text: 'error' });
+          active.delete(invocationId);
+          this.status({
+            fill: 'red',
+            shape: 'ring',
+            text: statusText('error', label, active.size),
+          });
           done(err instanceof Error ? err : new Error(String(err)));
         }
       };
@@ -147,6 +166,52 @@ function resolveCorrelationId(
     return msg.correlationId;
   }
   return generate ? randomUUID() : undefined;
+}
+
+function describeMessage(msg: NodeMessageInFlow): string {
+  if (typeof msg.reviewDimension === 'string' && msg.reviewDimension) {
+    return msg.reviewDimension;
+  }
+  const payload = msg.payload;
+  if (payload && typeof payload === 'object') {
+    const p = payload as Record<string, unknown>;
+    if (typeof p.dimension === 'string' && p.dimension) return p.dimension;
+    if (typeof p.title === 'string' && p.title) return p.title;
+  }
+  return 'task';
+}
+
+function describeTaskBody(
+  body: Record<string, unknown>,
+  fallback: string,
+): string {
+  if (fallback !== 'task') return fallback;
+  const input = body.input;
+  if (input && typeof input === 'object') {
+    const execution = (input as Record<string, unknown>).execution;
+    if (execution && typeof execution === 'object') {
+      const dimension = (execution as Record<string, unknown>).dimension;
+      if (typeof dimension === 'string' && dimension) return dimension;
+    }
+  }
+  return typeof body.title === 'string' && body.title ? body.title : fallback;
+}
+
+function statusText(
+  action: string,
+  label: string,
+  activeCount: number,
+): string {
+  const suffix = activeCount > 0 ? ` · ${activeCount} active` : '';
+  return `${action} · ${truncate(label, 34)}${suffix}`;
+}
+
+function shortId(id: unknown): string {
+  return typeof id === 'string' && id ? id.slice(0, 8) : 'task';
+}
+
+function truncate(value: string, max: number): string {
+  return value.length <= max ? value : `${value.slice(0, max - 1)}…`;
 }
 
 export default init;

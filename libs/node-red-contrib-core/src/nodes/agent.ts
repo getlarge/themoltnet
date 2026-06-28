@@ -29,6 +29,7 @@ export interface MoltnetAgentNode extends Node<MoltnetAgentCredentials> {
   /** Default diary context for tasks created via this agent. */
   diaryId?: string;
   getAgent(): Promise<Agent>;
+  resetAgent(): void;
 }
 
 const init: NodeInitializer = (RED): void => {
@@ -45,6 +46,9 @@ const init: NodeInitializer = (RED): void => {
     // Lazily connect once and reuse; the SDK's TokenManager refreshes the
     // OAuth2 token under the hood, so one Agent per config node is correct.
     let agentPromise: Promise<Agent> | null = null;
+    this.resetAgent = function resetAgent(): void {
+      agentPromise = null;
+    };
     this.getAgent = function getAgent(this: MoltnetAgentNode): Promise<Agent> {
       const clientSecret = this.credentials?.clientSecret;
       if (!this.clientId || !clientSecret) {

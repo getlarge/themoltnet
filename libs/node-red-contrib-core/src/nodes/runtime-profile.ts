@@ -1,6 +1,7 @@
 import type { Node, NodeDef, NodeInitializer } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { withAgent } from './agent-call.js';
 
 /**
  * `moltnet-runtime-profile` — a Node-RED **configuration node** that names one
@@ -64,9 +65,10 @@ const init: NodeInitializer = (RED): void => {
             res.json({ profiles: [], error: 'agent-not-deployed' });
             return;
           }
-          const agent = await agentNode.getAgent();
-          const { items } = await agent.runtimeProfiles.list(
-            agentNode.teamId ? { teamId: agentNode.teamId } : undefined,
+          const { items } = await withAgent(agentNode, (agent) =>
+            agent.runtimeProfiles.list(
+              agentNode.teamId ? { teamId: agentNode.teamId } : undefined,
+            ),
           );
           res.json({
             profiles: items.map((p) => ({

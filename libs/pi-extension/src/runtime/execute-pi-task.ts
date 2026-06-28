@@ -524,6 +524,7 @@ export async function executePiTask(
 
     await emit('info', {
       event: 'execute_start',
+      correlationId: task.correlationId ?? null,
       taskType: task.taskType,
       teamId: task.teamId,
       provider: opts.provider,
@@ -604,6 +605,7 @@ export async function executePiTask(
       // "what did the model actually see, section by section?".
       await emit('info', {
         event: 'prompt_assembled',
+        correlationId: task.correlationId ?? null,
         taskType: assembled.taskType,
         sections: assembled.trace,
       });
@@ -644,6 +646,7 @@ export async function executePiTask(
     if (injectedContext.injected.length > 0) {
       await emit('info', {
         event: 'context_injected',
+        correlationId: task.correlationId ?? null,
         count: injectedContext.injected.length,
         bindings: injectedContext.injected.map((r) => r.binding),
         slugs: injectedContext.injected.map((r) => r.slug),

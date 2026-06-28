@@ -19,17 +19,28 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const themePkgDir = resolve(pkgDir, '../node-red-theme');
 const userDir = resolve(pkgDir, '.node-red-dev');
 const port = process.env.PORT ?? '1880';
 
-// 1. Build the nodes (dist/nodes/*.{js,html})
+// 1. Build the theme and nodes.
+console.log('▸ building Node-RED theme…');
+execSync('pnpm exec vite build', { cwd: themePkgDir, stdio: 'inherit' });
+
 console.log('▸ building nodes…');
 execSync('pnpm exec vite build', { cwd: pkgDir, stdio: 'inherit' });
 
-// 2. Mark the userDir as CommonJS so Node-RED's generated settings.js loads
+const { moltnetEditorTheme } = await import(
+  pathToFileURL(resolve(themePkgDir, 'dist/index.js')).href
+);
+const editorTheme = moltnetEditorTheme({
+  title: 'MoltNet Flow Studio',
+});
+
+// 2. Mark the userDir as CommonJS so Node-RED's settings.js loads
 //    (this package is "type":"module", which would otherwise leak in).
 mkdirSync(userDir, { recursive: true });
 writeFileSync(
@@ -40,6 +51,10 @@ writeFileSync(
     2,
   ),
 );
+writeFileSync(
+  resolve(userDir, 'settings.js'),
+  `module.exports = ${JSON.stringify({ editorTheme }, null, 2)};\n`,
+);
 
 // 3. Link this package into the userDir so Node-RED discovers it
 const scope = resolve(userDir, 'node_modules', '@themoltnet');
@@ -48,6 +63,9 @@ mkdirSync(scope, { recursive: true });
 if (existsSync(link)) rmSync(link, { recursive: true, force: true });
 symlinkSync(pkgDir, link, 'dir');
 console.log(`▸ linked @themoltnet/node-red-contrib-core → ${userDir}`);
+console.log(
+  `▸ applied @themoltnet/node-red-theme from ${editorTheme.page.css}`,
+);
 
 // 4. Run Node-RED 5 (downloaded on first run via npx, then cached)
 console.log(`▸ starting Node-RED on http://localhost:${port} …`);

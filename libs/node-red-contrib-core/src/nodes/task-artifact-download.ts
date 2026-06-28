@@ -6,6 +6,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { withAgent } from './agent-call.js';
 import { bool, nonEmpty } from './query-utils.js';
 import {
   collectArtifactBody,
@@ -56,10 +57,13 @@ const init: NodeInitializer = (RED): void => {
           if (!cid) throw new Error('task-artifact-download: cid is required');
 
           this.status({ fill: 'blue', shape: 'dot', text: 'downloading…' });
-          const agent = await agentNode.getAgent();
-          const result = await agent.tasks.artifacts.download(
-            { taskId, attemptN, cid },
-            { teamId },
+          const result = await withAgent(agentNode, (agent) =>
+            agent.tasks.artifacts.download(
+              { taskId, attemptN, cid },
+              {
+                teamId,
+              },
+            ),
           );
           const body = await collectArtifactBody(
             result,

@@ -6,6 +6,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { withAgent } from './agent-call.js';
 import { bool, compact, nonEmpty, positiveInt } from './query-utils.js';
 import {
   payloadRecord,
@@ -47,11 +48,10 @@ const init: NodeInitializer = (RED): void => {
           );
 
           this.status({ fill: 'blue', shape: 'dot', text: 'loading…' });
-          const agent = await agentNode.getAgent();
           const query = buildQuery(def, msg);
-          const page = await agent.tasks.artifacts.listPage(taskId, query, {
-            teamId,
-          });
+          const page = await withAgent(agentNode, (agent) =>
+            agent.tasks.artifacts.listPage(taskId, query, { teamId }),
+          );
 
           const out = RED.util.cloneMessage(msg);
           out.payload = page.artifacts;

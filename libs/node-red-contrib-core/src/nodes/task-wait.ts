@@ -6,6 +6,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { withAgent } from './agent-call.js';
 import { buildTaskSnapshot, isTerminalTaskStatus } from './task-snapshot.js';
 
 /**
@@ -54,6 +55,7 @@ const init: NodeInitializer = (RED): void => {
         ? (def.timeoutSec ?? DEFAULT_TIMEOUT_SEC) * 1000
         : 0;
     const kindAllow = parseKinds(def.kinds);
+    const active = new Map<string, string>();
 
     // Track timers so a redeploy/close cancels any in-flight wait.
     const pending = new Set<ReturnType<typeof setTimeout>>();
@@ -63,6 +65,8 @@ const init: NodeInitializer = (RED): void => {
     });
 
     this.on('input', (msg: NodeMessageInFlow, send, done) => {
+      let taskIdForStatus: string | undefined;
+      let label = describeMessage(msg);
       const run = async (): Promise<void> => {
         try {
           if (!agentNode || typeof agentNode.getAgent !== 'function') {
@@ -72,43 +76,67 @@ const init: NodeInitializer = (RED): void => {
           if (!taskId) {
             throw new Error('task-wait: taskId is required');
           }
-          const agent = await agentNode.getAgent();
+          taskIdForStatus = taskId;
+          label = describeWait(taskId, msg, label);
+          active.set(taskId, label);
+          const correlationId = resolveCorrelationId(msg);
           const startedAt = Date.now();
           // Exclusive cursor: only messages with seq > afterSeq are new.
           let afterSeq: number | undefined;
           let polls = 0;
 
-          this.status({ fill: 'blue', shape: 'dot', text: 'waiting…' });
+          this.status({
+            fill: 'blue',
+            shape: 'dot',
+            text: statusText('waiting', label, active.size),
+          });
 
           for (;;) {
             if (def.tail) {
-              afterSeq = await drainMessages({
-                agent,
-                taskId,
-                afterSeq,
-                kindAllow,
-                emit: (m) => {
-                  // Clone the inbound msg per tail message so downstream
-                  // edits don't bleed across emissions.
-                  const tailMsg = RED.util.cloneMessage(msg);
-                  tailMsg.payload = m;
-                  tailMsg.taskId = taskId;
-                  send([tailMsg, null]);
-                },
-              });
+              afterSeq = await withAgent(agentNode, (agent) =>
+                drainMessages({
+                  agent,
+                  taskId,
+                  afterSeq,
+                  kindAllow,
+                  emit: (m) => {
+                    // Clone the inbound msg per tail message so downstream
+                    // edits don't bleed across emissions.
+                    const tailMsg = RED.util.cloneMessage(msg);
+                    tailMsg.payload = correlationId
+                      ? { ...m, correlationId }
+                      : m;
+                    tailMsg.taskId = taskId;
+                    if (correlationId) tailMsg.correlationId = correlationId;
+                    send([tailMsg, null]);
+                  },
+                }),
+              );
             }
 
             // Check terminal AFTER draining so trailing messages land first.
-            const task = await agent.tasks.get(taskId);
+            const task = await withAgent(agentNode, (agent) =>
+              agent.tasks.get(taskId),
+            );
             if (isTerminalTaskStatus(task.status)) {
-              const attempts = await agent.tasks.listAttempts(taskId);
+              const attempts = await withAgent(agentNode, (agent) =>
+                agent.tasks.listAttempts(taskId),
+              );
               const snapshot = buildTaskSnapshot(task, attempts);
               const resultMsg = RED.util.cloneMessage(msg);
-              resultMsg.payload = snapshot;
+              resultMsg.payload = correlationId
+                ? { ...snapshot, correlationId }
+                : snapshot;
+              if (correlationId) resultMsg.correlationId = correlationId;
+              active.delete(taskId);
               this.status({
                 fill: snapshot.accepted ? 'green' : 'red',
                 shape: 'dot',
-                text: `${snapshot.status}${snapshot.accepted ? ' ✓' : ''}`,
+                text: statusText(
+                  `${snapshot.status}${snapshot.accepted ? ' ok' : ''}`,
+                  label,
+                  active.size,
+                ),
               });
               send([null, resultMsg]);
               done();
@@ -126,12 +154,17 @@ const init: NodeInitializer = (RED): void => {
             this.status({
               fill: 'blue',
               shape: 'ring',
-              text: `${task.status} · ${polls}×`,
+              text: statusText(`${task.status} ${polls}x`, label, active.size),
             });
             await sleep(pollMs, pending);
           }
         } catch (err) {
-          this.status({ fill: 'red', shape: 'ring', text: 'error' });
+          if (taskIdForStatus) active.delete(taskIdForStatus);
+          this.status({
+            fill: 'red',
+            shape: 'ring',
+            text: statusText('error', label, active.size),
+          });
           done(err instanceof Error ? err : new Error(String(err)));
         }
       };
@@ -203,6 +236,64 @@ function resolveTaskId(
     if (typeof p.id === 'string' && p.id) return p.id;
   }
   return configured && configured.length > 0 ? configured : undefined;
+}
+
+function resolveCorrelationId(msg: NodeMessageInFlow): string | undefined {
+  if (typeof msg.correlationId === 'string' && msg.correlationId) {
+    return msg.correlationId;
+  }
+  const payload = msg.payload;
+  if (payload && typeof payload === 'object') {
+    const p = payload as { correlationId?: unknown };
+    if (typeof p.correlationId === 'string' && p.correlationId) {
+      return p.correlationId;
+    }
+  }
+  return undefined;
+}
+
+function describeMessage(msg: NodeMessageInFlow): string {
+  if (typeof msg.reviewDimension === 'string' && msg.reviewDimension) {
+    return msg.reviewDimension;
+  }
+  const payload = msg.payload;
+  if (payload && typeof payload === 'object') {
+    const p = payload as Record<string, unknown>;
+    if (typeof p.dimension === 'string' && p.dimension) return p.dimension;
+    if (typeof p.title === 'string' && p.title) return p.title;
+  }
+  return 'task';
+}
+
+function describeWait(
+  taskId: string,
+  msg: NodeMessageInFlow,
+  fallback: string,
+): string {
+  if (fallback !== 'task') return fallback;
+  const payload = msg.payload;
+  if (payload && typeof payload === 'object') {
+    const p = payload as Record<string, unknown>;
+    if (typeof p.title === 'string' && p.title) return p.title;
+  }
+  return shortId(taskId);
+}
+
+function statusText(
+  action: string,
+  label: string,
+  activeCount: number,
+): string {
+  const suffix = activeCount > 0 ? ` · ${activeCount} active` : '';
+  return `${action} · ${truncate(label, 34)}${suffix}`;
+}
+
+function shortId(id: string): string {
+  return id.slice(0, 8);
+}
+
+function truncate(value: string, max: number): string {
+  return value.length <= max ? value : `${value.slice(0, max - 1)}…`;
 }
 
 function sleep(

@@ -167,10 +167,23 @@ async function resolveWorkspaceFilePath(
   const resolved = path.isAbsolute(filePath)
     ? path.resolve(filePath)
     : path.resolve(cwd, filePath);
-  const [realCwd, realResolved] = await Promise.all([
-    realpath(cwd),
-    realpath(resolved),
-  ]);
+  const realCwd = await realpath(cwd);
+  let realResolved: string;
+  try {
+    realResolved = await realpath(resolved);
+  } catch (err) {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'code' in err &&
+      err.code === 'ENOENT'
+    ) {
+      throw new Error(
+        `task artifact input path does not exist: ${filePath}. Write the file before calling moltnet_upload_task_artifact.`,
+      );
+    }
+    throw err;
+  }
   const rel = path.relative(realCwd, realResolved);
   if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error(`task artifact path escapes workspace: ${filePath}`);

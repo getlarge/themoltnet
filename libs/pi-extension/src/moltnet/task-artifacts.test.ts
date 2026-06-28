@@ -179,6 +179,26 @@ describe('moltnet_upload_task_artifact', () => {
     }
   });
 
+  it('rejects missing workspace files with an actionable error', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
+    try {
+      const tool = findTool(
+        makeConfig({ cwd }),
+        'moltnet_upload_task_artifact',
+      );
+
+      await expect(
+        callTool(tool, {
+          filePath: 'missing.patch',
+          kind: 'patch',
+          title: 'missing.patch',
+        }),
+      ).rejects.toThrow(/input path does not exist/i);
+    } finally {
+      await rm(cwd, { force: true, recursive: true });
+    }
+  });
+
   it('rejects paths escaping the workspace', async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
     const outside = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-outside-'));
