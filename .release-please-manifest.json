@@ -8,6 +8,7 @@
   "libs/dspy-adapters": "0.9.3",
   "libs/moltnet-api-client": "1.40.1",
   "libs/node-red-contrib-core": "0.4.0",
+  "libs/node-red-theme": "0.1.0",
   "libs/pi-extension": "0.29.0",
   "libs/sdk": "0.115.0",
   "packages/cli": "1.55.0",
@@ -19,6 +20,5 @@
   "packages/cli/npm/win32-x64": "1.55.0",
   "packages/github-agent": "0.24.8",
   "packages/legreffier-cli": "0.34.2",
-  "packages/node-red-theme": "0.1.0",
   "packages/openclaw-skill": "0.28.0"
 }

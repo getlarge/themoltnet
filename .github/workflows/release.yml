@@ -60,8 +60,8 @@ jobs:
       pi-extension-tag-name: ${{ steps.release.outputs['libs/pi-extension--tag_name'] }}
       node-red-release-created: ${{ steps.release.outputs['libs/node-red-contrib-core--release_created'] }}
       node-red-tag-name: ${{ steps.release.outputs['libs/node-red-contrib-core--tag_name'] }}
-      node-red-theme-release-created: ${{ steps.release.outputs['packages/node-red-theme--release_created'] }}
-      node-red-theme-tag-name: ${{ steps.release.outputs['packages/node-red-theme--tag_name'] }}
+      node-red-theme-release-created: ${{ steps.release.outputs['libs/node-red-theme--release_created'] }}
+      node-red-theme-tag-name: ${{ steps.release.outputs['libs/node-red-theme--tag_name'] }}
       design-system-release-created: ${{ steps.release.outputs['libs/design-system--release_created'] }}
       design-system-tag-name: ${{ steps.release.outputs['libs/design-system--tag_name'] }}
       agent-daemon-release-created: ${{ steps.release.outputs['apps/agent-daemon--release_created'] }}

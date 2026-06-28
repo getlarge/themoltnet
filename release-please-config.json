@@ -71,6 +71,10 @@
       "component": "node-red-contrib-core",
       "release-type": "node"
     },
+    "libs/node-red-theme": {
+      "component": "node-red-theme",
+      "release-type": "node"
+    },
     "libs/pi-extension": {
       "component": "pi-extension",
       "release-type": "node"
@@ -127,10 +131,6 @@
     },
     "packages/legreffier-cli": {
       "component": "legreffier",
-      "release-type": "node"
-    },
-    "packages/node-red-theme": {
-      "component": "node-red-theme",
       "release-type": "node"
     },
     "packages/openclaw-skill": {

@@ -12,9 +12,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/getlarge/themoltnet.git",
-    "directory": "packages/node-red-theme"
+    "directory": "libs/node-red-theme"
   },
-  "homepage": "https://github.com/getlarge/themoltnet/tree/main/packages/node-red-theme#readme",
+  "homepage": "https://github.com/getlarge/themoltnet/tree/main/libs/node-red-theme#readme",
   "bugs": {
     "url": "https://github.com/getlarge/themoltnet/issues"
   },
