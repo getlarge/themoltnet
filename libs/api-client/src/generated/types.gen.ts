@@ -888,6 +888,11 @@ export type ListRuntimeSlotsQuery = {
   state?: 'active' | 'idle';
 };
 
+export type ListTaskArtifactsQuery = {
+  cursor?: string;
+  limit?: number;
+};
+
 export type ListTaskSchemasResponse = {
   items: Array<TaskTypeDescriptor>;
 };
@@ -1991,6 +1996,13 @@ export type Task = {
   proposedByHumanId: string | null;
   queuedAt: string;
   references: Array<{
+    artifact?: {
+      attemptN?: number;
+      cid: string;
+      contentType?: string;
+      kind?: string;
+      title?: string;
+    };
     external?: {
       commit_sha?: string;
       issue?: number;
@@ -2074,6 +2086,7 @@ export type TaskArtifactList = {
     teamId: string;
     title: string;
   }>;
+  nextCursor: string | null;
 };
 
 export type TaskArtifactTaskParams = {
@@ -2191,6 +2204,13 @@ export type TaskParams = {
 };
 
 export type TaskRef = {
+  artifact?: {
+    attemptN?: number;
+    cid: string;
+    contentType?: string;
+    kind?: string;
+    title?: string;
+  };
   external?: {
     commit_sha?: string;
     issue?: number;
@@ -9818,7 +9838,10 @@ export type ListTaskArtifactsData = {
   path: {
     taskId: string;
   };
-  query?: never;
+  query?: {
+    limit?: number;
+    cursor?: string;
+  };
   url: '/tasks/{taskId}/artifacts';
 };
 
@@ -10135,6 +10158,7 @@ export type ListTaskArtifactsResponses = {
       teamId: string;
       title: string;
     }>;
+    nextCursor: string | null;
   };
 };
 

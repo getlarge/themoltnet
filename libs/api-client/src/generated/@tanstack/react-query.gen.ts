@@ -3698,6 +3698,56 @@ export const listTaskArtifactsOptions = (
     queryKey: listTaskArtifactsQueryKey(options),
   });
 
+export const listTaskArtifactsInfiniteQueryKey = (
+  options: Options<ListTaskArtifactsData>,
+): QueryKey<Options<ListTaskArtifactsData>> =>
+  createQueryKey('listTaskArtifacts', options, true);
+
+/**
+ * List task artifact metadata for the current team.
+ */
+export const listTaskArtifactsInfiniteOptions = (
+  options: Options<ListTaskArtifactsData>,
+) =>
+  infiniteQueryOptions<
+    ListTaskArtifactsResponse,
+    ListTaskArtifactsError,
+    InfiniteData<ListTaskArtifactsResponse>,
+    QueryKey<Options<ListTaskArtifactsData>>,
+    | string
+    | Pick<
+        QueryKey<Options<ListTaskArtifactsData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<ListTaskArtifactsData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  cursor: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await listTaskArtifacts({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: listTaskArtifactsInfiniteQueryKey(options),
+    },
+  );
+
 /**
  * Upload immutable content-addressed artifact content for a task attempt.
  */

@@ -3728,6 +3728,44 @@ func (s *Server) decodeUploadRuntimeSessionRequest(r *http.Request) (
 	}
 }
 
+func (s *Server) decodeUploadTaskArtifactRequest(r *http.Request) (
+	req UploadTaskArtifactReq,
+	rawBody []byte,
+	close func() error,
+	rerr error,
+) {
+	var closers []func() error
+	close = func() error {
+		var merr error
+		// Close in reverse order, to match defer behavior.
+		for i := len(closers) - 1; i >= 0; i-- {
+			c := closers[i]
+			merr = errors.Join(merr, c())
+		}
+		return merr
+	}
+	defer func() {
+		if rerr != nil {
+			rerr = errors.Join(rerr, close())
+		}
+	}()
+	if _, ok := r.Header["Content-Type"]; !ok && r.ContentLength == 0 {
+		return req, rawBody, close, nil
+	}
+	ct, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil {
+		return req, rawBody, close, errors.Wrap(err, "parse media type")
+	}
+	switch {
+	case ct == "application/octet-stream":
+		reader := r.Body
+		request := UploadTaskArtifactReq{Data: reader}
+		return request, rawBody, close, nil
+	default:
+		return req, rawBody, close, validate.InvalidContentType(ct)
+	}
+}
+
 func (s *Server) decodeVerifyAgentSignatureRequest(r *http.Request) (
 	req *VerifyAgentSignatureReq,
 	rawBody []byte,

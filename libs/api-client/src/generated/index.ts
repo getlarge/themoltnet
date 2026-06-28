@@ -603,6 +603,7 @@ export type {
   ListTaskArtifactsData,
   ListTaskArtifactsError,
   ListTaskArtifactsErrors,
+  ListTaskArtifactsQuery,
   ListTaskArtifactsResponse,
   ListTaskArtifactsResponses,
   ListTaskAttemptsData,

@@ -325,6 +325,15 @@ func (UnimplementedHandler) DownloadRuntimeSession(ctx context.Context, params D
 	return r, ht.ErrNotImplemented
 }
 
+// DownloadTaskArtifact implements downloadTaskArtifact operation.
+//
+// Download immutable task artifact content by CID.
+//
+// GET /tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content
+func (UnimplementedHandler) DownloadTaskArtifact(ctx context.Context, params DownloadTaskArtifactParams) (r DownloadTaskArtifactRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // FailTask implements failTask operation.
 //
 // Mark an attempt as failed with error details.
@@ -787,6 +796,15 @@ func (UnimplementedHandler) ListSigningRequests(ctx context.Context, params List
 	return r, ht.ErrNotImplemented
 }
 
+// ListTaskArtifacts implements listTaskArtifacts operation.
+//
+// List task artifact metadata for the current team.
+//
+// GET /tasks/{taskId}/artifacts
+func (UnimplementedHandler) ListTaskArtifacts(ctx context.Context, params ListTaskArtifactsParams) (r ListTaskArtifactsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListTaskAttempts implements listTaskAttempts operation.
 //
 // List all attempts for a task.
@@ -1080,6 +1098,15 @@ func (UnimplementedHandler) UpdateTeamMemberRole(ctx context.Context, req *Updat
 //
 // PUT /runtime-sessions/{taskId}/{attemptN}/content
 func (UnimplementedHandler) UploadRuntimeSession(ctx context.Context, req UploadRuntimeSessionReq, params UploadRuntimeSessionParams) (r UploadRuntimeSessionRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UploadTaskArtifact implements uploadTaskArtifact operation.
+//
+// Upload immutable content-addressed artifact content for a task attempt.
+//
+// PUT /tasks/{taskId}/attempts/{attemptN}/artifacts
+func (UnimplementedHandler) UploadTaskArtifact(ctx context.Context, req UploadTaskArtifactReq, params UploadTaskArtifactParams) (r UploadTaskArtifactRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

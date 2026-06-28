@@ -3733,6 +3733,21 @@
         },
         "type": "object"
       },
+      "ListTaskArtifactsQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "cursor": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "limit": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "ListTaskSchemasResponse": {
         "properties": {
           "items": {
@@ -9084,6 +9099,38 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "artifact": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "attemptN": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "cid": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "contentType": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "kind": {
+                      "maxLength": 100,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "title": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "cid"
+                  ],
+                  "type": "object"
+                },
                 "external": {
                   "properties": {
                     "commit_sha": {
@@ -9577,10 +9624,22 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "artifacts"
+          "artifacts",
+          "nextCursor"
         ],
         "type": "object"
       },
@@ -10147,6 +10206,38 @@
       "TaskRef": {
         "additionalProperties": false,
         "properties": {
+          "artifact": {
+            "additionalProperties": false,
+            "properties": {
+              "attemptN": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "cid": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "contentType": {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "kind": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "title": {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "cid"
+            ],
+            "type": "object"
+          },
           "external": {
             "properties": {
               "commit_sha": {
@@ -31633,6 +31724,25 @@
         "operationId": "listTaskArtifacts",
         "parameters": [
           {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "taskId",
             "required": true,
@@ -31757,10 +31867,22 @@
                         "type": "object"
                       },
                       "type": "array"
+                    },
+                    "nextCursor": {
+                      "anyOf": [
+                        {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
-                    "artifacts"
+                    "artifacts",
+                    "nextCursor"
                   ],
                   "type": "object"
                 }
