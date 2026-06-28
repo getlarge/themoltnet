@@ -60,6 +60,7 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitLegreffierStatus: 1000,
   rateLimitRegistration: 1000,
   rateLimitReadiness: 1000,
+  rateLimitTaskArtifactUpload: 1000,
   rateLimitGlobalRead: 1000,
   rateLimitPreResolveIp: 1000,
   rateLimitAllowList: ['/health', '/problems'],

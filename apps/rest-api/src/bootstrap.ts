@@ -574,6 +574,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitLegreffierStatus: config.security.RATE_LIMIT_LEGREFFIER_STATUS,
       rateLimitRegistration: config.security.RATE_LIMIT_REGISTRATION,
       rateLimitReadiness: config.security.RATE_LIMIT_READINESS,
+      rateLimitTaskArtifactUpload:
+        config.security.RATE_LIMIT_TASK_ARTIFACT_UPLOAD,
       rateLimitGlobalRead: config.security.RATE_LIMIT_GLOBAL_READ,
       rateLimitPreResolveIp: config.security.RATE_LIMIT_PRE_RESOLVE_IP,
       rateLimitAllowList: config.security.RATE_LIMIT_ALLOWLIST.split(',')

@@ -27,4 +27,5 @@ CREATE UNIQUE INDEX "task_artifacts_attempt_cid_idx" ON "task_artifacts" USING b
 CREATE INDEX "task_artifacts_team_cid_idx" ON "task_artifacts" USING btree ("team_id","cid");--> statement-breakpoint
 CREATE INDEX "task_artifacts_object_key_idx" ON "task_artifacts" USING btree ("object_key");--> statement-breakpoint
 CREATE INDEX "task_artifacts_task_attempt_idx" ON "task_artifacts" USING btree ("team_id","task_id","attempt_n");--> statement-breakpoint
+CREATE INDEX "task_artifacts_task_list_idx" ON "task_artifacts" USING btree ("team_id","task_id","attempt_n","created_at","id");--> statement-breakpoint
 CREATE INDEX "task_artifacts_expires_idx" ON "task_artifacts" USING btree ("expires_at") WHERE expires_at IS NOT NULL;

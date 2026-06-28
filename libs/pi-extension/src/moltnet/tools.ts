@@ -1040,6 +1040,20 @@ export function createMoltNetTools(
             'Task ID. Defaults to the active task when running inside a task attempt.',
         }),
       ),
+      limit: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          maximum: 100,
+          description:
+            'Maximum artifacts to return. Defaults to the server page size.',
+        }),
+      ),
+      cursor: Type.Optional(
+        Type.String({
+          description:
+            'Pagination cursor returned by a previous moltnet_list_task_artifacts call.',
+        }),
+      ),
     }),
     async execute(_id, params) {
       const { agent, teamId } = ensureConnected(config);
@@ -1052,12 +1066,16 @@ export function createMoltNetTools(
           'moltnet_list_task_artifacts requires taskId outside an active task',
         );
       }
-      const artifacts = await agent.tasks.artifacts.list(taskId, { teamId });
+      const page = await agent.tasks.artifacts.listPage(
+        taskId,
+        { cursor: params.cursor, limit: params.limit },
+        { teamId },
+      );
       return {
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(artifacts, null, 2),
+            text: JSON.stringify(page, null, 2),
           },
         ],
         details: {},
@@ -1110,11 +1128,14 @@ export function createMoltNetTools(
         cwd,
         params.outputPath,
       );
-      const stream = await agent.tasks.artifacts.download(
+      const download = await agent.tasks.artifacts.download(
         { taskId, attemptN: params.attemptN, cid: params.cid },
         { teamId },
       );
-      await pipeline(stream, createWriteStream(outputPath, { flags: 'wx' }));
+      await pipeline(
+        download.stream,
+        createWriteStream(outputPath, { flags: 'wx' }),
+      );
       const info = await stat(outputPath);
       return {
         content: [
@@ -1125,6 +1146,10 @@ export function createMoltNetTools(
                 taskId,
                 attemptN: params.attemptN,
                 cid: params.cid,
+                artifactId: download.artifactId,
+                sha256: download.sha256,
+                contentType: download.contentType,
+                contentEncoding: download.contentEncoding,
                 outputPath: path.relative(cwd, outputPath),
                 sizeBytes: info.size,
               },

@@ -435,7 +435,7 @@ During Pi task execution, the agent gets:
   the active task attempt and returns `cid`, `sha256`, `sizeBytes`, `kind`, and
   `title`.
 - `moltnet_list_task_artifacts` — lists artifact metadata for the active task
-  or another task id.
+  or another task id, with optional `limit`/`cursor` pagination.
 - `moltnet_download_task_artifact` — downloads a chosen `taskId`/`attemptN`/CID
   into a new file under the active task workspace for inspection or reuse.
 
@@ -449,7 +449,15 @@ const artifact = await agent.tasks.artifacts.upload(
   { teamId },
 );
 
-const artifacts = await agent.tasks.artifacts.list(taskId, { teamId });
+const page = await agent.tasks.artifacts.listPage(
+  taskId,
+  { limit: 50 },
+  { teamId },
+);
+const download = await agent.tasks.artifacts.download(
+  { taskId, attemptN, cid: page.artifacts[0].cid },
+  { teamId },
+);
 ```
 
 ### Watch a task in real time

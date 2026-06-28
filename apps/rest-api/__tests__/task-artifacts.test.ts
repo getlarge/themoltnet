@@ -69,12 +69,15 @@ describe('task artifact routes', () => {
     const cid = await computeBytesCid(body);
     mocks.taskArtifactRepository.createForAttempt.mockImplementation(
       async (input: Partial<TaskArtifact>) =>
-        mockArtifact({
-          ...input,
-          id: ARTIFACT_ID,
-          createdAt: new Date('2026-06-27T00:00:00.000Z'),
-          updatedAt: new Date('2026-06-27T00:00:00.000Z'),
-        }),
+        ({
+          artifact: mockArtifact({
+            ...input,
+            id: ARTIFACT_ID,
+            createdAt: new Date('2026-06-27T00:00:00.000Z'),
+            updatedAt: new Date('2026-06-27T00:00:00.000Z'),
+          }),
+          created: true,
+        }) as never,
     );
 
     const response = await app.inject({
@@ -143,6 +146,7 @@ describe('task artifact routes', () => {
   it('downloads task artifact content by CID', async () => {
     const artifact = mockArtifact({
       cid: 'bafkreidownload',
+      contentEncoding: 'br',
       contentType: 'text/plain',
       objectKey: 'teams/team/artifacts/bafkreidownload',
       sha256: 'b'.repeat(64),
@@ -171,7 +175,7 @@ describe('task artifact routes', () => {
       'text/plain',
     );
     expect(response.headers['x-moltnet-task-artifact-content-encoding']).toBe(
-      'gzip',
+      'br',
     );
     expect(response.body).toBe('hello');
   });

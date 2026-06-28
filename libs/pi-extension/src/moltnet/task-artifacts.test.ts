@@ -68,14 +68,24 @@ function makeConfig(input: {
             createdAt: '2026-06-27T10:00:00.000Z',
           };
         }),
-        list: vi.fn(async () => [
-          {
-            id: 'artifact-1',
-            cid: 'bafkreia',
-            title: 'result.txt',
-          },
-        ]),
-        download: vi.fn(async () => Readable.from(['artifact bytes'])),
+        listPage: vi.fn(async () => ({
+          artifacts: [
+            {
+              id: 'artifact-1',
+              cid: 'bafkreia',
+              title: 'result.txt',
+            },
+          ],
+          nextCursor: null,
+        })),
+        download: vi.fn(async () => ({
+          artifactId: 'artifact-1',
+          cid: 'bafkreia',
+          contentEncoding: null,
+          contentType: 'text/plain',
+          sha256: 'a'.repeat(64),
+          stream: Readable.from(['artifact bytes']),
+        })),
       },
     },
   };
@@ -217,6 +227,31 @@ describe('moltnet_upload_task_artifact', () => {
   });
 });
 
+describe('moltnet_list_task_artifacts', () => {
+  it('returns a paginated artifact page', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
+    try {
+      const tool = findTool(makeConfig({ cwd }), 'moltnet_list_task_artifacts');
+
+      const result = await callTool(tool, {
+        limit: 1,
+        cursor: 'cursor-1',
+      });
+      const item = result.content[0];
+      expect(item.type).toBe('text');
+      const page = JSON.parse('text' in item ? item.text : '') as {
+        artifacts: unknown[];
+        nextCursor: string | null;
+      };
+
+      expect(page.artifacts).toHaveLength(1);
+      expect(page.nextCursor).toBeNull();
+    } finally {
+      await rm(cwd, { force: true, recursive: true });
+    }
+  });
+});
+
 describe('moltnet_download_task_artifact', () => {
   it('downloads artifact content into a new workspace file', async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
@@ -237,6 +272,7 @@ describe('moltnet_download_task_artifact', () => {
         readFile(path.join(cwd, 'inputs/result.txt'), 'utf8'),
       ).resolves.toBe('artifact bytes');
       expect(JSON.stringify(result)).toContain('result.txt');
+      expect(JSON.stringify(result)).toContain('artifact-1');
     } finally {
       await rm(cwd, { force: true, recursive: true });
     }

@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream';
+
 import type { Client } from '@moltnet/api-client';
 import {
   acceptTransfer,
@@ -157,7 +159,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
   };
 });
 
-const mockClient = {} as Client;
+const mockClient = { request: vi.fn() } as unknown as Client;
 const mockTokenManager = {
   getToken: vi.fn().mockResolvedValue('test-token'),
   invalidate: vi.fn(),
@@ -660,6 +662,37 @@ describe('Agent facade', () => {
           query: { limit: 10, cursor: 'cursor-1' },
         }),
       );
+    });
+
+    it('tasks.artifacts.download returns stream metadata from response headers', async () => {
+      const stream = Readable.from(['artifact bytes']);
+      vi.mocked(mockClient.request).mockResolvedValueOnce({
+        data: stream,
+        error: undefined,
+        response: new Response(null, {
+          headers: {
+            'x-moltnet-task-artifact-id': 'artifact-1',
+            'x-moltnet-task-artifact-cid': 'bafkreia',
+            'x-moltnet-task-artifact-content-type': 'text/plain',
+            'x-moltnet-task-artifact-sha256': 'a'.repeat(64),
+          },
+        }),
+      } as never);
+
+      const agent = makeAgent();
+      const result = await agent.tasks.artifacts.download(
+        { taskId: 'task-1', attemptN: 1, cid: 'bafkreia' },
+        { teamId: 'team-1' },
+      );
+
+      expect(result).toMatchObject({
+        artifactId: 'artifact-1',
+        cid: 'bafkreia',
+        contentEncoding: null,
+        contentType: 'text/plain',
+        sha256: 'a'.repeat(64),
+      });
+      expect(result.stream).toBe(stream);
     });
   });
 

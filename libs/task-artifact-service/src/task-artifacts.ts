@@ -162,19 +162,7 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
         maxBytes: deps.taskArtifactMaxBytes,
       });
       const objectKey = buildArtifactObjectKey(input.teamId, staged.cid);
-      let objectUploaded = false;
       try {
-        const existingObject = await deps.objectStorage.headObject(objectKey);
-        if (!existingObject) {
-          await deps.objectStorage.putObject({
-            body: createReadStream(staged.path),
-            contentEncoding: input.contentEncoding ?? null,
-            contentLength: staged.sizeBytes,
-            contentType: input.contentType,
-            key: objectKey,
-          });
-          objectUploaded = true;
-        }
         const latestAttempt = await assertTaskAttemptUploadEligible(
           deps,
           input,
@@ -212,25 +200,36 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
           }
           return existing;
         }
-        return await deps.taskArtifactRepository.createForAttempt(
-          artifactInput,
-        );
+        const existingObject = await deps.objectStorage.headObject(objectKey);
+        if (!existingObject) {
+          await deps.objectStorage.putObject({
+            body: createReadStream(staged.path),
+            contentEncoding: input.contentEncoding ?? null,
+            contentLength: staged.sizeBytes,
+            contentType: input.contentType,
+            key: objectKey,
+          });
+        }
+        const result =
+          await deps.taskArtifactRepository.createForAttempt(artifactInput);
+        if (
+          !result.created &&
+          !artifactMetadataMatches(result.artifact, artifactInput)
+        ) {
+          throw new TaskArtifactServiceError(
+            409,
+            'Task artifact already exists for this CID with different metadata',
+          );
+        }
+        return result.artifact;
       } catch (err) {
         if (err instanceof TaskArtifactStorageNotConfiguredError) {
           throw new TaskArtifactServiceError(503, err.message);
         }
-        if (objectUploaded) {
-          try {
-            await deps.objectStorage.deleteObject(objectKey);
-          } catch (cleanupErr) {
-            deps.logger.warn(
-              { cleanupErr, objectKey },
-              'task artifact object cleanup failed after metadata write failure',
-            );
-          }
+        if (!(err instanceof TaskArtifactServiceError)) {
           deps.logger.warn(
             { objectKey, err },
-            'task artifact metadata write failed after object upload',
+            'task artifact upload failed after object storage interaction',
           );
         }
         throw err;

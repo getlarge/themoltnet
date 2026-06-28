@@ -60,11 +60,7 @@ const init: NodeInitializer = (RED): void => {
         let artifactBody: unknown;
         const artifact = filter ? reader.artifact(filter) : undefined;
         if (filter && artifact && typeof artifact.body === 'string') {
-          try {
-            artifactBody = JSON.parse(artifact.body) as unknown;
-          } catch {
-            artifactBody = undefined;
-          }
+          artifactBody = reader.artifactBody(filter);
         }
 
         const out = RED.util.cloneMessage(msg);

@@ -40,52 +40,60 @@ export interface ListTaskArtifactsResult {
   nextCursor: string | null;
 }
 
+export interface CreateTaskArtifactResult {
+  artifact: TaskArtifact;
+  created: boolean;
+}
+
 export function createTaskArtifactRepository(db: Database) {
+  async function findExistingForAttempt(
+    input: Pick<
+      CreateTaskArtifactInput,
+      'teamId' | 'taskId' | 'attemptN' | 'cid'
+    >,
+  ): Promise<TaskArtifact | null> {
+    const [row] = await getExecutor(db)
+      .select()
+      .from(taskArtifacts)
+      .where(
+        and(
+          eq(taskArtifacts.teamId, input.teamId),
+          eq(taskArtifacts.taskId, input.taskId),
+          eq(taskArtifacts.attemptN, input.attemptN),
+          eq(taskArtifacts.cid, input.cid),
+        ),
+      )
+      .limit(1);
+    return row ?? null;
+  }
+
   return {
     async createForAttempt(
       input: CreateTaskArtifactInput,
-    ): Promise<TaskArtifact> {
+    ): Promise<CreateTaskArtifactResult> {
       const [inserted] = await getExecutor(db)
         .insert(taskArtifacts)
         .values(toTaskArtifactValues(input))
-        .onConflictDoUpdate({
+        .onConflictDoNothing({
           target: [
             taskArtifacts.teamId,
             taskArtifacts.taskId,
             taskArtifacts.attemptN,
             taskArtifacts.cid,
           ],
-          set: {
-            updatedAt: new Date(),
-          },
         })
         .returning();
-      if (!inserted) {
+      if (inserted) {
+        return { artifact: inserted, created: true };
+      }
+      const existing = await findExistingForAttempt(input);
+      if (!existing) {
         throw new Error('failed to insert task artifact');
       }
-      return inserted;
+      return { artifact: existing, created: false };
     },
 
-    async findExistingForAttempt(
-      input: Pick<
-        CreateTaskArtifactInput,
-        'teamId' | 'taskId' | 'attemptN' | 'cid'
-      >,
-    ): Promise<TaskArtifact | null> {
-      const [row] = await getExecutor(db)
-        .select()
-        .from(taskArtifacts)
-        .where(
-          and(
-            eq(taskArtifacts.teamId, input.teamId),
-            eq(taskArtifacts.taskId, input.taskId),
-            eq(taskArtifacts.attemptN, input.attemptN),
-            eq(taskArtifacts.cid, input.cid),
-          ),
-        )
-        .limit(1);
-      return row ?? null;
-    },
+    findExistingForAttempt,
 
     async findByCidForAttempt(input: {
       teamId: string;
@@ -111,6 +119,7 @@ export function createTaskArtifactRepository(db: Database) {
     async listForTask(
       input: ListTaskArtifactsInput,
     ): Promise<ListTaskArtifactsResult> {
+      const createdAtCursorKey = sql`date_trunc('milliseconds', ${taskArtifacts.createdAt})`;
       const rows = await getExecutor(db)
         .select()
         .from(taskArtifacts)
@@ -123,11 +132,11 @@ export function createTaskArtifactRepository(db: Database) {
                   sql`${taskArtifacts.attemptN} > ${input.cursor.attemptN}`,
                   and(
                     eq(taskArtifacts.attemptN, input.cursor.attemptN),
-                    sql`${taskArtifacts.createdAt} > ${input.cursor.createdAt}`,
+                    sql`${createdAtCursorKey} > ${input.cursor.createdAt}`,
                   ),
                   and(
                     eq(taskArtifacts.attemptN, input.cursor.attemptN),
-                    eq(taskArtifacts.createdAt, input.cursor.createdAt),
+                    sql`${createdAtCursorKey} = ${input.cursor.createdAt}`,
                     sql`${taskArtifacts.id} > ${input.cursor.id}`,
                   ),
                 )
@@ -136,7 +145,7 @@ export function createTaskArtifactRepository(db: Database) {
         )
         .orderBy(
           asc(taskArtifacts.attemptN),
-          asc(taskArtifacts.createdAt),
+          asc(createdAtCursorKey),
           asc(taskArtifacts.id),
         )
         .limit(input.limit + 1);

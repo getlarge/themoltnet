@@ -665,7 +665,7 @@ export interface TaskArtifactsNamespace {
   download(
     path: DownloadTaskArtifactData['path'],
     options: TaskRequestOptions,
-  ): Promise<TaskArtifactDownloadStream>;
+  ): Promise<TaskArtifactDownload>;
 }
 
 export type TaskArtifactUploadBody =
@@ -676,7 +676,14 @@ export type TaskArtifactUploadBody =
   | Uint8Array
   | string;
 
-export type TaskArtifactDownloadStream = AsyncIterable<Uint8Array>;
+export interface TaskArtifactDownload {
+  artifactId: string | null;
+  cid: string | null;
+  contentEncoding: string | null;
+  contentType: string | null;
+  sha256: string | null;
+  stream: AsyncIterable<Uint8Array>;
+}
 
 export interface RuntimeSlotsNamespace {
   begin(

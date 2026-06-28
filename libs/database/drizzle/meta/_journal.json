@@ -203,13 +203,6 @@
       "when": 1782588427241,
       "tag": "0028_fat_northstar",
       "breakpoints": true
-    },
-    {
-      "idx": 29,
-      "version": "7",
-      "when": 1782627992354,
-      "tag": "0029_task_artifact_list_index",
-      "breakpoints": true
     }
   ],
   "version": "7"

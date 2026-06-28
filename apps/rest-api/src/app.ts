@@ -115,6 +115,8 @@ export interface SecurityOptions {
   rateLimitRegistration: number;
   /** Max requests per minute for readiness probes (default: 12) */
   rateLimitReadiness: number;
+  /** Max requests per minute for task artifact uploads (default: 20) */
+  rateLimitTaskArtifactUpload: number;
   /** Shared per-identity budget for authenticated GET reads (default: 150). */
   rateLimitGlobalRead: number;
   /**
@@ -338,6 +340,7 @@ export async function registerApiRoutes(
     legreffierStatusLimit: options.security.rateLimitLegreffierStatus,
     registrationLimit: options.security.rateLimitRegistration,
     readinessLimit: options.security.rateLimitReadiness,
+    taskArtifactUploadLimit: options.security.rateLimitTaskArtifactUpload,
     readLimit: options.security.rateLimitGlobalRead,
     redis: options.rateLimitRedis,
     allowList: options.security.rateLimitAllowList,

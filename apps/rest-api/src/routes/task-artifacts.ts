@@ -44,10 +44,13 @@ function authSubject(request: {
   };
 }
 
-function toArtifactProblem(error: TaskArtifactServiceError) {
+function toArtifactProblem(
+  error: TaskArtifactServiceError,
+  field: 'body' | 'query' = 'body',
+) {
   if (error.statusCode === 400) {
     return createValidationProblem(
-      [{ field: 'body', message: error.message }],
+      [{ field, message: error.message }],
       error.message,
     );
   }
@@ -99,6 +102,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     {
       config: {
         ...deferInaccessibleTeamAuthorization,
+        rateLimit: fastify.rateLimitConfig.taskArtifactUpload,
         swaggerTransform: ({ schema, url }) => ({
           schema: {
             ...schema,
@@ -203,7 +207,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         };
       } catch (error) {
         if (error instanceof TaskArtifactServiceError) {
-          throw toArtifactProblem(error);
+          throw toArtifactProblem(error, 'query');
         }
         throw error;
       }
@@ -244,7 +248,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { identityId, subjectNs } = authSubject(request);
       try {
-        const { artifact, object, stream } = await taskArtifacts.download({
+        const { artifact, stream } = await taskArtifacts.download({
           attemptN: request.params.attemptN,
           cid: request.params.cid,
           identityId,
@@ -256,13 +260,10 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
           .header('x-moltnet-task-artifact-id', artifact.id)
           .header('x-moltnet-task-artifact-cid', artifact.cid)
           .header('x-moltnet-task-artifact-sha256', artifact.sha256)
-          .header(
-            'x-moltnet-task-artifact-content-type',
-            object.contentType ?? artifact.contentType,
-          )
+          .header('x-moltnet-task-artifact-content-type', artifact.contentType)
           .header(
             'x-moltnet-task-artifact-content-encoding',
-            object.contentEncoding ?? artifact.contentEncoding ?? '',
+            artifact.contentEncoding ?? '',
           )
           .type('application/octet-stream')
           .send(stream as never);

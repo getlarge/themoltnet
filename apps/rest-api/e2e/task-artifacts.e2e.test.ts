@@ -225,6 +225,102 @@ describe('Task artifacts API', () => {
     expect(upload.error).toBeDefined();
   });
 
+  it('handles duplicate CID uploads idempotently and rejects metadata conflicts', async () => {
+    const { attemptN, taskId } = await createClaimedTask(
+      'task artifact duplicate CID handling',
+    );
+    const content = 'same bytes';
+    const expectedCid = await computeBytesCid(
+      new TextEncoder().encode(content),
+    );
+    const uploadOptions = {
+      client,
+      auth: () => teammate.accessToken,
+      headers: {
+        'content-type': 'application/octet-stream',
+        'x-moltnet-team-id': teamId,
+      },
+      path: { attemptN, taskId },
+    };
+
+    const first = await uploadTaskArtifact({
+      ...uploadOptions,
+      body: new Blob([content], { type: 'application/octet-stream' }),
+      query: { contentType: 'text/plain', kind: 'text', title: 'same' },
+    });
+    expect(first.response.status).toBe(200);
+    expect(first.data?.cid).toBe(expectedCid);
+
+    const duplicate = await uploadTaskArtifact({
+      ...uploadOptions,
+      body: new Blob([content], { type: 'application/octet-stream' }),
+      query: { contentType: 'text/plain', kind: 'text', title: 'same' },
+    });
+    expect(duplicate.response.status).toBe(200);
+    expect(duplicate.data?.id).toBe(first.data?.id);
+
+    const conflict = await uploadTaskArtifact({
+      ...uploadOptions,
+      body: new Blob([content], { type: 'application/octet-stream' }),
+      query: { contentType: 'text/plain', kind: 'log', title: 'same' },
+    });
+    expect(conflict.response.status).toBe(409);
+  });
+
+  it('paginates task artifact metadata without duplicates or skips', async () => {
+    const { attemptN, taskId } = await createClaimedTask(
+      'task artifact pagination',
+    );
+    const cids: string[] = [];
+    for (const name of ['a', 'b', 'c']) {
+      const content = `page-${name}`;
+      const expectedCid = await computeBytesCid(
+        new TextEncoder().encode(content),
+      );
+      const upload = await uploadTaskArtifact({
+        client,
+        auth: () => teammate.accessToken,
+        body: new Blob([content], { type: 'application/octet-stream' }),
+        headers: {
+          'content-type': 'application/octet-stream',
+          'x-moltnet-team-id': teamId,
+        },
+        path: { attemptN, taskId },
+        query: { contentType: 'text/plain', kind: 'text', title: name },
+      });
+      expect(upload.response.status).toBe(200);
+      cids.push(expectedCid);
+    }
+
+    const firstPage = await listTaskArtifacts({
+      client,
+      auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': teamId },
+      path: { taskId },
+      query: { limit: 2 },
+    });
+    expect(firstPage.response.status).toBe(200);
+    expect(firstPage.data?.artifacts).toHaveLength(2);
+    expect(firstPage.data?.nextCursor).toBeTruthy();
+
+    const secondPage = await listTaskArtifacts({
+      client,
+      auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': teamId },
+      path: { taskId },
+      query: { cursor: firstPage.data!.nextCursor!, limit: 2 },
+    });
+    expect(secondPage.response.status).toBe(200);
+    expect(secondPage.data?.artifacts).toHaveLength(1);
+    expect(secondPage.data?.nextCursor).toBeNull();
+    const returnedCids = [
+      ...firstPage.data!.artifacts.map((artifact) => artifact.cid),
+      ...secondPage.data!.artifacts.map((artifact) => artifact.cid),
+    ];
+    expect(new Set(returnedCids)).toEqual(new Set(cids));
+    expect(returnedCids).toHaveLength(cids.length);
+  });
+
   it('rejects non-members reading another team task artifact', async () => {
     const { attemptN, taskId } = await createClaimedTask(
       'task artifact outsider denial',

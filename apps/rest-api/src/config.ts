@@ -155,6 +155,7 @@ export const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_LEGREFFIER_STATUS: Type.Number({ default: 120 }),
   RATE_LIMIT_REGISTRATION: Type.Number({ default: 5 }),
   RATE_LIMIT_READINESS: Type.Number({ default: 12 }),
+  RATE_LIMIT_TASK_ARTIFACT_UPLOAD: Type.Number({ default: 20 }),
   // Shared per-identity budget for authenticated GET reads, kept separate from
   // and more generous than RATE_LIMIT_GLOBAL_AUTH (mutations) so read bursts
   // (console board/poll/search fanout) cannot starve writes. Sized from observed

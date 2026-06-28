@@ -72,6 +72,20 @@ describe('moltnet-task-reader', () => {
     expect(result.artifactBody).toEqual({ n: 3 });
   });
 
+  it('errors when the selected artifact body is invalid JSON', async () => {
+    const { red, node } = setup({ role: 'context', artifactKind: 'patch' });
+
+    await expect(
+      red.input(node, {
+        payload: snapshot({
+          summary: 's',
+          artifacts: [{ kind: 'patch', title: 'x', body: '{bad json' }],
+        }),
+      } as Record<string, unknown>),
+    ).rejects.toBeTruthy();
+    expect(node.statuses.at(-1)).toMatchObject({ fill: 'red', shape: 'ring' });
+  });
+
   it('emits an artifactRef when the selected artifact has a CID', async () => {
     const { red, node } = setup({ role: 'context', artifactKind: 'report' });
     const { outputs } = await red.input(node, {

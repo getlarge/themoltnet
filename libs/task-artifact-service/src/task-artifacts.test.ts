@@ -67,7 +67,9 @@ function createDeps() {
     },
     taskArtifactMaxBytes: 1024 * 1024,
     taskArtifactRepository: {
-      createForAttempt: vi.fn().mockResolvedValue(mockArtifact()),
+      createForAttempt: vi
+        .fn()
+        .mockResolvedValue({ artifact: mockArtifact(), created: true }),
       findExistingForAttempt: vi.fn().mockResolvedValue(null),
       findByCidForAttempt: vi.fn().mockResolvedValue(null),
       listForTask: vi.fn().mockResolvedValue({
@@ -242,7 +244,7 @@ describe('createTaskArtifactService', () => {
         title: 'result',
       }),
     ).rejects.toMatchObject({ statusCode: 409 });
-    expect(storage.deleteObject).toHaveBeenCalledOnce();
+    expect(storage.deleteObject).not.toHaveBeenCalled();
     expect(deps.taskArtifactRepository.createForAttempt).not.toHaveBeenCalled();
   });
 
@@ -313,6 +315,67 @@ describe('createTaskArtifactService', () => {
         title: 'result',
       }),
     ).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('returns a row created by a concurrent duplicate upload when metadata matches', async () => {
+    const body = Buffer.from('{"ok":true}');
+    const expectedCid = await computeBytesCid(body);
+    const existing = mockArtifact({
+      cid: expectedCid,
+      objectKey: `teams/${TEAM_ID}/artifacts/${expectedCid}`,
+      sha256:
+        '4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93',
+      sizeBytes: body.byteLength,
+    });
+    vi.mocked(deps.taskArtifactRepository.createForAttempt).mockResolvedValue({
+      artifact: existing,
+      created: false,
+    });
+
+    const artifact = await subject.upload({
+      attemptN: 1,
+      body: Readable.from([body]),
+      contentType: 'application/json',
+      identityId: AGENT_ID,
+      kind: 'json',
+      subjectNs: KetoNamespace.Agent,
+      taskId: TASK_ID,
+      teamId: TEAM_ID,
+      title: 'result',
+    });
+
+    expect(artifact).toBe(existing);
+  });
+
+  it('rejects a row created by a concurrent duplicate upload when metadata differs', async () => {
+    const body = Buffer.from('{"ok":true}');
+    const expectedCid = await computeBytesCid(body);
+    vi.mocked(deps.taskArtifactRepository.createForAttempt).mockResolvedValue({
+      artifact: mockArtifact({
+        cid: expectedCid,
+        kind: 'log',
+        objectKey: `teams/${TEAM_ID}/artifacts/${expectedCid}`,
+        sha256:
+          '4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93',
+        sizeBytes: body.byteLength,
+      }),
+      created: false,
+    });
+
+    await expect(
+      subject.upload({
+        attemptN: 1,
+        body: Readable.from([body]),
+        contentType: 'application/json',
+        identityId: AGENT_ID,
+        kind: 'json',
+        subjectNs: KetoNamespace.Agent,
+        taskId: TASK_ID,
+        teamId: TEAM_ID,
+        title: 'result',
+      }),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    expect(storage.deleteObject).not.toHaveBeenCalled();
   });
 
   it('downloads artifact content by CID for a visible attempt', async () => {

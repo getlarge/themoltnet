@@ -171,6 +171,7 @@ services:
       RATE_LIMIT_EMBEDDING: '10000'
       RATE_LIMIT_VOUCH: '10000'
       RATE_LIMIT_SIGNING: '10000'
+      RATE_LIMIT_TASK_ARTIFACT_UPLOAD: '10000'
       RATE_LIMIT_RECOVERY: '10000'
       # Deliberately LOW so the rate-limit e2e suite can trip a real 429 with a
       # handful of requests. /crypto/verify (the only consumer of this bucket) is

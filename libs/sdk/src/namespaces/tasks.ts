@@ -99,20 +99,37 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
       },
 
       async download(path, options) {
-        const stream = unwrapResult(
-          await client.request({
-            auth,
-            headers: requiredTeamHeaders(options),
-            method: 'GET',
-            parseAs: 'stream',
-            path,
-            security: [{ scheme: 'bearer', type: 'http' }],
-            url: '/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content',
-          }),
-        );
-        if (stream instanceof Readable) return stream;
-        if (stream instanceof ReadableStream) {
-          return Readable.fromWeb(stream as NodeReadableStream);
+        const result = await client.request({
+          auth,
+          headers: requiredTeamHeaders(options),
+          method: 'GET',
+          parseAs: 'stream',
+          path,
+          security: [{ scheme: 'bearer', type: 'http' }],
+          url: '/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content',
+        });
+        const stream = unwrapResult(result);
+        const normalizedStream =
+          stream instanceof Readable
+            ? stream
+            : stream instanceof ReadableStream
+              ? Readable.fromWeb(stream as NodeReadableStream)
+              : null;
+        if (normalizedStream) {
+          return {
+            artifactId: header(result.response, 'x-moltnet-task-artifact-id'),
+            cid: header(result.response, 'x-moltnet-task-artifact-cid'),
+            contentEncoding: header(
+              result.response,
+              'x-moltnet-task-artifact-content-encoding',
+            ),
+            contentType: header(
+              result.response,
+              'x-moltnet-task-artifact-content-type',
+            ),
+            sha256: header(result.response, 'x-moltnet-task-artifact-sha256'),
+            stream: normalizedStream,
+          };
         }
         throw new MoltNetError(
           'Unexpected task artifact download response stream',
@@ -270,4 +287,9 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
       );
     },
   };
+}
+
+function header(response: Response | undefined, name: string): string | null {
+  const value = response?.headers.get(name) ?? null;
+  return value === '' ? null : value;
 }
