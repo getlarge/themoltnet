@@ -8,7 +8,9 @@
       agent: { value: '', type: 'moltnet-agent', required: true },
       taskId: { value: '' },
       teamId: { value: '' },
+      allowMsgTeamOverride: { value: false },
       attemptN: { value: '', validate: RED.validators.number() },
+      maxBytes: { value: 26214400, validate: RED.validators.number() },
       kind: { value: 'output' },
       title: { value: '' },
       contentType: { value: 'application/octet-stream' },
@@ -45,6 +47,17 @@
     <input type="text" id="node-input-teamId" placeholder="agent teamId" />
   </div>
   <div class="form-row">
+    <label for="node-input-allowMsgTeamOverride"
+      ><i class="fa fa-random"></i> Team override</label
+    >
+    <input
+      type="checkbox"
+      id="node-input-allowMsgTeamOverride"
+      style="display: inline-block; width: auto; vertical-align: top"
+    />
+    <span>Allow <code>msg.teamId</code></span>
+  </div>
+  <div class="form-row">
     <label for="node-input-attemptN"
       ><i class="fa fa-history"></i> Attempt</label
     >
@@ -62,6 +75,10 @@
   <div class="form-row">
     <label for="node-input-title"><i class="fa fa-font"></i> Title</label>
     <input type="text" id="node-input-title" placeholder="summary.md" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-maxBytes"><i class="fa fa-database"></i> Max</label>
+    <input type="number" id="node-input-maxBytes" />
   </div>
   <div class="form-row">
     <label for="node-input-contentType"
@@ -83,15 +100,16 @@
 
 <script type="text/html" data-help-name="moltnet-task-artifact-upload">
   <p>
-    Uploads bytes as an artifact for a task attempt. Task id, team id, attempt,
-    kind, title, content type, and content encoding can be supplied by the node
-    fields or matching fields on <code>msg.payload</code>.
+    Uploads bytes as an artifact for a task attempt. Task id, attempt, kind,
+    title, content type, and content encoding can be supplied by the node fields
+    or matching fields on <code>msg.payload</code>. Team ID is taken from this
+    node or the configured agent unless Team override is enabled.
   </p>
   <p>
     The body is read from <code>msg.payload</code> when it is a string, Buffer,
     Uint8Array, or ArrayBuffer. Object payloads may provide
     <code>content</code>, <code>body</code>, or base64
-    <code>contentBase64</code>.
+    <code>contentBase64</code>. The local byte limit defaults to 25 MiB.
   </p>
   <p>
     Emits the artifact metadata on <code>msg.payload</code> and

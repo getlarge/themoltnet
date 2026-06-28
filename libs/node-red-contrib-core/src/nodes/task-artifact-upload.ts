@@ -6,9 +6,11 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { bool } from './query-utils.js';
 import {
   requireAttemptContext,
   resolveField,
+  resolveMaxBytes,
   resolveUploadBody,
 } from './task-artifact-utils.js';
 
@@ -16,7 +18,9 @@ interface TaskArtifactUploadDef extends NodeDef {
   agent?: string;
   taskId?: string;
   teamId?: string;
+  allowMsgTeamOverride?: boolean | string;
   attemptN?: number | string;
+  maxBytes?: number | string;
   kind?: string;
   title?: string;
   contentType?: string;
@@ -53,8 +57,10 @@ const init: NodeInitializer = (RED): void => {
             def.teamId,
             def.attemptN,
             agentNode,
+            bool(def.allowMsgTeamOverride) ?? false,
           );
-          const body = resolveUploadBody(msg);
+          const maxBytes = resolveMaxBytes(def.maxBytes);
+          const body = resolveUploadBody(msg, maxBytes);
           const query = buildUploadQuery(def, msg);
 
           this.status({ fill: 'blue', shape: 'dot', text: 'uploading…' });
@@ -66,7 +72,10 @@ const init: NodeInitializer = (RED): void => {
             { teamId },
           );
 
-          const out = RED.util.cloneMessage(msg);
+          const out = RED.util.cloneMessage({
+            ...msg,
+            payload: undefined,
+          }) as NodeMessageInFlow & Record<string, unknown>;
           out.payload = artifact;
           out.taskId = taskId;
           out.artifact = artifact;

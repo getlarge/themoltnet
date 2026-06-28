@@ -451,17 +451,88 @@ describe('moltnet-task-artifacts-list', () => {
         options: { teamId: 'team-1' },
       },
     ]);
-    expect(outputs[0].payload).toEqual({
-      artifacts: [{ cid: 'bafy-output', kind: 'output' }],
-      nextCursor: 'cursor-2',
-    });
+    expect(outputs[0].payload).toEqual([
+      { cid: 'bafy-output', kind: 'output' },
+    ]);
     expect(outputs[0].artifacts).toEqual({
       taskId: 'task-1',
       teamId: 'team-1',
       query: { limit: 5, cursor: 'cursor-1' },
       count: 1,
       nextCursor: 'cursor-2',
+      page: {
+        artifacts: [{ cid: 'bafy-output', kind: 'output' }],
+        nextCursor: 'cursor-2',
+      },
     });
+  });
+
+  it('emits an empty list with pagination metadata', async () => {
+    const agent = {
+      tasks: {
+        artifacts: {
+          listPage: () =>
+            Promise.resolve({ artifacts: [], nextCursor: undefined }),
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(taskArtifactsList);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-task-artifacts-list', 'n1', {
+      agent: 'a1',
+      taskId: 'task-1',
+    });
+
+    const { outputs } = await red.input(node, {});
+
+    expect(outputs[0].payload).toEqual([]);
+    expect(outputs[0].artifacts).toMatchObject({
+      count: 0,
+      nextCursor: undefined,
+    });
+  });
+
+  it('ignores msg team override unless explicitly enabled', async () => {
+    const seenOptions: Array<Record<string, unknown>> = [];
+    const agent = {
+      tasks: {
+        artifacts: {
+          listPage: (
+            _taskId: string,
+            _query: Record<string, unknown>,
+            options: Record<string, unknown>,
+          ) => {
+            seenOptions.push(options);
+            return Promise.resolve({ artifacts: [] });
+          },
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(taskArtifactsList);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-agent';
+    const locked = red.create('moltnet-task-artifacts-list', 'locked', {
+      agent: 'a1',
+      taskId: 'task-1',
+    });
+    const unlocked = red.create('moltnet-task-artifacts-list', 'unlocked', {
+      agent: 'a1',
+      taskId: 'task-1',
+      allowMsgTeamOverride: true,
+    });
+
+    await red.input(locked, { payload: { teamId: 'team-msg' } });
+    await red.input(unlocked, { payload: { teamId: 'team-msg' } });
+
+    expect(seenOptions).toEqual([
+      { teamId: 'team-agent' },
+      { teamId: 'team-msg' },
+    ]);
   });
 
   it('errors when task id is missing', async () => {
@@ -552,6 +623,79 @@ describe('moltnet-task-artifact-upload', () => {
     expect(outputs[0].artifact).toBe(outputs[0].payload);
   });
 
+  it('uploads Buffer payload content without requiring base64 wrapping', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const agent = {
+      tasks: {
+        artifacts: {
+          upload: (
+            ref: Record<string, unknown>,
+            body: Uint8Array,
+            query: Record<string, unknown>,
+            options: Record<string, unknown>,
+          ) => {
+            seen.push({
+              ref,
+              body: Buffer.from(body).toString('utf8'),
+              query,
+              options,
+            });
+            return Promise.resolve({ cid: 'bafy-buffer' });
+          },
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(taskArtifactUpload);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-task-artifact-upload', 'n1', {
+      agent: 'a1',
+      taskId: 'task-1',
+      attemptN: 1,
+      title: 'buffer.txt',
+    });
+
+    await red.input(node, { payload: Buffer.from('buffer-body') });
+
+    expect(seen).toEqual([
+      {
+        ref: { taskId: 'task-1', attemptN: 1 },
+        body: 'buffer-body',
+        query: {
+          kind: 'output',
+          title: 'buffer.txt',
+          contentType: 'application/octet-stream',
+          contentEncoding: undefined,
+        },
+        options: { teamId: 'team-1' },
+      },
+    ]);
+  });
+
+  it('rejects upload bodies over the local byte limit', async () => {
+    const red = new FakeRed();
+    red.load(
+      agentStub({
+        tasks: { artifacts: { upload: () => Promise.resolve({}) } },
+      }),
+    );
+    red.load(taskArtifactUpload);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-task-artifact-upload', 'n1', {
+      agent: 'a1',
+      taskId: 'task-1',
+      attemptN: 1,
+      maxBytes: 4,
+    });
+
+    await expect(
+      red.input(node, { payload: Buffer.from('too-large') }),
+    ).rejects.toThrow(/exceeds 4 bytes/);
+  });
+
   it('requires upload content', async () => {
     const red = new FakeRed();
     red.load(
@@ -629,6 +773,74 @@ describe('moltnet-task-artifact-download', () => {
       contentType: 'text/plain',
       contentEncoding: null,
     });
+  });
+
+  it('downloads from an artifactRef-shaped payload', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const agent = {
+      tasks: {
+        artifacts: {
+          download: (
+            ref: Record<string, unknown>,
+            options: Record<string, unknown>,
+          ) => {
+            seen.push({ ref, options });
+            return Promise.resolve({
+              artifactId: 'artifact-1',
+              stream: readableChunks(['ok']),
+            });
+          },
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(taskArtifactDownload);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-task-artifact-download', 'n1', {
+      agent: 'a1',
+    });
+
+    await red.input(node, {
+      payload: {
+        taskId: 'task-1',
+        artifact: { cid: 'bafy-artifact', attemptN: 7 },
+      },
+    });
+
+    expect(seen).toEqual([
+      {
+        ref: { taskId: 'task-1', attemptN: 7, cid: 'bafy-artifact' },
+        options: { teamId: 'team-1' },
+      },
+    ]);
+  });
+
+  it('rejects downloads over the local byte limit', async () => {
+    const red = new FakeRed();
+    red.load(
+      agentStub({
+        tasks: {
+          artifacts: {
+            download: () =>
+              Promise.resolve({ stream: readableChunks(['too-large']) }),
+          },
+        },
+      }),
+    );
+    red.load(taskArtifactDownload);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-task-artifact-download', 'n1', {
+      agent: 'a1',
+      taskId: 'task-1',
+      attemptN: 1,
+      cid: 'bafy',
+      maxBytes: 4,
+    });
+
+    await expect(red.input(node, {})).rejects.toThrow(/exceeds 4 bytes/);
   });
 
   it('requires cid', async () => {

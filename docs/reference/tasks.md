@@ -107,7 +107,9 @@ can use `moltnet task artifacts list|upload|download`; MCP clients can use
 `tasks_artifacts_download` (download returns base64 content because MCP tools
 carry JSON, not raw byte streams); Node-RED flows can use
 `moltnet-task-artifacts-list`, `moltnet-task-artifact-upload`, and
-`moltnet-task-artifact-download`.
+`moltnet-task-artifact-download`. Node-RED upload/download nodes enforce a
+local 25 MiB byte limit by default and require an explicit option before message
+payloads may override the configured team context.
 
 ### Create envelope
 

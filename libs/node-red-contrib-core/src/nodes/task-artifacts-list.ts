@@ -6,7 +6,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
-import { compact, nonEmpty, positiveInt } from './query-utils.js';
+import { bool, compact, nonEmpty, positiveInt } from './query-utils.js';
 import {
   payloadRecord,
   requireArtifactContext,
@@ -16,6 +16,7 @@ interface TaskArtifactsListDef extends NodeDef {
   agent?: string;
   taskId?: string;
   teamId?: string;
+  allowMsgTeamOverride?: boolean | string;
   limit?: number | string;
   cursor?: string;
 }
@@ -42,6 +43,7 @@ const init: NodeInitializer = (RED): void => {
             def.taskId,
             def.teamId,
             agentNode,
+            bool(def.allowMsgTeamOverride) ?? false,
           );
 
           this.status({ fill: 'blue', shape: 'dot', text: 'loading…' });
@@ -52,7 +54,7 @@ const init: NodeInitializer = (RED): void => {
           });
 
           const out = RED.util.cloneMessage(msg);
-          out.payload = page;
+          out.payload = page.artifacts;
           out.taskId = taskId;
           out.artifacts = {
             taskId,
@@ -60,6 +62,7 @@ const init: NodeInitializer = (RED): void => {
             query,
             count: page.artifacts.length,
             nextCursor: page.nextCursor,
+            page,
           };
           this.status({
             fill: 'green',

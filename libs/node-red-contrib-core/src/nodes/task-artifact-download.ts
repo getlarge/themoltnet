@@ -6,19 +6,22 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
-import { nonEmpty } from './query-utils.js';
+import { bool, nonEmpty } from './query-utils.js';
 import {
   collectArtifactBody,
   payloadRecord,
   recordField,
   requireAttemptContext,
+  resolveMaxBytes,
 } from './task-artifact-utils.js';
 
 interface TaskArtifactDownloadDef extends NodeDef {
   agent?: string;
   taskId?: string;
   teamId?: string;
+  allowMsgTeamOverride?: boolean | string;
   attemptN?: number | string;
+  maxBytes?: number | string;
   cid?: string;
 }
 
@@ -47,6 +50,7 @@ const init: NodeInitializer = (RED): void => {
             def.teamId,
             def.attemptN,
             agentNode,
+            bool(def.allowMsgTeamOverride) ?? false,
           );
           const cid = resolveCid(msg, def.cid);
           if (!cid) throw new Error('task-artifact-download: cid is required');
@@ -57,9 +61,15 @@ const init: NodeInitializer = (RED): void => {
             { taskId, attemptN, cid },
             { teamId },
           );
-          const body = await collectArtifactBody(result);
+          const body = await collectArtifactBody(
+            result,
+            resolveMaxBytes(def.maxBytes),
+          );
 
-          const out = RED.util.cloneMessage(msg);
+          const out = RED.util.cloneMessage({
+            ...msg,
+            payload: undefined,
+          }) as NodeMessageInFlow & Record<string, unknown>;
           out.payload = body;
           out.taskId = taskId;
           out.artifact = {

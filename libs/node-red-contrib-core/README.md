@@ -62,15 +62,18 @@ attempts, error, task }`. `state` is the accepted attempt's output artifact
 - **`moltnet-task-artifacts-list`** (palette: _task artifacts: list_) — lists a
   task's artifacts for the configured team. Reads task id from
   `msg.taskId`/`msg.payload.taskId`/`msg.payload.id` or the node field, supports
-  `limit`/`cursor`, and emits `{ artifacts, nextCursor }` on `msg.payload`.
+  `limit`/`cursor`, emits artifact rows on `msg.payload`, and places
+  pagination/query metadata on `msg.artifacts`.
 - **`moltnet-task-artifact-upload`** (palette: _task artifact: upload_) —
   uploads bytes for a task attempt. Reads bytes from `msg.payload` when it is a
   string/Buffer/Uint8Array/ArrayBuffer, or from object payload fields
-  `content`, `body`, or base64 `contentBase64`. Emits artifact metadata on
-  `msg.payload` and `msg.artifact`.
+  `content`, `body`, or base64 `contentBase64`. Team context is the configured
+  node/agent by default; message team overrides require an explicit checkbox.
+  Emits artifact metadata on `msg.payload` and `msg.artifact`.
 - **`moltnet-task-artifact-download`** (palette: _task artifact: download_) —
   downloads an artifact by task id, attempt number, and CID. Emits the artifact
-  bytes as a Buffer on `msg.payload` and metadata on `msg.artifact`.
+  bytes as a Buffer on `msg.payload` and metadata on `msg.artifact`. Upload and
+  download nodes enforce a local 25 MiB byte limit by default.
 - **`moltnet-workflow-status`** (palette: _workflow: status_) — reads the tasks of
   one workflow run (by `correlationId`) and emits a table-shaped `msg.payload`
   (array of `{ taskId, type, title, status, queuedAt, completedAt }`) plus
