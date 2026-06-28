@@ -129,6 +129,10 @@
       "component": "legreffier",
       "release-type": "node"
     },
+    "packages/node-red-theme": {
+      "component": "node-red-theme",
+      "release-type": "node"
+    },
     "packages/openclaw-skill": {
       "component": "openclaw-skill",
       "release-type": "simple"

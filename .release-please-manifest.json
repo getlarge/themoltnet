@@ -19,5 +19,6 @@
   "packages/cli/npm/win32-x64": "1.55.0",
   "packages/github-agent": "0.24.8",
   "packages/legreffier-cli": "0.34.2",
+  "packages/node-red-theme": "0.1.0",
   "packages/openclaw-skill": "0.28.0"
 }
