@@ -25,7 +25,6 @@
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     },
-    "./moltnet.css": "./src/moltnet-node-red-theme.css",
     "./package.json": "./package.json"
   },
   "publishConfig": {

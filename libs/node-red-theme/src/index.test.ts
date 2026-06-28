@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-
 import { lightColors } from '@themoltnet/design-system/tokens';
 import { describe, expect, it } from 'vitest';
 
@@ -35,10 +33,5 @@ describe('moltnetEditorTheme', () => {
   it('uses design system token values in the generated theme css', async () => {
     expect(moltnetNodeRedThemeCss).toContain(lightColors.primary.DEFAULT);
     expect(moltnetNodeRedThemeCss).toContain(lightColors.primary.hover);
-
-    const sourceCss = await readFile(moltnetNodeRedThemeCssPath, 'utf8');
-
-    expect(sourceCss).toContain(lightColors.primary.DEFAULT);
-    expect(sourceCss).toContain(lightColors.primary.hover);
   });
 });

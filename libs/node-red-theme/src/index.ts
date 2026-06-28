@@ -15,7 +15,7 @@ export interface MoltNetEditorTheme {
 }
 
 export const moltnetNodeRedThemeCssPath = fileURLToPath(
-  new URL('./moltnet-node-red-theme.css', import.meta.url),
+  new URL('../dist/moltnet-node-red-theme.css', import.meta.url),
 );
 
 export function moltnetEditorTheme(
