@@ -1,8 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import process from 'node:process';
 
 if (process.env.NX_DRY_RUN === 'true') {
-  console.log('Skipping Docker pre-version build during nx release dry-run.');
+  process.stdout.write(
+    'Skipping Docker pre-version build during nx release dry-run.\n',
+  );
   process.exit(0);
 }
 
@@ -23,8 +26,10 @@ const projects =
     .map((project) => project.trim())
     .filter(Boolean) ?? releaseDockerProjects;
 
-console.log(
-  `Building Docker release images for ${projects.join(', ')} before Nx retags them.`,
+process.stdout.write(
+  `Building Docker release images for ${projects.join(
+    ', ',
+  )} before Nx retags them.\n`,
 );
 
 execFileSync(

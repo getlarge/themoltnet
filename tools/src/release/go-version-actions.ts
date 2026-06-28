@@ -154,7 +154,11 @@ export function normalizeGoModuleVersion(version: string) {
 }
 
 function sleep(ms: number) {
-  return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : null;
+  return ms > 0
+    ? new Promise((resolve) => {
+        setTimeout(resolve, ms);
+      })
+    : null;
 }
 
 export function resolveGoProxyUrl(metadata: CurrentVersionResolverMetadata) {
