@@ -1248,6 +1248,10 @@ importers:
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   libs/blob-storage:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: 'catalog:'
+        version: 3.1075.0
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -1770,9 +1774,6 @@ importers:
 
   libs/runtime-session-service:
     dependencies:
-      '@aws-sdk/client-s3':
-        specifier: 'catalog:'
-        version: 3.1075.0
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../auth
@@ -1844,9 +1845,6 @@ importers:
 
   libs/task-artifact-service:
     dependencies:
-      '@aws-sdk/client-s3':
-        specifier: 'catalog:'
-        version: 3.1075.0
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../auth
