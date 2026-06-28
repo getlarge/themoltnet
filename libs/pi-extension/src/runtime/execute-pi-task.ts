@@ -15,7 +15,8 @@
  * `AgentRuntime`.
  */
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
+import { Readable } from 'node:stream';
 
 import type { VM } from '@earendil-works/gondolin';
 import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
@@ -62,6 +63,7 @@ import {
   createGondolinReadOps,
   createGondolinWriteOps,
   executeGondolinGrep,
+  toGuestPath,
 } from '../tool-operations.js';
 import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
@@ -193,6 +195,8 @@ export interface ExecutePiTaskOptions {
   extraAllowedHosts?: string[];
   /** Sandbox overrides (env, VFS shadows, resources). */
   sandboxConfig?: SandboxConfig;
+  /** Host environment variable names to forward into the Pi VM. */
+  forwardEnv?: string[];
   /**
    * Forwarded to `buildTaskUserPrompt` for per-type builders. Static
    * across tasks. Today no built-in builder needs per-task `extras` —
@@ -500,6 +504,7 @@ export async function executePiTask(
         workspaceMode: workspace.mode,
         extraAllowedHosts: opts.extraAllowedHosts,
         sandboxConfig,
+        forwardEnv: opts.forwardEnv,
         signal: reporter.cancelSignal,
       });
     } catch (err) {
@@ -518,6 +523,7 @@ export async function executePiTask(
     const taskTeamId = task.teamId ?? '';
     activateAgentEnv(managed.credentials.agentEnv, agentRootDir);
     const activeWorkspace = workspace;
+    const activeManaged = managed;
     if (!activeWorkspace) {
       throw new Error('task workspace not prepared');
     }
@@ -698,6 +704,29 @@ export async function executePiTask(
           /* no-op in headless mode */
         },
         getHostCwd: () => cwdPath,
+        openWorkspaceFileForRead: async (filePath) => {
+          const localPath = isAbsolute(filePath)
+            ? filePath
+            : resolve(cwdPath, filePath);
+          const guestPath = toGuestPath(
+            cwdPath,
+            localPath,
+            activeManaged.guestWorkspace,
+          );
+          const info = await activeManaged.vm.fs.stat(guestPath);
+          const content = await activeManaged.vm.fs.readFile(guestPath);
+          const buffer =
+            typeof content === 'string'
+              ? Buffer.from(content, 'utf8')
+              : Buffer.from(content);
+          return {
+            stream: Readable.from([buffer]),
+            isFile: info.isFile(),
+            sizeBytes:
+              typeof info.size === 'number' ? info.size : buffer.byteLength,
+            displayPath: filePath,
+          };
+        },
         hostExecBaseEnv,
         hostExecAutoApprove:
           opts.hostExecAutoApprove ??

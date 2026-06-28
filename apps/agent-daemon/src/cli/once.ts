@@ -295,6 +295,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       topK: profile.topK,
       maxOutputTokens: profile.maxOutputTokens,
       sandboxConfig: sandbox.config,
+      forwardEnv: profile.requiredEnv,
       makeExecutionPlan: (claimedTask) =>
         executionPlans.getOrCreate(claimedTask),
       onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),

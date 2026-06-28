@@ -7,7 +7,7 @@ import {
   executeGondolinGrep,
   toGuestPath,
 } from './tool-operations.js';
-import { GUEST_TASK_SKILLS_MOUNT } from './vm-manager.js';
+import { GUEST_TASK_CONTEXT_MOUNT } from './vm-manager.js';
 
 describe('toGuestPath', () => {
   it('accepts normalized guest workspace paths', () => {
@@ -20,14 +20,14 @@ describe('toGuestPath', () => {
     ).toBe('/Users/ed/project/src/index.ts');
   });
 
-  it('accepts normalized task skills mount paths', () => {
+  it('accepts normalized task context mount paths', () => {
     expect(
       toGuestPath(
         '/Users/ed/project',
-        `${GUEST_TASK_SKILLS_MOUNT}//skill/SKILL.md`,
+        `${GUEST_TASK_CONTEXT_MOUNT}//skills/example/SKILL.md`,
         '/Users/ed/project',
       ),
-    ).toBe(`${GUEST_TASK_SKILLS_MOUNT}/skill/SKILL.md`);
+    ).toBe(`${GUEST_TASK_CONTEXT_MOUNT}/skills/example/SKILL.md`);
   });
 
   it('maps host-relative paths into the normalized guest workspace', () => {

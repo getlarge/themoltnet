@@ -78,8 +78,10 @@ describe('resolveTaskContext', () => {
     expect(out.systemPromptPrefix).toContain(
       'Do not start workflows inside transactions.',
     );
-    expect(out.systemPromptPrefix).toContain('context-pack.md');
-    expect(out.systemPromptPrefix).toContain('AGENTS.md');
+    expect(out.systemPromptPrefix).toContain('/moltnet-task-context/context');
+    expect(out.systemPromptPrefix).toContain('workspace mirror files');
+    expect(out.systemPromptPrefix).not.toContain('context-pack.md');
+    expect(out.systemPromptPrefix).not.toContain('AGENTS.md');
   });
 
   it('concatenates user_inline items in declared order', async () => {

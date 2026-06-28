@@ -40,19 +40,21 @@ describe('injectTaskContext', () => {
     });
 
     expect(fs.mkdir).toHaveBeenCalledWith(
-      '/moltnet-task-skills/pack-fidelity',
+      '/moltnet-task-context/skills/pack-fidelity',
       { recursive: true },
     );
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/moltnet-task-skills/pack-fidelity/SKILL.md',
+      '/moltnet-task-context/skills/pack-fidelity/SKILL.md',
       content,
       { mode: 0o644 },
     );
     expect(out.skills).toHaveLength(1);
     const skill = out.skills[0];
     expect(skill.name).toBe('pack-fidelity');
-    expect(skill.filePath).toBe('/moltnet-task-skills/pack-fidelity/SKILL.md');
-    expect(skill.baseDir).toBe('/moltnet-task-skills/pack-fidelity');
+    expect(skill.filePath).toBe(
+      '/moltnet-task-context/skills/pack-fidelity/SKILL.md',
+    );
+    expect(skill.baseDir).toBe('/moltnet-task-context/skills/pack-fidelity');
     expect(skill.disableModelInvocation).toBe(false);
   });
 
@@ -123,7 +125,7 @@ describe('injectTaskContext', () => {
     expect(fs.writeFile).not.toHaveBeenCalled();
   });
 
-  it('writes context_inline bytes into the workspace and injects a named prompt block', async () => {
+  it('writes context_inline bytes into the task-context mount and injects a named prompt block', async () => {
     const fs = mockFs();
     const out = await injectTaskContext({
       guestWorkspace: '/guest/workspace',
@@ -136,32 +138,18 @@ describe('injectTaskContext', () => {
       ],
       fs,
     });
-    expect(fs.mkdir).toHaveBeenCalledWith('/guest/workspace/.moltnet/context', {
+    expect(fs.mkdir).toHaveBeenCalledWith('/moltnet-task-context/context', {
       recursive: true,
     });
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/guest/workspace/.moltnet/context/dbos-pack.md',
+      '/moltnet-task-context/context/dbos-pack.md',
       '# Pack\nDo not start workflows inside transactions.',
       { mode: 0o644 },
     );
-    expect(fs.writeFile).toHaveBeenCalledWith(
-      '/guest/workspace/context-pack.md',
-      expect.stringContaining('## dbos-pack'),
-      { mode: 0o644 },
-    );
-    expect(fs.writeFile).toHaveBeenCalledWith(
-      '/guest/workspace/AGENTS.md',
-      expect.stringContaining('## dbos-pack'),
-      { mode: 0o644 },
-    );
-    expect(fs.mkdir).toHaveBeenCalledWith('/guest/workspace/.claude', {
-      recursive: true,
-    });
-    expect(fs.writeFile).toHaveBeenCalledWith(
-      '/guest/workspace/.claude/CLAUDE.md',
-      '@../context-pack.md\n',
-      { mode: 0o644 },
-    );
+    const writtenPaths = fs.writeFile.mock.calls.map(([filePath]) => filePath);
+    expect(writtenPaths).not.toContain('/guest/workspace/context-pack.md');
+    expect(writtenPaths).not.toContain('/guest/workspace/AGENTS.md');
+    expect(writtenPaths).not.toContain('/guest/workspace/.claude/CLAUDE.md');
     expect(out.systemPromptPrefix).toContain('### Injected Task Context');
     expect(out.systemPromptPrefix).toContain('`dbos-pack`');
   });
@@ -195,11 +183,36 @@ describe('injectTaskContext', () => {
       'prompt_prefix',
       'user_inline',
     ]);
-    expect(fs.writeFile).toHaveBeenCalledTimes(5);
+    expect(fs.writeFile).toHaveBeenCalledTimes(2);
     expect(out.systemPromptPrefix).toContain('### Injected Task Context');
     expect(out.systemPromptPrefix).toContain('PREFIX');
     expect(out.userInlineSuffix).toBe('INLINE');
     expect(out.skills).toHaveLength(1);
+  });
+
+  it('does not write task context into the mounted workspace', async () => {
+    const fs = mockFs();
+    await injectTaskContext({
+      guestWorkspace: '/guest/workspace',
+      context: [
+        {
+          slug: 'review-bundle',
+          binding: 'context_inline',
+          content: '# Review Bundle',
+        },
+      ],
+      fs,
+    });
+
+    const writtenPaths = fs.writeFile.mock.calls.map(([filePath]) =>
+      String(filePath),
+    );
+    expect(writtenPaths).not.toContain('/guest/workspace/context-pack.md');
+    expect(writtenPaths).not.toContain('/guest/workspace/AGENTS.md');
+    expect(writtenPaths).not.toContain('/guest/workspace/.claude/CLAUDE.md');
+    expect(
+      writtenPaths.every((filePath) => !filePath.startsWith('/guest/')),
+    ).toBe(true);
   });
 
   it('clips overlong frontmatter values to pi-style bounds', async () => {

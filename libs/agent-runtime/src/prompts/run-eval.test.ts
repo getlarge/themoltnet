@@ -93,9 +93,12 @@ describe('buildRunEvalUserPrompt', () => {
     expect(out).toContain('into the code path');
     expect(out).toContain('Quoting a constraint back in a comment');
     expect(out).toContain('NOT following the task');
-    // Inline-context path still names the materialized files.
-    expect(out).toContain('context-pack.md');
-    expect(out).toContain('AGENTS.md');
+    // Inline-context path names the VM task-context mount, not workspace
+    // mirror files.
+    expect(out).toContain('/moltnet-task-context/context');
+    expect(out).toContain('workspace mirror files');
+    expect(out).not.toContain('context-pack.md');
+    expect(out).not.toContain('AGENTS.md');
   });
 
   it('does NOT leak the judge rubric or judge-only sections', () => {

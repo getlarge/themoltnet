@@ -17,13 +17,13 @@ import { abortableResource, delay, throwIfAborted } from './abort-utils.js';
 import type { ResumeCommand, SandboxConfig } from './snapshot.js';
 
 /**
- * Memory-backed VFS mount used by the daemon to inject task-context
- * skills (#943 slice 1.5). This is a separate top-level mount because
- * Gondolin mounts can't nest. The agent's Gondolin-bound Read tool accepts
- * paths under this prefix (see toGuestPath in tool-operations.ts).
+ * Memory-backed VFS mount used by the daemon to inject task context
+ * (#943 slice 1.5). This is a separate top-level mount because Gondolin
+ * mounts can't nest. The agent's Gondolin-bound Read tool accepts paths
+ * under this prefix (see toGuestPath in tool-operations.ts).
  *
  * Why MemoryProvider rather than a path under the workspace mount:
- *   - Injected skills are ephemeral by intent: per-task-attempt input
+ *   - Injected task context is ephemeral by intent: per-task-attempt input
  *     scoped to the VM lifetime. MemoryProvider models that exactly —
  *     in-memory, per-VM-instance, zero host artefacts, automatic
  *     cleanup on VM close.
@@ -36,7 +36,9 @@ import type { ResumeCommand, SandboxConfig } from './snapshot.js';
  *     and episodic 7affbfeb-18a2-4963-aeac-c177eb2afa2d for the full
  *     investigation and the alternatives we rejected.
  */
-export const GUEST_TASK_SKILLS_MOUNT = '/moltnet-task-skills';
+export const GUEST_TASK_CONTEXT_MOUNT = '/moltnet-task-context';
+/** @deprecated Use GUEST_TASK_CONTEXT_MOUNT. */
+export const GUEST_TASK_SKILLS_MOUNT = GUEST_TASK_CONTEXT_MOUNT;
 
 export interface VmConfig {
   /** Absolute path to the qcow2 checkpoint. */
@@ -58,6 +60,14 @@ export interface VmConfig {
   extraAllowedHosts?: string[];
   /** Full sandbox config (vfs shadows, env overrides). */
   sandboxConfig?: SandboxConfig;
+  /**
+   * Host environment variable names to copy into the VM process.
+   *
+   * Runtime profiles use this for provider API keys: `requiredEnv` proves the
+   * daemon host has the secret, and this allowlist forwards only those names
+   * into the guest without storing secret values in the profile.
+   */
+  forwardEnv?: string[];
   /** Abort resume/setup work, closing any live VM owned by resumeVm. */
   signal?: AbortSignal;
 }
@@ -349,11 +359,19 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     });
   }
 
-  // Merge env: defaults < sandbox config overrides
+  const forwardedEnv: Record<string, string> = {};
+  for (const name of config.forwardEnv ?? []) {
+    const value = process.env[name];
+    if (value === undefined || value === '') continue;
+    forwardedEnv[name] = value;
+  }
+
+  // Merge env: defaults < forwarded host env < sandbox config overrides
   const envOverrides = config.sandboxConfig?.env ?? {};
   const vmEnv = {
     ...secretEnv,
     ...vmAgentEnv,
+    ...forwardedEnv,
     PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/go/bin',
     HOME: '/home/agent',
     NODE_NO_WARNINGS: '1',
@@ -374,9 +392,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       vfs: {
         mounts: {
           [guestWorkspace]: workspaceProvider,
-          // Memory-backed mount for task-context skill injection (#943).
+          // Memory-backed mount for task-context injection (#943).
           // Per-VM-instance, never persisted, never shared.
-          [GUEST_TASK_SKILLS_MOUNT]: new MemoryProvider(),
+          [GUEST_TASK_CONTEXT_MOUNT]: new MemoryProvider(),
         },
       },
     }),

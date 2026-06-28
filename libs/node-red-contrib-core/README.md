@@ -253,22 +253,22 @@ created through the Runtime Profiles API for team
 `6743b4b1-6b93-46e2-a048-19490f04f91a`; recreate them or replace the IDs when
 running the flow in another team.
 
-| Stage      | Profile ID                             | Provider / model                      | Settings                                                                                                                                                    |
-| ---------- | -------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FREEZE     | `1a653eb9-7bfa-475f-b517-c070c9c25b5e` | `ollama-cloud/qwen3.5:cloud`          | `thinkingLevel=medium`, `temperature=0.1`, `maxOutputTokens=12000`, `defaultWorkspaceMode=dedicated_worktree`, requires `OLLAMA_API_KEY`, `git`, `gh`, `rg` |
-| PREFLIGHT  | `f4bb1d9b-6281-4158-ad88-cbcb1198c3dc` | `ollama-cloud/qwen3.5:cloud`          | `thinkingLevel=medium`, `temperature=0.1`, `maxOutputTokens=10000`, `defaultWorkspaceMode=none`, requires `OLLAMA_API_KEY`                                  |
-| SPECIALIST | `f50e9c58-4180-4e07-b120-08b6097c13d5` | `ollama-cloud/qwen3-coder:480b-cloud` | `thinkingLevel=high`, `temperature=0.15`, `maxOutputTokens=18000`, `defaultWorkspaceMode=none`, requires `OLLAMA_API_KEY`                                   |
-| AGGREGATE  | `29db793d-3ad9-420b-96e7-df5356b3d19b` | `ollama-cloud/kimi-k2.7-code:cloud`   | `thinkingLevel=high`, `temperature=0.2`, `maxOutputTokens=24000`, `defaultWorkspaceMode=none`, requires `OLLAMA_API_KEY`                                    |
+| Stage      | Profile ID                             | Provider / model                      | Settings                                                                                                                                                                                                                  |
+| ---------- | -------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FREEZE     | `1a653eb9-7bfa-475f-b517-c070c9c25b5e` | `ollama-cloud/qwen3-coder:480b-cloud` | `thinkingLevel=high`, `temperature=0.1`, `maxOutputTokens=12000`, `maxTurns=60`, `maxBashTimeouts=5`, `defaultWorkspaceMode=dedicated_worktree`, `allowedWorkspaceModes=[dedicated_worktree]`, requires `git`, `gh`, `rg` |
+| PREFLIGHT  | `f4bb1d9b-6281-4158-ad88-cbcb1198c3dc` | `ollama-cloud/qwen3-coder:480b-cloud` | `thinkingLevel=high`, `temperature=0.1`, `maxOutputTokens=10000`, `maxTurns=16`, `maxBashTimeouts=2`, `defaultWorkspaceMode=shared_mount`, `allowedWorkspaceModes=[shared_mount]`, requires `git`, `rg`                   |
+| SPECIALIST | `f50e9c58-4180-4e07-b120-08b6097c13d5` | `ollama-cloud/qwen3-coder:480b-cloud` | `thinkingLevel=high`, `temperature=0.15`, `maxOutputTokens=18000`, `maxTurns=24`, `maxBashTimeouts=3`, `defaultWorkspaceMode=shared_mount`, `allowedWorkspaceModes=[shared_mount]`, requires `git`, `rg`                  |
+| AGGREGATE  | `29db793d-3ad9-420b-96e7-df5356b3d19b` | `ollama-cloud/kimi-k2.7-code:cloud`   | `thinkingLevel=high`, `temperature=0.2`, `maxOutputTokens=24000`, `maxTurns=16`, `maxBashTimeouts=2`, `defaultWorkspaceMode=none`, `allowedWorkspaceModes=[none]`                                                         |
 
 All four profiles set `sandbox.env.NODE_OPTIONS=--dns-result-order=ipv4first`
-to match the live Ollama daemon smoke pattern. FREEZE additionally uses a
-dedicated worktree with `.env`, `.env.local`, and `.moltnet` denied through VFS
-shadowing, `hostExec.autoApprove=false`, and GitHub snapshot hosts
-`api.github.com`, `github.com`, `objects.githubusercontent.com`,
-`codeload.github.com`, and `raw.githubusercontent.com`. The downstream
-PREFLIGHT, SPECIALIST, and AGGREGATE stages intentionally use workspace
-`none`; they operate on the review bundle and prior task artifacts passed
-through task context, not direct repository mutation.
+to match the live Ollama daemon smoke pattern and require `OLLAMA_API_KEY`.
+Repo-aware profiles deny `.env`, `.env.local`, and `.moltnet` through VFS
+shadowing with `shadowMode=deny` and `hostExec.autoApprove=false`. FREEZE uses a
+dedicated worktree and GitHub snapshot hosts `api.github.com`, `github.com`,
+`objects.githubusercontent.com`, `codeload.github.com`, and
+`raw.githubusercontent.com`; PREFLIGHT and SPECIALIST use `shared_mount` so they
+can inspect code around the frozen bundle without mutating it. AGGREGATE stays
+repo-free with workspace `none`.
 
 Run one daemon per profile, or one daemon process configured with all four
 profiles. Repeated `--profile` flags declare the daemon's priority order:
@@ -279,8 +279,8 @@ export OLLAMA_API_KEY=...
 npx @themoltnet/agent-daemon@latest poll \
   --agent <agent-name> \
   --team 6743b4b1-6b93-46e2-a048-19490f04f91a \
-  --profile deep-review-freeze-ollama-qwen35-v1 \
-  --profile deep-review-preflight-ollama-qwen35-v1 \
+  --profile deep-review-freeze-ollama-qwen-coder-v1 \
+  --profile deep-review-preflight-ollama-qwen-coder-v1 \
   --profile deep-review-specialist-ollama-qwen-coder-v1 \
   --profile deep-review-aggregate-ollama-kimi-v1
 ```

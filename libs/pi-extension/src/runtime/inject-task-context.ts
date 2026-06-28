@@ -15,8 +15,8 @@
  *      system prompt; the agent fetches the body on demand via the
  *      Read tool.
  *
- * Skill files are written into a memory-backed VM mount. pi only reads
- * `<available_skills>` metadata (name, description, location), never the file
+ * Task-context files are written into a memory-backed VM mount. pi only reads
+ * `<available_skills>` metadata (name, description, location), never the skill
  * body, so we construct synthetic `Skill` objects pointing at the in-VM path
  * without ever materialising the file on the host.
  */
@@ -32,7 +32,7 @@ import {
   type TaskContext,
 } from '@themoltnet/agent-runtime';
 
-import { GUEST_TASK_SKILLS_MOUNT } from '../vm-manager.js';
+import { GUEST_TASK_CONTEXT_MOUNT } from '../vm-manager.js';
 
 /**
  * Subset of `@earendil-works/gondolin`'s `VmFs` we actually use. We
@@ -56,14 +56,15 @@ export interface VmFsForContext {
 }
 
 /**
- * Where in the VM we write skill bodies — the memory-backed mount
+ * Where in the VM we write task-context bodies — the memory-backed mount
  * declared in `vm-manager.ts`. See the comment on
- * `GUEST_TASK_SKILLS_MOUNT` there for the full rationale (ephemeral
- * by intent + the worktree symlink interaction with Gondolin's
- * sandbox-escape protection). The agent's Gondolin Read tool accepts
- * paths under this mount via `toGuestPath` in `tool-operations.ts`.
+ * `GUEST_TASK_CONTEXT_MOUNT` there for the full rationale (ephemeral by
+ * intent + the worktree symlink interaction with Gondolin's sandbox-escape
+ * protection). The agent's Gondolin Read tool accepts paths under this mount
+ * via `toGuestPath` in `tool-operations.ts`.
  */
-const SKILL_ROOT_IN_VM = GUEST_TASK_SKILLS_MOUNT;
+const SKILL_ROOT_IN_VM = `${GUEST_TASK_CONTEXT_MOUNT}/skills`;
+const INLINE_CONTEXT_ROOT_IN_VM = `${GUEST_TASK_CONTEXT_MOUNT}/context`;
 /** Bounds borrowed from pi's skill validation; conservative caps so a
  *  malformed SKILL.md doesn't bloat the system prompt. */
 const MAX_SKILL_NAME = 64;
@@ -99,13 +100,7 @@ export async function injectTaskContext(
   args: InjectTaskContextArgs,
 ): Promise<InjectedTaskContext> {
   const skills: Skill[] = [];
-  const inlineContexts: Array<{ slug: string; content: string }> = [];
-  const { guestWorkspace } = args;
-  const inlineContextRoot = `${guestWorkspace}/.moltnet/context`;
-  const workspaceContextPack = `${guestWorkspace}/context-pack.md`;
-  const workspaceAgentsMd = `${guestWorkspace}/AGENTS.md`;
-  const workspaceClaudeDir = `${guestWorkspace}/.claude`;
-  const workspaceClaudeMd = `${workspaceClaudeDir}/CLAUDE.md`;
+  void args.guestWorkspace;
 
   const resolved = await resolveTaskContext({
     context: args.context,
@@ -118,30 +113,12 @@ export async function injectTaskContext(
         skills.push(buildSyntheticSkill({ slug, content, filePath, dir }));
       },
       contextFile: async ({ suggestedFileName, content }) => {
-        await args.fs.mkdir(inlineContextRoot, { recursive: true });
-        const filePath = `${inlineContextRoot}/${suggestedFileName}`;
+        await args.fs.mkdir(INLINE_CONTEXT_ROOT_IN_VM, { recursive: true });
+        const filePath = `${INLINE_CONTEXT_ROOT_IN_VM}/${suggestedFileName}`;
         await args.fs.writeFile(filePath, content, { mode: 0o644 });
-        inlineContexts.push({
-          slug: suggestedFileName.replace(/\.md$/u, ''),
-          content,
-        });
       },
     },
   });
-
-  if (inlineContexts.length > 0) {
-    const packContent = buildWorkspaceContextPack(inlineContexts);
-    await args.fs.writeFile(workspaceContextPack, packContent, {
-      mode: 0o644,
-    });
-    await args.fs.writeFile(workspaceAgentsMd, packContent, {
-      mode: 0o644,
-    });
-    await args.fs.mkdir(workspaceClaudeDir, { recursive: true });
-    await args.fs.writeFile(workspaceClaudeMd, '@../context-pack.md\n', {
-      mode: 0o644,
-    });
-  }
 
   return {
     injected: resolved.injected,
@@ -149,15 +126,6 @@ export async function injectTaskContext(
     systemPromptPrefix: resolved.systemPromptPrefix,
     userInlineSuffix: resolved.userInlineSuffix,
   };
-}
-
-function buildWorkspaceContextPack(
-  contexts: Array<{ slug: string; content: string }>,
-): string {
-  const blocks = contexts.map(({ slug, content }) =>
-    [`## ${slug}`, '', content.trimEnd()].join('\n'),
-  );
-  return ['# Context Pack', '', ...blocks].join('\n\n').trimEnd() + '\n';
 }
 
 /**

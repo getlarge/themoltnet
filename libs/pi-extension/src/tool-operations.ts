@@ -25,7 +25,7 @@ import {
   truncateLine,
 } from '@earendil-works/pi-coding-agent';
 
-import { GUEST_TASK_SKILLS_MOUNT } from './vm-manager.js';
+import { GUEST_TASK_CONTEXT_MOUNT } from './vm-manager.js';
 
 export type {
   BashOperations,
@@ -94,7 +94,9 @@ export function toGuestPath(
 ): string {
   const normalizedGuestWorkspace = normalizeGuestPath(guestWorkspace);
   const normalizedLocalPath = normalizeGuestPath(localPath);
-  const normalizedTaskSkillsMount = normalizeGuestPath(GUEST_TASK_SKILLS_MOUNT);
+  const normalizedTaskContextMount = normalizeGuestPath(
+    GUEST_TASK_CONTEXT_MOUNT,
+  );
 
   // The LLM may address files by guest-absolute path because that's what the
   // system prompt implies. Accept those as-is; otherwise path.relative(hostCwd,
@@ -102,11 +104,12 @@ export function toGuestPath(
   if (isSameOrInsidePosixPath(normalizedLocalPath, normalizedGuestWorkspace)) {
     return normalizedLocalPath;
   }
-  // Same accommodation for the memory-backed task-context skills mount
-  // (#943 slice 1.5). pi advertises injected skills with absolute paths
-  // under this mount in `<available_skills>`; the agent has to be able
-  // to Read them.
-  if (isSameOrInsidePosixPath(normalizedLocalPath, normalizedTaskSkillsMount)) {
+  // Same accommodation for the memory-backed task-context mount (#943).
+  // pi advertises injected context files with absolute paths under this
+  // mount; the agent has to be able to Read them.
+  if (
+    isSameOrInsidePosixPath(normalizedLocalPath, normalizedTaskContextMount)
+  ) {
     return normalizedLocalPath;
   }
   const rel = path.relative(localCwd, localPath);
