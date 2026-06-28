@@ -9,6 +9,9 @@ import {
 } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
 
+import { Uint8ArrayReader, Uint8ArrayWriter, ZipWriter } from '@zip.js/zip.js';
+import { create as createTar } from 'tar';
+
 type ArchiveFormat = 'tar.gz' | 'zip';
 type ArtifactStore =
   | {
@@ -89,11 +92,13 @@ type RunOptions = CreatePlanOptions & {
   dryRun?: boolean;
   verbose?: boolean;
   commandRunner?: CommandRunner;
+  toolChecker?: ToolChecker;
 };
 type CommandRunner = (
   command: GoArtifactCommand,
   env?: Record<string, string>,
 ) => void;
+type ToolChecker = (command: string) => void;
 
 const defaultBuilds: GoReleaseBuild[] = [
   { goos: 'linux', goarch: 'amd64' },
@@ -378,35 +383,57 @@ function runCommand(
   });
 }
 
-function archiveBinary(
-  step: GoArtifactBuildStep,
-  commandRunner: CommandRunner,
+function assertCommandAvailable(command: string) {
+  const versionArgs = command === 'go' ? ['version'] : ['--version'];
+  try {
+    execFileSync(command, versionArgs, {
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+  } catch (error) {
+    throw new Error(
+      `Required release tool "${command}" is not available on PATH.`,
+      { cause: error },
+    );
+  }
+}
+
+function checkRequiredTools(
+  plan: GoArtifactReleasePlan,
+  toolChecker: ToolChecker,
 ) {
+  if (plan.buildSteps.length > 0) {
+    toolChecker('go');
+  }
+  if (plan.uploadCommands.some((command) => command.command === 'gh')) {
+    toolChecker('gh');
+  }
+}
+
+async function archiveBinary(step: GoArtifactBuildStep) {
   mkdirSync(dirname(step.archivePath), { recursive: true });
   if (step.archiveFormat === 'tar.gz') {
-    commandRunner(
+    await createTar(
       {
-        command: 'tar',
-        args: [
-          '-czf',
-          step.archivePath,
-          '-C',
-          dirname(step.binaryPath),
-          basename(step.binaryPath),
-        ],
+        cwd: dirname(step.binaryPath),
+        file: step.archivePath,
+        gzip: true,
+        noMtime: true,
+        portable: true,
       },
-      {},
+      [basename(step.binaryPath)],
     );
     return;
   }
 
-  commandRunner(
-    {
-      command: 'zip',
-      args: ['-j', '-q', step.archivePath, step.binaryPath],
-    },
-    {},
+  const writer = new Uint8ArrayWriter();
+  const zipWriter = new ZipWriter(writer);
+  await zipWriter.add(
+    basename(step.binaryPath),
+    new Uint8ArrayReader(readFileSync(step.binaryPath)),
   );
+  const zipData = await zipWriter.close();
+  writeFileSync(step.archivePath, Buffer.from(zipData));
 }
 
 function writeChecksums(checksumFile: string, archivePaths: string[]) {
@@ -468,17 +495,20 @@ export function printGoArtifactReleasePlan(plan: GoArtifactReleasePlan) {
   }
 }
 
-export function runGoArtifactPublisher(
+export async function runGoArtifactPublisher(
   config: GoArtifactPublisherConfig,
   options: RunOptions = {},
 ) {
   const plan = createGoArtifactReleasePlan(config, options);
   const commandRunner = options.commandRunner ?? runCommand;
+  const toolChecker = options.toolChecker ?? assertCommandAvailable;
 
   if (options.dryRun) {
     printGoArtifactReleasePlan(plan);
     return plan;
   }
+
+  checkRequiredTools(plan, toolChecker);
 
   for (const step of plan.buildSteps) {
     if (options.verbose) {
@@ -486,7 +516,7 @@ export function runGoArtifactPublisher(
     }
     mkdirSync(dirname(step.binaryPath), { recursive: true });
     commandRunner(step.command, step.env);
-    archiveBinary(step, commandRunner);
+    await archiveBinary(step);
     copyPackageBinary(step);
   }
 

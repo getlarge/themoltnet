@@ -55,7 +55,7 @@ export function applyCliOverrides(
   };
 }
 
-export function main(
+export async function main(
   argv = process.argv,
   env = process.env,
   cwd = process.cwd(),
@@ -80,5 +80,8 @@ export function main(
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main();
+  main().catch((error: unknown) => {
+    process.stderr.write(`${error instanceof Error ? error.message : error}\n`);
+    process.exitCode = 1;
+  });
 }

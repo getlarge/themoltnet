@@ -217,9 +217,10 @@ describe('go artifact publisher', () => {
     expect(plan.version).toBe('2.3.4');
   });
 
-  it('builds, archives, stages package binaries, writes checksums, and uploads in order', () => {
+  it('builds, archives, stages package binaries, writes checksums, and uploads in order', async () => {
     const cwd = mkdtempSync(join(tmpdir(), 'go-artifact-publisher-run-'));
     const calls: string[] = [];
+    const toolChecks: string[] = [];
     const commandRunner = (
       command: GoArtifactCommand,
       env: Record<string, string> = {},
@@ -231,16 +232,9 @@ describe('go artifact publisher', () => {
         writeFileSync(outputPath, `${env.GOOS}/${env.GOARCH}`);
         return;
       }
-      if (command.command === 'tar') {
-        writeFileSync(command.args[1], 'tar archive');
-        return;
-      }
-      if (command.command === 'zip') {
-        writeFileSync(command.args[2], 'zip archive');
-      }
     };
 
-    const plan = runGoArtifactPublisher(
+    const plan = await runGoArtifactPublisher(
       {
         projectRoot: 'apps/my-cli',
         binary: 'my-cli',
@@ -272,16 +266,17 @@ describe('go artifact publisher', () => {
           upload: true,
         },
       },
-      { cwd, commandRunner },
+      {
+        cwd,
+        commandRunner,
+        toolChecker: (command) => {
+          toolChecks.push(command);
+        },
+      },
     );
 
-    expect(calls).toEqual([
-      'go:build',
-      'tar:-czf',
-      'go:build',
-      'zip:-j',
-      'gh:release',
-    ]);
+    expect(toolChecks).toEqual(['go', 'gh']);
+    expect(calls).toEqual(['go:build', 'go:build', 'gh:release']);
     expect(readFileSync(join(cwd, 'npm/linux-x64/bin/my-cli'), 'utf-8')).toBe(
       'linux/amd64',
     );
@@ -291,20 +286,29 @@ describe('go artifact publisher', () => {
     expect(statSync(join(cwd, 'npm/linux-x64/bin/my-cli')).mode & 0o111).toBe(
       0o111,
     );
-    expect(readFileSync(plan.checksumFile ?? '', 'utf-8')).toBe(
-      `${createHash('sha256').update('tar archive').digest('hex')}  my-cli_1.2.3_linux_amd64.tar.gz\n` +
-        `${createHash('sha256').update('zip archive').digest('hex')}  my-cli_1.2.3_windows_amd64.zip\n`,
-    );
+    const checksumLines = readFileSync(plan.checksumFile ?? '', 'utf-8')
+      .trim()
+      .split('\n');
+    expect(checksumLines).toHaveLength(2);
+    for (const step of plan.buildSteps) {
+      expect(readFileSync(step.archivePath).byteLength).toBeGreaterThan(0);
+      expect(checksumLines).toContain(
+        `${createHash('sha256')
+          .update(readFileSync(step.archivePath))
+          .digest('hex')}  ${step.archivePath.split('/').at(-1)}`,
+      );
+    }
   });
 
-  it('does not run commands during dry-run', () => {
+  it('does not run commands during dry-run', async () => {
     const calls: GoArtifactCommand[] = [];
+    const toolChecks: string[] = [];
     const stdout = vi
       .spyOn(process.stdout, 'write')
       .mockImplementation(() => true);
 
     try {
-      runGoArtifactPublisher(
+      await runGoArtifactPublisher(
         {
           projectRoot: 'apps/my-cli',
           binary: 'my-cli',
@@ -318,12 +322,42 @@ describe('go artifact publisher', () => {
           commandRunner: (command) => {
             calls.push(command);
           },
+          toolChecker: (command) => {
+            toolChecks.push(command);
+          },
         },
       );
     } finally {
       stdout.mockRestore();
     }
 
+    expect(calls).toEqual([]);
+    expect(toolChecks).toEqual([]);
+  });
+
+  it('fails before building when a required release tool is missing', async () => {
+    const calls: GoArtifactCommand[] = [];
+
+    await expect(
+      runGoArtifactPublisher(
+        {
+          projectRoot: 'apps/my-cli',
+          binary: 'my-cli',
+          version: '1.2.3',
+          shortCommit: 'abc12345',
+          builds: [{ goos: 'linux', goarch: 'amd64' }],
+        },
+        {
+          cwd: '/repo',
+          commandRunner: (command) => {
+            calls.push(command);
+          },
+          toolChecker: (command) => {
+            throw new Error(`${command} missing`);
+          },
+        },
+      ),
+    ).rejects.toThrow('go missing');
     expect(calls).toEqual([]);
   });
 
