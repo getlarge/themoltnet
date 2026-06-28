@@ -101,7 +101,11 @@ task workspace, `moltnet_list_task_artifacts` for metadata, and
 into the task workspace. SDK callers use
 `agent.tasks.artifacts.upload/list/listPage/download`; `listPage` exposes
 `nextCursor`, and `download` returns the byte stream plus response metadata
-headers such as artifact id, CID, SHA-256, content type, and content encoding.
+headers such as artifact id, CID, content type, and content encoding. Operators
+can use `moltnet task artifacts list|upload|download`; MCP clients can use
+`tasks_artifacts_list`, `tasks_artifacts_upload`, and
+`tasks_artifacts_download` (download returns base64 content because MCP tools
+carry JSON, not raw byte streams).
 
 ### Create envelope
 
