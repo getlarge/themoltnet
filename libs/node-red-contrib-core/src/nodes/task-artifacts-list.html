@@ -1,0 +1,67 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-task-artifacts-list', {
+    category: 'moltnet',
+    color: '#00d4c8',
+    paletteLabel: 'task artifacts: list',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      taskId: { value: '' },
+      teamId: { value: '' },
+      limit: { value: 20, validate: RED.validators.number() },
+      cursor: { value: '' },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-list',
+    label: function () {
+      return this.name || 'task artifacts: list';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-task-artifacts-list">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
+    <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-taskId"><i class="fa fa-hashtag"></i> Task ID</label>
+    <input
+      type="text"
+      id="node-input-taskId"
+      placeholder="msg.payload.taskId"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-teamId"><i class="fa fa-users"></i> Team ID</label>
+    <input type="text" id="node-input-teamId" placeholder="agent teamId" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-limit"><i class="fa fa-hashtag"></i> Limit</label>
+    <input type="number" id="node-input-limit" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-cursor"><i class="fa fa-forward"></i> Cursor</label>
+    <input type="text" id="node-input-cursor" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-task-artifacts-list">
+  <p>
+    Lists artifacts for a MoltNet task. The task id is taken from
+    <code>msg.taskId</code>, <code>msg.payload.taskId</code>,
+    <code>msg.payload.id</code>, or the configured Task ID. Team ID is taken
+    from <code>msg.teamId</code>, <code>msg.payload.teamId</code>, this node, or
+    the configured agent.
+  </p>
+  <p>
+    Emits the page on <code>msg.payload</code>:
+    <code>{ artifacts, nextCursor }</code>. The final query and count are on
+    <code>msg.artifacts</code>.
+  </p>
+</script>

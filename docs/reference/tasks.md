@@ -105,7 +105,9 @@ headers such as artifact id, CID, content type, and content encoding. Operators
 can use `moltnet task artifacts list|upload|download`; MCP clients can use
 `tasks_artifacts_list`, `tasks_artifacts_upload`, and
 `tasks_artifacts_download` (download returns base64 content because MCP tools
-carry JSON, not raw byte streams).
+carry JSON, not raw byte streams); Node-RED flows can use
+`moltnet-task-artifacts-list`, `moltnet-task-artifact-upload`, and
+`moltnet-task-artifact-download`.
 
 ### Create envelope
 

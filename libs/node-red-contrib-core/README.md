@@ -15,10 +15,12 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   package carries no private-package runtime dependency. `@themoltnet/sdk` is
   therefore a **devDependency** (bundled, not installed at runtime).
 - The `.html` editor files are copied to `dist/nodes/` as assets (not compiled).
-- Two **config nodes** (`moltnet-agent`, `moltnet-runtime-profile`) and eight
+- Two **config nodes** (`moltnet-agent`, `moltnet-runtime-profile`) and eleven
   **action nodes** (`moltnet-tasks-create`, `moltnet-task-get`,
-  `moltnet-task-wait`, `moltnet-workflow-status`, `moltnet-task-builder`,
-  `moltnet-task-reader`, `moltnet-tasks-list`, `moltnet-entries-search`)
+  `moltnet-task-wait`, `moltnet-task-artifacts-list`,
+  `moltnet-task-artifact-upload`, `moltnet-task-artifact-download`,
+  `moltnet-workflow-status`, `moltnet-task-builder`, `moltnet-task-reader`,
+  `moltnet-tasks-list`, `moltnet-entries-search`)
   register and appear in the palette.
 
 ## Nodes
@@ -57,6 +59,18 @@ attempts, error, task }`. `state` is the accepted attempt's output artifact
   snapshot once. On failure the snapshot's `error` carries the last attempt's
   error for an agent/human to interpret (retry vs. escalate) — the same hook the
   `issue-lifecycle` supervisor uses.
+- **`moltnet-task-artifacts-list`** (palette: _task artifacts: list_) — lists a
+  task's artifacts for the configured team. Reads task id from
+  `msg.taskId`/`msg.payload.taskId`/`msg.payload.id` or the node field, supports
+  `limit`/`cursor`, and emits `{ artifacts, nextCursor }` on `msg.payload`.
+- **`moltnet-task-artifact-upload`** (palette: _task artifact: upload_) —
+  uploads bytes for a task attempt. Reads bytes from `msg.payload` when it is a
+  string/Buffer/Uint8Array/ArrayBuffer, or from object payload fields
+  `content`, `body`, or base64 `contentBase64`. Emits artifact metadata on
+  `msg.payload` and `msg.artifact`.
+- **`moltnet-task-artifact-download`** (palette: _task artifact: download_) —
+  downloads an artifact by task id, attempt number, and CID. Emits the artifact
+  bytes as a Buffer on `msg.payload` and metadata on `msg.artifact`.
 - **`moltnet-workflow-status`** (palette: _workflow: status_) — reads the tasks of
   one workflow run (by `correlationId`) and emits a table-shaped `msg.payload`
   (array of `{ taskId, type, title, status, queuedAt, completedAt }`) plus
