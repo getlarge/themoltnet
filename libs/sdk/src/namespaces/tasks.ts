@@ -119,7 +119,6 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
               result.response,
               'x-moltnet-task-artifact-content-type',
             ),
-            sha256: header(result.response, 'x-moltnet-task-artifact-sha256'),
             stream: normalizedStream,
           };
         }

@@ -8251,7 +8251,158 @@ func decodeDownloadTaskArtifactResponse(resp *http.Response) (res DownloadTaskAr
 			}
 
 			response := DownloadTaskArtifactOK{Data: bytes.NewReader(b)}
-			return &response, nil
+			var wrapper DownloadTaskArtifactOKHeaders
+			wrapper.Response = response
+			h := uri.NewHeaderDecoder(resp.Header)
+			// Parse "x-moltnet-task-artifact-cid" header.
+			{
+				cfg := uri.HeaderParameterDecodingConfig{
+					Name:    "x-moltnet-task-artifact-cid",
+					Explode: false,
+				}
+				if err := func() error {
+					if err := h.HasParam(cfg); err == nil {
+						if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+							var wrapperDotXMoltnetTaskArtifactCidVal string
+							if err := func() error {
+								val, err := d.DecodeValue()
+								if err != nil {
+									return err
+								}
+
+								c, err := conv.ToString(val)
+								if err != nil {
+									return err
+								}
+
+								wrapperDotXMoltnetTaskArtifactCidVal = c
+								return nil
+							}(); err != nil {
+								return err
+							}
+							wrapper.XMoltnetTaskArtifactCid.SetTo(wrapperDotXMoltnetTaskArtifactCidVal)
+							return nil
+						}); err != nil {
+							return err
+						}
+					}
+					return nil
+				}(); err != nil {
+					return res, errors.Wrap(err, "parse x-moltnet-task-artifact-cid header")
+				}
+			}
+			// Parse "x-moltnet-task-artifact-content-encoding" header.
+			{
+				cfg := uri.HeaderParameterDecodingConfig{
+					Name:    "x-moltnet-task-artifact-content-encoding",
+					Explode: false,
+				}
+				if err := func() error {
+					if err := h.HasParam(cfg); err == nil {
+						if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+							var wrapperDotXMoltnetTaskArtifactContentEncodingVal string
+							if err := func() error {
+								val, err := d.DecodeValue()
+								if err != nil {
+									return err
+								}
+
+								c, err := conv.ToString(val)
+								if err != nil {
+									return err
+								}
+
+								wrapperDotXMoltnetTaskArtifactContentEncodingVal = c
+								return nil
+							}(); err != nil {
+								return err
+							}
+							wrapper.XMoltnetTaskArtifactContentEncoding.SetTo(wrapperDotXMoltnetTaskArtifactContentEncodingVal)
+							return nil
+						}); err != nil {
+							return err
+						}
+					}
+					return nil
+				}(); err != nil {
+					return res, errors.Wrap(err, "parse x-moltnet-task-artifact-content-encoding header")
+				}
+			}
+			// Parse "x-moltnet-task-artifact-content-type" header.
+			{
+				cfg := uri.HeaderParameterDecodingConfig{
+					Name:    "x-moltnet-task-artifact-content-type",
+					Explode: false,
+				}
+				if err := func() error {
+					if err := h.HasParam(cfg); err == nil {
+						if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+							var wrapperDotXMoltnetTaskArtifactContentTypeVal string
+							if err := func() error {
+								val, err := d.DecodeValue()
+								if err != nil {
+									return err
+								}
+
+								c, err := conv.ToString(val)
+								if err != nil {
+									return err
+								}
+
+								wrapperDotXMoltnetTaskArtifactContentTypeVal = c
+								return nil
+							}(); err != nil {
+								return err
+							}
+							wrapper.XMoltnetTaskArtifactContentType.SetTo(wrapperDotXMoltnetTaskArtifactContentTypeVal)
+							return nil
+						}); err != nil {
+							return err
+						}
+					}
+					return nil
+				}(); err != nil {
+					return res, errors.Wrap(err, "parse x-moltnet-task-artifact-content-type header")
+				}
+			}
+			// Parse "x-moltnet-task-artifact-id" header.
+			{
+				cfg := uri.HeaderParameterDecodingConfig{
+					Name:    "x-moltnet-task-artifact-id",
+					Explode: false,
+				}
+				if err := func() error {
+					if err := h.HasParam(cfg); err == nil {
+						if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+							var wrapperDotXMoltnetTaskArtifactIDVal string
+							if err := func() error {
+								val, err := d.DecodeValue()
+								if err != nil {
+									return err
+								}
+
+								c, err := conv.ToString(val)
+								if err != nil {
+									return err
+								}
+
+								wrapperDotXMoltnetTaskArtifactIDVal = c
+								return nil
+							}(); err != nil {
+								return err
+							}
+							wrapper.XMoltnetTaskArtifactID.SetTo(wrapperDotXMoltnetTaskArtifactIDVal)
+							return nil
+						}); err != nil {
+							return err
+						}
+					}
+					return nil
+				}(); err != nil {
+					return res, errors.Wrap(err, "parse x-moltnet-task-artifact-id header")
+				}
+			}
+			return &wrapper, nil
 		default:
 			return res, validate.InvalidContentType(ct)
 		}
@@ -25511,7 +25662,7 @@ func decodeUploadTaskArtifactResponse(resp *http.Response) (res UploadTaskArtifa
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response UploadTaskArtifactConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

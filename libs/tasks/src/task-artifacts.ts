@@ -14,7 +14,6 @@ export const TaskArtifact = Type.Object(
       Type.Null(),
     ]),
     sizeBytes: Type.Integer({ minimum: 0 }),
-    sha256: Type.String({ minLength: 64, maxLength: 64 }),
     cid: Type.String({ minLength: 1, maxLength: 100 }),
     createdByAgentId: Type.String({ format: 'uuid' }),
     expiresAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),

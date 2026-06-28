@@ -674,7 +674,6 @@ describe('Agent facade', () => {
             'x-moltnet-task-artifact-id': 'artifact-1',
             'x-moltnet-task-artifact-cid': 'bafkreia',
             'x-moltnet-task-artifact-content-type': 'text/plain',
-            'x-moltnet-task-artifact-sha256': 'a'.repeat(64),
           },
         }),
       } as never);
@@ -690,7 +689,6 @@ describe('Agent facade', () => {
         cid: 'bafkreia',
         contentEncoding: null,
         contentType: 'text/plain',
-        sha256: 'a'.repeat(64),
       });
       expect(result.stream).toBe(stream);
     });

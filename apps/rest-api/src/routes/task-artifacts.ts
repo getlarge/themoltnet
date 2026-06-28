@@ -1,6 +1,7 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import {
+  ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   TeamHeaderRequiredSchema,
   ValidationProblemDetailsSchema,
@@ -21,8 +22,13 @@ import {
   UploadTaskArtifactQuery as UploadTaskArtifactQuerySchema,
 } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 
-import { createProblem, createValidationProblem } from '../problems/index.js';
+import {
+  createConflictProblem,
+  createProblem,
+  createValidationProblem,
+} from '../problems/index.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 
 function authSubject(request: {
@@ -58,7 +64,7 @@ function toArtifactProblem(
     return createProblem('forbidden', error.message);
   if (error.statusCode === 404)
     return createProblem('not-found', error.message);
-  if (error.statusCode === 409) return createProblem('conflict', error.message);
+  if (error.statusCode === 409) return createConflictProblem(error.message);
   if (error.statusCode === 503) {
     return createProblem('service-unavailable', error.message);
   }
@@ -73,6 +79,9 @@ function normalizeContentType(value: unknown): string | undefined {
 }
 
 const deferInaccessibleTeamAuthorization = {
+  // Let the artifact service perform resource-scoped checks so inaccessible
+  // tasks/artifacts are hidden as 404 instead of leaking team membership via
+  // the auth plugin's generic 403.
   auth: { deferInaccessibleTeamAuthorization: true },
 };
 
@@ -127,7 +136,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
           401: ProblemDetailsSchema,
           403: ProblemDetailsSchema,
           404: ProblemDetailsSchema,
-          409: ProblemDetailsSchema,
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           503: ProblemDetailsSchema,
         },
       },
@@ -236,6 +245,25 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
               },
             },
             description: 'Task artifact content stream.',
+            headers: {
+              'x-moltnet-task-artifact-id': {
+                type: 'string',
+                description: 'Artifact metadata row id.',
+              },
+              'x-moltnet-task-artifact-cid': {
+                type: 'string',
+                description: 'CIDv1 raw-bytes identifier for the artifact.',
+              },
+              'x-moltnet-task-artifact-content-type': {
+                type: 'string',
+                description: 'Content type recorded at upload time.',
+              },
+              'x-moltnet-task-artifact-content-encoding': {
+                type: 'string',
+                description:
+                  'Content encoding recorded at upload time, empty when unset.',
+              },
+            },
           },
           400: ValidationProblemDetailsSchema,
           401: ProblemDetailsSchema,
@@ -259,7 +287,6 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         return await reply
           .header('x-moltnet-task-artifact-id', artifact.id)
           .header('x-moltnet-task-artifact-cid', artifact.cid)
-          .header('x-moltnet-task-artifact-sha256', artifact.sha256)
           .header('x-moltnet-task-artifact-content-type', artifact.contentType)
           .header(
             'x-moltnet-task-artifact-content-encoding',

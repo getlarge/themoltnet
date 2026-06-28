@@ -3669,6 +3669,7 @@ func (*ConflictProblemDetails) updateRenderedPackRes()     {}
 func (*ConflictProblemDetails) updateRuntimeModelRes()     {}
 func (*ConflictProblemDetails) updateRuntimeProfileRes()   {}
 func (*ConflictProblemDetails) updateTeamMemberRoleRes()   {}
+func (*ConflictProblemDetails) uploadTaskArtifactRes()     {}
 
 type ConflictProblemDetailsAdditional map[string]jx.Raw
 
@@ -13360,7 +13361,66 @@ func (s DownloadTaskArtifactOK) Read(p []byte) (n int, err error) {
 	return s.Data.Read(p)
 }
 
-func (*DownloadTaskArtifactOK) downloadTaskArtifactRes() {}
+// DownloadTaskArtifactOKHeaders wraps DownloadTaskArtifactOK with response headers.
+type DownloadTaskArtifactOKHeaders struct {
+	XMoltnetTaskArtifactCid             OptString
+	XMoltnetTaskArtifactContentEncoding OptString
+	XMoltnetTaskArtifactContentType     OptString
+	XMoltnetTaskArtifactID              OptString
+	Response                            DownloadTaskArtifactOK
+}
+
+// GetXMoltnetTaskArtifactCid returns the value of XMoltnetTaskArtifactCid.
+func (s *DownloadTaskArtifactOKHeaders) GetXMoltnetTaskArtifactCid() OptString {
+	return s.XMoltnetTaskArtifactCid
+}
+
+// GetXMoltnetTaskArtifactContentEncoding returns the value of XMoltnetTaskArtifactContentEncoding.
+func (s *DownloadTaskArtifactOKHeaders) GetXMoltnetTaskArtifactContentEncoding() OptString {
+	return s.XMoltnetTaskArtifactContentEncoding
+}
+
+// GetXMoltnetTaskArtifactContentType returns the value of XMoltnetTaskArtifactContentType.
+func (s *DownloadTaskArtifactOKHeaders) GetXMoltnetTaskArtifactContentType() OptString {
+	return s.XMoltnetTaskArtifactContentType
+}
+
+// GetXMoltnetTaskArtifactID returns the value of XMoltnetTaskArtifactID.
+func (s *DownloadTaskArtifactOKHeaders) GetXMoltnetTaskArtifactID() OptString {
+	return s.XMoltnetTaskArtifactID
+}
+
+// GetResponse returns the value of Response.
+func (s *DownloadTaskArtifactOKHeaders) GetResponse() DownloadTaskArtifactOK {
+	return s.Response
+}
+
+// SetXMoltnetTaskArtifactCid sets the value of XMoltnetTaskArtifactCid.
+func (s *DownloadTaskArtifactOKHeaders) SetXMoltnetTaskArtifactCid(val OptString) {
+	s.XMoltnetTaskArtifactCid = val
+}
+
+// SetXMoltnetTaskArtifactContentEncoding sets the value of XMoltnetTaskArtifactContentEncoding.
+func (s *DownloadTaskArtifactOKHeaders) SetXMoltnetTaskArtifactContentEncoding(val OptString) {
+	s.XMoltnetTaskArtifactContentEncoding = val
+}
+
+// SetXMoltnetTaskArtifactContentType sets the value of XMoltnetTaskArtifactContentType.
+func (s *DownloadTaskArtifactOKHeaders) SetXMoltnetTaskArtifactContentType(val OptString) {
+	s.XMoltnetTaskArtifactContentType = val
+}
+
+// SetXMoltnetTaskArtifactID sets the value of XMoltnetTaskArtifactID.
+func (s *DownloadTaskArtifactOKHeaders) SetXMoltnetTaskArtifactID(val OptString) {
+	s.XMoltnetTaskArtifactID = val
+}
+
+// SetResponse sets the value of Response.
+func (s *DownloadTaskArtifactOKHeaders) SetResponse(val DownloadTaskArtifactOK) {
+	s.Response = val
+}
+
+func (*DownloadTaskArtifactOKHeaders) downloadTaskArtifactRes() {}
 
 type DownloadTaskArtifactServiceUnavailable struct {
 	Code            DownloadTaskArtifactServiceUnavailableCode `json:"code"`
@@ -25653,7 +25713,6 @@ type ListTaskArtifactsOKArtifactsItem struct {
 	ExpiresAt        NilDateTime `json:"expiresAt"`
 	ID               uuid.UUID   `json:"id"`
 	Kind             string      `json:"kind"`
-	SHA256           string      `json:"sha256"`
 	SizeBytes        int         `json:"sizeBytes"`
 	TaskId           uuid.UUID   `json:"taskId"`
 	TeamId           uuid.UUID   `json:"teamId"`
@@ -25703,11 +25762,6 @@ func (s *ListTaskArtifactsOKArtifactsItem) GetID() uuid.UUID {
 // GetKind returns the value of Kind.
 func (s *ListTaskArtifactsOKArtifactsItem) GetKind() string {
 	return s.Kind
-}
-
-// GetSHA256 returns the value of SHA256.
-func (s *ListTaskArtifactsOKArtifactsItem) GetSHA256() string {
-	return s.SHA256
 }
 
 // GetSizeBytes returns the value of SizeBytes.
@@ -25773,11 +25827,6 @@ func (s *ListTaskArtifactsOKArtifactsItem) SetID(val uuid.UUID) {
 // SetKind sets the value of Kind.
 func (s *ListTaskArtifactsOKArtifactsItem) SetKind(val string) {
 	s.Kind = val
-}
-
-// SetSHA256 sets the value of SHA256.
-func (s *ListTaskArtifactsOKArtifactsItem) SetSHA256(val string) {
-	s.SHA256 = val
 }
 
 // SetSizeBytes sets the value of SizeBytes.
@@ -42468,7 +42517,7 @@ func (s *TaskRef) SetTaskId(val NilUUID) {
 }
 
 type TaskRefArtifact struct {
-	AttemptN    OptInt    `json:"attemptN"`
+	AttemptN    int       `json:"attemptN"`
 	Cid         string    `json:"cid"`
 	ContentType OptString `json:"contentType"`
 	Kind        OptString `json:"kind"`
@@ -42476,7 +42525,7 @@ type TaskRefArtifact struct {
 }
 
 // GetAttemptN returns the value of AttemptN.
-func (s *TaskRefArtifact) GetAttemptN() OptInt {
+func (s *TaskRefArtifact) GetAttemptN() int {
 	return s.AttemptN
 }
 
@@ -42501,7 +42550,7 @@ func (s *TaskRefArtifact) GetTitle() OptString {
 }
 
 // SetAttemptN sets the value of AttemptN.
-func (s *TaskRefArtifact) SetAttemptN(val OptInt) {
+func (s *TaskRefArtifact) SetAttemptN(val int) {
 	s.AttemptN = val
 }
 
@@ -42756,7 +42805,7 @@ func (s *TaskReferencesItem) SetTaskId(val NilUUID) {
 }
 
 type TaskReferencesItemArtifact struct {
-	AttemptN    OptInt    `json:"attemptN"`
+	AttemptN    int       `json:"attemptN"`
 	Cid         string    `json:"cid"`
 	ContentType OptString `json:"contentType"`
 	Kind        OptString `json:"kind"`
@@ -42764,7 +42813,7 @@ type TaskReferencesItemArtifact struct {
 }
 
 // GetAttemptN returns the value of AttemptN.
-func (s *TaskReferencesItemArtifact) GetAttemptN() OptInt {
+func (s *TaskReferencesItemArtifact) GetAttemptN() int {
 	return s.AttemptN
 }
 
@@ -42789,7 +42838,7 @@ func (s *TaskReferencesItemArtifact) GetTitle() OptString {
 }
 
 // SetAttemptN sets the value of AttemptN.
-func (s *TaskReferencesItemArtifact) SetAttemptN(val OptInt) {
+func (s *TaskReferencesItemArtifact) SetAttemptN(val int) {
 	s.AttemptN = val
 }
 
@@ -47735,315 +47784,6 @@ func (s *UploadTaskArtifactBadRequestErrorsItem) SetMessage(val string) {
 	s.Message = val
 }
 
-type UploadTaskArtifactConflict struct {
-	Code            UploadTaskArtifactConflictCode `json:"code"`
-	Detail          OptString                      `json:"detail"`
-	Instance        OptString                      `json:"instance"`
-	Status          int                            `json:"status"`
-	Title           string                         `json:"title"`
-	Type            url.URL                        `json:"type"`
-	AdditionalProps UploadTaskArtifactConflictAdditional
-}
-
-// GetCode returns the value of Code.
-func (s *UploadTaskArtifactConflict) GetCode() UploadTaskArtifactConflictCode {
-	return s.Code
-}
-
-// GetDetail returns the value of Detail.
-func (s *UploadTaskArtifactConflict) GetDetail() OptString {
-	return s.Detail
-}
-
-// GetInstance returns the value of Instance.
-func (s *UploadTaskArtifactConflict) GetInstance() OptString {
-	return s.Instance
-}
-
-// GetStatus returns the value of Status.
-func (s *UploadTaskArtifactConflict) GetStatus() int {
-	return s.Status
-}
-
-// GetTitle returns the value of Title.
-func (s *UploadTaskArtifactConflict) GetTitle() string {
-	return s.Title
-}
-
-// GetType returns the value of Type.
-func (s *UploadTaskArtifactConflict) GetType() url.URL {
-	return s.Type
-}
-
-// GetAdditionalProps returns the value of AdditionalProps.
-func (s *UploadTaskArtifactConflict) GetAdditionalProps() UploadTaskArtifactConflictAdditional {
-	return s.AdditionalProps
-}
-
-// SetCode sets the value of Code.
-func (s *UploadTaskArtifactConflict) SetCode(val UploadTaskArtifactConflictCode) {
-	s.Code = val
-}
-
-// SetDetail sets the value of Detail.
-func (s *UploadTaskArtifactConflict) SetDetail(val OptString) {
-	s.Detail = val
-}
-
-// SetInstance sets the value of Instance.
-func (s *UploadTaskArtifactConflict) SetInstance(val OptString) {
-	s.Instance = val
-}
-
-// SetStatus sets the value of Status.
-func (s *UploadTaskArtifactConflict) SetStatus(val int) {
-	s.Status = val
-}
-
-// SetTitle sets the value of Title.
-func (s *UploadTaskArtifactConflict) SetTitle(val string) {
-	s.Title = val
-}
-
-// SetType sets the value of Type.
-func (s *UploadTaskArtifactConflict) SetType(val url.URL) {
-	s.Type = val
-}
-
-// SetAdditionalProps sets the value of AdditionalProps.
-func (s *UploadTaskArtifactConflict) SetAdditionalProps(val UploadTaskArtifactConflictAdditional) {
-	s.AdditionalProps = val
-}
-
-func (*UploadTaskArtifactConflict) uploadTaskArtifactRes() {}
-
-type UploadTaskArtifactConflictAdditional map[string]jx.Raw
-
-func (s *UploadTaskArtifactConflictAdditional) init() UploadTaskArtifactConflictAdditional {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
-
-type UploadTaskArtifactConflictCode string
-
-const (
-	UploadTaskArtifactConflictCodeUNAUTHORIZED                   UploadTaskArtifactConflictCode = "UNAUTHORIZED"
-	UploadTaskArtifactConflictCodeFORBIDDEN                      UploadTaskArtifactConflictCode = "FORBIDDEN"
-	UploadTaskArtifactConflictCodeNOTFOUND                       UploadTaskArtifactConflictCode = "NOT_FOUND"
-	UploadTaskArtifactConflictCodeCONFLICT                       UploadTaskArtifactConflictCode = "CONFLICT"
-	UploadTaskArtifactConflictCodeVALIDATIONFAILED               UploadTaskArtifactConflictCode = "VALIDATION_FAILED"
-	UploadTaskArtifactConflictCodeINVALIDCHALLENGE               UploadTaskArtifactConflictCode = "INVALID_CHALLENGE"
-	UploadTaskArtifactConflictCodeINVALIDSIGNATURE               UploadTaskArtifactConflictCode = "INVALID_SIGNATURE"
-	UploadTaskArtifactConflictCodeVOUCHERLIMIT                   UploadTaskArtifactConflictCode = "VOUCHER_LIMIT"
-	UploadTaskArtifactConflictCodeRATELIMITEXCEEDED              UploadTaskArtifactConflictCode = "RATE_LIMIT_EXCEEDED"
-	UploadTaskArtifactConflictCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactConflictCode = "SERIALIZATION_EXHAUSTED"
-	UploadTaskArtifactConflictCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactConflictCode = "SIGNING_REQUEST_EXPIRED"
-	UploadTaskArtifactConflictCodeSIGNINGREQUESTALREADYCOMPLETED UploadTaskArtifactConflictCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
-	UploadTaskArtifactConflictCodeREGISTRATIONFAILED             UploadTaskArtifactConflictCode = "REGISTRATION_FAILED"
-	UploadTaskArtifactConflictCodeUPSTREAMERROR                  UploadTaskArtifactConflictCode = "UPSTREAM_ERROR"
-	UploadTaskArtifactConflictCodeSERVICEUNAVAILABLE             UploadTaskArtifactConflictCode = "SERVICE_UNAVAILABLE"
-	UploadTaskArtifactConflictCodeINTERNALSERVERERROR            UploadTaskArtifactConflictCode = "INTERNAL_SERVER_ERROR"
-	UploadTaskArtifactConflictCodeTEAMPERSONALIMMUTABLE          UploadTaskArtifactConflictCode = "TEAM_PERSONAL_IMMUTABLE"
-	UploadTaskArtifactConflictCodeTEAMNOTACTIVE                  UploadTaskArtifactConflictCode = "TEAM_NOT_ACTIVE"
-	UploadTaskArtifactConflictCodeINVITEEXPIRED                  UploadTaskArtifactConflictCode = "INVITE_EXPIRED"
-	UploadTaskArtifactConflictCodeINVITEEXHAUSTED                UploadTaskArtifactConflictCode = "INVITE_EXHAUSTED"
-	UploadTaskArtifactConflictCodeTEAMLASTOWNER                  UploadTaskArtifactConflictCode = "TEAM_LAST_OWNER"
-	UploadTaskArtifactConflictCodeTEAMALREADYACTIVE              UploadTaskArtifactConflictCode = "TEAM_ALREADY_ACTIVE"
-	UploadTaskArtifactConflictCodeTEAMNOTFOUNDING                UploadTaskArtifactConflictCode = "TEAM_NOT_FOUNDING"
-	UploadTaskArtifactConflictCodeFOUNDINGALREADYACCEPTED        UploadTaskArtifactConflictCode = "FOUNDING_ALREADY_ACCEPTED"
-	UploadTaskArtifactConflictCodeDIARYTRANSFERPENDING           UploadTaskArtifactConflictCode = "DIARY_TRANSFER_PENDING"
-	UploadTaskArtifactConflictCodeDIARYTRANSFERNOTFOUND          UploadTaskArtifactConflictCode = "DIARY_TRANSFER_NOT_FOUND"
-	UploadTaskArtifactConflictCodeDIARYTRANSFERALREADYRESOLVED   UploadTaskArtifactConflictCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
-)
-
-// AllValues returns all UploadTaskArtifactConflictCode values.
-func (UploadTaskArtifactConflictCode) AllValues() []UploadTaskArtifactConflictCode {
-	return []UploadTaskArtifactConflictCode{
-		UploadTaskArtifactConflictCodeUNAUTHORIZED,
-		UploadTaskArtifactConflictCodeFORBIDDEN,
-		UploadTaskArtifactConflictCodeNOTFOUND,
-		UploadTaskArtifactConflictCodeCONFLICT,
-		UploadTaskArtifactConflictCodeVALIDATIONFAILED,
-		UploadTaskArtifactConflictCodeINVALIDCHALLENGE,
-		UploadTaskArtifactConflictCodeINVALIDSIGNATURE,
-		UploadTaskArtifactConflictCodeVOUCHERLIMIT,
-		UploadTaskArtifactConflictCodeRATELIMITEXCEEDED,
-		UploadTaskArtifactConflictCodeSERIALIZATIONEXHAUSTED,
-		UploadTaskArtifactConflictCodeSIGNINGREQUESTEXPIRED,
-		UploadTaskArtifactConflictCodeSIGNINGREQUESTALREADYCOMPLETED,
-		UploadTaskArtifactConflictCodeREGISTRATIONFAILED,
-		UploadTaskArtifactConflictCodeUPSTREAMERROR,
-		UploadTaskArtifactConflictCodeSERVICEUNAVAILABLE,
-		UploadTaskArtifactConflictCodeINTERNALSERVERERROR,
-		UploadTaskArtifactConflictCodeTEAMPERSONALIMMUTABLE,
-		UploadTaskArtifactConflictCodeTEAMNOTACTIVE,
-		UploadTaskArtifactConflictCodeINVITEEXPIRED,
-		UploadTaskArtifactConflictCodeINVITEEXHAUSTED,
-		UploadTaskArtifactConflictCodeTEAMLASTOWNER,
-		UploadTaskArtifactConflictCodeTEAMALREADYACTIVE,
-		UploadTaskArtifactConflictCodeTEAMNOTFOUNDING,
-		UploadTaskArtifactConflictCodeFOUNDINGALREADYACCEPTED,
-		UploadTaskArtifactConflictCodeDIARYTRANSFERPENDING,
-		UploadTaskArtifactConflictCodeDIARYTRANSFERNOTFOUND,
-		UploadTaskArtifactConflictCodeDIARYTRANSFERALREADYRESOLVED,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UploadTaskArtifactConflictCode) MarshalText() ([]byte, error) {
-	switch s {
-	case UploadTaskArtifactConflictCodeUNAUTHORIZED:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeFORBIDDEN:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeNOTFOUND:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeCONFLICT:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeVALIDATIONFAILED:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeINVALIDCHALLENGE:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeVOUCHERLIMIT:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeRATELIMITEXCEEDED:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeSERIALIZATIONEXHAUSTED:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeSIGNINGREQUESTEXPIRED:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeREGISTRATIONFAILED:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeUPSTREAMERROR:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeSERVICEUNAVAILABLE:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeINTERNALSERVERERROR:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeTEAMPERSONALIMMUTABLE:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeTEAMNOTACTIVE:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeINVITEEXPIRED:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeINVITEEXHAUSTED:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeTEAMLASTOWNER:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeTEAMALREADYACTIVE:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeTEAMNOTFOUNDING:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeFOUNDINGALREADYACCEPTED:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeDIARYTRANSFERPENDING:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeDIARYTRANSFERNOTFOUND:
-		return []byte(s), nil
-	case UploadTaskArtifactConflictCodeDIARYTRANSFERALREADYRESOLVED:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UploadTaskArtifactConflictCode) UnmarshalText(data []byte) error {
-	switch UploadTaskArtifactConflictCode(data) {
-	case UploadTaskArtifactConflictCodeUNAUTHORIZED:
-		*s = UploadTaskArtifactConflictCodeUNAUTHORIZED
-		return nil
-	case UploadTaskArtifactConflictCodeFORBIDDEN:
-		*s = UploadTaskArtifactConflictCodeFORBIDDEN
-		return nil
-	case UploadTaskArtifactConflictCodeNOTFOUND:
-		*s = UploadTaskArtifactConflictCodeNOTFOUND
-		return nil
-	case UploadTaskArtifactConflictCodeCONFLICT:
-		*s = UploadTaskArtifactConflictCodeCONFLICT
-		return nil
-	case UploadTaskArtifactConflictCodeVALIDATIONFAILED:
-		*s = UploadTaskArtifactConflictCodeVALIDATIONFAILED
-		return nil
-	case UploadTaskArtifactConflictCodeINVALIDCHALLENGE:
-		*s = UploadTaskArtifactConflictCodeINVALIDCHALLENGE
-		return nil
-	case UploadTaskArtifactConflictCodeINVALIDSIGNATURE:
-		*s = UploadTaskArtifactConflictCodeINVALIDSIGNATURE
-		return nil
-	case UploadTaskArtifactConflictCodeVOUCHERLIMIT:
-		*s = UploadTaskArtifactConflictCodeVOUCHERLIMIT
-		return nil
-	case UploadTaskArtifactConflictCodeRATELIMITEXCEEDED:
-		*s = UploadTaskArtifactConflictCodeRATELIMITEXCEEDED
-		return nil
-	case UploadTaskArtifactConflictCodeSERIALIZATIONEXHAUSTED:
-		*s = UploadTaskArtifactConflictCodeSERIALIZATIONEXHAUSTED
-		return nil
-	case UploadTaskArtifactConflictCodeSIGNINGREQUESTEXPIRED:
-		*s = UploadTaskArtifactConflictCodeSIGNINGREQUESTEXPIRED
-		return nil
-	case UploadTaskArtifactConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
-		*s = UploadTaskArtifactConflictCodeSIGNINGREQUESTALREADYCOMPLETED
-		return nil
-	case UploadTaskArtifactConflictCodeREGISTRATIONFAILED:
-		*s = UploadTaskArtifactConflictCodeREGISTRATIONFAILED
-		return nil
-	case UploadTaskArtifactConflictCodeUPSTREAMERROR:
-		*s = UploadTaskArtifactConflictCodeUPSTREAMERROR
-		return nil
-	case UploadTaskArtifactConflictCodeSERVICEUNAVAILABLE:
-		*s = UploadTaskArtifactConflictCodeSERVICEUNAVAILABLE
-		return nil
-	case UploadTaskArtifactConflictCodeINTERNALSERVERERROR:
-		*s = UploadTaskArtifactConflictCodeINTERNALSERVERERROR
-		return nil
-	case UploadTaskArtifactConflictCodeTEAMPERSONALIMMUTABLE:
-		*s = UploadTaskArtifactConflictCodeTEAMPERSONALIMMUTABLE
-		return nil
-	case UploadTaskArtifactConflictCodeTEAMNOTACTIVE:
-		*s = UploadTaskArtifactConflictCodeTEAMNOTACTIVE
-		return nil
-	case UploadTaskArtifactConflictCodeINVITEEXPIRED:
-		*s = UploadTaskArtifactConflictCodeINVITEEXPIRED
-		return nil
-	case UploadTaskArtifactConflictCodeINVITEEXHAUSTED:
-		*s = UploadTaskArtifactConflictCodeINVITEEXHAUSTED
-		return nil
-	case UploadTaskArtifactConflictCodeTEAMLASTOWNER:
-		*s = UploadTaskArtifactConflictCodeTEAMLASTOWNER
-		return nil
-	case UploadTaskArtifactConflictCodeTEAMALREADYACTIVE:
-		*s = UploadTaskArtifactConflictCodeTEAMALREADYACTIVE
-		return nil
-	case UploadTaskArtifactConflictCodeTEAMNOTFOUNDING:
-		*s = UploadTaskArtifactConflictCodeTEAMNOTFOUNDING
-		return nil
-	case UploadTaskArtifactConflictCodeFOUNDINGALREADYACCEPTED:
-		*s = UploadTaskArtifactConflictCodeFOUNDINGALREADYACCEPTED
-		return nil
-	case UploadTaskArtifactConflictCodeDIARYTRANSFERPENDING:
-		*s = UploadTaskArtifactConflictCodeDIARYTRANSFERPENDING
-		return nil
-	case UploadTaskArtifactConflictCodeDIARYTRANSFERNOTFOUND:
-		*s = UploadTaskArtifactConflictCodeDIARYTRANSFERNOTFOUND
-		return nil
-	case UploadTaskArtifactConflictCodeDIARYTRANSFERALREADYRESOLVED:
-		*s = UploadTaskArtifactConflictCodeDIARYTRANSFERALREADYRESOLVED
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type UploadTaskArtifactForbidden struct {
 	Code            UploadTaskArtifactForbiddenCode `json:"code"`
 	Detail          OptString                       `json:"detail"`
@@ -48672,7 +48412,6 @@ type UploadTaskArtifactOK struct {
 	ExpiresAt        NilDateTime `json:"expiresAt"`
 	ID               uuid.UUID   `json:"id"`
 	Kind             string      `json:"kind"`
-	SHA256           string      `json:"sha256"`
 	SizeBytes        int         `json:"sizeBytes"`
 	TaskId           uuid.UUID   `json:"taskId"`
 	TeamId           uuid.UUID   `json:"teamId"`
@@ -48722,11 +48461,6 @@ func (s *UploadTaskArtifactOK) GetID() uuid.UUID {
 // GetKind returns the value of Kind.
 func (s *UploadTaskArtifactOK) GetKind() string {
 	return s.Kind
-}
-
-// GetSHA256 returns the value of SHA256.
-func (s *UploadTaskArtifactOK) GetSHA256() string {
-	return s.SHA256
 }
 
 // GetSizeBytes returns the value of SizeBytes.
@@ -48792,11 +48526,6 @@ func (s *UploadTaskArtifactOK) SetID(val uuid.UUID) {
 // SetKind sets the value of Kind.
 func (s *UploadTaskArtifactOK) SetKind(val string) {
 	s.Kind = val
-}
-
-// SetSHA256 sets the value of SHA256.
-func (s *UploadTaskArtifactOK) SetSHA256(val string) {
-	s.SHA256 = val
 }
 
 // SetSizeBytes sets the value of SizeBytes.

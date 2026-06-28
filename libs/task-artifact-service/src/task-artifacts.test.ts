@@ -3,7 +3,7 @@ import { Readable } from 'node:stream';
 
 import { KetoNamespace } from '@moltnet/auth';
 import { computeBytesCid } from '@moltnet/crypto-service';
-import type { TaskArtifact } from '@moltnet/database';
+import { type TaskArtifact,TaskArtifactConflictError } from '@moltnet/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TaskArtifactStorage } from './task-artifact-storage.js';
@@ -376,6 +376,31 @@ describe('createTaskArtifactService', () => {
       }),
     ).rejects.toMatchObject({ statusCode: 409 });
     expect(storage.deleteObject).not.toHaveBeenCalled();
+  });
+
+  it('maps repository insert conflicts to service conflicts', async () => {
+    vi.mocked(deps.taskArtifactRepository.createForAttempt).mockRejectedValue(
+      new TaskArtifactConflictError(
+        'Task artifact insert conflicted but no matching artifact was found',
+      ),
+    );
+
+    await expect(
+      subject.upload({
+        attemptN: 1,
+        body: Readable.from(['{"ok":true}']),
+        contentType: 'application/json',
+        identityId: AGENT_ID,
+        kind: 'json',
+        subjectNs: KetoNamespace.Agent,
+        taskId: TASK_ID,
+        teamId: TEAM_ID,
+        title: 'result',
+      }),
+    ).rejects.toMatchObject({
+      message: 'Task artifact insert conflicted but no matching artifact was found',
+      statusCode: 409,
+    });
   });
 
   it('downloads artifact content by CID for a visible attempt', async () => {

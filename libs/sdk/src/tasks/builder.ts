@@ -45,7 +45,7 @@ export type ArtifactReferenceSource =
       taskId: string | null;
       outputCid: string;
       artifactCid: string;
-      attemptN?: number;
+      attemptN: number;
       kind?: string;
       title?: string;
       contentType?: string;
@@ -275,14 +275,25 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
           message: 'artifact reference is missing required cid',
         });
       }
+      if (
+        typeof s.attemptN !== 'number' ||
+        !Number.isInteger(s.attemptN) ||
+        s.attemptN < 1
+      ) {
+        errors.push({
+          field: 'references/artifact/attemptN',
+          message: 'artifact reference is missing required attemptN',
+        });
+      }
       if (errors.length > 0) throw new TaskBuildError(errors);
+      const attemptN = s.attemptN as number;
       ref = {
         taskId: s.taskId ?? null,
         outputCid: s.outputCid as string,
         role,
         artifact: {
           cid: s.artifactCid as string,
-          ...(s.attemptN !== undefined ? { attemptN: s.attemptN } : {}),
+          attemptN,
           ...(s.kind ? { kind: s.kind } : {}),
           ...(s.title ? { title: s.title } : {}),
           ...(s.contentType ? { contentType: s.contentType } : {}),

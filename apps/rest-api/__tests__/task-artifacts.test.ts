@@ -168,9 +168,7 @@ describe('task artifact routes', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['x-moltnet-task-artifact-cid']).toBe(artifact.cid);
-    expect(response.headers['x-moltnet-task-artifact-sha256']).toBe(
-      artifact.sha256,
-    );
+    expect(response.headers['x-moltnet-task-artifact-sha256']).toBeUndefined();
     expect(response.headers['x-moltnet-task-artifact-content-type']).toBe(
       'text/plain',
     );

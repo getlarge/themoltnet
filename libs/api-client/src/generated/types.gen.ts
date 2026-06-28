@@ -1997,7 +1997,7 @@ export type Task = {
   queuedAt: string;
   references: Array<{
     artifact?: {
-      attemptN?: number;
+      attemptN: number;
       cid: string;
       contentType?: string;
       kind?: string;
@@ -2046,7 +2046,6 @@ export type TaskArtifact = {
   expiresAt: string | null;
   id: string;
   kind: string;
-  sha256: string;
   sizeBytes: number;
   taskId: string;
   teamId: string;
@@ -2080,7 +2079,6 @@ export type TaskArtifactList = {
     expiresAt: string | null;
     id: string;
     kind: string;
-    sha256: string;
     sizeBytes: number;
     taskId: string;
     teamId: string;
@@ -2205,7 +2203,7 @@ export type TaskParams = {
 
 export type TaskRef = {
   artifact?: {
-    attemptN?: number;
+    attemptN: number;
     cid: string;
     contentType?: string;
     kind?: string;
@@ -10152,7 +10150,6 @@ export type ListTaskArtifactsResponses = {
       expiresAt: string | null;
       id: string;
       kind: string;
-      sha256: string;
       sizeBytes: number;
       taskId: string;
       teamId: string;
@@ -10479,73 +10476,7 @@ export type UploadTaskArtifactErrors = {
   /**
    * Default Response
    */
-  409: {
-    code:
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED';
-    detail?: string;
-    instance?: string;
-    status: number;
-    title: string;
-    type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | undefined;
-  };
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -10635,7 +10566,6 @@ export type UploadTaskArtifactResponses = {
     expiresAt: string | null;
     id: string;
     kind: string;
-    sha256: string;
     sizeBytes: number;
     taskId: string;
     teamId: string;

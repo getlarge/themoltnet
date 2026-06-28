@@ -20,7 +20,7 @@ import {
   validateTaskCreateRequest,
   validateTaskOutput,
 } from './validation.js';
-import { DaemonState, TaskAttempt } from './wire.js';
+import { DaemonState, TaskAttempt, TaskRef } from './wire.js';
 
 describe('validateTaskCreateRequest', () => {
   it('rejects prototype task type keys as unknown', () => {
@@ -210,6 +210,39 @@ describe('validateTaskCreateRequest', () => {
       artifacts: [{ kind: 'markdown', title: 'report', body }],
     });
     expect(errors.length).toBeGreaterThan(0);
+  });
+});
+
+describe('TaskRef artifact metadata', () => {
+  const baseRef = {
+    taskId: '11111111-1111-4111-8111-111111111111',
+    outputCid: 'bafkreioutput',
+    role: 'context',
+  };
+
+  it('requires attemptN when a task reference points at an artifact', () => {
+    expect(
+      Value.Check(TaskRef, {
+        ...baseRef,
+        artifact: {
+          cid: 'bafkreiartifact',
+          kind: 'report',
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it('accepts artifact references with an explicit producing attempt', () => {
+    expect(
+      Value.Check(TaskRef, {
+        ...baseRef,
+        artifact: {
+          attemptN: 1,
+          cid: 'bafkreiartifact',
+          kind: 'report',
+        },
+      }),
+    ).toBe(true);
   });
 });
 

@@ -147,6 +147,7 @@ export {
   decodeTaskArtifactCursor,
   type ListTaskArtifactsInput,
   type ListTaskArtifactsResult,
+  TaskArtifactConflictError,
   type TaskArtifactRepository,
 } from './repositories/task-artifact.repository.js';
 export {

@@ -226,7 +226,7 @@ export const TaskRef = Type.Object(
       Type.Object(
         {
           cid: Cid,
-          attemptN: Type.Optional(Type.Integer({ minimum: 1 })),
+          attemptN: Type.Integer({ minimum: 1 }),
           kind: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
           title: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
           contentType: Type.Optional(

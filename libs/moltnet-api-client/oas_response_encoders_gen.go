@@ -2517,15 +2517,80 @@ func encodeDownloadRuntimeSessionResponse(response DownloadRuntimeSessionRes, w 
 
 func encodeDownloadTaskArtifactResponse(response DownloadTaskArtifactRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
-	case *DownloadTaskArtifactOK:
+	case *DownloadTaskArtifactOKHeaders:
 		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Access-Control-Expose-Headers", "X-Moltnet-Task-Artifact-Cid,X-Moltnet-Task-Artifact-Content-Encoding,X-Moltnet-Task-Artifact-Content-Type,X-Moltnet-Task-Artifact-Id")
+		// Encoding response headers.
+		{
+			h := uri.NewHeaderEncoder(w.Header())
+			// Encode "x-moltnet-task-artifact-cid" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "x-moltnet-task-artifact-cid",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.XMoltnetTaskArtifactCid.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode x-moltnet-task-artifact-cid header")
+				}
+			}
+			// Encode "x-moltnet-task-artifact-content-encoding" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "x-moltnet-task-artifact-content-encoding",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.XMoltnetTaskArtifactContentEncoding.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode x-moltnet-task-artifact-content-encoding header")
+				}
+			}
+			// Encode "x-moltnet-task-artifact-content-type" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "x-moltnet-task-artifact-content-type",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.XMoltnetTaskArtifactContentType.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode x-moltnet-task-artifact-content-type header")
+				}
+			}
+			// Encode "x-moltnet-task-artifact-id" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "x-moltnet-task-artifact-id",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.XMoltnetTaskArtifactID.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode x-moltnet-task-artifact-id header")
+				}
+			}
+		}
 		w.WriteHeader(200)
 
 		writer := w
-		if closer, ok := response.Data.(io.Closer); ok {
+		if closer, ok := response.Response.Data.(io.Closer); ok {
 			defer closer.Close()
 		}
-		if _, err := io.Copy(writer, response); err != nil {
+		if _, err := io.Copy(writer, response.Response); err != nil {
 			return errors.Wrap(err, "write")
 		}
 
@@ -7754,7 +7819,7 @@ func encodeUploadTaskArtifactResponse(response UploadTaskArtifactRes, w http.Res
 
 		return nil
 
-	case *UploadTaskArtifactConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 

@@ -12,6 +12,7 @@ import type {
   TaskArtifactRepository,
   TaskRepository,
 } from '@moltnet/database';
+import { TaskArtifactConflictError } from '@moltnet/database';
 import { decodeTaskArtifactCursor } from '@moltnet/database';
 
 import {
@@ -226,6 +227,9 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
         if (err instanceof TaskArtifactStorageNotConfiguredError) {
           throw new TaskArtifactServiceError(503, err.message);
         }
+        if (err instanceof TaskArtifactConflictError) {
+          throw new TaskArtifactServiceError(409, err.message);
+        }
         if (!(err instanceof TaskArtifactServiceError)) {
           deps.logger.warn(
             { objectKey, err },
@@ -315,7 +319,6 @@ function artifactMetadataMatches(
     existing.contentType === input.contentType &&
     (existing.contentEncoding ?? null) === (input.contentEncoding ?? null) &&
     existing.sizeBytes === input.sizeBytes &&
-    existing.sha256 === input.sha256 &&
     existing.createdByAgentId === input.createdByAgentId
   );
 }
@@ -331,7 +334,6 @@ export function serializeTaskArtifact(artifact: TaskArtifact) {
     contentType: artifact.contentType,
     contentEncoding: artifact.contentEncoding ?? null,
     sizeBytes: artifact.sizeBytes,
-    sha256: artifact.sha256,
     cid: artifact.cid,
     createdByAgentId: artifact.createdByAgentId,
     expiresAt: artifact.expiresAt?.toISOString() ?? null,

@@ -948,7 +948,7 @@ export function createMoltNetTools(
     description:
       'Upload a file from the current task workspace as an immutable task artifact. ' +
       'Only available during an active task attempt; the tool attaches the artifact ' +
-      'to the active taskId/attemptN and returns metadata including cid, sha256, ' +
+      'to the active taskId/attemptN and returns metadata including cid, ' +
       'sizeBytes, kind, and title. Use this for large logs, reports, build outputs, ' +
       'screenshots, generated files, or other bytes that should be referenced by CID ' +
       'instead of pasted into structured task output.',
@@ -1031,7 +1031,7 @@ export function createMoltNetTools(
     label: 'List MoltNet Task Artifacts',
     description:
       'List immutable artifacts attached to a task, including each artifact CID, ' +
-      'attempt number, kind, title, content type, sha256, size, uploader, and creation time. ' +
+      'attempt number, kind, title, content type, size, uploader, and creation time. ' +
       'Use this when judging or continuing work that references task artifacts.',
     parameters: Type.Object({
       taskId: Type.Optional(
@@ -1147,7 +1147,6 @@ export function createMoltNetTools(
                 attemptN: params.attemptN,
                 cid: params.cid,
                 artifactId: download.artifactId,
-                sha256: download.sha256,
                 contentType: download.contentType,
                 contentEncoding: download.contentEncoding,
                 outputPath: path.relative(cwd, outputPath),

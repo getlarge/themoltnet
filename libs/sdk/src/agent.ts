@@ -681,7 +681,6 @@ export interface TaskArtifactDownload {
   cid: string | null;
   contentEncoding: string | null;
   contentType: string | null;
-  sha256: string | null;
   stream: AsyncIterable<Uint8Array>;
 }
 

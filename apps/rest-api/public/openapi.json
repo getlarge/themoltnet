@@ -9127,7 +9127,8 @@
                     }
                   },
                   "required": [
-                    "cid"
+                    "cid",
+                    "attemptN"
                   ],
                   "type": "object"
                 },
@@ -9435,11 +9436,6 @@
             "minLength": 1,
             "type": "string"
           },
-          "sha256": {
-            "maxLength": 64,
-            "minLength": 64,
-            "type": "string"
-          },
           "sizeBytes": {
             "minimum": 0,
             "type": "integer"
@@ -9468,7 +9464,6 @@
           "contentType",
           "contentEncoding",
           "sizeBytes",
-          "sha256",
           "cid",
           "createdByAgentId",
           "expiresAt",
@@ -9582,11 +9577,6 @@
                   "minLength": 1,
                   "type": "string"
                 },
-                "sha256": {
-                  "maxLength": 64,
-                  "minLength": 64,
-                  "type": "string"
-                },
                 "sizeBytes": {
                   "minimum": 0,
                   "type": "integer"
@@ -9615,7 +9605,6 @@
                 "contentType",
                 "contentEncoding",
                 "sizeBytes",
-                "sha256",
                 "cid",
                 "createdByAgentId",
                 "expiresAt",
@@ -10234,7 +10223,8 @@
               }
             },
             "required": [
-              "cid"
+              "cid",
+              "attemptN"
             ],
             "type": "object"
           },
@@ -31825,11 +31815,6 @@
                             "minLength": 1,
                             "type": "string"
                           },
-                          "sha256": {
-                            "maxLength": 64,
-                            "minLength": 64,
-                            "type": "string"
-                          },
                           "sizeBytes": {
                             "minimum": 0,
                             "type": "integer"
@@ -31858,7 +31843,6 @@
                           "contentType",
                           "contentEncoding",
                           "sizeBytes",
-                          "sha256",
                           "cid",
                           "createdByAgentId",
                           "expiresAt",
@@ -32899,11 +32883,6 @@
                       "minLength": 1,
                       "type": "string"
                     },
-                    "sha256": {
-                      "maxLength": 64,
-                      "minLength": 64,
-                      "type": "string"
-                    },
                     "sizeBytes": {
                       "minimum": 0,
                       "type": "integer"
@@ -32932,7 +32911,6 @@
                     "contentType",
                     "contentEncoding",
                     "sizeBytes",
-                    "sha256",
                     "cid",
                     "createdByAgentId",
                     "expiresAt",
@@ -33794,200 +33772,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "properties": {
-                    "code": {
-                      "anyOf": [
-                        {
-                          "enum": [
-                            "UNAUTHORIZED"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "FORBIDDEN"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "NOT_FOUND"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "CONFLICT"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "VALIDATION_FAILED"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "INVALID_CHALLENGE"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "INVALID_SIGNATURE"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "VOUCHER_LIMIT"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "RATE_LIMIT_EXCEEDED"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "SERIALIZATION_EXHAUSTED"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "SIGNING_REQUEST_EXPIRED"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "SIGNING_REQUEST_ALREADY_COMPLETED"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "REGISTRATION_FAILED"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "UPSTREAM_ERROR"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "SERVICE_UNAVAILABLE"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "INTERNAL_SERVER_ERROR"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "TEAM_PERSONAL_IMMUTABLE"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "TEAM_NOT_ACTIVE"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "INVITE_EXPIRED"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "INVITE_EXHAUSTED"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "TEAM_LAST_OWNER"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "TEAM_ALREADY_ACTIVE"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "TEAM_NOT_FOUNDING"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "FOUNDING_ALREADY_ACCEPTED"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "DIARY_TRANSFER_PENDING"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "DIARY_TRANSFER_NOT_FOUND"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "DIARY_TRANSFER_ALREADY_RESOLVED"
-                          ],
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "instance": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "maximum": 599,
-                      "minimum": 100,
-                      "type": "integer"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "type": {
-                      "format": "uri",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "title",
-                    "status",
-                    "code"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
                 }
               }
             },
@@ -34268,7 +34053,33 @@
                 }
               }
             },
-            "description": "Task artifact content stream."
+            "description": "Task artifact content stream.",
+            "headers": {
+              "x-moltnet-task-artifact-cid": {
+                "description": "CIDv1 raw-bytes identifier for the artifact.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-moltnet-task-artifact-content-encoding": {
+                "description": "Content encoding recorded at upload time, empty when unset.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-moltnet-task-artifact-content-type": {
+                "description": "Content type recorded at upload time.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-moltnet-task-artifact-id": {
+                "description": "Artifact metadata row id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "content": {

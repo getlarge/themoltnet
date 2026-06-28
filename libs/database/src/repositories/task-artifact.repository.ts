@@ -45,6 +45,13 @@ export interface CreateTaskArtifactResult {
   created: boolean;
 }
 
+export class TaskArtifactConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TaskArtifactConflictError';
+  }
+}
+
 export function createTaskArtifactRepository(db: Database) {
   async function findExistingForAttempt(
     input: Pick<
@@ -88,7 +95,9 @@ export function createTaskArtifactRepository(db: Database) {
       }
       const existing = await findExistingForAttempt(input);
       if (!existing) {
-        throw new Error('failed to insert task artifact');
+        throw new TaskArtifactConflictError(
+          'Task artifact insert conflicted but no matching artifact was found',
+        );
       }
       return { artifact: existing, created: false };
     },

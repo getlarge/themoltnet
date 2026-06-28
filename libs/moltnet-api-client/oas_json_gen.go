@@ -51335,10 +51335,6 @@ func (s *ListTaskArtifactsOKArtifactsItem) encodeFields(e *jx.Encoder) {
 		e.Str(s.Kind)
 	}
 	{
-		e.FieldStart("sha256")
-		e.Str(s.SHA256)
-	}
-	{
 		e.FieldStart("sizeBytes")
 		e.Int(s.SizeBytes)
 	}
@@ -51356,7 +51352,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfListTaskArtifactsOKArtifactsItem = [14]string{
+var jsonFieldsNameOfListTaskArtifactsOKArtifactsItem = [13]string{
 	0:  "attemptN",
 	1:  "cid",
 	2:  "contentEncoding",
@@ -51366,11 +51362,10 @@ var jsonFieldsNameOfListTaskArtifactsOKArtifactsItem = [14]string{
 	6:  "expiresAt",
 	7:  "id",
 	8:  "kind",
-	9:  "sha256",
-	10: "sizeBytes",
-	11: "taskId",
-	12: "teamId",
-	13: "title",
+	9:  "sizeBytes",
+	10: "taskId",
+	11: "teamId",
+	12: "title",
 }
 
 // Decode decodes ListTaskArtifactsOKArtifactsItem from json.
@@ -51486,20 +51481,8 @@ func (s *ListTaskArtifactsOKArtifactsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"kind\"")
 			}
-		case "sha256":
-			requiredBitSet[1] |= 1 << 1
-			if err := func() error {
-				v, err := d.Str()
-				s.SHA256 = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sha256\"")
-			}
 		case "sizeBytes":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Int()
 				s.SizeBytes = int(v)
@@ -51511,7 +51494,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sizeBytes\"")
 			}
 		case "taskId":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TaskId = v
@@ -51523,7 +51506,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskId\"")
 			}
 		case "teamId":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -51535,7 +51518,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "title":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -51557,7 +51540,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00111111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -81530,10 +81513,8 @@ func (s *TaskRefArtifact) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *TaskRefArtifact) encodeFields(e *jx.Encoder) {
 	{
-		if s.AttemptN.Set {
-			e.FieldStart("attemptN")
-			s.AttemptN.Encode(e)
-		}
+		e.FieldStart("attemptN")
+		e.Int(s.AttemptN)
 	}
 	{
 		e.FieldStart("cid")
@@ -81577,9 +81558,11 @@ func (s *TaskRefArtifact) Decode(d *jx.Decoder) error {
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
 		case "attemptN":
+			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				s.AttemptN.Reset()
-				if err := s.AttemptN.Decode(d); err != nil {
+				v, err := d.Int()
+				s.AttemptN = int(v)
+				if err != nil {
 					return err
 				}
 				return nil
@@ -81638,7 +81621,7 @@ func (s *TaskRefArtifact) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000010,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -82119,10 +82102,8 @@ func (s *TaskReferencesItemArtifact) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *TaskReferencesItemArtifact) encodeFields(e *jx.Encoder) {
 	{
-		if s.AttemptN.Set {
-			e.FieldStart("attemptN")
-			s.AttemptN.Encode(e)
-		}
+		e.FieldStart("attemptN")
+		e.Int(s.AttemptN)
 	}
 	{
 		e.FieldStart("cid")
@@ -82166,9 +82147,11 @@ func (s *TaskReferencesItemArtifact) Decode(d *jx.Decoder) error {
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
 		case "attemptN":
+			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				s.AttemptN.Reset()
-				if err := s.AttemptN.Decode(d); err != nil {
+				v, err := d.Int()
+				s.AttemptN = int(v)
+				if err != nil {
 					return err
 				}
 				return nil
@@ -82227,7 +82210,7 @@ func (s *TaskReferencesItemArtifact) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000010,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -90980,352 +90963,6 @@ func (s *UploadTaskArtifactBadRequestErrorsItem) UnmarshalJSON(data []byte) erro
 }
 
 // Encode implements json.Marshaler.
-func (s *UploadTaskArtifactConflict) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *UploadTaskArtifactConflict) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("code")
-		s.Code.Encode(e)
-	}
-	{
-		if s.Detail.Set {
-			e.FieldStart("detail")
-			s.Detail.Encode(e)
-		}
-	}
-	{
-		if s.Instance.Set {
-			e.FieldStart("instance")
-			s.Instance.Encode(e)
-		}
-	}
-	{
-		e.FieldStart("status")
-		e.Int(s.Status)
-	}
-	{
-		e.FieldStart("title")
-		e.Str(s.Title)
-	}
-	{
-		e.FieldStart("type")
-		json.EncodeURI(e, s.Type)
-	}
-	for k, elem := range s.AdditionalProps {
-		e.FieldStart(k)
-
-		if len(elem) != 0 {
-			e.Raw(elem)
-		}
-	}
-}
-
-var jsonFieldsNameOfUploadTaskArtifactConflict = [6]string{
-	0: "code",
-	1: "detail",
-	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-}
-
-// Decode decodes UploadTaskArtifactConflict from json.
-func (s *UploadTaskArtifactConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UploadTaskArtifactConflict to nil")
-	}
-	var requiredBitSet [1]uint8
-	s.AdditionalProps = map[string]jx.Raw{}
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "code":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				if err := s.Code.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"code\"")
-			}
-		case "detail":
-			if err := func() error {
-				s.Detail.Reset()
-				if err := s.Detail.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"detail\"")
-			}
-		case "instance":
-			if err := func() error {
-				s.Instance.Reset()
-				if err := s.Instance.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"instance\"")
-			}
-		case "status":
-			requiredBitSet[0] |= 1 << 3
-			if err := func() error {
-				v, err := d.Int()
-				s.Status = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"status\"")
-			}
-		case "title":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				v, err := d.Str()
-				s.Title = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"title\"")
-			}
-		case "type":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				v, err := json.DecodeURI(d)
-				s.Type = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"type\"")
-			}
-		default:
-			var elem jx.Raw
-			if err := func() error {
-				v, err := d.RawAppend(nil)
-				elem = jx.Raw(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrapf(err, "decode field %q", k)
-			}
-			s.AdditionalProps[string(k)] = elem
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode UploadTaskArtifactConflict")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00111001,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfUploadTaskArtifactConflict) {
-					name = jsonFieldsNameOfUploadTaskArtifactConflict[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *UploadTaskArtifactConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UploadTaskArtifactConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s UploadTaskArtifactConflictAdditional) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields implements json.Marshaler.
-func (s UploadTaskArtifactConflictAdditional) encodeFields(e *jx.Encoder) {
-	for k, elem := range s {
-		e.FieldStart(k)
-
-		if len(elem) != 0 {
-			e.Raw(elem)
-		}
-	}
-}
-
-// Decode decodes UploadTaskArtifactConflictAdditional from json.
-func (s *UploadTaskArtifactConflictAdditional) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UploadTaskArtifactConflictAdditional to nil")
-	}
-	m := s.init()
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		var elem jx.Raw
-		if err := func() error {
-			v, err := d.RawAppend(nil)
-			elem = jx.Raw(v)
-			if err != nil {
-				return err
-			}
-			return nil
-		}(); err != nil {
-			return errors.Wrapf(err, "decode field %q", k)
-		}
-		m[string(k)] = elem
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode UploadTaskArtifactConflictAdditional")
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s UploadTaskArtifactConflictAdditional) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UploadTaskArtifactConflictAdditional) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes UploadTaskArtifactConflictCode as json.
-func (s UploadTaskArtifactConflictCode) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes UploadTaskArtifactConflictCode from json.
-func (s *UploadTaskArtifactConflictCode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UploadTaskArtifactConflictCode to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch UploadTaskArtifactConflictCode(v) {
-	case UploadTaskArtifactConflictCodeUNAUTHORIZED:
-		*s = UploadTaskArtifactConflictCodeUNAUTHORIZED
-	case UploadTaskArtifactConflictCodeFORBIDDEN:
-		*s = UploadTaskArtifactConflictCodeFORBIDDEN
-	case UploadTaskArtifactConflictCodeNOTFOUND:
-		*s = UploadTaskArtifactConflictCodeNOTFOUND
-	case UploadTaskArtifactConflictCodeCONFLICT:
-		*s = UploadTaskArtifactConflictCodeCONFLICT
-	case UploadTaskArtifactConflictCodeVALIDATIONFAILED:
-		*s = UploadTaskArtifactConflictCodeVALIDATIONFAILED
-	case UploadTaskArtifactConflictCodeINVALIDCHALLENGE:
-		*s = UploadTaskArtifactConflictCodeINVALIDCHALLENGE
-	case UploadTaskArtifactConflictCodeINVALIDSIGNATURE:
-		*s = UploadTaskArtifactConflictCodeINVALIDSIGNATURE
-	case UploadTaskArtifactConflictCodeVOUCHERLIMIT:
-		*s = UploadTaskArtifactConflictCodeVOUCHERLIMIT
-	case UploadTaskArtifactConflictCodeRATELIMITEXCEEDED:
-		*s = UploadTaskArtifactConflictCodeRATELIMITEXCEEDED
-	case UploadTaskArtifactConflictCodeSERIALIZATIONEXHAUSTED:
-		*s = UploadTaskArtifactConflictCodeSERIALIZATIONEXHAUSTED
-	case UploadTaskArtifactConflictCodeSIGNINGREQUESTEXPIRED:
-		*s = UploadTaskArtifactConflictCodeSIGNINGREQUESTEXPIRED
-	case UploadTaskArtifactConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
-		*s = UploadTaskArtifactConflictCodeSIGNINGREQUESTALREADYCOMPLETED
-	case UploadTaskArtifactConflictCodeREGISTRATIONFAILED:
-		*s = UploadTaskArtifactConflictCodeREGISTRATIONFAILED
-	case UploadTaskArtifactConflictCodeUPSTREAMERROR:
-		*s = UploadTaskArtifactConflictCodeUPSTREAMERROR
-	case UploadTaskArtifactConflictCodeSERVICEUNAVAILABLE:
-		*s = UploadTaskArtifactConflictCodeSERVICEUNAVAILABLE
-	case UploadTaskArtifactConflictCodeINTERNALSERVERERROR:
-		*s = UploadTaskArtifactConflictCodeINTERNALSERVERERROR
-	case UploadTaskArtifactConflictCodeTEAMPERSONALIMMUTABLE:
-		*s = UploadTaskArtifactConflictCodeTEAMPERSONALIMMUTABLE
-	case UploadTaskArtifactConflictCodeTEAMNOTACTIVE:
-		*s = UploadTaskArtifactConflictCodeTEAMNOTACTIVE
-	case UploadTaskArtifactConflictCodeINVITEEXPIRED:
-		*s = UploadTaskArtifactConflictCodeINVITEEXPIRED
-	case UploadTaskArtifactConflictCodeINVITEEXHAUSTED:
-		*s = UploadTaskArtifactConflictCodeINVITEEXHAUSTED
-	case UploadTaskArtifactConflictCodeTEAMLASTOWNER:
-		*s = UploadTaskArtifactConflictCodeTEAMLASTOWNER
-	case UploadTaskArtifactConflictCodeTEAMALREADYACTIVE:
-		*s = UploadTaskArtifactConflictCodeTEAMALREADYACTIVE
-	case UploadTaskArtifactConflictCodeTEAMNOTFOUNDING:
-		*s = UploadTaskArtifactConflictCodeTEAMNOTFOUNDING
-	case UploadTaskArtifactConflictCodeFOUNDINGALREADYACCEPTED:
-		*s = UploadTaskArtifactConflictCodeFOUNDINGALREADYACCEPTED
-	case UploadTaskArtifactConflictCodeDIARYTRANSFERPENDING:
-		*s = UploadTaskArtifactConflictCodeDIARYTRANSFERPENDING
-	case UploadTaskArtifactConflictCodeDIARYTRANSFERNOTFOUND:
-		*s = UploadTaskArtifactConflictCodeDIARYTRANSFERNOTFOUND
-	case UploadTaskArtifactConflictCodeDIARYTRANSFERALREADYRESOLVED:
-		*s = UploadTaskArtifactConflictCodeDIARYTRANSFERALREADYRESOLVED
-	default:
-		*s = UploadTaskArtifactConflictCode(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s UploadTaskArtifactConflictCode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UploadTaskArtifactConflictCode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
 func (s *UploadTaskArtifactForbidden) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -92063,10 +91700,6 @@ func (s *UploadTaskArtifactOK) encodeFields(e *jx.Encoder) {
 		e.Str(s.Kind)
 	}
 	{
-		e.FieldStart("sha256")
-		e.Str(s.SHA256)
-	}
-	{
 		e.FieldStart("sizeBytes")
 		e.Int(s.SizeBytes)
 	}
@@ -92084,7 +91717,7 @@ func (s *UploadTaskArtifactOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadTaskArtifactOK = [14]string{
+var jsonFieldsNameOfUploadTaskArtifactOK = [13]string{
 	0:  "attemptN",
 	1:  "cid",
 	2:  "contentEncoding",
@@ -92094,11 +91727,10 @@ var jsonFieldsNameOfUploadTaskArtifactOK = [14]string{
 	6:  "expiresAt",
 	7:  "id",
 	8:  "kind",
-	9:  "sha256",
-	10: "sizeBytes",
-	11: "taskId",
-	12: "teamId",
-	13: "title",
+	9:  "sizeBytes",
+	10: "taskId",
+	11: "teamId",
+	12: "title",
 }
 
 // Decode decodes UploadTaskArtifactOK from json.
@@ -92214,20 +91846,8 @@ func (s *UploadTaskArtifactOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"kind\"")
 			}
-		case "sha256":
-			requiredBitSet[1] |= 1 << 1
-			if err := func() error {
-				v, err := d.Str()
-				s.SHA256 = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sha256\"")
-			}
 		case "sizeBytes":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Int()
 				s.SizeBytes = int(v)
@@ -92239,7 +91859,7 @@ func (s *UploadTaskArtifactOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sizeBytes\"")
 			}
 		case "taskId":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TaskId = v
@@ -92251,7 +91871,7 @@ func (s *UploadTaskArtifactOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskId\"")
 			}
 		case "teamId":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -92263,7 +91883,7 @@ func (s *UploadTaskArtifactOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "title":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -92285,7 +91905,7 @@ func (s *UploadTaskArtifactOK) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00111111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
