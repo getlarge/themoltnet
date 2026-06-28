@@ -1,0 +1,163 @@
+:root {
+  color-scheme: light;
+  accent-color: #00b3a4;
+
+  --moltnet-ink: #15171a;
+  --moltnet-muted: #626a73;
+  --moltnet-page: #f4f6f8;
+  --moltnet-surface: #ffffff;
+  --moltnet-surface-raised: #fbfcfd;
+  --moltnet-border: #d9e0e7;
+  --moltnet-border-strong: #bac6d0;
+  --moltnet-teal: #00b3a4;
+  --moltnet-teal-dark: #007f76;
+  --moltnet-green: #42b883;
+  --moltnet-red: #e5484d;
+  --moltnet-yellow: #e6a700;
+  --moltnet-blue: #2f80ed;
+
+  --red-ui-primary-font:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  --red-ui-monospace-font:
+    'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  --red-ui-primary-background: var(--moltnet-page);
+  --red-ui-secondary-background: var(--moltnet-surface);
+  --red-ui-secondary-background-selected: #e8f8f6;
+  --red-ui-secondary-background-inactive: #eef2f5;
+  --red-ui-secondary-background-hover: #edf7f6;
+  --red-ui-secondary-background-disabled: #f1f4f6;
+  --red-ui-tertiary-background: var(--moltnet-surface-raised);
+  --red-ui-primary-text-color: var(--moltnet-ink);
+  --red-ui-secondary-text-color: var(--moltnet-muted);
+  --red-ui-secondary-text-color-focus: var(--moltnet-teal-dark);
+  --red-ui-secondary-text-color-hover: var(--moltnet-teal-dark);
+  --red-ui-secondary-text-color-active: var(--moltnet-teal-dark);
+  --red-ui-secondary-text-color-selected: var(--moltnet-ink);
+  --red-ui-tertiary-text-color: #7a828a;
+  --red-ui-header-text-color: #f8fbfb;
+  --red-ui-text-color-error: var(--moltnet-red);
+  --red-ui-text-color-warning: #9d6a00;
+  --red-ui-text-color-success: #19704e;
+  --red-ui-text-color-code: var(--moltnet-teal-dark);
+  --red-ui-text-color-link: var(--moltnet-teal-dark);
+  --red-ui-primary-border-color: var(--moltnet-border);
+  --red-ui-secondary-border-color: #e5ebf0;
+  --red-ui-tertiary-border-color: var(--moltnet-border-strong);
+  --red-ui-form-input-focus-color: var(--moltnet-teal);
+  --red-ui-form-input-border-selected-color: var(--moltnet-teal);
+  --red-ui-list-item-background-selected: #dff7f4;
+  --red-ui-list-item-border-selected: var(--moltnet-teal-dark);
+  --red-ui-tab-background: var(--moltnet-surface);
+  --red-ui-tab-background-active: var(--moltnet-surface);
+  --red-ui-tab-background-selected: #e8f8f6;
+  --red-ui-tab-background-inactive: #eef2f5;
+  --red-ui-tab-background-hover: #edf7f6;
+  --red-ui-tab-text-color-active: var(--moltnet-ink);
+  --red-ui-tab-text-color-inactive: var(--moltnet-muted);
+  --red-ui-tab-badge-color: var(--moltnet-teal-dark);
+  --red-ui-tab-icon-color: var(--moltnet-teal);
+  --red-ui-palette-header-background: #edf2f5;
+  --red-ui-palette-header-color: var(--moltnet-ink);
+  --red-ui-palette-content-background: var(--moltnet-surface);
+  --red-ui-workspace-button-background: var(--moltnet-surface);
+  --red-ui-workspace-button-background-hover: #edf7f6;
+  --red-ui-workspace-button-background-active: #dff7f4;
+  --red-ui-workspace-button-background-selected: var(--moltnet-teal-dark);
+  --red-ui-workspace-button-border-selected: var(--moltnet-teal-dark);
+  --red-ui-workspace-button-color: var(--moltnet-muted);
+  --red-ui-workspace-button-color-hover: var(--moltnet-teal-dark);
+  --red-ui-workspace-button-color-selected: #ffffff;
+  --red-ui-workspace-button-color-primary: #ffffff;
+  --red-ui-workspace-button-background-primary: var(--moltnet-teal-dark);
+  --red-ui-workspace-button-background-primary-hover: #006960;
+  --red-ui-workspace-button-color-focus-outline: var(--moltnet-teal);
+  --red-ui-header-background: #11181c;
+  --red-ui-header-accent: var(--moltnet-teal);
+  --red-ui-header-button-background: #11181c;
+  --red-ui-header-button-background-hover: #1c272d;
+  --red-ui-header-button-background-active: #223139;
+  --red-ui-header-button-border: #293940;
+  --red-ui-header-menu-color: #f8fbfb;
+  --red-ui-header-menu-heading-color: #ffffff;
+  --red-ui-header-menu-background: #182228;
+  --red-ui-header-menu-item-hover: #223139;
+  --red-ui-deploy-button-color: #ffffff;
+  --red-ui-deploy-button-background: var(--moltnet-teal-dark);
+  --red-ui-deploy-button-background-hover: #006960;
+  --red-ui-deploy-button-background-active: #00554f;
+  --red-ui-deploy-button-border-color: #00554f;
+  --red-ui-menuActiveColor: var(--moltnet-teal-dark);
+  --red-ui-menuActiveBackground: #dff7f4;
+  --red-ui-menuHoverColor: var(--moltnet-ink);
+  --red-ui-menuHoverBackground: #edf7f6;
+  --red-ui-view-background: #fbfcfd;
+  --red-ui-view-grid-color: #e7edf1;
+  --red-ui-view-lasso-stroke: var(--moltnet-teal-dark);
+  --red-ui-view-lasso-fill: rgba(0, 179, 164, 0.12);
+  --red-ui-node-selected-color: var(--moltnet-teal);
+  --red-ui-port-selected-color: var(--moltnet-teal);
+  --red-ui-link-link-active-color: var(--moltnet-teal-dark);
+  --red-ui-notification-border-default: var(--moltnet-teal);
+  --red-ui-notification-border-success: var(--moltnet-green);
+  --red-ui-notification-border-warning: var(--moltnet-yellow);
+  --red-ui-notification-border-error: var(--moltnet-red);
+  --red-ui-spinner-color: var(--moltnet-teal);
+}
+
+#red-ui-header {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06),
+    0 10px 30px rgba(17, 24, 28, 0.18);
+}
+
+#red-ui-header .red-ui-header-logo,
+#red-ui-header .red-ui-header-logo img {
+  filter: saturate(1.05);
+}
+
+.red-ui-editor .red-ui-button.primary,
+.red-ui-editor-dialog .red-ui-button.primary {
+  background: var(--moltnet-teal-dark);
+  border-color: var(--moltnet-teal-dark);
+  color: #ffffff;
+}
+
+.red-ui-editor .red-ui-button.primary:hover,
+.red-ui-editor-dialog .red-ui-button.primary:hover {
+  background: #006960;
+  border-color: #006960;
+}
+
+.red-ui-editor input:focus,
+.red-ui-editor textarea:focus,
+.red-ui-editor select:focus,
+.red-ui-editor-dialog input:focus,
+.red-ui-editor-dialog textarea:focus,
+.red-ui-editor-dialog select:focus {
+  border-color: var(--moltnet-teal);
+  box-shadow: 0 0 0 3px rgba(0, 179, 164, 0.14);
+}
+
+.red-ui-palette-node,
+.red-ui-flow-node,
+.red-ui-editor .red-ui-button,
+.red-ui-editor-dialog .red-ui-button,
+.red-ui-tab,
+.red-ui-popover,
+.red-ui-menu-dropdown {
+  border-radius: 6px;
+}
+
+.red-ui-palette-node:hover {
+  box-shadow: 0 2px 10px rgba(21, 23, 26, 0.08);
+}
+
+.red-ui-sidebar {
+  border-left-color: var(--red-ui-primary-border-color);
+}
+
+.red-ui-tray,
+.red-ui-editor-dialog {
+  box-shadow: 0 24px 80px rgba(21, 23, 26, 0.22);
+}

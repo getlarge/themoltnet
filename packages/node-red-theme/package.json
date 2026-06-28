@@ -1,0 +1,79 @@
+{
+  "name": "@themoltnet/node-red-theme",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MoltNet theme assets and settings helpers for Node-RED",
+  "keywords": [
+    "moltnet",
+    "node-red",
+    "node-red-theme"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "packages/node-red-theme"
+  },
+  "homepage": "https://github.com/getlarge/themoltnet/tree/main/packages/node-red-theme#readme",
+  "bugs": {
+    "url": "https://github.com/getlarge/themoltnet/issues"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./moltnet.css": "./src/moltnet-node-red-theme.css",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./moltnet.css": "./dist/moltnet-node-red-theme.css",
+      "./package.json": "./package.json"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/*.tsbuildinfo"
+  ],
+  "scripts": {
+    "build": "tsc -b && node scripts/copy-assets.mjs",
+    "check:pack": "tsx scripts/check-pack.ts",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "nx": {
+    "tags": [
+      "type:client",
+      "scope:node-red",
+      "platform:server"
+    ],
+    "targets": {
+      "typecheck": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": []
+      }
+    }
+  }
+}
