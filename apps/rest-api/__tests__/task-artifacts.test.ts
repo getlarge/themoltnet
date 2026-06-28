@@ -93,7 +93,8 @@ describe('task artifact routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({
+    const json = response.json();
+    expect(json).toMatchObject({
       cid,
       contentType: 'application/json',
       id: ARTIFACT_ID,
@@ -102,6 +103,7 @@ describe('task artifact routes', () => {
       teamId: TEAM_ID,
       title: 'result',
     });
+    expect(json).not.toHaveProperty('sha256');
     expect(mocks.taskArtifactStorage.putObject).toHaveBeenCalledWith(
       expect.objectContaining({
         contentLength: body.byteLength,
@@ -132,15 +134,53 @@ describe('task artifact routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({
+    const json = response.json();
+    expect(json).toMatchObject({
       artifacts: [{ cid: 'bafkreilist', taskId: TASK_ID }],
       nextCursor: 'cursor-2',
     });
+    expect(json.artifacts[0]).not.toHaveProperty('sha256');
     expect(mocks.permissionChecker.canViewTask).toHaveBeenCalledWith(
       TASK_ID,
       VALID_AUTH_CONTEXT.identityId,
       expect.any(String),
     );
+  });
+
+  it('returns 409 when uploading a duplicate CID with conflicting metadata', async () => {
+    const body = Buffer.from('{"ok":true}');
+    const cid = await computeBytesCid(body);
+    mocks.taskArtifactRepository.findExistingForAttempt.mockResolvedValue(
+      mockArtifact({
+        cid,
+        kind: 'log',
+        objectKey: `teams/${TEAM_ID}/artifacts/${cid}`,
+        sizeBytes: body.byteLength,
+      }),
+    );
+
+    const response = await app.inject({
+      method: 'PUT',
+      url:
+        `/tasks/${TASK_ID}/attempts/1/artifacts` +
+        '?kind=json&title=result&contentType=application%2Fjson',
+      headers: {
+        ...TEAM_HEADERS,
+        'content-type': 'application/octet-stream',
+      },
+      payload: Readable.from([body]),
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      code: 'CONFLICT',
+      conflict: {},
+      status: 409,
+    });
+    expect(mocks.taskArtifactStorage.putObject).not.toHaveBeenCalled();
+    expect(
+      mocks.taskArtifactRepository.createForAttempt,
+    ).not.toHaveBeenCalled();
   });
 
   it('downloads task artifact content by CID', async () => {

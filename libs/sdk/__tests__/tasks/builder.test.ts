@@ -238,6 +238,29 @@ describe('buildTask (generic core)', () => {
     ).toThrow(/artifact.*attemptN/i);
   });
 
+  it('artifactReference() rejects raw artifact TaskRefs without attemptN', () => {
+    expect(() =>
+      buildTask('assess_brief', {
+        targetTaskId: '11111111-1111-1111-1111-111111111111',
+        successCriteria: JUDGMENT_CRITERIA,
+      })
+        .team(TEAM)
+        .diary(DIARY)
+        .artifactReference(
+          {
+            taskId: '22222222-2222-2222-2222-222222222222',
+            outputCid: 'bafyOUT',
+            role: 'context',
+            artifact: {
+              cid: 'bafkreiART',
+            },
+          } as never,
+          'judged_work',
+        )
+        .build(),
+    ).toThrow(/artifact.*attemptN/i);
+  });
+
   it('context() does not mutate a caller-supplied context array', () => {
     const shared = [
       { slug: 'seed', binding: 'context_inline' as const, content: 'x' },

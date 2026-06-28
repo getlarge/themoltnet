@@ -3,7 +3,10 @@ import { Readable } from 'node:stream';
 
 import { KetoNamespace } from '@moltnet/auth';
 import { computeBytesCid } from '@moltnet/crypto-service';
-import { type TaskArtifact,TaskArtifactConflictError } from '@moltnet/database';
+import {
+  type TaskArtifact,
+  TaskArtifactConflictError,
+} from '@moltnet/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TaskArtifactStorage } from './task-artifact-storage.js';
@@ -379,6 +382,8 @@ describe('createTaskArtifactService', () => {
   });
 
   it('maps repository insert conflicts to service conflicts', async () => {
+    const body = Buffer.from('{"ok":true}');
+    const cid = await computeBytesCid(body);
     vi.mocked(deps.taskArtifactRepository.createForAttempt).mockRejectedValue(
       new TaskArtifactConflictError(
         'Task artifact insert conflicted but no matching artifact was found',
@@ -388,7 +393,7 @@ describe('createTaskArtifactService', () => {
     await expect(
       subject.upload({
         attemptN: 1,
-        body: Readable.from(['{"ok":true}']),
+        body: Readable.from([body]),
         contentType: 'application/json',
         identityId: AGENT_ID,
         kind: 'json',
@@ -398,9 +403,22 @@ describe('createTaskArtifactService', () => {
         title: 'result',
       }),
     ).rejects.toMatchObject({
-      message: 'Task artifact insert conflicted but no matching artifact was found',
+      message:
+        'Task artifact insert conflicted but no matching artifact was found',
       statusCode: 409,
     });
+    const conflictErrorMatcher: unknown = expect.any(TaskArtifactConflictError);
+    expect(deps.logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attemptN: 1,
+        cid,
+        err: conflictErrorMatcher,
+        objectKey: `teams/${TEAM_ID}/artifacts/${cid}`,
+        taskId: TASK_ID,
+        teamId: TEAM_ID,
+      }),
+      'task artifact metadata insert conflicted without a matching row after object storage interaction',
+    );
   });
 
   it('downloads artifact content by CID for a visible attempt', async () => {

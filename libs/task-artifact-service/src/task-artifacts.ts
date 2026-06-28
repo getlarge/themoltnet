@@ -164,6 +164,8 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
       });
       const objectKey = buildArtifactObjectKey(input.teamId, staged.cid);
       try {
+        // Recheck after staging bytes so a status change during upload cannot
+        // create artifact metadata for a no-longer-eligible attempt.
         const latestAttempt = await assertTaskAttemptUploadEligible(
           deps,
           input,
@@ -228,6 +230,17 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
           throw new TaskArtifactServiceError(503, err.message);
         }
         if (err instanceof TaskArtifactConflictError) {
+          deps.logger.warn(
+            {
+              attemptN: input.attemptN,
+              cid: staged.cid,
+              err,
+              objectKey,
+              taskId: input.taskId,
+              teamId: input.teamId,
+            },
+            'task artifact metadata insert conflicted without a matching row after object storage interaction',
+          );
           throw new TaskArtifactServiceError(409, err.message);
         }
         if (!(err instanceof TaskArtifactServiceError)) {
@@ -307,7 +320,6 @@ function artifactMetadataMatches(
     createdByAgentId: string;
     kind: string;
     objectKey: string;
-    sha256: string;
     sizeBytes: number;
     title: string;
   },

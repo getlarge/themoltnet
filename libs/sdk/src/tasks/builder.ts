@@ -251,6 +251,18 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
     if ('artifactRef' in source && typeof source.artifactRef === 'function') {
       ref = source.artifactRef(role);
     } else if ('artifact' in source && source.artifact?.cid) {
+      if (
+        typeof source.artifact.attemptN !== 'number' ||
+        !Number.isInteger(source.artifact.attemptN) ||
+        source.artifact.attemptN < 1
+      ) {
+        throw new TaskBuildError([
+          {
+            field: 'references/artifact/attemptN',
+            message: 'artifact reference is missing required attemptN',
+          },
+        ]);
+      }
       ref = { ...source, role } as TaskRef;
     } else {
       const s = source as {
