@@ -27,10 +27,20 @@ export type TaskArtifact = Static<typeof TaskArtifact>;
 export const TaskArtifactList = Type.Object(
   {
     artifacts: Type.Array(TaskArtifact),
+    nextCursor: Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
   },
   { $id: 'TaskArtifactList' },
 );
 export type TaskArtifactList = Static<typeof TaskArtifactList>;
+
+export const ListTaskArtifactsQuery = Type.Object(
+  {
+    limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+    cursor: Type.Optional(Type.String({ minLength: 1 })),
+  },
+  { $id: 'ListTaskArtifactsQuery', additionalProperties: false },
+);
+export type ListTaskArtifactsQuery = Static<typeof ListTaskArtifactsQuery>;
 
 export const UploadTaskArtifactQuery = Type.Object(
   {
@@ -95,6 +105,7 @@ export type TaskArtifactContentParams = Static<
 export const taskArtifactSchemas = [
   TaskArtifact,
   TaskArtifactList,
+  ListTaskArtifactsQuery,
   UploadTaskArtifactQuery,
   TaskArtifactContent,
   TaskArtifactTaskParams,

@@ -12,6 +12,7 @@ import type {
   TaskArtifactRepository,
   TaskRepository,
 } from '@moltnet/database';
+import { decodeTaskArtifactCursor } from '@moltnet/database';
 
 import {
   MissingTaskArtifactObjectError,
@@ -50,6 +51,8 @@ export interface UploadTaskArtifactInput extends TaskArtifactSubject {
 }
 
 export interface TaskArtifactTaskInput extends TaskArtifactSubject {
+  cursor?: string;
+  limit?: number;
   taskId: string;
   teamId: string;
 }
@@ -66,6 +69,11 @@ export interface TaskArtifactDownload {
   artifact: TaskArtifact;
   object: TaskArtifactObject;
   stream: NodeJS.ReadableStream;
+}
+
+export interface TaskArtifactListResult {
+  artifacts: TaskArtifact[];
+  nextCursor: string | null;
 }
 
 export class TaskArtifactServiceError extends Error {
@@ -89,11 +97,28 @@ const ATTEMPT_TERMINAL_STATUSES = new Set([
 export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
   async function listForTask(
     input: TaskArtifactTaskInput,
-  ): Promise<TaskArtifact[]> {
+  ): Promise<TaskArtifactListResult> {
     await requireTeamAccess(deps, input);
     await requireTaskReadAccess(deps, input);
     await assertTaskInTeam(deps, input);
+    const limit = input.limit ?? 50;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new TaskArtifactServiceError(
+        400,
+        'Task artifact list limit must be between 1 and 100',
+      );
+    }
+    let cursor;
+    try {
+      cursor = input.cursor
+        ? decodeTaskArtifactCursor(input.cursor)
+        : undefined;
+    } catch {
+      throw new TaskArtifactServiceError(400, 'Invalid task artifact cursor');
+    }
     return deps.taskArtifactRepository.listForTask({
+      cursor,
+      limit,
       taskId: input.taskId,
       teamId: input.teamId,
     });
@@ -139,8 +164,8 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
       const objectKey = buildArtifactObjectKey(input.teamId, staged.cid);
       let objectUploaded = false;
       try {
-        const existing = await deps.objectStorage.headObject(objectKey);
-        if (!existing) {
+        const existingObject = await deps.objectStorage.headObject(objectKey);
+        if (!existingObject) {
           await deps.objectStorage.putObject({
             body: createReadStream(staged.path),
             contentEncoding: input.contentEncoding ?? null,
@@ -150,7 +175,17 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
           });
           objectUploaded = true;
         }
-        return await deps.taskArtifactRepository.createForAttempt({
+        const latestAttempt = await assertTaskAttemptUploadEligible(
+          deps,
+          input,
+        );
+        if (latestAttempt.claimedByAgentId !== input.identityId) {
+          throw new TaskArtifactServiceError(
+            403,
+            'Only the claiming agent may upload task artifacts',
+          );
+        }
+        const artifactInput = {
           attemptN: input.attemptN,
           cid: staged.cid,
           contentEncoding: input.contentEncoding ?? null,
@@ -163,12 +198,36 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
           taskId: input.taskId,
           teamId: input.teamId,
           title: input.title,
-        });
+        };
+        const existing =
+          await deps.taskArtifactRepository.findExistingForAttempt(
+            artifactInput,
+          );
+        if (existing) {
+          if (!artifactMetadataMatches(existing, artifactInput)) {
+            throw new TaskArtifactServiceError(
+              409,
+              'Task artifact already exists for this CID with different metadata',
+            );
+          }
+          return existing;
+        }
+        return await deps.taskArtifactRepository.createForAttempt(
+          artifactInput,
+        );
       } catch (err) {
         if (err instanceof TaskArtifactStorageNotConfiguredError) {
           throw new TaskArtifactServiceError(503, err.message);
         }
         if (objectUploaded) {
+          try {
+            await deps.objectStorage.deleteObject(objectKey);
+          } catch (cleanupErr) {
+            deps.logger.warn(
+              { cleanupErr, objectKey },
+              'task artifact object cleanup failed after metadata write failure',
+            );
+          }
           deps.logger.warn(
             { objectKey, err },
             'task artifact metadata write failed after object upload',
@@ -215,6 +274,51 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
       }
     },
   };
+}
+
+async function assertTaskAttemptUploadEligible(
+  deps: TaskArtifactServiceDeps,
+  input: { attemptN: number; taskId: string; teamId: string },
+) {
+  const attempt = await assertTaskAttemptInTeam(deps, input);
+  if (attempt.status === 'claimed') {
+    throw new TaskArtifactServiceError(
+      409,
+      'Task artifacts can only be uploaded after the attempt has started',
+    );
+  }
+  if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
+    throw new TaskArtifactServiceError(
+      409,
+      `Attempt ${input.attemptN} is already in terminal state: ${attempt.status}`,
+    );
+  }
+  return attempt;
+}
+
+function artifactMetadataMatches(
+  existing: TaskArtifact,
+  input: {
+    contentEncoding?: string | null;
+    contentType: string;
+    createdByAgentId: string;
+    kind: string;
+    objectKey: string;
+    sha256: string;
+    sizeBytes: number;
+    title: string;
+  },
+): boolean {
+  return (
+    existing.kind === input.kind &&
+    existing.title === input.title &&
+    existing.objectKey === input.objectKey &&
+    existing.contentType === input.contentType &&
+    (existing.contentEncoding ?? null) === (input.contentEncoding ?? null) &&
+    existing.sizeBytes === input.sizeBytes &&
+    existing.sha256 === input.sha256 &&
+    existing.createdByAgentId === input.createdByAgentId
+  );
 }
 
 export function serializeTaskArtifact(artifact: TaskArtifact) {

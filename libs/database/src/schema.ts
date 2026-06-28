@@ -1558,6 +1558,13 @@ export const taskArtifacts = pgTable(
       table.taskId,
       table.attemptN,
     ),
+    index('task_artifacts_task_list_idx').on(
+      table.teamId,
+      table.taskId,
+      table.attemptN,
+      table.createdAt,
+      table.id,
+    ),
     index('task_artifacts_expires_idx')
       .on(table.expiresAt)
       .where(sql`expires_at IS NOT NULL`),

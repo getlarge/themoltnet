@@ -205,6 +205,13 @@ async function resolveTeamContext(
       subjectNs,
     );
     if (!canAccess) {
+      const authConfig = request.routeOptions.config as
+        | { auth?: { deferInaccessibleTeamAuthorization?: boolean } }
+        | undefined;
+      if (authConfig?.auth?.deferInaccessibleTeamAuthorization) {
+        authContext.currentTeamId = requestedTeamId;
+        return;
+      }
       const error = createAuthError('Not a member of the requested team');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';

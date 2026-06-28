@@ -572,8 +572,12 @@ export function createMockServices(): MockServices {
     },
     taskArtifactRepository: {
       createForAttempt: vi.fn(),
+      findExistingForAttempt: vi.fn().mockResolvedValue(null),
       findByCidForAttempt: vi.fn(),
-      listForTask: vi.fn().mockResolvedValue([]),
+      listForTask: vi.fn().mockResolvedValue({
+        artifacts: [],
+        nextCursor: null,
+      }),
     },
     taskArtifactStorage: {
       putObject: vi.fn(),

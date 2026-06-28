@@ -11,6 +11,7 @@ import {
   TaskArtifactServiceError,
 } from '@moltnet/task-artifact-service';
 import {
+  ListTaskArtifactsQuery as ListTaskArtifactsQuerySchema,
   TaskArtifact as TaskArtifactSchema,
   TaskArtifactAttemptParams as TaskArtifactAttemptParamsSchema,
   TaskArtifactContent as TaskArtifactContentSchema,
@@ -68,6 +69,10 @@ function normalizeContentType(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
+const deferInaccessibleTeamAuthorization = {
+  auth: { deferInaccessibleTeamAuthorization: true },
+};
+
 export async function taskArtifactRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   const taskArtifacts = createTaskArtifactService({
@@ -93,6 +98,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     '/tasks/:taskId/attempts/:attemptN/artifacts',
     {
       config: {
+        ...deferInaccessibleTeamAuthorization,
         swaggerTransform: ({ schema, url }) => ({
           schema: {
             ...schema,
@@ -159,7 +165,10 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
   server.get(
     '/tasks/:taskId/artifacts',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        ...deferInaccessibleTeamAuthorization,
+        rateLimit: fastify.rateLimitConfig.read,
+      },
       schema: {
         operationId: 'listTaskArtifacts',
         tags: ['task-artifacts'],
@@ -167,6 +176,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderRequiredSchema,
         params: TaskArtifactTaskParamsSchema,
+        querystring: ListTaskArtifactsQuerySchema,
         response: {
           200: TaskArtifactListSchema,
           400: ValidationProblemDetailsSchema,
@@ -179,13 +189,18 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { identityId, subjectNs } = authSubject(request);
       try {
-        const artifacts = await taskArtifacts.listForTask({
+        const result = await taskArtifacts.listForTask({
+          cursor: request.query.cursor,
           identityId,
+          limit: request.query.limit,
           subjectNs,
           taskId: request.params.taskId,
           teamId: requireCurrentTeamId(request, 'task artifacts'),
         });
-        return { artifacts: artifacts.map(serializeTaskArtifact) };
+        return {
+          artifacts: result.artifacts.map(serializeTaskArtifact),
+          nextCursor: result.nextCursor,
+        };
       } catch (error) {
         if (error instanceof TaskArtifactServiceError) {
           throw toArtifactProblem(error);
@@ -198,7 +213,10 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
   server.get(
     '/tasks/:taskId/attempts/:attemptN/artifacts/:cid/content',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        ...deferInaccessibleTeamAuthorization,
+        rateLimit: fastify.rateLimitConfig.read,
+      },
       schema: {
         operationId: 'downloadTaskArtifact',
         tags: ['task-artifacts'],
@@ -241,6 +259,10 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
           .header(
             'x-moltnet-task-artifact-content-type',
             object.contentType ?? artifact.contentType,
+          )
+          .header(
+            'x-moltnet-task-artifact-content-encoding',
+            object.contentEncoding ?? artifact.contentEncoding ?? '',
           )
           .type('application/octet-stream')
           .send(stream as never);

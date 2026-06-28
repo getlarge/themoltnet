@@ -252,7 +252,7 @@ describe('Task artifacts API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       path: { taskId },
     });
-    expect([403, 404]).toContain(outsiderList.response.status);
+    expect(outsiderList.response.status).toBe(404);
 
     const outsiderDownload = await downloadTaskArtifact({
       client,
@@ -260,6 +260,6 @@ describe('Task artifacts API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       path: { attemptN, cid: expectedCid, taskId },
     });
-    expect([403, 404]).toContain(outsiderDownload.response.status);
+    expect(outsiderDownload.response.status).toBe(404);
   });
 });

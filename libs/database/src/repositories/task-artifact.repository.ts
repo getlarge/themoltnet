@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq, or, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -22,6 +22,22 @@ export interface CreateTaskArtifactInput {
   cid: string;
   createdByAgentId: string;
   expiresAt?: Date | null;
+}
+
+export interface ListTaskArtifactsInput {
+  teamId: string;
+  taskId: string;
+  limit: number;
+  cursor?: {
+    attemptN: number;
+    createdAt: Date;
+    id: string;
+  };
+}
+
+export interface ListTaskArtifactsResult {
+  artifacts: TaskArtifact[];
+  nextCursor: string | null;
 }
 
 export function createTaskArtifactRepository(db: Database) {
@@ -50,6 +66,27 @@ export function createTaskArtifactRepository(db: Database) {
       return inserted;
     },
 
+    async findExistingForAttempt(
+      input: Pick<
+        CreateTaskArtifactInput,
+        'teamId' | 'taskId' | 'attemptN' | 'cid'
+      >,
+    ): Promise<TaskArtifact | null> {
+      const [row] = await getExecutor(db)
+        .select()
+        .from(taskArtifacts)
+        .where(
+          and(
+            eq(taskArtifacts.teamId, input.teamId),
+            eq(taskArtifacts.taskId, input.taskId),
+            eq(taskArtifacts.attemptN, input.attemptN),
+            eq(taskArtifacts.cid, input.cid),
+          ),
+        )
+        .limit(1);
+      return row ?? null;
+    },
+
     async findByCidForAttempt(input: {
       teamId: string;
       taskId: string;
@@ -71,21 +108,85 @@ export function createTaskArtifactRepository(db: Database) {
       return row ?? null;
     },
 
-    async listForTask(input: {
-      teamId: string;
-      taskId: string;
-    }): Promise<TaskArtifact[]> {
-      return getExecutor(db)
+    async listForTask(
+      input: ListTaskArtifactsInput,
+    ): Promise<ListTaskArtifactsResult> {
+      const rows = await getExecutor(db)
         .select()
         .from(taskArtifacts)
         .where(
           and(
             eq(taskArtifacts.teamId, input.teamId),
             eq(taskArtifacts.taskId, input.taskId),
+            input.cursor
+              ? or(
+                  sql`${taskArtifacts.attemptN} > ${input.cursor.attemptN}`,
+                  and(
+                    eq(taskArtifacts.attemptN, input.cursor.attemptN),
+                    sql`${taskArtifacts.createdAt} > ${input.cursor.createdAt}`,
+                  ),
+                  and(
+                    eq(taskArtifacts.attemptN, input.cursor.attemptN),
+                    eq(taskArtifacts.createdAt, input.cursor.createdAt),
+                    sql`${taskArtifacts.id} > ${input.cursor.id}`,
+                  ),
+                )
+              : undefined,
           ),
-        );
+        )
+        .orderBy(
+          asc(taskArtifacts.attemptN),
+          asc(taskArtifacts.createdAt),
+          asc(taskArtifacts.id),
+        )
+        .limit(input.limit + 1);
+      const artifacts = rows.slice(0, input.limit);
+      const last = artifacts.at(-1);
+      return {
+        artifacts,
+        nextCursor:
+          rows.length > input.limit && last
+            ? encodeTaskArtifactCursor(last)
+            : null,
+      };
     },
   };
+}
+
+function encodeTaskArtifactCursor(artifact: TaskArtifact): string {
+  return Buffer.from(
+    JSON.stringify({
+      attemptN: artifact.attemptN,
+      createdAt: artifact.createdAt.toISOString(),
+      id: artifact.id,
+    }),
+    'utf8',
+  ).toString('base64url');
+}
+
+export function decodeTaskArtifactCursor(
+  cursor: string,
+): ListTaskArtifactsInput['cursor'] {
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(cursor, 'base64url').toString('utf8'),
+    ) as { attemptN?: unknown; createdAt?: unknown; id?: unknown };
+    if (
+      typeof parsed.attemptN !== 'number' ||
+      !Number.isInteger(parsed.attemptN) ||
+      typeof parsed.createdAt !== 'string' ||
+      typeof parsed.id !== 'string'
+    ) {
+      throw new Error('invalid task artifact cursor');
+    }
+    const createdAt = new Date(parsed.createdAt);
+    if (Number.isNaN(createdAt.getTime())) {
+      throw new Error('invalid task artifact cursor');
+    }
+    return { attemptN: parsed.attemptN, createdAt, id: parsed.id };
+  } catch {
+    throw new Error('invalid task artifact cursor');
+  }
 }
 
 function toTaskArtifactValues(input: CreateTaskArtifactInput): NewTaskArtifact {

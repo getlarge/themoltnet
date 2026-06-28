@@ -144,6 +144,9 @@ export {
 export {
   type CreateTaskArtifactInput,
   createTaskArtifactRepository,
+  decodeTaskArtifactCursor,
+  type ListTaskArtifactsInput,
+  type ListTaskArtifactsResult,
   type TaskArtifactRepository,
 } from './repositories/task-artifact.repository.js';
 export {

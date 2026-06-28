@@ -117,9 +117,10 @@ describe('task artifact routes', () => {
   });
 
   it('lists task artifact metadata', async () => {
-    mocks.taskArtifactRepository.listForTask.mockResolvedValue([
-      mockArtifact({ cid: 'bafkreilist' }),
-    ]);
+    mocks.taskArtifactRepository.listForTask.mockResolvedValue({
+      artifacts: [mockArtifact({ cid: 'bafkreilist' })],
+      nextCursor: 'cursor-2',
+    });
 
     const response = await app.inject({
       method: 'GET',
@@ -130,6 +131,7 @@ describe('task artifact routes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       artifacts: [{ cid: 'bafkreilist', taskId: TASK_ID }],
+      nextCursor: 'cursor-2',
     });
     expect(mocks.permissionChecker.canViewTask).toHaveBeenCalledWith(
       TASK_ID,
@@ -150,6 +152,7 @@ describe('task artifact routes', () => {
     );
     mocks.taskArtifactStorage.getObject.mockResolvedValue({
       body: Readable.from(['hello']),
+      contentEncoding: 'gzip',
       contentType: 'text/plain',
     });
 
@@ -166,6 +169,9 @@ describe('task artifact routes', () => {
     );
     expect(response.headers['x-moltnet-task-artifact-content-type']).toBe(
       'text/plain',
+    );
+    expect(response.headers['x-moltnet-task-artifact-content-encoding']).toBe(
+      'gzip',
     );
     expect(response.body).toBe('hello');
   });

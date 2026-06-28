@@ -185,6 +185,66 @@ describe('requireAuth preHandler', () => {
     );
   });
 
+  it('keeps inaccessible team headers forbidden by default', async () => {
+    mockTokenValidator.resolveAuthContext.mockResolvedValue({
+      ...VALID_AUTH_CONTEXT,
+    });
+    mockPermissionChecker.canAccessTeam.mockResolvedValue(false);
+
+    app.get('/protected', { preHandler: [requireAuth] }, async () => {
+      return { ok: true };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: {
+        authorization: `Bearer ${VALID_TOKEN}`,
+        'x-moltnet-team-id': 'team-123',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({
+      code: 'FORBIDDEN',
+      message: 'Not a member of the requested team',
+    });
+  });
+
+  it('can defer inaccessible team authorization to resource handlers', async () => {
+    mockTokenValidator.resolveAuthContext.mockResolvedValue({
+      ...VALID_AUTH_CONTEXT,
+    });
+    mockPermissionChecker.canAccessTeam.mockResolvedValue(false);
+
+    app.get(
+      '/protected',
+      {
+        config: {
+          auth: { deferInaccessibleTeamAuthorization: true },
+        },
+        preHandler: [requireAuth],
+      },
+      async (request) => {
+        return { authContext: request.authContext };
+      },
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: {
+        authorization: `Bearer ${VALID_TOKEN}`,
+        'x-moltnet-team-id': 'team-123',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext).toMatchObject({
+      currentTeamId: 'team-123',
+    });
+  });
+
   it('enriches request.log + ALS context after authenticating', async () => {
     // Regression: production logs were missing identityId because the
     // global request-context plugin's preHandler ran before the route-
