@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.5.0...node-red-contrib-core-v0.6.0) (2026-06-28)
+
+
+### Features
+
+* expose task artifact client surfaces ([d1eeec5](https://github.com/getlarge/themoltnet/commit/d1eeec55b7c243665c223c9b7b31ad74b091b8fd))
+
+
+### Bug Fixes
+
+* **node-red:** harden task artifact nodes ([9ef4dcb](https://github.com/getlarge/themoltnet/commit/9ef4dcb01448bb095f2ff00b977a73d2f8b4131d))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.4.0...node-red-contrib-core-v0.5.0) (2026-06-28)
 
 

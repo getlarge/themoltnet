@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.11.0...mcp-server-v0.12.0) (2026-06-28)
+
+
+### Features
+
+* expose task artifact client surfaces ([d1eeec5](https://github.com/getlarge/themoltnet/commit/d1eeec55b7c243665c223c9b7b31ad74b091b8fd))
+* **mcp:** add task artifact tools ([0321303](https://github.com/getlarge/themoltnet/commit/0321303670e83020b042fd5c51a64aceab7f3212))
+
 ## [0.11.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.10.0...mcp-server-v0.11.0) (2026-06-28)
 
 

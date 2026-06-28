@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.56.0](https://github.com/getlarge/themoltnet/compare/cli-v1.55.0...cli-v1.56.0) (2026-06-28)
+
+
+### Features
+
+* **cli:** expose task artifact commands ([a00eebf](https://github.com/getlarge/themoltnet/commit/a00eebf92e47b355748d21d295ded9342e499f47))
+* expose task artifact client surfaces ([d1eeec5](https://github.com/getlarge/themoltnet/commit/d1eeec55b7c243665c223c9b7b31ad74b091b8fd))
+
+
+### Bug Fixes
+
+* **cli:** sync generated api client module ([25a13d3](https://github.com/getlarge/themoltnet/commit/25a13d3c2beac1df0a806c1224196f1cf48d5bb3))
+
 ## [1.55.0](https://github.com/getlarge/themoltnet/compare/cli-v1.54.0...cli-v1.55.0) (2026-06-28)
 
 
