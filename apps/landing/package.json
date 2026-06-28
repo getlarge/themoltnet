@@ -26,6 +26,11 @@
     "vitest": "catalog:"
   },
   "nx": {
+    "release": {
+      "docker": {
+        "repositoryName": "getlarge/themoltnet/landing"
+      }
+    },
     "tags": [
       "type:app",
       "scope:public",

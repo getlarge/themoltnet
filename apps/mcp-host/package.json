@@ -9,6 +9,11 @@
     "@modelcontextprotocol/sdk": "catalog:"
   },
   "nx": {
+    "release": {
+      "docker": {
+        "repositoryName": "getlarge/themoltnet/mcp-host"
+      }
+    },
     "tags": [
       "type:app",
       "scope:tooling",
