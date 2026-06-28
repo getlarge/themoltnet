@@ -28,8 +28,8 @@ import { moltnetEditorTheme } from '@themoltnet/node-red-theme';
 
 export default {
   editorTheme: moltnetEditorTheme({
-    title: 'Traffic Fit Auditor',
-    favicon: '/theme/favicon/traffic-fit-icon.svg',
+    title: 'MoltNet Flow Studio',
+    favicon: '/theme/favicon/moltnet.svg',
   }),
 };
 ```

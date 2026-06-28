@@ -43,13 +43,16 @@
     "!dist/*.tsbuildinfo"
   ],
   "scripts": {
-    "build": "tsc -b && node scripts/copy-assets.mjs",
+    "build": "vite build",
     "check:pack": "tsx scripts/check-pack.ts",
     "test": "vitest run"
   },
   "devDependencies": {
+    "@themoltnet/design-system": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "engines": {
