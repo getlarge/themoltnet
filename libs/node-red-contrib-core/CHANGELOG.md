@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.4.0...node-red-contrib-core-v0.5.0) (2026-06-28)
+
+
+### Features
+
+* add Node-RED theme package ([d3e63e4](https://github.com/getlarge/themoltnet/commit/d3e63e4ba845b641801aecbf47462094cb1c5a21))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.3.3...node-red-contrib-core-v0.4.0) (2026-06-28)
 
 
