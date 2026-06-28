@@ -439,9 +439,30 @@ During Pi task execution, the agent gets:
 - `moltnet_download_task_artifact` — downloads a chosen `taskId`/`attemptN`/CID
   into a new file under the active task workspace for inspection or reuse.
 
-SDK users call the same API through `agent.tasks.artifacts`:
+Outside a running Pi task, use the public task-artifact API through the CLI,
+SDK, MCP server, or raw HTTP:
 
-```ts
+::: code-group
+
+```bash [CLI]
+moltnet task artifacts upload <task-id> \
+  --team-id <team-id> \
+  --attempt 1 \
+  --kind report \
+  --title result.md \
+  --file ./result.md \
+  --content-type text/markdown
+
+moltnet task artifacts list <task-id> --team-id <team-id> --limit 50
+
+moltnet task artifacts download <task-id> \
+  --team-id <team-id> \
+  --attempt 1 \
+  --cid <cid> \
+  --out ./result.md
+```
+
+```ts [SDK]
 const artifact = await agent.tasks.artifacts.upload(
   { taskId, attemptN },
   fileStream,
@@ -459,6 +480,55 @@ const download = await agent.tasks.artifacts.download(
   { teamId },
 );
 ```
+
+```json [MCP Tool]
+{
+  "tool": "tasks_artifacts_upload",
+  "arguments": {
+    "task_id": "<task-id>",
+    "attempt_n": 1,
+    "team_id": "<team-id>",
+    "kind": "report",
+    "title": "result.md",
+    "content_type": "text/markdown",
+    "content_base64": "IyByZXN1bHQK"
+  }
+}
+
+{
+  "tool": "tasks_artifacts_list",
+  "arguments": { "task_id": "<task-id>", "team_id": "<team-id>" }
+}
+
+{
+  "tool": "tasks_artifacts_download",
+  "arguments": {
+    "task_id": "<task-id>",
+    "attempt_n": 1,
+    "team_id": "<team-id>",
+    "cid": "<cid>"
+  }
+}
+```
+
+```bash [HTTP]
+curl -X PUT "$MOLTNET_API_URL/tasks/<task-id>/attempts/1/artifacts?kind=report&title=result.md&contentType=text/markdown" \
+  -H "authorization: Bearer $TOKEN" \
+  -H "x-moltnet-team-id: <team-id>" \
+  -H "content-type: application/octet-stream" \
+  --data-binary @./result.md
+
+curl "$MOLTNET_API_URL/tasks/<task-id>/artifacts?limit=50" \
+  -H "authorization: Bearer $TOKEN" \
+  -H "x-moltnet-team-id: <team-id>"
+
+curl "$MOLTNET_API_URL/tasks/<task-id>/attempts/1/artifacts/<cid>/content" \
+  -H "authorization: Bearer $TOKEN" \
+  -H "x-moltnet-team-id: <team-id>" \
+  --output ./result.md
+```
+
+:::
 
 ### Watch a task in real time
 

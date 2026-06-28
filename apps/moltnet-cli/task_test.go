@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -23,11 +25,18 @@ import (
 type stubTasksHandler struct {
 	moltnetapi.UnimplementedHandler
 
-	listCalls      int
-	listParams     moltnetapi.ListTasksParams
-	getCalls       int
-	getParams      moltnetapi.GetTaskParams
-	responseTaskID uuid.UUID
+	listCalls                  int
+	listParams                 moltnetapi.ListTasksParams
+	getCalls                   int
+	getParams                  moltnetapi.GetTaskParams
+	listTaskArtifactsCalls     int
+	listTaskArtifactsParams    moltnetapi.ListTaskArtifactsParams
+	uploadTaskArtifactCalls    int
+	uploadTaskArtifactParams   moltnetapi.UploadTaskArtifactParams
+	uploadTaskArtifactBody     string
+	downloadTaskArtifactCalls  int
+	downloadTaskArtifactParams moltnetapi.DownloadTaskArtifactParams
+	responseTaskID             uuid.UUID
 }
 
 func (h *stubTasksHandler) ListTasks(_ context.Context, params moltnetapi.ListTasksParams) (moltnetapi.ListTasksRes, error) {
@@ -43,6 +52,42 @@ func (h *stubTasksHandler) GetTask(_ context.Context, params moltnetapi.GetTaskP
 	h.getCalls++
 	h.getParams = params
 	return newTaskFixture(params.ID, uuid.MustParse("22222222-2222-4222-8222-222222222222")), nil
+}
+
+func (h *stubTasksHandler) ListTaskArtifacts(_ context.Context, params moltnetapi.ListTaskArtifactsParams) (moltnetapi.ListTaskArtifactsRes, error) {
+	h.listTaskArtifactsCalls++
+	h.listTaskArtifactsParams = params
+	return &moltnetapi.ListTaskArtifactsOK{
+		Artifacts: []moltnetapi.ListTaskArtifactsOKArtifactsItem{
+			newTaskArtifactFixture(params.TaskId, params.XMoltnetTeamID, 1, "bafy-list"),
+		},
+		NextCursor: moltnetapi.NewNilString("cursor-2"),
+	}, nil
+}
+
+func (h *stubTasksHandler) UploadTaskArtifact(_ context.Context, req moltnetapi.UploadTaskArtifactReq, params moltnetapi.UploadTaskArtifactParams) (moltnetapi.UploadTaskArtifactRes, error) {
+	h.uploadTaskArtifactCalls++
+	h.uploadTaskArtifactParams = params
+	body, err := io.ReadAll(req.Data)
+	if err != nil {
+		return nil, err
+	}
+	h.uploadTaskArtifactBody = string(body)
+	artifact := newUploadTaskArtifactFixture(params.TaskId, params.XMoltnetTeamID, params.AttemptN, "bafy-upload")
+	artifact.Kind = params.Kind
+	artifact.Title = params.Title
+	return artifact, nil
+}
+
+func (h *stubTasksHandler) DownloadTaskArtifact(_ context.Context, params moltnetapi.DownloadTaskArtifactParams) (moltnetapi.DownloadTaskArtifactRes, error) {
+	h.downloadTaskArtifactCalls++
+	h.downloadTaskArtifactParams = params
+	return &moltnetapi.DownloadTaskArtifactOKHeaders{
+		XMoltnetTaskArtifactCid: moltnetapi.NewOptString(params.Cid),
+		Response: moltnetapi.DownloadTaskArtifactOK{
+			Data: strings.NewReader("artifact-bytes"),
+		},
+	}, nil
 }
 
 func newTaskFixture(taskID, teamID uuid.UUID) *moltnetapi.Task {
@@ -80,6 +125,42 @@ func newTaskFixture(taskID, teamID uuid.UUID) *moltnetapi.Task {
 	t.ProposedByHumanId.SetToNull()
 	t.RunningTimeoutSec.SetToNull()
 	return t
+}
+
+func newTaskArtifactFixture(taskID, teamID uuid.UUID, attemptN int, cid string) moltnetapi.ListTaskArtifactsOKArtifactsItem {
+	return moltnetapi.ListTaskArtifactsOKArtifactsItem{
+		ID:               uuid.MustParse("88888888-8888-4888-8888-888888888888"),
+		TeamId:           teamID,
+		TaskId:           taskID,
+		AttemptN:         attemptN,
+		Kind:             "report",
+		Title:            "result.md",
+		ContentType:      "text/markdown",
+		ContentEncoding:  moltnetapi.NilString{Null: true},
+		SizeBytes:        14,
+		Cid:              cid,
+		CreatedByAgentId: uuid.MustParse("99999999-9999-4999-8999-999999999999"),
+		ExpiresAt:        moltnetapi.NilDateTime{Null: true},
+		CreatedAt:        time.Date(2026, 5, 11, 12, 1, 0, 0, time.UTC),
+	}
+}
+
+func newUploadTaskArtifactFixture(taskID, teamID uuid.UUID, attemptN int, cid string) *moltnetapi.UploadTaskArtifactOK {
+	return &moltnetapi.UploadTaskArtifactOK{
+		ID:               uuid.MustParse("88888888-8888-4888-8888-888888888888"),
+		TeamId:           teamID,
+		TaskId:           taskID,
+		AttemptN:         attemptN,
+		Kind:             "report",
+		Title:            "result.md",
+		ContentType:      "text/markdown",
+		ContentEncoding:  moltnetapi.NilString{Null: true},
+		SizeBytes:        14,
+		Cid:              cid,
+		CreatedByAgentId: uuid.MustParse("99999999-9999-4999-8999-999999999999"),
+		ExpiresAt:        moltnetapi.NilDateTime{Null: true},
+		CreatedAt:        time.Date(2026, 5, 11, 12, 1, 0, 0, time.UTC),
+	}
 }
 
 func TestRunTaskList_TaskTypesCSV(t *testing.T) {
@@ -387,6 +468,143 @@ func TestRunTaskGet_InvalidID(t *testing.T) {
 	}
 	if h.getCalls != 0 {
 		t.Errorf("request should not be made on invalid ID, got %d calls", h.getCalls)
+	}
+}
+
+func TestRunTaskArtifactsList(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+	var out bytes.Buffer
+
+	err := runTaskArtifactsListWithClient(context.Background(), client, taskArtifactsListOpts{
+		taskID:    "11111111-1111-4111-8111-111111111111",
+		teamID:    "22222222-2222-4222-8222-222222222222",
+		limit:     50,
+		limitSet:  true,
+		cursor:    "cursor-1",
+		cursorSet: true,
+		out:       &out,
+	})
+	if err != nil {
+		t.Fatalf("runTaskArtifactsListWithClient: %v", err)
+	}
+
+	if h.listTaskArtifactsCalls != 1 {
+		t.Fatalf("expected one list artifacts call, got %d", h.listTaskArtifactsCalls)
+	}
+	if h.listTaskArtifactsParams.TaskId.String() != "11111111-1111-4111-8111-111111111111" {
+		t.Errorf("TaskId = %s", h.listTaskArtifactsParams.TaskId)
+	}
+	if h.listTaskArtifactsParams.XMoltnetTeamID.String() != "22222222-2222-4222-8222-222222222222" {
+		t.Errorf("XMoltnetTeamID = %s", h.listTaskArtifactsParams.XMoltnetTeamID)
+	}
+	if got, ok := h.listTaskArtifactsParams.Limit.Get(); !ok || got != 50 {
+		t.Errorf("Limit = (%d,%v), want (50,true)", got, ok)
+	}
+	if got, ok := h.listTaskArtifactsParams.Cursor.Get(); !ok || got != "cursor-1" {
+		t.Errorf("Cursor = (%q,%v), want (cursor-1,true)", got, ok)
+	}
+	if !strings.Contains(out.String(), `"cid": "bafy-list"`) {
+		t.Errorf("output should contain artifact cid, got: %s", out.String())
+	}
+}
+
+func TestRunTaskArtifactsUploadStreamsFile(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "artifact.txt")
+	if err := os.WriteFile(path, []byte("artifact-body"), 0o600); err != nil {
+		t.Fatalf("write artifact fixture: %v", err)
+	}
+	var out bytes.Buffer
+
+	err := runTaskArtifactsUploadWithClient(context.Background(), client, taskArtifactsUploadOpts{
+		taskID:         "11111111-1111-4111-8111-111111111111",
+		teamID:         "22222222-2222-4222-8222-222222222222",
+		attemptN:       2,
+		kind:           "report",
+		title:          "artifact.txt",
+		file:           path,
+		contentType:    "text/plain",
+		contentTypeSet: true,
+		out:            &out,
+	})
+	if err != nil {
+		t.Fatalf("runTaskArtifactsUploadWithClient: %v", err)
+	}
+
+	if h.uploadTaskArtifactCalls != 1 {
+		t.Fatalf("expected one upload artifacts call, got %d", h.uploadTaskArtifactCalls)
+	}
+	if h.uploadTaskArtifactBody != "artifact-body" {
+		t.Errorf("uploaded body = %q", h.uploadTaskArtifactBody)
+	}
+	if h.uploadTaskArtifactParams.AttemptN != 2 {
+		t.Errorf("AttemptN = %d, want 2", h.uploadTaskArtifactParams.AttemptN)
+	}
+	if h.uploadTaskArtifactParams.Kind != "report" || h.uploadTaskArtifactParams.Title != "artifact.txt" {
+		t.Errorf("metadata = kind %q title %q", h.uploadTaskArtifactParams.Kind, h.uploadTaskArtifactParams.Title)
+	}
+	if got, ok := h.uploadTaskArtifactParams.ContentType.Get(); !ok || got != "text/plain" {
+		t.Errorf("ContentType = (%q,%v), want (text/plain,true)", got, ok)
+	}
+	if !strings.Contains(out.String(), `"cid": "bafy-upload"`) {
+		t.Errorf("output should contain artifact cid, got: %s", out.String())
+	}
+}
+
+func TestRunTaskArtifactsDownloadWritesBytes(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+	var out bytes.Buffer
+
+	err := runTaskArtifactsDownloadWithClient(context.Background(), client, taskArtifactsDownloadOpts{
+		taskID:   "11111111-1111-4111-8111-111111111111",
+		teamID:   "22222222-2222-4222-8222-222222222222",
+		attemptN: 3,
+		cid:      "bafy-download",
+		outFile:  "-",
+		out:      &out,
+	})
+	if err != nil {
+		t.Fatalf("runTaskArtifactsDownloadWithClient: %v", err)
+	}
+
+	if h.downloadTaskArtifactCalls != 1 {
+		t.Fatalf("expected one download artifacts call, got %d", h.downloadTaskArtifactCalls)
+	}
+	if h.downloadTaskArtifactParams.AttemptN != 3 {
+		t.Errorf("AttemptN = %d, want 3", h.downloadTaskArtifactParams.AttemptN)
+	}
+	if h.downloadTaskArtifactParams.Cid != "bafy-download" {
+		t.Errorf("Cid = %q", h.downloadTaskArtifactParams.Cid)
+	}
+	if out.String() != "artifact-bytes" {
+		t.Errorf("downloaded bytes = %q", out.String())
+	}
+}
+
+func TestRunTaskArtifactsUploadRejectsInvalidAttempt(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskArtifactsUploadWithClient(context.Background(), client, taskArtifactsUploadOpts{
+		taskID:   "11111111-1111-4111-8111-111111111111",
+		teamID:   "22222222-2222-4222-8222-222222222222",
+		attemptN: 0,
+		kind:     "report",
+		title:    "result.md",
+		file:     "-",
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--attempt must be >= 1") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.uploadTaskArtifactCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.uploadTaskArtifactCalls)
 	}
 }
 

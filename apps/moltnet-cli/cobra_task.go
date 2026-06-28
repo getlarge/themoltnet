@@ -16,11 +16,129 @@ func newTaskCmd() *cobra.Command {
 	taskCmd.AddCommand(newTaskGetCmd())
 	taskCmd.AddCommand(newTaskTailCmd())
 	taskCmd.AddCommand(newTaskAttemptsCmd())
+	taskCmd.AddCommand(newTaskArtifactsCmd())
 	taskCmd.AddCommand(newTaskSchemasCmd())
 	taskCmd.AddCommand(newTaskCreateCmd())
 	taskCmd.AddCommand(newTaskContinueCmd())
 
 	return taskCmd
+}
+
+func newTaskArtifactsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "artifacts",
+		Short: "List, upload, and download immutable task artifacts",
+	}
+	cmd.AddCommand(newTaskArtifactsListCmd())
+	cmd.AddCommand(newTaskArtifactsUploadCmd())
+	cmd.AddCommand(newTaskArtifactsDownloadCmd())
+	return cmd
+}
+
+func newTaskArtifactsListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list <task-id>",
+		Short: "List artifact metadata for a task",
+		Example: `  moltnet task artifacts list <task-id> --team-id <uuid>
+  moltnet task artifacts list <task-id> --team-id <uuid> --limit 50`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskArtifactsListCmd(taskArtifactsListOpts{
+				apiURL:    resolveAPIURL(cmd, credPath),
+				credPath:  credPath,
+				taskID:    args[0],
+				teamID:    flagString(cmd, "team-id"),
+				limit:     flagInt(cmd, "limit"),
+				limitSet:  cmd.Flags().Changed("limit"),
+				cursor:    flagString(cmd, "cursor"),
+				cursorSet: cmd.Flags().Changed("cursor"),
+				out:       cmd.OutOrStdout(),
+			})
+		},
+	}
+	cmd.Flags().String("team-id", "", "Team UUID (required)")
+	cmd.Flags().Int("limit", 0, "Maximum artifacts to return")
+	cmd.Flags().String("cursor", "", "Pagination cursor")
+	_ = cmd.MarkFlagRequired("team-id")
+	return cmd
+}
+
+func newTaskArtifactsUploadCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "upload <task-id>",
+		Short: "Upload an immutable artifact for a task attempt",
+		Example: `  moltnet task artifacts upload <task-id> --team-id <uuid> \
+    --attempt 1 --kind report --title result.md --file ./result.md \
+    --content-type text/markdown`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskArtifactsUploadCmd(taskArtifactsUploadOpts{
+				apiURL:             resolveAPIURL(cmd, credPath),
+				credPath:           credPath,
+				taskID:             args[0],
+				teamID:             flagString(cmd, "team-id"),
+				attemptN:           flagInt(cmd, "attempt"),
+				kind:               flagString(cmd, "kind"),
+				title:              flagString(cmd, "title"),
+				file:               flagString(cmd, "file"),
+				contentType:        flagString(cmd, "content-type"),
+				contentTypeSet:     cmd.Flags().Changed("content-type"),
+				contentEncoding:    flagString(cmd, "content-encoding"),
+				contentEncodingSet: cmd.Flags().Changed("content-encoding"),
+				out:                cmd.OutOrStdout(),
+			})
+		},
+	}
+	cmd.Flags().String("team-id", "", "Team UUID (required)")
+	cmd.Flags().Int("attempt", 0, "Attempt number (required)")
+	cmd.Flags().String("kind", "", "Artifact kind, e.g. report, diff, trace (required)")
+	cmd.Flags().String("title", "", "Artifact title, usually a filename (required)")
+	cmd.Flags().String("file", "-", `Path to upload; "-" reads stdin`)
+	cmd.Flags().String("content-type", "", "Content type metadata, e.g. text/markdown")
+	cmd.Flags().String("content-encoding", "", "Optional content encoding metadata, e.g. gzip")
+	_ = cmd.MarkFlagRequired("team-id")
+	_ = cmd.MarkFlagRequired("attempt")
+	_ = cmd.MarkFlagRequired("kind")
+	_ = cmd.MarkFlagRequired("title")
+	return cmd
+}
+
+func newTaskArtifactsDownloadCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "download <task-id>",
+		Short: "Download immutable task artifact bytes by attempt and CID",
+		Example: `  moltnet task artifacts download <task-id> --team-id <uuid> \
+    --attempt 1 --cid bafy... --out ./result.md
+
+  # Write bytes to stdout
+  moltnet task artifacts download <task-id> --team-id <uuid> \
+    --attempt 1 --cid bafy... --out -`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskArtifactsDownloadCmd(taskArtifactsDownloadOpts{
+				apiURL:   resolveAPIURL(cmd, credPath),
+				credPath: credPath,
+				taskID:   args[0],
+				teamID:   flagString(cmd, "team-id"),
+				attemptN: flagInt(cmd, "attempt"),
+				cid:      flagString(cmd, "cid"),
+				outFile:  flagString(cmd, "out"),
+				out:      cmd.OutOrStdout(),
+			})
+		},
+	}
+	cmd.Flags().String("team-id", "", "Team UUID (required)")
+	cmd.Flags().Int("attempt", 0, "Attempt number (required)")
+	cmd.Flags().String("cid", "", "Artifact CID (required)")
+	cmd.Flags().String("out", "", `Output path (required); "-" writes bytes to stdout`)
+	_ = cmd.MarkFlagRequired("team-id")
+	_ = cmd.MarkFlagRequired("attempt")
+	_ = cmd.MarkFlagRequired("cid")
+	_ = cmd.MarkFlagRequired("out")
+	return cmd
 }
 
 func newTaskContinueCmd() *cobra.Command {

@@ -263,6 +263,34 @@ func TestGitSetupHelp(t *testing.T) {
 	}
 }
 
+func TestTaskArtifactsHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "task", "artifacts", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{"list", "upload", "download"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("expected task artifacts help to contain %q, got: %s", want, stdout)
+		}
+	}
+}
+
+func TestTaskArtifactsUploadHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "task", "artifacts", "upload", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{"--team-id", "--attempt", "--kind", "--title", "--file", "--content-type"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("expected task artifacts upload help to contain %q, got: %s", want, stdout)
+		}
+	}
+}
+
 func TestGitSetupNoCreds(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	root := NewRootCmd("test", "")
