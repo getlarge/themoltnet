@@ -220,6 +220,69 @@ function releaseTag(
   });
 }
 
+function createGithubReleaseCommand(
+  artifactStore: Extract<ArtifactStore, { provider: 'github' }>,
+  tag: string,
+): GoArtifactCommand | null {
+  if (artifactStore.create !== true) {
+    return null;
+  }
+  return {
+    command: 'gh',
+    args: [
+      'release',
+      'create',
+      tag,
+      ...(artifactStore.draft !== false ? ['--draft'] : []),
+      '--title',
+      tag,
+    ],
+  };
+}
+
+function uploadGithubReleaseCommand(
+  artifactStore: Extract<ArtifactStore, { provider: 'github' }>,
+  tag: string,
+  uploadFiles: string[],
+): GoArtifactCommand | null {
+  if (artifactStore.upload === false) {
+    return null;
+  }
+  return {
+    command: 'gh',
+    args: ['release', 'upload', tag, ...uploadFiles, '--clobber'],
+  };
+}
+
+function finalizeGithubReleaseCommand(
+  artifactStore: Extract<ArtifactStore, { provider: 'github' }>,
+  tag: string,
+): GoArtifactCommand | null {
+  if (artifactStore.finalize !== true) {
+    return null;
+  }
+  return {
+    command: 'gh',
+    args: ['release', 'edit', tag, '--draft=false'],
+  };
+}
+
+function githubReleaseUploadCommands(
+  artifactStore: ArtifactStore | undefined,
+  tag: string | null,
+  uploadFiles: string[],
+) {
+  if (artifactStore?.provider !== 'github' || !tag) {
+    return [];
+  }
+
+  return [
+    createGithubReleaseCommand(artifactStore, tag),
+    uploadGithubReleaseCommand(artifactStore, tag, uploadFiles),
+    finalizeGithubReleaseCommand(artifactStore, tag),
+  ].filter((command): command is GoArtifactCommand => command !== null);
+}
+
 export function createGoArtifactReleasePlan(
   config: GoArtifactPublisherConfig,
   options: CreatePlanOptions = {},
@@ -280,52 +343,16 @@ export function createGoArtifactReleasePlan(
   });
 
   const tag = releaseTag(config.artifactStore, version, shortCommit);
-  const shouldUpload =
-    config.artifactStore?.provider === 'github' &&
-    config.artifactStore.upload !== false;
   const checksumFile = checksumFilePath(config, cwd);
   const uploadFiles = [
     ...buildSteps.map((step) => step.archivePath),
     ...(checksumFile ? [checksumFile] : []),
   ];
-  const uploadCommands =
-    config.artifactStore?.provider === 'github'
-      ? [
-          ...(config.artifactStore.create === true && tag
-            ? [
-                {
-                  command: 'gh',
-                  args: [
-                    'release',
-                    'create',
-                    tag,
-                    ...(config.artifactStore.draft !== false
-                      ? ['--draft']
-                      : []),
-                    '--title',
-                    tag,
-                  ],
-                },
-              ]
-            : []),
-          ...(shouldUpload && tag
-            ? [
-                {
-                  command: 'gh',
-                  args: ['release', 'upload', tag, ...uploadFiles, '--clobber'],
-                },
-              ]
-            : []),
-          ...(config.artifactStore.finalize === true && tag
-            ? [
-                {
-                  command: 'gh',
-                  args: ['release', 'edit', tag, '--draft=false'],
-                },
-              ]
-            : []),
-        ]
-      : [];
+  const uploadCommands = githubReleaseUploadCommands(
+    config.artifactStore,
+    tag,
+    uploadFiles,
+  );
 
   return {
     version,
