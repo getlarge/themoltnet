@@ -16,5 +16,10 @@
   ],
   "files": [
     "bin/moltnet"
-  ]
+  ],
+  "nx": {
+    "implicitDependencies": [
+      "moltnet-cli"
+    ]
+  }
 }
