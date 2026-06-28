@@ -7,6 +7,7 @@ import {
   findGoRequireVersion,
   normalizeGoModuleVersion,
   resolveGoProxyUrl,
+  shouldRunGoReleaseValidation,
   updateGoRequireVersions,
 } from './go-version-actions';
 
@@ -159,6 +160,47 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
       'https://proxy.golang.org,direct',
       'https://proxy.golang.org,direct',
     ]);
+  });
+
+  it('skips release validation for docker-only release groups', () => {
+    expect(
+      shouldRunGoReleaseValidation({}, [
+        'nx',
+        'release',
+        'version',
+        '--groups',
+        'docker-images',
+      ]),
+    ).toBe(false);
+    expect(
+      createGoReleaseValidationCommands(
+        '/repo',
+        {
+          goReleaseValidationRoots: ['apps/moltnet-cli'],
+        },
+        ['nx', 'release', 'version', '--groups=docker-images'],
+      ),
+    ).toEqual([]);
+  });
+
+  it('runs release validation for go and cli release selections', () => {
+    expect(
+      shouldRunGoReleaseValidation({}, [
+        'nx',
+        'release',
+        'version',
+        '--groups',
+        'go-modules,cli',
+      ]),
+    ).toBe(true);
+    expect(
+      shouldRunGoReleaseValidation({}, [
+        'nx',
+        'release',
+        'version',
+        '--projects=moltnet-cli',
+      ]),
+    ).toBe(true);
   });
 
   it('does not run Go release validation during dry-run', async () => {

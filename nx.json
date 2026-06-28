@@ -162,8 +162,6 @@
       "registryUrl": "ghcr.io",
       "skipVersionActions": false,
       "versionSchemes": {
-        "default": "ci-{shortCommitSha}",
-        "prerelease": "{versionActionsVersion}",
         "production": "{versionActionsVersion}"
       }
     },

@@ -16,8 +16,12 @@ type AfterVersionOptions = {
   verbose?: boolean;
 };
 type GoAfterVersionOptions = {
+  goReleaseValidationGroups?: unknown;
+  goReleaseValidationProjects?: unknown;
   goReleaseValidationRoots?: unknown;
   goReleaseGoproxy?: unknown;
+  selectedReleaseGroups?: unknown;
+  selectedProjects?: unknown;
   skipGoReleaseValidation?: unknown;
 };
 
@@ -179,11 +183,86 @@ export function resolveGoReleaseValidationRoots(
     : [];
 }
 
+function parseOptionList(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (item): item is string => typeof item === 'string' && item.length > 0,
+    );
+  }
+  if (typeof value !== 'string') {
+    return [];
+  }
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function readCliOptionList(argv: string[], optionNames: string[]) {
+  const values: string[] = [];
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    for (const optionName of optionNames) {
+      if (arg === optionName) {
+        values.push(...parseOptionList(argv[index + 1]));
+        continue;
+      }
+      if (arg.startsWith(`${optionName}=`)) {
+        values.push(...parseOptionList(arg.slice(optionName.length + 1)));
+      }
+    }
+  }
+
+  return values;
+}
+
+export function shouldRunGoReleaseValidation(
+  options: GoAfterVersionOptions = {},
+  argv = process.argv,
+) {
+  if (options.skipGoReleaseValidation === true) {
+    return false;
+  }
+
+  const selectedGroups = [
+    ...parseOptionList(options.selectedReleaseGroups),
+    ...readCliOptionList(argv, ['--groups', '-g']),
+  ];
+  const selectedProjects = [
+    ...parseOptionList(options.selectedProjects),
+    ...readCliOptionList(argv, ['--projects', '-p']),
+  ];
+
+  const goGroups = parseOptionList(options.goReleaseValidationGroups);
+  const groupsToValidate =
+    goGroups.length > 0 ? goGroups : ['go-modules', 'cli'];
+
+  const goProjects = parseOptionList(options.goReleaseValidationProjects);
+  const projectsToValidate =
+    goProjects.length > 0
+      ? goProjects
+      : ['moltnet-cli', 'dspy-adapters', 'moltnet-api-client'];
+
+  if (selectedGroups.length > 0) {
+    return selectedGroups.some((group) => groupsToValidate.includes(group));
+  }
+
+  if (selectedProjects.length > 0) {
+    return selectedProjects.some((project) =>
+      projectsToValidate.includes(project),
+    );
+  }
+
+  return true;
+}
+
 export function createGoReleaseValidationCommands(
   cwd: string,
   options: GoAfterVersionOptions = {},
+  argv = process.argv,
 ) {
-  if (options.skipGoReleaseValidation === true) {
+  if (!shouldRunGoReleaseValidation(options, argv)) {
     return [];
   }
 
@@ -245,6 +324,15 @@ export async function afterAllProjectsVersioned(
     rootVersionActionsOptions?: GoAfterVersionOptions;
   },
 ) {
+  if (!shouldRunGoReleaseValidation(rootVersionActionsOptions)) {
+    if (verbose) {
+      console.log(
+        '\nSkipped Go release validation for this release selection.',
+      );
+    }
+    return { changedFiles: [], deletedFiles: [] };
+  }
+
   const commands = createGoReleaseValidationCommands(
     cwd,
     rootVersionActionsOptions,
