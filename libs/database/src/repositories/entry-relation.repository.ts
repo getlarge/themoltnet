@@ -26,7 +26,9 @@ export function createEntryRelationRepository(db: Database) {
     return `${input.sourceId}:${input.targetId}:${input.relation}`;
   }
 
-  async function createOne(input: NewEntryRelation): Promise<EntryRelation> {
+  async function createOne(
+    input: NewEntryRelation,
+  ): Promise<{ relation: EntryRelation; created: boolean }> {
     const [row] = await getExecutor(db)
       .insert(entryRelations)
       .values(input)
@@ -39,7 +41,11 @@ export function createEntryRelationRepository(db: Database) {
       })
       .returning();
 
-    if (row) return row;
+    // A returned row means the INSERT actually happened (no conflict); this is
+    // the authoritative new-vs-existing signal. Callers use it to choose 201 vs
+    // 200 — never infer it from wall-clock timestamps (clock skew / latency
+    // between capturing "now" and the DB insert makes that racy).
+    if (row) return { relation: row, created: true };
 
     const [existing] = await getExecutor(db)
       .select()
@@ -57,11 +63,13 @@ export function createEntryRelationRepository(db: Database) {
       throw new Error('entry relation upsert failed unexpectedly');
     }
 
-    return existing;
+    return { relation: existing, created: false };
   }
 
   return {
-    async create(input: NewEntryRelation): Promise<EntryRelation> {
+    async create(
+      input: NewEntryRelation,
+    ): Promise<{ relation: EntryRelation; created: boolean }> {
       return createOne(input);
     },
 
