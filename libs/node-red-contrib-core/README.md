@@ -344,15 +344,16 @@ Three layers, increasing fidelity:
 ## Run Node-RED with these nodes (one command)
 
 ```bash
-pnpm --filter @themoltnet/node-red-contrib-core dev      # → http://localhost:1880
-PORT=1881 pnpm --filter @themoltnet/node-red-contrib-core dev
+pnpm exec nx run @themoltnet/node-red-contrib-core:dev      # → http://localhost:1880
+PORT=1881 pnpm exec nx run @themoltnet/node-red-contrib-core:dev
 ```
 
-`scripts/dev.mjs` builds the nodes, links this package into a local
-`.node-red-dev/` userDir (gitignored), and starts Node-RED 5 (fetched via `npx`
+The Nx `dev` target builds this package and `@themoltnet/node-red-theme` through
+target `dependsOn`, then `scripts/dev.mjs` links this package into a local
+`.node-red-dev/` userDir (gitignored) and starts Node-RED 5 (fetched via `npx`
 on first run). The MoltNet nodes appear under the **moltnet** palette category.
-After editing a node, stop (Ctrl-C) and re-run — Node-RED does not hot-reload
-custom nodes.
+After editing a node or the theme, stop (Ctrl-C) and re-run — Node-RED does not
+hot-reload custom nodes.
 
 To skin a local or hosted Node-RED instance with the MoltNet editor theme,
 install `@themoltnet/node-red-theme` next to Node-RED and set:
@@ -377,7 +378,7 @@ usually sending a stale `auth-tokens*` localStorage value from an older
 authenticated editor on the same origin. Clear site data for
 `http://localhost:1880`, remove localStorage keys beginning with `auth-tokens`,
 or restart this dev harness on a fresh port such as
-`PORT=1881 pnpm --filter @themoltnet/node-red-contrib-core dev`.
+`PORT=1881 pnpm exec nx run @themoltnet/node-red-contrib-core:dev`.
 
 <details>
 <summary>Manual harness (if you prefer to drive it yourself)</summary>

@@ -43,10 +43,11 @@ flag listings, defaults, and examples.
 
 ### Local development invocation
 
-Two pnpm scripts inside this repo:
+Use Nx targets for local development from this repo. They keep execution rooted
+in the workspace and preserve the task graph/dependency behavior:
 
-- `pnpm --filter @themoltnet/agent-daemon cli <command> [...flags]` — one-shot. Use this for `--help`, `once`, or any invocation that should exit when done.
-- `pnpm --filter @themoltnet/agent-daemon dev <command> [...flags]` — `tsx watch`. Use this for active development of the daemon code while a long-running `poll` keeps the loop fed; the watcher restarts on source changes. Don't pair this with `--help` or `once` — it never exits even after the script does.
+- `pnpm exec nx run @themoltnet/agent-daemon:cli -- <command> [...flags]` — one-shot. Use this for `--help`, `once`, or any invocation that should exit when done.
+- `pnpm exec nx run @themoltnet/agent-daemon:dev -- <command> [...flags]` — `tsx watch`. Use this for active development of the daemon code while a long-running `poll` keeps the loop fed; the watcher restarts on source changes. Don't pair this with `--help` or `once` — it never exits even after the script does.
 
 For an end-to-end smoke-test walkthrough against the local Docker stack — provisioning a throwaway agent, running the daemon, and creating a task — see [`apps/agent-daemon/README.md` § Local development & smoke testing](../../apps/agent-daemon/README.md#local-development--smoke-testing).
 

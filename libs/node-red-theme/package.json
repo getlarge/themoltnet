@@ -64,6 +64,21 @@
       "platform:server"
     ],
     "targets": {
+      "dev-build": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": [
+          "{projectRoot}/dist"
+        ],
+        "options": {
+          "cwd": "libs/node-red-theme",
+          "command": "pnpm exec vite build"
+        }
+      },
       "typecheck": {
         "executor": "nx:noop",
         "dependsOn": [
