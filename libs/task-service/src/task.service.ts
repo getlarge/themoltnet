@@ -1566,15 +1566,19 @@ export function createTaskService(deps: TaskServiceDeps) {
       const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
       while (true) {
         const updated = await taskRepository.findById(taskId);
+        if (updated?.status === 'queued') {
+          logger.info(
+            { taskId, attemptN, status: updated.status },
+            'task.fail.requeued',
+          );
+          return dbTaskToWire(updated);
+        }
         if (updated && TERMINAL_STATUSES.has(updated.status)) {
           // Defense in depth (#938): if the workflow ended in a different
           // terminal state (typically `cancelled` when a cancel races
           // with a fail), the caller's /fail did not actually take
           // effect — return 409.
           //
-          // Note: a fail with retries-left moves task→queued (non-terminal),
-          // so the loop keeps polling until either the workflow truly
-          // settles or the deadline fires. We don't special-case it here.
           if (updated.status !== 'failed') {
             logger.info(
               { taskId, attemptN, status: updated.status },
