@@ -231,10 +231,12 @@ Important properties:
 This split exists so repo-specific bootstrap can live in `sandbox.json` while
 `pi-extension` stays consumer-agnostic.
 
-The active workspace path is exposed to every resume command as
-`MOLTNET_GUEST_WORKSPACE`. Use that env var instead of hard-coding a guest
-path; the extension mounts the workspace at the same absolute path as the host
-checkout or dedicated worktree.
+The mounted workspace root is exposed to every resume command as
+`MOLTNET_GUEST_WORKSPACE`. The active session directory is exposed as
+`MOLTNET_GUEST_CWD`; use it when bootstrap should run in the checkout where the
+agent starts. For shared and scratch mounts these are usually the same path. For
+dedicated worktrees, `MOLTNET_GUEST_WORKSPACE` is the mounted main repository
+root while `MOLTNET_GUEST_CWD` is the worktree under `.worktrees/`.
 
 Object form:
 
@@ -242,7 +244,7 @@ Object form:
 {
   "retries": 2,
   "retryBackoffMs": 5000,
-  "run": "cd \"${MOLTNET_GUEST_WORKSPACE}\" && pnpm install --frozen-lockfile",
+  "run": "cd \"${MOLTNET_GUEST_CWD:-${MOLTNET_GUEST_WORKSPACE}}\" && pnpm install --frozen-lockfile",
   "when": {
     "workspaceMode": ["shared_mount", "dedicated_worktree"]
   }
