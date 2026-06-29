@@ -1,13 +1,13 @@
 import type { Task, TaskError, TaskMessage } from '@moltnet/tasks';
+import {
+  normalizeRetryTriageResult,
+  redactRetryTriageSecrets,
+  type RetryTriageConfidence,
+  type RetryTriageDecision,
+  type PiRetryTriageResult,
+} from '@themoltnet/pi-extension';
 
-export type RetryTriageDecision = 'retry' | 'do_not_retry';
-export type RetryTriageConfidence = 'low' | 'medium' | 'high';
-
-export interface RetryTriageResult {
-  decision: RetryTriageDecision;
-  confidence: RetryTriageConfidence;
-  reason: string;
-}
+export type RetryTriageResult = PiRetryTriageResult;
 
 export interface RetryTriageInput {
   task: Pick<Task, 'id' | 'taskType' | 'teamId' | 'input'>;
@@ -34,8 +34,6 @@ export interface ClassifiedAttemptFailure {
 }
 
 type RetrySource = ClassifiedAttemptFailure['source'];
-
-const REDACTED = '[redacted]';
 
 const RETRYABLE_CODES = new Set([
   'checkpoint_upload_failed',
@@ -144,7 +142,7 @@ export async function classifyAttemptFailure(
   }
 
   try {
-    const triage = normalizeTriageResult(await input.triage(input));
+    const triage = normalizeRetryTriageResult(await input.triage(input));
     const retryable =
       triage.decision === 'retry' &&
       (triage.confidence === 'medium' || triage.confidence === 'high');
@@ -201,23 +199,6 @@ export function classifyDeterministically(
   return 'ambiguous';
 }
 
-function normalizeTriageResult(value: unknown): RetryTriageResult {
-  const record =
-    value && typeof value === 'object'
-      ? (value as Record<string, unknown>)
-      : {};
-  const decision = record.decision === 'retry' ? 'retry' : 'do_not_retry';
-  const confidence =
-    record.confidence === 'high' || record.confidence === 'medium'
-      ? record.confidence
-      : 'low';
-  const reason =
-    typeof record.reason === 'string' && record.reason.trim()
-      ? record.reason.trim().slice(0, 500)
-      : 'retry triage did not provide a reason';
-  return { decision, confidence, reason };
-}
-
 function appendTriageReason(
   message: string,
   triage: RetryTriageResult,
@@ -235,18 +216,7 @@ function appendTriageFailure(message: string, err: unknown): string {
 
 function sanitizeReason(value: unknown): string {
   const raw = value instanceof Error ? value.message : String(value);
-  return redactSecretsInString(raw).slice(0, 500);
-}
-
-function redactSecretsInString(value: string): string {
-  return value
-    .replace(/((?:bearer|basic)\s+)[a-z0-9._~+/=-]{16,}/gi, `$1${REDACTED}`)
-    .replace(/\bgh[pousr]_[a-z0-9_]{20,}\b/gi, REDACTED)
-    .replace(/\bsk-[a-z0-9_-]{16,}\b/gi, REDACTED)
-    .replace(
-      /\beyJ[a-z0-9_-]{20,}\.[a-z0-9_-]{20,}\.[a-z0-9_-]{20,}\b/gi,
-      REDACTED,
-    );
+  return redactRetryTriageSecrets(raw).slice(0, 500);
 }
 
 function withRetryInfo(

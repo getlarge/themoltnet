@@ -1,4 +1,4 @@
-import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
+import type { Api, Model } from '@earendil-works/pi-ai';
 import {
   createAgentSession,
   DefaultResourceLoader,
@@ -6,8 +6,6 @@ import {
   SessionManager,
 } from '@earendil-works/pi-coding-agent';
 
-export type PiRetryTriageDecision = 'retry' | 'do_not_retry';
-export type PiRetryTriageConfidence = 'low' | 'medium' | 'high';
 export type PiRetryTriageThinkingLevel =
   | 'off'
   | 'minimal'
@@ -17,16 +15,15 @@ export type PiRetryTriageThinkingLevel =
   | 'xhigh';
 
 export interface PiRetryTriageResult {
-  decision: PiRetryTriageDecision;
-  confidence: PiRetryTriageConfidence;
+  decision: RetryTriageDecision;
+  confidence: RetryTriageConfidence;
   reason: string;
 }
 
-export interface PiRetryTriageRuntimeProfile {
-  provider: string;
-  model: string;
-  thinkingLevel?: PiRetryTriageThinkingLevel | null;
-}
+export type RetryTriageDecision = 'retry' | 'do_not_retry';
+export type RetryTriageConfidence = 'low' | 'medium' | 'high';
+export type PiRetryTriageDecision = RetryTriageDecision;
+export type PiRetryTriageConfidence = RetryTriageConfidence;
 
 export interface PiRetryTriageInput {
   task: {
@@ -58,21 +55,14 @@ const SECRET_KEY_PATTERN =
   /(?:api[_-]?key|token|secret|password|passwd|credential|authorization|private[_-]?key|access[_-]?token|refresh[_-]?token)/i;
 
 export function createPiRetryTriage(options: {
-  runtimeProfile: PiRetryTriageRuntimeProfile;
+  model: Model<Api>;
+  thinkingLevel?: PiRetryTriageThinkingLevel | null;
   piAgentDir: string;
   timeoutMs?: number;
   cwd?: string;
 }): PiRetryTriage {
   return async (input) => {
     const cwd = options.cwd ?? process.cwd();
-    const getModelLoose = getModel as unknown as (
-      provider: string,
-      modelId: string,
-    ) => Model<Api>;
-    const modelHandle = getModelLoose(
-      options.runtimeProfile.provider,
-      options.runtimeProfile.model,
-    );
     const capture = createRetryTriageTool();
     const resourceLoader = new DefaultResourceLoader({
       cwd,
@@ -85,8 +75,8 @@ export function createPiRetryTriage(options: {
     const created = await createAgentSession({
       agentDir: options.piAgentDir,
       cwd,
-      model: modelHandle,
-      thinkingLevel: (options.runtimeProfile.thinkingLevel ?? undefined) as
+      model: options.model,
+      thinkingLevel: (options.thinkingLevel ?? undefined) as
         | NonNullable<Parameters<typeof createAgentSession>[0]>['thinkingLevel']
         | undefined,
       customTools: [capture.tool],
@@ -103,7 +93,7 @@ export function createPiRetryTriage(options: {
     if (!result) {
       throw new Error('Retry triage did not submit a decision');
     }
-    return normalizeTriageResult(result);
+    return normalizeRetryTriageResult(result);
   };
 }
 
@@ -127,7 +117,7 @@ function createRetryTriageTool(): {
       },
     } as Parameters<typeof defineTool>[0]['parameters'],
     execute(_id, params) {
-      captured = normalizeTriageResult(params);
+      captured = normalizeRetryTriageResult(params);
       return Promise.resolve({
         content: [{ type: 'text' as const, text: 'Retry triage captured.' }],
         details: captured,
@@ -138,7 +128,9 @@ function createRetryTriageTool(): {
   return { tool, getCaptured: () => captured };
 }
 
-function normalizeTriageResult(value: unknown): PiRetryTriageResult {
+export function normalizeRetryTriageResult(
+  value: unknown,
+): PiRetryTriageResult {
   const record =
     value && typeof value === 'object'
       ? (value as Record<string, unknown>)
@@ -199,7 +191,10 @@ function redactAndTruncate(value: unknown, path: string[]): unknown {
   const currentKey = path[path.length - 1] ?? '';
   if (SECRET_KEY_PATTERN.test(currentKey)) return REDACTED;
   if (typeof value === 'string') {
-    return truncateString(redactSecretsInString(value), MAX_TRIAGE_FIELD_CHARS);
+    return truncateString(
+      redactRetryTriageSecrets(value),
+      MAX_TRIAGE_FIELD_CHARS,
+    );
   }
   if (Array.isArray(value)) {
     return value.map((item, index) =>
@@ -215,7 +210,7 @@ function redactAndTruncate(value: unknown, path: string[]): unknown {
   return value;
 }
 
-function redactSecretsInString(value: string): string {
+export function redactRetryTriageSecrets(value: string): string {
   return value
     .replace(/((?:bearer|basic)\s+)[a-z0-9._~+/=-]{16,}/gi, `$1${REDACTED}`)
     .replace(/\bgh[pousr]_[a-z0-9_]{20,}\b/gi, REDACTED)

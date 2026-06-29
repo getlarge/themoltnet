@@ -1,3 +1,4 @@
+import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
 import { createPiRetryTriage } from '@themoltnet/pi-extension';
 
 import type { RetryTriage } from './retry-triage.js';
@@ -12,8 +13,17 @@ export function createRuntimeProfileRetryTriage(options: {
   timeoutMs?: number;
   cwd?: string;
 }): RetryTriage {
+  const getModelLoose = getModel as unknown as (
+    provider: string,
+    modelId: string,
+  ) => Model<Api>;
+  const model = getModelLoose(
+    options.runtimeProfile.provider,
+    options.runtimeProfile.model,
+  );
   return createPiRetryTriage({
-    runtimeProfile: options.runtimeProfile,
+    model,
+    thinkingLevel: options.runtimeProfile.thinkingLevel,
     piAgentDir: options.piAgentDir,
     timeoutMs: options.timeoutMs,
     cwd: options.cwd,
