@@ -16,14 +16,30 @@
           "contextWindow": 262144,
           "id": "qwen3.6:latest",
           "input": ["text", "image"],
-          "reasoning": true
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
         },
         {
           "_launch": true,
           "contextWindow": 262144,
           "id": "gemma4:12b",
           "input": ["text", "image"],
-          "reasoning": true
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
         }
       ]
     },
@@ -33,22 +49,260 @@
       "baseUrl": "https://ollama.com/v1",
       "models": [
         {
-          "id": "minimax-m3:cloud"
+          "id": "deepseek-v4-flash:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
         },
         {
-          "id": "gemma4:31b-cloud"
+          "id": "deepseek-v4-pro:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
         },
         {
-          "id": "qwen3.5:cloud"
+          "id": "gemini-3-flash-preview:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "gemma4:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "gemma4:31b-cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "glm-4.7:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "glm-5:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "glm-5.1:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "glm-5.2:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "gpt-oss:20b-cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": null,
+            "off": null
+          }
+        },
+        {
+          "id": "gpt-oss:120b-cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": null,
+            "off": null
+          }
+        },
+        {
+          "id": "kimi-k2.5:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "kimi-k2.6:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "kimi-k2.7-code:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "minimax-m2.1:cloud"
+        },
+        {
+          "id": "minimax-m2.5:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "minimax-m2.7:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "minimax-m3:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "nemotron-3-super:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "nemotron-3-ultra:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
         },
         {
           "id": "qwen3-coder:480b-cloud"
         },
         {
-          "id": "glm-5.1:cloud"
+          "id": "qwen3.5:cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
         },
         {
-          "id": "kimi-k2.7-code:cloud"
+          "id": "qwen3.5:397b-cloud",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
         }
       ]
     }
