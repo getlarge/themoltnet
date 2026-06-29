@@ -730,7 +730,7 @@ describe('POST /tasks/:id/attempts/:n/fail', () => {
   beforeEach(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
-    mocks.taskService.fail.mockResolvedValue({
+    mocks.taskService.failAttempt.mockResolvedValue({
       ...MOCK_TASK,
       status: 'failed' as const,
     });
@@ -748,6 +748,13 @@ describe('POST /tasks/:id/attempts/:n/fail', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ id: TASK_ID, status: 'failed' });
+    expect(mocks.taskService.failAttempt).toHaveBeenCalledWith(
+      TASK_ID,
+      ATTEMPT_N,
+      OWNER_ID,
+      KetoNamespace.Agent,
+      { code: 'TOOL_FAILURE', message: 'Tool call failed' },
+    );
   });
 });
 

@@ -42507,7 +42507,7 @@ function createTasksNamespace(context) {
 				body
 			}));
 		},
-		async fail(id, n, body) {
+		async failAttempt(id, n, body) {
 			return unwrapResult(await failTask({
 				client,
 				auth,
@@ -42517,6 +42517,9 @@ function createTasksNamespace(context) {
 				},
 				body
 			}));
+		},
+		async fail(id, n, body) {
+			return this.failAttempt(id, n, body);
 		},
 		async abortAttempt(id, n, body) {
 			return unwrapResult(await abortTaskAttempt({
