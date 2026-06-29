@@ -42540,9 +42540,6 @@ function createTasksNamespace(context) {
 				body
 			}));
 		},
-		async fail(id, n, body) {
-			return this.failAttempt(id, n, body);
-		},
 		async abortAttempt(id, n, body) {
 			return unwrapResult(await abortTaskAttempt({
 				client,

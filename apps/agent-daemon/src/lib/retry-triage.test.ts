@@ -2,7 +2,6 @@ import type { TaskError } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildTriagePromptForTest,
   classifyAttemptFailure,
   classifyDeterministically,
 } from './retry-triage.js';
@@ -151,6 +150,27 @@ describe('retry triage classification', () => {
     });
   });
 
+  it('redacts secret-looking tokens from triage failure metadata', async () => {
+    const result = await classifyAttemptFailure({
+      ...BASE_INPUT,
+      error: { code: 'executor_unexpected_error', message: 'unclear failure' },
+      triage: () =>
+        Promise.reject(
+          new Error(
+            'provider failed with token ghp_abcdefghijklmnopqrstuvwxyz',
+          ),
+        ),
+    });
+
+    expect(result.error.message).not.toContain(
+      'ghp_abcdefghijklmnopqrstuvwxyz',
+    );
+    expect(result.error.retry?.reason).not.toContain(
+      'ghp_abcdefghijklmnopqrstuvwxyz',
+    );
+    expect(result.error.retry?.reason).toContain('[redacted]');
+  });
+
   it('explains ambiguous failures when no triage agent is configured', async () => {
     const result = await classifyAttemptFailure({
       ...BASE_INPUT,
@@ -164,56 +184,5 @@ describe('retry triage classification', () => {
       reason:
         'Failure was ambiguous and no retry triage agent was configured; defaulted to no retry.',
     });
-  });
-
-  it('redacts secret-looking fields from the triage prompt', () => {
-    const prompt = buildTriagePromptForTest({
-      ...BASE_INPUT,
-      task: {
-        ...BASE_INPUT.task,
-        input: {
-          brief: 'use credentials',
-          apiKey: 'sk-secret-value',
-          nested: {
-            authorization: 'Bearer abcdefghijklmnopqrstuvwxyz123456',
-          },
-        },
-      },
-      error: {
-        code: 'executor_unexpected_error',
-        message: 'failed with token ghp_abcdefghijklmnopqrstuvwxyz',
-      },
-      recentMessages: [
-        {
-          timestamp: '2026-06-29T11:00:00Z',
-          kind: 'info',
-          payload: { password: 'super-secret' },
-        },
-      ],
-    });
-
-    expect(prompt).toContain('"apiKey": "[redacted]"');
-    expect(prompt).toContain('"authorization": "[redacted]"');
-    expect(prompt).toContain('"password": "[redacted]"');
-    expect(prompt).not.toContain('sk-secret-value');
-    expect(prompt).not.toContain('super-secret');
-    expect(prompt).not.toContain('ghp_abcdefghijklmnopqrstuvwxyz');
-  });
-
-  it('bounds large triage prompt payloads', () => {
-    const prompt = buildTriagePromptForTest({
-      ...BASE_INPUT,
-      task: {
-        ...BASE_INPUT.task,
-        input: { brief: 'x'.repeat(40_000) },
-      },
-      error: {
-        code: 'executor_unexpected_error',
-        message: 'y'.repeat(40_000),
-      },
-    });
-
-    expect(prompt.length).toBeLessThan(13_000);
-    expect(prompt).toContain('[truncated');
   });
 });

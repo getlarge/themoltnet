@@ -16,7 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { runOnce } from '../src/cli/once.js';
 import { finalizeTask } from '../src/lib/finalize.js';
-import { createPiRetryTriage } from '../src/lib/retry-triage.js';
+import { createRuntimeProfileRetryTriage } from '../src/lib/runtime-profile-retry-triage.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
@@ -368,10 +368,12 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
       onTaskFinished: (output, claimedTask) =>
         finalizeTask(agent, output, {
           task: claimedTask.task,
-          retryTriage: createPiRetryTriage({
-            provider: LIVE_PROVIDER,
-            model: LIVE_TRIAGE_MODEL,
-            thinkingLevel: 'low',
+          retryTriage: createRuntimeProfileRetryTriage({
+            runtimeProfile: {
+              provider: LIVE_PROVIDER,
+              model: LIVE_TRIAGE_MODEL,
+              thinkingLevel: 'low',
+            },
             piAgentDir: join(repoRoot, '.pi'),
             cwd: repoRoot,
             timeoutMs: 60_000,

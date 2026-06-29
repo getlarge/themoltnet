@@ -1,12 +1,4 @@
-import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
-import {
-  createAgentSession,
-  DefaultResourceLoader,
-  defineTool,
-  SessionManager,
-} from '@earendil-works/pi-coding-agent';
 import type { Task, TaskError, TaskMessage } from '@moltnet/tasks';
-import type { RuntimeProfileThinkingLevel } from '@moltnet/tasks';
 
 export type RetryTriageDecision = 'retry' | 'do_not_retry';
 export type RetryTriageConfidence = 'low' | 'medium' | 'high';
@@ -43,12 +35,7 @@ export interface ClassifiedAttemptFailure {
 
 type RetrySource = ClassifiedAttemptFailure['source'];
 
-const MAX_TRIAGE_JSON_CHARS = 12_000;
-const MAX_TRIAGE_FIELD_CHARS = 2_000;
 const REDACTED = '[redacted]';
-
-const SECRET_KEY_PATTERN =
-  /(?:api[_-]?key|token|secret|password|passwd|credential|authorization|private[_-]?key|access[_-]?token|refresh[_-]?token)/i;
 
 const RETRYABLE_CODES = new Set([
   'checkpoint_upload_failed',
@@ -214,84 +201,6 @@ export function classifyDeterministically(
   return 'ambiguous';
 }
 
-export function createPiRetryTriage(options: {
-  provider: string;
-  model: string;
-  thinkingLevel?: RuntimeProfileThinkingLevel | null;
-  piAgentDir: string;
-  timeoutMs?: number;
-  cwd?: string;
-}): RetryTriage {
-  return async (input) => {
-    const cwd = options.cwd ?? process.cwd();
-    const getModelLoose = getModel as unknown as (
-      provider: string,
-      modelId: string,
-    ) => Model<Api>;
-    const modelHandle = getModelLoose(options.provider, options.model);
-    const capture = createRetryTriageTool();
-    const resourceLoader = new DefaultResourceLoader({
-      cwd,
-      agentDir: options.piAgentDir,
-      appendSystemPrompt: [TRIAGE_SYSTEM_PROMPT],
-      skillsOverride: () => ({ skills: [], diagnostics: [] }),
-    });
-    await resourceLoader.reload();
-    const sessionManager = SessionManager.inMemory(cwd);
-    const created = await createAgentSession({
-      agentDir: options.piAgentDir,
-      cwd,
-      model: modelHandle,
-      thinkingLevel: options.thinkingLevel ?? undefined,
-      customTools: [capture.tool],
-      sessionManager,
-      resourceLoader,
-    });
-
-    await withTimeout(
-      created.session.prompt(buildTriagePrompt(input)),
-      options.timeoutMs ?? 30_000,
-      () => created.session.abort(),
-    );
-    const result = capture.getCaptured();
-    if (!result) {
-      throw new Error('Retry triage did not submit a decision');
-    }
-    return normalizeTriageResult(result);
-  };
-}
-
-function createRetryTriageTool(): {
-  tool: ReturnType<typeof defineTool>;
-  getCaptured: () => RetryTriageResult | null;
-} {
-  let captured: RetryTriageResult | null = null;
-  const tool = defineTool({
-    name: 'submit_retry_triage',
-    label: 'Submit retry triage',
-    description: 'Submit the retry decision for a failed MoltNet task attempt.',
-    parameters: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['decision', 'confidence', 'reason'],
-      properties: {
-        decision: { type: 'string', enum: ['retry', 'do_not_retry'] },
-        confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
-        reason: { type: 'string', minLength: 1 },
-      },
-    } as Parameters<typeof defineTool>[0]['parameters'],
-    execute(_id, params) {
-      captured = normalizeTriageResult(params);
-      return Promise.resolve({
-        content: [{ type: 'text' as const, text: 'Retry triage captured.' }],
-        details: captured,
-        terminate: true,
-      });
-    },
-  });
-  return { tool, getCaptured: () => captured };
-}
-
 function normalizeTriageResult(value: unknown): RetryTriageResult {
   const record =
     value && typeof value === 'object'
@@ -326,7 +235,18 @@ function appendTriageFailure(message: string, err: unknown): string {
 
 function sanitizeReason(value: unknown): string {
   const raw = value instanceof Error ? value.message : String(value);
-  return String(prepareTriagePayload(raw)).slice(0, 500);
+  return redactSecretsInString(raw).slice(0, 500);
+}
+
+function redactSecretsInString(value: string): string {
+  return value
+    .replace(/((?:bearer|basic)\s+)[a-z0-9._~+/=-]{16,}/gi, `$1${REDACTED}`)
+    .replace(/\bgh[pousr]_[a-z0-9_]{20,}\b/gi, REDACTED)
+    .replace(/\bsk-[a-z0-9_-]{16,}\b/gi, REDACTED)
+    .replace(
+      /\beyJ[a-z0-9_-]{20,}\.[a-z0-9_-]{20,}\.[a-z0-9_-]{20,}\b/gi,
+      REDACTED,
+    );
 }
 
 function withRetryInfo(
@@ -349,106 +269,4 @@ function withRetryInfo(
       ...(info.reason ? { reason: info.reason.slice(0, 500) } : {}),
     },
   };
-}
-
-export function buildTriagePromptForTest(input: RetryTriageInput): string {
-  return buildTriagePrompt(input);
-}
-
-function buildTriagePrompt(input: RetryTriageInput): string {
-  const payload = {
-    task: {
-      id: input.task.id,
-      type: input.task.taskType,
-      teamId: input.task.teamId,
-      input: prepareTriagePayload(input.task.input),
-    },
-    attempt: {
-      attemptN: input.attemptN,
-      maxAttempts: input.maxAttempts ?? null,
-      remainingAttempts: input.remainingAttempts ?? null,
-    },
-    error: prepareTriagePayload(input.error),
-    recentMessages: prepareTriagePayload(
-      (input.recentMessages ?? []).slice(-12),
-    ),
-  };
-  return [
-    'Classify whether this failed task attempt should be retried.',
-    '',
-    'Retry only when a fresh attempt can plausibly recover without changing the task input.',
-    'Do not retry for policy, validation, credentials, cancellation, model/config, or task-contract failures.',
-    'Use confidence=low when evidence is weak; low confidence must choose do_not_retry.',
-    'Call submit_retry_triage exactly once.',
-    '',
-    truncateString(JSON.stringify(payload, null, 2), MAX_TRIAGE_JSON_CHARS),
-  ].join('\n');
-}
-
-function prepareTriagePayload(value: unknown): unknown {
-  return redactAndTruncate(value, []);
-}
-
-function redactAndTruncate(value: unknown, path: string[]): unknown {
-  const currentKey = path[path.length - 1] ?? '';
-  if (SECRET_KEY_PATTERN.test(currentKey)) return REDACTED;
-  if (typeof value === 'string') {
-    return truncateString(redactSecretsInString(value), MAX_TRIAGE_FIELD_CHARS);
-  }
-  if (Array.isArray(value)) {
-    return value.map((item, index) =>
-      redactAndTruncate(item, [...path, String(index)]),
-    );
-  }
-  if (value && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>).map(
-      ([key, child]) => [key, redactAndTruncate(child, [...path, key])],
-    );
-    return Object.fromEntries(entries);
-  }
-  return value;
-}
-
-function redactSecretsInString(value: string): string {
-  return value
-    .replace(/((?:bearer|basic)\s+)[a-z0-9._~+/=-]{16,}/gi, `$1${REDACTED}`)
-    .replace(/\bgh[pousr]_[a-z0-9_]{20,}\b/gi, REDACTED)
-    .replace(/\bsk-[a-z0-9_-]{16,}\b/gi, REDACTED)
-    .replace(
-      /\beyJ[a-z0-9_-]{20,}\.[a-z0-9_-]{20,}\.[a-z0-9_-]{20,}\b/gi,
-      REDACTED,
-    );
-}
-
-function truncateString(value: string, maxChars: number): string {
-  if (value.length <= maxChars) return value;
-  return `${value.slice(0, maxChars)}...[truncated ${value.length - maxChars} chars]`;
-}
-
-const TRIAGE_SYSTEM_PROMPT = [
-  'You are MoltNet retry triage.',
-  'You classify one failed execution attempt, not the whole task.',
-  'Return retry only for likely transient/runtime failures or clear evidence a new attempt can recover.',
-  'The agent may have already tried local recovery; do not ask for more work.',
-].join('\n');
-
-async function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  onTimeout?: () => void | Promise<void>,
-): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeout = setTimeout(() => {
-      void Promise.resolve(onTimeout?.()).catch(() => {
-        // Best effort: the caller still gets the timeout signal below.
-      });
-      reject(new Error(`Retry triage timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-  });
-  try {
-    return await Promise.race([promise, timeoutPromise]);
-  } finally {
-    if (timeout) clearTimeout(timeout);
-  }
 }
