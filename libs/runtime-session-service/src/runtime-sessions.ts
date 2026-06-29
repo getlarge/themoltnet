@@ -13,6 +13,7 @@ import type {
   RuntimeSession,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
+  Task,
   TaskAttempt,
   TaskRepository,
 } from '@moltnet/database';
@@ -97,14 +98,9 @@ export function createRuntimeSessionService(deps: RuntimeSessionServiceDeps) {
       assertAttemptUploader(attempt, input.identityId);
       if (!ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
         const task = await assertTaskInTeam(deps, input);
-        if (task.claimAgentId !== input.identityId) {
-          throw createProblem(
-            'forbidden',
-            'Only the active claiming agent may upload this runtime session',
-          );
-        }
+        assertActiveTaskLease(task, input.identityId);
       }
-      await requireUploadAccess(deps, input, attempt);
+      await requireTerminalRepairUploadAccess(deps, input, attempt);
       const sourceSlot = await assertSourceSlotInTeam(
         deps,
         input.query.sourceSlotId,
@@ -145,6 +141,12 @@ export function createRuntimeSessionService(deps: RuntimeSessionServiceDeps) {
           taskId: input.taskId,
           teamId: input.teamId,
         });
+        const latestAttempt = await assertTaskAttemptInTeam(deps, input);
+        assertAttemptUploader(latestAttempt, input.identityId);
+        if (!ATTEMPT_TERMINAL_STATUSES.has(latestAttempt.status)) {
+          const latestTask = await assertTaskInTeam(deps, input);
+          assertActiveTaskLease(latestTask, input.identityId);
+        }
         await deps.runtimeSessionStorage.putObject({
           body: createReadStream(staged.path),
           contentEncoding: 'gzip',
@@ -289,7 +291,7 @@ async function assertTaskInTeam(
   return task;
 }
 
-async function requireUploadAccess(
+async function requireTerminalRepairUploadAccess(
   deps: RuntimeSessionServiceDeps,
   input: RuntimeSessionSubject & { taskId: string },
   attempt: TaskAttempt,
@@ -297,6 +299,18 @@ async function requireUploadAccess(
   if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
     await requireTaskReadAccess(deps, input);
     return;
+  }
+}
+
+function assertActiveTaskLease(task: Task, identityId: string): void {
+  if (task.claimAgentId !== identityId) {
+    throw createProblem(
+      'forbidden',
+      'Only the active claiming agent may upload this runtime session',
+    );
+  }
+  if (!task.claimExpiresAt || task.claimExpiresAt.getTime() <= Date.now()) {
+    throw createProblem('conflict', 'Task claim lease has expired');
   }
 }
 

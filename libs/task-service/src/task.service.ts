@@ -155,13 +155,16 @@ function taskWorkflowId(taskId: string, attemptN: number): string {
   return `task:${taskId}:attempt:${attemptN}`;
 }
 
-function assertActiveTaskClaim(
+function assertActiveTaskLease(
   task: DbTask,
   callerId: string,
   message: string,
 ): void {
   if (task.claimAgentId !== callerId) {
     throw new TaskServiceError('forbidden', message);
+  }
+  if (!task.claimExpiresAt || task.claimExpiresAt.getTime() <= Date.now()) {
+    throw new TaskServiceError('conflict', 'Task claim lease has expired');
   }
 }
 
@@ -1267,7 +1270,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           `Task is already in terminal state: ${task.status}`,
         );
       }
-      assertActiveTaskClaim(
+      assertActiveTaskLease(
         task,
         callerId,
         'Only the active claiming agent may send heartbeats',
@@ -1382,7 +1385,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Only the claiming agent may complete this attempt',
         );
       }
-      assertActiveTaskClaim(
+      assertActiveTaskLease(
         task,
         callerId,
         'Only the active claiming agent may complete this attempt',
@@ -1530,7 +1533,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Only the claiming agent may fail this attempt',
         );
       }
-      assertActiveTaskClaim(
+      assertActiveTaskLease(
         task,
         callerId,
         'Only the active claiming agent may fail this attempt',
@@ -1631,7 +1634,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Only the claiming agent may abort this attempt',
         );
       }
-      assertActiveTaskClaim(
+      assertActiveTaskLease(
         task,
         callerId,
         'Only the active claiming agent may abort this attempt',
@@ -1955,7 +1958,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           `Task is already in terminal state: ${task.status}`,
         );
       }
-      assertActiveTaskClaim(
+      assertActiveTaskLease(
         task,
         callerId,
         'Only the active claiming agent may append messages',

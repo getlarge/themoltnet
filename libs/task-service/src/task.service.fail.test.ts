@@ -8,7 +8,12 @@ const TASK_ID = '11111111-1111-1111-1111-111111111111';
 const TEAM_ID = '00000000-0000-0000-0000-000000000001';
 const AGENT_ID = 'a0000000-0000-0000-0000-000000000001';
 
-function makeTask(status: DbTask['status']): DbTask {
+function makeTask(
+  status: DbTask['status'],
+  overrides: Partial<DbTask> = {},
+): DbTask {
+  const claimExpiresAt =
+    status === 'running' ? new Date(Date.now() + 60_000) : null;
   return {
     id: TASK_ID,
     taskType: 'freeform',
@@ -30,8 +35,7 @@ function makeTask(status: DbTask['status']): DbTask {
     allowedProfiles: [],
     status,
     claimAgentId: status === 'running' ? AGENT_ID : null,
-    claimExpiresAt:
-      status === 'running' ? new Date('2026-06-01T00:05:00Z') : null,
+    claimExpiresAt,
     queuedAt: new Date('2026-06-01T00:00:00Z'),
     completedAt: null,
     expiresAt: null,
@@ -43,6 +47,7 @@ function makeTask(status: DbTask['status']): DbTask {
     runningTimeoutSec: null,
     createdAt: new Date('2026-06-01T00:00:00Z'),
     updatedAt: new Date('2026-06-01T00:00:00Z'),
+    ...overrides,
   } as DbTask;
 }
 
@@ -184,6 +189,45 @@ describe('createTaskService.appendMessages', () => {
     ).rejects.toMatchObject({
       code: 'forbidden',
       message: 'Only the active claiming agent may append messages',
+    });
+    expect(deps.taskRepository.appendMessages).not.toHaveBeenCalled();
+  });
+
+  it('rejects append after the task claim lease expires', async () => {
+    const deps = {
+      taskRepository: {
+        findById: vi.fn().mockResolvedValue(
+          makeTask('running', {
+            claimExpiresAt: new Date(Date.now() - 1_000),
+          }),
+        ),
+        findAttempt: vi.fn().mockResolvedValue({
+          taskId: TASK_ID,
+          attemptN: 1,
+          claimedByAgentId: AGENT_ID,
+          status: 'running',
+        }),
+        appendMessages: vi.fn().mockResolvedValue(undefined),
+      },
+      permissionChecker: {
+        canReportTask: vi.fn().mockResolvedValue(true),
+      },
+      logger: {
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      },
+    };
+    const service = createTaskService(deps as never);
+
+    await expect(
+      service.appendMessages(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, [
+        { kind: 'info', payload: { event: 'started' } },
+      ]),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'Task claim lease has expired',
     });
     expect(deps.taskRepository.appendMessages).not.toHaveBeenCalled();
   });

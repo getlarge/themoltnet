@@ -8,6 +8,7 @@ import {
 } from '@moltnet/blob-storage';
 import { computeBytesCidFromSha256 } from '@moltnet/crypto-service';
 import type {
+  Task,
   TaskArtifact,
   TaskArtifactRepository,
   TaskRepository,
@@ -148,12 +149,7 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
         );
       }
       const task = await assertTaskInTeam(deps, input);
-      if (task.claimAgentId !== input.identityId) {
-        throw new TaskArtifactServiceError(
-          403,
-          'Only the active claiming agent may upload task artifacts',
-        );
-      }
+      assertActiveTaskLease(task, input.identityId);
       const staged = await stageArtifactUpload(input.body, {
         maxBytes: deps.taskArtifactMaxBytes,
       });
@@ -165,6 +161,8 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
           deps,
           input,
         );
+        const latestTask = await assertTaskInTeam(deps, input);
+        assertActiveTaskLease(latestTask, input.identityId);
         if (latestAttempt.claimedByAgentId !== input.identityId) {
           throw new TaskArtifactServiceError(
             403,
@@ -346,6 +344,18 @@ export function serializeTaskArtifact(artifact: TaskArtifact) {
     expiresAt: artifact.expiresAt?.toISOString() ?? null,
     createdAt: artifact.createdAt.toISOString(),
   };
+}
+
+function assertActiveTaskLease(task: Task, identityId: string): void {
+  if (task.claimAgentId !== identityId) {
+    throw new TaskArtifactServiceError(
+      403,
+      'Only the active claiming agent may upload task artifacts',
+    );
+  }
+  if (!task.claimExpiresAt || task.claimExpiresAt.getTime() <= Date.now()) {
+    throw new TaskArtifactServiceError(409, 'Task claim lease has expired');
+  }
 }
 
 async function requireTeamAccess(
