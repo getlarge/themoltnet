@@ -2211,6 +2211,9 @@ importers:
         specifier: '>=7.24.0'
         version: 7.24.7
     devDependencies:
+      '@nx/devkit':
+        specifier: 'catalog:'
+        version: 22.7.0(nx@22.7.0(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))
       '@types/figlet':
         specifier: ^1.7.0
         version: 1.7.0
@@ -13188,7 +13191,7 @@ snapshots:
       enquirer: 2.3.6
       minimatch: 10.2.5
       nx: 22.7.0(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21))
-      semver: 7.7.4
+      semver: 7.8.4
       tslib: 2.8.1
       yargs-parser: 21.1.1
 
@@ -13344,7 +13347,7 @@ snapshots:
       tsconfig-paths: 4.2.0
       tslib: 2.8.1
       vite: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
-      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@nx/eslint'

@@ -3,8 +3,20 @@
 # Full stack (infra + apps) with ephemeral storage.
 # Data is reset on every restart.
 #
-# Usage:
-#   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
+# Repo-built app images are NOT built by Compose. They are produced by Nx
+# (`docker:build`) and tagged `ghcr.io/getlarge/themoltnet/<svc>:dev` by
+# `pnpm run e2e:build`. This file references them via `image:`. See issue #1498
+# and AGENTS.md → "Docker image contract". This single file is used both
+# locally and in CI; CI overrides the tags by exporting the *_IMAGE env vars
+# (e.g. REST_API_IMAGE=ghcr.io/getlarge/themoltnet/rest-api:ci-<sha>).
+#
+# Usage (local):
+#   pnpm run e2e:up      # builds images via Nx, then starts the stack
+#   pnpm run e2e:down    # stops + removes volumes
+#   pnpm run e2e:reset   # down + up
+#
+# Or directly, after `pnpm run e2e:build`:
+#   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d
 #   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v
 
 services:
@@ -17,6 +29,10 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: app-db-migrate
+    # Use the Nx-built image (db-migrate) instead of Compose building the base
+    # service's Dockerfile. !reset null drops the inherited build: block.
+    build: !reset null
+    image: ${DB_MIGRATE_IMAGE:-ghcr.io/getlarge/themoltnet/db-migrate:dev}
     depends_on:
       app-db:
         condition: service_healthy
@@ -143,9 +159,7 @@ services:
       service: runtime-object-store
 
   rest-api:
-    build:
-      context: .
-      dockerfile: apps/rest-api/Dockerfile
+    image: ${REST_API_IMAGE:-ghcr.io/getlarge/themoltnet/rest-api:dev}
     ports:
       - '8080:8080'
     environment:
@@ -234,9 +248,7 @@ services:
       start_period: 30s
 
   console:
-    build:
-      context: .
-      dockerfile: apps/console/Dockerfile
+    image: ${CONSOLE_IMAGE:-ghcr.io/getlarge/themoltnet/console:dev}
     ports:
       - '5174:80'
     environment:
@@ -250,9 +262,7 @@ services:
         condition: service_healthy
 
   mcp-server:
-    build:
-      context: .
-      dockerfile: apps/mcp-server/Dockerfile
+    image: ${MCP_SERVER_IMAGE:-ghcr.io/getlarge/themoltnet/mcp-server:dev}
     ports:
       - '8001:8001'
     environment:
@@ -288,9 +298,7 @@ services:
       start_period: 15s
 
   mcp-host:
-    build:
-      context: .
-      dockerfile: apps/mcp-host/Dockerfile
+    image: ${MCP_HOST_IMAGE:-ghcr.io/getlarge/themoltnet/mcp-host:dev}
     ports:
       - '8082:8080'
       - '8083:8081'

@@ -106,6 +106,22 @@
           "cwd": "apps/mcp-server"
         },
         "outputs": []
+      },
+      "docker:build": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "command": "node tools/docker-build.mjs --project @moltnet/mcp-server"
+        },
+        "configurations": {
+          "ci": {
+            "command": "node tools/docker-build.mjs --project @moltnet/mcp-server --push --tag \"${NX_DOCKER_CI_TAG:?NX_DOCKER_CI_TAG must be set}\""
+          }
+        }
       }
     }
   }

@@ -15,9 +15,16 @@
       "{projectRoot}/Dockerfile",
       "{projectRoot}/Dockerfile.*",
       "{projectRoot}/.dockerignore",
-      { "dependentTasksOutputFiles": "**/dist/**/*", "transitive": true },
-      { "runtime": "docker --version" },
-      { "externalDependencies": ["@nx/docker"] }
+      {
+        "dependentTasksOutputFiles": "**/dist/**/*",
+        "transitive": true
+      },
+      {
+        "runtime": "docker --version"
+      },
+      {
+        "externalDependencies": ["@nx/docker"]
+      }
     ],
     "production": [
       "default",
@@ -254,9 +261,8 @@
       "outputs": ["{projectRoot}/dist"]
     },
     "docker:build": {
-      "cache": true,
-      "dependsOn": ["build"],
-      "inputs": ["docker", "^production"]
+      "cache": false,
+      "dependsOn": ["build"]
     },
     "lint": {
       "cache": true,

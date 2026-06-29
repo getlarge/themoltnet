@@ -131,10 +131,21 @@
         ]
       },
       "docker:build": {
+        "executor": "nx:run-commands",
+        "cache": false,
         "dependsOn": [
           "build:migrate",
           "download-model"
-        ]
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "command": "node tools/docker-build.mjs --project @moltnet/rest-api"
+        },
+        "configurations": {
+          "ci": {
+            "command": "node tools/docker-build.mjs --project @moltnet/rest-api --push --tag \"${NX_DOCKER_CI_TAG:?NX_DOCKER_CI_TAG must be set}\""
+          }
+        }
       },
       "download-model": {
         "cache": true,

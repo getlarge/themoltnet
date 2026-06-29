@@ -126,30 +126,63 @@ authorship on that specific GitHub write action.
 
 E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack must be running before you execute tests** — the test setup only polls health endpoints, it does not start/stop containers.
 
-**Set `NX_LOAD_DOT_ENV_FILES=false` in your shell before running e2e locally** (#1306). Nx ≥22 unconditionally loads the workspace-root `.env` via plain dotenv at bin startup. Our `.env` is dotenvx-encrypted, so plain-dotenv pulls ciphertext into every variable it defines — most importantly `DATABASE_URL`, which then leaks into every process Nx spawns and causes `pg-pool` to fall back to `::1:5432`. The CI workflow sets this env var at the job level; local devs need it in their shell (e.g. add to `~/.zshrc` or use `direnv`). Without it, e2e suites fail with `ENOTFOUND app-db` or `getaddrinfo` errors. The e2e harness defaults (`DEFAULT_E2E_DATABASE_URL` etc. in `@moltnet/bootstrap`) only fire when the env var is **unset**, not when it's set to ciphertext.
+**The `e2e:*` and `test:e2e` root scripts set `NX_LOAD_DOT_ENV_FILES=false` for you** (#1306). Nx ≥22 unconditionally loads the workspace-root `.env` via plain dotenv at bin startup. Our `.env` is dotenvx-encrypted, so plain-dotenv pulls ciphertext into every variable it defines — most importantly `DATABASE_URL` and `ORY_ACTION_API_KEY` — which then leaks into every process Nx spawns: `pg-pool` falls back to `::1:5432` and webhook handlers reject the bad key with `403`. The e2e harness/setup defaults (`DEFAULT_E2E_DATABASE_URL` etc. in `@moltnet/bootstrap`, `apps/rest-api/e2e/setup.ts`) only fire when the var is **unset**, not when it's ciphertext. CI sets `NX_LOAD_DOT_ENV_FILES=false` at the workflow level and pins `DATABASE_URL`/`ORY_ACTION_API_KEY` at the job level as belt-and-suspenders.
+
+If you invoke a **single** suite directly with `pnpm exec nx run …:e2e` (not via `test:e2e`), set `NX_LOAD_DOT_ENV_FILES=false` in your shell first (e.g. add to `~/.zshrc` or use `direnv`) — otherwise the leak applies. The `pnpm run` wrappers below already handle it.
 
 ```bash
-# One-time per shell (or add to your shell rc):
+# Start the e2e stack. `e2e:up` builds the app images via Nx (`docker:build`,
+# tagged ghcr.io/getlarge/themoltnet/<svc>:dev) and then starts Compose — no
+# `--build`, no manual `nx build` first. Compose runs the stack; Nx owns the
+# image builds (see "Docker image contract" below and issue #1498).
+pnpm run e2e:up
+
+# Run all e2e suites (sets NX_LOAD_DOT_ENV_FILES=false itself):
+pnpm run test:e2e
+
+# Or run individual suites. rest-api MUST run first — its setup restarts the
+# rest-api container (sponsor flow), invalidating any in-flight test against
+# the same stack. Export NX_LOAD_DOT_ENV_FILES=false in your shell first:
 export NX_LOAD_DOT_ENV_FILES=false
-
-# Start the e2e stack (builds rest-api image locally)
-# COMPOSE_DISABLE_ENV_FILE prevents the root dotenvx .env from leaking into containers
-COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
-
-# Run e2e tests (each suite polls health endpoints before starting)
-# rest-api MUST run first — its setup restarts the rest-api container
-# (sponsor flow), invalidating any in-flight test against the same stack.
 pnpm exec nx run @moltnet/rest-api:e2e
 pnpm exec nx run @moltnet/mcp-server:e2e
 pnpm exec nx run @themoltnet/agent-daemon:e2e
-# Or run all three at once via the root script:
-pnpm run test:e2e
+
+# Rebuild images + restart (after changing app source):
+pnpm run e2e:reset
 
 # Tear down when done
+pnpm run e2e:down
+```
+
+`e2e:build` runs `nx run-many -t docker:build` for the five repo-built app
+projects (`rest-api`, `mcp-server`, `console`, `mcp-host`, `db-migrate`). Each
+project's `docker:build` is a custom `nx:run-commands` target invoking
+`tools/docker-build.mjs`, which `docker buildx build`s the image and applies two
+tags: the path-derived ref (`apps-rest-api`, needed by `nx release`) and the
+clean `ghcr.io/getlarge/themoltnet/<svc>:dev` ref (consumed by Compose). The
+clean name comes from each project's `nx.release.docker.repositoryName`, so local
+`:dev`, CI `:ci-<sha>`, and `nx release` tags never drift. `e2e:up` runs that
+build, then starts Compose **in a plain `pnpm` process** (not through Nx) — Nx
+loads the dotenvx-encrypted root `.env` into every task's environment even with
+`NX_LOAD_DOT_ENV_FILES=false`, which would inject ciphertext into Compose's
+`${SPONSOR_AGENT_ID}`/`${POSTGRES_*}` interpolation and crash the containers;
+running Compose outside Nx avoids that (#1306). The infra-only
+`issue-lifecycle-db-migrate` image is still built by Compose on first
+`up` (it is not an Nx docker-images project).
+
+If you need the raw Compose commands (after `pnpm run e2e:build`):
+
+```bash
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v
 ```
 
-In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.ci.yaml` override), then runs all e2e suites sequentially. The CI workflow sets `NX_LOAD_DOT_ENV_FILES: false` at the workflow level (see `.github/workflows/ci.yml`).
+CI uses the **same** `docker-compose.e2e.yaml` (there is no separate CI override
+file): it exports the `*_IMAGE` env vars to the `ci-${sha}` GHCR image tags so
+Compose pulls the pre-built images, then runs all e2e suites sequentially. The CI
+workflow sets `NX_LOAD_DOT_ENV_FILES: false` at the workflow level and pins
+`DATABASE_URL`/`ORY_ACTION_API_KEY` at the job level (see `.github/workflows/ci.yml`).
 
 ## Repository Structure
 
@@ -275,7 +308,15 @@ The shape:
 - **Docker `build` stage:** runs `pnpm install --frozen-lockfile --prod` and `pnpm --filter <pkg> deploy --legacy --prod /out` inside a linux container so optional native deps (sharp, onnxruntime-node, esbuild, …) resolve to the right linux binaries. No `nx`, `vite`, or `tsc` runs in here.
 - **Docker `production` stage:** `COPY --from=build /out ./` plus any sibling assets (e.g. `libs/database/drizzle/`). For nginx-only SPAs (landing, console), the whole image is a single `FROM nginx:alpine` + `COPY dist`.
 
-The `@nx/docker` plugin autoinfers a `docker:build` target for every project that has a `Dockerfile`. Cache invalidation is driven by the `docker` named input declared in `nx.json` (Dockerfile + `.dockerignore` + transitive `dist/**` outputs).
+`docker:build` is the **single** image-build mechanism — local, CI, and `nx release` all go through it (issue #1498). The six docker-images projects (`@moltnet/rest-api`, `@moltnet/mcp-server`, `@moltnet/console`, `@moltnet/mcp-host`, `@moltnet/landing`, `@moltnet/database`) each define `docker:build` as an `nx:run-commands` target that invokes `tools/docker-build.mjs` (overriding the `@nx/docker` plugin's inferred target — the plugin's `{projectName}` resolves to the scoped, non-tag-safe `@moltnet/x`). The script:
+
+- runs `docker buildx build -f <projectRoot>/Dockerfile .` from the repo root (Dockerfiles `COPY . .`), `--platform linux/amd64`, `DOCKER_BUILDKIT=1`, dynamic OCI `revision`/`created` labels (static `source`/`description`/`licenses` stay in each Dockerfile);
+- applies **two** tags: the path-derived ref (`apps-rest-api`, `libs-database`) that `nx release` retags from, and the clean `${registryUrl}/${repositoryName}:<tag>` ref (e.g. `ghcr.io/getlarge/themoltnet/rest-api:dev`) consumed by Compose. Both names derive from `nx.release.docker.repositoryName` + `release.docker.registryUrl` in `nx.json`, so tags can't drift;
+- defaults to `--load` (local daemon, for Compose + `nx release`); the **`ci` configuration** (`nx run <proj>:docker:build --configuration=ci`) instead `--push`es `:$NX_DOCKER_CI_TAG` with `--cache-from/to type=registry` (registry build cache survives across CI runs). These targets are **not** Nx-cached (`cache: false`) — a `--load`/`--push` has no Nx-restorable filesystem output, so a cache hit would skip the actual daemon load/registry push.
+
+In CI, `docker:build --configuration=ci` is folded into the orchestrator's single `nx affected -t lint typecheck test-ci build docker:build` command, so image builds run **concurrently** with lint/test across the Nx Cloud DTE agent pool (no separate build-and-push job, no waiting for the lint/test graph to drain). Only **affected** images get a fresh `:ci-<sha>`. Because the e2e Compose stack needs all five app images, each e2e job resolves its `*_IMAGE` to `:ci-<sha>` when the project was affected this run, else the moving **`:ci-main`** published by the last `main` build (the `affected` job computes these refs; `docker-build.mjs` tags `:ci-main` on main pushes, and the orchestrator refreshes all five `:ci-main` on main). e2e jobs gate on the orchestrator. See `.github/workflows/ci.yml` and `.nx/workflows/assignment-rules.yml`.
+
+> **Bootstrap:** `:ci-main` must exist before a PR can fall back to it for unaffected images. It is seeded the first time this lands on `main` (the orchestrator's main-only refresh step builds all five). A PR opened before that first main build has no `:ci-main` fallback for services it doesn't touch.
 
 ### Two env-var skip switches the build relies on
 
@@ -295,7 +336,7 @@ Both Dockerfiles set these via `ENV` in the `base` stage. **Do NOT** add `--igno
 3. If the image needs a host-built artifact other than `build` (e.g. `download-model`), declare it as an Nx target in `package.json` `nx.targets` and add it to `docker:build`'s `dependsOn` array.
 4. The image is now available as `nx run @moltnet/<app>:docker:build` — no extra wiring needed.
 
-Local dev workflow: `pnpm exec nx run @moltnet/<app>:build` (or `docker:build`) before `docker compose up --build` so the host artifacts the image expects are present. CI handles this automatically by running affected `build` targets via the orchestrator before the `build-and-push` matrix.
+Local dev workflow: `pnpm exec nx run @moltnet/<app>:docker:build` builds the image (its `dependsOn` chain materializes the host artifacts first). For the full e2e stack, `pnpm run e2e:up` builds all app images and starts Compose — never `docker compose up --build` (Compose is not the build orchestrator). In CI the orchestrator runs the same `docker:build --configuration=ci` distributed across the DTE agents to build + push the `:ci-<sha>` images.
 
 See issue #1223 for the original refactor decision.
 
