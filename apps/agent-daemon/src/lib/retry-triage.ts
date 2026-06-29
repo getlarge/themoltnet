@@ -1,10 +1,10 @@
 import type { Task, TaskError, TaskMessage } from '@moltnet/tasks';
 import {
   normalizeRetryTriageResult,
+  type PiRetryTriageResult,
   redactRetryTriageSecrets,
   type RetryTriageConfidence,
   type RetryTriageDecision,
-  type PiRetryTriageResult,
 } from '@themoltnet/pi-extension';
 
 export type RetryTriageResult = PiRetryTriageResult;

@@ -536,13 +536,13 @@ export {
 export {
   createPiRetryTriage,
   normalizeRetryTriageResult,
-  redactRetryTriageSecrets,
   type PiRetryTriage,
   type PiRetryTriageConfidence,
   type PiRetryTriageDecision,
   type PiRetryTriageInput,
   type PiRetryTriageResult,
   type PiRetryTriageThinkingLevel,
+  redactRetryTriageSecrets,
   type RetryTriageConfidence,
   type RetryTriageDecision,
 } from './runtime/retry-triage.js';
