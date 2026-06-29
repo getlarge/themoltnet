@@ -1,3 +1,4 @@
+import type { RetryTriage } from '@moltnet/api-client';
 import type { Task, TaskOutput } from '@moltnet/tasks';
 import type { Agent, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
@@ -112,11 +113,13 @@ export async function finalizeTask(
   }
 
   const error: NonNullable<Parameters<TasksNamespace['fail']>[2]>['error'] =
-    output.error ?? {
-      code: 'task_failed',
-      message: 'Task execution failed before producing a valid output.',
-      retryable: false,
-    };
+    normalizeFailureError(
+      output.error ?? {
+        code: 'task_failed',
+        message: 'Task execution failed before producing a valid output.',
+        retryable: false,
+      },
+    );
   const heartbeat = await agent.tasks.heartbeat(
     output.taskId,
     output.attemptN,
@@ -124,6 +127,39 @@ export async function finalizeTask(
   );
   if (heartbeat.cancelled) return;
   await agent.tasks.fail(output.taskId, output.attemptN, { error });
+}
+
+function isRetryTriage(value: unknown): value is RetryTriage {
+  if (!value || typeof value !== 'object') return false;
+  const triage = value as Record<string, unknown>;
+  return (
+    (triage.decision === 'retry' || triage.decision === 'do_not_retry') &&
+    (triage.confidence === 'low' ||
+      triage.confidence === 'medium' ||
+      triage.confidence === 'high') &&
+    typeof triage.reason === 'string'
+  );
+}
+
+function normalizeFailureError(
+  error: TaskOutput['error'],
+): NonNullable<Parameters<TasksNamespace['fail']>[2]>['error'] {
+  const fallback: NonNullable<TaskOutput['error']> = {
+    code: 'task_failed',
+    message: 'Task execution failed before producing a valid output.',
+    retryable: false,
+  };
+  const source: NonNullable<TaskOutput['error']> = error ?? fallback;
+  const retryTriage = isRetryTriage(source.retryTriage)
+    ? { retryTriage: source.retryTriage }
+    : {};
+  return {
+    code: source.code,
+    message: source.message,
+    ...(source.stack === undefined ? {} : { stack: source.stack }),
+    ...(source.retryable === undefined ? {} : { retryable: source.retryable }),
+    ...retryTriage,
+  };
 }
 
 function errorToFailReason(

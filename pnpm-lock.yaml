@@ -544,6 +544,9 @@ importers:
       '@earendil-works/pi-coding-agent':
         specifier: 'catalog:'
         version: 0.79.4(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../../libs/api-client
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0

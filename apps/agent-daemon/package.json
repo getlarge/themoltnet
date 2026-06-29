@@ -38,6 +38,7 @@
     "@earendil-works/gondolin": "catalog:",
     "@earendil-works/pi-ai": "catalog:",
     "@earendil-works/pi-coding-agent": "catalog:",
+    "@moltnet/api-client": "workspace:*",
     "@opentelemetry/api": "catalog:",
     "@opentelemetry/exporter-trace-otlp-proto": "catalog:",
     "@opentelemetry/instrumentation": "catalog:",
