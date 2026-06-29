@@ -65,6 +65,29 @@
       "type:client",
       "scope:node-red",
       "platform:server"
-    ]
+    ],
+    "targets": {
+      "dev-build": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": [
+          "{projectRoot}/dist"
+        ],
+        "options": {
+          "cwd": "libs/node-red-contrib-core",
+          "command": "pnpm exec vite build"
+        }
+      },
+      "dev": {
+        "dependsOn": [
+          "dev-build",
+          "@themoltnet/node-red-theme:dev-build"
+        ]
+      }
+    }
   }
 }

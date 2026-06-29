@@ -76,7 +76,7 @@ export function buildRunEvalUserPrompt(
         'NOT following the task. If the constraint affects behavior, it',
         'must affect behavior.',
         hasInlineContext
-          ? 'For `context_inline`, your FIRST content-inspection step is a `read` of `context-pack.md` in the workspace root before your first `write` call. The same content is also mirrored in `AGENTS.md` and may be referenced from `.claude/CLAUDE.md`.'
+          ? 'For `context_inline`, your FIRST content-inspection step is to read the injected context block in this prompt or, when available, the matching file under `/moltnet-task-context/context` before your first `write` call. Do not create or rely on workspace mirror files for injected context.'
           : 'When the context is delivered as a skill, inspect it before solving.',
         'If the Injected Task Context contains repo- or workflow-specific',
         'rules, those rules override your generic instincts.',

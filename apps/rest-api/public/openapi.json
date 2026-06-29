@@ -600,6 +600,12 @@
                   },
                   {
                     "enum": [
+                      "UNSUPPORTED_MEDIA_TYPE"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
                       "VALIDATION_FAILED"
                     ],
                     "type": "string"
@@ -4601,6 +4607,12 @@
               {
                 "enum": [
                   "CONFLICT"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "UNSUPPORTED_MEDIA_TYPE"
                 ],
                 "type": "string"
               },
@@ -11121,6 +11133,12 @@
                   {
                     "enum": [
                       "CONFLICT"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "UNSUPPORTED_MEDIA_TYPE"
                     ],
                     "type": "string"
                   },
@@ -19227,6 +19245,12 @@
                 },
                 {
                   "enum": [
+                    "unsupported-media-type"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
                     "invalid-challenge"
                   ],
                   "type": "string"
@@ -21435,6 +21459,12 @@
                             },
                             {
                               "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "VALIDATION_FAILED"
                               ],
                               "type": "string"
@@ -21670,6 +21700,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -21873,6 +21909,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -22071,6 +22113,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -22345,6 +22393,12 @@
                             },
                             {
                               "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "VALIDATION_FAILED"
                               ],
                               "type": "string"
@@ -22580,6 +22634,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -22778,6 +22838,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -22986,6 +23052,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -23184,6 +23256,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -23655,6 +23733,12 @@
                             },
                             {
                               "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "VALIDATION_FAILED"
                               ],
                               "type": "string"
@@ -23890,6 +23974,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -24088,6 +24178,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -24296,6 +24392,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -24499,6 +24601,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -24697,6 +24805,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -25233,6 +25347,12 @@
                             },
                             {
                               "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "VALIDATION_FAILED"
                               ],
                               "type": "string"
@@ -25468,6 +25588,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -25671,6 +25797,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -25869,6 +26001,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -26357,6 +26495,12 @@
                             },
                             {
                               "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "VALIDATION_FAILED"
                               ],
                               "type": "string"
@@ -26592,6 +26736,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -26790,6 +26940,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -26998,6 +27154,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -27198,6 +27360,12 @@
                             {
                               "enum": [
                                 "CONFLICT"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
                             },
@@ -27683,6 +27851,12 @@
                             },
                             {
                               "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "VALIDATION_FAILED"
                               ],
                               "type": "string"
@@ -27918,6 +28092,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -28116,6 +28296,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -28324,6 +28510,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -28524,6 +28716,12 @@
                             {
                               "enum": [
                                 "CONFLICT"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
                             },
@@ -29058,6 +29256,12 @@
                             },
                             {
                               "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "VALIDATION_FAILED"
                               ],
                               "type": "string"
@@ -29293,6 +29497,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -29496,6 +29706,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -29694,6 +29910,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -31910,6 +32132,12 @@
                             },
                             {
                               "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "VALIDATION_FAILED"
                               ],
                               "type": "string"
@@ -32145,6 +32373,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -32348,6 +32582,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -32546,6 +32786,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -32958,6 +33204,12 @@
                             },
                             {
                               "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "VALIDATION_FAILED"
                               ],
                               "type": "string"
@@ -33193,6 +33445,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -33396,6 +33654,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -33594,6 +33858,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -33807,6 +34077,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -34117,6 +34393,12 @@
                             },
                             {
                               "enum": [
+                                "UNSUPPORTED_MEDIA_TYPE"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "VALIDATION_FAILED"
                               ],
                               "type": "string"
@@ -34352,6 +34634,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -34550,6 +34838,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },
@@ -34758,6 +35052,12 @@
                         },
                         {
                           "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "VALIDATION_FAILED"
                           ],
                           "type": "string"
@@ -34956,6 +35256,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
                         },

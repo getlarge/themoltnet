@@ -61,6 +61,17 @@ export const problemTypes: Record<string, ProblemType> = {
       'Request body does not match expected schema',
     ],
   },
+  'unsupported-media-type': {
+    slug: 'unsupported-media-type',
+    code: 'UNSUPPORTED_MEDIA_TYPE',
+    status: 415,
+    title: 'Unsupported Media Type',
+    description: 'The request Content-Type is not supported by this endpoint.',
+    commonCauses: [
+      'Sending non-JSON content to a JSON endpoint',
+      'Missing or incorrect Content-Type header',
+    ],
+  },
   'invalid-challenge': {
     slug: 'invalid-challenge',
     code: 'INVALID_CHALLENGE',

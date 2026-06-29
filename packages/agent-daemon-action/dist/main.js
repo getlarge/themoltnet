@@ -30405,6 +30405,15 @@ function unwrapResult(result) {
 			networkError.stack = error.stack;
 			throw networkError;
 		}
+		const responseSummary = summarizeResponse(result.response);
+		if (responseSummary) {
+			const detail = stringifyUnknown(error);
+			throw new MoltNetError(`MoltNet API request failed with HTTP ${responseSummary.status} ${responseSummary.statusText}: ${detail}`, {
+				code: `HTTP_${responseSummary.status}`,
+				detail,
+				statusCode: responseSummary.status
+			});
+		}
 		throw new MoltNetError(`Unexpected error from MoltNet API: ${stringifyUnknown(error)}`, { code: "UNKNOWN" });
 	}
 	if (result.data === void 0) throw new MoltNetError("Unexpected empty response from MoltNet API", { code: "EMPTY_RESPONSE" });
@@ -30421,6 +30430,15 @@ function stringifyUnknown(value) {
 	} catch {
 		return String(value);
 	}
+}
+function summarizeResponse(response) {
+	if (!response || typeof response !== "object") return null;
+	const candidate = response;
+	if (typeof candidate.status !== "number") return null;
+	return {
+		status: candidate.status,
+		statusText: typeof candidate.statusText === "string" && candidate.statusText ? candidate.statusText : "Error"
+	};
 }
 function unwrapRequired(result, message, code) {
 	if (result.error || !result.data) throw new MoltNetError(message, { code });

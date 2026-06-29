@@ -43,10 +43,11 @@ flag listings, defaults, and examples.
 
 ### Local development invocation
 
-Two pnpm scripts inside this repo:
+Use Nx targets for local development from this repo. They keep execution rooted
+in the workspace and preserve the task graph/dependency behavior:
 
-- `pnpm --filter @themoltnet/agent-daemon cli <command> [...flags]` — one-shot. Use this for `--help`, `once`, or any invocation that should exit when done.
-- `pnpm --filter @themoltnet/agent-daemon dev <command> [...flags]` — `tsx watch`. Use this for active development of the daemon code while a long-running `poll` keeps the loop fed; the watcher restarts on source changes. Don't pair this with `--help` or `once` — it never exits even after the script does.
+- `pnpm exec nx run @themoltnet/agent-daemon:cli -- <command> [...flags]` — one-shot. Use this for `--help`, `once`, or any invocation that should exit when done.
+- `pnpm exec nx run @themoltnet/agent-daemon:dev -- <command> [...flags]` — `tsx watch`. Use this for active development of the daemon code while a long-running `poll` keeps the loop fed; the watcher restarts on source changes. Don't pair this with `--help` or `once` — it never exits even after the script does.
 
 For an end-to-end smoke-test walkthrough against the local Docker stack — provisioning a throwaway agent, running the daemon, and creating a task — see [`apps/agent-daemon/README.md` § Local development & smoke testing](../../apps/agent-daemon/README.md#local-development--smoke-testing).
 
@@ -373,7 +374,7 @@ const profile = await molt.runtimeProfiles.create(
         },
       ],
       resources: { cpus: 4, memory: '8G' },
-      vfs: { shadow: ['.env', '.env.local'], shadowMode: 'deny' },
+      vfs: { shadow: ['.env', '.env.local', '.moltnet'], shadowMode: 'deny' },
       hostExec: { autoApprove: false },
     },
     sessionTtlSec: 3600,
@@ -423,6 +424,11 @@ Use the SDK to create or update profiles, then create tasks with
 ```
 
 :::
+
+For repo-aware profiles, keep credentials and local MoltNet state out of the
+guest by denying `.env`, `.env.local`, and `.moltnet` through VFS shadowing.
+Also make sure `defaultWorkspaceMode` is present in `allowedWorkspaceModes` and
+that the profile allows any `input.execution.workspace` mode your tasks set.
 
 ### Model session settings
 
@@ -534,7 +540,13 @@ In daemon mode:
   same profile affinity for direct task claims.
 - `leaseTtlSec`, `heartbeatIntervalMs`, and `maxBatchSize` default from the
   profile unless the corresponding CLI flag is passed.
+- `maxTurns` and `maxBashTimeouts` also default from the profile. When a task
+  hits either cap, the Pi session is aborted and the attempt finishes with an
+  error such as `max_turns_exceeded`.
 - `requiredEnv` entries must exist and be non-empty in the daemon process env.
+  These names are also the allowlist for forwarding host provider secrets such
+  as `OLLAMA_API_KEY` into the Pi VM. Keep secret values in the daemon
+  environment, not in `sandbox.env`.
 - `requiredTools` entries must resolve to executable files on the host daemon
   process `PATH` before the daemon claims any task. This is not a VM-internal
   executable check yet.

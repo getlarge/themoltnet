@@ -12,7 +12,7 @@ import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
 const LIVE_PROVIDER = 'ollama-cloud';
-const LIVE_MODEL = 'qwen3.5:cloud';
+const LIVE_MODEL = 'qwen3-coder:480b-cloud';
 
 const describeLive = describe.skipIf(process.env[LIVE_LLM_FLAG] !== '1');
 
@@ -82,7 +82,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
           leaseTtlSec: 300,
           heartbeatIntervalMs: 5_000,
           maxBatchSize: 1,
-          maxTurns: 6,
+          maxTurns: 14,
           maxBashTimeouts: 1,
           sessionTtlSec: 600,
           workspaceTtlSec: 600,
@@ -190,6 +190,66 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
         taskId: continuation.id,
         teamId,
       });
+
+      const artifactTask = await agent.tasks.create(
+        {
+          taskType: 'freeform',
+          title: 'Live Ollama artifact upload smoke',
+          diaryId,
+          correlationId,
+          maxAttempts: 1,
+          input: {
+            brief:
+              'Create a file named live-artifact.txt in the workspace with exactly this text: ' +
+              '"live artifact bytes". Then call moltnet_upload_task_artifact with ' +
+              'filePath "live-artifact.txt", kind "report", title "live-artifact.txt", ' +
+              'and contentType "text/plain". Finally call submit_freeform_output exactly once ' +
+              'with a short summary saying "live ollama artifact completed" and include one ' +
+              'artifact entry titled "live-artifact.txt" that includes the returned cid.',
+            expectedOutput:
+              'A valid FreeformOutput submitted through submit_freeform_output with the uploaded artifact CID.',
+            constraints: [
+              'Do not run shell commands.',
+              'Do not create diary entries.',
+              'Use moltnet_upload_task_artifact after writing the file.',
+            ],
+          },
+        },
+        { teamId },
+      );
+
+      const artifactAttemptN = await runLiveTask({
+        agent,
+        agentName,
+        agentRoot,
+        maxTurns: 14,
+        profileId: profile.id,
+        sandboxRoot,
+        taskId: artifactTask.id,
+        teamId,
+      });
+      const artifacts = await agent.tasks.artifacts.list(artifactTask.id, {
+        teamId,
+      });
+      const uploaded = artifacts.find(
+        (artifact) =>
+          artifact.attemptN === artifactAttemptN &&
+          artifact.title === 'live-artifact.txt',
+      );
+      expect(uploaded).toBeTruthy();
+      expect(uploaded?.kind).toBe('report');
+      expect(uploaded?.contentType).toBe('text/plain');
+      const downloaded = await agent.tasks.artifacts.download(
+        {
+          cid: uploaded!.cid,
+          attemptN: artifactAttemptN,
+          taskId: artifactTask.id,
+        },
+        { teamId },
+      );
+      await expect(collectStreamText(downloaded.stream)).resolves.toContain(
+        'live artifact bytes',
+      );
     } finally {
       if (oldPiDir === undefined) {
         delete process.env.PI_CODING_AGENT_DIR;
@@ -211,6 +271,7 @@ async function runLiveTask(input: {
   sandboxRoot: string;
   taskId: string;
   teamId: string;
+  maxTurns?: number;
 }): Promise<number> {
   const oldCwd = process.cwd();
   try {
@@ -229,7 +290,7 @@ async function runLiveTask(input: {
       '--warm-session-ttl-sec',
       '600',
       '--max-turns',
-      '6',
+      String(input.maxTurns ?? 6),
       '--max-bash-timeouts',
       '1',
     ]);

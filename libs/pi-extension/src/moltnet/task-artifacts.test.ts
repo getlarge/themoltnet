@@ -44,6 +44,7 @@ function makeConfig(input: {
   cwd: string;
   taskCtx?: MoltNetTaskContext | null;
   teamId?: string | null;
+  openWorkspaceFileForRead?: MoltNetToolsConfig['openWorkspaceFileForRead'];
 }): MoltNetToolsConfig {
   const captured = input.captured ?? [];
   const agent = {
@@ -98,6 +99,7 @@ function makeConfig(input: {
     getSessionErrors: () => [],
     clearSessionErrors: () => {},
     getHostCwd: () => input.cwd,
+    openWorkspaceFileForRead: input.openWorkspaceFileForRead,
     getTaskContext: () =>
       input.taskCtx === undefined ? makeTaskContext() : input.taskCtx,
   };
@@ -158,6 +160,48 @@ describe('moltnet_upload_task_artifact', () => {
     }
   });
 
+  it('uploads a guest-backed workspace file when provided by the VM reader', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
+    const captured: CapturedUpload[] = [];
+    try {
+      const openWorkspaceFileForRead = vi.fn(async (filePath: string) => {
+        expect(filePath).toBe('review.patch');
+        return {
+          stream: Readable.from(['diff --git a/file b/file\n']),
+          isFile: true,
+        };
+      });
+      const tool = findTool(
+        makeConfig({ captured, cwd, openWorkspaceFileForRead }),
+        'moltnet_upload_task_artifact',
+      );
+
+      const result = await callTool(tool, {
+        filePath: 'review.patch',
+        kind: 'patch',
+        title: 'review.patch',
+        contentType: 'text/x-diff',
+      });
+
+      expect(openWorkspaceFileForRead).toHaveBeenCalledWith('review.patch');
+      expect(captured).toEqual([
+        {
+          path: { taskId: 'task-123', attemptN: 2 },
+          query: {
+            kind: 'patch',
+            title: 'review.patch',
+            contentType: 'text/x-diff',
+            contentEncoding: undefined,
+          },
+          options: { teamId: 'team-123' },
+        },
+      ]);
+      expect(JSON.stringify(result)).toContain('bafkreia');
+    } finally {
+      await rm(cwd, { force: true, recursive: true });
+    }
+  });
+
   it('rejects upload outside an active task attempt', async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
     try {
@@ -174,6 +218,26 @@ describe('moltnet_upload_task_artifact', () => {
           title: 'result.txt',
         }),
       ).rejects.toThrow(/active task attempt/i);
+    } finally {
+      await rm(cwd, { force: true, recursive: true });
+    }
+  });
+
+  it('rejects missing workspace files with an actionable error', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
+    try {
+      const tool = findTool(
+        makeConfig({ cwd }),
+        'moltnet_upload_task_artifact',
+      );
+
+      await expect(
+        callTool(tool, {
+          filePath: 'missing.patch',
+          kind: 'patch',
+          title: 'missing.patch',
+        }),
+      ).rejects.toThrow(/input path does not exist/i);
     } finally {
       await rm(cwd, { force: true, recursive: true });
     }

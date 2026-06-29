@@ -4,6 +4,8 @@
  * booted Gondolin VM and is covered by the integration demo / a future
  * e2e once we have one that exercises pi against a real task type.
  */
+import { Readable } from 'node:stream';
+
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { metrics } from '@opentelemetry/api';
 import {
@@ -18,6 +20,7 @@ import {
   createGondolinToolDefinitions,
   describeToolErrorMessage,
   isBashTimeoutResult,
+  openVmWorkspaceFileForRead,
   shouldEmitToolCallError,
   wireSessionAbort,
 } from './execute-pi-task.js';
@@ -107,6 +110,37 @@ describe('createGondolinToolDefinitions', () => {
       'find',
       'grep',
     ]);
+  });
+});
+
+describe('openVmWorkspaceFileForRead', () => {
+  it('opens VM workspace files as streams instead of buffering them', async () => {
+    const stream = Readable.from(['artifact bytes']);
+    const readFile = vi.fn();
+    const readFileStream = vi.fn(async () => stream);
+    const stat = vi.fn(async () => ({
+      isFile: () => true,
+      size: 14,
+    }));
+
+    const result = await openVmWorkspaceFileForRead({
+      vm: { fs: { readFile, readFileStream, stat } } as never,
+      cwdPath: '/host/workspace',
+      guestWorkspace: '/guest/workspace',
+      filePath: 'review.patch',
+    });
+
+    expect(stat).toHaveBeenCalledWith('/guest/workspace/review.patch');
+    expect(readFileStream).toHaveBeenCalledWith(
+      '/guest/workspace/review.patch',
+    );
+    expect(readFile).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      stream,
+      isFile: true,
+      sizeBytes: 14,
+      displayPath: 'review.patch',
+    });
   });
 });
 

@@ -10,9 +10,9 @@ export interface ContextDeliverer {
    */
   skill: (args: { slug: string; content: string }) => Promise<void>;
   /**
-   * Persist raw context bytes into the task workspace for auditability.
-   * Used by `context_inline` so both the producer and downstream judge can
-   * inspect exactly what context was supplied.
+   * Persist raw context bytes at the runtime's task-context path. Used by
+   * `context_inline` so both the producer and downstream judge can inspect
+   * exactly what context was supplied without mutating the workspace.
    */
   contextFile: (args: {
     slug: string;
@@ -121,9 +121,9 @@ function formatInlineContextBlock(slug: string, content: string): string {
     'The following raw context was supplied by the task creator. Treat it',
     'as task-relevant background that may override generic coding instincts',
     'when it contains repo- or workflow-specific constraints.',
-    'The same content is also materialized in the workspace as',
-    '`context-pack.md` and mirrored in `AGENTS.md` for',
-    'repo-context discovery.',
+    'The same content may also be materialized by the runtime under',
+    '`/moltnet-task-context/context` for tool-based inspection. Do not',
+    'create or rely on workspace mirror files for this task context.',
     '',
     '<context>',
     content,

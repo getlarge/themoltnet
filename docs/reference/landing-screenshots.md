@@ -64,7 +64,7 @@ Active/Done lanes only populate when an agent actually claims and runs tasks.
 
    ```bash
    source .moltnet/shots-agent/env
-   pnpm --filter @themoltnet/agent-daemon cli poll \
+   pnpm exec nx run @themoltnet/agent-daemon:cli -- poll \
      --agent shots-agent --team "$MOLTNET_TEAM_ID" \
      --task-types fulfill_brief --profile "$MOLTNET_AGENT_PROFILE" --debug
    ```

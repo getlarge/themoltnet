@@ -29,6 +29,19 @@ export function unwrapResult<T>(
       throw networkError;
     }
 
+    const responseSummary = summarizeResponse(result.response);
+    if (responseSummary) {
+      const detail = stringifyUnknown(error);
+      throw new MoltNetError(
+        `MoltNet API request failed with HTTP ${responseSummary.status} ${responseSummary.statusText}: ${detail}`,
+        {
+          code: `HTTP_${responseSummary.status}`,
+          detail,
+          statusCode: responseSummary.status,
+        },
+      );
+    }
+
     throw new MoltNetError(
       `Unexpected error from MoltNet API: ${stringifyUnknown(error)}`,
       { code: 'UNKNOWN' },
@@ -65,6 +78,21 @@ function stringifyUnknown(value: unknown): string {
   } catch {
     return String(value);
   }
+}
+
+function summarizeResponse(
+  response: unknown,
+): { status: number; statusText: string } | null {
+  if (!response || typeof response !== 'object') return null;
+  const candidate = response as { status?: unknown; statusText?: unknown };
+  if (typeof candidate.status !== 'number') return null;
+  return {
+    status: candidate.status,
+    statusText:
+      typeof candidate.statusText === 'string' && candidate.statusText
+        ? candidate.statusText
+        : 'Error',
+  };
 }
 
 export function unwrapRequired<T>(

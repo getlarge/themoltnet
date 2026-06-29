@@ -6,6 +6,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { withAgent } from './agent-call.js';
 import {
   bool,
   compact,
@@ -56,8 +57,9 @@ const init: NodeInitializer = (RED): void => {
           }
 
           this.status({ fill: 'blue', shape: 'dot', text: 'searching…' });
-          const agent = await agentNode.getAgent();
-          const result = await agent.entries.search(body);
+          const result = await withAgent(agentNode, (agent) =>
+            agent.entries.search(body),
+          );
 
           const out = RED.util.cloneMessage(msg);
           out.payload = result.results;

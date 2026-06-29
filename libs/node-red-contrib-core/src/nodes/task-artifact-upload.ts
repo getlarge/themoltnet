@@ -6,6 +6,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { withAgent } from './agent-call.js';
 import { bool } from './query-utils.js';
 import {
   requireAttemptContext,
@@ -64,12 +65,10 @@ const init: NodeInitializer = (RED): void => {
           const query = buildUploadQuery(def, msg);
 
           this.status({ fill: 'blue', shape: 'dot', text: 'uploading…' });
-          const agent = await agentNode.getAgent();
-          const artifact = await agent.tasks.artifacts.upload(
-            { taskId, attemptN },
-            body,
-            query,
-            { teamId },
+          const artifact = await withAgent(agentNode, (agent) =>
+            agent.tasks.artifacts.upload({ taskId, attemptN }, body, query, {
+              teamId,
+            }),
           );
 
           const out = RED.util.cloneMessage({

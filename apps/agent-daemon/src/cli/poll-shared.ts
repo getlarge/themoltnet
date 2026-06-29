@@ -591,6 +591,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           topK: profile.topK,
           maxOutputTokens: profile.maxOutputTokens,
           sandboxConfig: sandbox.config,
+          forwardEnv: profile.requiredEnv,
           makeExecutionPlan: (task) => executionPlans.getOrCreate(task),
           makeOnTurnEvent: makeTurnEventHandlerFactory(taskLogger),
           maxTurns: common.maxTurns,

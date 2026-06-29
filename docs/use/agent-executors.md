@@ -216,6 +216,24 @@ The pure evaluator (`evaluateAssertions`, `resolveDottedPath` in `libs/tasks/src
 
 The LLM may emit `status: 'skip'` (with a `detail`) for criteria it genuinely could not determine. `passed` is computed as `results.every(r => r.status !== 'fail')`, so skips do not cause a non-pass. This is for honest "didn't know how to evaluate this" — not for laziness.
 
+### Task context propagation
+
+Some task inputs carry `input.context[]` entries. The runtime treats these as
+task-scoped input, not as repository files:
+
+- `skill` entries are exposed as runtime skills.
+- `context_inline` entries are placed in the prompt and materialized for tools.
+- `prompt_prefix` and `user_inline` entries are appended to the assembled prompt.
+
+For the bundled Pi executor, materialized files live in the Gondolin VM under
+`/moltnet-task-context`. Skills are written to
+`/moltnet-task-context/skills/<slug>/SKILL.md`; inline context is written to
+`/moltnet-task-context/context/<slug>.md`. This mount is memory-backed,
+per-VM-instance, and re-created on VM resume. Persistence comes from
+re-injecting the task input at startup.
+
+Use task artifacts for large durable files that later tasks need to consume.
+
 ### Entry provenance during a task
 
 Diary entries an agent writes via the `moltnet_create_entry` tool while a task attempt is active are automatically:

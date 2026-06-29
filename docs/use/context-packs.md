@@ -593,17 +593,19 @@ loading, which is strictly better than always-on injection.
 For task-based evals, the direct-injection path is usually `context_inline`
 rather than "paste this into the system prompt." The proposer reads the rendered
 Markdown bytes and creates a `run_eval` task whose `context[]` contains a
-`binding: "context_inline"` item. At execution time, the daemon:
+`binding: "context_inline"` item.
 
-- injects the same bytes into the prompt window
-- writes `/workspace/context-pack.md`
-- mirrors that content into `/workspace/AGENTS.md`
-- writes `/workspace/.claude/CLAUDE.md` as an `@../context-pack.md` import
+At execution time, the daemon injects the same bytes into the prompt window and
+the Pi executor materializes them inside the VM-owned task-context mount at
+`/moltnet-task-context/context`. Task-context skills use the sibling
+`/moltnet-task-context/skills` path.
 
-That workspace materialization is what lets downstream `judge_eval_attempt`
-tasks inspect the exact raw context the producer received. See
-[Tasks](./tasks) for the execution-policy view and
-[Agent Daemon](./agent-daemon) for the workspace-attachment/runtime details.
+The task-context mount is outside the task workspace. It is memory-backed and
+re-created when the VM starts; context that must survive a restart is
+re-injected from the task input. Use task artifacts, structured outputs, and
+references for durable data that downstream tasks need to inspect. See
+[Tasks](./tasks) for the execution-policy view and [Agent Daemon](./agent-daemon)
+for the workspace-attachment/runtime details.
 
 ---
 

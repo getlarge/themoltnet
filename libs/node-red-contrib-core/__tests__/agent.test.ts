@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { MoltnetAgentNode } from '../src/nodes/agent.js';
 import agentNode from '../src/nodes/agent.js';
+import { withAgent } from '../src/nodes/agent-call.js';
 import { type FakeNode, FakeRed } from './fake-red.js';
 
 /**
@@ -33,6 +35,7 @@ function setup(
     teamId?: string;
     diaryId?: string;
     getAgent: () => Promise<unknown>;
+    resetAgent: () => void;
   };
   return { red, node };
 }
@@ -106,6 +109,39 @@ describe('moltnet-agent', () => {
     // The rejected promise was cleared, so the next call connects again.
     const retried = await node.getAgent();
     expect(retried).toEqual({ id: 'agent-2' });
+    expect(connectMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('rehydrates the cached agent once when an operation fails unauthorized', async () => {
+    const stale = {
+      tasks: {
+        get: vi.fn().mockRejectedValue(
+          Object.assign(new Error('Unauthorized: Invalid or expired token'), {
+            code: 'https://themolt.net/problems/unauthorized',
+            statusCode: 401,
+          }),
+        ),
+      },
+    };
+    const fresh = {
+      tasks: {
+        get: vi.fn().mockResolvedValue({ id: 'task-1' }),
+      },
+    };
+    connectMock.mockResolvedValueOnce(stale).mockResolvedValueOnce(fresh);
+    const { node } = setup(
+      { clientId: 'client-1' },
+      { clientSecret: 'secret-1' },
+    );
+
+    const result = await withAgent(
+      node as unknown as MoltnetAgentNode,
+      (agent) => agent.tasks.get('task-1'),
+    );
+
+    expect(result).toEqual({ id: 'task-1' });
+    expect(stale.tasks.get).toHaveBeenCalledTimes(1);
+    expect(fresh.tasks.get).toHaveBeenCalledTimes(1);
     expect(connectMock).toHaveBeenCalledTimes(2);
   });
 });

@@ -244,10 +244,11 @@ and private diary id.
 ### 3. Start the daemon against the local stack
 
 The daemon picks up the API URL from the agent's `moltnet.json`. It is a
-workspace package, not a global CLI — invoke it via `pnpm --filter`:
+workspace package, not a global CLI — invoke it through Nx so execution stays
+rooted in the workspace task graph:
 
 ```bash
-pnpm --filter @themoltnet/agent-daemon dev poll \
+pnpm exec nx run @themoltnet/agent-daemon:dev -- poll \
   --agent local-dev \
   --team "$MOLTNET_TEAM_ID" \
   --task-types fulfill_brief \
@@ -259,8 +260,8 @@ pnpm --filter @themoltnet/agent-daemon dev poll \
   registered type.
 - Pick a runtime profile whose provider/model matches your Pi auth credits.
   Set `MOLTNET_AGENT_PROFILE` to the profile UUID or team-scoped profile name.
-- `dev` (= `tsx watch src/main.ts`) is fine for local. Use `cli` for a
-  one-shot run without watch.
+- `dev` (= `tsx watch src/main.ts`) is fine for local. Use the Nx `cli` target
+  for a one-shot run without watch.
 
 Leave it running. It idles until a task lands in its queue.
 
@@ -325,7 +326,7 @@ against the local e2e stack before the new schema exists on a deployed API.
 Start the daemon with `--task-types pr_review`:
 
 ```bash
-pnpm --filter @themoltnet/agent-daemon dev poll \
+pnpm exec nx run @themoltnet/agent-daemon:dev -- poll \
   --agent local-dev \
   --team "$MOLTNET_TEAM_ID" \
   --task-types pr_review \

@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
+import type { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import { Type } from '@earendil-works/pi-ai';
@@ -66,6 +67,17 @@ export interface MoltNetToolsConfig {
   clearSessionErrors(): void;
   /** Host working directory for host-exec commands (worktree path or cwd). */
   getHostCwd?(): string;
+  /**
+   * Optional workspace-file reader. Daemon/Gondolin callers provide this so
+   * artifact uploads see guest overlay writes that may not exist on the host
+   * mount path yet.
+   */
+  openWorkspaceFileForRead?(filePath: string): Promise<{
+    stream: Readable;
+    isFile: boolean;
+    sizeBytes?: number;
+    displayPath?: string;
+  }>;
   /**
    * Set of process.env keys that are safe to forward to host-exec child
    * processes. Configured at sandbox startup so the caller can include
@@ -167,15 +179,66 @@ async function resolveWorkspaceFilePath(
   const resolved = path.isAbsolute(filePath)
     ? path.resolve(filePath)
     : path.resolve(cwd, filePath);
-  const [realCwd, realResolved] = await Promise.all([
-    realpath(cwd),
-    realpath(resolved),
-  ]);
+  const realCwd = await realpath(cwd);
+  let realResolved: string;
+  try {
+    realResolved = await realpath(resolved);
+  } catch (err) {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'code' in err &&
+      err.code === 'ENOENT'
+    ) {
+      throw new Error(
+        `task artifact input path does not exist: ${filePath}. Write the file before calling moltnet_upload_task_artifact.`,
+      );
+    }
+    throw err;
+  }
   const rel = path.relative(realCwd, realResolved);
   if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error(`task artifact path escapes workspace: ${filePath}`);
   }
   return realResolved;
+}
+
+async function openWorkspaceArtifactInput(
+  config: MoltNetToolsConfig,
+  cwd: string,
+  filePath: string,
+): Promise<{
+  stream: Readable;
+  isFile: boolean;
+  sizeBytes?: number;
+  displayPath?: string;
+}> {
+  if (config.openWorkspaceFileForRead) {
+    try {
+      return await config.openWorkspaceFileForRead(filePath);
+    } catch (err) {
+      if (
+        err &&
+        typeof err === 'object' &&
+        'code' in err &&
+        err.code === 'ENOENT'
+      ) {
+        throw new Error(
+          `task artifact input path does not exist: ${filePath}. Write the file before calling moltnet_upload_task_artifact.`,
+        );
+      }
+      throw err;
+    }
+  }
+
+  const resolved = await resolveWorkspaceFilePath(cwd, filePath);
+  const info = await stat(resolved);
+  return {
+    stream: createReadStream(resolved),
+    isFile: info.isFile(),
+    sizeBytes: info.size,
+    displayPath: path.relative(cwd, resolved),
+  };
 }
 
 async function resolveWorkspaceOutputPath(
@@ -989,15 +1052,18 @@ export function createMoltNetTools(
         );
       }
       const cwd = config.getHostCwd?.() ?? process.cwd();
-      const resolved = await resolveWorkspaceFilePath(cwd, params.filePath);
-      const info = await stat(resolved);
-      if (!info.isFile()) {
+      const input = await openWorkspaceArtifactInput(
+        config,
+        cwd,
+        params.filePath,
+      );
+      if (!input.isFile) {
         throw new Error(`task artifact path is not a file: ${params.filePath}`);
       }
 
       const artifact = await agent.tasks.artifacts.upload(
         { taskId: taskCtx.taskId, attemptN: taskCtx.attemptN },
-        createReadStream(resolved),
+        input.stream,
         {
           kind: params.kind,
           title: params.title,
@@ -1013,8 +1079,8 @@ export function createMoltNetTools(
             text: JSON.stringify(
               {
                 ...artifact,
-                filePath: path.relative(cwd, resolved),
-                localSizeBytes: info.size,
+                filePath: input.displayPath ?? params.filePath,
+                localSizeBytes: input.sizeBytes ?? null,
               },
               null,
               2,

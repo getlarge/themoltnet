@@ -220,6 +220,74 @@ Fill the `moltnet-agent` config after import. Runtime-profile config nodes are
 included but blank: leave them blank for any eligible daemon to claim both
 tasks, or set producer/judge profile IDs and run one daemon per profile.
 
+## Freeform deep review workflow
+
+[`examples/deep-review-freeform.flow.json`](./examples/deep-review-freeform.flow.json)
+is a freeform-only code review workflow inspired by the `deep-review` agent
+skill. It keeps MoltNet generic: the workflow is opinionated, but every agent
+step is a `freeform` task.
+
+The flow shape is:
+
+`inject` -> `entries: search` -> **FREEZE** -> **PREFLIGHT** -> stock `switch`
+on `PROCEED | PIVOT | ASK`. `PIVOT` becomes a design-review publish task.
+`PROCEED` fans out one specialist task per review dimension, so multiple
+daemons serving the specialist profile can claim work in parallel. Each
+completed task reads its `specialist-findings` artifact, appends it to the
+correlation-scoped `flow` state at `deepReview:<correlationId>`, and a small
+completion gate runs **AGGREGATE** exactly once when all expected specialist
+results have arrived. Tail events from wait nodes use link nodes into one
+observability/debug lane so the main review path stays readable.
+
+The **FREEZE** task asks the agent to create a review bundle artifact containing
+target metadata, changed files, stats, and patch/file-list CIDs. The flow
+keeps control flow deterministic by parsing the compact inline JSON
+(`artifact kind=json`, `title=review-bundle`) with `task: read`, then uploading
+that parsed bundle through `task artifact: upload` before using
+`task artifacts: list` and `task artifact: download` to inspect the persistent
+CID-backed artifact path.
+
+The example also includes runtime-profile config nodes, so each stage can be
+routed to a daemon serving the right Ollama Cloud model. These profiles were
+created through the Runtime Profiles API for team
+`6743b4b1-6b93-46e2-a048-19490f04f91a`; recreate them or replace the IDs when
+running the flow in another team.
+
+| Stage      | Profile ID                             | Provider / model                      | Settings                                                                                                                                                                                                                  |
+| ---------- | -------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FREEZE     | `1a653eb9-7bfa-475f-b517-c070c9c25b5e` | `ollama-cloud/qwen3-coder:480b-cloud` | `thinkingLevel=high`, `temperature=0.1`, `maxOutputTokens=12000`, `maxTurns=60`, `maxBashTimeouts=5`, `defaultWorkspaceMode=dedicated_worktree`, `allowedWorkspaceModes=[dedicated_worktree]`, requires `git`, `gh`, `rg` |
+| PREFLIGHT  | `f4bb1d9b-6281-4158-ad88-cbcb1198c3dc` | `ollama-cloud/qwen3-coder:480b-cloud` | `thinkingLevel=high`, `temperature=0.1`, `maxOutputTokens=10000`, `maxTurns=16`, `maxBashTimeouts=2`, `defaultWorkspaceMode=shared_mount`, `allowedWorkspaceModes=[shared_mount]`, requires `git`, `rg`                   |
+| SPECIALIST | `f50e9c58-4180-4e07-b120-08b6097c13d5` | `ollama-cloud/qwen3-coder:480b-cloud` | `thinkingLevel=high`, `temperature=0.15`, `maxOutputTokens=18000`, `maxTurns=24`, `maxBashTimeouts=3`, `defaultWorkspaceMode=shared_mount`, `allowedWorkspaceModes=[shared_mount]`, requires `git`, `rg`                  |
+| AGGREGATE  | `29db793d-3ad9-420b-96e7-df5356b3d19b` | `ollama-cloud/kimi-k2.7-code:cloud`   | `thinkingLevel=high`, `temperature=0.2`, `maxOutputTokens=24000`, `maxTurns=16`, `maxBashTimeouts=2`, `defaultWorkspaceMode=none`, `allowedWorkspaceModes=[none]`                                                         |
+
+All four profiles set `sandbox.env.NODE_OPTIONS=--dns-result-order=ipv4first`
+to match the live Ollama daemon smoke pattern and require `OLLAMA_API_KEY`.
+Repo-aware profiles deny `.env`, `.env.local`, and `.moltnet` through VFS
+shadowing with `shadowMode=deny` and `hostExec.autoApprove=false`. FREEZE uses a
+dedicated worktree and GitHub snapshot hosts `api.github.com`, `github.com`,
+`objects.githubusercontent.com`, `codeload.github.com`, and
+`raw.githubusercontent.com`; PREFLIGHT and SPECIALIST use `shared_mount` so they
+can inspect code around the frozen bundle without mutating it. AGGREGATE stays
+repo-free with workspace `none`.
+
+Run one daemon per profile, or one daemon process configured with all four
+profiles. Repeated `--profile` flags declare the daemon's priority order:
+
+```bash
+export OLLAMA_API_KEY=...
+
+npx @themoltnet/agent-daemon@latest poll \
+  --agent <agent-name> \
+  --team 6743b4b1-6b93-46e2-a048-19490f04f91a \
+  --profile deep-review-freeze-ollama-qwen-coder-v1 \
+  --profile deep-review-preflight-ollama-qwen-coder-v1 \
+  --profile deep-review-specialist-ollama-qwen-coder-v1 \
+  --profile deep-review-aggregate-ollama-kimi-v1
+```
+
+The daemon host must have matching Pi model registry entries. This repo's
+`.pi/models.json` already declares the Ollama Cloud provider and these models.
+
 ## Reproducing the issue-lifecycle shape
 
 [`examples/issue-lifecycle.flow.json`](./examples/issue-lifecycle.flow.json)
@@ -276,20 +344,41 @@ Three layers, increasing fidelity:
 ## Run Node-RED with these nodes (one command)
 
 ```bash
-pnpm --filter @themoltnet/node-red-contrib-core dev      # → http://localhost:1880
-PORT=1881 pnpm --filter @themoltnet/node-red-contrib-core dev
+pnpm exec nx run @themoltnet/node-red-contrib-core:dev      # → http://localhost:1880
+PORT=1881 pnpm exec nx run @themoltnet/node-red-contrib-core:dev
 ```
 
-`scripts/dev.mjs` builds the nodes, links this package into a local
-`.node-red-dev/` userDir (gitignored), and starts Node-RED 5 (fetched via `npx`
+The Nx `dev` target builds this package and `@themoltnet/node-red-theme` through
+target `dependsOn`, then `scripts/dev.mjs` links this package into a local
+`.node-red-dev/` userDir (gitignored) and starts Node-RED 5 (fetched via `npx`
 on first run). The MoltNet nodes appear under the **moltnet** palette category.
-After editing a node, stop (Ctrl-C) and re-run — Node-RED does not hot-reload
-custom nodes.
+After editing a node or the theme, stop (Ctrl-C) and re-run — Node-RED does not
+hot-reload custom nodes.
+
+To skin a local or hosted Node-RED instance with the MoltNet editor theme,
+install `@themoltnet/node-red-theme` next to Node-RED and set:
+
+```js
+import { moltnetEditorTheme } from '@themoltnet/node-red-theme';
+
+export default {
+  editorTheme: moltnetEditorTheme({ title: 'MoltNet Flow Studio' }),
+};
+```
 
 Open the editor, drag in `agent` + the task nodes, or import
 [`examples/issue-lifecycle.flow.json`](./examples/issue-lifecycle.flow.json) or
-[`examples/cockpit.flow.json`](./examples/cockpit.flow.json), then fill the
-agent's `clientId`/`clientSecret`.
+[`examples/cockpit.flow.json`](./examples/cockpit.flow.json) or
+[`examples/deep-review-freeform.flow.json`](./examples/deep-review-freeform.flow.json),
+then fill the agent's `clientId`/`clientSecret`.
+
+If Node-RED crashes in `@node-red/editor-api/lib/auth/tokens.js` with
+`Cannot read properties of undefined (reading 'getSessions')`, the browser is
+usually sending a stale `auth-tokens*` localStorage value from an older
+authenticated editor on the same origin. Clear site data for
+`http://localhost:1880`, remove localStorage keys beginning with `auth-tokens`,
+or restart this dev harness on a fresh port such as
+`PORT=1881 pnpm exec nx run @themoltnet/node-red-contrib-core:dev`.
 
 <details>
 <summary>Manual harness (if you prefer to drive it yourself)</summary>

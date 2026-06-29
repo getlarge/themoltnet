@@ -6,6 +6,7 @@ export const ProblemCodeSchema = Type.Union([
   Type.Literal('FORBIDDEN'),
   Type.Literal('NOT_FOUND'),
   Type.Literal('CONFLICT'),
+  Type.Literal('UNSUPPORTED_MEDIA_TYPE'),
   Type.Literal('VALIDATION_FAILED'),
   Type.Literal('INVALID_CHALLENGE'),
   Type.Literal('INVALID_SIGNATURE'),

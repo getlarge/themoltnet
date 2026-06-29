@@ -277,5 +277,9 @@
       "inputs": ["default", "^production"],
       "outputs": ["{projectRoot}/out-tsc"]
     }
+  },
+  "tui": {
+    "autoExit": true,
+    "enabled": false
   }
 }

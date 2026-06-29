@@ -15,7 +15,7 @@
  * `AgentRuntime`.
  */
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 
 import type { VM } from '@earendil-works/gondolin';
 import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
@@ -62,6 +62,7 @@ import {
   createGondolinReadOps,
   createGondolinWriteOps,
   executeGondolinGrep,
+  toGuestPath,
 } from '../tool-operations.js';
 import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
@@ -115,6 +116,30 @@ export type TurnEventHandlerFactory = (
 ) => TurnEventHandler;
 
 const noopTurnEventHandler: TurnEventHandler = () => {};
+
+export async function openVmWorkspaceFileForRead(config: {
+  vm: VM;
+  cwdPath: string;
+  guestWorkspace: string;
+  filePath: string;
+}) {
+  const localPath = isAbsolute(config.filePath)
+    ? config.filePath
+    : resolve(config.cwdPath, config.filePath);
+  const guestPath = toGuestPath(
+    config.cwdPath,
+    localPath,
+    config.guestWorkspace,
+  );
+  const info = await config.vm.fs.stat(guestPath);
+  const stream = await config.vm.fs.readFileStream(guestPath);
+  return {
+    stream,
+    isFile: info.isFile(),
+    sizeBytes: typeof info.size === 'number' ? info.size : undefined,
+    displayPath: config.filePath,
+  };
+}
 
 export function createGondolinToolDefinitions(config: {
   vm: VM;
@@ -193,6 +218,8 @@ export interface ExecutePiTaskOptions {
   extraAllowedHosts?: string[];
   /** Sandbox overrides (env, VFS shadows, resources). */
   sandboxConfig?: SandboxConfig;
+  /** Host environment variable names to forward into the Pi VM. */
+  forwardEnv?: string[];
   /**
    * Forwarded to `buildTaskUserPrompt` for per-type builders. Static
    * across tasks. Today no built-in builder needs per-task `extras` —
@@ -500,6 +527,7 @@ export async function executePiTask(
         workspaceMode: workspace.mode,
         extraAllowedHosts: opts.extraAllowedHosts,
         sandboxConfig,
+        forwardEnv: opts.forwardEnv,
         signal: reporter.cancelSignal,
       });
     } catch (err) {
@@ -518,12 +546,14 @@ export async function executePiTask(
     const taskTeamId = task.teamId ?? '';
     activateAgentEnv(managed.credentials.agentEnv, agentRootDir);
     const activeWorkspace = workspace;
+    const activeManaged = managed;
     if (!activeWorkspace) {
       throw new Error('task workspace not prepared');
     }
 
     await emit('info', {
       event: 'execute_start',
+      correlationId: task.correlationId ?? null,
       taskType: task.taskType,
       teamId: task.teamId,
       provider: opts.provider,
@@ -604,6 +634,7 @@ export async function executePiTask(
       // "what did the model actually see, section by section?".
       await emit('info', {
         event: 'prompt_assembled',
+        correlationId: task.correlationId ?? null,
         taskType: assembled.taskType,
         sections: assembled.trace,
       });
@@ -644,6 +675,7 @@ export async function executePiTask(
     if (injectedContext.injected.length > 0) {
       await emit('info', {
         event: 'context_injected',
+        correlationId: task.correlationId ?? null,
         count: injectedContext.injected.length,
         bindings: injectedContext.injected.map((r) => r.binding),
         slugs: injectedContext.injected.map((r) => r.slug),
@@ -695,6 +727,13 @@ export async function executePiTask(
           /* no-op in headless mode */
         },
         getHostCwd: () => cwdPath,
+        openWorkspaceFileForRead: (filePath) =>
+          openVmWorkspaceFileForRead({
+            vm: activeManaged.vm,
+            cwdPath,
+            guestWorkspace: activeManaged.guestWorkspace,
+            filePath,
+          }),
         hostExecBaseEnv,
         hostExecAutoApprove:
           opts.hostExecAutoApprove ??

@@ -6,6 +6,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { withAgent } from './agent-call.js';
 import { buildTaskSnapshot } from './task-snapshot.js';
 
 /**
@@ -42,11 +43,12 @@ const init: NodeInitializer = (RED): void => {
           }
 
           this.status({ fill: 'blue', shape: 'dot', text: 'loading…' });
-          const agent = await agentNode.getAgent();
-          const [task, attempts] = await Promise.all([
-            agent.tasks.get(taskId),
-            agent.tasks.listAttempts(taskId),
-          ]);
+          const [task, attempts] = await withAgent(agentNode, (agent) =>
+            Promise.all([
+              agent.tasks.get(taskId),
+              agent.tasks.listAttempts(taskId),
+            ]),
+          );
           const snapshot = buildTaskSnapshot(task, attempts);
 
           const out = RED.util.cloneMessage(msg);

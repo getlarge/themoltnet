@@ -30,6 +30,20 @@ function agentStub(agent: unknown): NodeInitializer {
   }) as unknown as NodeInitializer;
 }
 
+function deferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('moltnet-tasks-create', () => {
   it('creates a task as the referenced agent and returns it on payload', async () => {
     const created: unknown[] = [];
@@ -183,6 +197,49 @@ describe('moltnet-tasks-create', () => {
     await red.input(node, { payload: {}, correlationId: 'run-42' });
 
     expect(created[0].correlationId).toBe('run-42');
+  });
+
+  it('shows active create count when one node handles parallel messages', async () => {
+    const first = deferred<{ id: string }>();
+    const second = deferred<{ id: string }>();
+    const calls: string[] = [];
+    const agent = {
+      tasks: {
+        create: (body: { title?: string }) => {
+          calls.push(body.title ?? '');
+          return calls.length === 1 ? first.promise : second.promise;
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(tasksCreate);
+    red.create('moltnet-agent', 'a1');
+    const node = red.create('moltnet-tasks-create', 'n1', { agent: 'a1' });
+
+    const p1 = red.input(node, {
+      payload: { title: 'Deep review: correctness' },
+      reviewDimension: 'correctness',
+    });
+    const p2 = red.input(node, {
+      payload: { title: 'Deep review: security' },
+      reviewDimension: 'security',
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(node.statuses.map((s) => s.text)).toContain(
+      'creating · security · 2 active',
+    );
+
+    second.resolve({ id: 'task-security' });
+    first.resolve({ id: 'task-correctness' });
+    await Promise.all([p1, p2]);
+
+    expect(node.statuses.map((s) => s.text)).toContain(
+      'created task-sec · security · 1 active',
+    );
+    expect(node.statuses.at(-1)?.text).toBe('created task-cor · correctness');
   });
 
   it('errors (via done) when no agent is configured', async () => {
@@ -1140,7 +1197,7 @@ describe('moltnet-task-wait', () => {
       tail: true,
     });
 
-    const { outputs } = await red.input(node, {});
+    const { outputs } = await red.input(node, { correlationId: 'corr-1' });
 
     // Two tail sends ([msg, null]) then one result send ([null, msg]).
     expect(outputs).toHaveLength(3);
@@ -1152,10 +1209,88 @@ describe('moltnet-task-wait', () => {
             .kind,
       );
     expect(kinds).toEqual(['text_delta', 'turn_end']);
+    expect(
+      (
+        outputs[0] as unknown as [{ payload: { correlationId: string } }, null]
+      )[0].payload.correlationId,
+    ).toBe('corr-1');
     const result = (
       outputs[2] as unknown as [null, { payload: Record<string, unknown> }]
     )[1];
-    expect(result.payload).toMatchObject({ accepted: true });
+    expect(result.payload).toMatchObject({
+      accepted: true,
+      correlationId: 'corr-1',
+    });
+  });
+
+  it('shows active wait count when one node handles parallel tasks', async () => {
+    const firstGet = deferred<{
+      id: string;
+      status: 'completed';
+      acceptedAttemptN: number;
+    }>();
+    const secondGet = deferred<{
+      id: string;
+      status: 'completed';
+      acceptedAttemptN: number;
+    }>();
+    const gets: string[] = [];
+    const agent = {
+      tasks: {
+        get: (taskId: string) => {
+          gets.push(taskId);
+          return taskId === 'task-correctness'
+            ? firstGet.promise
+            : secondGet.promise;
+        },
+        listAttempts: (taskId: string) =>
+          Promise.resolve([
+            {
+              attemptN: 1,
+              status: 'completed',
+              output: { taskId },
+              error: null,
+            },
+          ]),
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(taskWait);
+    red.create('moltnet-agent', 'a1');
+    const node = red.create('moltnet-task-wait', 'n1', { agent: 'a1' });
+
+    const p1 = red.input(node, {
+      payload: { id: 'task-correctness' },
+      reviewDimension: 'correctness',
+    });
+    const p2 = red.input(node, {
+      payload: { id: 'task-security' },
+      reviewDimension: 'security',
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(node.statuses.map((s) => s.text)).toContain(
+      'waiting · security · 2 active',
+    );
+
+    secondGet.resolve({
+      id: 'task-security',
+      status: 'completed',
+      acceptedAttemptN: 1,
+    });
+    firstGet.resolve({
+      id: 'task-correctness',
+      status: 'completed',
+      acceptedAttemptN: 1,
+    });
+    await Promise.all([p1, p2]);
+
+    expect(node.statuses.map((s) => s.text)).toContain(
+      'completed ok · security · 1 active',
+    );
+    expect(node.statuses.at(-1)?.text).toBe('completed ok · correctness');
   });
 
   it('surfaces the failing attempt error on a failed task', async () => {

@@ -6,6 +6,7 @@ import type {
 } from 'node-red';
 
 import type { MoltnetAgentNode } from './agent.js';
+import { withAgent } from './agent-call.js';
 import { bool, compact, csv, nonEmpty, positiveInt } from './query-utils.js';
 
 interface TasksListDef extends NodeDef {
@@ -52,9 +53,10 @@ const init: NodeInitializer = (RED): void => {
           }
 
           this.status({ fill: 'blue', shape: 'dot', text: 'loading…' });
-          const agent = await agentNode.getAgent();
           const query = buildTasksQuery(def, msg);
-          const result = await agent.tasks.list(query, { teamId });
+          const result = await withAgent(agentNode, (agent) =>
+            agent.tasks.list(query, { teamId }),
+          );
 
           const out = RED.util.cloneMessage(msg);
           out.payload = result.items;
