@@ -128,10 +128,12 @@ export function shouldRunResumeCommand(
 }
 
 export function shouldShadowNodeModulesPath(pathname: string): boolean {
-  return pathname
-    .split('/')
-    .filter(Boolean)
-    .some((segment) => segment === 'node_modules');
+  return (
+    pathname === '/node_modules' ||
+    pathname.startsWith('/node_modules/') ||
+    pathname.endsWith('/node_modules') ||
+    pathname.includes('/node_modules/')
+  );
 }
 
 /**
