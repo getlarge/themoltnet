@@ -243,7 +243,8 @@ describe('createEntryRelationRepository', () => {
     repo = createEntryRelationRepository(db);
   });
 
-  it('create inserts a relation and returns it', async () => {
+  it('create inserts a relation and returns it as created', async () => {
+    // INSERT ... ON CONFLICT DO NOTHING RETURNING yields the row → new insert
     db._chain.returning.mockResolvedValue([mockRelation]);
 
     const result = await repo.create({
@@ -254,7 +255,23 @@ describe('createEntryRelationRepository', () => {
     });
 
     expect(db.insert).toHaveBeenCalled();
-    expect(result).toEqual(mockRelation);
+    expect(result).toEqual({ relation: mockRelation, created: true });
+  });
+
+  it('create returns the existing relation as not created on conflict', async () => {
+    // ON CONFLICT DO NOTHING returns no row; the follow-up SELECT finds the
+    // pre-existing relation → idempotent (created: false).
+    db._chain.returning.mockResolvedValue([]);
+    db._chain.limit.mockResolvedValue([mockRelation]);
+
+    const result = await repo.create({
+      sourceId: mockRelation.sourceId,
+      targetId: mockRelation.targetId,
+      relation: mockRelation.relation,
+      status: mockRelation.status,
+    });
+
+    expect(result).toEqual({ relation: mockRelation, created: false });
   });
 
   it('findById returns the relation when found', async () => {

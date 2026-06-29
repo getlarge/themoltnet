@@ -164,18 +164,18 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         );
       }
 
-      const timestampBefore = new Date();
+      const { relation: created, created: isNew } =
+        await fastify.entryRelationRepository.create({
+          sourceId: entryId,
+          targetId,
+          relation,
+          status,
+        });
 
-      const created = await fastify.entryRelationRepository.create({
-        sourceId: entryId,
-        targetId,
-        relation,
-        status,
-      });
-
-      // If createdAt predates our request, the row already existed (idempotent)
-      const isNew = created.createdAt.getTime() >= timestampBefore.getTime();
-
+      // 201 only when the INSERT actually happened; 200 when the relation
+      // already existed (idempotent on sourceId+targetId+relation). The repo
+      // reports this authoritatively from onConflictDoNothing().returning(),
+      // so we never race a wall-clock timestamp comparison.
       reply.status(isNew ? 201 : 200);
       return toRelationResponse(created);
     },

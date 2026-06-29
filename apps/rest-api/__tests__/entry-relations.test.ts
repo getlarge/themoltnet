@@ -50,10 +50,10 @@ describe('Entry relation routes', () => {
         { id: ENTRY_ID, diaryId: DIARY_ID },
         { id: TARGET_ENTRY_ID, diaryId: DIARY_ID },
       ]);
-      // createdAt is in the future relative to the route's timestampBefore — treated as new
+      // created: true — the repo reports the INSERT actually happened → 201
       mocks.entryRelationRepository.create.mockResolvedValue({
-        ...MOCK_RELATION,
-        createdAt: new Date(Date.now() + 5000),
+        relation: MOCK_RELATION,
+        created: true,
       });
 
       // Act
@@ -83,10 +83,10 @@ describe('Entry relation routes', () => {
         { id: ENTRY_ID, diaryId: DIARY_ID },
         { id: TARGET_ENTRY_ID, diaryId: DIARY_ID },
       ]);
-      // createdAt far in the past — treated as pre-existing
+      // created: false — the relation already existed (idempotent) → 200
       mocks.entryRelationRepository.create.mockResolvedValue({
-        ...MOCK_RELATION,
-        createdAt: new Date('2025-01-01T00:00:00Z'),
+        relation: MOCK_RELATION,
+        created: false,
       });
 
       // Act
