@@ -56,7 +56,7 @@
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v",
     "docker:logs": "docker compose logs -f",
-    "e2e:build": "NX_LOAD_DOT_ENV_FILES=false nx run @moltnet/tools:e2e-stack:build",
+    "e2e:build": "NX_LOAD_DOT_ENV_FILES=false nx run-many -t docker:build --projects=@moltnet/rest-api,@moltnet/mcp-server,@moltnet/console,@moltnet/mcp-host,@moltnet/database",
     "e2e:up": "pnpm run e2e:build && COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d",
     "e2e:down": "COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v",
     "e2e:reset": "pnpm run e2e:down && pnpm run e2e:up",

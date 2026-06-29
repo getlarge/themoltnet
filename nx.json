@@ -84,20 +84,6 @@
     {
       "options": {
         "buildTarget": {
-          "args": [
-            "-f",
-            "{projectRoot}/Dockerfile",
-            "--platform",
-            "linux/amd64",
-            "--label",
-            "org.opencontainers.image.revision={commitSha}",
-            "--label",
-            "org.opencontainers.image.created={currentDate}"
-          ],
-          "cwd": "{workspaceRoot}",
-          "env": {
-            "DOCKER_BUILDKIT": "1"
-          },
           "name": "docker:build"
         },
         "runTarget": {
@@ -275,9 +261,8 @@
       "outputs": ["{projectRoot}/dist"]
     },
     "docker:build": {
-      "cache": true,
-      "dependsOn": ["build"],
-      "inputs": ["docker", "^production"]
+      "cache": false,
+      "dependsOn": ["build"]
     },
     "lint": {
       "cache": true,

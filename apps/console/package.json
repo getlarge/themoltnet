@@ -44,6 +44,24 @@
       "type:app",
       "scope:public",
       "platform:browser"
-    ]
+    ],
+    "targets": {
+      "docker:build": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "command": "node tools/docker-build.mjs --project @moltnet/console"
+        },
+        "configurations": {
+          "ci": {
+            "command": "node tools/docker-build.mjs --project @moltnet/console --push --tag \"${NX_DOCKER_CI_TAG:?NX_DOCKER_CI_TAG must be set}\""
+          }
+        }
+      }
+    }
   }
 }

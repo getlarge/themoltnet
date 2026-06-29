@@ -37,3 +37,12 @@ assignment-rules:
     run-on:
       - agent: linux-medium
         parallelism: 1
+
+  # docker:build (configuration=ci) runs `docker buildx build --push` per app
+  # image. Each is heavy (full deps tree, native binaries) and saturates a
+  # 4-vCPU agent on its own, so cap at 1 per agent. Registry buildcache keeps
+  # unchanged images near-instant. Agents carry buildx + GHCR login (ci.yml).
+  - targets: [docker:build]
+    run-on:
+      - agent: linux-medium
+        parallelism: 1

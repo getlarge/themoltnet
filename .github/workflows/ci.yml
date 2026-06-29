@@ -183,6 +183,9 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+      # Agents run the distributed docker:build (configuration=ci) tasks, which
+      # push images to GHCR. Needs packages:write + the GHCR login step below.
+      packages: write
     needs: [affected]
     if: needs.affected.outputs.has-agents == 'true'
     strategy:
@@ -192,6 +195,9 @@ jobs:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
+      # Tag for the distributed docker:build (configuration=ci) push. Must match
+      # what the e2e jobs pull (REST_API_IMAGE=...:ci-<sha> etc.).
+      NX_DOCKER_CI_TAG: ci-${{ github.sha }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -212,6 +218,17 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25'
+      # Distributed docker:build (configuration=ci) builds+pushes via buildx
+      # with registry cache, so agents that pick up a docker:build task need a
+      # docker-container builder + GHCR auth. Agents that don't are unaffected.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Install golangci-lint
         # Pin via the published binary install (the official curl|sh
         # installer hits GitHub API rate limits; `go install` is the
@@ -247,19 +264,27 @@ jobs:
 
   # Orchestrator: opens the Nx Cloud DTE run, fans tasks to the agents,
   # waits for completion. Replaces the legacy lint / typecheck / test
-  # jobs. `build` is included so we have a real correctness gate on the
-  # SSR/lib build outputs (Docker image builds remain in build-and-push).
+  # jobs AND the standalone build-and-push matrix: `build` gates the
+  # SSR/lib outputs and `docker:build --configuration=ci` builds + pushes
+  # the affected app images to GHCR, all distributed across the agent pool.
   orchestrator:
-    name: Orchestrator (lint, typecheck, test, build)
+    name: Orchestrator (lint, typecheck, test, build, docker)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
+      # docker:build (configuration=ci) is distributed to agents which push to
+      # GHCR; the agents carry packages:write. The orchestrator only opens the
+      # DTE run, but inherits the token used to mint the GHCR push on agents.
+      packages: write
     needs: [affected]
     env:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
+      # Tag for the distributed docker:build (configuration=ci) push. Must match
+      # what the e2e jobs pull (REST_API_IMAGE=...:ci-<sha> etc.).
+      NX_DOCKER_CI_TAG: ci-${{ github.sha }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -315,6 +340,27 @@ jobs:
         # vitest libs without a config) declare test-ci as a noop
         # depending on test, so a single -t test-ci covers everything.
         run: pnpm exec nx affected -t lint typecheck test-ci build
+
+      # docker:build (configuration=ci) builds + pushes the app images to
+      # ghcr.io/.../<svc>:ci-<sha> via buildx with registry cache, distributed
+      # to the same agent pool under the open DTE run (replaces the standalone
+      # build-and-push matrix job).
+      #
+      # NOT `nx affected`: the e2e Compose stack starts ALL FIVE app services
+      # for every suite, so every e2e run needs all five ci-<sha> images present
+      # even when only one project changed. Building just the affected image
+      # would leave the others unpushed and break `compose up`. So we run-many
+      # the full e2e image set whenever any e2e suite runs (registry buildcache
+      # makes unchanged images near-instant). landing has no e2e consumer and is
+      # built only when affected, mirroring the old matrix's per-image gating.
+      - name: Build & push e2e Docker images
+        if: needs.affected.outputs.has-agents == 'true' && needs.affected.outputs.e2e-any == 'true'
+        run: |
+          pnpm exec nx run-many -t docker:build --configuration=ci \
+            --projects=@moltnet/rest-api,@moltnet/mcp-server,@moltnet/console,@moltnet/mcp-host,@moltnet/database
+      - name: Build & push landing Docker image
+        if: needs.affected.outputs.has-agents == 'true' && needs.affected.outputs.landing == 'true'
+        run: pnpm exec nx run @moltnet/landing:docker:build --configuration=ci
 
       - name: Complete Nx Cloud CI run
         if: always() && needs.affected.outputs.has-agents == 'true'
@@ -713,7 +759,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, build-and-push]
+    needs: [affected, orchestrator]
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -786,7 +832,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, build-and-push]
+    needs: [affected, orchestrator]
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -862,7 +908,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, build-and-push]
+    needs: [affected, orchestrator]
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -951,7 +997,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, build-and-push]
+    needs: [affected, orchestrator]
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -1048,7 +1094,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    needs: [affected, build-and-push]
+    needs: [affected, orchestrator]
     env:
       REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
@@ -1175,114 +1221,3 @@ jobs:
         run: |
           packages/openclaw-skill/scripts/package.sh /tmp
           tar -tzf /tmp/moltnet-skill-v*.tar.gz | sort
-
-  build-and-push:
-    name: Build & Push (${{ matrix.image }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      packages: write
-    needs: [affected]
-    # Per-image gating: rest-api/mcp-server/db-migrate/console are needed iff
-    # any e2e suite runs (they all share the compose stack). landing has no
-    # e2e consumer, so it's gated independently on whether the landing project
-    # is affected. The matrix `needed` field carries the per-image condition.
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # rest-api and mcp-server use registry cache: their layers are large
-          # (full pnpm deps tree, native binaries) and GHA cache is too slow /
-          # size-limited. Registry cache survives across branches.
-          - image: rest-api
-            project: '@moltnet/rest-api'
-            dockerfile: apps/rest-api/Dockerfile
-            cache-ref: ghcr.io/getlarge/themoltnet/rest-api:buildcache
-            needed-when: e2e-any
-          - image: mcp-server
-            project: '@moltnet/mcp-server'
-            dockerfile: apps/mcp-server/Dockerfile
-            cache-ref: ghcr.io/getlarge/themoltnet/mcp-server:buildcache
-            needed-when: e2e-any
-          # Smaller images stay on GHA cache (good enough, no extra GHCR tag).
-          - image: db-migrate
-            project: '@moltnet/database'
-            dockerfile: libs/database/Dockerfile
-            needed-when: e2e-any
-          - image: landing
-            project: '@moltnet/landing'
-            dockerfile: apps/landing/Dockerfile
-            needed-when: landing
-          - image: console
-            project: '@moltnet/console'
-            dockerfile: apps/console/Dockerfile
-            needed-when: e2e-any
-          - image: mcp-host
-            project: '@moltnet/mcp-host'
-            dockerfile: apps/mcp-host/Dockerfile
-            needed-when: e2e-any
-    steps:
-      - name: Skip if image not needed
-        id: gate
-        run: |
-          NEEDED="${{ matrix.needed-when == 'e2e-any' && needs.affected.outputs.e2e-any || needs.affected.outputs.landing }}"
-          echo "needed=$NEEDED" >> "$GITHUB_OUTPUT"
-          if [ "$NEEDED" != "true" ]; then
-            echo "Image ${{ matrix.image }} not affected, skipping build."
-          fi
-
-      - uses: actions/checkout@v6
-        if: steps.gate.outputs.needed == 'true'
-
-      # Host-built artifacts (Nx Cloud-cached) that the Dockerfile COPYs into
-      # the image — e.g. apps/<app>/dist/, apps/rest-api/dist/models/, etc.
-      # See AGENTS.md → "Docker image contract" and issue #1223.
-      - uses: pnpm/action-setup@v5
-        if: steps.gate.outputs.needed == 'true'
-      - uses: actions/setup-node@v6
-        if: steps.gate.outputs.needed == 'true'
-        with:
-          node-version: 22.19.0
-          cache: pnpm
-      - name: Install dependencies
-        if: steps.gate.outputs.needed == 'true'
-        env:
-          MOLTNET_SKIP_NX_SYNC: '1'
-          HUSKY: '0'
-        run: pnpm install --frozen-lockfile
-      - name: Build host artifacts for ${{ matrix.project }}
-        if: steps.gate.outputs.needed == 'true'
-        env:
-          NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
-          NX_BASE: ${{ needs.affected.outputs.base }}
-          NX_HEAD: ${{ needs.affected.outputs.head }}
-        # Materialize what apps/<app>/Dockerfile COPYs into the image. The
-        # docker:build target's dependsOn chain (build, build:migrate,
-        # download-model, …) is fanned out here as -t targets; Nx skips
-        # targets a project doesn't define. `docker build` itself runs in the
-        # next step via docker/build-push-action (cache + push semantics).
-        run: pnpm exec nx run-many -t build build:migrate download-model --projects="${{ matrix.project }}"
-
-      - name: Set up Docker Buildx
-        if: steps.gate.outputs.needed == 'true'
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to GHCR
-        if: steps.gate.outputs.needed == 'true'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & push image
-        if: steps.gate.outputs.needed == 'true'
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          push: true
-          tags: ghcr.io/getlarge/themoltnet/${{ matrix.image }}:ci-${{ github.sha }}
-          cache-from: ${{ matrix.cache-ref && format('type=registry,ref={0}', matrix.cache-ref) || format('type=gha,scope={0}', matrix.image) }}
-          cache-to: ${{ matrix.cache-ref && format('type=registry,ref={0},mode=max', matrix.cache-ref) || format('type=gha,scope={0},mode=max', matrix.image) }}
