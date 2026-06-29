@@ -127,34 +127,11 @@ export function shouldRunResumeCommand(
   return true;
 }
 
-export function buildNodeModulesTmpfsCommand(): string {
-  return [
-    'mount_one_node_modules_tmpfs() {',
-    '  package_root="$1"',
-    '  [ -d "$package_root" ] || return 0',
-    '  nm="$package_root/node_modules"',
-    '  mkdir -p "$nm"',
-    '  if [ "$package_root" = "${MOLTNET_GUEST_WORKSPACE}" ] || [ "$package_root" = "${MOLTNET_GUEST_CWD}" ]; then',
-    '    sz=6G',
-    '  else',
-    '    sz=2G',
-    '  fi',
-    '  mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs "$nm" 2>/dev/null || true',
-    '}',
-    'mount_package_roots_node_modules_tmpfs() {',
-    '  root="$1"',
-    '  [ -d "$root" ] || return 0',
-    '  find "$root" \\( -name .git -o -name node_modules -o -name .worktrees \\) -prune -o -name package.json -type f -print | while IFS= read -r package_json; do',
-    '    mount_one_node_modules_tmpfs "$(dirname "$package_json")"',
-    '  done',
-    '}',
-    'mount_one_node_modules_tmpfs "${MOLTNET_GUEST_WORKSPACE}"',
-    'mount_package_roots_node_modules_tmpfs "${MOLTNET_GUEST_WORKSPACE}"',
-    'if [ "${MOLTNET_GUEST_CWD}" != "${MOLTNET_GUEST_WORKSPACE}" ]; then',
-    '  mount_one_node_modules_tmpfs "${MOLTNET_GUEST_CWD}"',
-    '  mount_package_roots_node_modules_tmpfs "${MOLTNET_GUEST_CWD}"',
-    'fi',
-  ].join('\n');
+export function shouldShadowNodeModulesPath(pathname: string): boolean {
+  return pathname
+    .split('/')
+    .filter(Boolean)
+    .some((segment) => segment === 'node_modules');
 }
 
 /**
@@ -398,6 +375,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       writeMode: vfsConfig.shadowMode ?? 'tmpfs',
     });
   }
+  if (vfsConfig?.nodeModulesTmpfs === true) {
+    workspaceProvider = new ShadowProvider(workspaceProvider, {
+      shouldShadow: ({ path: shadowPath }) =>
+        shouldShadowNodeModulesPath(shadowPath),
+      writeMode: 'tmpfs',
+    });
+  }
 
   const forwardedEnv: Record<string, string> = {};
   for (const name of config.forwardEnv ?? []) {
@@ -507,15 +491,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       `git config --system --add safe.directory '*'`,
       config.signal,
     );
-
-    if (vfsConfig?.nodeModulesTmpfs === true) {
-      await vmRun(
-        vm,
-        'node_modules tmpfs mounts',
-        buildNodeModulesTmpfsCommand(),
-        config.signal,
-      );
-    }
 
     // Consumer-provided per-resume commands. Repo-specific bootstrap
     // (corepack-install a pinned pnpm, `pnpm fetch`, lightweight repo-local

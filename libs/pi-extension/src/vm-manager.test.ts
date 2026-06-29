@@ -5,7 +5,6 @@
  */
 import { execFileSync } from 'node:child_process';
 import {
-  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -21,12 +20,12 @@ import { describe, expect, it } from 'vitest';
 
 import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
-  buildNodeModulesTmpfsCommand,
   loadCredentials,
   resolveVmAgentDir,
   rewriteGitconfigPaths,
   rewriteMoltnetJsonPaths,
   shouldRunResumeCommand,
+  shouldShadowNodeModulesPath,
 } from './vm-manager.js';
 
 // ---------------------------------------------------------------------------
@@ -315,75 +314,21 @@ describe('shouldRunResumeCommand', () => {
   });
 });
 
-describe('buildNodeModulesTmpfsCommand', () => {
-  it('uses VM-provided workspace env instead of sandbox.json paths', () => {
-    const command = buildNodeModulesTmpfsCommand();
-
-    expect(command).toContain(
-      'mount_package_roots_node_modules_tmpfs "${MOLTNET_GUEST_WORKSPACE}"',
+describe('shouldShadowNodeModulesPath', () => {
+  it('matches any current or future node_modules segment', () => {
+    expect(shouldShadowNodeModulesPath('/node_modules')).toBe(true);
+    expect(shouldShadowNodeModulesPath('/apps/api/node_modules')).toBe(true);
+    expect(
+      shouldShadowNodeModulesPath(
+        '/.worktrees/task-1/custom-packages/worker/node_modules/.bin/vite',
+      ),
+    ).toBe(true);
+    expect(shouldShadowNodeModulesPath('/src/node_modules_fixture')).toBe(
+      false,
     );
-    expect(command).toContain(
-      'mount_package_roots_node_modules_tmpfs "${MOLTNET_GUEST_CWD}"',
+    expect(shouldShadowNodeModulesPath('/packages/node_modules-old')).toBe(
+      false,
     );
-    expect(command).toContain('-name package.json -type f');
-    expect(command).not.toContain('"$root"/apps/*');
-    expect(command).not.toContain('sandbox.json');
-    expect(command).not.toContain('pnpm');
-  });
-
-  it('mounts node_modules for package roots in the mounted repo and active worktree cwd', () => {
-    const command = buildNodeModulesTmpfsCommand();
-    const root = mkdtempSync(path.join(tmpdir(), 'pi-node-modules-tmpfs-'));
-    const workspace = path.join(root, 'workspace');
-    const cwd = path.join(workspace, '.worktrees', 'task-1');
-    const staleWorktree = path.join(workspace, '.worktrees', 'stale-task');
-    const bin = path.join(root, 'bin');
-    const mountLog = path.join(root, 'mount.log');
-
-    try {
-      for (const packageRoot of [
-        workspace,
-        path.join(workspace, 'services', 'api'),
-        path.join(workspace, 'examples', 'cli-fixture'),
-        staleWorktree,
-        cwd,
-        path.join(cwd, 'custom-packages', 'worker'),
-      ]) {
-        mkdirSync(packageRoot, { recursive: true });
-        writeFileSync(path.join(packageRoot, 'package.json'), '{}\n', 'utf8');
-      }
-      mkdirSync(bin, { recursive: true });
-      const fakeMount = path.join(bin, 'mount');
-      writeFileSync(
-        fakeMount,
-        '#!/bin/sh\nprintf "%s\\n" "$*" >> "$MOUNT_LOG"\n',
-        'utf8',
-      );
-      chmodSync(fakeMount, 0o755);
-
-      execFileSync('sh', ['-c', `set -eu\n${command}`], {
-        env: {
-          ...process.env,
-          PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}`,
-          MOLTNET_GUEST_WORKSPACE: workspace,
-          MOLTNET_GUEST_CWD: cwd,
-          MOUNT_LOG: mountLog,
-        },
-        stdio: 'pipe',
-      });
-
-      const mounts = readFileSync(mountLog, 'utf8');
-      expect(mounts).toContain(`${workspace}/node_modules`);
-      expect(mounts).toContain(`${workspace}/services/api/node_modules`);
-      expect(mounts).toContain(
-        `${workspace}/examples/cli-fixture/node_modules`,
-      );
-      expect(mounts).toContain(`${cwd}/node_modules`);
-      expect(mounts).toContain(`${cwd}/custom-packages/worker/node_modules`);
-      expect(mounts).not.toContain(`${staleWorktree}/node_modules`);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
   });
 });
 

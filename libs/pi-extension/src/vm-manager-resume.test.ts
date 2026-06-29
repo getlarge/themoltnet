@@ -140,7 +140,7 @@ describe('resumeVm task-context mount', () => {
     expect(resumeOptions.env.NODE_OPTIONS).toBe('--dns-result-order=ipv4first');
   });
 
-  it('mounts node_modules tmpfs for both mounted root and active worktree cwd', async () => {
+  it('shadows future node_modules paths with tmpfs before resume commands run', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-cwd-'));
     tempRoots.push(root);
     const workspace = path.join(root, 'workspace');
@@ -178,9 +178,25 @@ describe('resumeVm task-context mount', () => {
     expect(gondolinMock.resumeCalls).toHaveLength(1);
     const resumeOptions = gondolinMock.resumeCalls[0] as {
       env: Record<string, string>;
+      vfs: { mounts: Record<string, unknown> };
     };
     expect(resumeOptions.env.MOLTNET_GUEST_WORKSPACE).toBe(workspace);
     expect(resumeOptions.env.MOLTNET_GUEST_CWD).toBe(cwd);
+    const mounts = resumeOptions.vfs.mounts;
+    expect(mounts[workspace]).toBeInstanceOf(gondolinMock.ShadowProvider);
+    const workspaceProvider = mounts[workspace] as {
+      options: { shouldShadow: (ctx: { path: string }) => boolean };
+    };
+    expect(
+      workspaceProvider.options.shouldShadow({
+        path: '/.worktrees/later/packages/web/node_modules/.bin/vite',
+      }),
+    ).toBe(true);
+    expect(
+      workspaceProvider.options.shouldShadow({
+        path: '/.worktrees/later/packages/web/src/index.ts',
+      }),
+    ).toBe(false);
 
     const execCalls = gondolinMock.vm.exec.mock.calls as unknown as [
       unknown,
@@ -189,24 +205,11 @@ describe('resumeVm task-context mount', () => {
     const shellCommands = execCalls
       .map(([argv]) => (Array.isArray(argv) ? argv[2] : argv))
       .filter((command): command is string => typeof command === 'string');
-    const tmpfsCommandIndex = shellCommands.findIndex((command) =>
-      command.includes('mount_package_roots_node_modules_tmpfs'),
-    );
     const profileCommandIndex = shellCommands.findIndex((command) =>
       command.includes('pnpm install --frozen-lockfile'),
     );
 
-    expect(tmpfsCommandIndex).toBeGreaterThanOrEqual(0);
-    expect(profileCommandIndex).toBeGreaterThan(tmpfsCommandIndex);
-    expect(shellCommands[tmpfsCommandIndex]).toContain(
-      'mount_package_roots_node_modules_tmpfs "${MOLTNET_GUEST_WORKSPACE}"',
-    );
-    expect(shellCommands[tmpfsCommandIndex]).toContain(
-      'mount_package_roots_node_modules_tmpfs "${MOLTNET_GUEST_CWD}"',
-    );
-    expect(shellCommands[tmpfsCommandIndex]).toContain(
-      '-name package.json -type f',
-    );
+    expect(profileCommandIndex).toBeGreaterThanOrEqual(0);
     expect(shellCommands[profileCommandIndex]).toContain(
       'cd "$MOLTNET_GUEST_CWD" && pnpm install --frozen-lockfile',
     );
