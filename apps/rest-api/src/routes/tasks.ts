@@ -536,7 +536,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     '/tasks/:id/attempts/:n/fail',
     {
       schema: {
-        operationId: 'failTask',
+        operationId: 'failTaskAttempt',
         tags: ['tasks'],
         description: 'Mark an attempt as failed with error details.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
@@ -557,7 +557,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       const callerNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
-        return await fastify.taskService.fail(
+        return await fastify.taskService.failAttempt(
           request.params.id,
           request.params.n,
           identityId,

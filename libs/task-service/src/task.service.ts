@@ -1505,7 +1505,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
     },
 
-    async fail(
+    async failAttempt(
       taskId: string,
       attemptN: number,
       callerId: string,
@@ -1606,6 +1606,17 @@ export function createTaskService(deps: TaskServiceDeps) {
           setTimeout(resolve, 250);
         });
       }
+    },
+
+    /** @deprecated Use failAttempt. This operation reports attempt failure. */
+    async fail(
+      taskId: string,
+      attemptN: number,
+      callerId: string,
+      callerNs: KetoNamespace,
+      error: TaskError,
+    ): Promise<Task> {
+      return this.failAttempt(taskId, attemptN, callerId, callerNs, error);
     },
 
     async abort(

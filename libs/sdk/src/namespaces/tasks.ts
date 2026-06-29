@@ -7,7 +7,7 @@ import {
   claimTask,
   completeTask,
   createTask,
-  failTask,
+  failTaskAttempt,
   getTask,
   listTaskArtifacts,
   listTaskAttempts,
@@ -238,10 +238,14 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
       );
     },
 
-    async fail(id, n, body) {
+    async failAttempt(id, n, body) {
       return unwrapResult(
-        await failTask({ client, auth, path: { id, n }, body }),
+        await failTaskAttempt({ client, auth, path: { id, n }, body }),
       );
+    },
+
+    async fail(id, n, body) {
+      return this.failAttempt(id, n, body);
     },
 
     async abortAttempt(id, n, body) {
