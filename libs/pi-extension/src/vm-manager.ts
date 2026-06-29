@@ -379,6 +379,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   workspaceProvider = new ShadowProvider(workspaceProvider, {
     shouldShadow: ({ path: shadowPath }) =>
       shouldShadowNodeModulesPath(shadowPath),
+    denySymlinkBypass: false,
     writeMode: 'tmpfs',
   });
   if (vfsConfig?.shadow?.length) {

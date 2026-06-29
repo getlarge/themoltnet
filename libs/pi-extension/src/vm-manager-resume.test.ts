@@ -184,8 +184,12 @@ describe('resumeVm task-context mount', () => {
     const mounts = resumeOptions.vfs.mounts;
     expect(mounts[workspace]).toBeInstanceOf(gondolinMock.ShadowProvider);
     const workspaceProvider = mounts[workspace] as {
-      options: { shouldShadow: (ctx: { path: string }) => boolean };
+      options: {
+        denySymlinkBypass: boolean;
+        shouldShadow: (ctx: { path: string }) => boolean;
+      };
     };
+    expect(workspaceProvider.options.denySymlinkBypass).toBe(false);
     expect(
       workspaceProvider.options.shouldShadow({
         path: '/.worktrees/later/packages/web/node_modules/.bin/vite',
@@ -254,5 +258,12 @@ describe('resumeVm task-context mount', () => {
       (outerProvider.provider as { options: { writeMode: string } }).options
         .writeMode,
     ).toBe('tmpfs');
+    expect(
+      (
+        outerProvider.provider as {
+          options: { denySymlinkBypass: boolean };
+        }
+      ).options.denySymlinkBypass,
+    ).toBe(false);
   });
 });
