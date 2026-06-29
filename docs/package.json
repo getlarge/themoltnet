@@ -25,5 +25,8 @@
     "vitepress-mermaid-renderer": "catalog:",
     "vitepress-plugin-llms": "catalog:",
     "vue": "catalog:"
+  },
+  "nx": {
+    "projectType": "application"
   }
 }

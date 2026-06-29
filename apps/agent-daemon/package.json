@@ -68,6 +68,7 @@
     "vitest": "catalog:"
   },
   "nx": {
+    "projectType": "application",
     "tags": [
       "type:app",
       "scope:agent",
