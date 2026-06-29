@@ -276,8 +276,6 @@ export type RetryTriage = Static<typeof RetryTriage>;
 
 /**
  * Structured error accepted from a daemon when reporting a failed attempt.
- * Server-owned retry triage metadata is intentionally excluded from this
- * inbound shape.
  */
 export const TaskFailureError = Type.Object(
   {
@@ -285,6 +283,7 @@ export const TaskFailureError = Type.Object(
     message: Type.String(),
     stack: Type.Optional(Type.String()),
     retryable: Type.Optional(Type.Boolean()),
+    retryTriage: Type.Optional(Type.Ref('RetryTriage')),
   },
   { $id: 'TaskFailureError', additionalProperties: false },
 );

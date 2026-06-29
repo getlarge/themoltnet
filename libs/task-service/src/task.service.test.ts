@@ -19,7 +19,7 @@ import {
   vi,
 } from 'vitest';
 
-import { createTaskService, type RetryTriageInput } from './task.service.js';
+import { createTaskService } from './task.service.js';
 
 const TEAM_ID = '00000000-0000-0000-0000-000000000001';
 const DIARY_ID = 'd0000000-0000-0000-0000-000000000001';
@@ -659,24 +659,21 @@ describe('createTaskService.fail — retry policy', () => {
     );
   });
 
-  it('marks obvious nonretryable errors without invoking triage', async () => {
-    const triageRetry = vi.fn();
-    const service = setup({ triageRetry });
+  it('marks obvious nonretryable errors', async () => {
+    const service = setup();
 
     await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
       code: '401',
       message: 'bad auth',
     });
 
-    expect(triageRetry).not.toHaveBeenCalled();
     expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
       error: { code: '401', retryable: false },
     });
   });
 
   it('retries obvious transient errors when retryable is omitted', async () => {
-    const triageRetry = vi.fn();
-    const service = setup({ triageRetry });
+    const service = setup();
 
     const task = await service.fail(
       JUDGE_TASK,
@@ -690,27 +687,45 @@ describe('createTaskService.fail — retry policy', () => {
     );
 
     expect(task.status).toBe('queued');
-    expect(triageRetry).not.toHaveBeenCalled();
     expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
       error: { code: 'timeout', retryable: true },
     });
   });
 
-  it('preserves legacy retries for ambiguous failures when triage is not configured', async () => {
-    const service = setup();
+  it('does not retry ambiguous failures unless the daemon says they are retryable', async () => {
+    const running = { ...makeJudgeTask(JUDGE_TASK, 'running'), maxAttempts: 2 };
+    const failed = { ...running, status: 'failed' as const };
+    mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: running } });
+    mocks.taskRepository.findById
+      .mockResolvedValueOnce(running)
+      .mockResolvedValueOnce(failed);
+    mocks.taskRepository.findAttempt
+      .mockResolvedValueOnce(makeTaskAttempt())
+      .mockResolvedValue(makeTaskAttempt('failed'));
+    send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
 
-    await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
-      code: 'agent_error',
-      message: 'model stream ended unexpectedly',
-    });
+    const task = await service.fail(
+      JUDGE_TASK,
+      1,
+      AGENT_ID,
+      KetoNamespace.Agent,
+      {
+        code: 'agent_error',
+        message: 'model stream ended unexpectedly',
+      },
+    );
 
+    expect(task.status).toBe('failed');
     expect(mocks.taskRepository.listMessages).not.toHaveBeenCalled();
     expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
-      error: { code: 'agent_error', retryable: true },
+      error: { code: 'agent_error', retryable: false },
     });
   });
 
-  it('strips caller-provided retry triage metadata before persistence', async () => {
+  it('preserves daemon-provided retry triage metadata', async () => {
     const service = setup();
 
     await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
@@ -720,116 +735,18 @@ describe('createTaskService.fail — retry policy', () => {
       retryTriage: {
         decision: 'retry',
         confidence: 'high',
-        reason: 'forged by caller',
+        reason: 'daemon classified provider outage as transient',
       },
     });
 
     expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
-      error: { code: 'custom', retryable: true },
-    });
-    expect(
-      (send.mock.calls.at(-1)?.[1] as { error?: { retryTriage?: unknown } })
-        .error?.retryTriage,
-    ).toBeUndefined();
-  });
-
-  it.each(['medium', 'high'] as const)(
-    'lets %s-confidence triage retry ambiguous failures',
-    async (confidence) => {
-      const triageRetry = vi.fn().mockResolvedValue({
-        decision: 'retry',
-        confidence,
-        reason: 'looks transient',
-      });
-      const service = setup({ triageRetry });
-
-      await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
-        code: 'agent_error',
-        message: 'model stream ended unexpectedly',
-      });
-
-      const triageInput = triageRetry.mock.calls.at(-1)?.[0] as
-        | RetryTriageInput
-        | undefined;
-      expect(triageInput).toMatchObject({
-        attemptN: 1,
-        remainingAttempts: 1,
-        callerId: AGENT_ID,
-        error: { code: 'agent_error' },
-      });
-      expect(triageInput?.abortSignal).toBeInstanceOf(AbortSignal);
-      expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
-        error: {
-          retryable: true,
-          retryTriage: { confidence },
-        },
-      });
-    },
-  );
-
-  it('does not retry low-confidence triage retry decisions', async () => {
-    const service = setup({
-      triageRetry: vi.fn().mockResolvedValue({
-        decision: 'retry',
-        confidence: 'low',
-        reason: 'weak signal',
-      }),
-    });
-
-    await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
-      code: 'agent_error',
-      message: 'unclear failure',
-    });
-
-    expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
       error: {
-        retryable: false,
-        retryTriage: { confidence: 'low' },
-      },
-    });
-  });
-
-  it('does not retry medium-confidence triage do_not_retry decisions', async () => {
-    const service = setup({
-      triageRetry: vi.fn().mockResolvedValue({
-        decision: 'do_not_retry',
-        confidence: 'medium',
-        reason: 'looks deterministic',
-      }),
-    });
-
-    await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
-      code: 'agent_error',
-      message: 'unclear failure',
-    });
-
-    expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
-      error: {
-        retryable: false,
+        code: 'custom',
+        retryable: true,
         retryTriage: {
-          decision: 'do_not_retry',
-          confidence: 'medium',
-        },
-      },
-    });
-  });
-
-  it('does not retry when triage fails', async () => {
-    const service = setup({
-      triageRetry: vi.fn().mockRejectedValue(new Error('triage down')),
-    });
-
-    await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
-      code: 'agent_error',
-      message: 'unclear failure',
-    });
-
-    expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
-      error: {
-        retryable: false,
-        retryTriage: {
-          decision: 'do_not_retry',
-          reason: 'Retry triage failed: triage down',
+          decision: 'retry',
+          confidence: 'high',
+          reason: 'daemon classified provider outage as transient',
         },
       },
     });

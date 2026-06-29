@@ -1,5 +1,3 @@
-import { Buffer } from 'node:buffer';
-
 import type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
 import { KetoNamespace } from '@moltnet/auth';
 import {
@@ -79,27 +77,7 @@ interface Logger {
   error(obj: object, msg: string): void;
 }
 
-export interface RetryTriageDecision {
-  decision: 'retry' | 'do_not_retry';
-  confidence: 'low' | 'medium' | 'high';
-  reason: string;
-}
-
-export interface RetryTriageInput {
-  task: Task;
-  attemptN: number;
-  error: TaskError;
-  recentMessages: TaskMessage[];
-  remainingAttempts: number;
-  callerId: string;
-  callerNs: KetoNamespace;
-  abortSignal: AbortSignal;
-}
-
 const EVENT_TIMEOUT_SECONDS = 10;
-const RETRY_TRIAGE_TIMEOUT_MS = 5_000;
-const RETRY_TRIAGE_MESSAGE_LIMIT = 20;
-const RETRY_TRIAGE_MAX_MESSAGE_BYTES = 16_384;
 const DEFAULT_LEASE_TTL_SEC = 300;
 const TERMINAL_STATUSES = new Set<DbTask['status']>([
   'completed',
@@ -213,59 +191,16 @@ function classifyRetryableError(error: TaskError): boolean | null {
   return null;
 }
 
-function retryableFromTriage(triage: RetryTriageDecision | null): boolean {
-  return (
-    triage?.decision === 'retry' &&
-    (triage.confidence === 'medium' || triage.confidence === 'high')
-  );
-}
-
-async function withRetryTriageTimeout(
-  fn: (abortSignal: AbortSignal) => Promise<RetryTriageDecision>,
-): Promise<RetryTriageDecision> {
-  const abort = new AbortController();
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      fn(abort.signal),
-      new Promise<RetryTriageDecision>((_, reject) => {
-        timeout = setTimeout(() => {
-          abort.abort();
-          reject(new Error('retry triage timed out'));
-        }, RETRY_TRIAGE_TIMEOUT_MS);
-      }),
-    ]);
-  } finally {
-    if (timeout) clearTimeout(timeout);
-  }
-}
-
-function sanitizeTaskError(error: TaskError): TaskError {
+function normalizeTaskError(error: TaskError): TaskError {
   return {
     code: error.code,
     message: error.message,
     ...(error.stack === undefined ? {} : { stack: error.stack }),
     ...(error.retryable === undefined ? {} : { retryable: error.retryable }),
+    ...(error.retryTriage === undefined
+      ? {}
+      : { retryTriage: error.retryTriage }),
   };
-}
-
-function boundedRetryTriageMessages(messages: TaskMessage[]): TaskMessage[] {
-  let bytes = 0;
-  const selected: TaskMessage[] = [];
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages.at(i);
-    if (!message) continue;
-    const messageBytes = Buffer.byteLength(JSON.stringify(message), 'utf8');
-    if (
-      selected.length > 0 &&
-      bytes + messageBytes > RETRY_TRIAGE_MAX_MESSAGE_BYTES
-    ) {
-      break;
-    }
-    selected.unshift(message);
-    bytes += messageBytes;
-  }
-  return selected;
 }
 
 export class TaskServiceError extends Error {
@@ -375,7 +310,6 @@ interface TaskServiceDeps {
    */
   transactionRunner: TransactionRunner;
   logger: Logger;
-  triageRetry?: (input: RetryTriageInput) => Promise<RetryTriageDecision>;
 }
 
 function normalizeTaskTitle(title: string | null | undefined): string | null {
@@ -408,7 +342,6 @@ export function createTaskService(deps: TaskServiceDeps) {
     relationshipWriter,
     transactionRunner,
     logger,
-    triageRetry,
   } = deps;
 
   /**
@@ -705,71 +638,23 @@ export function createTaskService(deps: TaskServiceDeps) {
     }
   }
 
-  async function resolveRetryableError(
+  function resolveRetryableError(
     task: DbTask,
     attemptN: number,
-    callerId: string,
-    callerNs: KetoNamespace,
     error: TaskError,
-  ): Promise<TaskError> {
-    const sanitizedError = sanitizeTaskError(error);
-    const deterministic = classifyRetryableError(sanitizedError);
-    if (deterministic !== null) {
-      return { ...sanitizedError, retryable: deterministic };
-    }
-
+  ): TaskError {
+    const normalizedError = normalizeTaskError(error);
     const remainingAttempts = Math.max(0, task.maxAttempts - attemptN);
     if (remainingAttempts <= 0) {
-      return { ...sanitizedError, retryable: false };
-    }
-    if (!triageRetry) {
-      return { ...sanitizedError, retryable: true };
+      return { ...normalizedError, retryable: false };
     }
 
-    let triage: RetryTriageDecision;
-    try {
-      const { items } = await taskRepository.listMessages(task.id, attemptN, {
-        limit: RETRY_TRIAGE_MESSAGE_LIMIT,
-      });
-      triage = await withRetryTriageTimeout((abortSignal) =>
-        triageRetry({
-          task: dbTaskToWire(task),
-          attemptN,
-          error: sanitizedError,
-          recentMessages: boundedRetryTriageMessages(
-            items.map(dbMessageToWire),
-          ),
-          remainingAttempts,
-          callerId,
-          callerNs,
-          abortSignal,
-        }),
-      );
-    } catch (err) {
-      const failureTriage: RetryTriageDecision = {
-        decision: 'do_not_retry',
-        confidence: 'high',
-        reason:
-          err instanceof Error
-            ? `Retry triage failed: ${err.message}`
-            : 'Retry triage failed.',
-      };
-      logger.warn(
-        { taskId: task.id, attemptN, err },
-        'task.fail.retry_triage_failed',
-      );
-      return {
-        ...sanitizedError,
-        retryable: false,
-        retryTriage: failureTriage,
-      };
+    const deterministic = classifyRetryableError(normalizedError);
+    if (deterministic !== null) {
+      return { ...normalizedError, retryable: deterministic };
     }
 
-    return {
-      ...sanitizedError,
-      retryable: retryableFromTriage(triage),
-      retryTriage: triage,
-    };
+    return { ...normalizedError, retryable: false };
   }
 
   async function failEventApplied(
@@ -1783,13 +1668,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
 
       const workflowId = taskWorkflowId(taskId, attemptN);
-      const resolvedError = await resolveRetryableError(
-        task,
-        attemptN,
-        callerId,
-        callerNs,
-        error,
-      );
+      const resolvedError = resolveRetryableError(task, attemptN, error);
       // Multiplexed `progress` topic (#936).
       await DBOS.send(
         workflowId,

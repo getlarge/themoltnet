@@ -29,7 +29,6 @@ import {
   RuntimeProfileRef,
   SuccessCriteria,
   Task,
-  TaskAttempt,
   TaskMessage,
   TaskRef,
 } from '@moltnet/tasks';
@@ -61,6 +60,16 @@ const TaskStatusSchema = Type.Union([
   Type.Literal('failed'),
   Type.Literal('cancelled'),
   Type.Literal('expired'),
+]);
+
+const TaskAttemptStatusSchema = Type.Union([
+  Type.Literal('claimed'),
+  Type.Literal('running'),
+  Type.Literal('completed'),
+  Type.Literal('failed'),
+  Type.Literal('cancelled'),
+  Type.Literal('aborted'),
+  Type.Literal('timed_out'),
 ]);
 
 export const TaskCreateSchema = Type.Object({
@@ -491,8 +500,104 @@ export const TaskListOutputSchema = Type.Object({
   nextCursor: Type.Optional(Type.String()),
 });
 
+type TaskAttemptOutput = ResponseOf<ListTaskAttemptsResponses>[number];
+const TaskAttemptOutputItemSchema = Type.Unsafe<TaskAttemptOutput>(
+  Type.Object(
+    {
+      taskId: Type.String({ format: 'uuid' }),
+      attemptN: Type.Number({ minimum: 1 }),
+      claimedByAgentId: Type.String({ format: 'uuid' }),
+      runtimeId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+      claimedAt: Type.String({ format: 'date-time' }),
+      startedAt: Type.Union([
+        Type.String({ format: 'date-time' }),
+        Type.Null(),
+      ]),
+      completedAt: Type.Union([
+        Type.String({ format: 'date-time' }),
+        Type.Null(),
+      ]),
+      status: TaskAttemptStatusSchema,
+      output: Type.Union([
+        Type.Record(Type.String(), Type.Unknown()),
+        Type.Null(),
+      ]),
+      outputCid: Type.Union([Type.String(), Type.Null()]),
+      claimedExecutorFingerprint: Type.Union([Type.String(), Type.Null()]),
+      claimedExecutorManifest: Type.Union([
+        Type.Record(Type.String(), Type.Unknown()),
+        Type.Null(),
+      ]),
+      completedExecutorFingerprint: Type.Union([Type.String(), Type.Null()]),
+      completedExecutorManifest: Type.Union([
+        Type.Record(Type.String(), Type.Unknown()),
+        Type.Null(),
+      ]),
+      error: Type.Union([
+        Type.Object(
+          {
+            code: Type.String(),
+            message: Type.String(),
+            stack: Type.Optional(Type.String()),
+            retryable: Type.Optional(Type.Boolean()),
+            retryTriage: Type.Optional(
+              Type.Object(
+                {
+                  decision: Type.Union([
+                    Type.Literal('retry'),
+                    Type.Literal('do_not_retry'),
+                  ]),
+                  confidence: Type.Union([
+                    Type.Literal('low'),
+                    Type.Literal('medium'),
+                    Type.Literal('high'),
+                  ]),
+                  reason: Type.String(),
+                },
+                { additionalProperties: false },
+              ),
+            ),
+          },
+          { additionalProperties: false },
+        ),
+        Type.Null(),
+      ]),
+      usage: Type.Union([
+        Type.Object(
+          {
+            inputTokens: Type.Number({ minimum: 0 }),
+            outputTokens: Type.Number({ minimum: 0 }),
+            cacheReadTokens: Type.Optional(Type.Number({ minimum: 0 })),
+            cacheWriteTokens: Type.Optional(Type.Number({ minimum: 0 })),
+            toolCalls: Type.Optional(Type.Number({ minimum: 0 })),
+            model: Type.Optional(Type.String()),
+            provider: Type.Optional(Type.String()),
+          },
+          { additionalProperties: false },
+        ),
+        Type.Null(),
+      ]),
+      contentSignature: Type.Union([Type.String(), Type.Null()]),
+      signedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+      daemonState: Type.Union([
+        Type.Object(
+          {
+            reportedAt: Type.String({ format: 'date-time' }),
+            slotResumableUntil: Type.Union([
+              Type.String({ format: 'date-time' }),
+              Type.Null(),
+            ]),
+          },
+          { additionalProperties: false },
+        ),
+        Type.Null(),
+      ]),
+    },
+    { additionalProperties: false },
+  ),
+);
 export const TaskAttemptsListOutputSchema = Type.Object({
-  items: Type.Array(TaskAttempt),
+  items: Type.Array(TaskAttemptOutputItemSchema),
 });
 export const TaskMessagesListOutputSchema = Type.Object({
   items: Type.Array(TaskMessage),

@@ -2174,6 +2174,7 @@ export type TaskError = {
 export type TaskFailureError = {
   code: string;
   message: string;
+  retryTriage?: RetryTriage;
   retryable?: boolean;
   stack?: string;
 };

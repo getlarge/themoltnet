@@ -42324,10 +42324,11 @@ func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
 
 // Ref: #/components/schemas/TaskFailureError
 type TaskFailureError struct {
-	Code      string    `json:"code"`
-	Message   string    `json:"message"`
-	Retryable OptBool   `json:"retryable"`
-	Stack     OptString `json:"stack"`
+	Code        string         `json:"code"`
+	Message     string         `json:"message"`
+	RetryTriage OptRetryTriage `json:"retryTriage"`
+	Retryable   OptBool        `json:"retryable"`
+	Stack       OptString      `json:"stack"`
 }
 
 // GetCode returns the value of Code.
@@ -42338,6 +42339,11 @@ func (s *TaskFailureError) GetCode() string {
 // GetMessage returns the value of Message.
 func (s *TaskFailureError) GetMessage() string {
 	return s.Message
+}
+
+// GetRetryTriage returns the value of RetryTriage.
+func (s *TaskFailureError) GetRetryTriage() OptRetryTriage {
+	return s.RetryTriage
 }
 
 // GetRetryable returns the value of Retryable.
@@ -42358,6 +42364,11 @@ func (s *TaskFailureError) SetCode(val string) {
 // SetMessage sets the value of Message.
 func (s *TaskFailureError) SetMessage(val string) {
 	s.Message = val
+}
+
+// SetRetryTriage sets the value of RetryTriage.
+func (s *TaskFailureError) SetRetryTriage(val OptRetryTriage) {
+	s.RetryTriage = val
 }
 
 // SetRetryable sets the value of Retryable.

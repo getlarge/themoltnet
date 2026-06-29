@@ -41516,6 +41516,28 @@ var TaskUsage = _Object_({
 	$id: "TaskUsage",
 	additionalProperties: false
 });
+_Object_({
+	decision: Union([Literal("retry"), Literal("do_not_retry")]),
+	confidence: Union([
+		Literal("low"),
+		Literal("medium"),
+		Literal("high")
+	]),
+	reason: String$1()
+}, {
+	$id: "RetryTriage",
+	additionalProperties: false
+});
+_Object_({
+	code: String$1(),
+	message: String$1(),
+	stack: Optional(String$1()),
+	retryable: Optional(Boolean$1()),
+	retryTriage: Optional(Ref$2("RetryTriage"))
+}, {
+	$id: "TaskFailureError",
+	additionalProperties: false
+});
 /**
 * Structured error returned from a failed attempt.
 */
@@ -41523,7 +41545,8 @@ var TaskError = _Object_({
 	code: String$1(),
 	message: String$1(),
 	stack: Optional(String$1()),
-	retryable: Optional(Boolean$1())
+	retryable: Optional(Boolean$1()),
+	retryTriage: Optional(Ref$2("RetryTriage"))
 }, {
 	$id: "TaskError",
 	additionalProperties: false

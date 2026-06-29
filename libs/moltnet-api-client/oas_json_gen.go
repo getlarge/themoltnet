@@ -80774,6 +80774,12 @@ func (s *TaskFailureError) encodeFields(e *jx.Encoder) {
 		e.Str(s.Message)
 	}
 	{
+		if s.RetryTriage.Set {
+			e.FieldStart("retryTriage")
+			s.RetryTriage.Encode(e)
+		}
+	}
+	{
 		if s.Retryable.Set {
 			e.FieldStart("retryable")
 			s.Retryable.Encode(e)
@@ -80787,11 +80793,12 @@ func (s *TaskFailureError) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfTaskFailureError = [4]string{
+var jsonFieldsNameOfTaskFailureError = [5]string{
 	0: "code",
 	1: "message",
-	2: "retryable",
-	3: "stack",
+	2: "retryTriage",
+	3: "retryable",
+	4: "stack",
 }
 
 // Decode decodes TaskFailureError from json.
@@ -80826,6 +80833,16 @@ func (s *TaskFailureError) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"message\"")
+			}
+		case "retryTriage":
+			if err := func() error {
+				s.RetryTriage.Reset()
+				if err := s.RetryTriage.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryTriage\"")
 			}
 		case "retryable":
 			if err := func() error {

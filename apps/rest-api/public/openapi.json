@@ -10110,6 +10110,9 @@
           "message": {
             "type": "string"
           },
+          "retryTriage": {
+            "$ref": "#/components/schemas/RetryTriage"
+          },
           "retryable": {
             "type": "boolean"
           },
