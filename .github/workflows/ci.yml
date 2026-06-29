@@ -855,9 +855,6 @@ jobs:
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-node == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
-      - name: Teardown Docker Compose
-        if: always() && needs.affected.outputs.e2e-node == 'true'
-        run: docker compose -f docker-compose.e2e.yaml down -v --remove-orphans
 
   e2e-agent-daemon:
     name: E2E Tests (Agent Daemon)
@@ -933,9 +930,6 @@ jobs:
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-agent-daemon == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
-      - name: Teardown Docker Compose
-        if: always() && needs.affected.outputs.e2e-agent-daemon == 'true'
-        run: docker compose -f docker-compose.e2e.yaml down -v --remove-orphans
 
   e2e-browser:
     name: E2E Tests (Browser)
@@ -1019,9 +1013,6 @@ jobs:
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-browser == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
-      - name: Teardown Docker Compose
-        if: always() && needs.affected.outputs.e2e-browser == 'true'
-        run: docker compose -f docker-compose.e2e.yaml down -v --remove-orphans
 
   # MCP e2e: the mcp-server node suite + the mcp-host browser suite, against a
   # dedicated copy of the compose stack. Split out of the Node/Browser jobs so a
@@ -1119,9 +1110,6 @@ jobs:
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-mcp == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
-      - name: Teardown Docker Compose
-        if: always() && needs.affected.outputs.e2e-mcp == 'true'
-        run: docker compose -f docker-compose.e2e.yaml down -v --remove-orphans
 
   # Go CLI e2e runs in parallel with the Node and browser e2e jobs. It brings
   # up its own copy of the compose stack (~45s overhead) but does not contend
@@ -1183,9 +1171,6 @@ jobs:
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-go-cli == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
-      - name: Teardown Docker Compose
-        if: always() && needs.affected.outputs.e2e-go-cli == 'true'
-        run: docker compose -f docker-compose.e2e.yaml down -v --remove-orphans
 
   go-otel-extension:
     # The oryintrospectionauth extension deliberately lives OUTSIDE go.work

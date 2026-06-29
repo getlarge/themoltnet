@@ -60,6 +60,7 @@
     "undici": "catalog:"
   },
   "devDependencies": {
+    "@nx/devkit": "catalog:",
     "@types/figlet": "^1.7.0",
     "@types/node": "catalog:",
     "tsx": "catalog:",

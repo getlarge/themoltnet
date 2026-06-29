@@ -32,47 +32,36 @@
 // CI (push, :ci-<sha>):                  node tools/docker-build.mjs --project @moltnet/rest-api --push --tag ci-$GITHUB_SHA
 
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
+import { parseArgs as nodeParseArgs } from 'node:util';
+
+import {
+  createProjectGraphAsync,
+  readProjectsConfigurationFromProjectGraph,
+} from '@nx/devkit';
 
 function parseArgs(argv) {
-  const opts = { tag: 'dev', push: false, cacheTo: true, dryRun: false };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === '--project') opts.project = argv[++i];
-    else if (a === '--tag') opts.tag = argv[++i];
-    else if (a === '--push') opts.push = true;
-    else if (a === '--no-cache-to') opts.cacheTo = false;
-    else if (a === '--dry-run') opts.dryRun = true;
-    else throw new Error(`Unknown argument: ${a}`);
-  }
-  if (!opts.project) throw new Error('--project <package-name> is required');
-  return opts;
-}
-
-// {package name -> projectRoot} by scanning apps/* and libs/*. Avoids loading
-// the Nx graph (and its dotenvx .env leak, see #1306/#1507).
-function findProjectRoot(pkgName) {
-  for (const base of ['apps', 'libs']) {
-    for (const dir of readdirSync(base, { withFileTypes: true })) {
-      if (!dir.isDirectory()) continue;
-      const root = join(base, dir.name);
-      try {
-        if (
-          JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).name ===
-          pkgName
-        ) {
-          return root;
-        }
-      } catch {
-        // no package.json here; skip
-      }
-    }
-  }
-  throw new Error(
-    `Could not find projectRoot for ${pkgName} under apps/|libs/`,
-  );
+  const { values } = nodeParseArgs({
+    args: argv,
+    options: {
+      project: { type: 'string' },
+      tag: { type: 'string', default: 'dev' },
+      push: { type: 'boolean', default: false },
+      'no-cache-to': { type: 'boolean', default: false },
+      'dry-run': { type: 'boolean', default: false },
+    },
+    strict: true,
+  });
+  if (!values.project) throw new Error('--project <package-name> is required');
+  return {
+    project: values.project,
+    tag: values.tag,
+    push: values.push,
+    cacheTo: !values['no-cache-to'],
+    dryRun: values['dry-run'],
+  };
 }
 
 // Matches @nx/docker getDefaultImageReference(projectRoot): the tag nx release
@@ -84,23 +73,31 @@ function pathDerivedRef(projectRoot) {
     .toLowerCase();
 }
 
-function main() {
+async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
-  const nxConfig = JSON.parse(readFileSync('nx.json', 'utf8'));
-  const registryUrl = nxConfig.release?.docker?.registryUrl;
+  // Read just the registry from nx.json. devkit's readNxJson() requires a Tree
+  // (generator API) and the disk-reading variant is an unstable internal import,
+  // so a direct read of this one field at the known workspace-root path is the
+  // stable choice.
+  const registryUrl = JSON.parse(readFileSync('nx.json', 'utf8'))?.release
+    ?.docker?.registryUrl;
   if (!registryUrl)
     throw new Error('nx.json release.docker.registryUrl is not set');
 
-  const projectRoot = findProjectRoot(opts.project);
-  const pkg = JSON.parse(
-    readFileSync(join(projectRoot, 'package.json'), 'utf8'),
-  );
-  const repositoryName = pkg.nx?.release?.docker?.repositoryName;
+  // Resolve the project's root + release config from the Nx project graph
+  // (createProjectGraphAsync does not leak the dotenvx .env into process.env —
+  // verified — so this is safe to use here despite #1306/#1507).
+  const graph = await createProjectGraphAsync({ exitOnError: false });
+  const project =
+    readProjectsConfigurationFromProjectGraph(graph).projects[opts.project];
+  if (!project) {
+    throw new Error(`Unknown Nx project: ${opts.project}`);
+  }
+  const projectRoot = project.root;
+  const repositoryName = project.release?.docker?.repositoryName;
   if (!repositoryName) {
-    throw new Error(
-      `${opts.project} has no nx.release.docker.repositoryName in package.json`,
-    );
+    throw new Error(`${opts.project} has no nx.release.docker.repositoryName`);
   }
 
   const sourceRef = pathDerivedRef(projectRoot); // e.g. apps-rest-api (nx release)
@@ -180,4 +177,7 @@ function main() {
   });
 }
 
-main();
+main().catch((err) => {
+  process.stderr.write(`[docker-build] ${err.message}\n`);
+  process.exit(1);
+});
