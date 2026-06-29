@@ -139,4 +139,56 @@ describe('resumeVm task-context mount', () => {
     expect(resumeOptions.env.MOLTNET_TEST_DO_NOT_FORWARD).toBeUndefined();
     expect(resumeOptions.env.NODE_OPTIONS).toBe('--dns-result-order=ipv4first');
   });
+
+  it('exposes the mounted workspace and active cwd to resume commands', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-cwd-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    const cwd = path.join(workspace, '.worktrees', 'task-1');
+    const agentDir = path.join(root, '.moltnet', 'legreffier');
+    mkdirSync(cwd, { recursive: true });
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(
+      path.join(agentDir, 'moltnet.json'),
+      JSON.stringify({
+        endpoints: { api: 'https://api.themolt.net' },
+      }),
+      'utf8',
+    );
+    writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
+
+    await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'legreffier',
+      agentRootDir: root,
+      mountPath: workspace,
+      cwdPath: cwd,
+      workspaceMode: 'dedicated_worktree',
+      sandboxConfig: {
+        resumeCommands: [
+          {
+            run: 'test "$MOLTNET_GUEST_CWD" != "$MOLTNET_GUEST_WORKSPACE"',
+            when: { workspaceMode: ['dedicated_worktree'] },
+          },
+        ],
+      },
+    });
+
+    expect(gondolinMock.resumeCalls).toHaveLength(1);
+    const resumeOptions = gondolinMock.resumeCalls[0] as {
+      env: Record<string, string>;
+    };
+    expect(resumeOptions.env.MOLTNET_GUEST_WORKSPACE).toBe(workspace);
+    expect(resumeOptions.env.MOLTNET_GUEST_CWD).toBe(cwd);
+    expect(gondolinMock.vm.exec).toHaveBeenCalledWith(
+      [
+        'sh',
+        '-c',
+        expect.stringContaining(
+          'test "$MOLTNET_GUEST_CWD" != "$MOLTNET_GUEST_WORKSPACE"',
+        ),
+      ],
+      expect.any(Object),
+    );
+  });
 });

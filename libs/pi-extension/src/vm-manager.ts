@@ -54,6 +54,15 @@ export interface VmConfig {
   agentRootDir?: string;
   /** Host directory to mount into the VM. */
   mountPath: string;
+  /**
+   * Host working directory where the agent session will start.
+   *
+   * For dedicated worktree tasks this differs from `mountPath`: the VM mounts
+   * the main repository root, while the agent starts under `.worktrees/<id>`.
+   * Resume commands need this path to prepare the active checkout before the
+   * session starts.
+   */
+  cwdPath?: string;
   /** Effective workspace shape selected by the caller. */
   workspaceMode?: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
   /** Additional hosts to allow in egress policy. */
@@ -305,6 +314,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   throwIfAborted(config.signal, 'VM resume');
   const agentDir = resolveVmAgentDir(config);
   const guestWorkspace = path.resolve(config.mountPath);
+  const guestCwd = path.resolve(config.cwdPath ?? config.mountPath);
 
   if (!existsSync(agentDir)) {
     throw new Error(
@@ -378,6 +388,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     NODE_EXTRA_CA_CERTS: '/etc/ssl/certs/ca-certificates.crt',
     ...envOverrides,
     MOLTNET_GUEST_WORKSPACE: guestWorkspace,
+    MOLTNET_GUEST_CWD: guestCwd,
   };
 
   const resources = config.sandboxConfig?.resources;

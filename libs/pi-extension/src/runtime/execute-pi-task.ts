@@ -524,6 +524,7 @@ export async function executePiTask(
         agentName: opts.agentName,
         agentRootDir,
         mountPath,
+        cwdPath,
         workspaceMode: workspace.mode,
         extraAllowedHosts: opts.extraAllowedHosts,
         sandboxConfig,
