@@ -1,20 +1,29 @@
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { problemTypes } from '../src/problems/registry.js';
 import {
   createMockServices,
   createTestApp,
   type MockServices,
+  resetMockServices,
 } from './helpers.js';
 
 describe('Problem type documentation routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   describe('GET /problems', () => {

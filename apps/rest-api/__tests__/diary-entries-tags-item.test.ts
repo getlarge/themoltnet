@@ -1,6 +1,6 @@
 import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockEntry,
@@ -10,6 +10,7 @@ import {
   ENTRY_ID,
   type MockServices,
   OWNER_ID,
+  resetMockServices,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
@@ -32,15 +33,19 @@ describe('Diary entry routes - tags and entry item routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
-    mocks.diaryService.findDiary.mockResolvedValue(MOCK_DIARY);
-    mocks.diaryService.findOwnedDiary.mockResolvedValue(MOCK_DIARY);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
+    mocks.diaryService.findDiary.mockResolvedValue(MOCK_DIARY);
+    mocks.diaryService.findOwnedDiary.mockResolvedValue(MOCK_DIARY);
   });
 
   describe(`GET /diaries/${DIARY_ID}/tags`, () => {

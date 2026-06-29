@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockServices,
   createTestApp,
   type MockServices,
   OWNER_ID,
+  resetMockServices,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
@@ -42,12 +43,20 @@ describe('PATCH /rendered-packs/:id', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
+    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.dataSource.runTransaction.mockImplementation(
       async (fn: () => Promise<unknown>) => fn(),
     );
-    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
   });
 
   it('pins a rendered pack', async () => {

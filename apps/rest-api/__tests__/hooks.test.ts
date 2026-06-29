@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { vi } from 'vitest';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockAgent,
@@ -8,6 +8,7 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  resetMockServices,
   TEST_WEBHOOK_API_KEY,
 } from './helpers.js';
 
@@ -18,10 +19,18 @@ describe('Hook routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     // Hooks don't require auth (they're called by Ory services)
     app = await createTestApp(mocks, null);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   describe('POST /hooks/kratos/after-registration', () => {

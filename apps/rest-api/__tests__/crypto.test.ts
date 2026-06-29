@@ -1,24 +1,29 @@
 import type { FastifyInstance } from 'fastify';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockAgent,
   createMockServices,
   createTestApp,
   type MockServices,
+  resetMockServices,
 } from './helpers.js';
 
 describe('Crypto routes', () => {
   let mocks: MockServices;
   let app: FastifyInstance;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   describe('POST /crypto/verify', () => {

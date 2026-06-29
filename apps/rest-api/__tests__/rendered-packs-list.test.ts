@@ -1,12 +1,13 @@
 import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockServices,
   createTestApp,
   DIARY_ID,
   OWNER_ID,
+  resetMockServices,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
@@ -46,9 +47,17 @@ describe('GET /diaries/:id/rendered-packs', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.diaryService.findDiary.mockResolvedValue({
       id: DIARY_ID,
       creatorAgentId: OWNER_ID,

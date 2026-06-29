@@ -5,12 +5,13 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockServices,
   createTestApp,
   type MockServices,
+  resetMockServices,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
@@ -18,9 +19,22 @@ describe('Security features', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  // Build once per describe block; reset mocks per test. createTestApp ->
+  // ready() compiles every route schema (~1.3s) — see #1512. The shared app is
+  // built with the default (null) auth context. Tests that need a different
+  // baked-in auth context, or that exhaust per-instance rate-limit counters,
+  // build their own app below and close it in a try/finally.
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   describe('Security headers', () => {
@@ -72,7 +86,8 @@ describe('Security features', () => {
     });
 
     it('adds Cache-Control for authenticated responses', async () => {
-      // Set up authenticated request
+      // Authenticated callers carry a non-null AuthContext baked in at build
+      // time, so this test needs its own app instance, not the shared one.
       const authenticatedApp = await createTestApp(mocks, VALID_AUTH_CONTEXT);
       mocks.agentRepository.findByIdentityId.mockResolvedValue({
         identityId: VALID_AUTH_CONTEXT.identityId,
@@ -82,19 +97,23 @@ describe('Security features', () => {
         updatedAt: new Date(),
       });
 
-      const response = await authenticatedApp.inject({
-        method: 'GET',
-        url: '/agents/whoami',
-        headers: {
-          authorization: 'Bearer test-token',
-        },
-      });
+      try {
+        const response = await authenticatedApp.inject({
+          method: 'GET',
+          url: '/agents/whoami',
+          headers: {
+            authorization: 'Bearer test-token',
+          },
+        });
 
-      // 200 response - should have cache control
-      expect(response.statusCode).toBe(200);
-      const cacheControl = response.headers['cache-control'];
-      expect(cacheControl).toBeDefined();
-      expect(cacheControl).toContain('no-store');
+        // 200 response - should have cache control
+        expect(response.statusCode).toBe(200);
+        const cacheControl = response.headers['cache-control'];
+        expect(cacheControl).toBeDefined();
+        expect(cacheControl).toContain('no-store');
+      } finally {
+        await authenticatedApp.close();
+      }
     });
   });
 
@@ -217,36 +236,42 @@ describe('Security features', () => {
     });
 
     it('returns RFC 9457 Problem Details on rate limit exceeded', async () => {
-      // Create app with very low rate limit
+      // The rate limiter keeps in-memory counters on the app instance. This test
+      // intentionally exhausts them (1002 requests), so it needs its own app to
+      // avoid polluting the shared block-level instance's counters.
       const lowLimitApp = await createTestApp(mocks);
-      // Override the rate limit to be very low for this test
-      // We'll make requests to a non-allowlisted endpoint until we exceed the limit
-      type InjectResponse = Awaited<ReturnType<typeof lowLimitApp.inject>>;
-      const responses: InjectResponse[] = [];
-      for (let i = 0; i < 1002; i++) {
-        responses.push(
-          await lowLimitApp.inject({
-            method: 'GET',
-            url: '/agents/whoami',
-            headers: {
-              authorization: 'Bearer test-token',
-            },
-          }),
-        );
-      }
+      try {
+        // We make requests to a non-allowlisted endpoint until we exceed the
+        // limit.
+        type InjectResponse = Awaited<ReturnType<typeof lowLimitApp.inject>>;
+        const responses: InjectResponse[] = [];
+        for (let i = 0; i < 1002; i++) {
+          responses.push(
+            await lowLimitApp.inject({
+              method: 'GET',
+              url: '/agents/whoami',
+              headers: {
+                authorization: 'Bearer test-token',
+              },
+            }),
+          );
+        }
 
-      // At least one should be rate limited (429)
-      const rateLimited = responses.find((r) => r.statusCode === 429);
-      if (rateLimited) {
-        const body = JSON.parse(rateLimited.body);
-        expect(body.type).toContain('rate-limit-exceeded');
-        expect(body.title).toBe('Rate Limit Exceeded');
-        expect(body.status).toBe(429);
-        expect(body.code).toBe('RATE_LIMIT_EXCEEDED');
-        expect(body.retryAfter).toBeDefined();
-        expect(typeof body.retryAfter).toBe('number');
+        // At least one should be rate limited (429)
+        const rateLimited = responses.find((r) => r.statusCode === 429);
+        if (rateLimited) {
+          const body = JSON.parse(rateLimited.body);
+          expect(body.type).toContain('rate-limit-exceeded');
+          expect(body.title).toBe('Rate Limit Exceeded');
+          expect(body.status).toBe(429);
+          expect(body.code).toBe('RATE_LIMIT_EXCEEDED');
+          expect(body.retryAfter).toBeDefined();
+          expect(typeof body.retryAfter).toBe('number');
+        }
+        // If no rate limit hit, that's fine - limits are high in test mode
+      } finally {
+        await lowLimitApp.close();
       }
-      // If no rate limit hit, that's fine - limits are high in test mode
     });
   });
 });

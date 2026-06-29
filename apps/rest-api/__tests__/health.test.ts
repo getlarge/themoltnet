@@ -1,20 +1,41 @@
 import type { FastifyInstance } from 'fastify';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import pkg from '../package.json' with { type: 'json' };
 import {
   createMockServices,
   createTestApp,
   type MockServices,
+  resetMockServices,
 } from './helpers.js';
 
 describe('Health routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  // Build once per describe block; reset mocks per test. createTestApp ->
+  // ready() compiles every route schema (~1.3s) — see #1512. All tests here
+  // build with identical args (mocks, null), so they share one app.
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, null);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   describe('GET /health', () => {
@@ -60,13 +81,17 @@ describe('API metadata', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, null);
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   it('uses the package version in OpenAPI metadata', async () => {

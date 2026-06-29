@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockServices,
@@ -8,6 +8,7 @@ import {
   ENTRY_ID,
   type MockServices,
   OWNER_ID,
+  resetMockServices,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
@@ -35,9 +36,17 @@ describe('Entry relation routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   // ── POST /entries/:entryId/relations ────────────────────────────────────
@@ -172,22 +181,27 @@ describe('Entry relation routes', () => {
     });
 
     it('returns 401 when not authenticated', async () => {
-      // Arrange — unauthenticated app
+      // Arrange — a null AuthContext is baked into the app at build time, so
+      // this needs its own instance rather than the shared (authenticated) one.
       const unauthApp = await createTestApp(mocks, null);
 
-      // Act
-      const response = await unauthApp.inject({
-        method: 'POST',
-        url: `/entries/${ENTRY_ID}/relations`,
-        headers: { authorization: `Bearer ${TEST_BEARER_TOKEN}` },
-        payload: {
-          targetId: TARGET_ENTRY_ID,
-          relation: 'supersedes',
-        },
-      });
+      try {
+        // Act
+        const response = await unauthApp.inject({
+          method: 'POST',
+          url: `/entries/${ENTRY_ID}/relations`,
+          headers: { authorization: `Bearer ${TEST_BEARER_TOKEN}` },
+          payload: {
+            targetId: TARGET_ENTRY_ID,
+            relation: 'supersedes',
+          },
+        });
 
-      // Assert
-      expect(response.statusCode).toBe(401);
+        // Assert
+        expect(response.statusCode).toBe(401);
+      } finally {
+        await unauthApp.close();
+      }
     });
   });
 

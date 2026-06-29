@@ -1,12 +1,13 @@
 import { KetoNamespace } from '@moltnet/auth';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { TaskServiceError } from '../src/services/task.service.js';
 import {
   createMockServices,
   createTestApp,
   OWNER_ID,
+  resetMockServices,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
@@ -73,9 +74,23 @@ describe('POST /tasks', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  // Build the app + mocks once per describe block. createTestApp -> buildApp ->
+  // ready() compiles every route's TypeBox/ajv schema (~1.3s); rebuilding it per
+  // test made this file ≈15× slower than necessary (#1512). The app is stateless
+  // across inject() calls, so the only per-test state lives in the mocks —
+  // resetMockServices restores them to factory defaults in beforeEach, then we
+  // re-apply this block's defaults.
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.taskService.create.mockResolvedValue(MOCK_TASK);
     // Team context is resolved from the x-moltnet-team-id header by the auth
     // plugin, which permission-checks via canAccessTeam.
@@ -161,6 +176,8 @@ describe('POST /tasks', () => {
     const humanMocks = createMockServices();
     humanMocks.taskService.create.mockResolvedValue(MOCK_TASK);
     humanMocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    // Human callers carry a different baked-in AuthContext, so this test needs
+    // its own app instance rather than the shared block-level one.
     const humanApp = await createTestApp(humanMocks, {
       subjectType: 'human',
       identityId: HUMAN_IDENTITY,
@@ -170,19 +187,23 @@ describe('POST /tasks', () => {
       currentTeamId: null,
     });
 
-    await humanApp.inject({
-      method: 'POST',
-      url: '/tasks',
-      headers: {
-        authorization: 'Bearer test-token',
-        'x-moltnet-team-id': TEAM_ID,
-      },
-      payload: {
-        taskType: 'fulfill_brief',
-        diaryId: DIARY_ID,
-        input: { brief: 'Ship a task worker.' },
-      },
-    });
+    try {
+      await humanApp.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: {
+          authorization: 'Bearer test-token',
+          'x-moltnet-team-id': TEAM_ID,
+        },
+        payload: {
+          taskType: 'fulfill_brief',
+          diaryId: DIARY_ID,
+          input: { brief: 'Ship a task worker.' },
+        },
+      });
+    } finally {
+      await humanApp.close();
+    }
 
     expect(humanMocks.taskService.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -196,18 +217,24 @@ describe('POST /tasks', () => {
   });
 
   it('returns 401 without auth', async () => {
+    // A null AuthContext is baked into the app at build time, so this needs a
+    // dedicated instance rather than the shared (authenticated) block-level app.
     const appNoAuth = await createTestApp(mocks, null);
-    const response = await appNoAuth.inject({
-      method: 'POST',
-      url: '/tasks',
-      headers: { 'x-moltnet-team-id': TEAM_ID },
-      payload: {
-        taskType: 'fulfill_brief',
-        diaryId: DIARY_ID,
-        input: {},
-      },
-    });
-    expect(response.statusCode).toBe(401);
+    try {
+      const response = await appNoAuth.inject({
+        method: 'POST',
+        url: '/tasks',
+        headers: { 'x-moltnet-team-id': TEAM_ID },
+        payload: {
+          taskType: 'fulfill_brief',
+          diaryId: DIARY_ID,
+          input: {},
+        },
+      });
+      expect(response.statusCode).toBe(401);
+    } finally {
+      await appNoAuth.close();
+    }
   });
 
   it('returns 400 when taskType is missing', async () => {
@@ -335,9 +362,17 @@ describe('GET /tasks', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.taskService.list.mockResolvedValue({ items: [MOCK_TASK], total: 1 });
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
   });
@@ -455,9 +490,17 @@ describe('PATCH /tasks/:id', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   it('updates mutable task metadata', async () => {
@@ -517,9 +560,17 @@ describe('GET /tasks/:id', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   it('returns 200 with task', async () => {
@@ -568,9 +619,17 @@ describe('POST /tasks/:id/claim', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.taskService.claim.mockResolvedValue({
       task: MOCK_TASK,
       attempt: MOCK_ATTEMPT,
@@ -613,9 +672,17 @@ describe('POST /tasks/:id/attempts/:n/heartbeat', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.taskService.heartbeat.mockResolvedValue({
       claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
       cancelled: false,
@@ -647,9 +714,17 @@ describe('POST /tasks/:id/attempts/:n/complete', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.taskService.complete.mockResolvedValue({
       ...MOCK_TASK,
       status: 'completed' as const,
@@ -727,9 +802,17 @@ describe('POST /tasks/:id/attempts/:n/fail', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.taskService.failAttempt.mockResolvedValue({
       ...MOCK_TASK,
       status: 'failed' as const,
@@ -762,9 +845,17 @@ describe('POST /tasks/:id/cancel', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.taskService.cancel.mockResolvedValue({
       ...MOCK_TASK,
       status: 'cancelled' as const,
@@ -806,9 +897,17 @@ describe('GET /tasks/:id/attempts', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.taskService.listAttempts.mockResolvedValue([MOCK_ATTEMPT]);
   });
 
@@ -839,9 +938,17 @@ describe('GET /tasks/:id/attempts/:n/messages', () => {
     payload: { text: 'hello' },
   };
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.taskService.listMessages.mockResolvedValue([MOCK_MESSAGE]);
   });
 
@@ -868,9 +975,17 @@ describe('POST /tasks/:id/attempts/:n/messages', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.taskService.appendMessages.mockResolvedValue({ count: 2 });
   });
 
