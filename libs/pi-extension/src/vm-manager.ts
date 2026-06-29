@@ -365,23 +365,27 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   // .moltnet/<agent>/ dirs that confuse auto-discovery).
   vmAgentEnv.MOLTNET_CREDENTIALS_PATH = `${vmAgentDir}/moltnet.json`;
 
-  // Build workspace VFS provider (with optional shadows)
+  // Build workspace VFS provider.
+  //
+  // `node_modules` is always shadowed into guest-local tmpfs because host
+  // dependencies are platform-specific and expensive through the mounted
+  // RealFSProvider. Keep this layer closest to RealFSProvider so stricter
+  // caller shadows, such as read-only `shadowMode: 'deny'` workspace
+  // attachments, still wrap it and remain authoritative.
   const vfsConfig = config.sandboxConfig?.vfs;
   let workspaceProvider: RealFSProvider | ShadowProvider = new RealFSProvider(
     config.mountPath,
   );
+  workspaceProvider = new ShadowProvider(workspaceProvider, {
+    shouldShadow: ({ path: shadowPath }) =>
+      shouldShadowNodeModulesPath(shadowPath),
+    writeMode: 'tmpfs',
+  });
   if (vfsConfig?.shadow?.length) {
     const predicate = createShadowPathPredicate(vfsConfig.shadow);
     workspaceProvider = new ShadowProvider(workspaceProvider, {
       shouldShadow: predicate,
       writeMode: vfsConfig.shadowMode ?? 'tmpfs',
-    });
-  }
-  if (vfsConfig?.nodeModulesTmpfs === true) {
-    workspaceProvider = new ShadowProvider(workspaceProvider, {
-      shouldShadow: ({ path: shadowPath }) =>
-        shouldShadowNodeModulesPath(shadowPath),
-      writeMode: 'tmpfs',
     });
   }
 

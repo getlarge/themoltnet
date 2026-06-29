@@ -1771,9 +1771,6 @@
               "vfs": {
                 "additionalProperties": false,
                 "properties": {
-                  "nodeModulesTmpfs": {
-                    "type": "boolean"
-                  },
                   "shadow": {
                     "items": {
                       "maxLength": 255,
@@ -7415,9 +7412,6 @@
               "vfs": {
                 "additionalProperties": false,
                 "properties": {
-                  "nodeModulesTmpfs": {
-                    "type": "boolean"
-                  },
                   "shadow": {
                     "items": {
                       "maxLength": 255,
@@ -8034,9 +8028,6 @@
                     "vfs": {
                       "additionalProperties": false,
                       "properties": {
-                        "nodeModulesTmpfs": {
-                          "type": "boolean"
-                        },
                         "shadow": {
                           "items": {
                             "maxLength": 255,
@@ -8378,9 +8369,6 @@
           "vfs": {
             "additionalProperties": false,
             "properties": {
-              "nodeModulesTmpfs": {
-                "type": "boolean"
-              },
               "shadow": {
                 "items": {
                   "maxLength": 255,
@@ -11336,9 +11324,6 @@
               "vfs": {
                 "additionalProperties": false,
                 "properties": {
-                  "nodeModulesTmpfs": {
-                    "type": "boolean"
-                  },
                   "shadow": {
                     "items": {
                       "maxLength": 255,

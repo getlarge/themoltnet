@@ -16,6 +16,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+import { RealFSProvider, ShadowProvider } from '@earendil-works/gondolin';
 import { describe, expect, it } from 'vitest';
 
 import { prepareTaskWorkspace } from './runtime/task-workspace.js';
@@ -329,6 +330,61 @@ describe('shouldShadowNodeModulesPath', () => {
     expect(shouldShadowNodeModulesPath('/packages/node_modules-old')).toBe(
       false,
     );
+  });
+
+  it('routes future node_modules writes to tmpfs while preserving normal workspace writes', () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'pi-node-modules-vfs-'));
+    try {
+      mkdirSync(path.join(root, 'node_modules', 'host-only'), {
+        recursive: true,
+      });
+      writeFileSync(
+        path.join(root, 'node_modules', 'host-only', 'index.js'),
+        'host dependency',
+      );
+
+      const provider = new ShadowProvider(new RealFSProvider(root), {
+        shouldShadow: ({ path: shadowPath }) =>
+          shouldShadowNodeModulesPath(shadowPath),
+        writeMode: 'tmpfs',
+      });
+
+      expect(() =>
+        provider.statSync('/node_modules/host-only/index.js'),
+      ).toThrow();
+
+      const packageBin = '/.worktrees/later/packages/web/node_modules/.bin';
+      const guestTool = `${packageBin}/vite`;
+      provider.mkdirSync(packageBin, { recursive: true });
+      const nodeModulesHandle = provider.openSync(guestTool, 'w');
+      nodeModulesHandle.writeFileSync('guest tool');
+      nodeModulesHandle.closeSync();
+
+      expect(
+        existsSync(
+          path.join(root, '.worktrees/later/packages/web/node_modules'),
+        ),
+      ).toBe(false);
+      expect(provider.openSync(guestTool, 'r').readFileSync('utf8')).toBe(
+        'guest tool',
+      );
+
+      const sourceDir = '/.worktrees/later/packages/web/src';
+      const sourceFile = `${sourceDir}/index.ts`;
+      provider.mkdirSync(sourceDir, { recursive: true });
+      const sourceHandle = provider.openSync(sourceFile, 'w');
+      sourceHandle.writeFileSync('export const ok = true;');
+      sourceHandle.closeSync();
+
+      expect(
+        readFileSync(
+          path.join(root, '.worktrees/later/packages/web/src/index.ts'),
+          'utf8',
+        ),
+      ).toBe('export const ok = true;');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

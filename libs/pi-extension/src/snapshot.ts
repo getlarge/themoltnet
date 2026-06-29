@@ -91,13 +91,6 @@ export interface SandboxConfig {
     shadow?: string[];
     /** What to do with writes to shadowed paths: 'deny' or 'tmpfs' (default 'tmpfs'). */
     shadowMode?: 'deny' | 'tmpfs';
-    /**
-     * Mount guest tmpfs over workspace `node_modules` directories before
-     * and during resumeCommands. This keeps Linux dependencies off the
-     * Gondolin RealFSProvider hot path, including `node_modules` paths
-     * created after VM resume by the live agent session.
-     */
-    nodeModulesTmpfs?: boolean;
   };
   /** Environment variable overrides for the guest VM (applied on top of defaults). */
   env?: Record<string, string>;

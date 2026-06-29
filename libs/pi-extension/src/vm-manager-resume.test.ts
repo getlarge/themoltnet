@@ -165,7 +165,6 @@ describe('resumeVm task-context mount', () => {
       cwdPath: cwd,
       workspaceMode: 'dedicated_worktree',
       sandboxConfig: {
-        vfs: { nodeModulesTmpfs: true },
         resumeCommands: [
           {
             run: 'cd "$MOLTNET_GUEST_CWD" && pnpm install --frozen-lockfile',
@@ -213,5 +212,47 @@ describe('resumeVm task-context mount', () => {
     expect(shellCommands[profileCommandIndex]).toContain(
       'cd "$MOLTNET_GUEST_CWD" && pnpm install --frozen-lockfile',
     );
+  });
+
+  it('keeps caller-provided deny shadows authoritative over built-in node_modules tmpfs', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-shadow-order-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    const agentDir = path.join(root, '.moltnet', 'legreffier');
+    mkdirSync(workspace, { recursive: true });
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(
+      path.join(agentDir, 'moltnet.json'),
+      JSON.stringify({
+        endpoints: { api: 'https://api.themolt.net' },
+      }),
+      'utf8',
+    );
+    writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
+
+    await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'legreffier',
+      agentRootDir: root,
+      mountPath: workspace,
+      sandboxConfig: {
+        vfs: { shadow: ['**'], shadowMode: 'deny' },
+      },
+    });
+
+    const resumeOptions = gondolinMock.resumeCalls[0] as {
+      vfs: { mounts: Record<string, unknown> };
+    };
+    const outerProvider = resumeOptions.vfs.mounts[workspace] as {
+      provider: unknown;
+      options: { writeMode: string };
+    };
+    expect(outerProvider).toBeInstanceOf(gondolinMock.ShadowProvider);
+    expect(outerProvider.options.writeMode).toBe('deny');
+    expect(outerProvider.provider).toBeInstanceOf(gondolinMock.ShadowProvider);
+    expect(
+      (outerProvider.provider as { options: { writeMode: string } }).options
+        .writeMode,
+    ).toBe('tmpfs');
   });
 });

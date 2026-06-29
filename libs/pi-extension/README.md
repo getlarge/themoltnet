@@ -185,7 +185,6 @@ the base snapshot is used (Alpine + git + gh + MoltNet CLI + agent user).
     ]
   },
   "vfs": {
-    "nodeModulesTmpfs": true,
     "shadow": ["node_modules"],
     "shadowMode": "tmpfs"
   }
@@ -291,13 +290,14 @@ but it does not solve the hot-path problem by itself. For fast pnpm setup, move
 both endpoints off the FUSE bridge:
 
 - package store on guest-local disk, e.g. `NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
-- install target on guest tmpfs via `vfs.nodeModulesTmpfs: true`
+- install target on VM-managed `node_modules` tmpfs
 
-When `vfs.nodeModulesTmpfs` is enabled, `vm-manager` shadows any
-`node_modules` path with VM-local tmpfs for the lifetime of the resumed VM. This
-is VFS policy, not a resume command, so it also covers `node_modules` paths
-created later by the live agent session, including inside worktrees the agent
-creates after resume.
+`vm-manager` always shadows any `node_modules` path with VM-local tmpfs for the
+lifetime of the resumed VM. This is VFS policy, not a resume command, so it also
+covers `node_modules` paths created later by the live agent session, including
+inside worktrees the agent creates after resume. Caller-provided `vfs.shadow`
+rules wrap this built-in layer, so stricter policies such as read-only
+`shadowMode: "deny"` remain authoritative.
 
 ### `env`
 

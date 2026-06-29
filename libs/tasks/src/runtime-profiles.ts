@@ -169,7 +169,6 @@ export const RuntimeProfileSandbox = Type.Object(
           shadowMode: Type.Optional(
             Type.Union([Type.Literal('deny'), Type.Literal('tmpfs')]),
           ),
-          nodeModulesTmpfs: Type.Optional(Type.Boolean()),
         },
         { additionalProperties: false },
       ),

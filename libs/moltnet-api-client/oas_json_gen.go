@@ -13694,12 +13694,6 @@ func (s *CreateRuntimeProfileBodySandboxVfs) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *CreateRuntimeProfileBodySandboxVfs) encodeFields(e *jx.Encoder) {
 	{
-		if s.NodeModulesTmpfs.Set {
-			e.FieldStart("nodeModulesTmpfs")
-			s.NodeModulesTmpfs.Encode(e)
-		}
-	}
-	{
 		if s.Shadow != nil {
 			e.FieldStart("shadow")
 			e.ArrStart()
@@ -13717,10 +13711,9 @@ func (s *CreateRuntimeProfileBodySandboxVfs) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateRuntimeProfileBodySandboxVfs = [3]string{
-	0: "nodeModulesTmpfs",
-	1: "shadow",
-	2: "shadowMode",
+var jsonFieldsNameOfCreateRuntimeProfileBodySandboxVfs = [2]string{
+	0: "shadow",
+	1: "shadowMode",
 }
 
 // Decode decodes CreateRuntimeProfileBodySandboxVfs from json.
@@ -13731,16 +13724,6 @@ func (s *CreateRuntimeProfileBodySandboxVfs) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "nodeModulesTmpfs":
-			if err := func() error {
-				s.NodeModulesTmpfs.Reset()
-				if err := s.NodeModulesTmpfs.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"nodeModulesTmpfs\"")
-			}
 		case "shadow":
 			if err := func() error {
 				s.Shadow = make([]string, 0)
@@ -74881,12 +74864,6 @@ func (s *RuntimeProfileListResponseItemsItemSandboxVfs) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *RuntimeProfileListResponseItemsItemSandboxVfs) encodeFields(e *jx.Encoder) {
 	{
-		if s.NodeModulesTmpfs.Set {
-			e.FieldStart("nodeModulesTmpfs")
-			s.NodeModulesTmpfs.Encode(e)
-		}
-	}
-	{
 		if s.Shadow != nil {
 			e.FieldStart("shadow")
 			e.ArrStart()
@@ -74904,10 +74881,9 @@ func (s *RuntimeProfileListResponseItemsItemSandboxVfs) encodeFields(e *jx.Encod
 	}
 }
 
-var jsonFieldsNameOfRuntimeProfileListResponseItemsItemSandboxVfs = [3]string{
-	0: "nodeModulesTmpfs",
-	1: "shadow",
-	2: "shadowMode",
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItemSandboxVfs = [2]string{
+	0: "shadow",
+	1: "shadowMode",
 }
 
 // Decode decodes RuntimeProfileListResponseItemsItemSandboxVfs from json.
@@ -74918,16 +74894,6 @@ func (s *RuntimeProfileListResponseItemsItemSandboxVfs) Decode(d *jx.Decoder) er
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "nodeModulesTmpfs":
-			if err := func() error {
-				s.NodeModulesTmpfs.Reset()
-				if err := s.NodeModulesTmpfs.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"nodeModulesTmpfs\"")
-			}
 		case "shadow":
 			if err := func() error {
 				s.Shadow = make([]string, 0)
@@ -76113,12 +76079,6 @@ func (s *RuntimeProfileSandboxVfs) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *RuntimeProfileSandboxVfs) encodeFields(e *jx.Encoder) {
 	{
-		if s.NodeModulesTmpfs.Set {
-			e.FieldStart("nodeModulesTmpfs")
-			s.NodeModulesTmpfs.Encode(e)
-		}
-	}
-	{
 		if s.Shadow != nil {
 			e.FieldStart("shadow")
 			e.ArrStart()
@@ -76136,10 +76096,9 @@ func (s *RuntimeProfileSandboxVfs) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRuntimeProfileSandboxVfs = [3]string{
-	0: "nodeModulesTmpfs",
-	1: "shadow",
-	2: "shadowMode",
+var jsonFieldsNameOfRuntimeProfileSandboxVfs = [2]string{
+	0: "shadow",
+	1: "shadowMode",
 }
 
 // Decode decodes RuntimeProfileSandboxVfs from json.
@@ -76150,16 +76109,6 @@ func (s *RuntimeProfileSandboxVfs) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "nodeModulesTmpfs":
-			if err := func() error {
-				s.NodeModulesTmpfs.Reset()
-				if err := s.NodeModulesTmpfs.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"nodeModulesTmpfs\"")
-			}
 		case "shadow":
 			if err := func() error {
 				s.Shadow = make([]string, 0)
@@ -86611,12 +86560,6 @@ func (s *UpdateRuntimeProfileBodySandboxVfs) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *UpdateRuntimeProfileBodySandboxVfs) encodeFields(e *jx.Encoder) {
 	{
-		if s.NodeModulesTmpfs.Set {
-			e.FieldStart("nodeModulesTmpfs")
-			s.NodeModulesTmpfs.Encode(e)
-		}
-	}
-	{
 		if s.Shadow != nil {
 			e.FieldStart("shadow")
 			e.ArrStart()
@@ -86634,10 +86577,9 @@ func (s *UpdateRuntimeProfileBodySandboxVfs) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUpdateRuntimeProfileBodySandboxVfs = [3]string{
-	0: "nodeModulesTmpfs",
-	1: "shadow",
-	2: "shadowMode",
+var jsonFieldsNameOfUpdateRuntimeProfileBodySandboxVfs = [2]string{
+	0: "shadow",
+	1: "shadowMode",
 }
 
 // Decode decodes UpdateRuntimeProfileBodySandboxVfs from json.
@@ -86648,16 +86590,6 @@ func (s *UpdateRuntimeProfileBodySandboxVfs) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "nodeModulesTmpfs":
-			if err := func() error {
-				s.NodeModulesTmpfs.Reset()
-				if err := s.NodeModulesTmpfs.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"nodeModulesTmpfs\"")
-			}
 		case "shadow":
 			if err := func() error {
 				s.Shadow = make([]string, 0)
