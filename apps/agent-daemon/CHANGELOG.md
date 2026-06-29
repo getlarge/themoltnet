@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.28.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.27.2...agent-daemon-v0.28.0) (2026-06-29)
+
+
+### Features
+
+* **node-red:** add deep review workflow ([1db27d5](https://github.com/getlarge/themoltnet/commit/1db27d5d487130354dd559ba4f31b9056fd2fae6))
+* **node-red:** harden deep review workflow runtime ([0182307](https://github.com/getlarge/themoltnet/commit/0182307bcb5bebe287e8072ecb680cf4043e1390))
+
+
+### Bug Fixes
+
+* **node-red:** build dev harness through nx targets ([d961a23](https://github.com/getlarge/themoltnet/commit/d961a23bb09ec9ef8b292afda62e52eaf2463f03))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.33.0
+    * @themoltnet/pi-extension bumped to 0.30.0
+    * @themoltnet/sdk bumped to 0.116.0
+
 ## [0.27.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.27.1...agent-daemon-v0.27.2) (2026-06-28)
 
 

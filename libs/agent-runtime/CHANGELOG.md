@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.33.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.32.0...agent-runtime-v0.33.0) (2026-06-29)
+
+
+### Features
+
+* **node-red:** add deep review workflow ([1db27d5](https://github.com/getlarge/themoltnet/commit/1db27d5d487130354dd559ba4f31b9056fd2fae6))
+* **node-red:** harden deep review workflow runtime ([0182307](https://github.com/getlarge/themoltnet/commit/0182307bcb5bebe287e8072ecb680cf4043e1390))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.116.0
+
 ## [0.32.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.31.1...agent-runtime-v0.32.0) (2026-06-28)
 
 

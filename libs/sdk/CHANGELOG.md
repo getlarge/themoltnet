@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.116.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.115.0...sdk-v0.116.0) (2026-06-29)
+
+
+### Features
+
+* **node-red:** add deep review workflow ([1db27d5](https://github.com/getlarge/themoltnet/commit/1db27d5d487130354dd559ba4f31b9056fd2fae6))
+
+
+### Bug Fixes
+
+* **node-red:** surface media type errors ([fb5917a](https://github.com/getlarge/themoltnet/commit/fb5917ad3cc6cd57de40b3a578ac4e2f9c90df3f))
+
 ## [0.115.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.114.0...sdk-v0.115.0) (2026-06-28)
 
 

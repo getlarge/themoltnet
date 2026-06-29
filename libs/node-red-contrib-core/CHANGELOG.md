@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.6.0...node-red-contrib-core-v0.7.0) (2026-06-29)
+
+
+### Features
+
+* **node-red:** add deep review workflow ([1db27d5](https://github.com/getlarge/themoltnet/commit/1db27d5d487130354dd559ba4f31b9056fd2fae6))
+* **node-red:** add deep review workflow ([55accf3](https://github.com/getlarge/themoltnet/commit/55accf395a7a560e4b344a6924c0a86243266260))
+* **node-red:** harden deep review workflow runtime ([0182307](https://github.com/getlarge/themoltnet/commit/0182307bcb5bebe287e8072ecb680cf4043e1390))
+
+
+### Bug Fixes
+
+* **node-red:** build dev harness through nx targets ([d961a23](https://github.com/getlarge/themoltnet/commit/d961a23bb09ec9ef8b292afda62e52eaf2463f03))
+* **node-red:** fan in failed specialist lanes ([9df47b8](https://github.com/getlarge/themoltnet/commit/9df47b8a3a6aedd0c443bd72f5c67ef79d202792))
+* **node-red:** retry deep review stage attempts ([43d37df](https://github.com/getlarge/themoltnet/commit/43d37df8391acbf563b3677023ed8b70d0d31f27))
+* **node-red:** surface media type errors ([fb5917a](https://github.com/getlarge/themoltnet/commit/fb5917ad3cc6cd57de40b3a578ac4e2f9c90df3f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.116.0
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.5.0...node-red-contrib-core-v0.6.0) (2026-06-28)
 
 
