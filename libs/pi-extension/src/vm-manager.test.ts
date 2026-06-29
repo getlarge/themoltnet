@@ -325,6 +325,9 @@ describe('themoltnet sandbox tmpfs resume command', () => {
     expect(command).toBeTruthy();
     expect(command).not.toContain('pnpm m ls');
     expect(command).toContain('MOLTNET_GUEST_CWD');
+    expect(sandbox.resumeCommands[1]?.run).toContain(
+      'cd "${MOLTNET_GUEST_CWD:-${MOLTNET_GUEST_WORKSPACE}}"',
+    );
 
     const root = mkdtempSync(path.join(tmpdir(), 'pi-sandbox-root-'));
     const cwd = path.join(root, '.worktrees', 'task-1');
