@@ -140,7 +140,16 @@ pi -e @themoltnet/pi-extension --agent legreffier --worktree-branch feat/my-task
 
 # With explicit sandbox config
 pi -e @themoltnet/pi-extension --agent legreffier --sandbox-config ./sandbox.json
+
+# Test a local checkout build without also loading installed extensions
+pnpm exec nx run @themoltnet/pi-extension:build
+pi -ne -e ./libs/pi-extension/dist/index.js --agent legreffier --sandbox-config ./sandbox.json
 ```
+
+Use `-ne` (`--no-extensions`) when smoke-testing a local `dist/index.js`.
+Repo-local `.pi/settings.json` often includes `npm:@themoltnet/pi-extension`;
+without `-ne`, Pi loads both the installed package and the local build, causing
+duplicate tool and flag conflicts.
 
 ## `sandbox.json`
 
