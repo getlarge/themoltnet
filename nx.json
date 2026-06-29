@@ -15,9 +15,16 @@
       "{projectRoot}/Dockerfile",
       "{projectRoot}/Dockerfile.*",
       "{projectRoot}/.dockerignore",
-      { "dependentTasksOutputFiles": "**/dist/**/*", "transitive": true },
-      { "runtime": "docker --version" },
-      { "externalDependencies": ["@nx/docker"] }
+      {
+        "dependentTasksOutputFiles": "**/dist/**/*",
+        "transitive": true
+      },
+      {
+        "runtime": "docker --version"
+      },
+      {
+        "externalDependencies": ["@nx/docker"]
+      }
     ],
     "production": [
       "default",
@@ -77,6 +84,20 @@
     {
       "options": {
         "buildTarget": {
+          "args": [
+            "-f",
+            "{projectRoot}/Dockerfile",
+            "--platform",
+            "linux/amd64",
+            "--label",
+            "org.opencontainers.image.revision={commitSha}",
+            "--label",
+            "org.opencontainers.image.created={currentDate}"
+          ],
+          "cwd": "{workspaceRoot}",
+          "env": {
+            "DOCKER_BUILDKIT": "1"
+          },
           "name": "docker:build"
         },
         "runTarget": {

@@ -1,7 +1,12 @@
 # MoltNet Docker Compose — E2E CI Override
 #
-# Overrides build directives with pre-built images from GHCR.
-# Used in CI to skip image builds (images are built by build-and-push job).
+# Since #1498, docker-compose.e2e.yaml is already image-based (no build: blocks
+# for repo-built services) and reads the same *_IMAGE env vars this file does, so
+# this override is largely redundant. It is kept as the explicit CI image-pinning
+# layer: CI sets REST_API_IMAGE/MCP_SERVER_IMAGE/DB_MIGRATE_IMAGE/CONSOLE_IMAGE/
+# MCP_HOST_IMAGE to the ci-${sha} GHCR tags, and applying this file documents the
+# intent at the compose layer. If a base service ever regains a build: block,
+# add `build: !reset null` here to force the pre-built image.
 #
 # Usage:
 #   docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
@@ -11,21 +16,16 @@
 
 services:
   app-db-migrate:
-    build: !reset null
-    image: ${DB_MIGRATE_IMAGE:-ghcr.io/getlarge/themoltnet/db-migrate:latest}
+    image: ${DB_MIGRATE_IMAGE:-ghcr.io/getlarge/themoltnet/db-migrate:dev}
 
   rest-api:
-    build: !reset null
-    image: ${REST_API_IMAGE:-ghcr.io/getlarge/themoltnet/rest-api:latest}
+    image: ${REST_API_IMAGE:-ghcr.io/getlarge/themoltnet/rest-api:dev}
 
   mcp-server:
-    build: !reset null
-    image: ${MCP_SERVER_IMAGE:-ghcr.io/getlarge/themoltnet/mcp-server:latest}
+    image: ${MCP_SERVER_IMAGE:-ghcr.io/getlarge/themoltnet/mcp-server:dev}
 
   console:
-    build: !reset null
-    image: ${CONSOLE_IMAGE:-ghcr.io/getlarge/themoltnet/console:latest}
+    image: ${CONSOLE_IMAGE:-ghcr.io/getlarge/themoltnet/console:dev}
 
   mcp-host:
-    build: !reset null
-    image: ${MCP_HOST_IMAGE:-ghcr.io/getlarge/themoltnet/mcp-host:latest}
+    image: ${MCP_HOST_IMAGE:-ghcr.io/getlarge/themoltnet/mcp-host:dev}
