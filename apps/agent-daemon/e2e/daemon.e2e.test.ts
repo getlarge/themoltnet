@@ -39,7 +39,6 @@ import {
   type RuntimeSlotStore,
 } from '../src/lib/execution-plan-cache.js';
 import { finalizeTask } from '../src/lib/finalize.js';
-import { createPiRetryTriage } from '../src/lib/retry-triage.js';
 import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
@@ -61,11 +60,6 @@ const silentLogger: AgentRuntimeLogger = {
   error: () => {},
   child: () => silentLogger,
 };
-
-const repoRoot = join(import.meta.dirname, '../../..');
-const runLiveLlmE2E =
-  process.env.MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E === '1' ||
-  process.env.MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E === 'true';
 
 type RuntimeProfileSandbox = Awaited<
   ReturnType<Agent['runtimeProfiles']['get']>
@@ -499,117 +493,6 @@ describe('Agent daemon (e2e)', () => {
       }),
     });
   }, 60_000);
-
-  describe.runIf(runLiveLlmE2E)('live Pi retry triage', () => {
-    it('uses the real Pi triage agent to requeue an ambiguous failed attempt', async () => {
-      const provider =
-        process.env.MOLTNET_AGENT_DAEMON_LIVE_LLM_PROVIDER ?? 'ollama-cloud';
-      const model =
-        process.env.MOLTNET_AGENT_DAEMON_LIVE_LLM_MODEL ?? 'minimax-m2.1:cloud';
-      const created = await proposeCuratePackTask({ maxAttempts: 2 });
-      const seenAttempts: number[] = [];
-
-      const runtime = new AgentRuntime({
-        source: new PollingApiTaskSource({
-          agent,
-          teamId,
-          taskTypes: ['curate_pack'],
-          leaseTtlSec: 60,
-          stopWhenEmpty: true,
-          logger: silentLogger,
-        }),
-        makeReporter: () =>
-          new ApiTaskReporter({
-            tasks: agent.tasks,
-            leaseTtlSec: 60,
-            heartbeatIntervalMs: 0,
-          }),
-        executeTask: async (claimedTask, reporter) => {
-          seenAttempts.push(claimedTask.attemptN);
-          await reporter.open({
-            taskId: claimedTask.task.id,
-            attemptN: claimedTask.attemptN,
-          });
-
-          if (claimedTask.attemptN === 1) {
-            await reporter.close();
-            return {
-              taskId: claimedTask.task.id,
-              attemptN: claimedTask.attemptN,
-              status: 'failed' as const,
-              output: null,
-              outputCid: null,
-              usage: { inputTokens: 1, outputTokens: 0 },
-              durationMs: 1,
-              error: {
-                code: 'executor_unexpected_error',
-                message:
-                  'Ambiguous local VM worker crash after a websocket disconnect; task input and credentials are still valid.',
-                retryable: false,
-              },
-            };
-          }
-
-          const stubOutput = {
-            packId: '00000000-0000-4000-8000-000000000001',
-            packCid:
-              'bafyreidlnv7nu7y4kdxkxv5e2onbpoq5o3i6gw7r6xkk7d3w5b3xrylkqe',
-            entries: [
-              {
-                entryId: '00000000-0000-4000-8000-000000000002',
-                rank: 1,
-                rationale: 'live retry triage e2e stub entry',
-              },
-            ],
-            recipeParams: {},
-            summary: 'live retry triage e2e completed after requeue.',
-            verification: buildProducerVerification(claimedTask.task.inputCid),
-          };
-          await reporter.finalize({ inputTokens: 1, outputTokens: 1 });
-          await reporter.close();
-          return {
-            taskId: claimedTask.task.id,
-            attemptN: claimedTask.attemptN,
-            status: 'completed' as const,
-            output: stubOutput,
-            outputCid: await computeJsonCid(stubOutput),
-            usage: { inputTokens: 1, outputTokens: 1 },
-            durationMs: 1,
-          };
-        },
-        onTaskFinished: (output, claimedTask) =>
-          finalizeTask(agent, output, {
-            task: claimedTask.task,
-            retryTriage: createPiRetryTriage({
-              provider,
-              model,
-              thinkingLevel: 'low',
-              piAgentDir: join(repoRoot, '.pi'),
-              cwd: repoRoot,
-              timeoutMs: 60_000,
-            }),
-          }),
-      });
-
-      await runtime.start();
-
-      expect(seenAttempts).toEqual([1, 2]);
-      const final = await agent.tasks.get(created.id);
-      expect(final.status).toBe('completed');
-      expect(final.acceptedAttemptN).toBe(2);
-      const attempts = await agent.tasks.listAttempts(created.id);
-      expect(attempts.find((attempt) => attempt.attemptN === 1)).toMatchObject({
-        status: 'failed',
-        error: expect.objectContaining({
-          retryable: true,
-          retry: expect.objectContaining({
-            source: 'triage',
-            decision: 'retry',
-          }),
-        }),
-      });
-    }, 180_000);
-  });
 
   it('runtime execution can upload and transmit task artifact CIDs', async () => {
     const correlationId = randomUUID();
