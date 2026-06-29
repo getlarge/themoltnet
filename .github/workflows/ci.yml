@@ -44,6 +44,14 @@ jobs:
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
       has-agents: ${{ steps.matrix.outputs.has-agents }}
       tier: ${{ steps.matrix.outputs.tier }}
+      # Resolved e2e image refs: ci-<sha> if the project was affected this run
+      # (a fresh image was pushed), else the moving :ci-main from the last main
+      # build. The e2e jobs consume these as the *_IMAGE Compose env vars.
+      rest-api-image: ${{ steps.compute.outputs.rest-api-image }}
+      mcp-server-image: ${{ steps.compute.outputs.mcp-server-image }}
+      console-image: ${{ steps.compute.outputs.console-image }}
+      mcp-host-image: ${{ steps.compute.outputs.mcp-host-image }}
+      db-migrate-image: ${{ steps.compute.outputs.db-migrate-image }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -157,6 +165,26 @@ jobs:
           else
             echo "landing=false" >> "$GITHUB_OUTPUT"
           fi
+
+          # Resolve the e2e image ref for each app service. The orchestrator
+          # runs `nx affected -t ... docker:build`, so a fresh ghcr.io/.../<svc>:ci-<sha>
+          # image exists ONLY for docker-images projects in the affected set.
+          # The e2e Compose stack needs all of them, so unaffected services fall
+          # back to the moving :ci-main published by the last main build.
+          # (Transitive deps count: a change to an MCP app lib makes
+          # @moltnet/mcp-server affected, so its image rebuilds — same set nx uses.)
+          SHA="${{ github.sha }}"
+          REG="ghcr.io/getlarge/themoltnet"
+          image_ref() { # $1=docker project, $2=image name
+            if contains "$1"; then echo "${REG}/$2:ci-${SHA}"; else echo "${REG}/$2:ci-main"; fi
+          }
+          {
+            echo "rest-api-image=$(image_ref @moltnet/rest-api rest-api)"
+            echo "mcp-server-image=$(image_ref @moltnet/mcp-server mcp-server)"
+            echo "console-image=$(image_ref @moltnet/console console)"
+            echo "mcp-host-image=$(image_ref @moltnet/mcp-host mcp-host)"
+            echo "db-migrate-image=$(image_ref @moltnet/database db-migrate)"
+          } >> "$GITHUB_OUTPUT"
 
           # The composite GitHub Action ships its bundled dist/main.js
           # checked in to git (canonical pattern — actions/checkout,
@@ -333,34 +361,38 @@ jobs:
           echo "::error::nx-cloud start-ci-run failed after 3 attempts"
           exit 1
 
-      - name: Run affected lint, typecheck, test-ci, build
-        if: needs.affected.outputs.has-agents == 'true'
-        # test-ci is the atomized variant of test (one task per file
-        # via @nx/vitest). Projects without per-file atomization (Go,
-        # vitest libs without a config) declare test-ci as a noop
-        # depending on test, so a single -t test-ci covers everything.
-        run: pnpm exec nx affected -t lint typecheck test-ci build
-
-      # docker:build (configuration=ci) builds + pushes the app images to
-      # ghcr.io/.../<svc>:ci-<sha> via buildx with registry cache, distributed
-      # to the same agent pool under the open DTE run (replaces the standalone
-      # build-and-push matrix job).
+      # Single distributed graph: lint/typecheck/test-ci/build AND
+      # docker:build (configuration=ci) all enter the SAME `nx affected` wave,
+      # so Docker image builds run CONCURRENTLY with the rest across the agent
+      # pool instead of waiting for the lint/test graph to drain first. Each
+      # docker:build (configuration=ci) builds + pushes the AFFECTED app images
+      # to ghcr.io/.../<svc>:ci-<sha> (and :ci-main on main) via buildx with
+      # registry cache (replaces the standalone build-and-push matrix job).
       #
-      # NOT `nx affected`: the e2e Compose stack starts ALL FIVE app services
-      # for every suite, so every e2e run needs all five ci-<sha> images present
-      # even when only one project changed. Building just the affected image
-      # would leave the others unpushed and break `compose up`. So we run-many
-      # the full e2e image set whenever any e2e suite runs (registry buildcache
-      # makes unchanged images near-instant). landing has no e2e consumer and is
-      # built only when affected, mirroring the old matrix's per-image gating.
-      - name: Build & push e2e Docker images
-        if: needs.affected.outputs.has-agents == 'true' && needs.affected.outputs.e2e-any == 'true'
+      # Only AFFECTED images build here. The e2e Compose stack needs all five
+      # app images, so the e2e jobs resolve each *_IMAGE to ci-<sha> when the
+      # project was affected this run, else the moving :ci-main published by the
+      # last main build (see the per-image tag resolution in each e2e job).
+      #
+      # test-ci is the atomized variant of test (one task per file via
+      # @nx/vitest). Projects without per-file atomization (Go, vitest libs
+      # without a config) declare test-ci as a noop depending on test, so a
+      # single -t test-ci covers everything.
+      - name: Run affected lint, typecheck, test-ci, build, docker:build
+        if: needs.affected.outputs.has-agents == 'true'
+        run: pnpm exec nx affected -t lint typecheck test-ci build docker:build --configuration=ci
+
+      # On main, refresh the moving :ci-main fallback for ALL e2e images (not
+      # just affected) so PR e2e runs always have a complete, up-to-date image
+      # set to fall back to for the services they didn't change. Runs only on
+      # main pushes (no PR is waiting), under the same DTE run. The per-sha
+      # images for affected projects were already built+pushed above; this
+      # re-runs docker:build for the unaffected ones to (re)publish :ci-main.
+      - name: Refresh :ci-main for all e2e images (main only)
+        if: needs.affected.outputs.has-agents == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           pnpm exec nx run-many -t docker:build --configuration=ci \
             --projects=@moltnet/rest-api,@moltnet/mcp-server,@moltnet/console,@moltnet/mcp-host,@moltnet/database
-      - name: Build & push landing Docker image
-        if: needs.affected.outputs.has-agents == 'true' && needs.affected.outputs.landing == 'true'
-        run: pnpm exec nx run @moltnet/landing:docker:build --configuration=ci
 
       - name: Complete Nx Cloud CI run
         if: always() && needs.affected.outputs.has-agents == 'true'
@@ -761,11 +793,13 @@ jobs:
       packages: read
     needs: [affected, orchestrator]
     env:
-      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
-      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
-      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
-      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
-      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      # Per-image: ci-<sha> if affected this run, else the moving :ci-main
+      # (resolved by the affected job). The e2e stack needs all five.
+      REST_API_IMAGE: ${{ needs.affected.outputs.rest-api-image }}
+      MCP_SERVER_IMAGE: ${{ needs.affected.outputs.mcp-server-image }}
+      DB_MIGRATE_IMAGE: ${{ needs.affected.outputs.db-migrate-image }}
+      CONSOLE_IMAGE: ${{ needs.affected.outputs.console-image }}
+      MCP_HOST_IMAGE: ${{ needs.affected.outputs.mcp-host-image }}
       # Pre-set the URLs the e2e tests need. Without this, Nx's bin/nx.js
       # loads workspace-root .env at startup; our .env is dotenvx-encrypted,
       # so plain-dotenv pulls ciphertext into DATABASE_URL and pg silently
@@ -834,11 +868,13 @@ jobs:
       packages: read
     needs: [affected, orchestrator]
     env:
-      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
-      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
-      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
-      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
-      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      # Per-image: ci-<sha> if affected this run, else the moving :ci-main
+      # (resolved by the affected job). The e2e stack needs all five.
+      REST_API_IMAGE: ${{ needs.affected.outputs.rest-api-image }}
+      MCP_SERVER_IMAGE: ${{ needs.affected.outputs.mcp-server-image }}
+      DB_MIGRATE_IMAGE: ${{ needs.affected.outputs.db-migrate-image }}
+      CONSOLE_IMAGE: ${{ needs.affected.outputs.console-image }}
+      MCP_HOST_IMAGE: ${{ needs.affected.outputs.mcp-host-image }}
       DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
       ORY_HYDRA_ADMIN_URL: http://localhost:4445
       ORY_HYDRA_PUBLIC_URL: http://localhost:4444
@@ -910,11 +946,13 @@ jobs:
       packages: read
     needs: [affected, orchestrator]
     env:
-      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
-      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
-      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
-      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
-      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      # Per-image: ci-<sha> if affected this run, else the moving :ci-main
+      # (resolved by the affected job). The e2e stack needs all five.
+      REST_API_IMAGE: ${{ needs.affected.outputs.rest-api-image }}
+      MCP_SERVER_IMAGE: ${{ needs.affected.outputs.mcp-server-image }}
+      DB_MIGRATE_IMAGE: ${{ needs.affected.outputs.db-migrate-image }}
+      CONSOLE_IMAGE: ${{ needs.affected.outputs.console-image }}
+      MCP_HOST_IMAGE: ${{ needs.affected.outputs.mcp-host-image }}
     steps:
       - name: Skip if Browser E2E not affected
         if: needs.affected.outputs.e2e-browser != 'true'
@@ -999,11 +1037,13 @@ jobs:
       packages: read
     needs: [affected, orchestrator]
     env:
-      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
-      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
-      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
-      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
-      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      # Per-image: ci-<sha> if affected this run, else the moving :ci-main
+      # (resolved by the affected job). The e2e stack needs all five.
+      REST_API_IMAGE: ${{ needs.affected.outputs.rest-api-image }}
+      MCP_SERVER_IMAGE: ${{ needs.affected.outputs.mcp-server-image }}
+      DB_MIGRATE_IMAGE: ${{ needs.affected.outputs.db-migrate-image }}
+      CONSOLE_IMAGE: ${{ needs.affected.outputs.console-image }}
+      MCP_HOST_IMAGE: ${{ needs.affected.outputs.mcp-host-image }}
     steps:
       - name: Skip if MCP E2E not affected
         if: needs.affected.outputs.e2e-mcp != 'true'
@@ -1096,11 +1136,13 @@ jobs:
       packages: read
     needs: [affected, orchestrator]
     env:
-      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
-      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
-      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
-      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-${{ github.sha }}
-      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-${{ github.sha }}
+      # Per-image: ci-<sha> if affected this run, else the moving :ci-main
+      # (resolved by the affected job). The e2e stack needs all five.
+      REST_API_IMAGE: ${{ needs.affected.outputs.rest-api-image }}
+      MCP_SERVER_IMAGE: ${{ needs.affected.outputs.mcp-server-image }}
+      DB_MIGRATE_IMAGE: ${{ needs.affected.outputs.db-migrate-image }}
+      CONSOLE_IMAGE: ${{ needs.affected.outputs.console-image }}
+      MCP_HOST_IMAGE: ${{ needs.affected.outputs.mcp-host-image }}
     steps:
       - name: Skip if Go CLI E2E not affected
         if: needs.affected.outputs.e2e-go-cli != 'true'

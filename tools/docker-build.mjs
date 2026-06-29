@@ -106,9 +106,15 @@ function main() {
   const sourceRef = pathDerivedRef(projectRoot); // e.g. apps-rest-api (nx release)
   const cleanRef = `${registryUrl}/${repositoryName}:${opts.tag}`; // e.g. ghcr.io/getlarge/themoltnet/rest-api:dev
   const cacheRef = `${registryUrl}/${repositoryName}:buildcache`;
+  // Moving "last built from main" ref. On main pushes we publish it alongside
+  // the immutable :ci-<sha> so PR e2e runs can pull a fresh image for the
+  // services they did NOT change (the e2e stack needs all of them). See the
+  // per-image tag resolution in the e2e jobs (.github/workflows/ci.yml).
+  const mainRef = `${registryUrl}/${repositoryName}:ci-main`;
   const dockerfile = join(projectRoot, 'Dockerfile');
 
   const commitSha = process.env.GITHUB_SHA ?? '';
+  const isMainBuild = opts.push && process.env.GITHUB_REF === 'refs/heads/main';
 
   const args = [
     'buildx',
@@ -124,6 +130,9 @@ function main() {
     '--label',
     'org.opencontainers.image.created=' + new Date().toISOString(),
   ];
+  if (isMainBuild) {
+    args.push('--tag', mainRef);
+  }
   if (commitSha) {
     args.push('--label', `org.opencontainers.image.revision=${commitSha}`);
   }
@@ -149,6 +158,7 @@ function main() {
     `[docker-build] ${opts.project}\n` +
       `  source tag : ${sourceRef}\n` +
       `  clean tag  : ${cleanRef}\n` +
+      (isMainBuild ? `  main tag   : ${mainRef}\n` : '') +
       `  cache ref  : ${cacheRef}\n` +
       `  mode       : ${opts.push ? 'push' : 'load'}\n`,
   );
