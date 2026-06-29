@@ -38,8 +38,13 @@ describe('example flows', () => {
     expect(nodes.get('ab_eval_seed')?.func).toContain(
       'rendered-pack-dbos-rule',
     );
+    expect(nodes.get('ab_eval_seed')?.func).not.toContain('requiredFindings');
+    expect(nodes.get('ab_eval_seed')?.func).not.toContain('forbidden');
     expect(nodes.get('sf_ab_score_run_eval')?.func).toContain(
-      'expected.requireJson !== false',
+      'responseChars: response.length',
+    );
+    expect(nodes.get('sf_ab_score_run_eval')?.func).not.toContain(
+      'requiredFindings',
     );
     expect(nodes.get('ab_eval_init_group')?.func).toContain('expectedVariants');
     expect(nodes.get('ab_eval_gate_group')?.func).toContain('groupComplete');

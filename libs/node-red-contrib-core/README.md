@@ -213,9 +213,10 @@ model-specialization option.
 
 [`examples/ab-eval-with-judge.flow.json`](./examples/ab-eval-with-judge.flow.json)
 imports a reusable **A/B eval with judge** subflow plus a small demo tab. The
-subflow runs one `run_eval` producer lane, locally scores required
-fields/findings, then creates one `judge_eval_attempt` task and stores the
-variant score/delta in flow context. The demo tab owns the reusable workflow
+subflow runs one `run_eval` producer lane, records lightweight producer
+metadata, then creates one `judge_eval_attempt` task and stores the variant
+score/delta in flow context. The judge owns the rubric; the producer-side flow
+does not duplicate hidden criteria. The demo tab owns the reusable workflow
 runner pattern: initialize one correlation id, fan out configured variants in
 parallel, record successful or failed lanes, and emit a group result only once
 all expected variants have settled.
@@ -227,10 +228,11 @@ that inline context with a rendered MoltNet pack or skill content to evaluate a
 real candidate context source against the same hidden judge rubric.
 
 Fill the `moltnet-agent` config after import. Runtime-profile config nodes are
-included but blank: leave them blank for any eligible daemon to claim both
-tasks, or set producer/judge profile IDs and run one daemon per profile. The
-example uses `maxAttempts=2` for producer and judge tasks so transient
-tool/model failures retry at the task layer before the lane is marked failed.
+included and default to the shared Gemma eval profile; clear them to let any
+eligible daemon claim both tasks, or set producer/judge profile IDs and run one
+daemon per profile. The example uses `maxAttempts=2` for producer and judge
+tasks so transient tool/model failures retry at the task layer before the lane
+is marked failed.
 Callers can also route per scenario or variant without editing the subflow:
 set `msg.evalRuntimeProfiles.producer`, `msg.evalRuntimeProfiles.judge`,
 `msg.evalScenario.runtimeProfiles.producer`, `msg.evalScenario.runtimeProfiles.judge`,
