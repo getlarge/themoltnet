@@ -54,8 +54,12 @@ describe('unwrapResult', () => {
       }),
     ).toThrow(
       new MoltNetError(
-        'Unexpected error from MoltNet API: Error: interceptor failed',
-        { code: 'UNKNOWN' },
+        'MoltNet API request failed with HTTP 502 Error: Error: interceptor failed',
+        {
+          code: 'HTTP_502',
+          detail: 'Error: interceptor failed',
+          statusCode: 502,
+        },
       ),
     );
   });

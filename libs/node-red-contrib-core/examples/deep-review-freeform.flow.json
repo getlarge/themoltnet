@@ -49,7 +49,7 @@
   },
   {
     "id": "deep_review_note",
-    "info": "This example keeps MoltNet generic: every agent step is taskType=freeform. Node-RED owns orchestration, correlationId threading, gates, profile routing, specialist fan-out/fan-in, and aggregation. Agents own the judgment and produce structured freeform artifacts. The FREEZE branch parses compact inline JSON for control flow, then uploads and downloads a persistent review bundle artifact for artifact-node coverage. Runtime-profile config nodes pin each stage to an Ollama Cloud profile: FREEZE/PREFLIGHT/SPECIALIST use qwen3-coder:480b-cloud for reliable tool calls, and AGGREGATE uses kimi-k2.7-code:cloud.",
+    "info": "This example keeps MoltNet generic: every agent step is taskType=freeform. Node-RED owns orchestration, correlationId threading, gates, profile routing, specialist fan-out/fan-in, and aggregation. Agents own the judgment and produce structured freeform artifacts. The FREEZE branch parses compact inline JSON for control flow, then lists and downloads any persistent review bundle artifact uploaded by the agent during the attempt. Runtime-profile config nodes pin each stage to an Ollama Cloud profile: FREEZE/PREFLIGHT/SPECIALIST use qwen3-coder:480b-cloud for reliable tool calls, and AGGREGATE uses kimi-k2.7-code:cloud.",
     "name": "Freeform-only deep review workflow",
     "type": "comment",
     "wires": [],
@@ -269,7 +269,7 @@
   },
   {
     "finalize": "",
-    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || {};\nmsg.reviewBundle = msg.result?.artifactBody || msg.payload || {};\nmsg.reviewBundleRef = msg.result?.artifactRef || msg.result?.outputRef || null;\nmsg.review.freezeTaskId = msg.freezeSnapshot?.taskId || msg.result?.outputRef?.taskId || null;\nmsg.review.freezeAttemptN = msg.freezeSnapshot?.acceptedAttemptN || msg.freezeSnapshot?.attempt?.attemptN || null;\nstate.correlationId = msg.correlationId;\nstate.review = msg.review;\nstate.reviewBundle = msg.reviewBundle;\nstate.reviewBundleRef = msg.reviewBundleRef;\nstate.freezeSnapshot = msg.freezeSnapshot || null;\nstate.tasks = state.tasks || {};\nstate.tasks.freeze = { taskId: msg.review.freezeTaskId, attemptN: msg.review.freezeAttemptN };\nstate.specialistResults = state.specialistResults || [];\nflow.set(key, state);\nmsg.reviewState = state;\nreturn msg;",
+    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || {};\nmsg.reviewBundle = msg.result?.artifactBody || msg.payload || {};\nmsg.reviewBundleRef = msg.result?.artifactRef || msg.result?.outputRef || null;\nmsg.review.freezeTaskId = msg.freezeSnapshot?.taskId || msg.result?.outputRef?.taskId || null;\nmsg.review.freezeAttemptN = msg.freezeSnapshot?.acceptedAttemptN || msg.freezeSnapshot?.attempt?.attemptN || null;\nmsg.taskId = msg.review.freezeTaskId;\nmsg.attemptN = msg.review.freezeAttemptN;\nstate.correlationId = msg.correlationId;\nstate.review = msg.review;\nstate.reviewBundle = msg.reviewBundle;\nstate.reviewBundleRef = msg.reviewBundleRef;\nstate.freezeSnapshot = msg.freezeSnapshot || null;\nstate.tasks = state.tasks || {};\nstate.tasks.freeze = { taskId: msg.review.freezeTaskId, attemptN: msg.review.freezeAttemptN };\nstate.specialistResults = state.specialistResults || [];\nflow.set(key, state);\nmsg.reviewState = state;\nreturn msg;",
     "id": "deep_review_stash_bundle",
     "initialize": "",
     "libs": [],
@@ -279,45 +279,10 @@
     "timeout": 0,
     "type": "function",
     "wires": [
-      ["deep_review_build_preflight", "deep_review_prepare_bundle_upload"]
+      ["deep_review_build_preflight", "deep_review_list_freeze_artifacts"]
     ],
     "x": 1320,
     "y": 200,
-    "z": "deep_review_tab"
-  },
-  {
-    "finalize": "",
-    "func": "const taskId = msg.review.freezeTaskId;\nconst attemptN = msg.review.freezeAttemptN;\nif (!taskId || !attemptN) {\n  node.status({ fill: 'yellow', shape: 'ring', text: 'missing task/attempt' });\n  return null;\n}\nmsg.taskId = taskId;\nmsg.attemptN = attemptN;\nmsg.kind = 'review-bundle';\nmsg.title = 'review-bundle.json';\nmsg.contentType = 'application/json';\nmsg.payload = { content: JSON.stringify(msg.reviewBundle || {}, null, 2) };\nreturn msg;",
-    "id": "deep_review_prepare_bundle_upload",
-    "initialize": "",
-    "libs": [],
-    "name": "prepare bundle upload",
-    "noerr": 0,
-    "outputs": 1,
-    "timeout": 0,
-    "type": "function",
-    "wires": [["deep_review_upload_bundle_artifact"]],
-    "x": 210,
-    "y": 300,
-    "z": "deep_review_tab"
-  },
-  {
-    "agent": "deep_review_agent_cfg",
-    "allowMsgTeamOverride": false,
-    "attemptN": "",
-    "contentEncoding": "",
-    "contentType": "",
-    "id": "deep_review_upload_bundle_artifact",
-    "kind": "",
-    "maxBytes": 26214400,
-    "name": "upload review bundle",
-    "taskId": "",
-    "teamId": "",
-    "title": "",
-    "type": "moltnet-task-artifact-upload",
-    "wires": [["deep_review_list_freeze_artifacts"]],
-    "x": 480,
-    "y": 300,
     "z": "deep_review_tab"
   },
   {

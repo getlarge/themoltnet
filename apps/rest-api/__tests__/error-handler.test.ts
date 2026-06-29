@@ -164,6 +164,31 @@ describe('Error handler plugin', () => {
     expect(body.errors).toBeDefined();
     expect(body.errors.length).toBeGreaterThan(0);
   });
+
+  it('maps unsupported request media types to UNSUPPORTED_MEDIA_TYPE', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/test-schema',
+      headers: {
+        accept: 'application/problem+json',
+        'content-type': 'application/xml',
+      },
+      payload: '<name>bad</name>',
+    });
+
+    expect(response.statusCode).toBe(415);
+    expect(response.headers['content-type']).toContain(
+      'application/problem+json',
+    );
+    expect(response.json()).toMatchObject({
+      type: 'https://themolt.net/problems/unsupported-media-type',
+      title: 'Unsupported Media Type',
+      status: 415,
+      code: 'UNSUPPORTED_MEDIA_TYPE',
+      instance: '/test-schema',
+    });
+  });
 });
 
 describe('extractPgErrorFields', () => {
