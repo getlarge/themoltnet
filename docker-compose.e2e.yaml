@@ -6,8 +6,9 @@
 # Repo-built app images are NOT built by Compose. They are produced by Nx
 # (`docker:build`) and tagged `ghcr.io/getlarge/themoltnet/<svc>:dev` by
 # `pnpm run e2e:build`. This file references them via `image:`. See issue #1498
-# and AGENTS.md → "Docker image contract". CI overrides the tags via
-# docker-compose.e2e.ci.yaml + the *_IMAGE env vars.
+# and AGENTS.md → "Docker image contract". This single file is used both
+# locally and in CI; CI overrides the tags by exporting the *_IMAGE env vars
+# (e.g. REST_API_IMAGE=ghcr.io/getlarge/themoltnet/rest-api:ci-<sha>).
 #
 # Usage (local):
 #   pnpm run e2e:up      # builds images via Nx, then starts the stack

@@ -71,6 +71,29 @@
       "type:tool",
       "scope:tooling",
       "platform:cli"
-    ]
+    ],
+    "targets": {
+      "e2e-stack:build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "@moltnet/rest-api:docker:build",
+          "@moltnet/mcp-server:docker:build",
+          "@moltnet/console:docker:build",
+          "@moltnet/mcp-host:docker:build",
+          "@moltnet/database:docker:build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "parallel": false,
+          "commands": [
+            "docker tag apps-rest-api ghcr.io/getlarge/themoltnet/rest-api:dev",
+            "docker tag apps-mcp-server ghcr.io/getlarge/themoltnet/mcp-server:dev",
+            "docker tag apps-console ghcr.io/getlarge/themoltnet/console:dev",
+            "docker tag apps-mcp-host ghcr.io/getlarge/themoltnet/mcp-host:dev",
+            "docker tag libs-database ghcr.io/getlarge/themoltnet/db-migrate:dev"
+          ]
+        }
+      }
+    }
   }
 }

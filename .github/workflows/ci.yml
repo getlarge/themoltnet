@@ -765,7 +765,7 @@ jobs:
         if: needs.affected.outputs.e2e-node == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d
       # rest-api e2e MUST run first: its setup restarts the rest-api container
       # (sponsor flow), which would invalidate any in-flight test in another
       # suite running against the same stack.
@@ -774,10 +774,10 @@ jobs:
         run: pnpm exec nx run @moltnet/rest-api:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-node == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=50
       - name: Teardown Docker Compose
         if: always() && needs.affected.outputs.e2e-node == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+        run: docker compose -f docker-compose.e2e.yaml down -v --remove-orphans
 
   e2e-agent-daemon:
     name: E2E Tests (Agent Daemon)
@@ -844,16 +844,16 @@ jobs:
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d
       - name: Run agent-daemon E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         run: pnpm exec nx run @themoltnet/agent-daemon:e2e --skipNxCache
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-agent-daemon == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=50
       - name: Teardown Docker Compose
         if: always() && needs.affected.outputs.e2e-agent-daemon == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+        run: docker compose -f docker-compose.e2e.yaml down -v --remove-orphans
 
   e2e-browser:
     name: E2E Tests (Browser)
@@ -913,7 +913,7 @@ jobs:
         if: needs.affected.outputs.e2e-browser == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d
       - name: Run Console Browser E2E tests
         if: needs.affected.outputs.e2e-browser == 'true'
         env:
@@ -934,10 +934,10 @@ jobs:
         run: pnpm exec nx run @moltnet/console:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-browser == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=50
       - name: Teardown Docker Compose
         if: always() && needs.affected.outputs.e2e-browser == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+        run: docker compose -f docker-compose.e2e.yaml down -v --remove-orphans
 
   # MCP e2e: the mcp-server node suite + the mcp-host browser suite, against a
   # dedicated copy of the compose stack. Split out of the Node/Browser jobs so a
@@ -1002,7 +1002,7 @@ jobs:
         if: needs.affected.outputs.e2e-mcp == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d
       - name: Run MCP server E2E tests
         if: needs.affected.outputs.e2e-mcp == 'true'
         env:
@@ -1032,10 +1032,10 @@ jobs:
         run: pnpm exec nx run @moltnet/mcp-host-e2e:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-mcp == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=50
       - name: Teardown Docker Compose
         if: always() && needs.affected.outputs.e2e-mcp == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+        run: docker compose -f docker-compose.e2e.yaml down -v --remove-orphans
 
   # Go CLI e2e runs in parallel with the Node and browser e2e jobs. It brings
   # up its own copy of the compose stack (~45s overhead) but does not contend
@@ -1086,7 +1086,7 @@ jobs:
         if: needs.affected.outputs.e2e-go-cli == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d
       - name: Run Go CLI E2E tests
         if: needs.affected.outputs.e2e-go-cli == 'true'
         env:
@@ -1094,10 +1094,10 @@ jobs:
         run: go test -tags e2e -v -timeout 120s ./apps/moltnet-cli/...
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-go-cli == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=50
       - name: Teardown Docker Compose
         if: always() && needs.affected.outputs.e2e-go-cli == 'true'
-        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
+        run: docker compose -f docker-compose.e2e.yaml down -v --remove-orphans
 
   go-otel-extension:
     # The oryintrospectionauth extension deliberately lives OUTSIDE go.work

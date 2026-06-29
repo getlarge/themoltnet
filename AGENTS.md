@@ -126,26 +126,27 @@ authorship on that specific GitHub write action.
 
 E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack must be running before you execute tests** — the test setup only polls health endpoints, it does not start/stop containers.
 
-**Set `NX_LOAD_DOT_ENV_FILES=false` in your shell before running e2e locally** (#1306). Nx ≥22 unconditionally loads the workspace-root `.env` via plain dotenv at bin startup. Our `.env` is dotenvx-encrypted, so plain-dotenv pulls ciphertext into every variable it defines — most importantly `DATABASE_URL`, which then leaks into every process Nx spawns and causes `pg-pool` to fall back to `::1:5432`. The CI workflow sets this env var at the job level; local devs need it in their shell (e.g. add to `~/.zshrc` or use `direnv`). Without it, e2e suites fail with `ENOTFOUND app-db` or `getaddrinfo` errors. The e2e harness defaults (`DEFAULT_E2E_DATABASE_URL` etc. in `@moltnet/bootstrap`) only fire when the env var is **unset**, not when it's set to ciphertext.
+**The `e2e:*` and `test:e2e` root scripts set `NX_LOAD_DOT_ENV_FILES=false` for you** (#1306). Nx ≥22 unconditionally loads the workspace-root `.env` via plain dotenv at bin startup. Our `.env` is dotenvx-encrypted, so plain-dotenv pulls ciphertext into every variable it defines — most importantly `DATABASE_URL` and `ORY_ACTION_API_KEY` — which then leaks into every process Nx spawns: `pg-pool` falls back to `::1:5432` and webhook handlers reject the bad key with `403`. The e2e harness/setup defaults (`DEFAULT_E2E_DATABASE_URL` etc. in `@moltnet/bootstrap`, `apps/rest-api/e2e/setup.ts`) only fire when the var is **unset**, not when it's ciphertext. CI sets `NX_LOAD_DOT_ENV_FILES=false` at the workflow level and pins `DATABASE_URL`/`ORY_ACTION_API_KEY` at the job level as belt-and-suspenders.
+
+If you invoke a **single** suite directly with `pnpm exec nx run …:e2e` (not via `test:e2e`), set `NX_LOAD_DOT_ENV_FILES=false` in your shell first (e.g. add to `~/.zshrc` or use `direnv`) — otherwise the leak applies. The `pnpm run` wrappers below already handle it.
 
 ```bash
-# One-time per shell (or add to your shell rc):
-export NX_LOAD_DOT_ENV_FILES=false
-
 # Start the e2e stack. `e2e:up` builds the app images via Nx (`docker:build`,
 # tagged ghcr.io/getlarge/themoltnet/<svc>:dev) and then starts Compose — no
 # `--build`, no manual `nx build` first. Compose runs the stack; Nx owns the
 # image builds (see "Docker image contract" below and issue #1498).
 pnpm run e2e:up
 
-# Run e2e tests (each suite polls health endpoints before starting)
-# rest-api MUST run first — its setup restarts the rest-api container
-# (sponsor flow), invalidating any in-flight test against the same stack.
+# Run all e2e suites (sets NX_LOAD_DOT_ENV_FILES=false itself):
+pnpm run test:e2e
+
+# Or run individual suites. rest-api MUST run first — its setup restarts the
+# rest-api container (sponsor flow), invalidating any in-flight test against
+# the same stack. Export NX_LOAD_DOT_ENV_FILES=false in your shell first:
+export NX_LOAD_DOT_ENV_FILES=false
 pnpm exec nx run @moltnet/rest-api:e2e
 pnpm exec nx run @moltnet/mcp-server:e2e
 pnpm exec nx run @themoltnet/agent-daemon:e2e
-# Or run all three at once via the root script:
-pnpm run test:e2e
 
 # Rebuild images + restart (after changing app source):
 pnpm run e2e:reset
@@ -154,14 +155,16 @@ pnpm run e2e:reset
 pnpm run e2e:down
 ```
 
-`e2e:up` runs `tools/e2e/build-images.mjs`, which builds the five repo-built app
-images (`rest-api`, `mcp-server`, `console`, `mcp-host`, `db-migrate`) with
-`nx run-many -t docker:build` and retags each with its clean
-`ghcr.io/getlarge/themoltnet/<svc>:dev` alias. The clean name + registry come
-from each project's `nx.release.docker.repositoryName` + `release.docker.registryUrl`
-in `nx.json`, so local `:dev` tags and `nx release` tags never drift. Build a
-different set with `E2E_STACK_PROJECTS` (comma-separated package names). The
-infra-only `issue-lifecycle-db-migrate` image is still built by Compose on first
+`e2e:build` runs the `@moltnet/tools:e2e-stack:build` Nx target, which
+`dependsOn` the five repo-built app projects' `docker:build` targets
+(`rest-api`, `mcp-server`, `console`, `mcp-host`, `db-migrate`) and then retags
+each built image with its clean `ghcr.io/getlarge/themoltnet/<svc>:dev` alias
+via a metadata-only `docker tag`. `e2e:up` runs that target, then starts Compose
+**in a plain `pnpm` process** (not through Nx) — Nx loads the dotenvx-encrypted
+root `.env` into every task's environment even with `NX_LOAD_DOT_ENV_FILES=false`,
+which would inject ciphertext into Compose's `${SPONSOR_AGENT_ID}`/`${POSTGRES_*}`
+interpolation and crash the containers; running Compose outside Nx avoids that
+(#1306). The infra-only `issue-lifecycle-db-migrate` image is still built by Compose on first
 `up` (it is not an Nx docker-images project).
 
 If you need the raw Compose commands (after `pnpm run e2e:build`):
@@ -171,10 +174,11 @@ COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v
 ```
 
-In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.ci.yaml`
-override sets the `*_IMAGE` tags to the `ci-${sha}` GHCR images), then runs all
-e2e suites sequentially. The CI workflow sets `NX_LOAD_DOT_ENV_FILES: false` at
-the workflow level (see `.github/workflows/ci.yml`).
+CI uses the **same** `docker-compose.e2e.yaml` (there is no separate CI override
+file): it exports the `*_IMAGE` env vars to the `ci-${sha}` GHCR image tags so
+Compose pulls the pre-built images, then runs all e2e suites sequentially. The CI
+workflow sets `NX_LOAD_DOT_ENV_FILES: false` at the workflow level and pins
+`DATABASE_URL`/`ORY_ACTION_API_KEY` at the job level (see `.github/workflows/ci.yml`).
 
 ## Repository Structure
 
@@ -308,7 +312,7 @@ The `@nx/docker` plugin autoinfers a `docker:build` target for every project tha
 - `-f {projectRoot}/Dockerfile` — explicit Dockerfile path.
 - `--platform linux/amd64`, `DOCKER_BUILDKIT=1`.
 - Dynamic OCI labels `org.opencontainers.image.revision={commitSha}` and `…created={currentDate}`. **Static** labels (`image.source` = the repo URL GHCR links against, `image.description`, `image.licenses`) live in each Dockerfile and must not be duplicated here.
-- The default `--tag` stays the path-derived ref (`apps-rest-api`, `libs-database`) — do **not** set `skipDefaultTag`; `nx release` retags from that ref. Clean compose-facing tags (`ghcr.io/getlarge/themoltnet/<svc>:dev`) are added by `tools/e2e/build-images.mjs` via a metadata-only `docker tag`, deriving the name from each project's `nx.release.docker.repositoryName`.
+- The default `--tag` stays the path-derived ref (`apps-rest-api`, `libs-database`) — do **not** set `skipDefaultTag`; `nx release` retags from that ref. Clean compose-facing tags (`ghcr.io/getlarge/themoltnet/<svc>:dev`) are added by the `@moltnet/tools:e2e-stack:build` target via a metadata-only `docker tag` after `docker:build` runs.
 
 ### Two env-var skip switches the build relies on
 
