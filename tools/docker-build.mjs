@@ -124,12 +124,17 @@ function main() {
     '--platform',
     'linux/amd64',
     '--tag',
-    sourceRef,
-    '--tag',
     cleanRef,
     '--label',
     'org.opencontainers.image.created=' + new Date().toISOString(),
   ];
+  // The path-derived ref (apps-rest-api) has NO registry, so `--push` would
+  // resolve it to docker.io/library/apps-rest-api and fail with a 401. It is
+  // only needed in --load mode, where `nx release` later retags from it in the
+  // local daemon. Never tag it when pushing.
+  if (!opts.push) {
+    args.push('--tag', sourceRef);
+  }
   if (isMainBuild) {
     args.push('--tag', mainRef);
   }
@@ -156,7 +161,7 @@ function main() {
 
   process.stdout.write(
     `[docker-build] ${opts.project}\n` +
-      `  source tag : ${sourceRef}\n` +
+      (opts.push ? '' : `  source tag : ${sourceRef} (load only)\n`) +
       `  clean tag  : ${cleanRef}\n` +
       (isMainBuild ? `  main tag   : ${mainRef}\n` : '') +
       `  cache ref  : ${cacheRef}\n` +
