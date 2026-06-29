@@ -293,9 +293,11 @@ both endpoints off the FUSE bridge:
 - package store on guest-local disk, e.g. `NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
 - install target on guest tmpfs via `vfs.nodeModulesTmpfs: true`
 
-When `vfs.nodeModulesTmpfs` is enabled, `vm-manager` mounts tmpfs over root and
-per-workspace `node_modules` directories for both `MOLTNET_GUEST_WORKSPACE` and
-`MOLTNET_GUEST_CWD` before running `resumeCommands`.
+When `vfs.nodeModulesTmpfs` is enabled, `vm-manager` mounts tmpfs over
+`node_modules` for discovered package roots under both `MOLTNET_GUEST_WORKSPACE`
+and `MOLTNET_GUEST_CWD` before running `resumeCommands`. Package roots are
+discovered by `package.json`, with `.git`, `.worktrees`, and existing
+`node_modules` directories pruned.
 
 ### `env`
 

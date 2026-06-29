@@ -94,8 +94,8 @@ export interface SandboxConfig {
     /**
      * Mount guest tmpfs over workspace `node_modules` directories before
      * resumeCommands run. This keeps Linux dependencies off the Gondolin
-     * RealFSProvider hot path and applies to both the mounted repo root and
-     * the active worktree cwd when they differ.
+     * RealFSProvider hot path and applies to discovered package roots under
+     * both the mounted repo root and active worktree cwd when they differ.
      */
     nodeModulesTmpfs?: boolean;
   };

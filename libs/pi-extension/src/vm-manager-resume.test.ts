@@ -190,7 +190,7 @@ describe('resumeVm task-context mount', () => {
       .map(([argv]) => (Array.isArray(argv) ? argv[2] : argv))
       .filter((command): command is string => typeof command === 'string');
     const tmpfsCommandIndex = shellCommands.findIndex((command) =>
-      command.includes('mount_node_modules_tmpfs'),
+      command.includes('mount_package_roots_node_modules_tmpfs'),
     );
     const profileCommandIndex = shellCommands.findIndex((command) =>
       command.includes('pnpm install --frozen-lockfile'),
@@ -199,10 +199,13 @@ describe('resumeVm task-context mount', () => {
     expect(tmpfsCommandIndex).toBeGreaterThanOrEqual(0);
     expect(profileCommandIndex).toBeGreaterThan(tmpfsCommandIndex);
     expect(shellCommands[tmpfsCommandIndex]).toContain(
-      'mount_node_modules_tmpfs "${MOLTNET_GUEST_WORKSPACE}"',
+      'mount_package_roots_node_modules_tmpfs "${MOLTNET_GUEST_WORKSPACE}"',
     );
     expect(shellCommands[tmpfsCommandIndex]).toContain(
-      'mount_node_modules_tmpfs "${MOLTNET_GUEST_CWD}"',
+      'mount_package_roots_node_modules_tmpfs "${MOLTNET_GUEST_CWD}"',
+    );
+    expect(shellCommands[tmpfsCommandIndex]).toContain(
+      '-name package.json -type f',
     );
     expect(shellCommands[profileCommandIndex]).toContain(
       'cd "$MOLTNET_GUEST_CWD" && pnpm install --frozen-lockfile',
