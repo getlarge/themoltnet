@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.30.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.29.0...pi-extension-v0.30.0) (2026-06-29)
+
+
+### Features
+
+* **node-red:** add deep review workflow ([1db27d5](https://github.com/getlarge/themoltnet/commit/1db27d5d487130354dd559ba4f31b9056fd2fae6))
+* **node-red:** add deep review workflow ([55accf3](https://github.com/getlarge/themoltnet/commit/55accf395a7a560e4b344a6924c0a86243266260))
+* **node-red:** harden deep review workflow runtime ([0182307](https://github.com/getlarge/themoltnet/commit/0182307bcb5bebe287e8072ecb680cf4043e1390))
+
+
+### Bug Fixes
+
+* **pi-extension:** stream vm artifact uploads ([6f44f6b](https://github.com/getlarge/themoltnet/commit/6f44f6b70faa3df77820eea11e593562cd40584c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.33.0
+    * @themoltnet/sdk bumped to 0.116.0
+
 ## [0.29.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.28.1...pi-extension-v0.29.0) (2026-06-28)
 
 

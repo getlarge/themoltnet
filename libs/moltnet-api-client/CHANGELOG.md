@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.41.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.40.1...moltnet-api-client-v1.41.0) (2026-06-29)
+
+
+### Features
+
+* **node-red:** add deep review workflow ([1db27d5](https://github.com/getlarge/themoltnet/commit/1db27d5d487130354dd559ba4f31b9056fd2fae6))
+
+
+### Codegen
+
+* **ci:** refresh generated artifacts ([e5f85b8](https://github.com/getlarge/themoltnet/commit/e5f85b84898f64f506794474c7c90b3ce947f751))
+
 ## [1.40.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.40.0...moltnet-api-client-v1.40.1) (2026-06-28)
 
 

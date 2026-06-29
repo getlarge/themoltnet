@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.57.0](https://github.com/getlarge/themoltnet/compare/cli-v1.56.0...cli-v1.57.0) (2026-06-29)
+
+
+### Features
+
+* **release:** add Nx Go artifact publisher ([d1a79e3](https://github.com/getlarge/themoltnet/commit/d1a79e30b96c6776d178fffcb93a1bc6d29ca0b5))
+
 ## [1.56.0](https://github.com/getlarge/themoltnet/compare/cli-v1.55.0...cli-v1.56.0) (2026-06-28)
 
 
