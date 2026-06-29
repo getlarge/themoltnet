@@ -41,7 +41,7 @@
   },
   "resumeCommands": [
     {
-      "run": "cd \"${MOLTNET_GUEST_WORKSPACE}\" && pnpm m ls --depth -1 --parseable | while read d; do [ -d \"$d\" ] || continue; mkdir -p \"$d/node_modules\"; if [ \"$d\" = \"${MOLTNET_GUEST_WORKSPACE}\" ]; then sz=6G; else sz=64M; fi; mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs \"$d/node_modules\"; done",
+      "run": "mount_node_modules_tmpfs() { root=\"$1\"; [ -d \"$root\" ] || return 0; for d in \"$root\" \"$root\"/apps/* \"$root\"/libs/* \"$root\"/packages/* \"$root\"/tools \"$root\"/docs; do [ -d \"$d\" ] || continue; nm=\"$d/node_modules\"; mkdir -p \"$nm\"; if [ \"$d\" = \"$root\" ]; then sz=6G; else sz=64M; fi; mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs \"$nm\" 2>/dev/null || true; done; }; mount_node_modules_tmpfs \"${MOLTNET_GUEST_WORKSPACE}\"; if [ \"${MOLTNET_GUEST_CWD:-${MOLTNET_GUEST_WORKSPACE}}\" != \"${MOLTNET_GUEST_WORKSPACE}\" ]; then mount_node_modules_tmpfs \"${MOLTNET_GUEST_CWD}\"; fi",
       "when": {
         "workspaceMode": ["shared_mount", "dedicated_worktree"]
       }

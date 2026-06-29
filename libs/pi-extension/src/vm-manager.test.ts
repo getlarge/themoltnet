@@ -5,6 +5,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -313,6 +314,66 @@ describe('shouldRunResumeCommand', () => {
   });
 });
 
+describe('themoltnet sandbox tmpfs resume command', () => {
+  it('mounts node_modules for both the mounted repo and active worktree cwd', () => {
+    const sandbox = JSON.parse(
+      readFileSync(path.resolve('../..', 'sandbox.json'), 'utf8'),
+    ) as {
+      resumeCommands: { run: string }[];
+    };
+    const command = sandbox.resumeCommands[0]?.run;
+    expect(command).toBeTruthy();
+    expect(command).not.toContain('pnpm m ls');
+    expect(command).toContain('MOLTNET_GUEST_CWD');
+
+    const root = mkdtempSync(path.join(tmpdir(), 'pi-sandbox-root-'));
+    const cwd = path.join(root, '.worktrees', 'task-1');
+    const bin = path.join(root, 'bin');
+    const mountLog = path.join(root, 'mount.log');
+    try {
+      for (const base of [root, cwd]) {
+        mkdirSync(path.join(base, 'apps', 'rest-api'), { recursive: true });
+        mkdirSync(path.join(base, 'libs', 'pi-extension'), {
+          recursive: true,
+        });
+        mkdirSync(path.join(base, 'packages', 'cli'), { recursive: true });
+        mkdirSync(path.join(base, 'tools'), { recursive: true });
+      }
+      mkdirSync(bin, { recursive: true });
+      const fakeMount = path.join(bin, 'mount');
+      writeFileSync(
+        fakeMount,
+        '#!/bin/sh\nprintf "%s\\n" "$*" >> "$MOUNT_LOG"\n',
+        'utf8',
+      );
+      chmodSync(fakeMount, 0o755);
+
+      execFileSync('sh', ['-c', `set -eu\n${command}`], {
+        env: {
+          ...process.env,
+          PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}`,
+          MOLTNET_GUEST_WORKSPACE: root,
+          MOLTNET_GUEST_CWD: cwd,
+          MOUNT_LOG: mountLog,
+        },
+        stdio: 'pipe',
+      });
+
+      const mounts = readFileSync(mountLog, 'utf8');
+      expect(mounts).toContain(`${root}/node_modules`);
+      expect(mounts).toContain(`${root}/apps/rest-api/node_modules`);
+      expect(mounts).toContain(`${root}/libs/pi-extension/node_modules`);
+      expect(mounts).toContain(`${cwd}/node_modules`);
+      expect(mounts).toContain(`${cwd}/apps/rest-api/node_modules`);
+      expect(mounts).toContain(`${cwd}/libs/pi-extension/node_modules`);
+      expect(mounts).toContain(`${cwd}/packages/cli/node_modules`);
+      expect(mounts).toContain(`${cwd}/tools/node_modules`);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
 // ---------------------------------------------------------------------------
 // loadCredentials — PEM reading (finding 7)
 // ---------------------------------------------------------------------------
@@ -577,6 +638,12 @@ describe('dedicated worktree mount topology', () => {
         worktreeBranch: 'moltnet/correlation-1/demo-task',
         workspaceScope: 'session',
       });
+
+      expect(realpathSync(workspace.mountPath)).toBe(realpathSync(repoRoot));
+      expect(realpathSync(workspace.cwdPath)).toBe(
+        realpathSync(path.join(repoRoot, '.worktrees', 'session-slot-1')),
+      );
+      expect(workspace.cwdPath).not.toBe(workspace.mountPath);
 
       const guestWorkspace = path.resolve(workspace.cwdPath);
       const gitdirPointer = readFileSync(path.join(guestWorkspace, '.git'), {
