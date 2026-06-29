@@ -430,7 +430,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             provider: selected.profile.provider,
             model: selected.profile.model,
             thinkingLevel: selected.profile.thinkingLevel,
-            piAgentDir: piAgentDir.path,
+            piAgentDir: selected.piAgentDir.path,
             cwd: ctx.agentRootDir,
           }),
           writeCorrelationAnchors: makePrBodyAnchorWriter({
