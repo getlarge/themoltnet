@@ -1078,7 +1078,7 @@ describe('Tasks API', () => {
 
     it('fails the task and DBOS workflow marks it failed', async () => {
       // Heartbeat advances the workflow past the 'started' checkpoint so it
-      // can receive the 'result' event sent by fail().
+      // can receive the 'result' event sent by failAttempt().
       await taskHeartbeat({
         client,
         auth: () => claimer.accessToken,

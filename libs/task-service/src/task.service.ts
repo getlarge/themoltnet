@@ -1608,17 +1608,6 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
     },
 
-    /** @deprecated Use failAttempt. This operation reports attempt failure. */
-    async fail(
-      taskId: string,
-      attemptN: number,
-      callerId: string,
-      callerNs: KetoNamespace,
-      error: TaskError,
-    ): Promise<Task> {
-      return this.failAttempt(taskId, attemptN, callerId, callerNs, error);
-    },
-
     async abort(
       taskId: string,
       attemptN: number,

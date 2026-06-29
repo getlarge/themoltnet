@@ -56,7 +56,6 @@ type HeartbeatMock = (
 
 function makeAgent() {
   const complete = vi.fn<CompleteMock>().mockResolvedValue(undefined);
-  const fail = vi.fn<FailMock>().mockResolvedValue(undefined);
   const failAttempt = vi.fn<FailMock>().mockResolvedValue(undefined);
   const heartbeat = vi.fn<HeartbeatMock>().mockResolvedValue({
     claimExpiresAt: new Date(0).toISOString(),
@@ -66,12 +65,11 @@ function makeAgent() {
   const listMessages = vi.fn().mockResolvedValue([]);
   return {
     complete,
-    fail,
     failAttempt,
     heartbeat,
     listMessages,
     agent: {
-      tasks: { complete, fail, failAttempt, heartbeat, listMessages },
+      tasks: { complete, failAttempt, heartbeat, listMessages },
     } as unknown as Agent,
   };
 }
@@ -99,7 +97,6 @@ describe('finalizeTask', () => {
     await finalizeTask(stub.agent, output);
 
     expect(stub.complete).toHaveBeenCalledTimes(1);
-    expect(stub.fail).not.toHaveBeenCalled();
     const body = stub.complete.mock.calls[0][2];
     expect(body.output).toEqual(output.output);
     expect(body.outputCid).toBe('bafy-out');
@@ -129,7 +126,6 @@ describe('finalizeTask', () => {
     await finalizeTask(stub.agent, failed);
 
     expect(stub.heartbeat).toHaveBeenCalledWith('t1', 1, {});
-    expect(stub.fail).not.toHaveBeenCalled();
     expect(stub.failAttempt).toHaveBeenCalledTimes(1);
     const error = stub.failAttempt.mock.calls[0][2].error;
     expect(error.code).toBe('oops');
@@ -254,7 +250,7 @@ describe('finalizeTask', () => {
     expect(error.message).toContain('output.verification');
   });
 
-  it('does not call /fail when the startup heartbeat observes cancellation', async () => {
+  it('does not call /failAttempt when the startup heartbeat observes cancellation', async () => {
     stub.heartbeat.mockResolvedValueOnce({
       claimExpiresAt: new Date(0).toISOString(),
       cancelled: true,
@@ -269,7 +265,7 @@ describe('finalizeTask', () => {
   it('is a no-op for cancelled outputs', async () => {
     await finalizeTask(stub.agent, makeOutput('cancelled', null));
     expect(stub.heartbeat).not.toHaveBeenCalled();
-    expect(stub.fail).not.toHaveBeenCalled();
+    expect(stub.failAttempt).not.toHaveBeenCalled();
     expect(stub.complete).not.toHaveBeenCalled();
   });
 });
@@ -413,7 +409,7 @@ describe('finalizeTask — fulfill_brief correlation hook', () => {
       { task: FULFILL_TASK, writeCorrelationAnchors: writer },
     );
     expect(m.complete).not.toHaveBeenCalled();
-    expect(m.fail).not.toHaveBeenCalled();
+    expect(m.failAttempt).not.toHaveBeenCalled();
     expect(writer).not.toHaveBeenCalled();
   });
 });
