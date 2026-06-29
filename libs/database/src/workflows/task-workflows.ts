@@ -168,6 +168,11 @@ function getDeps(): TaskWorkflowDeps {
   return workflowDeps;
 }
 
+function isRetryableAttemptError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  return (error as { retryable?: unknown }).retryable === true;
+}
+
 export function setTaskWorkflowDeps(deps: TaskWorkflowDeps): void {
   workflowDeps = deps;
 }
@@ -447,12 +452,15 @@ export function initTaskWorkflows(): void {
             | (TaskProgressEvent & { kind: 'cancelled' }),
         ): Promise<TaskAttemptFinalEvent> {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
-          // `aborted` (intentional claimant abandonment, e.g. daemon
-          // shutdown) is retryable like `failed`: the task requeues so
-          // another daemon can reclaim it. Only when retries are exhausted
-          // does it settle the task terminally (see status mapping below).
+          // Failed attempts only retry when the executor explicitly marks the
+          // attempt error as retryable. The workflow owns requeue/final state,
+          // but it must not infer transport/provider semantics from opaque
+          // error codes. `aborted` is a server-defined attempt outcome (daemon
+          // shutdown/claimant abandonment), so it remains retryable while
+          // attempts remain.
           const canRetry =
-            (evt.kind === 'failed' || evt.kind === 'aborted') &&
+            ((evt.kind === 'failed' && isRetryableAttemptError(evt.error)) ||
+              evt.kind === 'aborted') &&
             attemptCount < maxAttempts;
           const now = new Date();
           const { taskNow, isTerminal } = await checkExternalTerminal();

@@ -177,3 +177,83 @@ describe('startAttemptWorkflow — timeout paths', () => {
     }
   });
 });
+
+describe('startAttemptWorkflow — failed attempt retry policy', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _resetTaskWorkflowsForTesting();
+  });
+
+  it('requeues a failed attempt only when the error is explicitly retryable', async () => {
+    const deps = makeDeps({
+      countAttempts: vi.fn().mockResolvedValue(1),
+      getMaxAttempts: vi.fn().mockResolvedValue(2),
+    });
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+
+    vi.mocked(DBOS.recv)
+      .mockReset()
+      .mockResolvedValueOnce({ kind: 'started' } as TaskProgressEvent)
+      .mockResolvedValueOnce({
+        kind: 'failed',
+        error: {
+          code: 'provider_timeout',
+          message: 'provider timed out',
+          retryable: true,
+        },
+      } as TaskProgressEvent);
+
+    const result = await taskWorkflows.startAttemptWorkflow(
+      TASK_ID,
+      ATTEMPT_N,
+      AGENT_ID,
+      WORKFLOW_ID,
+      LEASE_TTL_SEC,
+    );
+
+    expect(result.status).toBe('failed');
+    expect(deps.updateTaskStatusIfNotIn).toHaveBeenCalledWith(
+      TASK_ID,
+      'queued',
+      ['cancelled', 'completed', 'failed', 'expired'],
+      { claimAgentId: null, claimExpiresAt: null },
+    );
+  });
+
+  it('does not infer retryability from failed attempt error codes', async () => {
+    const deps = makeDeps({
+      countAttempts: vi.fn().mockResolvedValue(1),
+      getMaxAttempts: vi.fn().mockResolvedValue(2),
+    });
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+
+    vi.mocked(DBOS.recv)
+      .mockReset()
+      .mockResolvedValueOnce({ kind: 'started' } as TaskProgressEvent)
+      .mockResolvedValueOnce({
+        kind: 'failed',
+        error: {
+          code: 'lease_expired',
+          message: 'looks transient but was not marked retryable',
+        },
+      } as TaskProgressEvent);
+
+    const result = await taskWorkflows.startAttemptWorkflow(
+      TASK_ID,
+      ATTEMPT_N,
+      AGENT_ID,
+      WORKFLOW_ID,
+      LEASE_TTL_SEC,
+    );
+
+    expect(result.status).toBe('failed');
+    expect(deps.updateTaskStatusIfNotIn).toHaveBeenCalledWith(
+      TASK_ID,
+      'failed',
+      ['cancelled', 'completed', 'failed', 'expired'],
+      { claimAgentId: null, claimExpiresAt: null },
+    );
+  });
+});
