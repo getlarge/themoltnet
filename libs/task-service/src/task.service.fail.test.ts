@@ -99,3 +99,92 @@ describe('createTaskService.failAttempt', () => {
     );
   });
 });
+
+describe('createTaskService.appendMessages', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('authorizes the active DB claimant even when Keto report is denied', async () => {
+    const deps = {
+      taskRepository: {
+        findById: vi.fn().mockResolvedValue(makeTask('running')),
+        findAttempt: vi.fn().mockResolvedValue({
+          taskId: TASK_ID,
+          attemptN: 1,
+          claimedByAgentId: AGENT_ID,
+          status: 'running',
+        }),
+        appendMessages: vi.fn().mockResolvedValue(undefined),
+      },
+      permissionChecker: {
+        canReportTask: vi.fn().mockResolvedValue(false),
+      },
+      logger: {
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      },
+    };
+    const service = createTaskService(deps as never);
+
+    const result = await service.appendMessages(
+      TASK_ID,
+      1,
+      AGENT_ID,
+      KetoNamespace.Agent,
+      [{ kind: 'info', payload: { event: 'started' } }],
+    );
+
+    expect(result).toEqual({ count: 1 });
+    expect(deps.permissionChecker.canReportTask).not.toHaveBeenCalled();
+    expect(deps.taskRepository.appendMessages).toHaveBeenCalledWith([
+      expect.objectContaining({
+        attemptN: 1,
+        kind: 'info',
+        payload: { event: 'started' },
+        taskId: TASK_ID,
+      }),
+    ]);
+  });
+
+  it('rejects append from a non-current claimant', async () => {
+    const deps = {
+      taskRepository: {
+        findById: vi.fn().mockResolvedValue(makeTask('running')),
+        findAttempt: vi.fn().mockResolvedValue({
+          taskId: TASK_ID,
+          attemptN: 1,
+          claimedByAgentId: AGENT_ID,
+          status: 'running',
+        }),
+        appendMessages: vi.fn().mockResolvedValue(undefined),
+      },
+      permissionChecker: {
+        canReportTask: vi.fn().mockResolvedValue(true),
+      },
+      logger: {
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      },
+    };
+    const service = createTaskService(deps as never);
+
+    await expect(
+      service.appendMessages(
+        TASK_ID,
+        1,
+        '00000000-0000-4000-8000-000000000099',
+        KetoNamespace.Agent,
+        [{ kind: 'info', payload: { event: 'started' } }],
+      ),
+    ).rejects.toMatchObject({
+      code: 'forbidden',
+      message: 'Only the active claiming agent may append messages',
+    });
+    expect(deps.taskRepository.appendMessages).not.toHaveBeenCalled();
+  });
+});

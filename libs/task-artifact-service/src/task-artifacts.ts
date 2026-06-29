@@ -147,18 +147,13 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
           `Attempt ${input.attemptN} is already in terminal state: ${attempt.status}`,
         );
       }
-      const canReport = await deps.permissionChecker.canReportTask(
-        input.taskId,
-        input.identityId,
-        input.subjectNs,
-      );
-      if (!canReport) {
+      const task = await assertTaskInTeam(deps, input);
+      if (task.claimAgentId !== input.identityId) {
         throw new TaskArtifactServiceError(
           403,
-          'Not authorized to report on this task',
+          'Only the active claiming agent may upload task artifacts',
         );
       }
-
       const staged = await stageArtifactUpload(input.body, {
         maxBytes: deps.taskArtifactMaxBytes,
       });

@@ -95,6 +95,15 @@ export function createRuntimeSessionService(deps: RuntimeSessionServiceDeps) {
       await requireTeamAccess(deps, input);
       const attempt = await assertTaskAttemptInTeam(deps, input);
       assertAttemptUploader(attempt, input.identityId);
+      if (!ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
+        const task = await assertTaskInTeam(deps, input);
+        if (task.claimAgentId !== input.identityId) {
+          throw createProblem(
+            'forbidden',
+            'Only the active claiming agent may upload this runtime session',
+          );
+        }
+      }
       await requireUploadAccess(deps, input, attempt);
       const sourceSlot = await assertSourceSlotInTeam(
         deps,
@@ -261,34 +270,10 @@ async function requireTaskReadAccess(
   if (!canView) throw createProblem('not-found');
 }
 
-async function requireTaskReportAccess(
+async function assertTaskInTeam(
   deps: RuntimeSessionServiceDeps,
-  input: RuntimeSessionSubject & { taskId: string },
+  input: { taskId: string; teamId: string },
 ) {
-  const canReport = await deps.permissionChecker.canReportTask(
-    input.taskId,
-    input.identityId,
-    input.subjectNs,
-  );
-  if (!canReport) throw createProblem('forbidden');
-}
-
-async function requireUploadAccess(
-  deps: RuntimeSessionServiceDeps,
-  input: RuntimeSessionSubject & { taskId: string },
-  attempt: TaskAttempt,
-) {
-  if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
-    await requireTaskReadAccess(deps, input);
-    return;
-  }
-  await requireTaskReportAccess(deps, input);
-}
-
-async function assertTaskAttemptInTeam(
-  deps: RuntimeSessionServiceDeps,
-  input: { attemptN: number; taskId: string; teamId: string },
-): Promise<TaskAttempt> {
   const task = await deps.taskRepository.findById(input.taskId);
   if (!task || task.teamId !== input.teamId) {
     throw createValidationProblem(
@@ -301,6 +286,25 @@ async function assertTaskAttemptInTeam(
       'runtime session task does not resolve in team',
     );
   }
+  return task;
+}
+
+async function requireUploadAccess(
+  deps: RuntimeSessionServiceDeps,
+  input: RuntimeSessionSubject & { taskId: string },
+  attempt: TaskAttempt,
+) {
+  if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
+    await requireTaskReadAccess(deps, input);
+    return;
+  }
+}
+
+async function assertTaskAttemptInTeam(
+  deps: RuntimeSessionServiceDeps,
+  input: { attemptN: number; taskId: string; teamId: string },
+): Promise<TaskAttempt> {
+  await assertTaskInTeam(deps, input);
   const attempt = await deps.taskRepository.findAttempt(
     input.taskId,
     input.attemptN,

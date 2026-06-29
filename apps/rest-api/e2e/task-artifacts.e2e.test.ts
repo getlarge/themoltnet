@@ -22,6 +22,10 @@ import {
   taskHeartbeat,
   uploadTaskArtifact,
 } from '@moltnet/api-client';
+import {
+  createRelationshipWriter,
+  type RelationshipWriter,
+} from '@moltnet/auth';
 import { computeBytesCid } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -31,6 +35,7 @@ import { createTestHarness, type TestHarness } from './setup.js';
 describe('Task artifacts API', () => {
   let harness: TestHarness;
   let client: Client;
+  let relationshipWriter: RelationshipWriter;
   let owner: TestAgent;
   let teammate: TestAgent;
   let outsider: TestAgent;
@@ -40,6 +45,9 @@ describe('Task artifacts API', () => {
   beforeAll(async () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
+    relationshipWriter = createRelationshipWriter(
+      harness.oryClients.relationship,
+    );
 
     [owner, teammate, outsider] = await Promise.all([
       createAgent({
@@ -223,6 +231,31 @@ describe('Task artifacts API', () => {
 
     expect(upload.response.status).toBe(403);
     expect(upload.error).toBeDefined();
+  });
+
+  it('allows active DB claimant to upload when Keto claimant tuple is missing', async () => {
+    const { attemptN, taskId } = await createClaimedTask(
+      'task artifact upload with missing Keto claimant tuple',
+    );
+
+    await relationshipWriter.removeTaskClaimant(taskId, teammate.identityId);
+
+    const upload = await uploadTaskArtifact({
+      client,
+      auth: () => teammate.accessToken,
+      body: new Blob(['claim lease wins'], {
+        type: 'application/octet-stream',
+      }),
+      headers: {
+        'content-type': 'application/octet-stream',
+        'x-moltnet-team-id': teamId,
+      },
+      path: { attemptN, taskId },
+      query: { contentType: 'text/plain', kind: 'text', title: 'lease' },
+    });
+
+    expect(upload.response.status).toBe(200);
+    expect(upload.error).toBeUndefined();
   });
 
   it('handles duplicate CID uploads idempotently and rejects metadata conflicts', async () => {

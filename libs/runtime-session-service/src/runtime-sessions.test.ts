@@ -91,7 +91,11 @@ function createDeps() {
       }),
     },
     taskRepository: {
-      findById: vi.fn().mockResolvedValue({ id: TASK_ID, teamId: TEAM_ID }),
+      findById: vi.fn().mockResolvedValue({
+        claimAgentId: AGENT_ID,
+        id: TASK_ID,
+        teamId: TEAM_ID,
+      }),
       findAttempt: vi.fn().mockResolvedValue({
         attemptN: 1,
         claimedByAgentId: AGENT_ID,
@@ -179,6 +183,30 @@ describe('createRuntimeSessionService', () => {
     expect(storage.putObject).not.toHaveBeenCalled();
   });
 
+  it('rejects running upload when the task claim moved to another agent', async () => {
+    vi.mocked(deps.taskRepository.findById).mockResolvedValue({
+      claimAgentId: '00000000-0000-4000-8000-000000000000',
+      id: TASK_ID,
+      teamId: TEAM_ID,
+    } as never);
+
+    await expect(
+      subject.upload({
+        attemptN: 1,
+        body: Readable.from(['{"session":"one"}\n']),
+        identityId: AGENT_ID,
+        query: { sessionKind: 'root' },
+        subjectNs: KetoNamespace.Agent,
+        taskId: TASK_ID,
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      statusCode: 403,
+    });
+    expect(storage.putObject).not.toHaveBeenCalled();
+  });
+
   it('allows the claiming agent to repair-upload after terminal finalization without report access', async () => {
     vi.mocked(deps.taskRepository.findAttempt).mockResolvedValue({
       attemptN: 1,
@@ -209,24 +237,24 @@ describe('createRuntimeSessionService', () => {
     );
   });
 
-  it('rejects running upload when the claiming agent lacks report access', async () => {
+  it('allows running upload by the active DB claimant without report access', async () => {
     vi.mocked(deps.permissionChecker.canReportTask).mockResolvedValue(false);
-
-    await expect(
-      subject.upload({
-        attemptN: 1,
-        body: Readable.from(['{"session":"running"}\n']),
-        identityId: AGENT_ID,
-        query: { sessionKind: 'root' },
-        subjectNs: KetoNamespace.Agent,
-        taskId: TASK_ID,
-        teamId: TEAM_ID,
-      }),
-    ).rejects.toMatchObject({
-      code: 'FORBIDDEN',
-      statusCode: 403,
+    vi.mocked(storage.putObject).mockImplementation(async (input) => {
+      await readStream(input.body);
     });
-    expect(storage.putObject).not.toHaveBeenCalled();
+
+    await subject.upload({
+      attemptN: 1,
+      body: Readable.from(['{"session":"running"}\n']),
+      identityId: AGENT_ID,
+      query: { sessionKind: 'root' },
+      subjectNs: KetoNamespace.Agent,
+      taskId: TASK_ID,
+      teamId: TEAM_ID,
+    });
+
+    expect(deps.permissionChecker.canReportTask).not.toHaveBeenCalled();
+    expect(storage.putObject).toHaveBeenCalledOnce();
   });
 
   it('decompresses stored gzip content when downloading', async () => {

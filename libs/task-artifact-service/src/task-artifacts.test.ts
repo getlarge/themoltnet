@@ -81,7 +81,11 @@ function createDeps() {
       }),
     },
     taskRepository: {
-      findById: vi.fn().mockResolvedValue({ id: TASK_ID, teamId: TEAM_ID }),
+      findById: vi.fn().mockResolvedValue({
+        claimAgentId: AGENT_ID,
+        id: TASK_ID,
+        teamId: TEAM_ID,
+      }),
       findAttempt: vi.fn().mockResolvedValue({
         attemptN: 1,
         claimedByAgentId: AGENT_ID,
@@ -167,6 +171,25 @@ describe('createTaskArtifactService', () => {
     expect(deps.taskArtifactRepository.createForAttempt).toHaveBeenCalledOnce();
   });
 
+  it('uploads for the active DB claimant even when Keto report is denied', async () => {
+    vi.mocked(deps.permissionChecker.canReportTask).mockResolvedValue(false);
+
+    await subject.upload({
+      attemptN: 1,
+      body: Readable.from(['{"ok":true}']),
+      contentType: 'application/json',
+      identityId: AGENT_ID,
+      kind: 'json',
+      subjectNs: KetoNamespace.Agent,
+      taskId: TASK_ID,
+      teamId: TEAM_ID,
+      title: 'result',
+    });
+
+    expect(deps.permissionChecker.canReportTask).not.toHaveBeenCalled();
+    expect(deps.taskArtifactRepository.createForAttempt).toHaveBeenCalledOnce();
+  });
+
   it('rejects upload by an agent that did not claim the attempt', async () => {
     vi.mocked(deps.taskRepository.findAttempt).mockResolvedValue({
       attemptN: 1,
@@ -188,6 +211,32 @@ describe('createTaskArtifactService', () => {
         title: 'result',
       }),
     ).rejects.toBeInstanceOf(TaskArtifactServiceError);
+  });
+
+  it('rejects upload when the task claim has moved to another agent', async () => {
+    vi.mocked(deps.taskRepository.findById).mockResolvedValue({
+      claimAgentId: '00000000-0000-4000-8000-000000000000',
+      id: TASK_ID,
+      teamId: TEAM_ID,
+    } as never);
+
+    await expect(
+      subject.upload({
+        attemptN: 1,
+        body: Readable.from(['{"ok":true}']),
+        contentType: 'application/json',
+        identityId: AGENT_ID,
+        kind: 'json',
+        subjectNs: KetoNamespace.Agent,
+        taskId: TASK_ID,
+        teamId: TEAM_ID,
+        title: 'result',
+      }),
+    ).rejects.toMatchObject({
+      message: 'Only the active claiming agent may upload task artifacts',
+      statusCode: 403,
+    });
+    expect(storage.putObject).not.toHaveBeenCalled();
   });
 
   it('lists artifacts for a task visible to the subject', async () => {
