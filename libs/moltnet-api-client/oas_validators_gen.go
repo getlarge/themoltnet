@@ -708,6 +708,8 @@ func (s BeginRuntimeSlotBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -812,6 +814,8 @@ func (s BeginRuntimeSlotConflictCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -918,6 +922,8 @@ func (s BeginRuntimeSlotForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -1022,6 +1028,8 @@ func (s BeginRuntimeSlotNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -1749,6 +1757,8 @@ func (s BeginRuntimeSlotUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -2581,6 +2591,8 @@ func (s ConflictProblemDetailsCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -8215,6 +8227,8 @@ func (s DownloadRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -8319,6 +8333,8 @@ func (s DownloadRuntimeSessionForbiddenCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -8425,6 +8441,8 @@ func (s DownloadRuntimeSessionNotFoundCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -8530,6 +8548,8 @@ func (s DownloadRuntimeSessionServiceUnavailableCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -8634,6 +8654,8 @@ func (s DownloadRuntimeSessionUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -8751,6 +8773,8 @@ func (s DownloadTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -8855,6 +8879,8 @@ func (s DownloadTaskArtifactForbiddenCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -8961,6 +8987,8 @@ func (s DownloadTaskArtifactNotFoundCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -9066,6 +9094,8 @@ func (s DownloadTaskArtifactServiceUnavailableCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -9170,6 +9200,8 @@ func (s DownloadTaskArtifactUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -9733,6 +9765,8 @@ func (s FindLatestRuntimeSlotForAttemptBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -9838,6 +9872,8 @@ func (s FindLatestRuntimeSlotForAttemptForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -9942,6 +9978,8 @@ func (s FindLatestRuntimeSlotForAttemptNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -10536,6 +10574,8 @@ func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -10652,6 +10692,8 @@ func (s FinishRuntimeSlotBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -10756,6 +10798,8 @@ func (s FinishRuntimeSlotConflictCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -10862,6 +10906,8 @@ func (s FinishRuntimeSlotForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -10966,6 +11012,8 @@ func (s FinishRuntimeSlotNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -11519,6 +11567,8 @@ func (s FinishRuntimeSlotUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -12239,6 +12289,8 @@ func (s GetProblemTypeType) Validate() error {
 		return nil
 	case "validation-failed":
 		return nil
+	case "unsupported-media-type":
+		return nil
 	case "invalid-challenge":
 		return nil
 	case "invalid-signature":
@@ -12483,6 +12535,8 @@ func (s GetRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -12588,6 +12642,8 @@ func (s GetRuntimeSessionForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -12692,6 +12748,8 @@ func (s GetRuntimeSessionNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -13006,6 +13064,8 @@ func (s GetRuntimeSessionUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -14188,6 +14248,8 @@ func (s ListRuntimeSlotsBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -14293,6 +14355,8 @@ func (s ListRuntimeSlotsForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -14397,6 +14461,8 @@ func (s ListRuntimeSlotsNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -15042,6 +15108,8 @@ func (s ListRuntimeSlotsUnauthorizedCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -15195,6 +15263,8 @@ func (s ListTaskArtifactsBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -15300,6 +15370,8 @@ func (s ListTaskArtifactsForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -15404,6 +15476,8 @@ func (s ListTaskArtifactsNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -15755,6 +15829,8 @@ func (s ListTaskArtifactsUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -17099,6 +17175,8 @@ func (s ProblemDetailsCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -27177,6 +27255,8 @@ func (s UploadRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -27281,6 +27361,8 @@ func (s UploadRuntimeSessionConflictCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -27387,6 +27469,8 @@ func (s UploadRuntimeSessionForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -27491,6 +27575,8 @@ func (s UploadRuntimeSessionNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -27806,6 +27892,8 @@ func (s UploadRuntimeSessionServiceUnavailableCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -27924,6 +28012,8 @@ func (s UploadRuntimeSessionUnauthorizedCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -28040,6 +28130,8 @@ func (s UploadTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -28145,6 +28237,8 @@ func (s UploadTaskArtifactForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -28249,6 +28343,8 @@ func (s UploadTaskArtifactNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -28531,6 +28627,8 @@ func (s UploadTaskArtifactServiceUnavailableCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
+		return nil
 	case "VALIDATION_FAILED":
 		return nil
 	case "INVALID_CHALLENGE":
@@ -28635,6 +28733,8 @@ func (s UploadTaskArtifactUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil
@@ -28751,6 +28851,8 @@ func (s ValidationProblemDetailsCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil

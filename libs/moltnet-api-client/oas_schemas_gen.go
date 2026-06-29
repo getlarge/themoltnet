@@ -800,6 +800,7 @@ const (
 	BeginRuntimeSlotBadRequestCodeFORBIDDEN                      BeginRuntimeSlotBadRequestCode = "FORBIDDEN"
 	BeginRuntimeSlotBadRequestCodeNOTFOUND                       BeginRuntimeSlotBadRequestCode = "NOT_FOUND"
 	BeginRuntimeSlotBadRequestCodeCONFLICT                       BeginRuntimeSlotBadRequestCode = "CONFLICT"
+	BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE           BeginRuntimeSlotBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
 	BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED               BeginRuntimeSlotBadRequestCode = "VALIDATION_FAILED"
 	BeginRuntimeSlotBadRequestCodeINVALIDCHALLENGE               BeginRuntimeSlotBadRequestCode = "INVALID_CHALLENGE"
 	BeginRuntimeSlotBadRequestCodeINVALIDSIGNATURE               BeginRuntimeSlotBadRequestCode = "INVALID_SIGNATURE"
@@ -832,6 +833,7 @@ func (BeginRuntimeSlotBadRequestCode) AllValues() []BeginRuntimeSlotBadRequestCo
 		BeginRuntimeSlotBadRequestCodeFORBIDDEN,
 		BeginRuntimeSlotBadRequestCodeNOTFOUND,
 		BeginRuntimeSlotBadRequestCodeCONFLICT,
+		BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE,
 		BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED,
 		BeginRuntimeSlotBadRequestCodeINVALIDCHALLENGE,
 		BeginRuntimeSlotBadRequestCodeINVALIDSIGNATURE,
@@ -868,6 +870,8 @@ func (s BeginRuntimeSlotBadRequestCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotBadRequestCodeNOTFOUND:
 		return []byte(s), nil
 	case BeginRuntimeSlotBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -934,6 +938,9 @@ func (s *BeginRuntimeSlotBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotBadRequestCodeCONFLICT:
 		*s = BeginRuntimeSlotBadRequestCodeCONFLICT
+		return nil
+	case BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED:
 		*s = BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED
@@ -1157,6 +1164,7 @@ const (
 	BeginRuntimeSlotConflictCodeFORBIDDEN                      BeginRuntimeSlotConflictCode = "FORBIDDEN"
 	BeginRuntimeSlotConflictCodeNOTFOUND                       BeginRuntimeSlotConflictCode = "NOT_FOUND"
 	BeginRuntimeSlotConflictCodeCONFLICT                       BeginRuntimeSlotConflictCode = "CONFLICT"
+	BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE           BeginRuntimeSlotConflictCode = "UNSUPPORTED_MEDIA_TYPE"
 	BeginRuntimeSlotConflictCodeVALIDATIONFAILED               BeginRuntimeSlotConflictCode = "VALIDATION_FAILED"
 	BeginRuntimeSlotConflictCodeINVALIDCHALLENGE               BeginRuntimeSlotConflictCode = "INVALID_CHALLENGE"
 	BeginRuntimeSlotConflictCodeINVALIDSIGNATURE               BeginRuntimeSlotConflictCode = "INVALID_SIGNATURE"
@@ -1189,6 +1197,7 @@ func (BeginRuntimeSlotConflictCode) AllValues() []BeginRuntimeSlotConflictCode {
 		BeginRuntimeSlotConflictCodeFORBIDDEN,
 		BeginRuntimeSlotConflictCodeNOTFOUND,
 		BeginRuntimeSlotConflictCodeCONFLICT,
+		BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE,
 		BeginRuntimeSlotConflictCodeVALIDATIONFAILED,
 		BeginRuntimeSlotConflictCodeINVALIDCHALLENGE,
 		BeginRuntimeSlotConflictCodeINVALIDSIGNATURE,
@@ -1225,6 +1234,8 @@ func (s BeginRuntimeSlotConflictCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotConflictCodeNOTFOUND:
 		return []byte(s), nil
 	case BeginRuntimeSlotConflictCodeCONFLICT:
+		return []byte(s), nil
+	case BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case BeginRuntimeSlotConflictCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -1291,6 +1302,9 @@ func (s *BeginRuntimeSlotConflictCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotConflictCodeCONFLICT:
 		*s = BeginRuntimeSlotConflictCodeCONFLICT
+		return nil
+	case BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE:
+		*s = BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case BeginRuntimeSlotConflictCodeVALIDATIONFAILED:
 		*s = BeginRuntimeSlotConflictCodeVALIDATIONFAILED
@@ -1538,6 +1552,7 @@ const (
 	BeginRuntimeSlotForbiddenCodeFORBIDDEN                      BeginRuntimeSlotForbiddenCode = "FORBIDDEN"
 	BeginRuntimeSlotForbiddenCodeNOTFOUND                       BeginRuntimeSlotForbiddenCode = "NOT_FOUND"
 	BeginRuntimeSlotForbiddenCodeCONFLICT                       BeginRuntimeSlotForbiddenCode = "CONFLICT"
+	BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE           BeginRuntimeSlotForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
 	BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED               BeginRuntimeSlotForbiddenCode = "VALIDATION_FAILED"
 	BeginRuntimeSlotForbiddenCodeINVALIDCHALLENGE               BeginRuntimeSlotForbiddenCode = "INVALID_CHALLENGE"
 	BeginRuntimeSlotForbiddenCodeINVALIDSIGNATURE               BeginRuntimeSlotForbiddenCode = "INVALID_SIGNATURE"
@@ -1570,6 +1585,7 @@ func (BeginRuntimeSlotForbiddenCode) AllValues() []BeginRuntimeSlotForbiddenCode
 		BeginRuntimeSlotForbiddenCodeFORBIDDEN,
 		BeginRuntimeSlotForbiddenCodeNOTFOUND,
 		BeginRuntimeSlotForbiddenCodeCONFLICT,
+		BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE,
 		BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED,
 		BeginRuntimeSlotForbiddenCodeINVALIDCHALLENGE,
 		BeginRuntimeSlotForbiddenCodeINVALIDSIGNATURE,
@@ -1606,6 +1622,8 @@ func (s BeginRuntimeSlotForbiddenCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotForbiddenCodeNOTFOUND:
 		return []byte(s), nil
 	case BeginRuntimeSlotForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -1672,6 +1690,9 @@ func (s *BeginRuntimeSlotForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotForbiddenCodeCONFLICT:
 		*s = BeginRuntimeSlotForbiddenCodeCONFLICT
+		return nil
+	case BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED:
 		*s = BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED
@@ -1847,6 +1868,7 @@ const (
 	BeginRuntimeSlotNotFoundCodeFORBIDDEN                      BeginRuntimeSlotNotFoundCode = "FORBIDDEN"
 	BeginRuntimeSlotNotFoundCodeNOTFOUND                       BeginRuntimeSlotNotFoundCode = "NOT_FOUND"
 	BeginRuntimeSlotNotFoundCodeCONFLICT                       BeginRuntimeSlotNotFoundCode = "CONFLICT"
+	BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE           BeginRuntimeSlotNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
 	BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED               BeginRuntimeSlotNotFoundCode = "VALIDATION_FAILED"
 	BeginRuntimeSlotNotFoundCodeINVALIDCHALLENGE               BeginRuntimeSlotNotFoundCode = "INVALID_CHALLENGE"
 	BeginRuntimeSlotNotFoundCodeINVALIDSIGNATURE               BeginRuntimeSlotNotFoundCode = "INVALID_SIGNATURE"
@@ -1879,6 +1901,7 @@ func (BeginRuntimeSlotNotFoundCode) AllValues() []BeginRuntimeSlotNotFoundCode {
 		BeginRuntimeSlotNotFoundCodeFORBIDDEN,
 		BeginRuntimeSlotNotFoundCodeNOTFOUND,
 		BeginRuntimeSlotNotFoundCodeCONFLICT,
+		BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE,
 		BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED,
 		BeginRuntimeSlotNotFoundCodeINVALIDCHALLENGE,
 		BeginRuntimeSlotNotFoundCodeINVALIDSIGNATURE,
@@ -1915,6 +1938,8 @@ func (s BeginRuntimeSlotNotFoundCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotNotFoundCodeNOTFOUND:
 		return []byte(s), nil
 	case BeginRuntimeSlotNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -1981,6 +2006,9 @@ func (s *BeginRuntimeSlotNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotNotFoundCodeCONFLICT:
 		*s = BeginRuntimeSlotNotFoundCodeCONFLICT
+		return nil
+	case BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED:
 		*s = BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED
@@ -2594,6 +2622,7 @@ const (
 	BeginRuntimeSlotUnauthorizedCodeFORBIDDEN                      BeginRuntimeSlotUnauthorizedCode = "FORBIDDEN"
 	BeginRuntimeSlotUnauthorizedCodeNOTFOUND                       BeginRuntimeSlotUnauthorizedCode = "NOT_FOUND"
 	BeginRuntimeSlotUnauthorizedCodeCONFLICT                       BeginRuntimeSlotUnauthorizedCode = "CONFLICT"
+	BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE           BeginRuntimeSlotUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
 	BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED               BeginRuntimeSlotUnauthorizedCode = "VALIDATION_FAILED"
 	BeginRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE               BeginRuntimeSlotUnauthorizedCode = "INVALID_CHALLENGE"
 	BeginRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE               BeginRuntimeSlotUnauthorizedCode = "INVALID_SIGNATURE"
@@ -2626,6 +2655,7 @@ func (BeginRuntimeSlotUnauthorizedCode) AllValues() []BeginRuntimeSlotUnauthoriz
 		BeginRuntimeSlotUnauthorizedCodeFORBIDDEN,
 		BeginRuntimeSlotUnauthorizedCodeNOTFOUND,
 		BeginRuntimeSlotUnauthorizedCodeCONFLICT,
+		BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
 		BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED,
 		BeginRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE,
 		BeginRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE,
@@ -2662,6 +2692,8 @@ func (s BeginRuntimeSlotUnauthorizedCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
 	case BeginRuntimeSlotUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -2728,6 +2760,9 @@ func (s *BeginRuntimeSlotUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotUnauthorizedCodeCONFLICT:
 		*s = BeginRuntimeSlotUnauthorizedCodeCONFLICT
+		return nil
+	case BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
 		*s = BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED
@@ -3689,6 +3724,7 @@ const (
 	ConflictProblemDetailsCodeFORBIDDEN                      ConflictProblemDetailsCode = "FORBIDDEN"
 	ConflictProblemDetailsCodeNOTFOUND                       ConflictProblemDetailsCode = "NOT_FOUND"
 	ConflictProblemDetailsCodeCONFLICT                       ConflictProblemDetailsCode = "CONFLICT"
+	ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE           ConflictProblemDetailsCode = "UNSUPPORTED_MEDIA_TYPE"
 	ConflictProblemDetailsCodeVALIDATIONFAILED               ConflictProblemDetailsCode = "VALIDATION_FAILED"
 	ConflictProblemDetailsCodeINVALIDCHALLENGE               ConflictProblemDetailsCode = "INVALID_CHALLENGE"
 	ConflictProblemDetailsCodeINVALIDSIGNATURE               ConflictProblemDetailsCode = "INVALID_SIGNATURE"
@@ -3721,6 +3757,7 @@ func (ConflictProblemDetailsCode) AllValues() []ConflictProblemDetailsCode {
 		ConflictProblemDetailsCodeFORBIDDEN,
 		ConflictProblemDetailsCodeNOTFOUND,
 		ConflictProblemDetailsCodeCONFLICT,
+		ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE,
 		ConflictProblemDetailsCodeVALIDATIONFAILED,
 		ConflictProblemDetailsCodeINVALIDCHALLENGE,
 		ConflictProblemDetailsCodeINVALIDSIGNATURE,
@@ -3757,6 +3794,8 @@ func (s ConflictProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ConflictProblemDetailsCodeNOTFOUND:
 		return []byte(s), nil
 	case ConflictProblemDetailsCodeCONFLICT:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ConflictProblemDetailsCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -3823,6 +3862,9 @@ func (s *ConflictProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ConflictProblemDetailsCodeCONFLICT:
 		*s = ConflictProblemDetailsCodeCONFLICT
+		return nil
+	case ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
+		*s = ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ConflictProblemDetailsCodeVALIDATIONFAILED:
 		*s = ConflictProblemDetailsCodeVALIDATIONFAILED
@@ -10873,6 +10915,7 @@ const (
 	DownloadRuntimeSessionBadRequestCodeFORBIDDEN                      DownloadRuntimeSessionBadRequestCode = "FORBIDDEN"
 	DownloadRuntimeSessionBadRequestCodeNOTFOUND                       DownloadRuntimeSessionBadRequestCode = "NOT_FOUND"
 	DownloadRuntimeSessionBadRequestCodeCONFLICT                       DownloadRuntimeSessionBadRequestCode = "CONFLICT"
+	DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE           DownloadRuntimeSessionBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
 	DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED               DownloadRuntimeSessionBadRequestCode = "VALIDATION_FAILED"
 	DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE               DownloadRuntimeSessionBadRequestCode = "INVALID_CHALLENGE"
 	DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE               DownloadRuntimeSessionBadRequestCode = "INVALID_SIGNATURE"
@@ -10905,6 +10948,7 @@ func (DownloadRuntimeSessionBadRequestCode) AllValues() []DownloadRuntimeSession
 		DownloadRuntimeSessionBadRequestCodeFORBIDDEN,
 		DownloadRuntimeSessionBadRequestCodeNOTFOUND,
 		DownloadRuntimeSessionBadRequestCodeCONFLICT,
+		DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE,
 		DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED,
 		DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE,
 		DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE,
@@ -10941,6 +10985,8 @@ func (s DownloadRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionBadRequestCodeNOTFOUND:
 		return []byte(s), nil
 	case DownloadRuntimeSessionBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -11007,6 +11053,9 @@ func (s *DownloadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error 
 		return nil
 	case DownloadRuntimeSessionBadRequestCodeCONFLICT:
 		*s = DownloadRuntimeSessionBadRequestCodeCONFLICT
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
 		*s = DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED
@@ -11218,6 +11267,7 @@ const (
 	DownloadRuntimeSessionForbiddenCodeFORBIDDEN                      DownloadRuntimeSessionForbiddenCode = "FORBIDDEN"
 	DownloadRuntimeSessionForbiddenCodeNOTFOUND                       DownloadRuntimeSessionForbiddenCode = "NOT_FOUND"
 	DownloadRuntimeSessionForbiddenCodeCONFLICT                       DownloadRuntimeSessionForbiddenCode = "CONFLICT"
+	DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE           DownloadRuntimeSessionForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
 	DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED               DownloadRuntimeSessionForbiddenCode = "VALIDATION_FAILED"
 	DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE               DownloadRuntimeSessionForbiddenCode = "INVALID_CHALLENGE"
 	DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE               DownloadRuntimeSessionForbiddenCode = "INVALID_SIGNATURE"
@@ -11250,6 +11300,7 @@ func (DownloadRuntimeSessionForbiddenCode) AllValues() []DownloadRuntimeSessionF
 		DownloadRuntimeSessionForbiddenCodeFORBIDDEN,
 		DownloadRuntimeSessionForbiddenCodeNOTFOUND,
 		DownloadRuntimeSessionForbiddenCodeCONFLICT,
+		DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE,
 		DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED,
 		DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE,
 		DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE,
@@ -11286,6 +11337,8 @@ func (s DownloadRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionForbiddenCodeNOTFOUND:
 		return []byte(s), nil
 	case DownloadRuntimeSessionForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -11352,6 +11405,9 @@ func (s *DownloadRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadRuntimeSessionForbiddenCodeCONFLICT:
 		*s = DownloadRuntimeSessionForbiddenCodeCONFLICT
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
 		*s = DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED
@@ -11527,6 +11583,7 @@ const (
 	DownloadRuntimeSessionNotFoundCodeFORBIDDEN                      DownloadRuntimeSessionNotFoundCode = "FORBIDDEN"
 	DownloadRuntimeSessionNotFoundCodeNOTFOUND                       DownloadRuntimeSessionNotFoundCode = "NOT_FOUND"
 	DownloadRuntimeSessionNotFoundCodeCONFLICT                       DownloadRuntimeSessionNotFoundCode = "CONFLICT"
+	DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE           DownloadRuntimeSessionNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
 	DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED               DownloadRuntimeSessionNotFoundCode = "VALIDATION_FAILED"
 	DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE               DownloadRuntimeSessionNotFoundCode = "INVALID_CHALLENGE"
 	DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE               DownloadRuntimeSessionNotFoundCode = "INVALID_SIGNATURE"
@@ -11559,6 +11616,7 @@ func (DownloadRuntimeSessionNotFoundCode) AllValues() []DownloadRuntimeSessionNo
 		DownloadRuntimeSessionNotFoundCodeFORBIDDEN,
 		DownloadRuntimeSessionNotFoundCodeNOTFOUND,
 		DownloadRuntimeSessionNotFoundCodeCONFLICT,
+		DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE,
 		DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED,
 		DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE,
 		DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE,
@@ -11595,6 +11653,8 @@ func (s DownloadRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionNotFoundCodeNOTFOUND:
 		return []byte(s), nil
 	case DownloadRuntimeSessionNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -11661,6 +11721,9 @@ func (s *DownloadRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadRuntimeSessionNotFoundCodeCONFLICT:
 		*s = DownloadRuntimeSessionNotFoundCodeCONFLICT
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
 		*s = DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED
@@ -11853,6 +11916,7 @@ const (
 	DownloadRuntimeSessionServiceUnavailableCodeFORBIDDEN                      DownloadRuntimeSessionServiceUnavailableCode = "FORBIDDEN"
 	DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND                       DownloadRuntimeSessionServiceUnavailableCode = "NOT_FOUND"
 	DownloadRuntimeSessionServiceUnavailableCodeCONFLICT                       DownloadRuntimeSessionServiceUnavailableCode = "CONFLICT"
+	DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE           DownloadRuntimeSessionServiceUnavailableCode = "UNSUPPORTED_MEDIA_TYPE"
 	DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED               DownloadRuntimeSessionServiceUnavailableCode = "VALIDATION_FAILED"
 	DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE               DownloadRuntimeSessionServiceUnavailableCode = "INVALID_CHALLENGE"
 	DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE               DownloadRuntimeSessionServiceUnavailableCode = "INVALID_SIGNATURE"
@@ -11885,6 +11949,7 @@ func (DownloadRuntimeSessionServiceUnavailableCode) AllValues() []DownloadRuntim
 		DownloadRuntimeSessionServiceUnavailableCodeFORBIDDEN,
 		DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND,
 		DownloadRuntimeSessionServiceUnavailableCodeCONFLICT,
+		DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE,
 		DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED,
 		DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE,
 		DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE,
@@ -11921,6 +11986,8 @@ func (s DownloadRuntimeSessionServiceUnavailableCode) MarshalText() ([]byte, err
 	case DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND:
 		return []byte(s), nil
 	case DownloadRuntimeSessionServiceUnavailableCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -11987,6 +12054,9 @@ func (s *DownloadRuntimeSessionServiceUnavailableCode) UnmarshalText(data []byte
 		return nil
 	case DownloadRuntimeSessionServiceUnavailableCodeCONFLICT:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeCONFLICT
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED
@@ -12162,6 +12232,7 @@ const (
 	DownloadRuntimeSessionUnauthorizedCodeFORBIDDEN                      DownloadRuntimeSessionUnauthorizedCode = "FORBIDDEN"
 	DownloadRuntimeSessionUnauthorizedCodeNOTFOUND                       DownloadRuntimeSessionUnauthorizedCode = "NOT_FOUND"
 	DownloadRuntimeSessionUnauthorizedCodeCONFLICT                       DownloadRuntimeSessionUnauthorizedCode = "CONFLICT"
+	DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE           DownloadRuntimeSessionUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
 	DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED               DownloadRuntimeSessionUnauthorizedCode = "VALIDATION_FAILED"
 	DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE               DownloadRuntimeSessionUnauthorizedCode = "INVALID_CHALLENGE"
 	DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE               DownloadRuntimeSessionUnauthorizedCode = "INVALID_SIGNATURE"
@@ -12194,6 +12265,7 @@ func (DownloadRuntimeSessionUnauthorizedCode) AllValues() []DownloadRuntimeSessi
 		DownloadRuntimeSessionUnauthorizedCodeFORBIDDEN,
 		DownloadRuntimeSessionUnauthorizedCodeNOTFOUND,
 		DownloadRuntimeSessionUnauthorizedCodeCONFLICT,
+		DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
 		DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED,
 		DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE,
 		DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE,
@@ -12230,6 +12302,8 @@ func (s DownloadRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
 	case DownloadRuntimeSessionUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -12296,6 +12370,9 @@ func (s *DownloadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) erro
 		return nil
 	case DownloadRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = DownloadRuntimeSessionUnauthorizedCodeCONFLICT
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
 		*s = DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
@@ -12483,6 +12560,7 @@ const (
 	DownloadTaskArtifactBadRequestCodeFORBIDDEN                      DownloadTaskArtifactBadRequestCode = "FORBIDDEN"
 	DownloadTaskArtifactBadRequestCodeNOTFOUND                       DownloadTaskArtifactBadRequestCode = "NOT_FOUND"
 	DownloadTaskArtifactBadRequestCodeCONFLICT                       DownloadTaskArtifactBadRequestCode = "CONFLICT"
+	DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE           DownloadTaskArtifactBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
 	DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED               DownloadTaskArtifactBadRequestCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactBadRequestCodeINVALIDCHALLENGE               DownloadTaskArtifactBadRequestCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactBadRequestCodeINVALIDSIGNATURE               DownloadTaskArtifactBadRequestCode = "INVALID_SIGNATURE"
@@ -12515,6 +12593,7 @@ func (DownloadTaskArtifactBadRequestCode) AllValues() []DownloadTaskArtifactBadR
 		DownloadTaskArtifactBadRequestCodeFORBIDDEN,
 		DownloadTaskArtifactBadRequestCodeNOTFOUND,
 		DownloadTaskArtifactBadRequestCodeCONFLICT,
+		DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE,
 		DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED,
 		DownloadTaskArtifactBadRequestCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactBadRequestCodeINVALIDSIGNATURE,
@@ -12551,6 +12630,8 @@ func (s DownloadTaskArtifactBadRequestCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactBadRequestCodeNOTFOUND:
 		return []byte(s), nil
 	case DownloadTaskArtifactBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -12617,6 +12698,9 @@ func (s *DownloadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadTaskArtifactBadRequestCodeCONFLICT:
 		*s = DownloadTaskArtifactBadRequestCodeCONFLICT
+		return nil
+	case DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED:
 		*s = DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED
@@ -12828,6 +12912,7 @@ const (
 	DownloadTaskArtifactForbiddenCodeFORBIDDEN                      DownloadTaskArtifactForbiddenCode = "FORBIDDEN"
 	DownloadTaskArtifactForbiddenCodeNOTFOUND                       DownloadTaskArtifactForbiddenCode = "NOT_FOUND"
 	DownloadTaskArtifactForbiddenCodeCONFLICT                       DownloadTaskArtifactForbiddenCode = "CONFLICT"
+	DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE           DownloadTaskArtifactForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
 	DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED               DownloadTaskArtifactForbiddenCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactForbiddenCodeINVALIDCHALLENGE               DownloadTaskArtifactForbiddenCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactForbiddenCodeINVALIDSIGNATURE               DownloadTaskArtifactForbiddenCode = "INVALID_SIGNATURE"
@@ -12860,6 +12945,7 @@ func (DownloadTaskArtifactForbiddenCode) AllValues() []DownloadTaskArtifactForbi
 		DownloadTaskArtifactForbiddenCodeFORBIDDEN,
 		DownloadTaskArtifactForbiddenCodeNOTFOUND,
 		DownloadTaskArtifactForbiddenCodeCONFLICT,
+		DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE,
 		DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED,
 		DownloadTaskArtifactForbiddenCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactForbiddenCodeINVALIDSIGNATURE,
@@ -12896,6 +12982,8 @@ func (s DownloadTaskArtifactForbiddenCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactForbiddenCodeNOTFOUND:
 		return []byte(s), nil
 	case DownloadTaskArtifactForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -12962,6 +13050,9 @@ func (s *DownloadTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadTaskArtifactForbiddenCodeCONFLICT:
 		*s = DownloadTaskArtifactForbiddenCodeCONFLICT
+		return nil
+	case DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED:
 		*s = DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED
@@ -13137,6 +13228,7 @@ const (
 	DownloadTaskArtifactNotFoundCodeFORBIDDEN                      DownloadTaskArtifactNotFoundCode = "FORBIDDEN"
 	DownloadTaskArtifactNotFoundCodeNOTFOUND                       DownloadTaskArtifactNotFoundCode = "NOT_FOUND"
 	DownloadTaskArtifactNotFoundCodeCONFLICT                       DownloadTaskArtifactNotFoundCode = "CONFLICT"
+	DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE           DownloadTaskArtifactNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
 	DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED               DownloadTaskArtifactNotFoundCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactNotFoundCodeINVALIDCHALLENGE               DownloadTaskArtifactNotFoundCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactNotFoundCodeINVALIDSIGNATURE               DownloadTaskArtifactNotFoundCode = "INVALID_SIGNATURE"
@@ -13169,6 +13261,7 @@ func (DownloadTaskArtifactNotFoundCode) AllValues() []DownloadTaskArtifactNotFou
 		DownloadTaskArtifactNotFoundCodeFORBIDDEN,
 		DownloadTaskArtifactNotFoundCodeNOTFOUND,
 		DownloadTaskArtifactNotFoundCodeCONFLICT,
+		DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE,
 		DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED,
 		DownloadTaskArtifactNotFoundCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactNotFoundCodeINVALIDSIGNATURE,
@@ -13205,6 +13298,8 @@ func (s DownloadTaskArtifactNotFoundCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactNotFoundCodeNOTFOUND:
 		return []byte(s), nil
 	case DownloadTaskArtifactNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -13271,6 +13366,9 @@ func (s *DownloadTaskArtifactNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadTaskArtifactNotFoundCodeCONFLICT:
 		*s = DownloadTaskArtifactNotFoundCodeCONFLICT
+		return nil
+	case DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED:
 		*s = DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED
@@ -13522,6 +13620,7 @@ const (
 	DownloadTaskArtifactServiceUnavailableCodeFORBIDDEN                      DownloadTaskArtifactServiceUnavailableCode = "FORBIDDEN"
 	DownloadTaskArtifactServiceUnavailableCodeNOTFOUND                       DownloadTaskArtifactServiceUnavailableCode = "NOT_FOUND"
 	DownloadTaskArtifactServiceUnavailableCodeCONFLICT                       DownloadTaskArtifactServiceUnavailableCode = "CONFLICT"
+	DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE           DownloadTaskArtifactServiceUnavailableCode = "UNSUPPORTED_MEDIA_TYPE"
 	DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED               DownloadTaskArtifactServiceUnavailableCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE               DownloadTaskArtifactServiceUnavailableCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE               DownloadTaskArtifactServiceUnavailableCode = "INVALID_SIGNATURE"
@@ -13554,6 +13653,7 @@ func (DownloadTaskArtifactServiceUnavailableCode) AllValues() []DownloadTaskArti
 		DownloadTaskArtifactServiceUnavailableCodeFORBIDDEN,
 		DownloadTaskArtifactServiceUnavailableCodeNOTFOUND,
 		DownloadTaskArtifactServiceUnavailableCodeCONFLICT,
+		DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE,
 		DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED,
 		DownloadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE,
@@ -13590,6 +13690,8 @@ func (s DownloadTaskArtifactServiceUnavailableCode) MarshalText() ([]byte, error
 	case DownloadTaskArtifactServiceUnavailableCodeNOTFOUND:
 		return []byte(s), nil
 	case DownloadTaskArtifactServiceUnavailableCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -13656,6 +13758,9 @@ func (s *DownloadTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) 
 		return nil
 	case DownloadTaskArtifactServiceUnavailableCodeCONFLICT:
 		*s = DownloadTaskArtifactServiceUnavailableCodeCONFLICT
+		return nil
+	case DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
 		*s = DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED
@@ -13831,6 +13936,7 @@ const (
 	DownloadTaskArtifactUnauthorizedCodeFORBIDDEN                      DownloadTaskArtifactUnauthorizedCode = "FORBIDDEN"
 	DownloadTaskArtifactUnauthorizedCodeNOTFOUND                       DownloadTaskArtifactUnauthorizedCode = "NOT_FOUND"
 	DownloadTaskArtifactUnauthorizedCodeCONFLICT                       DownloadTaskArtifactUnauthorizedCode = "CONFLICT"
+	DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE           DownloadTaskArtifactUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
 	DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED               DownloadTaskArtifactUnauthorizedCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE               DownloadTaskArtifactUnauthorizedCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE               DownloadTaskArtifactUnauthorizedCode = "INVALID_SIGNATURE"
@@ -13863,6 +13969,7 @@ func (DownloadTaskArtifactUnauthorizedCode) AllValues() []DownloadTaskArtifactUn
 		DownloadTaskArtifactUnauthorizedCodeFORBIDDEN,
 		DownloadTaskArtifactUnauthorizedCodeNOTFOUND,
 		DownloadTaskArtifactUnauthorizedCodeCONFLICT,
+		DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
 		DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED,
 		DownloadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE,
@@ -13899,6 +14006,8 @@ func (s DownloadTaskArtifactUnauthorizedCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
 	case DownloadTaskArtifactUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -13965,6 +14074,9 @@ func (s *DownloadTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error 
 		return nil
 	case DownloadTaskArtifactUnauthorizedCodeCONFLICT:
 		*s = DownloadTaskArtifactUnauthorizedCodeCONFLICT
+		return nil
+	case DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
 		*s = DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED
@@ -14862,6 +14974,7 @@ const (
 	FindLatestRuntimeSlotForAttemptBadRequestCodeFORBIDDEN                      FindLatestRuntimeSlotForAttemptBadRequestCode = "FORBIDDEN"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND                       FindLatestRuntimeSlotForAttemptBadRequestCode = "NOT_FOUND"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT                       FindLatestRuntimeSlotForAttemptBadRequestCode = "CONFLICT"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE           FindLatestRuntimeSlotForAttemptBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptBadRequestCode = "VALIDATION_FAILED"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptBadRequestCode = "INVALID_CHALLENGE"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptBadRequestCode = "INVALID_SIGNATURE"
@@ -14894,6 +15007,7 @@ func (FindLatestRuntimeSlotForAttemptBadRequestCode) AllValues() []FindLatestRun
 		FindLatestRuntimeSlotForAttemptBadRequestCodeFORBIDDEN,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE,
@@ -14930,6 +15044,8 @@ func (s FindLatestRuntimeSlotForAttemptBadRequestCode) MarshalText() ([]byte, er
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -14996,6 +15112,9 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) UnmarshalText(data []byt
 		return nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT
+		return nil
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED
@@ -15207,6 +15326,7 @@ const (
 	FindLatestRuntimeSlotForAttemptForbiddenCodeFORBIDDEN                      FindLatestRuntimeSlotForAttemptForbiddenCode = "FORBIDDEN"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND                       FindLatestRuntimeSlotForAttemptForbiddenCode = "NOT_FOUND"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT                       FindLatestRuntimeSlotForAttemptForbiddenCode = "CONFLICT"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE           FindLatestRuntimeSlotForAttemptForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptForbiddenCode = "VALIDATION_FAILED"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptForbiddenCode = "INVALID_CHALLENGE"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptForbiddenCode = "INVALID_SIGNATURE"
@@ -15239,6 +15359,7 @@ func (FindLatestRuntimeSlotForAttemptForbiddenCode) AllValues() []FindLatestRunt
 		FindLatestRuntimeSlotForAttemptForbiddenCodeFORBIDDEN,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE,
@@ -15275,6 +15396,8 @@ func (s FindLatestRuntimeSlotForAttemptForbiddenCode) MarshalText() ([]byte, err
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -15341,6 +15464,9 @@ func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) UnmarshalText(data []byte
 		return nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT
+		return nil
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED
@@ -15516,6 +15642,7 @@ const (
 	FindLatestRuntimeSlotForAttemptNotFoundCodeFORBIDDEN                      FindLatestRuntimeSlotForAttemptNotFoundCode = "FORBIDDEN"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND                       FindLatestRuntimeSlotForAttemptNotFoundCode = "NOT_FOUND"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT                       FindLatestRuntimeSlotForAttemptNotFoundCode = "CONFLICT"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE           FindLatestRuntimeSlotForAttemptNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptNotFoundCode = "VALIDATION_FAILED"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptNotFoundCode = "INVALID_CHALLENGE"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptNotFoundCode = "INVALID_SIGNATURE"
@@ -15548,6 +15675,7 @@ func (FindLatestRuntimeSlotForAttemptNotFoundCode) AllValues() []FindLatestRunti
 		FindLatestRuntimeSlotForAttemptNotFoundCodeFORBIDDEN,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE,
@@ -15584,6 +15712,8 @@ func (s FindLatestRuntimeSlotForAttemptNotFoundCode) MarshalText() ([]byte, erro
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -15650,6 +15780,9 @@ func (s *FindLatestRuntimeSlotForAttemptNotFoundCode) UnmarshalText(data []byte)
 		return nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT
+		return nil
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED
@@ -16222,6 +16355,7 @@ const (
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeFORBIDDEN                      FindLatestRuntimeSlotForAttemptUnauthorizedCode = "FORBIDDEN"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND                       FindLatestRuntimeSlotForAttemptUnauthorizedCode = "NOT_FOUND"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT                       FindLatestRuntimeSlotForAttemptUnauthorizedCode = "CONFLICT"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE           FindLatestRuntimeSlotForAttemptUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptUnauthorizedCode = "VALIDATION_FAILED"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptUnauthorizedCode = "INVALID_CHALLENGE"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptUnauthorizedCode = "INVALID_SIGNATURE"
@@ -16254,6 +16388,7 @@ func (FindLatestRuntimeSlotForAttemptUnauthorizedCode) AllValues() []FindLatestR
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeFORBIDDEN,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE,
@@ -16290,6 +16425,8 @@ func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) MarshalText() ([]byte, 
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -16356,6 +16493,9 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) UnmarshalText(data []b
 		return nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT
+		return nil
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED
@@ -16543,6 +16683,7 @@ const (
 	FinishRuntimeSlotBadRequestCodeFORBIDDEN                      FinishRuntimeSlotBadRequestCode = "FORBIDDEN"
 	FinishRuntimeSlotBadRequestCodeNOTFOUND                       FinishRuntimeSlotBadRequestCode = "NOT_FOUND"
 	FinishRuntimeSlotBadRequestCodeCONFLICT                       FinishRuntimeSlotBadRequestCode = "CONFLICT"
+	FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE           FinishRuntimeSlotBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
 	FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED               FinishRuntimeSlotBadRequestCode = "VALIDATION_FAILED"
 	FinishRuntimeSlotBadRequestCodeINVALIDCHALLENGE               FinishRuntimeSlotBadRequestCode = "INVALID_CHALLENGE"
 	FinishRuntimeSlotBadRequestCodeINVALIDSIGNATURE               FinishRuntimeSlotBadRequestCode = "INVALID_SIGNATURE"
@@ -16575,6 +16716,7 @@ func (FinishRuntimeSlotBadRequestCode) AllValues() []FinishRuntimeSlotBadRequest
 		FinishRuntimeSlotBadRequestCodeFORBIDDEN,
 		FinishRuntimeSlotBadRequestCodeNOTFOUND,
 		FinishRuntimeSlotBadRequestCodeCONFLICT,
+		FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE,
 		FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED,
 		FinishRuntimeSlotBadRequestCodeINVALIDCHALLENGE,
 		FinishRuntimeSlotBadRequestCodeINVALIDSIGNATURE,
@@ -16611,6 +16753,8 @@ func (s FinishRuntimeSlotBadRequestCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotBadRequestCodeNOTFOUND:
 		return []byte(s), nil
 	case FinishRuntimeSlotBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -16677,6 +16821,9 @@ func (s *FinishRuntimeSlotBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotBadRequestCodeCONFLICT:
 		*s = FinishRuntimeSlotBadRequestCodeCONFLICT
+		return nil
+	case FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED:
 		*s = FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED
@@ -16900,6 +17047,7 @@ const (
 	FinishRuntimeSlotConflictCodeFORBIDDEN                      FinishRuntimeSlotConflictCode = "FORBIDDEN"
 	FinishRuntimeSlotConflictCodeNOTFOUND                       FinishRuntimeSlotConflictCode = "NOT_FOUND"
 	FinishRuntimeSlotConflictCodeCONFLICT                       FinishRuntimeSlotConflictCode = "CONFLICT"
+	FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE           FinishRuntimeSlotConflictCode = "UNSUPPORTED_MEDIA_TYPE"
 	FinishRuntimeSlotConflictCodeVALIDATIONFAILED               FinishRuntimeSlotConflictCode = "VALIDATION_FAILED"
 	FinishRuntimeSlotConflictCodeINVALIDCHALLENGE               FinishRuntimeSlotConflictCode = "INVALID_CHALLENGE"
 	FinishRuntimeSlotConflictCodeINVALIDSIGNATURE               FinishRuntimeSlotConflictCode = "INVALID_SIGNATURE"
@@ -16932,6 +17080,7 @@ func (FinishRuntimeSlotConflictCode) AllValues() []FinishRuntimeSlotConflictCode
 		FinishRuntimeSlotConflictCodeFORBIDDEN,
 		FinishRuntimeSlotConflictCodeNOTFOUND,
 		FinishRuntimeSlotConflictCodeCONFLICT,
+		FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE,
 		FinishRuntimeSlotConflictCodeVALIDATIONFAILED,
 		FinishRuntimeSlotConflictCodeINVALIDCHALLENGE,
 		FinishRuntimeSlotConflictCodeINVALIDSIGNATURE,
@@ -16968,6 +17117,8 @@ func (s FinishRuntimeSlotConflictCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotConflictCodeNOTFOUND:
 		return []byte(s), nil
 	case FinishRuntimeSlotConflictCodeCONFLICT:
+		return []byte(s), nil
+	case FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case FinishRuntimeSlotConflictCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -17034,6 +17185,9 @@ func (s *FinishRuntimeSlotConflictCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotConflictCodeCONFLICT:
 		*s = FinishRuntimeSlotConflictCodeCONFLICT
+		return nil
+	case FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE:
+		*s = FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case FinishRuntimeSlotConflictCodeVALIDATIONFAILED:
 		*s = FinishRuntimeSlotConflictCodeVALIDATIONFAILED
@@ -17281,6 +17435,7 @@ const (
 	FinishRuntimeSlotForbiddenCodeFORBIDDEN                      FinishRuntimeSlotForbiddenCode = "FORBIDDEN"
 	FinishRuntimeSlotForbiddenCodeNOTFOUND                       FinishRuntimeSlotForbiddenCode = "NOT_FOUND"
 	FinishRuntimeSlotForbiddenCodeCONFLICT                       FinishRuntimeSlotForbiddenCode = "CONFLICT"
+	FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE           FinishRuntimeSlotForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
 	FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED               FinishRuntimeSlotForbiddenCode = "VALIDATION_FAILED"
 	FinishRuntimeSlotForbiddenCodeINVALIDCHALLENGE               FinishRuntimeSlotForbiddenCode = "INVALID_CHALLENGE"
 	FinishRuntimeSlotForbiddenCodeINVALIDSIGNATURE               FinishRuntimeSlotForbiddenCode = "INVALID_SIGNATURE"
@@ -17313,6 +17468,7 @@ func (FinishRuntimeSlotForbiddenCode) AllValues() []FinishRuntimeSlotForbiddenCo
 		FinishRuntimeSlotForbiddenCodeFORBIDDEN,
 		FinishRuntimeSlotForbiddenCodeNOTFOUND,
 		FinishRuntimeSlotForbiddenCodeCONFLICT,
+		FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE,
 		FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED,
 		FinishRuntimeSlotForbiddenCodeINVALIDCHALLENGE,
 		FinishRuntimeSlotForbiddenCodeINVALIDSIGNATURE,
@@ -17349,6 +17505,8 @@ func (s FinishRuntimeSlotForbiddenCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotForbiddenCodeNOTFOUND:
 		return []byte(s), nil
 	case FinishRuntimeSlotForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -17415,6 +17573,9 @@ func (s *FinishRuntimeSlotForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotForbiddenCodeCONFLICT:
 		*s = FinishRuntimeSlotForbiddenCodeCONFLICT
+		return nil
+	case FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED:
 		*s = FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED
@@ -17590,6 +17751,7 @@ const (
 	FinishRuntimeSlotNotFoundCodeFORBIDDEN                      FinishRuntimeSlotNotFoundCode = "FORBIDDEN"
 	FinishRuntimeSlotNotFoundCodeNOTFOUND                       FinishRuntimeSlotNotFoundCode = "NOT_FOUND"
 	FinishRuntimeSlotNotFoundCodeCONFLICT                       FinishRuntimeSlotNotFoundCode = "CONFLICT"
+	FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE           FinishRuntimeSlotNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
 	FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED               FinishRuntimeSlotNotFoundCode = "VALIDATION_FAILED"
 	FinishRuntimeSlotNotFoundCodeINVALIDCHALLENGE               FinishRuntimeSlotNotFoundCode = "INVALID_CHALLENGE"
 	FinishRuntimeSlotNotFoundCodeINVALIDSIGNATURE               FinishRuntimeSlotNotFoundCode = "INVALID_SIGNATURE"
@@ -17622,6 +17784,7 @@ func (FinishRuntimeSlotNotFoundCode) AllValues() []FinishRuntimeSlotNotFoundCode
 		FinishRuntimeSlotNotFoundCodeFORBIDDEN,
 		FinishRuntimeSlotNotFoundCodeNOTFOUND,
 		FinishRuntimeSlotNotFoundCodeCONFLICT,
+		FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE,
 		FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED,
 		FinishRuntimeSlotNotFoundCodeINVALIDCHALLENGE,
 		FinishRuntimeSlotNotFoundCodeINVALIDSIGNATURE,
@@ -17658,6 +17821,8 @@ func (s FinishRuntimeSlotNotFoundCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotNotFoundCodeNOTFOUND:
 		return []byte(s), nil
 	case FinishRuntimeSlotNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -17724,6 +17889,9 @@ func (s *FinishRuntimeSlotNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotNotFoundCodeCONFLICT:
 		*s = FinishRuntimeSlotNotFoundCodeCONFLICT
+		return nil
+	case FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED:
 		*s = FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED
@@ -18223,6 +18391,7 @@ const (
 	FinishRuntimeSlotUnauthorizedCodeFORBIDDEN                      FinishRuntimeSlotUnauthorizedCode = "FORBIDDEN"
 	FinishRuntimeSlotUnauthorizedCodeNOTFOUND                       FinishRuntimeSlotUnauthorizedCode = "NOT_FOUND"
 	FinishRuntimeSlotUnauthorizedCodeCONFLICT                       FinishRuntimeSlotUnauthorizedCode = "CONFLICT"
+	FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE           FinishRuntimeSlotUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
 	FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED               FinishRuntimeSlotUnauthorizedCode = "VALIDATION_FAILED"
 	FinishRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE               FinishRuntimeSlotUnauthorizedCode = "INVALID_CHALLENGE"
 	FinishRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE               FinishRuntimeSlotUnauthorizedCode = "INVALID_SIGNATURE"
@@ -18255,6 +18424,7 @@ func (FinishRuntimeSlotUnauthorizedCode) AllValues() []FinishRuntimeSlotUnauthor
 		FinishRuntimeSlotUnauthorizedCodeFORBIDDEN,
 		FinishRuntimeSlotUnauthorizedCodeNOTFOUND,
 		FinishRuntimeSlotUnauthorizedCodeCONFLICT,
+		FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
 		FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED,
 		FinishRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE,
 		FinishRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE,
@@ -18291,6 +18461,8 @@ func (s FinishRuntimeSlotUnauthorizedCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
 	case FinishRuntimeSlotUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -18357,6 +18529,9 @@ func (s *FinishRuntimeSlotUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotUnauthorizedCodeCONFLICT:
 		*s = FinishRuntimeSlotUnauthorizedCodeCONFLICT
+		return nil
+	case FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
 		*s = FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED
@@ -19468,6 +19643,7 @@ const (
 	GetProblemTypeTypeForbidden                      GetProblemTypeType = "forbidden"
 	GetProblemTypeTypeNotFound                       GetProblemTypeType = "not-found"
 	GetProblemTypeTypeValidationFailed               GetProblemTypeType = "validation-failed"
+	GetProblemTypeTypeUnsupportedMediaType           GetProblemTypeType = "unsupported-media-type"
 	GetProblemTypeTypeInvalidChallenge               GetProblemTypeType = "invalid-challenge"
 	GetProblemTypeTypeInvalidSignature               GetProblemTypeType = "invalid-signature"
 	GetProblemTypeTypeVoucherLimit                   GetProblemTypeType = "voucher-limit"
@@ -19500,6 +19676,7 @@ func (GetProblemTypeType) AllValues() []GetProblemTypeType {
 		GetProblemTypeTypeForbidden,
 		GetProblemTypeTypeNotFound,
 		GetProblemTypeTypeValidationFailed,
+		GetProblemTypeTypeUnsupportedMediaType,
 		GetProblemTypeTypeInvalidChallenge,
 		GetProblemTypeTypeInvalidSignature,
 		GetProblemTypeTypeVoucherLimit,
@@ -19536,6 +19713,8 @@ func (s GetProblemTypeType) MarshalText() ([]byte, error) {
 	case GetProblemTypeTypeNotFound:
 		return []byte(s), nil
 	case GetProblemTypeTypeValidationFailed:
+		return []byte(s), nil
+	case GetProblemTypeTypeUnsupportedMediaType:
 		return []byte(s), nil
 	case GetProblemTypeTypeInvalidChallenge:
 		return []byte(s), nil
@@ -19602,6 +19781,9 @@ func (s *GetProblemTypeType) UnmarshalText(data []byte) error {
 		return nil
 	case GetProblemTypeTypeValidationFailed:
 		*s = GetProblemTypeTypeValidationFailed
+		return nil
+	case GetProblemTypeTypeUnsupportedMediaType:
+		*s = GetProblemTypeTypeUnsupportedMediaType
 		return nil
 	case GetProblemTypeTypeInvalidChallenge:
 		*s = GetProblemTypeTypeInvalidChallenge
@@ -19853,6 +20035,7 @@ const (
 	GetRuntimeSessionBadRequestCodeFORBIDDEN                      GetRuntimeSessionBadRequestCode = "FORBIDDEN"
 	GetRuntimeSessionBadRequestCodeNOTFOUND                       GetRuntimeSessionBadRequestCode = "NOT_FOUND"
 	GetRuntimeSessionBadRequestCodeCONFLICT                       GetRuntimeSessionBadRequestCode = "CONFLICT"
+	GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE           GetRuntimeSessionBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
 	GetRuntimeSessionBadRequestCodeVALIDATIONFAILED               GetRuntimeSessionBadRequestCode = "VALIDATION_FAILED"
 	GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE               GetRuntimeSessionBadRequestCode = "INVALID_CHALLENGE"
 	GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE               GetRuntimeSessionBadRequestCode = "INVALID_SIGNATURE"
@@ -19885,6 +20068,7 @@ func (GetRuntimeSessionBadRequestCode) AllValues() []GetRuntimeSessionBadRequest
 		GetRuntimeSessionBadRequestCodeFORBIDDEN,
 		GetRuntimeSessionBadRequestCodeNOTFOUND,
 		GetRuntimeSessionBadRequestCodeCONFLICT,
+		GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE,
 		GetRuntimeSessionBadRequestCodeVALIDATIONFAILED,
 		GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE,
 		GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE,
@@ -19921,6 +20105,8 @@ func (s GetRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionBadRequestCodeNOTFOUND:
 		return []byte(s), nil
 	case GetRuntimeSessionBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case GetRuntimeSessionBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -19987,6 +20173,9 @@ func (s *GetRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionBadRequestCodeCONFLICT:
 		*s = GetRuntimeSessionBadRequestCodeCONFLICT
+		return nil
+	case GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case GetRuntimeSessionBadRequestCodeVALIDATIONFAILED:
 		*s = GetRuntimeSessionBadRequestCodeVALIDATIONFAILED
@@ -20198,6 +20387,7 @@ const (
 	GetRuntimeSessionForbiddenCodeFORBIDDEN                      GetRuntimeSessionForbiddenCode = "FORBIDDEN"
 	GetRuntimeSessionForbiddenCodeNOTFOUND                       GetRuntimeSessionForbiddenCode = "NOT_FOUND"
 	GetRuntimeSessionForbiddenCodeCONFLICT                       GetRuntimeSessionForbiddenCode = "CONFLICT"
+	GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE           GetRuntimeSessionForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
 	GetRuntimeSessionForbiddenCodeVALIDATIONFAILED               GetRuntimeSessionForbiddenCode = "VALIDATION_FAILED"
 	GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE               GetRuntimeSessionForbiddenCode = "INVALID_CHALLENGE"
 	GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE               GetRuntimeSessionForbiddenCode = "INVALID_SIGNATURE"
@@ -20230,6 +20420,7 @@ func (GetRuntimeSessionForbiddenCode) AllValues() []GetRuntimeSessionForbiddenCo
 		GetRuntimeSessionForbiddenCodeFORBIDDEN,
 		GetRuntimeSessionForbiddenCodeNOTFOUND,
 		GetRuntimeSessionForbiddenCodeCONFLICT,
+		GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE,
 		GetRuntimeSessionForbiddenCodeVALIDATIONFAILED,
 		GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE,
 		GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE,
@@ -20266,6 +20457,8 @@ func (s GetRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionForbiddenCodeNOTFOUND:
 		return []byte(s), nil
 	case GetRuntimeSessionForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case GetRuntimeSessionForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -20332,6 +20525,9 @@ func (s *GetRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionForbiddenCodeCONFLICT:
 		*s = GetRuntimeSessionForbiddenCodeCONFLICT
+		return nil
+	case GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case GetRuntimeSessionForbiddenCodeVALIDATIONFAILED:
 		*s = GetRuntimeSessionForbiddenCodeVALIDATIONFAILED
@@ -20507,6 +20703,7 @@ const (
 	GetRuntimeSessionNotFoundCodeFORBIDDEN                      GetRuntimeSessionNotFoundCode = "FORBIDDEN"
 	GetRuntimeSessionNotFoundCodeNOTFOUND                       GetRuntimeSessionNotFoundCode = "NOT_FOUND"
 	GetRuntimeSessionNotFoundCodeCONFLICT                       GetRuntimeSessionNotFoundCode = "CONFLICT"
+	GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE           GetRuntimeSessionNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
 	GetRuntimeSessionNotFoundCodeVALIDATIONFAILED               GetRuntimeSessionNotFoundCode = "VALIDATION_FAILED"
 	GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE               GetRuntimeSessionNotFoundCode = "INVALID_CHALLENGE"
 	GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE               GetRuntimeSessionNotFoundCode = "INVALID_SIGNATURE"
@@ -20539,6 +20736,7 @@ func (GetRuntimeSessionNotFoundCode) AllValues() []GetRuntimeSessionNotFoundCode
 		GetRuntimeSessionNotFoundCodeFORBIDDEN,
 		GetRuntimeSessionNotFoundCodeNOTFOUND,
 		GetRuntimeSessionNotFoundCodeCONFLICT,
+		GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE,
 		GetRuntimeSessionNotFoundCodeVALIDATIONFAILED,
 		GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE,
 		GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE,
@@ -20575,6 +20773,8 @@ func (s GetRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionNotFoundCodeNOTFOUND:
 		return []byte(s), nil
 	case GetRuntimeSessionNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case GetRuntimeSessionNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -20641,6 +20841,9 @@ func (s *GetRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionNotFoundCodeCONFLICT:
 		*s = GetRuntimeSessionNotFoundCodeCONFLICT
+		return nil
+	case GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case GetRuntimeSessionNotFoundCodeVALIDATIONFAILED:
 		*s = GetRuntimeSessionNotFoundCodeVALIDATIONFAILED
@@ -21109,6 +21312,7 @@ const (
 	GetRuntimeSessionUnauthorizedCodeFORBIDDEN                      GetRuntimeSessionUnauthorizedCode = "FORBIDDEN"
 	GetRuntimeSessionUnauthorizedCodeNOTFOUND                       GetRuntimeSessionUnauthorizedCode = "NOT_FOUND"
 	GetRuntimeSessionUnauthorizedCodeCONFLICT                       GetRuntimeSessionUnauthorizedCode = "CONFLICT"
+	GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE           GetRuntimeSessionUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
 	GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED               GetRuntimeSessionUnauthorizedCode = "VALIDATION_FAILED"
 	GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE               GetRuntimeSessionUnauthorizedCode = "INVALID_CHALLENGE"
 	GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE               GetRuntimeSessionUnauthorizedCode = "INVALID_SIGNATURE"
@@ -21141,6 +21345,7 @@ func (GetRuntimeSessionUnauthorizedCode) AllValues() []GetRuntimeSessionUnauthor
 		GetRuntimeSessionUnauthorizedCodeFORBIDDEN,
 		GetRuntimeSessionUnauthorizedCodeNOTFOUND,
 		GetRuntimeSessionUnauthorizedCodeCONFLICT,
+		GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
 		GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED,
 		GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE,
 		GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE,
@@ -21177,6 +21382,8 @@ func (s GetRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
 	case GetRuntimeSessionUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -21243,6 +21450,9 @@ func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = GetRuntimeSessionUnauthorizedCodeCONFLICT
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
 		*s = GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
@@ -23017,6 +23227,7 @@ const (
 	ListRuntimeSlotsBadRequestCodeFORBIDDEN                      ListRuntimeSlotsBadRequestCode = "FORBIDDEN"
 	ListRuntimeSlotsBadRequestCodeNOTFOUND                       ListRuntimeSlotsBadRequestCode = "NOT_FOUND"
 	ListRuntimeSlotsBadRequestCodeCONFLICT                       ListRuntimeSlotsBadRequestCode = "CONFLICT"
+	ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE           ListRuntimeSlotsBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
 	ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED               ListRuntimeSlotsBadRequestCode = "VALIDATION_FAILED"
 	ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE               ListRuntimeSlotsBadRequestCode = "INVALID_CHALLENGE"
 	ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE               ListRuntimeSlotsBadRequestCode = "INVALID_SIGNATURE"
@@ -23049,6 +23260,7 @@ func (ListRuntimeSlotsBadRequestCode) AllValues() []ListRuntimeSlotsBadRequestCo
 		ListRuntimeSlotsBadRequestCodeFORBIDDEN,
 		ListRuntimeSlotsBadRequestCodeNOTFOUND,
 		ListRuntimeSlotsBadRequestCodeCONFLICT,
+		ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE,
 		ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED,
 		ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE,
 		ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE,
@@ -23085,6 +23297,8 @@ func (s ListRuntimeSlotsBadRequestCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsBadRequestCodeNOTFOUND:
 		return []byte(s), nil
 	case ListRuntimeSlotsBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -23151,6 +23365,9 @@ func (s *ListRuntimeSlotsBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsBadRequestCodeCONFLICT:
 		*s = ListRuntimeSlotsBadRequestCodeCONFLICT
+		return nil
+	case ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED:
 		*s = ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED
@@ -23362,6 +23579,7 @@ const (
 	ListRuntimeSlotsForbiddenCodeFORBIDDEN                      ListRuntimeSlotsForbiddenCode = "FORBIDDEN"
 	ListRuntimeSlotsForbiddenCodeNOTFOUND                       ListRuntimeSlotsForbiddenCode = "NOT_FOUND"
 	ListRuntimeSlotsForbiddenCodeCONFLICT                       ListRuntimeSlotsForbiddenCode = "CONFLICT"
+	ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE           ListRuntimeSlotsForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
 	ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED               ListRuntimeSlotsForbiddenCode = "VALIDATION_FAILED"
 	ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE               ListRuntimeSlotsForbiddenCode = "INVALID_CHALLENGE"
 	ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE               ListRuntimeSlotsForbiddenCode = "INVALID_SIGNATURE"
@@ -23394,6 +23612,7 @@ func (ListRuntimeSlotsForbiddenCode) AllValues() []ListRuntimeSlotsForbiddenCode
 		ListRuntimeSlotsForbiddenCodeFORBIDDEN,
 		ListRuntimeSlotsForbiddenCodeNOTFOUND,
 		ListRuntimeSlotsForbiddenCodeCONFLICT,
+		ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE,
 		ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED,
 		ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE,
 		ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE,
@@ -23430,6 +23649,8 @@ func (s ListRuntimeSlotsForbiddenCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsForbiddenCodeNOTFOUND:
 		return []byte(s), nil
 	case ListRuntimeSlotsForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -23496,6 +23717,9 @@ func (s *ListRuntimeSlotsForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsForbiddenCodeCONFLICT:
 		*s = ListRuntimeSlotsForbiddenCodeCONFLICT
+		return nil
+	case ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED:
 		*s = ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED
@@ -23671,6 +23895,7 @@ const (
 	ListRuntimeSlotsNotFoundCodeFORBIDDEN                      ListRuntimeSlotsNotFoundCode = "FORBIDDEN"
 	ListRuntimeSlotsNotFoundCodeNOTFOUND                       ListRuntimeSlotsNotFoundCode = "NOT_FOUND"
 	ListRuntimeSlotsNotFoundCodeCONFLICT                       ListRuntimeSlotsNotFoundCode = "CONFLICT"
+	ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE           ListRuntimeSlotsNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
 	ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED               ListRuntimeSlotsNotFoundCode = "VALIDATION_FAILED"
 	ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE               ListRuntimeSlotsNotFoundCode = "INVALID_CHALLENGE"
 	ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE               ListRuntimeSlotsNotFoundCode = "INVALID_SIGNATURE"
@@ -23703,6 +23928,7 @@ func (ListRuntimeSlotsNotFoundCode) AllValues() []ListRuntimeSlotsNotFoundCode {
 		ListRuntimeSlotsNotFoundCodeFORBIDDEN,
 		ListRuntimeSlotsNotFoundCodeNOTFOUND,
 		ListRuntimeSlotsNotFoundCodeCONFLICT,
+		ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE,
 		ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED,
 		ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE,
 		ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE,
@@ -23739,6 +23965,8 @@ func (s ListRuntimeSlotsNotFoundCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsNotFoundCodeNOTFOUND:
 		return []byte(s), nil
 	case ListRuntimeSlotsNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -23805,6 +24033,9 @@ func (s *ListRuntimeSlotsNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsNotFoundCodeCONFLICT:
 		*s = ListRuntimeSlotsNotFoundCodeCONFLICT
+		return nil
+	case ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED:
 		*s = ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED
@@ -24432,6 +24663,7 @@ const (
 	ListRuntimeSlotsUnauthorizedCodeFORBIDDEN                      ListRuntimeSlotsUnauthorizedCode = "FORBIDDEN"
 	ListRuntimeSlotsUnauthorizedCodeNOTFOUND                       ListRuntimeSlotsUnauthorizedCode = "NOT_FOUND"
 	ListRuntimeSlotsUnauthorizedCodeCONFLICT                       ListRuntimeSlotsUnauthorizedCode = "CONFLICT"
+	ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE           ListRuntimeSlotsUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
 	ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED               ListRuntimeSlotsUnauthorizedCode = "VALIDATION_FAILED"
 	ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE               ListRuntimeSlotsUnauthorizedCode = "INVALID_CHALLENGE"
 	ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE               ListRuntimeSlotsUnauthorizedCode = "INVALID_SIGNATURE"
@@ -24464,6 +24696,7 @@ func (ListRuntimeSlotsUnauthorizedCode) AllValues() []ListRuntimeSlotsUnauthoriz
 		ListRuntimeSlotsUnauthorizedCodeFORBIDDEN,
 		ListRuntimeSlotsUnauthorizedCodeNOTFOUND,
 		ListRuntimeSlotsUnauthorizedCodeCONFLICT,
+		ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
 		ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED,
 		ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE,
 		ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE,
@@ -24500,6 +24733,8 @@ func (s ListRuntimeSlotsUnauthorizedCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
 	case ListRuntimeSlotsUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -24566,6 +24801,9 @@ func (s *ListRuntimeSlotsUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsUnauthorizedCodeCONFLICT:
 		*s = ListRuntimeSlotsUnauthorizedCodeCONFLICT
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED:
 		*s = ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED
@@ -24813,6 +25051,7 @@ const (
 	ListTaskArtifactsBadRequestCodeFORBIDDEN                      ListTaskArtifactsBadRequestCode = "FORBIDDEN"
 	ListTaskArtifactsBadRequestCodeNOTFOUND                       ListTaskArtifactsBadRequestCode = "NOT_FOUND"
 	ListTaskArtifactsBadRequestCodeCONFLICT                       ListTaskArtifactsBadRequestCode = "CONFLICT"
+	ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE           ListTaskArtifactsBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
 	ListTaskArtifactsBadRequestCodeVALIDATIONFAILED               ListTaskArtifactsBadRequestCode = "VALIDATION_FAILED"
 	ListTaskArtifactsBadRequestCodeINVALIDCHALLENGE               ListTaskArtifactsBadRequestCode = "INVALID_CHALLENGE"
 	ListTaskArtifactsBadRequestCodeINVALIDSIGNATURE               ListTaskArtifactsBadRequestCode = "INVALID_SIGNATURE"
@@ -24845,6 +25084,7 @@ func (ListTaskArtifactsBadRequestCode) AllValues() []ListTaskArtifactsBadRequest
 		ListTaskArtifactsBadRequestCodeFORBIDDEN,
 		ListTaskArtifactsBadRequestCodeNOTFOUND,
 		ListTaskArtifactsBadRequestCodeCONFLICT,
+		ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE,
 		ListTaskArtifactsBadRequestCodeVALIDATIONFAILED,
 		ListTaskArtifactsBadRequestCodeINVALIDCHALLENGE,
 		ListTaskArtifactsBadRequestCodeINVALIDSIGNATURE,
@@ -24881,6 +25121,8 @@ func (s ListTaskArtifactsBadRequestCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsBadRequestCodeNOTFOUND:
 		return []byte(s), nil
 	case ListTaskArtifactsBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ListTaskArtifactsBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -24947,6 +25189,9 @@ func (s *ListTaskArtifactsBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsBadRequestCodeCONFLICT:
 		*s = ListTaskArtifactsBadRequestCodeCONFLICT
+		return nil
+	case ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ListTaskArtifactsBadRequestCodeVALIDATIONFAILED:
 		*s = ListTaskArtifactsBadRequestCodeVALIDATIONFAILED
@@ -25158,6 +25403,7 @@ const (
 	ListTaskArtifactsForbiddenCodeFORBIDDEN                      ListTaskArtifactsForbiddenCode = "FORBIDDEN"
 	ListTaskArtifactsForbiddenCodeNOTFOUND                       ListTaskArtifactsForbiddenCode = "NOT_FOUND"
 	ListTaskArtifactsForbiddenCodeCONFLICT                       ListTaskArtifactsForbiddenCode = "CONFLICT"
+	ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE           ListTaskArtifactsForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
 	ListTaskArtifactsForbiddenCodeVALIDATIONFAILED               ListTaskArtifactsForbiddenCode = "VALIDATION_FAILED"
 	ListTaskArtifactsForbiddenCodeINVALIDCHALLENGE               ListTaskArtifactsForbiddenCode = "INVALID_CHALLENGE"
 	ListTaskArtifactsForbiddenCodeINVALIDSIGNATURE               ListTaskArtifactsForbiddenCode = "INVALID_SIGNATURE"
@@ -25190,6 +25436,7 @@ func (ListTaskArtifactsForbiddenCode) AllValues() []ListTaskArtifactsForbiddenCo
 		ListTaskArtifactsForbiddenCodeFORBIDDEN,
 		ListTaskArtifactsForbiddenCodeNOTFOUND,
 		ListTaskArtifactsForbiddenCodeCONFLICT,
+		ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE,
 		ListTaskArtifactsForbiddenCodeVALIDATIONFAILED,
 		ListTaskArtifactsForbiddenCodeINVALIDCHALLENGE,
 		ListTaskArtifactsForbiddenCodeINVALIDSIGNATURE,
@@ -25226,6 +25473,8 @@ func (s ListTaskArtifactsForbiddenCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsForbiddenCodeNOTFOUND:
 		return []byte(s), nil
 	case ListTaskArtifactsForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ListTaskArtifactsForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -25292,6 +25541,9 @@ func (s *ListTaskArtifactsForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsForbiddenCodeCONFLICT:
 		*s = ListTaskArtifactsForbiddenCodeCONFLICT
+		return nil
+	case ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ListTaskArtifactsForbiddenCodeVALIDATIONFAILED:
 		*s = ListTaskArtifactsForbiddenCodeVALIDATIONFAILED
@@ -25467,6 +25719,7 @@ const (
 	ListTaskArtifactsNotFoundCodeFORBIDDEN                      ListTaskArtifactsNotFoundCode = "FORBIDDEN"
 	ListTaskArtifactsNotFoundCodeNOTFOUND                       ListTaskArtifactsNotFoundCode = "NOT_FOUND"
 	ListTaskArtifactsNotFoundCodeCONFLICT                       ListTaskArtifactsNotFoundCode = "CONFLICT"
+	ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE           ListTaskArtifactsNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
 	ListTaskArtifactsNotFoundCodeVALIDATIONFAILED               ListTaskArtifactsNotFoundCode = "VALIDATION_FAILED"
 	ListTaskArtifactsNotFoundCodeINVALIDCHALLENGE               ListTaskArtifactsNotFoundCode = "INVALID_CHALLENGE"
 	ListTaskArtifactsNotFoundCodeINVALIDSIGNATURE               ListTaskArtifactsNotFoundCode = "INVALID_SIGNATURE"
@@ -25499,6 +25752,7 @@ func (ListTaskArtifactsNotFoundCode) AllValues() []ListTaskArtifactsNotFoundCode
 		ListTaskArtifactsNotFoundCodeFORBIDDEN,
 		ListTaskArtifactsNotFoundCodeNOTFOUND,
 		ListTaskArtifactsNotFoundCodeCONFLICT,
+		ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE,
 		ListTaskArtifactsNotFoundCodeVALIDATIONFAILED,
 		ListTaskArtifactsNotFoundCodeINVALIDCHALLENGE,
 		ListTaskArtifactsNotFoundCodeINVALIDSIGNATURE,
@@ -25535,6 +25789,8 @@ func (s ListTaskArtifactsNotFoundCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsNotFoundCodeNOTFOUND:
 		return []byte(s), nil
 	case ListTaskArtifactsNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ListTaskArtifactsNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -25601,6 +25857,9 @@ func (s *ListTaskArtifactsNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsNotFoundCodeCONFLICT:
 		*s = ListTaskArtifactsNotFoundCodeCONFLICT
+		return nil
+	case ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ListTaskArtifactsNotFoundCodeVALIDATIONFAILED:
 		*s = ListTaskArtifactsNotFoundCodeVALIDATIONFAILED
@@ -25949,6 +26208,7 @@ const (
 	ListTaskArtifactsUnauthorizedCodeFORBIDDEN                      ListTaskArtifactsUnauthorizedCode = "FORBIDDEN"
 	ListTaskArtifactsUnauthorizedCodeNOTFOUND                       ListTaskArtifactsUnauthorizedCode = "NOT_FOUND"
 	ListTaskArtifactsUnauthorizedCodeCONFLICT                       ListTaskArtifactsUnauthorizedCode = "CONFLICT"
+	ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE           ListTaskArtifactsUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
 	ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED               ListTaskArtifactsUnauthorizedCode = "VALIDATION_FAILED"
 	ListTaskArtifactsUnauthorizedCodeINVALIDCHALLENGE               ListTaskArtifactsUnauthorizedCode = "INVALID_CHALLENGE"
 	ListTaskArtifactsUnauthorizedCodeINVALIDSIGNATURE               ListTaskArtifactsUnauthorizedCode = "INVALID_SIGNATURE"
@@ -25981,6 +26241,7 @@ func (ListTaskArtifactsUnauthorizedCode) AllValues() []ListTaskArtifactsUnauthor
 		ListTaskArtifactsUnauthorizedCodeFORBIDDEN,
 		ListTaskArtifactsUnauthorizedCodeNOTFOUND,
 		ListTaskArtifactsUnauthorizedCodeCONFLICT,
+		ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
 		ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED,
 		ListTaskArtifactsUnauthorizedCodeINVALIDCHALLENGE,
 		ListTaskArtifactsUnauthorizedCodeINVALIDSIGNATURE,
@@ -26017,6 +26278,8 @@ func (s ListTaskArtifactsUnauthorizedCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
 	case ListTaskArtifactsUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -26083,6 +26346,9 @@ func (s *ListTaskArtifactsUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsUnauthorizedCodeCONFLICT:
 		*s = ListTaskArtifactsUnauthorizedCodeCONFLICT
+		return nil
+	case ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED:
 		*s = ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED
@@ -34431,6 +34697,7 @@ const (
 	ProblemDetailsCodeFORBIDDEN                      ProblemDetailsCode = "FORBIDDEN"
 	ProblemDetailsCodeNOTFOUND                       ProblemDetailsCode = "NOT_FOUND"
 	ProblemDetailsCodeCONFLICT                       ProblemDetailsCode = "CONFLICT"
+	ProblemDetailsCodeUNSUPPORTEDMEDIATYPE           ProblemDetailsCode = "UNSUPPORTED_MEDIA_TYPE"
 	ProblemDetailsCodeVALIDATIONFAILED               ProblemDetailsCode = "VALIDATION_FAILED"
 	ProblemDetailsCodeINVALIDCHALLENGE               ProblemDetailsCode = "INVALID_CHALLENGE"
 	ProblemDetailsCodeINVALIDSIGNATURE               ProblemDetailsCode = "INVALID_SIGNATURE"
@@ -34463,6 +34730,7 @@ func (ProblemDetailsCode) AllValues() []ProblemDetailsCode {
 		ProblemDetailsCodeFORBIDDEN,
 		ProblemDetailsCodeNOTFOUND,
 		ProblemDetailsCodeCONFLICT,
+		ProblemDetailsCodeUNSUPPORTEDMEDIATYPE,
 		ProblemDetailsCodeVALIDATIONFAILED,
 		ProblemDetailsCodeINVALIDCHALLENGE,
 		ProblemDetailsCodeINVALIDSIGNATURE,
@@ -34499,6 +34767,8 @@ func (s ProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ProblemDetailsCodeNOTFOUND:
 		return []byte(s), nil
 	case ProblemDetailsCodeCONFLICT:
+		return []byte(s), nil
+	case ProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ProblemDetailsCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -34565,6 +34835,9 @@ func (s *ProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ProblemDetailsCodeCONFLICT:
 		*s = ProblemDetailsCodeCONFLICT
+		return nil
+	case ProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
+		*s = ProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ProblemDetailsCodeVALIDATIONFAILED:
 		*s = ProblemDetailsCodeVALIDATIONFAILED
@@ -45281,6 +45554,7 @@ const (
 	UploadRuntimeSessionBadRequestCodeFORBIDDEN                      UploadRuntimeSessionBadRequestCode = "FORBIDDEN"
 	UploadRuntimeSessionBadRequestCodeNOTFOUND                       UploadRuntimeSessionBadRequestCode = "NOT_FOUND"
 	UploadRuntimeSessionBadRequestCodeCONFLICT                       UploadRuntimeSessionBadRequestCode = "CONFLICT"
+	UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE           UploadRuntimeSessionBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED               UploadRuntimeSessionBadRequestCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE               UploadRuntimeSessionBadRequestCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE               UploadRuntimeSessionBadRequestCode = "INVALID_SIGNATURE"
@@ -45313,6 +45587,7 @@ func (UploadRuntimeSessionBadRequestCode) AllValues() []UploadRuntimeSessionBadR
 		UploadRuntimeSessionBadRequestCodeFORBIDDEN,
 		UploadRuntimeSessionBadRequestCodeNOTFOUND,
 		UploadRuntimeSessionBadRequestCodeCONFLICT,
+		UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE,
 		UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED,
 		UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE,
@@ -45349,6 +45624,8 @@ func (s UploadRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionBadRequestCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadRuntimeSessionBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -45415,6 +45692,9 @@ func (s *UploadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionBadRequestCodeCONFLICT:
 		*s = UploadRuntimeSessionBadRequestCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED
@@ -45626,6 +45906,7 @@ const (
 	UploadRuntimeSessionConflictCodeFORBIDDEN                      UploadRuntimeSessionConflictCode = "FORBIDDEN"
 	UploadRuntimeSessionConflictCodeNOTFOUND                       UploadRuntimeSessionConflictCode = "NOT_FOUND"
 	UploadRuntimeSessionConflictCodeCONFLICT                       UploadRuntimeSessionConflictCode = "CONFLICT"
+	UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE           UploadRuntimeSessionConflictCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadRuntimeSessionConflictCodeVALIDATIONFAILED               UploadRuntimeSessionConflictCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionConflictCodeINVALIDCHALLENGE               UploadRuntimeSessionConflictCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionConflictCodeINVALIDSIGNATURE               UploadRuntimeSessionConflictCode = "INVALID_SIGNATURE"
@@ -45658,6 +45939,7 @@ func (UploadRuntimeSessionConflictCode) AllValues() []UploadRuntimeSessionConfli
 		UploadRuntimeSessionConflictCodeFORBIDDEN,
 		UploadRuntimeSessionConflictCodeNOTFOUND,
 		UploadRuntimeSessionConflictCodeCONFLICT,
+		UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE,
 		UploadRuntimeSessionConflictCodeVALIDATIONFAILED,
 		UploadRuntimeSessionConflictCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionConflictCodeINVALIDSIGNATURE,
@@ -45694,6 +45976,8 @@ func (s UploadRuntimeSessionConflictCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionConflictCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadRuntimeSessionConflictCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadRuntimeSessionConflictCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -45760,6 +46044,9 @@ func (s *UploadRuntimeSessionConflictCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionConflictCodeCONFLICT:
 		*s = UploadRuntimeSessionConflictCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadRuntimeSessionConflictCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionConflictCodeVALIDATIONFAILED
@@ -45935,6 +46222,7 @@ const (
 	UploadRuntimeSessionForbiddenCodeFORBIDDEN                      UploadRuntimeSessionForbiddenCode = "FORBIDDEN"
 	UploadRuntimeSessionForbiddenCodeNOTFOUND                       UploadRuntimeSessionForbiddenCode = "NOT_FOUND"
 	UploadRuntimeSessionForbiddenCodeCONFLICT                       UploadRuntimeSessionForbiddenCode = "CONFLICT"
+	UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE           UploadRuntimeSessionForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED               UploadRuntimeSessionForbiddenCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE               UploadRuntimeSessionForbiddenCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE               UploadRuntimeSessionForbiddenCode = "INVALID_SIGNATURE"
@@ -45967,6 +46255,7 @@ func (UploadRuntimeSessionForbiddenCode) AllValues() []UploadRuntimeSessionForbi
 		UploadRuntimeSessionForbiddenCodeFORBIDDEN,
 		UploadRuntimeSessionForbiddenCodeNOTFOUND,
 		UploadRuntimeSessionForbiddenCodeCONFLICT,
+		UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE,
 		UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED,
 		UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE,
@@ -46003,6 +46292,8 @@ func (s UploadRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionForbiddenCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadRuntimeSessionForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -46069,6 +46360,9 @@ func (s *UploadRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionForbiddenCodeCONFLICT:
 		*s = UploadRuntimeSessionForbiddenCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED
@@ -46244,6 +46538,7 @@ const (
 	UploadRuntimeSessionNotFoundCodeFORBIDDEN                      UploadRuntimeSessionNotFoundCode = "FORBIDDEN"
 	UploadRuntimeSessionNotFoundCodeNOTFOUND                       UploadRuntimeSessionNotFoundCode = "NOT_FOUND"
 	UploadRuntimeSessionNotFoundCodeCONFLICT                       UploadRuntimeSessionNotFoundCode = "CONFLICT"
+	UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE           UploadRuntimeSessionNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED               UploadRuntimeSessionNotFoundCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE               UploadRuntimeSessionNotFoundCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE               UploadRuntimeSessionNotFoundCode = "INVALID_SIGNATURE"
@@ -46276,6 +46571,7 @@ func (UploadRuntimeSessionNotFoundCode) AllValues() []UploadRuntimeSessionNotFou
 		UploadRuntimeSessionNotFoundCodeFORBIDDEN,
 		UploadRuntimeSessionNotFoundCodeNOTFOUND,
 		UploadRuntimeSessionNotFoundCodeCONFLICT,
+		UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE,
 		UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED,
 		UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE,
@@ -46312,6 +46608,8 @@ func (s UploadRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionNotFoundCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadRuntimeSessionNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -46378,6 +46676,9 @@ func (s *UploadRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionNotFoundCodeCONFLICT:
 		*s = UploadRuntimeSessionNotFoundCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED
@@ -46861,6 +47162,7 @@ const (
 	UploadRuntimeSessionServiceUnavailableCodeFORBIDDEN                      UploadRuntimeSessionServiceUnavailableCode = "FORBIDDEN"
 	UploadRuntimeSessionServiceUnavailableCodeNOTFOUND                       UploadRuntimeSessionServiceUnavailableCode = "NOT_FOUND"
 	UploadRuntimeSessionServiceUnavailableCodeCONFLICT                       UploadRuntimeSessionServiceUnavailableCode = "CONFLICT"
+	UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE           UploadRuntimeSessionServiceUnavailableCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED               UploadRuntimeSessionServiceUnavailableCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE               UploadRuntimeSessionServiceUnavailableCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE               UploadRuntimeSessionServiceUnavailableCode = "INVALID_SIGNATURE"
@@ -46893,6 +47195,7 @@ func (UploadRuntimeSessionServiceUnavailableCode) AllValues() []UploadRuntimeSes
 		UploadRuntimeSessionServiceUnavailableCodeFORBIDDEN,
 		UploadRuntimeSessionServiceUnavailableCodeNOTFOUND,
 		UploadRuntimeSessionServiceUnavailableCodeCONFLICT,
+		UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE,
 		UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED,
 		UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE,
@@ -46929,6 +47232,8 @@ func (s UploadRuntimeSessionServiceUnavailableCode) MarshalText() ([]byte, error
 	case UploadRuntimeSessionServiceUnavailableCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadRuntimeSessionServiceUnavailableCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -46995,6 +47300,9 @@ func (s *UploadRuntimeSessionServiceUnavailableCode) UnmarshalText(data []byte) 
 		return nil
 	case UploadRuntimeSessionServiceUnavailableCodeCONFLICT:
 		*s = UploadRuntimeSessionServiceUnavailableCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED
@@ -47218,6 +47526,7 @@ const (
 	UploadRuntimeSessionUnauthorizedCodeFORBIDDEN                      UploadRuntimeSessionUnauthorizedCode = "FORBIDDEN"
 	UploadRuntimeSessionUnauthorizedCodeNOTFOUND                       UploadRuntimeSessionUnauthorizedCode = "NOT_FOUND"
 	UploadRuntimeSessionUnauthorizedCodeCONFLICT                       UploadRuntimeSessionUnauthorizedCode = "CONFLICT"
+	UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE           UploadRuntimeSessionUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED               UploadRuntimeSessionUnauthorizedCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE               UploadRuntimeSessionUnauthorizedCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE               UploadRuntimeSessionUnauthorizedCode = "INVALID_SIGNATURE"
@@ -47250,6 +47559,7 @@ func (UploadRuntimeSessionUnauthorizedCode) AllValues() []UploadRuntimeSessionUn
 		UploadRuntimeSessionUnauthorizedCodeFORBIDDEN,
 		UploadRuntimeSessionUnauthorizedCodeNOTFOUND,
 		UploadRuntimeSessionUnauthorizedCodeCONFLICT,
+		UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
 		UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED,
 		UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE,
@@ -47286,6 +47596,8 @@ func (s UploadRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadRuntimeSessionUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -47352,6 +47664,9 @@ func (s *UploadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error 
 		return nil
 	case UploadRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = UploadRuntimeSessionUnauthorizedCodeCONFLICT
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
@@ -47539,6 +47854,7 @@ const (
 	UploadTaskArtifactBadRequestCodeFORBIDDEN                      UploadTaskArtifactBadRequestCode = "FORBIDDEN"
 	UploadTaskArtifactBadRequestCodeNOTFOUND                       UploadTaskArtifactBadRequestCode = "NOT_FOUND"
 	UploadTaskArtifactBadRequestCodeCONFLICT                       UploadTaskArtifactBadRequestCode = "CONFLICT"
+	UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE           UploadTaskArtifactBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadTaskArtifactBadRequestCodeVALIDATIONFAILED               UploadTaskArtifactBadRequestCode = "VALIDATION_FAILED"
 	UploadTaskArtifactBadRequestCodeINVALIDCHALLENGE               UploadTaskArtifactBadRequestCode = "INVALID_CHALLENGE"
 	UploadTaskArtifactBadRequestCodeINVALIDSIGNATURE               UploadTaskArtifactBadRequestCode = "INVALID_SIGNATURE"
@@ -47571,6 +47887,7 @@ func (UploadTaskArtifactBadRequestCode) AllValues() []UploadTaskArtifactBadReque
 		UploadTaskArtifactBadRequestCodeFORBIDDEN,
 		UploadTaskArtifactBadRequestCodeNOTFOUND,
 		UploadTaskArtifactBadRequestCodeCONFLICT,
+		UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE,
 		UploadTaskArtifactBadRequestCodeVALIDATIONFAILED,
 		UploadTaskArtifactBadRequestCodeINVALIDCHALLENGE,
 		UploadTaskArtifactBadRequestCodeINVALIDSIGNATURE,
@@ -47607,6 +47924,8 @@ func (s UploadTaskArtifactBadRequestCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactBadRequestCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadTaskArtifactBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadTaskArtifactBadRequestCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -47673,6 +47992,9 @@ func (s *UploadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactBadRequestCodeCONFLICT:
 		*s = UploadTaskArtifactBadRequestCodeCONFLICT
+		return nil
+	case UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadTaskArtifactBadRequestCodeVALIDATIONFAILED:
 		*s = UploadTaskArtifactBadRequestCodeVALIDATIONFAILED
@@ -47884,6 +48206,7 @@ const (
 	UploadTaskArtifactForbiddenCodeFORBIDDEN                      UploadTaskArtifactForbiddenCode = "FORBIDDEN"
 	UploadTaskArtifactForbiddenCodeNOTFOUND                       UploadTaskArtifactForbiddenCode = "NOT_FOUND"
 	UploadTaskArtifactForbiddenCodeCONFLICT                       UploadTaskArtifactForbiddenCode = "CONFLICT"
+	UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE           UploadTaskArtifactForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadTaskArtifactForbiddenCodeVALIDATIONFAILED               UploadTaskArtifactForbiddenCode = "VALIDATION_FAILED"
 	UploadTaskArtifactForbiddenCodeINVALIDCHALLENGE               UploadTaskArtifactForbiddenCode = "INVALID_CHALLENGE"
 	UploadTaskArtifactForbiddenCodeINVALIDSIGNATURE               UploadTaskArtifactForbiddenCode = "INVALID_SIGNATURE"
@@ -47916,6 +48239,7 @@ func (UploadTaskArtifactForbiddenCode) AllValues() []UploadTaskArtifactForbidden
 		UploadTaskArtifactForbiddenCodeFORBIDDEN,
 		UploadTaskArtifactForbiddenCodeNOTFOUND,
 		UploadTaskArtifactForbiddenCodeCONFLICT,
+		UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE,
 		UploadTaskArtifactForbiddenCodeVALIDATIONFAILED,
 		UploadTaskArtifactForbiddenCodeINVALIDCHALLENGE,
 		UploadTaskArtifactForbiddenCodeINVALIDSIGNATURE,
@@ -47952,6 +48276,8 @@ func (s UploadTaskArtifactForbiddenCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactForbiddenCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadTaskArtifactForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadTaskArtifactForbiddenCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -48018,6 +48344,9 @@ func (s *UploadTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactForbiddenCodeCONFLICT:
 		*s = UploadTaskArtifactForbiddenCodeCONFLICT
+		return nil
+	case UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadTaskArtifactForbiddenCodeVALIDATIONFAILED:
 		*s = UploadTaskArtifactForbiddenCodeVALIDATIONFAILED
@@ -48193,6 +48522,7 @@ const (
 	UploadTaskArtifactNotFoundCodeFORBIDDEN                      UploadTaskArtifactNotFoundCode = "FORBIDDEN"
 	UploadTaskArtifactNotFoundCodeNOTFOUND                       UploadTaskArtifactNotFoundCode = "NOT_FOUND"
 	UploadTaskArtifactNotFoundCodeCONFLICT                       UploadTaskArtifactNotFoundCode = "CONFLICT"
+	UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE           UploadTaskArtifactNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadTaskArtifactNotFoundCodeVALIDATIONFAILED               UploadTaskArtifactNotFoundCode = "VALIDATION_FAILED"
 	UploadTaskArtifactNotFoundCodeINVALIDCHALLENGE               UploadTaskArtifactNotFoundCode = "INVALID_CHALLENGE"
 	UploadTaskArtifactNotFoundCodeINVALIDSIGNATURE               UploadTaskArtifactNotFoundCode = "INVALID_SIGNATURE"
@@ -48225,6 +48555,7 @@ func (UploadTaskArtifactNotFoundCode) AllValues() []UploadTaskArtifactNotFoundCo
 		UploadTaskArtifactNotFoundCodeFORBIDDEN,
 		UploadTaskArtifactNotFoundCodeNOTFOUND,
 		UploadTaskArtifactNotFoundCodeCONFLICT,
+		UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE,
 		UploadTaskArtifactNotFoundCodeVALIDATIONFAILED,
 		UploadTaskArtifactNotFoundCodeINVALIDCHALLENGE,
 		UploadTaskArtifactNotFoundCodeINVALIDSIGNATURE,
@@ -48261,6 +48592,8 @@ func (s UploadTaskArtifactNotFoundCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactNotFoundCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadTaskArtifactNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadTaskArtifactNotFoundCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -48327,6 +48660,9 @@ func (s *UploadTaskArtifactNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactNotFoundCodeCONFLICT:
 		*s = UploadTaskArtifactNotFoundCodeCONFLICT
+		return nil
+	case UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadTaskArtifactNotFoundCodeVALIDATIONFAILED:
 		*s = UploadTaskArtifactNotFoundCodeVALIDATIONFAILED
@@ -48665,6 +49001,7 @@ const (
 	UploadTaskArtifactServiceUnavailableCodeFORBIDDEN                      UploadTaskArtifactServiceUnavailableCode = "FORBIDDEN"
 	UploadTaskArtifactServiceUnavailableCodeNOTFOUND                       UploadTaskArtifactServiceUnavailableCode = "NOT_FOUND"
 	UploadTaskArtifactServiceUnavailableCodeCONFLICT                       UploadTaskArtifactServiceUnavailableCode = "CONFLICT"
+	UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE           UploadTaskArtifactServiceUnavailableCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED               UploadTaskArtifactServiceUnavailableCode = "VALIDATION_FAILED"
 	UploadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE               UploadTaskArtifactServiceUnavailableCode = "INVALID_CHALLENGE"
 	UploadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE               UploadTaskArtifactServiceUnavailableCode = "INVALID_SIGNATURE"
@@ -48697,6 +49034,7 @@ func (UploadTaskArtifactServiceUnavailableCode) AllValues() []UploadTaskArtifact
 		UploadTaskArtifactServiceUnavailableCodeFORBIDDEN,
 		UploadTaskArtifactServiceUnavailableCodeNOTFOUND,
 		UploadTaskArtifactServiceUnavailableCodeCONFLICT,
+		UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE,
 		UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED,
 		UploadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE,
 		UploadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE,
@@ -48733,6 +49071,8 @@ func (s UploadTaskArtifactServiceUnavailableCode) MarshalText() ([]byte, error) 
 	case UploadTaskArtifactServiceUnavailableCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadTaskArtifactServiceUnavailableCodeCONFLICT:
+		return []byte(s), nil
+	case UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -48799,6 +49139,9 @@ func (s *UploadTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) er
 		return nil
 	case UploadTaskArtifactServiceUnavailableCodeCONFLICT:
 		*s = UploadTaskArtifactServiceUnavailableCodeCONFLICT
+		return nil
+	case UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
 		*s = UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED
@@ -48974,6 +49317,7 @@ const (
 	UploadTaskArtifactUnauthorizedCodeFORBIDDEN                      UploadTaskArtifactUnauthorizedCode = "FORBIDDEN"
 	UploadTaskArtifactUnauthorizedCodeNOTFOUND                       UploadTaskArtifactUnauthorizedCode = "NOT_FOUND"
 	UploadTaskArtifactUnauthorizedCodeCONFLICT                       UploadTaskArtifactUnauthorizedCode = "CONFLICT"
+	UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE           UploadTaskArtifactUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
 	UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED               UploadTaskArtifactUnauthorizedCode = "VALIDATION_FAILED"
 	UploadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE               UploadTaskArtifactUnauthorizedCode = "INVALID_CHALLENGE"
 	UploadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE               UploadTaskArtifactUnauthorizedCode = "INVALID_SIGNATURE"
@@ -49006,6 +49350,7 @@ func (UploadTaskArtifactUnauthorizedCode) AllValues() []UploadTaskArtifactUnauth
 		UploadTaskArtifactUnauthorizedCodeFORBIDDEN,
 		UploadTaskArtifactUnauthorizedCodeNOTFOUND,
 		UploadTaskArtifactUnauthorizedCodeCONFLICT,
+		UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
 		UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED,
 		UploadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE,
 		UploadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE,
@@ -49042,6 +49387,8 @@ func (s UploadTaskArtifactUnauthorizedCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactUnauthorizedCodeNOTFOUND:
 		return []byte(s), nil
 	case UploadTaskArtifactUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -49108,6 +49455,9 @@ func (s *UploadTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactUnauthorizedCodeCONFLICT:
 		*s = UploadTaskArtifactUnauthorizedCodeCONFLICT
+		return nil
+	case UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
 		*s = UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED
@@ -49300,6 +49650,7 @@ const (
 	ValidationProblemDetailsCodeFORBIDDEN                      ValidationProblemDetailsCode = "FORBIDDEN"
 	ValidationProblemDetailsCodeNOTFOUND                       ValidationProblemDetailsCode = "NOT_FOUND"
 	ValidationProblemDetailsCodeCONFLICT                       ValidationProblemDetailsCode = "CONFLICT"
+	ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE           ValidationProblemDetailsCode = "UNSUPPORTED_MEDIA_TYPE"
 	ValidationProblemDetailsCodeVALIDATIONFAILED               ValidationProblemDetailsCode = "VALIDATION_FAILED"
 	ValidationProblemDetailsCodeINVALIDCHALLENGE               ValidationProblemDetailsCode = "INVALID_CHALLENGE"
 	ValidationProblemDetailsCodeINVALIDSIGNATURE               ValidationProblemDetailsCode = "INVALID_SIGNATURE"
@@ -49332,6 +49683,7 @@ func (ValidationProblemDetailsCode) AllValues() []ValidationProblemDetailsCode {
 		ValidationProblemDetailsCodeFORBIDDEN,
 		ValidationProblemDetailsCodeNOTFOUND,
 		ValidationProblemDetailsCodeCONFLICT,
+		ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE,
 		ValidationProblemDetailsCodeVALIDATIONFAILED,
 		ValidationProblemDetailsCodeINVALIDCHALLENGE,
 		ValidationProblemDetailsCodeINVALIDSIGNATURE,
@@ -49368,6 +49720,8 @@ func (s ValidationProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ValidationProblemDetailsCodeNOTFOUND:
 		return []byte(s), nil
 	case ValidationProblemDetailsCodeCONFLICT:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		return []byte(s), nil
 	case ValidationProblemDetailsCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -49434,6 +49788,9 @@ func (s *ValidationProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ValidationProblemDetailsCodeCONFLICT:
 		*s = ValidationProblemDetailsCodeCONFLICT
+		return nil
+	case ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
+		*s = ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 		return nil
 	case ValidationProblemDetailsCodeVALIDATIONFAILED:
 		*s = ValidationProblemDetailsCodeVALIDATIONFAILED

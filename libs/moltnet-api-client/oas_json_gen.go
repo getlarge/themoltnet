@@ -3120,6 +3120,8 @@ func (s *BeginRuntimeSlotBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotBadRequestCodeNOTFOUND
 	case BeginRuntimeSlotBadRequestCodeCONFLICT:
 		*s = BeginRuntimeSlotBadRequestCodeCONFLICT
+	case BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED:
 		*s = BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED
 	case BeginRuntimeSlotBadRequestCodeINVALIDCHALLENGE:
@@ -3611,6 +3613,8 @@ func (s *BeginRuntimeSlotConflictCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotConflictCodeNOTFOUND
 	case BeginRuntimeSlotConflictCodeCONFLICT:
 		*s = BeginRuntimeSlotConflictCodeCONFLICT
+	case BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE:
+		*s = BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotConflictCodeVALIDATIONFAILED:
 		*s = BeginRuntimeSlotConflictCodeVALIDATIONFAILED
 	case BeginRuntimeSlotConflictCodeINVALIDCHALLENGE:
@@ -4223,6 +4227,8 @@ func (s *BeginRuntimeSlotForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotForbiddenCodeNOTFOUND
 	case BeginRuntimeSlotForbiddenCodeCONFLICT:
 		*s = BeginRuntimeSlotForbiddenCodeCONFLICT
+	case BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED:
 		*s = BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED
 	case BeginRuntimeSlotForbiddenCodeINVALIDCHALLENGE:
@@ -4569,6 +4575,8 @@ func (s *BeginRuntimeSlotNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotNotFoundCodeNOTFOUND
 	case BeginRuntimeSlotNotFoundCodeCONFLICT:
 		*s = BeginRuntimeSlotNotFoundCodeCONFLICT
+	case BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED:
 		*s = BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED
 	case BeginRuntimeSlotNotFoundCodeINVALIDCHALLENGE:
@@ -5675,6 +5683,8 @@ func (s *BeginRuntimeSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotUnauthorizedCodeNOTFOUND
 	case BeginRuntimeSlotUnauthorizedCodeCONFLICT:
 		*s = BeginRuntimeSlotUnauthorizedCodeCONFLICT
+	case BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
 		*s = BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED
 	case BeginRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE:
@@ -8152,6 +8162,8 @@ func (s *ConflictProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ConflictProblemDetailsCodeNOTFOUND
 	case ConflictProblemDetailsCodeCONFLICT:
 		*s = ConflictProblemDetailsCodeCONFLICT
+	case ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
+		*s = ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case ConflictProblemDetailsCodeVALIDATIONFAILED:
 		*s = ConflictProblemDetailsCodeVALIDATIONFAILED
 	case ConflictProblemDetailsCodeINVALIDCHALLENGE:
@@ -25529,6 +25541,8 @@ func (s *DownloadRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionBadRequestCodeNOTFOUND
 	case DownloadRuntimeSessionBadRequestCodeCONFLICT:
 		*s = DownloadRuntimeSessionBadRequestCodeCONFLICT
+	case DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
 		*s = DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED
 	case DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
@@ -26005,6 +26019,8 @@ func (s *DownloadRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionForbiddenCodeNOTFOUND
 	case DownloadRuntimeSessionForbiddenCodeCONFLICT:
 		*s = DownloadRuntimeSessionForbiddenCodeCONFLICT
+	case DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
 		*s = DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED
 	case DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
@@ -26351,6 +26367,8 @@ func (s *DownloadRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionNotFoundCodeNOTFOUND
 	case DownloadRuntimeSessionNotFoundCodeCONFLICT:
 		*s = DownloadRuntimeSessionNotFoundCodeCONFLICT
+	case DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
 		*s = DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED
 	case DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
@@ -26697,6 +26715,8 @@ func (s *DownloadRuntimeSessionServiceUnavailableCode) Decode(d *jx.Decoder) err
 		*s = DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND
 	case DownloadRuntimeSessionServiceUnavailableCodeCONFLICT:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeCONFLICT
+	case DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED
 	case DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE:
@@ -27043,6 +27063,8 @@ func (s *DownloadRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionUnauthorizedCodeNOTFOUND
 	case DownloadRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = DownloadRuntimeSessionUnauthorizedCodeCONFLICT
+	case DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
 		*s = DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
 	case DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
@@ -27416,6 +27438,8 @@ func (s *DownloadTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactBadRequestCodeNOTFOUND
 	case DownloadTaskArtifactBadRequestCodeCONFLICT:
 		*s = DownloadTaskArtifactBadRequestCodeCONFLICT
+	case DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED:
 		*s = DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED
 	case DownloadTaskArtifactBadRequestCodeINVALIDCHALLENGE:
@@ -27892,6 +27916,8 @@ func (s *DownloadTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactForbiddenCodeNOTFOUND
 	case DownloadTaskArtifactForbiddenCodeCONFLICT:
 		*s = DownloadTaskArtifactForbiddenCodeCONFLICT
+	case DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED:
 		*s = DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED
 	case DownloadTaskArtifactForbiddenCodeINVALIDCHALLENGE:
@@ -28238,6 +28264,8 @@ func (s *DownloadTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactNotFoundCodeNOTFOUND
 	case DownloadTaskArtifactNotFoundCodeCONFLICT:
 		*s = DownloadTaskArtifactNotFoundCodeCONFLICT
+	case DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED:
 		*s = DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED
 	case DownloadTaskArtifactNotFoundCodeINVALIDCHALLENGE:
@@ -28584,6 +28612,8 @@ func (s *DownloadTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error
 		*s = DownloadTaskArtifactServiceUnavailableCodeNOTFOUND
 	case DownloadTaskArtifactServiceUnavailableCodeCONFLICT:
 		*s = DownloadTaskArtifactServiceUnavailableCodeCONFLICT
+	case DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
 		*s = DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED
 	case DownloadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE:
@@ -28930,6 +28960,8 @@ func (s *DownloadTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactUnauthorizedCodeNOTFOUND
 	case DownloadTaskArtifactUnauthorizedCodeCONFLICT:
 		*s = DownloadTaskArtifactUnauthorizedCodeCONFLICT
+	case DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
 		*s = DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED
 	case DownloadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE:
@@ -30921,6 +30953,8 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) Decode(d *jx.Decoder) er
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE:
@@ -31397,6 +31431,8 @@ func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) Decode(d *jx.Decoder) err
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE:
@@ -31743,6 +31779,8 @@ func (s *FindLatestRuntimeSlotForAttemptNotFoundCode) Decode(d *jx.Decoder) erro
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE:
@@ -32851,6 +32889,8 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) Decode(d *jx.Decoder) 
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE:
@@ -33224,6 +33264,8 @@ func (s *FinishRuntimeSlotBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotBadRequestCodeNOTFOUND
 	case FinishRuntimeSlotBadRequestCodeCONFLICT:
 		*s = FinishRuntimeSlotBadRequestCodeCONFLICT
+	case FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED:
 		*s = FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED
 	case FinishRuntimeSlotBadRequestCodeINVALIDCHALLENGE:
@@ -33715,6 +33757,8 @@ func (s *FinishRuntimeSlotConflictCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotConflictCodeNOTFOUND
 	case FinishRuntimeSlotConflictCodeCONFLICT:
 		*s = FinishRuntimeSlotConflictCodeCONFLICT
+	case FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE:
+		*s = FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotConflictCodeVALIDATIONFAILED:
 		*s = FinishRuntimeSlotConflictCodeVALIDATIONFAILED
 	case FinishRuntimeSlotConflictCodeINVALIDCHALLENGE:
@@ -34327,6 +34371,8 @@ func (s *FinishRuntimeSlotForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotForbiddenCodeNOTFOUND
 	case FinishRuntimeSlotForbiddenCodeCONFLICT:
 		*s = FinishRuntimeSlotForbiddenCodeCONFLICT
+	case FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED:
 		*s = FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED
 	case FinishRuntimeSlotForbiddenCodeINVALIDCHALLENGE:
@@ -34673,6 +34719,8 @@ func (s *FinishRuntimeSlotNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotNotFoundCodeNOTFOUND
 	case FinishRuntimeSlotNotFoundCodeCONFLICT:
 		*s = FinishRuntimeSlotNotFoundCodeCONFLICT
+	case FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED:
 		*s = FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED
 	case FinishRuntimeSlotNotFoundCodeINVALIDCHALLENGE:
@@ -35634,6 +35682,8 @@ func (s *FinishRuntimeSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotUnauthorizedCodeNOTFOUND
 	case FinishRuntimeSlotUnauthorizedCodeCONFLICT:
 		*s = FinishRuntimeSlotUnauthorizedCodeCONFLICT
+	case FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
 		*s = FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED
 	case FinishRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE:
@@ -39939,6 +39989,8 @@ func (s *GetRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionBadRequestCodeNOTFOUND
 	case GetRuntimeSessionBadRequestCodeCONFLICT:
 		*s = GetRuntimeSessionBadRequestCodeCONFLICT
+	case GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionBadRequestCodeVALIDATIONFAILED:
 		*s = GetRuntimeSessionBadRequestCodeVALIDATIONFAILED
 	case GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
@@ -40415,6 +40467,8 @@ func (s *GetRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionForbiddenCodeNOTFOUND
 	case GetRuntimeSessionForbiddenCodeCONFLICT:
 		*s = GetRuntimeSessionForbiddenCodeCONFLICT
+	case GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionForbiddenCodeVALIDATIONFAILED:
 		*s = GetRuntimeSessionForbiddenCodeVALIDATIONFAILED
 	case GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
@@ -40761,6 +40815,8 @@ func (s *GetRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionNotFoundCodeNOTFOUND
 	case GetRuntimeSessionNotFoundCodeCONFLICT:
 		*s = GetRuntimeSessionNotFoundCodeCONFLICT
+	case GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionNotFoundCodeVALIDATIONFAILED:
 		*s = GetRuntimeSessionNotFoundCodeVALIDATIONFAILED
 	case GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
@@ -41549,6 +41605,8 @@ func (s *GetRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionUnauthorizedCodeNOTFOUND
 	case GetRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = GetRuntimeSessionUnauthorizedCodeCONFLICT
+	case GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
 		*s = GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
 	case GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
@@ -47757,6 +47815,8 @@ func (s *ListRuntimeSlotsBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsBadRequestCodeNOTFOUND
 	case ListRuntimeSlotsBadRequestCodeCONFLICT:
 		*s = ListRuntimeSlotsBadRequestCodeCONFLICT
+	case ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED:
 		*s = ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED
 	case ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE:
@@ -48233,6 +48293,8 @@ func (s *ListRuntimeSlotsForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsForbiddenCodeNOTFOUND
 	case ListRuntimeSlotsForbiddenCodeCONFLICT:
 		*s = ListRuntimeSlotsForbiddenCodeCONFLICT
+	case ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED:
 		*s = ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED
 	case ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE:
@@ -48579,6 +48641,8 @@ func (s *ListRuntimeSlotsNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsNotFoundCodeNOTFOUND
 	case ListRuntimeSlotsNotFoundCodeCONFLICT:
 		*s = ListRuntimeSlotsNotFoundCodeCONFLICT
+	case ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED:
 		*s = ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED
 	case ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE:
@@ -49793,6 +49857,8 @@ func (s *ListRuntimeSlotsUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsUnauthorizedCodeNOTFOUND
 	case ListRuntimeSlotsUnauthorizedCodeCONFLICT:
 		*s = ListRuntimeSlotsUnauthorizedCodeCONFLICT
+	case ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED:
 		*s = ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED
 	case ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE:
@@ -50280,6 +50346,8 @@ func (s *ListTaskArtifactsBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsBadRequestCodeNOTFOUND
 	case ListTaskArtifactsBadRequestCodeCONFLICT:
 		*s = ListTaskArtifactsBadRequestCodeCONFLICT
+	case ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsBadRequestCodeVALIDATIONFAILED:
 		*s = ListTaskArtifactsBadRequestCodeVALIDATIONFAILED
 	case ListTaskArtifactsBadRequestCodeINVALIDCHALLENGE:
@@ -50756,6 +50824,8 @@ func (s *ListTaskArtifactsForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsForbiddenCodeNOTFOUND
 	case ListTaskArtifactsForbiddenCodeCONFLICT:
 		*s = ListTaskArtifactsForbiddenCodeCONFLICT
+	case ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsForbiddenCodeVALIDATIONFAILED:
 		*s = ListTaskArtifactsForbiddenCodeVALIDATIONFAILED
 	case ListTaskArtifactsForbiddenCodeINVALIDCHALLENGE:
@@ -51102,6 +51172,8 @@ func (s *ListTaskArtifactsNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsNotFoundCodeNOTFOUND
 	case ListTaskArtifactsNotFoundCodeCONFLICT:
 		*s = ListTaskArtifactsNotFoundCodeCONFLICT
+	case ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsNotFoundCodeVALIDATIONFAILED:
 		*s = ListTaskArtifactsNotFoundCodeVALIDATIONFAILED
 	case ListTaskArtifactsNotFoundCodeINVALIDCHALLENGE:
@@ -51866,6 +51938,8 @@ func (s *ListTaskArtifactsUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsUnauthorizedCodeNOTFOUND
 	case ListTaskArtifactsUnauthorizedCodeCONFLICT:
 		*s = ListTaskArtifactsUnauthorizedCodeCONFLICT
+	case ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED:
 		*s = ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED
 	case ListTaskArtifactsUnauthorizedCodeINVALIDCHALLENGE:
@@ -63883,6 +63957,8 @@ func (s *ProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ProblemDetailsCodeNOTFOUND
 	case ProblemDetailsCodeCONFLICT:
 		*s = ProblemDetailsCodeCONFLICT
+	case ProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
+		*s = ProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case ProblemDetailsCodeVALIDATIONFAILED:
 		*s = ProblemDetailsCodeVALIDATIONFAILED
 	case ProblemDetailsCodeINVALIDCHALLENGE:
@@ -88091,6 +88167,8 @@ func (s *UploadRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionBadRequestCodeNOTFOUND
 	case UploadRuntimeSessionBadRequestCodeCONFLICT:
 		*s = UploadRuntimeSessionBadRequestCodeCONFLICT
+	case UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED
 	case UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
@@ -88567,6 +88645,8 @@ func (s *UploadRuntimeSessionConflictCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionConflictCodeNOTFOUND
 	case UploadRuntimeSessionConflictCodeCONFLICT:
 		*s = UploadRuntimeSessionConflictCodeCONFLICT
+	case UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionConflictCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionConflictCodeVALIDATIONFAILED
 	case UploadRuntimeSessionConflictCodeINVALIDCHALLENGE:
@@ -88913,6 +88993,8 @@ func (s *UploadRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionForbiddenCodeNOTFOUND
 	case UploadRuntimeSessionForbiddenCodeCONFLICT:
 		*s = UploadRuntimeSessionForbiddenCodeCONFLICT
+	case UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED
 	case UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
@@ -89259,6 +89341,8 @@ func (s *UploadRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionNotFoundCodeNOTFOUND
 	case UploadRuntimeSessionNotFoundCodeCONFLICT:
 		*s = UploadRuntimeSessionNotFoundCodeCONFLICT
+	case UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED
 	case UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
@@ -90047,6 +90131,8 @@ func (s *UploadRuntimeSessionServiceUnavailableCode) Decode(d *jx.Decoder) error
 		*s = UploadRuntimeSessionServiceUnavailableCodeNOTFOUND
 	case UploadRuntimeSessionServiceUnavailableCodeCONFLICT:
 		*s = UploadRuntimeSessionServiceUnavailableCodeCONFLICT
+	case UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED
 	case UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE:
@@ -90393,6 +90479,8 @@ func (s *UploadRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionUnauthorizedCodeNOTFOUND
 	case UploadRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = UploadRuntimeSessionUnauthorizedCodeCONFLICT
+	case UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
 		*s = UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED
 	case UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
@@ -90766,6 +90854,8 @@ func (s *UploadTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactBadRequestCodeNOTFOUND
 	case UploadTaskArtifactBadRequestCodeCONFLICT:
 		*s = UploadTaskArtifactBadRequestCodeCONFLICT
+	case UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactBadRequestCodeVALIDATIONFAILED:
 		*s = UploadTaskArtifactBadRequestCodeVALIDATIONFAILED
 	case UploadTaskArtifactBadRequestCodeINVALIDCHALLENGE:
@@ -91242,6 +91332,8 @@ func (s *UploadTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactForbiddenCodeNOTFOUND
 	case UploadTaskArtifactForbiddenCodeCONFLICT:
 		*s = UploadTaskArtifactForbiddenCodeCONFLICT
+	case UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactForbiddenCodeVALIDATIONFAILED:
 		*s = UploadTaskArtifactForbiddenCodeVALIDATIONFAILED
 	case UploadTaskArtifactForbiddenCodeINVALIDCHALLENGE:
@@ -91588,6 +91680,8 @@ func (s *UploadTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactNotFoundCodeNOTFOUND
 	case UploadTaskArtifactNotFoundCodeCONFLICT:
 		*s = UploadTaskArtifactNotFoundCodeCONFLICT
+	case UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactNotFoundCodeVALIDATIONFAILED:
 		*s = UploadTaskArtifactNotFoundCodeVALIDATIONFAILED
 	case UploadTaskArtifactNotFoundCodeINVALIDCHALLENGE:
@@ -92231,6 +92325,8 @@ func (s *UploadTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactServiceUnavailableCodeNOTFOUND
 	case UploadTaskArtifactServiceUnavailableCodeCONFLICT:
 		*s = UploadTaskArtifactServiceUnavailableCodeCONFLICT
+	case UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
 		*s = UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED
 	case UploadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE:
@@ -92577,6 +92673,8 @@ func (s *UploadTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactUnauthorizedCodeNOTFOUND
 	case UploadTaskArtifactUnauthorizedCodeCONFLICT:
 		*s = UploadTaskArtifactUnauthorizedCodeCONFLICT
+	case UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
 		*s = UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED
 	case UploadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE:
@@ -92950,6 +93048,8 @@ func (s *ValidationProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ValidationProblemDetailsCodeNOTFOUND
 	case ValidationProblemDetailsCodeCONFLICT:
 		*s = ValidationProblemDetailsCodeCONFLICT
+	case ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
+		*s = ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case ValidationProblemDetailsCodeVALIDATIONFAILED:
 		*s = ValidationProblemDetailsCodeVALIDATIONFAILED
 	case ValidationProblemDetailsCodeINVALIDCHALLENGE:
