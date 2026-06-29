@@ -45,7 +45,7 @@ import {
   diffContextPacksById,
   downloadRuntimeSession,
   downloadTaskArtifact,
-  failTask,
+  failTaskAttempt,
   findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
   getAgentProfile,
@@ -241,9 +241,9 @@ import type {
   DownloadTaskArtifactData,
   DownloadTaskArtifactError,
   DownloadTaskArtifactResponse,
-  FailTaskData,
-  FailTaskError,
-  FailTaskResponse,
+  FailTaskAttemptData,
+  FailTaskAttemptError,
+  FailTaskAttemptResponse,
   FindLatestRuntimeSlotForAttemptData,
   FindLatestRuntimeSlotForAttemptError,
   FindLatestRuntimeSlotForAttemptResponse,
@@ -3510,20 +3510,20 @@ export const completeTaskMutation = (
 /**
  * Mark an attempt as failed with error details.
  */
-export const failTaskMutation = (
-  options?: Partial<Options<FailTaskData>>,
+export const failTaskAttemptMutation = (
+  options?: Partial<Options<FailTaskAttemptData>>,
 ): UseMutationOptions<
-  FailTaskResponse,
-  FailTaskError,
-  Options<FailTaskData>
+  FailTaskAttemptResponse,
+  FailTaskAttemptError,
+  Options<FailTaskAttemptData>
 > => {
   const mutationOptions: UseMutationOptions<
-    FailTaskResponse,
-    FailTaskError,
-    Options<FailTaskData>
+    FailTaskAttemptResponse,
+    FailTaskAttemptError,
+    Options<FailTaskAttemptData>
   > = {
     mutationFn: async (fnOptions) => {
-      const { data } = await failTask({
+      const { data } = await failTaskAttempt({
         ...options,
         ...fnOptions,
         throwOnError: true,

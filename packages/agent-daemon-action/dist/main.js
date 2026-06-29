@@ -29690,7 +29690,7 @@ var completeTask = (options) => (options.client ?? client).post({
 /**
 * Mark an attempt as failed with error details.
 */
-var failTask = (options) => (options.client ?? client).post({
+var failTaskAttempt = (options) => (options.client ?? client).post({
 	security: [
 		{
 			scheme: "bearer",
@@ -42530,7 +42530,7 @@ function createTasksNamespace(context) {
 			}));
 		},
 		async failAttempt(id, n, body) {
-			return unwrapResult(await failTask({
+			return unwrapResult(await failTaskAttempt({
 				client,
 				auth,
 				path: {

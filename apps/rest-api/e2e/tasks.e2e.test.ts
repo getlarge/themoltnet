@@ -27,7 +27,7 @@ import {
   createTask,
   createTeam,
   createTeamInvite,
-  failTask,
+  failTaskAttempt,
   getTask,
   joinTeam,
   listTaskAttempts,
@@ -816,7 +816,7 @@ describe('Tasks API', () => {
       const { data: claimed } = await claim(taskId);
       const attemptN = claimed!.attempt.attemptN;
 
-      const { response, error } = await failTask({
+      const { response, error } = await failTaskAttempt({
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n: attemptN },
@@ -1086,7 +1086,7 @@ describe('Tasks API', () => {
         body: { leaseTtlSec: 30 },
       });
 
-      const { error } = await failTask({
+      const { error } = await failTaskAttempt({
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n: attemptN },
@@ -1344,7 +1344,7 @@ describe('Tasks API', () => {
         body: { reason: 'pulled before fail' },
       });
 
-      const { response } = await failTask({
+      const { response } = await failTaskAttempt({
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n: attemptN },
@@ -1492,7 +1492,7 @@ describe('Tasks API', () => {
         path: { id: taskId, n: attempt1 },
         body: { leaseTtlSec: 30 },
       });
-      await failTask({
+      await failTaskAttempt({
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n: attempt1 },
@@ -2174,7 +2174,7 @@ describe('Tasks API', () => {
       });
       expect([403, 409]).toContain(completeRes.response.status);
 
-      const failRes = await failTask({
+      const failRes = await failTaskAttempt({
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n },

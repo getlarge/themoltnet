@@ -108,9 +108,9 @@ import type {
   DownloadTaskArtifactData,
   DownloadTaskArtifactErrors,
   DownloadTaskArtifactResponses,
-  FailTaskData,
-  FailTaskErrors,
-  FailTaskResponses,
+  FailTaskAttemptData,
+  FailTaskAttemptErrors,
+  FailTaskAttemptResponses,
   FindLatestRuntimeSlotForAttemptData,
   FindLatestRuntimeSlotForAttemptErrors,
   FindLatestRuntimeSlotForAttemptResponses,
@@ -2604,12 +2604,12 @@ export const completeTask = <ThrowOnError extends boolean = false>(
 /**
  * Mark an attempt as failed with error details.
  */
-export const failTask = <ThrowOnError extends boolean = false>(
-  options: Options<FailTaskData, ThrowOnError>,
+export const failTaskAttempt = <ThrowOnError extends boolean = false>(
+  options: Options<FailTaskAttemptData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    FailTaskResponses,
-    FailTaskErrors,
+    FailTaskAttemptResponses,
+    FailTaskAttemptErrors,
     ThrowOnError
   >({
     security: [

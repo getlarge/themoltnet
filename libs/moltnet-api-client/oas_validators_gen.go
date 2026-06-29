@@ -9668,7 +9668,7 @@ func (s *ExpandedRelations) Validate() error {
 	return nil
 }
 
-func (s *FailTaskBadRequest) Validate() error {
+func (s *FailTaskAttemptBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -9676,7 +9676,7 @@ func (s *FailTaskBadRequest) Validate() error {
 	return nil
 }
 
-func (s *FailTaskForbidden) Validate() error {
+func (s *FailTaskAttemptForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -9684,7 +9684,7 @@ func (s *FailTaskForbidden) Validate() error {
 	return nil
 }
 
-func (s *FailTaskNotFound) Validate() error {
+func (s *FailTaskAttemptNotFound) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -9692,7 +9692,7 @@ func (s *FailTaskNotFound) Validate() error {
 	return nil
 }
 
-func (s *FailTaskReq) Validate() error {
+func (s *FailTaskAttemptReq) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -9715,7 +9715,7 @@ func (s *FailTaskReq) Validate() error {
 	return nil
 }
 
-func (s *FailTaskUnauthorized) Validate() error {
+func (s *FailTaskAttemptUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
