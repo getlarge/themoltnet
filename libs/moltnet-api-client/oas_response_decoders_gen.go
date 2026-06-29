@@ -8630,7 +8630,7 @@ func decodeDownloadTaskArtifactResponse(resp *http.Response) (res DownloadTaskAr
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
-func decodeFailTaskResponse(resp *http.Response) (res FailTaskRes, _ error) {
+func decodeFailTaskAttemptResponse(resp *http.Response) (res FailTaskAttemptRes, _ error) {
 	switch resp.StatusCode {
 	case 200:
 		// Code 200.
@@ -8690,7 +8690,7 @@ func decodeFailTaskResponse(resp *http.Response) (res FailTaskRes, _ error) {
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FailTaskBadRequest
+			var response FailTaskAttemptBadRequest
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8734,7 +8734,7 @@ func decodeFailTaskResponse(resp *http.Response) (res FailTaskRes, _ error) {
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FailTaskUnauthorized
+			var response FailTaskAttemptUnauthorized
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8778,7 +8778,7 @@ func decodeFailTaskResponse(resp *http.Response) (res FailTaskRes, _ error) {
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FailTaskForbidden
+			var response FailTaskAttemptForbidden
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -8822,7 +8822,7 @@ func decodeFailTaskResponse(resp *http.Response) (res FailTaskRes, _ error) {
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response FailTaskNotFound
+			var response FailTaskAttemptNotFound
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

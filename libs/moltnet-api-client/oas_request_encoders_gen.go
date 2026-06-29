@@ -350,8 +350,8 @@ func encodeCreateTeamInviteRequest(
 	return nil
 }
 
-func encodeFailTaskRequest(
-	req *FailTaskReq,
+func encodeFailTaskAttemptRequest(
+	req *FailTaskAttemptReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

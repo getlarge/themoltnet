@@ -41,7 +41,7 @@ const (
 	DiffContextPacksByIdOperation            OperationName = "DiffContextPacksById"
 	DownloadRuntimeSessionOperation          OperationName = "DownloadRuntimeSession"
 	DownloadTaskArtifactOperation            OperationName = "DownloadTaskArtifact"
-	FailTaskOperation                        OperationName = "FailTask"
+	FailTaskAttemptOperation                 OperationName = "FailTaskAttempt"
 	FindLatestRuntimeSlotForAttemptOperation OperationName = "FindLatestRuntimeSlotForAttempt"
 	FinishRuntimeSlotOperation               OperationName = "FinishRuntimeSlot"
 	GetAgentProfileOperation                 OperationName = "GetAgentProfile"

@@ -30400,17 +30400,17 @@ func (s *ExpandedRelations) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes FailTaskBadRequest as json.
-func (s *FailTaskBadRequest) Encode(e *jx.Encoder) {
+// Encode encodes FailTaskAttemptBadRequest as json.
+func (s *FailTaskAttemptBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
 
 	unwrapped.Encode(e)
 }
 
-// Decode decodes FailTaskBadRequest from json.
-func (s *FailTaskBadRequest) Decode(d *jx.Decoder) error {
+// Decode decodes FailTaskAttemptBadRequest from json.
+func (s *FailTaskAttemptBadRequest) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FailTaskBadRequest to nil")
+		return errors.New("invalid: unable to decode FailTaskAttemptBadRequest to nil")
 	}
 	var unwrapped ProblemDetails
 	if err := func() error {
@@ -30421,34 +30421,34 @@ func (s *FailTaskBadRequest) Decode(d *jx.Decoder) error {
 	}(); err != nil {
 		return errors.Wrap(err, "alias")
 	}
-	*s = FailTaskBadRequest(unwrapped)
+	*s = FailTaskAttemptBadRequest(unwrapped)
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FailTaskBadRequest) MarshalJSON() ([]byte, error) {
+func (s *FailTaskAttemptBadRequest) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FailTaskBadRequest) UnmarshalJSON(data []byte) error {
+func (s *FailTaskAttemptBadRequest) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FailTaskForbidden as json.
-func (s *FailTaskForbidden) Encode(e *jx.Encoder) {
+// Encode encodes FailTaskAttemptForbidden as json.
+func (s *FailTaskAttemptForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
 
 	unwrapped.Encode(e)
 }
 
-// Decode decodes FailTaskForbidden from json.
-func (s *FailTaskForbidden) Decode(d *jx.Decoder) error {
+// Decode decodes FailTaskAttemptForbidden from json.
+func (s *FailTaskAttemptForbidden) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FailTaskForbidden to nil")
+		return errors.New("invalid: unable to decode FailTaskAttemptForbidden to nil")
 	}
 	var unwrapped ProblemDetails
 	if err := func() error {
@@ -30459,34 +30459,34 @@ func (s *FailTaskForbidden) Decode(d *jx.Decoder) error {
 	}(); err != nil {
 		return errors.Wrap(err, "alias")
 	}
-	*s = FailTaskForbidden(unwrapped)
+	*s = FailTaskAttemptForbidden(unwrapped)
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FailTaskForbidden) MarshalJSON() ([]byte, error) {
+func (s *FailTaskAttemptForbidden) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FailTaskForbidden) UnmarshalJSON(data []byte) error {
+func (s *FailTaskAttemptForbidden) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FailTaskNotFound as json.
-func (s *FailTaskNotFound) Encode(e *jx.Encoder) {
+// Encode encodes FailTaskAttemptNotFound as json.
+func (s *FailTaskAttemptNotFound) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
 
 	unwrapped.Encode(e)
 }
 
-// Decode decodes FailTaskNotFound from json.
-func (s *FailTaskNotFound) Decode(d *jx.Decoder) error {
+// Decode decodes FailTaskAttemptNotFound from json.
+func (s *FailTaskAttemptNotFound) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FailTaskNotFound to nil")
+		return errors.New("invalid: unable to decode FailTaskAttemptNotFound to nil")
 	}
 	var unwrapped ProblemDetails
 	if err := func() error {
@@ -30497,46 +30497,46 @@ func (s *FailTaskNotFound) Decode(d *jx.Decoder) error {
 	}(); err != nil {
 		return errors.Wrap(err, "alias")
 	}
-	*s = FailTaskNotFound(unwrapped)
+	*s = FailTaskAttemptNotFound(unwrapped)
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FailTaskNotFound) MarshalJSON() ([]byte, error) {
+func (s *FailTaskAttemptNotFound) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FailTaskNotFound) UnmarshalJSON(data []byte) error {
+func (s *FailTaskAttemptNotFound) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
-func (s *FailTaskReq) Encode(e *jx.Encoder) {
+func (s *FailTaskAttemptReq) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FailTaskReq) encodeFields(e *jx.Encoder) {
+func (s *FailTaskAttemptReq) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("error")
 		s.Error.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfFailTaskReq = [1]string{
+var jsonFieldsNameOfFailTaskAttemptReq = [1]string{
 	0: "error",
 }
 
-// Decode decodes FailTaskReq from json.
-func (s *FailTaskReq) Decode(d *jx.Decoder) error {
+// Decode decodes FailTaskAttemptReq from json.
+func (s *FailTaskAttemptReq) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FailTaskReq to nil")
+		return errors.New("invalid: unable to decode FailTaskAttemptReq to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -30557,7 +30557,7 @@ func (s *FailTaskReq) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FailTaskReq")
+		return errors.Wrap(err, "decode FailTaskAttemptReq")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -30574,8 +30574,8 @@ func (s *FailTaskReq) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFailTaskReq) {
-					name = jsonFieldsNameOfFailTaskReq[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFailTaskAttemptReq) {
+					name = jsonFieldsNameOfFailTaskAttemptReq[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -30596,29 +30596,29 @@ func (s *FailTaskReq) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FailTaskReq) MarshalJSON() ([]byte, error) {
+func (s *FailTaskAttemptReq) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FailTaskReq) UnmarshalJSON(data []byte) error {
+func (s *FailTaskAttemptReq) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes FailTaskUnauthorized as json.
-func (s *FailTaskUnauthorized) Encode(e *jx.Encoder) {
+// Encode encodes FailTaskAttemptUnauthorized as json.
+func (s *FailTaskAttemptUnauthorized) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
 
 	unwrapped.Encode(e)
 }
 
-// Decode decodes FailTaskUnauthorized from json.
-func (s *FailTaskUnauthorized) Decode(d *jx.Decoder) error {
+// Decode decodes FailTaskAttemptUnauthorized from json.
+func (s *FailTaskAttemptUnauthorized) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FailTaskUnauthorized to nil")
+		return errors.New("invalid: unable to decode FailTaskAttemptUnauthorized to nil")
 	}
 	var unwrapped ProblemDetails
 	if err := func() error {
@@ -30629,19 +30629,19 @@ func (s *FailTaskUnauthorized) Decode(d *jx.Decoder) error {
 	}(); err != nil {
 		return errors.Wrap(err, "alias")
 	}
-	*s = FailTaskUnauthorized(unwrapped)
+	*s = FailTaskAttemptUnauthorized(unwrapped)
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FailTaskUnauthorized) MarshalJSON() ([]byte, error) {
+func (s *FailTaskAttemptUnauthorized) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FailTaskUnauthorized) UnmarshalJSON(data []byte) error {
+func (s *FailTaskAttemptUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

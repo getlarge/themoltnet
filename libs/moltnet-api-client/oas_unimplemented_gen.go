@@ -334,12 +334,12 @@ func (UnimplementedHandler) DownloadTaskArtifact(ctx context.Context, params Dow
 	return r, ht.ErrNotImplemented
 }
 
-// FailTask implements failTask operation.
+// FailTaskAttempt implements failTaskAttempt operation.
 //
 // Mark an attempt as failed with error details.
 //
 // POST /tasks/{id}/attempts/{n}/fail
-func (UnimplementedHandler) FailTask(ctx context.Context, req *FailTaskReq, params FailTaskParams) (r FailTaskRes, _ error) {
+func (UnimplementedHandler) FailTaskAttempt(ctx context.Context, req *FailTaskAttemptReq, params FailTaskAttemptParams) (r FailTaskAttemptRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
