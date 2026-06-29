@@ -77,7 +77,24 @@ interface Logger {
   error(obj: object, msg: string): void;
 }
 
+export interface RetryTriageDecision {
+  decision: 'retry' | 'do_not_retry';
+  confidence: 'low' | 'medium' | 'high';
+  reason: string;
+}
+
+export interface RetryTriageInput {
+  task: Task;
+  attemptN: number;
+  error: TaskError;
+  recentMessages: TaskMessage[];
+  remainingAttempts: number;
+  callerId: string;
+  callerNs: KetoNamespace;
+}
+
 const EVENT_TIMEOUT_SECONDS = 10;
+const RETRY_TRIAGE_TIMEOUT_MS = 5_000;
 const DEFAULT_LEASE_TTL_SEC = 300;
 const TERMINAL_STATUSES = new Set<DbTask['status']>([
   'completed',
@@ -121,6 +138,101 @@ const TRUST_ORDER: Record<ExecutorTrustLevel, number> = {
   releaseVerifiedTool: 2,
   sandboxAttested: 3,
 };
+
+const RETRYABLE_ERROR_CODES = new Set([
+  'network_error',
+  'dns_error',
+  'timeout',
+  'request_timeout',
+  'rate_limited',
+  '429',
+  'bad_gateway',
+  '502',
+  'service_unavailable',
+  '503',
+  'gateway_timeout',
+  '504',
+  'daemon_abort',
+  'dispatch_expired',
+  'lease_expired',
+]);
+
+const NON_RETRYABLE_ERROR_CODES = new Set([
+  'bad_api_key',
+  'missing_credentials',
+  'unauthorized',
+  '401',
+  'forbidden',
+  '403',
+  'invalid_model',
+  'unknown_task_type',
+  'output_validation_failed',
+  'task_cancelled',
+  'cancelled',
+  'max_turns_exceeded',
+  'max_bash_timeouts_exceeded',
+]);
+
+function classifyRetryableError(error: TaskError): boolean | null {
+  if (error.retryable !== undefined) return error.retryable;
+
+  const code = error.code.trim().toLowerCase();
+  const message = error.message.toLowerCase();
+  if (RETRYABLE_ERROR_CODES.has(code)) return true;
+  if (NON_RETRYABLE_ERROR_CODES.has(code)) return false;
+
+  if (
+    /\b(429|502|503|504)\b/.test(message) ||
+    message.includes('rate limit') ||
+    message.includes('timed out') ||
+    message.includes('timeout') ||
+    message.includes('dns') ||
+    message.includes('econnreset') ||
+    message.includes('enotfound')
+  ) {
+    return true;
+  }
+
+  if (
+    /\b(401|403)\b/.test(message) ||
+    message.includes('invalid api key') ||
+    message.includes('missing credential') ||
+    message.includes('invalid model') ||
+    message.includes('output validation') ||
+    message.includes('max turns') ||
+    message.includes('max bash')
+  ) {
+    return false;
+  }
+
+  return null;
+}
+
+function retryableFromTriage(decision: RetryTriageDecision | null): boolean {
+  return (
+    decision?.decision === 'retry' &&
+    (decision.confidence === 'medium' || decision.confidence === 'high')
+  );
+}
+
+async function withRetryTriageTimeout(
+  promise: Promise<RetryTriageDecision>,
+): Promise<RetryTriageDecision> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<RetryTriageDecision>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error('retry triage timed out')),
+          RETRY_TRIAGE_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
 
 export class TaskServiceError extends Error {
   constructor(
@@ -229,6 +341,7 @@ interface TaskServiceDeps {
    */
   transactionRunner: TransactionRunner;
   logger: Logger;
+  triageRetry?: (input: RetryTriageInput) => Promise<RetryTriageDecision>;
 }
 
 function normalizeTaskTitle(title: string | null | undefined): string | null {
@@ -261,6 +374,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     relationshipWriter,
     transactionRunner,
     logger,
+    triageRetry,
   } = deps;
 
   /**
@@ -555,6 +669,55 @@ export function createTaskService(deps: TaskServiceDeps) {
         'task.promoteWaiting.failed',
       );
     }
+  }
+
+  async function resolveRetryableError(
+    task: DbTask,
+    attemptN: number,
+    callerId: string,
+    callerNs: KetoNamespace,
+    error: TaskError,
+  ): Promise<TaskError> {
+    const deterministic = classifyRetryableError(error);
+    if (deterministic !== null) {
+      return { ...error, retryable: deterministic };
+    }
+
+    const attemptCount = await taskRepository.countAttempts(task.id);
+    const remainingAttempts = Math.max(0, task.maxAttempts - attemptCount);
+    if (!triageRetry || remainingAttempts <= 0) {
+      return { ...error, retryable: false };
+    }
+
+    let triage: RetryTriageDecision;
+    try {
+      const { items } = await taskRepository.listMessages(task.id, attemptN, {
+        limit: 20,
+      });
+      triage = await withRetryTriageTimeout(
+        triageRetry({
+          task: dbTaskToWire(task),
+          attemptN,
+          error,
+          recentMessages: items.map(dbMessageToWire),
+          remainingAttempts,
+          callerId,
+          callerNs,
+        }),
+      );
+    } catch (err) {
+      logger.warn(
+        { taskId: task.id, attemptN, err },
+        'task.fail.retry_triage_failed',
+      );
+      return { ...error, retryable: false };
+    }
+
+    return {
+      ...error,
+      retryable: retryableFromTriage(triage),
+      retryTriage: triage,
+    };
   }
 
   return {
@@ -1560,21 +1723,41 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
 
       const workflowId = taskWorkflowId(taskId, attemptN);
+      const resolvedError = await resolveRetryableError(
+        task,
+        attemptN,
+        callerId,
+        callerNs,
+        error,
+      );
       // Multiplexed `progress` topic (#936).
-      await DBOS.send(workflowId, { kind: 'failed', error }, 'progress');
+      await DBOS.send(
+        workflowId,
+        { kind: 'failed', error: resolvedError },
+        'progress',
+      );
 
       const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
       while (true) {
         const updated = await taskRepository.findById(taskId);
-        if (updated && TERMINAL_STATUSES.has(updated.status)) {
+        if (
+          updated &&
+          (TERMINAL_STATUSES.has(updated.status) || updated.status === 'queued')
+        ) {
           // Defense in depth (#938): if the workflow ended in a different
           // terminal state (typically `cancelled` when a cancel races
           // with a fail), the caller's /fail did not actually take
           // effect — return 409.
           //
-          // Note: a fail with retries-left moves task→queued (non-terminal),
-          // so the loop keeps polling until either the workflow truly
-          // settles or the deadline fires. We don't special-case it here.
+          // A retryable fail with attempts left moves task→queued. That is
+          // the expected successful outcome for this /fail call.
+          if (updated.status === 'queued') {
+            logger.info(
+              { taskId, attemptN, status: updated.status },
+              'task.fail.retry_requeued',
+            );
+            return dbTaskToWire(updated);
+          }
           if (updated.status !== 'failed') {
             logger.info(
               { taskId, attemptN, status: updated.status },

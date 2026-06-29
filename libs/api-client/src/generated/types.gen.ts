@@ -2112,6 +2112,11 @@ export type TaskAttempt = {
   error: {
     code: string;
     message: string;
+    retryTriage?: {
+      confidence: 'low' | 'medium' | 'high';
+      decision: 'retry' | 'do_not_retry';
+      reason: string;
+    };
     retryable?: boolean;
     stack?: string;
   } | null;
@@ -2159,6 +2164,11 @@ export type TaskAttemptStatus =
 export type TaskError = {
   code: string;
   message: string;
+  retryTriage?: {
+    confidence: 'low' | 'medium' | 'high';
+    decision: 'retry' | 'do_not_retry';
+    reason: string;
+  };
   retryable?: boolean;
   stack?: string;
 };

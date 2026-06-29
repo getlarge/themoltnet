@@ -176,4 +176,69 @@ describe('startAttemptWorkflow — timeout paths', () => {
       vi.useRealTimers();
     }
   });
+
+  it('requeues failed attempts only when the error is retryable', async () => {
+    const deps = makeDeps({
+      getMaxAttempts: vi.fn().mockResolvedValue(2),
+    });
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+
+    const recvMock = vi.mocked(DBOS.recv);
+    recvMock.mockReset();
+    recvMock.mockResolvedValueOnce({
+      kind: 'failed',
+      error: {
+        code: 'transient',
+        message: 'try again',
+        retryable: true,
+      },
+    } as TaskProgressEvent);
+
+    const result = await taskWorkflows.startAttemptWorkflow(
+      TASK_ID,
+      ATTEMPT_N,
+      AGENT_ID,
+      WORKFLOW_ID,
+      LEASE_TTL_SEC,
+    );
+
+    expect(result.status).toBe('failed');
+    expect(deps.updateTaskStatusIfNotIn).toHaveBeenCalledWith(
+      TASK_ID,
+      'queued',
+      ['cancelled', 'completed', 'failed', 'expired'],
+      { claimAgentId: null, claimExpiresAt: null },
+    );
+  });
+
+  it('fails ambiguous failed attempts when retryable is not set', async () => {
+    const deps = makeDeps({
+      getMaxAttempts: vi.fn().mockResolvedValue(2),
+    });
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+
+    const recvMock = vi.mocked(DBOS.recv);
+    recvMock.mockReset();
+    recvMock.mockResolvedValueOnce({
+      kind: 'failed',
+      error: { code: 'agent_error', message: 'unclear' },
+    } as TaskProgressEvent);
+
+    await taskWorkflows.startAttemptWorkflow(
+      TASK_ID,
+      ATTEMPT_N,
+      AGENT_ID,
+      WORKFLOW_ID,
+      LEASE_TTL_SEC,
+    );
+
+    expect(deps.updateTaskStatusIfNotIn).toHaveBeenCalledWith(
+      TASK_ID,
+      'failed',
+      ['cancelled', 'completed', 'failed', 'expired'],
+      { claimAgentId: null, claimExpiresAt: null },
+    );
+  });
 });

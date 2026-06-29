@@ -269,6 +269,23 @@ export const TaskError = Type.Object(
     message: Type.String(),
     stack: Type.Optional(Type.String()),
     retryable: Type.Optional(Type.Boolean()),
+    retryTriage: Type.Optional(
+      Type.Object(
+        {
+          decision: Type.Union([
+            Type.Literal('retry'),
+            Type.Literal('do_not_retry'),
+          ]),
+          confidence: Type.Union([
+            Type.Literal('low'),
+            Type.Literal('medium'),
+            Type.Literal('high'),
+          ]),
+          reason: Type.String(),
+        },
+        { additionalProperties: false },
+      ),
+    ),
   },
   { $id: 'TaskError', additionalProperties: false },
 );

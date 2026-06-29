@@ -3,6 +3,14 @@ import { DBOS } from '@dbos-inc/dbos-sdk';
 import type { DataSource } from '../dbos.js';
 import type { NewTaskAttempt, Task, TaskAttempt } from '../schema.js';
 
+function errorIsRetryable(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { retryable?: unknown }).retryable === true
+  );
+}
+
 /**
  * Discriminated event sent from the HTTP layer (heartbeat / complete /
  * fail / cancel) to the running workflow over a single multiplexed
@@ -452,8 +460,9 @@ export function initTaskWorkflows(): void {
           // another daemon can reclaim it. Only when retries are exhausted
           // does it settle the task terminally (see status mapping below).
           const canRetry =
-            (evt.kind === 'failed' || evt.kind === 'aborted') &&
-            attemptCount < maxAttempts;
+            attemptCount < maxAttempts &&
+            (evt.kind === 'aborted' ||
+              (evt.kind === 'failed' && errorIsRetryable(evt.error)));
           const now = new Date();
           const { taskNow, isTerminal } = await checkExternalTerminal();
           await getDeps().dataSource.runTransaction(

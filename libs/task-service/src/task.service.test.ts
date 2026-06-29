@@ -1,6 +1,10 @@
 import { KetoNamespace } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
-import type { Task as DbTask, TransactionRunner } from '@moltnet/database';
+import {
+  DBOS,
+  type Task as DbTask,
+  type TransactionRunner,
+} from '@moltnet/database';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
 import * as Format from 'typebox/format';
 import {
@@ -11,6 +15,7 @@ import {
   expect,
   it,
   type Mock,
+  type MockInstance,
   vi,
 } from 'vitest';
 
@@ -112,6 +117,15 @@ function makeJudgeTask(
   } as unknown as DbTask;
 }
 
+function makeTaskAttempt(status = 'running') {
+  return {
+    taskId: JUDGE_TASK,
+    attemptN: 1,
+    claimedByAgentId: AGENT_ID,
+    status,
+  };
+}
+
 type TaskRepositoryMocks = {
   findById: Mock<(id: string) => Promise<DbTask | null>>;
   findByIds: Mock<(ids: string[]) => Promise<DbTask[]>>;
@@ -135,6 +149,14 @@ type TaskRepositoryMocks = {
   >;
   create: Mock<(newTask: Record<string, unknown>) => Promise<DbTask>>;
   countAttempts: Mock<(taskId: string) => Promise<number>>;
+  findAttempt: Mock<(taskId: string, attemptN: number) => Promise<unknown>>;
+  listMessages: Mock<
+    (
+      taskId: string,
+      attemptN: number,
+      opts: { afterSeq?: number; limit?: number },
+    ) => Promise<{ items: unknown[]; hasMore: boolean }>
+  >;
   listWaitingTasks: Mock<() => Promise<DbTask[]>>;
   listWaitingTasksReferencingTask: Mock<(taskId: string) => Promise<DbTask[]>>;
   promoteWaitingTasks: Mock<(ids: string[]) => Promise<DbTask[]>>;
@@ -179,6 +201,9 @@ type PermissionCheckerMocks = {
   canClaimTask: Mock<
     (taskId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
+  canReportTask: Mock<
+    (taskId: string, callerId: string, callerNs: string) => Promise<boolean>
+  >;
   canViewTasks: Mock<
     (
       taskIds: string[],
@@ -200,6 +225,7 @@ type PermissionCheckerMocks = {
 
 type RelationshipWriterMocks = {
   grantTaskParent: Mock<(taskId: string, diaryId: string) => Promise<void>>;
+  grantTaskClaimant: Mock<(taskId: string, agentId: string) => Promise<void>>;
   removeTaskRelationsBatch: Mock<
     (
       tasks: Array<{
@@ -321,6 +347,17 @@ function makeMocks(
     countAttempts: vi
       .fn<(taskId: string) => Promise<number>>()
       .mockResolvedValue(0),
+    findAttempt:
+      vi.fn<(taskId: string, attemptN: number) => Promise<unknown>>(),
+    listMessages: vi
+      .fn<
+        (
+          taskId: string,
+          attemptN: number,
+          opts: { afterSeq?: number; limit?: number },
+        ) => Promise<{ items: unknown[]; hasMore: boolean }>
+      >()
+      .mockResolvedValue({ items: [], hasMore: false }),
     listWaitingTasks: vi.fn<() => Promise<DbTask[]>>().mockResolvedValue([]),
     listWaitingTasksReferencingTask: vi
       .fn<(taskId: string) => Promise<DbTask[]>>()
@@ -456,6 +493,15 @@ function makeMocks(
           ) => Promise<boolean>
         >()
         .mockResolvedValue(true),
+      canReportTask: vi
+        .fn<
+          (
+            taskId: string,
+            callerId: string,
+            callerNs: string,
+          ) => Promise<boolean>
+        >()
+        .mockResolvedValue(true),
       canViewTasks: vi
         .fn<
           (
@@ -510,6 +556,7 @@ function makeMocks(
             ? Promise.reject(new Error('keto down'))
             : Promise.resolve(),
         ),
+      grantTaskClaimant: vi.fn().mockResolvedValue(undefined),
       removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
     },
     transactionRunner,
@@ -560,6 +607,138 @@ beforeAll(async () => {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
   );
   await initTaskTypeRegistry();
+});
+
+describe('createTaskService.fail — retry policy', () => {
+  let mocks: Mocks;
+  let send: MockInstance<typeof DBOS.send>;
+
+  function setup(
+    opts: Partial<Parameters<typeof createTaskService>[0]> = {},
+  ): ReturnType<typeof createTaskService> {
+    const running = { ...makeJudgeTask(JUDGE_TASK, 'running'), maxAttempts: 2 };
+    const queued = { ...running, status: 'queued' as const };
+    mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: running } });
+    mocks.taskRepository.findById
+      .mockResolvedValueOnce(running)
+      .mockResolvedValueOnce(queued);
+    mocks.taskRepository.findAttempt.mockResolvedValue(makeTaskAttempt());
+    mocks.taskRepository.countAttempts.mockResolvedValue(1);
+    send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+
+    return createTaskService({
+      ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+      ...opts,
+    });
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('preserves explicit retryable failures and returns the requeued task', async () => {
+    const service = setup();
+
+    const task = await service.fail(
+      JUDGE_TASK,
+      1,
+      AGENT_ID,
+      KetoNamespace.Agent,
+      { code: 'custom', message: 'recoverable', retryable: true },
+    );
+
+    expect(task.status).toBe('queued');
+    expect(send).toHaveBeenCalledWith(
+      `task:${JUDGE_TASK}:attempt:1`,
+      {
+        kind: 'failed',
+        error: { code: 'custom', message: 'recoverable', retryable: true },
+      },
+      'progress',
+    );
+  });
+
+  it('marks obvious nonretryable errors without invoking triage', async () => {
+    const triageRetry = vi.fn();
+    const service = setup({ triageRetry });
+
+    await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
+      code: '401',
+      message: 'bad auth',
+    });
+
+    expect(triageRetry).not.toHaveBeenCalled();
+    expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
+      error: { code: '401', retryable: false },
+    });
+  });
+
+  it.each(['medium', 'high'] as const)(
+    'lets %s-confidence triage retry ambiguous failures',
+    async (confidence) => {
+      const triageRetry = vi.fn().mockResolvedValue({
+        decision: 'retry',
+        confidence,
+        reason: 'looks transient',
+      });
+      const service = setup({ triageRetry });
+
+      await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
+        code: 'agent_error',
+        message: 'model stream ended unexpectedly',
+      });
+
+      expect(triageRetry.mock.calls.at(-1)?.[0]).toMatchObject({
+        attemptN: 1,
+        remainingAttempts: 1,
+        callerId: AGENT_ID,
+        error: { code: 'agent_error' },
+      });
+      expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
+        error: {
+          retryable: true,
+          retryTriage: { confidence },
+        },
+      });
+    },
+  );
+
+  it('does not retry low-confidence triage retry decisions', async () => {
+    const service = setup({
+      triageRetry: vi.fn().mockResolvedValue({
+        decision: 'retry',
+        confidence: 'low',
+        reason: 'weak signal',
+      }),
+    });
+
+    await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
+      code: 'agent_error',
+      message: 'unclear failure',
+    });
+
+    expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
+      error: {
+        retryable: false,
+        retryTriage: { confidence: 'low' },
+      },
+    });
+  });
+
+  it('does not retry when triage fails', async () => {
+    const service = setup({
+      triageRetry: vi.fn().mockRejectedValue(new Error('triage down')),
+    });
+
+    await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
+      code: 'agent_error',
+      message: 'unclear failure',
+    });
+
+    expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
+      error: { retryable: false },
+    });
+  });
 });
 
 describe('createTaskService.claim — runtime profile attestation', () => {

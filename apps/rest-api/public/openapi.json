@@ -9768,6 +9768,58 @@
                   "message": {
                     "type": "string"
                   },
+                  "retryTriage": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "confidence": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "low"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "medium"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "high"
+                            ],
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "decision": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "retry"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "do_not_retry"
+                            ],
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "decision",
+                      "confidence",
+                      "reason"
+                    ],
+                    "type": "object"
+                  },
                   "retryable": {
                     "type": "boolean"
                   },
@@ -10029,6 +10081,58 @@
           },
           "message": {
             "type": "string"
+          },
+          "retryTriage": {
+            "additionalProperties": false,
+            "properties": {
+              "confidence": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "low"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "medium"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "high"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "decision": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "retry"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "do_not_retry"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "decision",
+              "confidence",
+              "reason"
+            ],
+            "type": "object"
           },
           "retryable": {
             "type": "boolean"

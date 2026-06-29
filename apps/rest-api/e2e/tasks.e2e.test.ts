@@ -1492,7 +1492,7 @@ describe('Tasks API', () => {
         path: { id: taskId, n: attempt1 },
         body: { leaseTtlSec: 30 },
       });
-      await failTask({
+      const failed = await failTask({
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId, n: attempt1 },
@@ -1504,6 +1504,8 @@ describe('Tasks API', () => {
           },
         },
       });
+      expect(failed.error).toBeUndefined();
+      expect(failed.data!.status).toBe('queued');
 
       // Workflow re-queues; another claim should succeed and produce attempt 2.
       const requeued = await pollUntil(
