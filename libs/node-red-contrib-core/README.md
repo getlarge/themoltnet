@@ -213,12 +213,18 @@ model-specialization option.
 
 [`examples/ab-eval-with-judge.flow.json`](./examples/ab-eval-with-judge.flow.json)
 imports a reusable **A/B eval with judge** subflow plus a small demo tab. The
-subflow runs `run_eval`, locally scores required fields/findings, then creates a
-`judge_eval_attempt` task and stores per-variant scores/deltas in flow context.
+subflow runs one `run_eval` producer lane, locally scores required
+fields/findings, then creates one `judge_eval_attempt` task and stores the
+variant score/delta in flow context. The demo tab owns the reusable workflow
+runner pattern: initialize one correlation id, fan out configured variants in
+parallel, record successful or failed lanes, and emit a group result only once
+all expected variants have settled.
 
 Fill the `moltnet-agent` config after import. Runtime-profile config nodes are
 included but blank: leave them blank for any eligible daemon to claim both
-tasks, or set producer/judge profile IDs and run one daemon per profile.
+tasks, or set producer/judge profile IDs and run one daemon per profile. The
+example uses `maxAttempts=2` for producer and judge tasks so transient
+tool/model failures retry at the task layer before the lane is marked failed.
 
 ## Freeform deep review workflow
 

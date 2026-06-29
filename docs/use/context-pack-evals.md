@@ -72,8 +72,9 @@ JSON
 ```
 
 Create the with-context producer. Inject the rendered pack as
-`context_inline`; the daemon also writes it to `/workspace/context-pack.md` so
-the later judge can inspect the exact bytes the producer received:
+`context_inline`; the runtime exposes those bytes through the task-context
+mount for the producer, and the later judge receives the accepted attempt as
+its pinned target:
 
 ```bash
 RENDERED_PACK_MD="$(cat rendered-pack.md)"
@@ -372,6 +373,9 @@ usually too generic, missing from the pack, or ambiguous.
 
 - Keep all variants and judges for one comparison under the same
   `correlation_id`.
+- In Node-RED, treat one producer+judge pair as a lane. Fan out configured
+  variants under the same correlation id, store each lane result in flow
+  context, and emit a comparison only after every expected variant has settled.
 - Use `execution.workspace: "none"` for pure reasoning/doc-output evals.
 - Use `execution.workspace: "dedicated_worktree"` only when the producer must
   inspect or modify a real checkout.
