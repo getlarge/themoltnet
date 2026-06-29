@@ -4,17 +4,37 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { computeJsonCid } from '@moltnet/crypto-service';
+import {
+  AgentRuntime,
+  type AgentRuntimeLogger,
+  ApiTaskReporter,
+  PollingApiTaskSource,
+} from '@themoltnet/agent-runtime';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { runOnce } from '../src/cli/once.js';
+import { finalizeTask } from '../src/lib/finalize.js';
+import { createRuntimeProfileRetryTriage } from '../src/lib/runtime-profile-retry-triage.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
 const LIVE_PROVIDER = 'ollama-cloud';
 const LIVE_MODEL = 'qwen3-coder:480b-cloud';
+const LIVE_TRIAGE_MODEL =
+  process.env.MOLTNET_AGENT_DAEMON_LIVE_TRIAGE_MODEL ?? 'minimax-m2.1:cloud';
 
 const describeLive = describe.skipIf(process.env[LIVE_LLM_FLAG] !== '1');
+const repoRoot = join(import.meta.dirname, '../../..');
+
+const silentLogger: AgentRuntimeLogger = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  child: () => silentLogger,
+};
 
 describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
   let harness: DaemonTestHarness;
@@ -261,7 +281,140 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
       }
     }
   }, 900_000);
+
+  it('uses live Pi retry triage to requeue an ambiguous failed attempt', async () => {
+    const created = await agent.tasks.create(
+      {
+        taskType: 'curate_pack',
+        diaryId,
+        maxAttempts: 2,
+        input: {
+          diaryId,
+          taskPrompt: 'live retry triage e2e',
+        },
+      },
+      { teamId },
+    );
+    const seenAttempts: number[] = [];
+
+    const runtime = new AgentRuntime({
+      source: new PollingApiTaskSource({
+        agent,
+        teamId,
+        taskTypes: ['curate_pack'],
+        leaseTtlSec: 60,
+        stopWhenEmpty: true,
+        logger: silentLogger,
+      }),
+      makeReporter: () =>
+        new ApiTaskReporter({
+          tasks: agent.tasks,
+          leaseTtlSec: 60,
+          heartbeatIntervalMs: 0,
+        }),
+      executeTask: async (claimedTask, reporter) => {
+        seenAttempts.push(claimedTask.attemptN);
+        await reporter.open({
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+        });
+
+        if (claimedTask.attemptN === 1) {
+          await reporter.close();
+          return {
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
+            status: 'failed' as const,
+            output: null,
+            outputCid: null,
+            usage: { inputTokens: 1, outputTokens: 0 },
+            durationMs: 1,
+            error: {
+              code: 'executor_unexpected_error',
+              message:
+                'Ambiguous local VM worker crash after a websocket disconnect; task input and credentials are still valid.',
+              retryable: false,
+            },
+          };
+        }
+
+        const stubOutput = {
+          packId: '00000000-0000-4000-8000-000000000001',
+          packCid:
+            'bafyreidlnv7nu7y4kdxkxv5e2onbpoq5o3i6gw7r6xkk7d3w5b3xrylkqe',
+          entries: [
+            {
+              entryId: '00000000-0000-4000-8000-000000000002',
+              rank: 1,
+              rationale: 'live retry triage e2e stub entry',
+            },
+          ],
+          recipeParams: {},
+          summary: 'live retry triage e2e completed after requeue.',
+          verification: buildProducerVerification(claimedTask.task.inputCid),
+        };
+        await reporter.finalize({ inputTokens: 1, outputTokens: 1 });
+        await reporter.close();
+        return {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          status: 'completed' as const,
+          output: stubOutput,
+          outputCid: await computeJsonCid(stubOutput),
+          usage: { inputTokens: 1, outputTokens: 1 },
+          durationMs: 1,
+        };
+      },
+      onTaskFinished: (output, claimedTask) =>
+        finalizeTask(agent, output, {
+          task: claimedTask.task,
+          retryTriage: createRuntimeProfileRetryTriage({
+            runtimeProfile: {
+              provider: LIVE_PROVIDER,
+              model: LIVE_TRIAGE_MODEL,
+              thinkingLevel: 'low',
+            },
+            piAgentDir: join(repoRoot, '.pi'),
+            cwd: repoRoot,
+            timeoutMs: 60_000,
+          }),
+        }),
+    });
+
+    await runtime.start();
+
+    expect(seenAttempts).toEqual([1, 2]);
+    const final = await agent.tasks.get(created.id);
+    expect(final.status).toBe('completed');
+    expect(final.acceptedAttemptN).toBe(2);
+    const attempts = await agent.tasks.listAttempts(created.id);
+    expect(attempts.find((attempt) => attempt.attemptN === 1)).toMatchObject({
+      status: 'failed',
+      error: expect.objectContaining({
+        retryable: true,
+        retry: expect.objectContaining({
+          source: 'triage',
+          decision: 'retry',
+        }),
+      }),
+    });
+  }, 180_000);
 });
+
+function buildProducerVerification(inputCid: string) {
+  return {
+    inputCid,
+    results: [
+      {
+        id: 'submit-output',
+        kind: 'gate' as const,
+        status: 'pass' as const,
+        detail: 'submit tool criterion satisfied in live retry triage e2e stub',
+      },
+    ],
+    passed: true,
+  };
+}
 
 async function runLiveTask(input: {
   agent: Agent;

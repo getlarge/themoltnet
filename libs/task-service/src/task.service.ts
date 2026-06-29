@@ -1505,7 +1505,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
     },
 
-    async fail(
+    async failAttempt(
       taskId: string,
       attemptN: number,
       callerId: string,

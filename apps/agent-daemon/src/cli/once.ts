@@ -40,6 +40,7 @@ import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
 } from '../lib/runtime-profile.js';
+import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
 import {
   applyRuntimeSessionUploadFailure,
   createApiRuntimeSessionStore,
@@ -466,6 +467,11 @@ export async function runOnce(argv: string[]): Promise<number> {
         return finalizeTask(ctx.agent, terminalOutput, {
           task: claimedTask.task,
           slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
+          retryTriage: createRuntimeProfileRetryTriage({
+            runtimeProfile: profile,
+            piAgentDir: piAgentDir.path,
+            cwd: ctx.agentRootDir,
+          }),
           writeCorrelationAnchors,
           log: (msg, err) => rootLogger.warn({ err }, msg),
         });

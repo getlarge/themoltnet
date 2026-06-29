@@ -534,6 +534,19 @@ export {
   type VmFsForContext,
 } from './runtime/inject-task-context.js';
 export {
+  createPiRetryTriage,
+  normalizeRetryTriageResult,
+  type PiRetryTriage,
+  type PiRetryTriageConfidence,
+  type PiRetryTriageDecision,
+  type PiRetryTriageInput,
+  type PiRetryTriageResult,
+  type PiRetryTriageThinkingLevel,
+  redactRetryTriageSecrets,
+  type RetryTriageConfidence,
+  type RetryTriageDecision,
+} from './runtime/retry-triage.js';
+export {
   createSubagentTool,
   type CreateSubagentToolArgs,
   type SubagentToolHandle,

@@ -116,11 +116,12 @@ describe('Agent daemon (e2e)', () => {
     await harness?.teardown();
   });
 
-  function proposeCuratePackTask() {
+  function proposeCuratePackTask(options?: { maxAttempts?: number }) {
     return agent.tasks.create(
       {
         taskType: 'curate_pack',
         diaryId,
+        ...(options?.maxAttempts ? { maxAttempts: options.maxAttempts } : {}),
         input: {
           diaryId,
           taskPrompt: 'e2e daemon smoke',
@@ -370,6 +371,127 @@ describe('Agent daemon (e2e)', () => {
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('completed');
     expect(final.acceptedAttemptN).toBe(1);
+  }, 60_000);
+
+  it('retries after ambiguous attempt failure when daemon triage says retry', async () => {
+    const created = await agent.tasks.create(
+      {
+        taskType: 'curate_pack',
+        diaryId,
+        input: {
+          diaryId,
+          taskPrompt: 'e2e daemon retry triage',
+        },
+        maxAttempts: 2,
+      },
+      { teamId },
+    );
+
+    const seenAttempts: number[] = [];
+    const runtime = new AgentRuntime({
+      source: new PollingApiTaskSource({
+        agent,
+        teamId,
+        taskTypes: ['curate_pack'],
+        leaseTtlSec: 60,
+        stopWhenEmpty: true,
+        logger: silentLogger,
+      }),
+      makeReporter: () =>
+        new ApiTaskReporter({
+          tasks: agent.tasks,
+          leaseTtlSec: 60,
+          heartbeatIntervalMs: 0,
+        }),
+      executeTask: async (claimedTask, reporter) => {
+        seenAttempts.push(claimedTask.attemptN);
+        await reporter.open({
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+        });
+
+        if (claimedTask.attemptN === 1) {
+          const output = {
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
+            status: 'failed' as const,
+            output: null,
+            outputCid: null,
+            usage: { inputTokens: 1, outputTokens: 0 },
+            durationMs: 1,
+            error: {
+              code: 'executor_unexpected_error',
+              message: 'ambiguous runtime failure after local recovery',
+              retryable: false,
+            },
+          };
+          await reporter.close();
+          return output;
+        }
+
+        const stubOutput = {
+          packId: '00000000-0000-4000-8000-000000000001',
+          packCid:
+            'bafyreidlnv7nu7y4kdxkxv5e2onbpoq5o3i6gw7r6xkk7d3w5b3xrylkqe',
+          entries: [
+            {
+              entryId: '00000000-0000-4000-8000-000000000002',
+              rank: 1,
+              rationale: 'e2e retry stub entry',
+            },
+          ],
+          recipeParams: {},
+          summary: 'e2e retry curation summary after requeue.',
+          verification: buildProducerVerification(claimedTask.task.inputCid),
+        };
+        const output = {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          status: 'completed' as const,
+          output: stubOutput,
+          outputCid: await computeJsonCid(stubOutput),
+          usage: { inputTokens: 1, outputTokens: 1 },
+          durationMs: 1,
+        };
+        await reporter.finalize(output.usage);
+        await reporter.close();
+        return output;
+      },
+      onTaskFinished: (output, claimedTask) =>
+        finalizeTask(agent, output, {
+          task: claimedTask.task,
+          retryTriage: () =>
+            Promise.resolve({
+              decision: 'retry',
+              confidence: 'medium',
+              reason:
+                'e2e injected triage says this ambiguous failure can recover.',
+            }),
+        }),
+    });
+
+    const outputs = await runtime.start();
+    expect(outputs.map((output) => output.attemptN)).toEqual([1, 2]);
+    expect(seenAttempts).toEqual([1, 2]);
+    expect(outputs[0].status).toBe('failed');
+    expect(outputs[1].status).toBe('completed');
+
+    const final = await agent.tasks.get(created.id);
+    expect(final.status).toBe('completed');
+    expect(final.acceptedAttemptN).toBe(2);
+    const attempts = await agent.tasks.listAttempts(created.id);
+    expect(attempts.find((attempt) => attempt.attemptN === 1)).toMatchObject({
+      status: 'failed',
+      error: expect.objectContaining({
+        code: 'executor_unexpected_error',
+        retryable: true,
+        retry: expect.objectContaining({
+          source: 'triage',
+          decision: 'retry',
+          confidence: 'medium',
+        }),
+      }),
+    });
   }, 60_000);
 
   it('runtime execution can upload and transmit task artifact CIDs', async () => {

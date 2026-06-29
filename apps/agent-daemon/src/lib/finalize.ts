@@ -2,7 +2,13 @@ import type { Task, TaskOutput } from '@moltnet/tasks';
 import type { Agent, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 
-// Forward a TaskOutput to /complete or /fail. Cancelled outputs are
+import {
+  classifyAttemptFailure,
+  classifyDeterministically,
+  type RetryTriage,
+} from './retry-triage.js';
+
+// Forward a TaskOutput to /complete or attempt failure. Cancelled outputs are
 // dropped (server is already terminal — #938). Pure passthrough on the
 // verification axis: criteria evaluation is the LLM's job, see
 // docs/understand/agent-runtime.md for the producer/judge model.
@@ -38,6 +44,7 @@ export interface FinalizeContext {
    * task type). See `buildDaemonStateForComplete`.
    */
   slot?: { expiresAtMs: number | null } | null;
+  retryTriage?: RetryTriage;
   writeCorrelationAnchors?: WriteCorrelationAnchors;
   log?: (msg: string, err?: unknown) => void;
 }
@@ -97,13 +104,20 @@ export async function finalizeTask(
       // is set`). The reporter has already stopped heartbeats by the time
       // we get here, so doing nothing would let the lease expire silently
       // and the attempt would surface as `lease_expired` with no signal
-      // of the real cause. Convert into a terminal `tasks.fail` so the
+      // of the real cause. Convert into an attempt failure so the
       // attempt carries the actual server-side reason — the next proposer
       // (retry, judge, etc.) can read the failure code and act.
       const reason = errorToFailReason(err);
+      const classified = await prepareAttemptFailure(
+        agent,
+        output,
+        reason,
+        ctx,
+      );
       ctx.log?.('complete-rejected-falling-back-to-fail', err);
-      await agent.tasks.fail(output.taskId, output.attemptN, {
-        error: reason,
+      ctx.log?.(`attempt-failure-classified:${classified.source}`);
+      await agent.tasks.failAttempt(output.taskId, output.attemptN, {
+        error: classified.error,
       });
       return;
     }
@@ -111,25 +125,38 @@ export async function finalizeTask(
     return;
   }
 
-  const error: NonNullable<Parameters<TasksNamespace['fail']>[2]>['error'] =
-    output.error ?? {
-      code: 'task_failed',
-      message: 'Task execution failed before producing a valid output.',
-      retryable: false,
-    };
+  const error: NonNullable<
+    Parameters<TasksNamespace['failAttempt']>[2]
+  >['error'] = output.error ?? {
+    code: 'task_failed',
+    message: 'Task execution failed before producing a valid output.',
+    retryable: false,
+  };
   const heartbeat = await agent.tasks.heartbeat(
     output.taskId,
     output.attemptN,
     {},
   );
   if (heartbeat.cancelled) return;
-  await agent.tasks.fail(output.taskId, output.attemptN, { error });
+  const classified = await prepareAttemptFailure(agent, output, error, ctx);
+  ctx.log?.(`attempt-failure-classified:${classified.source}`);
+  await agent.tasks.failAttempt(output.taskId, output.attemptN, {
+    error: classified.error,
+  });
 }
 
 function errorToFailReason(
   err: unknown,
-): NonNullable<Parameters<TasksNamespace['fail']>[2]>['error'] {
+): NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'] {
   if (err instanceof MoltNetError) {
+    if (err.code !== 'VALIDATION_FAILED' && err.statusCode !== 400) {
+      return {
+        code: 'complete_call_failed',
+        message:
+          `Failed to report task completion (${err.code}, status ${err.statusCode ?? '?'}): ` +
+          `${err.detail ?? err.message}`,
+      };
+    }
     // VALIDATION_FAILED from the server carries field-level details that
     // are extremely useful for diagnosing a malformed output. Surface
     // them in the `message` so the failure record is self-contained.
@@ -154,6 +181,46 @@ function errorToFailReason(
     message: err instanceof Error ? err.message : String(err),
     retryable: false,
   };
+}
+
+async function prepareAttemptFailure(
+  agent: Agent,
+  output: TaskOutput,
+  error: NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'],
+  ctx: FinalizeContext,
+) {
+  const task = ctx.task ?? {
+    id: output.taskId,
+    taskType: 'unknown',
+    teamId: 'unknown',
+    input: {},
+    maxAttempts: null,
+  };
+  const deterministic = classifyDeterministically(error);
+  const shouldFetchMessages = deterministic === 'ambiguous' && ctx.retryTriage;
+  const recentMessages =
+    shouldFetchMessages && ctx.task
+      ? await agent.tasks
+          .listMessages(output.taskId, output.attemptN)
+          .then((messages) => messages.slice(-12))
+          .catch((err) => {
+            ctx.log?.('attempt-failure-message-fetch-failed', err);
+            return [];
+          })
+      : [];
+
+  return classifyAttemptFailure({
+    task,
+    attemptN: output.attemptN,
+    maxAttempts: ctx.task?.maxAttempts ?? null,
+    remainingAttempts:
+      ctx.task?.maxAttempts === undefined
+        ? null
+        : Math.max(0, ctx.task.maxAttempts - output.attemptN),
+    error,
+    recentMessages,
+    triage: ctx.retryTriage,
+  });
 }
 
 async function maybeWriteAnchors(

@@ -1,5 +1,6 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
+import { MoltNetError } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -15,7 +16,7 @@ interface CompleteBody {
 }
 
 interface FailBody {
-  error: { code: string; message: string; retryable?: boolean };
+  error: NonNullable<TaskOutput['error']>;
 }
 
 function makeOutput(
@@ -55,17 +56,21 @@ type HeartbeatMock = (
 
 function makeAgent() {
   const complete = vi.fn<CompleteMock>().mockResolvedValue(undefined);
-  const fail = vi.fn<FailMock>().mockResolvedValue(undefined);
+  const failAttempt = vi.fn<FailMock>().mockResolvedValue(undefined);
   const heartbeat = vi.fn<HeartbeatMock>().mockResolvedValue({
     claimExpiresAt: new Date(0).toISOString(),
     cancelled: false,
     cancelReason: null,
   });
+  const listMessages = vi.fn().mockResolvedValue([]);
   return {
     complete,
-    fail,
+    failAttempt,
     heartbeat,
-    agent: { tasks: { complete, fail, heartbeat } } as unknown as Agent,
+    listMessages,
+    agent: {
+      tasks: { complete, failAttempt, heartbeat, listMessages },
+    } as unknown as Agent,
   };
 }
 
@@ -92,7 +97,6 @@ describe('finalizeTask', () => {
     await finalizeTask(stub.agent, output);
 
     expect(stub.complete).toHaveBeenCalledTimes(1);
-    expect(stub.fail).not.toHaveBeenCalled();
     const body = stub.complete.mock.calls[0][2];
     expect(body.output).toEqual(output.output);
     expect(body.outputCid).toBe('bafy-out');
@@ -116,18 +120,137 @@ describe('finalizeTask', () => {
     expect(stub.complete.mock.calls[0][2].contentSignature).toBe('sig-abc');
   });
 
-  it('calls /fail with the executor-provided error', async () => {
+  it('calls /failAttempt with the executor-provided error', async () => {
     const failed = makeOutput('failed', null);
     failed.error = { code: 'oops', message: 'broke' };
     await finalizeTask(stub.agent, failed);
 
     expect(stub.heartbeat).toHaveBeenCalledWith('t1', 1, {});
-    expect(stub.fail).toHaveBeenCalledTimes(1);
-    const error = stub.fail.mock.calls[0][2].error;
+    expect(stub.failAttempt).toHaveBeenCalledTimes(1);
+    const error = stub.failAttempt.mock.calls[0][2].error;
     expect(error.code).toBe('oops');
   });
 
-  it('does not call /fail when the startup heartbeat observes cancellation', async () => {
+  it('uses retry triage for ambiguous failed outputs', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+
+    await finalizeTask(stub.agent, failed, {
+      task,
+      retryTriage: () =>
+        Promise.resolve({
+          decision: 'retry',
+          confidence: 'high',
+          reason: 'Runtime-local crash after recoverable work.',
+        }),
+    });
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error.retryable).toBe(true);
+    expect(error.retry).toEqual({
+      source: 'triage',
+      decision: 'retry',
+      confidence: 'high',
+      reason: 'Runtime-local crash after recoverable work.',
+    });
+    expect(error.message).toContain('Retry triage: retry/high');
+  });
+
+  it('does not retry low-confidence triage', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+
+    await finalizeTask(stub.agent, failed, {
+      task,
+      retryTriage: () =>
+        Promise.resolve({
+          decision: 'retry',
+          confidence: 'low',
+          reason: 'Weak signal.',
+        }),
+    });
+
+    expect(stub.failAttempt.mock.calls[0][2].error.retryable).toBe(false);
+    expect(stub.failAttempt.mock.calls[0][2].error.retry).toEqual({
+      source: 'triage',
+      decision: 'retry',
+      confidence: 'low',
+      reason: 'Weak signal.',
+    });
+  });
+
+  it('classifies transient completion reporting failures as retryable attempt failures', async () => {
+    const output = makeOutput('completed', { branch: 'feat/x' });
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+    stub.complete.mockRejectedValueOnce(new Error('ECONNRESET'));
+
+    await finalizeTask(stub.agent, output, { task });
+
+    expect(stub.failAttempt).toHaveBeenCalledTimes(1);
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error).toMatchObject({
+      code: 'complete_call_failed',
+      retryable: true,
+      retry: {
+        source: 'deterministic',
+        decision: 'retry',
+        confidence: 'high',
+      },
+    });
+  });
+
+  it('keeps server output validation rejections non-retryable', async () => {
+    const output = makeOutput('completed', { branch: 'feat/x' });
+    stub.complete.mockRejectedValueOnce(
+      new MoltNetError('Validation failed', {
+        code: 'VALIDATION_FAILED',
+        statusCode: 400,
+        detail: 'output.verification is required',
+        validationErrors: [
+          {
+            field: 'output.verification',
+            message: 'is required because successCriteria is set',
+          },
+        ],
+      }),
+    );
+
+    await finalizeTask(stub.agent, output);
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error).toMatchObject({
+      code: 'output_rejected_by_server',
+      retryable: false,
+      retry: {
+        source: 'explicit',
+        decision: 'do_not_retry',
+        confidence: 'high',
+      },
+    });
+    expect(error.message).toContain('output.verification');
+  });
+
+  it('does not call /failAttempt when the startup heartbeat observes cancellation', async () => {
     stub.heartbeat.mockResolvedValueOnce({
       claimExpiresAt: new Date(0).toISOString(),
       cancelled: true,
@@ -136,13 +259,13 @@ describe('finalizeTask', () => {
     await finalizeTask(stub.agent, makeOutput('failed', null));
 
     expect(stub.heartbeat).toHaveBeenCalledWith('t1', 1, {});
-    expect(stub.fail).not.toHaveBeenCalled();
+    expect(stub.failAttempt).not.toHaveBeenCalled();
   });
 
   it('is a no-op for cancelled outputs', async () => {
     await finalizeTask(stub.agent, makeOutput('cancelled', null));
     expect(stub.heartbeat).not.toHaveBeenCalled();
-    expect(stub.fail).not.toHaveBeenCalled();
+    expect(stub.failAttempt).not.toHaveBeenCalled();
     expect(stub.complete).not.toHaveBeenCalled();
   });
 });
@@ -286,7 +409,7 @@ describe('finalizeTask — fulfill_brief correlation hook', () => {
       { task: FULFILL_TASK, writeCorrelationAnchors: writer },
     );
     expect(m.complete).not.toHaveBeenCalled();
-    expect(m.fail).not.toHaveBeenCalled();
+    expect(m.failAttempt).not.toHaveBeenCalled();
     expect(writer).not.toHaveBeenCalled();
   });
 });

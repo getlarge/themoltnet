@@ -44,6 +44,7 @@ import {
   resolveRuntimeProfiles,
   validateRuntimeProfilePrerequisites,
 } from '../lib/runtime-profile.js';
+import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
 import {
   applyRuntimeSessionUploadFailure,
   createApiRuntimeSessionStore,
@@ -425,6 +426,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         return finalizeTask(ctx.agent, terminalOutput, {
           task: claimedTask.task,
           slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
+          retryTriage: createRuntimeProfileRetryTriage({
+            runtimeProfile: selected.profile,
+            piAgentDir: selected.piAgentDir.path,
+            cwd: ctx.agentRootDir,
+          }),
           writeCorrelationAnchors: makePrBodyAnchorWriter({
             gh: createGhCliClient(),
             logger: rootLogger.child({

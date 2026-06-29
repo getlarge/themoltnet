@@ -46,7 +46,7 @@ function makeTask(status: DbTask['status']): DbTask {
   } as DbTask;
 }
 
-describe('createTaskService.fail', () => {
+describe('createTaskService.failAttempt', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -83,7 +83,7 @@ describe('createTaskService.fail', () => {
     const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
     const service = createTaskService(deps as never);
 
-    const result = await service.fail(
+    const result = await service.failAttempt(
       TASK_ID,
       1,
       AGENT_ID,

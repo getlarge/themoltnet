@@ -9780,6 +9780,90 @@
                   "message": {
                     "type": "string"
                   },
+                  "retry": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "confidence": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "low"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "medium"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "high"
+                            ],
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "decision": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "retry"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "do_not_retry"
+                            ],
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "source": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "explicit"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "deterministic"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "attempts_exhausted"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "triage"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "triage_failed"
+                            ],
+                            "type": "string"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source"
+                    ],
+                    "type": "object"
+                  },
                   "retryable": {
                     "type": "boolean"
                   },
@@ -10041,6 +10125,90 @@
           },
           "message": {
             "type": "string"
+          },
+          "retry": {
+            "additionalProperties": false,
+            "properties": {
+              "confidence": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "low"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "medium"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "high"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "decision": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "retry"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "do_not_retry"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "reason": {
+                "type": "string"
+              },
+              "source": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "explicit"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "deterministic"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "attempts_exhausted"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "triage"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "triage_failed"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "source"
+            ],
+            "type": "object"
           },
           "retryable": {
             "type": "boolean"
@@ -10334,6 +10502,90 @@
           "taskId",
           "outputCid",
           "role"
+        ],
+        "type": "object"
+      },
+      "TaskRetryInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "enum": [
+                  "low"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "medium"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "high"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "enum": [
+                  "retry"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "do_not_retry"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "explicit"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "deterministic"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "attempts_exhausted"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "triage"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "triage_failed"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source"
         ],
         "type": "object"
       },
@@ -31228,7 +31480,7 @@
     "/tasks/{id}/attempts/{n}/fail": {
       "post": {
         "description": "Mark an attempt as failed with error details.",
-        "operationId": "failTask",
+        "operationId": "failTaskAttempt",
         "parameters": [
           {
             "in": "path",

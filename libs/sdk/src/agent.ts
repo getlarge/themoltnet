@@ -39,7 +39,7 @@ import type {
   DownloadRuntimeSessionData,
   DownloadTaskArtifactData,
   EntryVerifyResult,
-  FailTaskData,
+  FailTaskAttemptData,
   FindLatestRuntimeSlotForAttemptData,
   FinishRuntimeSlotData,
   GetContextPackByIdData,
@@ -613,7 +613,11 @@ export interface TasksNamespace {
     body: CompleteTaskData['body'],
   ): Promise<Task>;
 
-  fail(id: string, n: number, body: FailTaskData['body']): Promise<Task>;
+  failAttempt(
+    id: string,
+    n: number,
+    body: FailTaskAttemptData['body'],
+  ): Promise<Task>;
 
   abortAttempt(
     id: string,

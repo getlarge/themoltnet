@@ -141,8 +141,8 @@ type DownloadTaskArtifactRes interface {
 	downloadTaskArtifactRes()
 }
 
-type FailTaskRes interface {
-	failTaskRes()
+type FailTaskAttemptRes interface {
+	failTaskAttemptRes()
 }
 
 type FindLatestRuntimeSlotForAttemptRes interface {

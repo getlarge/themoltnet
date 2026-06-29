@@ -17,7 +17,7 @@ import {
   createTeam,
   createTeamInvite,
   downloadRuntimeSession,
-  failTask,
+  failTaskAttempt,
   getRuntimeSession,
   joinTeam,
   taskHeartbeat,
@@ -318,7 +318,7 @@ describe('Runtime sessions API', () => {
     const { attemptN, taskId } = await createClaimedTask(
       'runtime session repair after terminal',
     );
-    const failed = await failTask({
+    const failed = await failTaskAttempt({
       client,
       auth: () => teammate.accessToken,
       path: { id: taskId, n: attemptN },
