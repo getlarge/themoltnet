@@ -1953,7 +1953,7 @@ export const listRuntimeModels = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam` on the active team.
+ * Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and runtime management permission on the active team.
  */
 export const createRuntimeModel = <ThrowOnError extends boolean = false>(
   options?: Options<CreateRuntimeModelData, ThrowOnError>,

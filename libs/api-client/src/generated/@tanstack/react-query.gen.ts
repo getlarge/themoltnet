@@ -2782,7 +2782,7 @@ export const listRuntimeModelsOptions = (
   });
 
 /**
- * Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam` on the active team.
+ * Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and runtime management permission on the active team.
  */
 export const createRuntimeModelMutation = (
   options?: Partial<Options<CreateRuntimeModelData>>,

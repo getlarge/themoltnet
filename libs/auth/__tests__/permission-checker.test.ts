@@ -391,6 +391,31 @@ describe('PermissionChecker', () => {
     });
   });
 
+  describe('team runtime permissions', () => {
+    it('checks canManageTeamRuntime against Team manage_runtime permission', async () => {
+      mockPermissionApi.checkPermission.mockResolvedValue({
+        allowed: true,
+      });
+
+      const result = await checker.canManageTeamRuntime(
+        DIARY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toBe(true);
+      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
+        namespace: 'Team',
+        object: DIARY_ID,
+        relation: 'manage_runtime',
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
+      });
+    });
+  });
+
   describe('canVerifyClaimPack', () => {
     it('checks verify_claim permission on ContextPack namespace', async () => {
       mockPermissionApi.checkPermission.mockResolvedValue({

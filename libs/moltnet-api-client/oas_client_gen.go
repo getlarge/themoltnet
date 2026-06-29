@@ -136,8 +136,8 @@ type Invoker interface {
 	CreateGroup(ctx context.Context, request *CreateGroupReq, params CreateGroupParams) (CreateGroupRes, error)
 	// CreateRuntimeModel invokes createRuntimeModel operation.
 	//
-	// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam`
-	// on the active team.
+	// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and runtime
+	// management permission on the active team.
 	//
 	// POST /runtime-models
 	CreateRuntimeModel(ctx context.Context, request OptCreateRuntimeModelBody, params CreateRuntimeModelParams) (CreateRuntimeModelRes, error)
@@ -3550,8 +3550,8 @@ func (c *Client) sendCreateGroup(ctx context.Context, request *CreateGroupReq, p
 
 // CreateRuntimeModel invokes createRuntimeModel operation.
 //
-// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam`
-// on the active team.
+// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and runtime
+// management permission on the active team.
 //
 // POST /runtime-models
 func (c *Client) CreateRuntimeModel(ctx context.Context, request OptCreateRuntimeModelBody, params CreateRuntimeModelParams) (CreateRuntimeModelRes, error) {

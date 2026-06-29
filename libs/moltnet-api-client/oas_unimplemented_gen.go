@@ -171,8 +171,8 @@ func (UnimplementedHandler) CreateGroup(ctx context.Context, req *CreateGroupReq
 
 // CreateRuntimeModel implements createRuntimeModel operation.
 //
-// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam`
-// on the active team.
+// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and runtime
+// management permission on the active team.
 //
 // POST /runtime-models
 func (UnimplementedHandler) CreateRuntimeModel(ctx context.Context, req OptCreateRuntimeModelBody, params CreateRuntimeModelParams) (r CreateRuntimeModelRes, _ error) {

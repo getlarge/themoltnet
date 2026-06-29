@@ -34,6 +34,9 @@ class Team implements Namespace {
       this.related.owners.includes(ctx.subject) ||
       this.related.managers.includes(ctx.subject),
 
+    // Administer team-scoped runtime configuration (profiles/model catalog).
+    manage_runtime: (ctx: Context) => this.permits.write(ctx),
+
     // Read-only access to team resources (all roles)
     access: (ctx: Context) =>
       this.related.owners.includes(ctx.subject) ||

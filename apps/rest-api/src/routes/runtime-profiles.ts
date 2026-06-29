@@ -327,7 +327,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const teamId = requireCurrentTeamId(request, 'runtime profiles');
       const { identityId, subjectNs } = authSubject(request);
-      const canManage = await fastify.permissionChecker.canManageTeam(
+      const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         teamId,
         identityId,
         subjectNs,
@@ -455,7 +455,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       );
       if (!existing) throw createProblem('not-found');
       const { identityId, subjectNs } = authSubject(request);
-      const canManage = await fastify.permissionChecker.canManageTeam(
+      const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         existing.teamId,
         identityId,
         subjectNs,
@@ -564,7 +564,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       );
       if (!row) throw createProblem('not-found');
       const { identityId, subjectNs } = authSubject(request);
-      const canManage = await fastify.permissionChecker.canManageTeam(
+      const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         row.teamId,
         identityId,
         subjectNs,
