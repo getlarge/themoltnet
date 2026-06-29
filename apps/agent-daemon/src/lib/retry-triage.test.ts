@@ -31,6 +31,12 @@ describe('retry triage classification', () => {
 
     expect(result.source).toBe('deterministic');
     expect(result.error.retryable).toBe(true);
+    expect(result.error.retry).toEqual({
+      source: 'deterministic',
+      decision: 'retry',
+      confidence: 'high',
+      reason: 'Matched deterministic retry policy.',
+    });
   });
 
   it('marks credentials and validation failures non-retryable', () => {
@@ -103,6 +109,10 @@ describe('retry triage classification', () => {
     expect(called).toBe(false);
     expect(result.source).toBe('attempts_exhausted');
     expect(result.error.retryable).toBe(false);
+    expect(result.error.retry).toEqual({
+      source: 'attempts_exhausted',
+      reason: 'Attempt budget exhausted at attempt 1 of 2.',
+    });
   });
 
   it('does not retry low-confidence triage', async () => {
@@ -118,6 +128,12 @@ describe('retry triage classification', () => {
     });
 
     expect(result.error.retryable).toBe(false);
+    expect(result.error.retry).toEqual({
+      source: 'triage',
+      decision: 'retry',
+      confidence: 'low',
+      reason: 'Not enough evidence.',
+    });
   });
 
   it('does not retry when triage fails', async () => {
@@ -129,6 +145,25 @@ describe('retry triage classification', () => {
 
     expect(result.source).toBe('triage_failed');
     expect(result.error.retryable).toBe(false);
+    expect(result.error.retry).toEqual({
+      source: 'triage_failed',
+      reason: 'Retry triage failed: model unavailable',
+    });
+  });
+
+  it('explains ambiguous failures when no triage agent is configured', async () => {
+    const result = await classifyAttemptFailure({
+      ...BASE_INPUT,
+      error: { code: 'executor_unexpected_error', message: 'unclear failure' },
+    });
+
+    expect(result.source).toBe('triage_failed');
+    expect(result.error.retryable).toBe(false);
+    expect(result.error.retry).toEqual({
+      source: 'triage_failed',
+      reason:
+        'Failure was ambiguous and no retry triage agent was configured; defaulted to no retry.',
+    });
   });
 
   it('redacts secret-looking fields from the triage prompt', () => {

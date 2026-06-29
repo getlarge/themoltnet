@@ -260,6 +260,39 @@ export const TaskUsage = Type.Object(
 );
 export type TaskUsage = Static<typeof TaskUsage>;
 
+export const TaskRetryDecision = Type.Union([
+  Type.Literal('retry'),
+  Type.Literal('do_not_retry'),
+]);
+export type TaskRetryDecision = Static<typeof TaskRetryDecision>;
+
+export const TaskRetryConfidence = Type.Union([
+  Type.Literal('low'),
+  Type.Literal('medium'),
+  Type.Literal('high'),
+]);
+export type TaskRetryConfidence = Static<typeof TaskRetryConfidence>;
+
+export const TaskRetrySource = Type.Union([
+  Type.Literal('explicit'),
+  Type.Literal('deterministic'),
+  Type.Literal('attempts_exhausted'),
+  Type.Literal('triage'),
+  Type.Literal('triage_failed'),
+]);
+export type TaskRetrySource = Static<typeof TaskRetrySource>;
+
+export const TaskRetryInfo = Type.Object(
+  {
+    source: TaskRetrySource,
+    decision: Type.Optional(TaskRetryDecision),
+    confidence: Type.Optional(TaskRetryConfidence),
+    reason: Type.Optional(Type.String()),
+  },
+  { $id: 'TaskRetryInfo', additionalProperties: false },
+);
+export type TaskRetryInfo = Static<typeof TaskRetryInfo>;
+
 /**
  * Structured error returned from a failed attempt.
  */
@@ -269,6 +302,7 @@ export const TaskError = Type.Object(
     message: Type.String(),
     stack: Type.Optional(Type.String()),
     retryable: Type.Optional(Type.Boolean()),
+    retry: Type.Optional(TaskRetryInfo),
   },
   { $id: 'TaskError', additionalProperties: false },
 );

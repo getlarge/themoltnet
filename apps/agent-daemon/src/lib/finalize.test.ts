@@ -1,5 +1,6 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
+import { MoltNetError } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -15,7 +16,7 @@ interface CompleteBody {
 }
 
 interface FailBody {
-  error: { code: string; message: string; retryable?: boolean };
+  error: NonNullable<TaskOutput['error']>;
 }
 
 function makeOutput(
@@ -157,6 +158,12 @@ describe('finalizeTask', () => {
 
     const error = stub.failAttempt.mock.calls[0][2].error;
     expect(error.retryable).toBe(true);
+    expect(error.retry).toEqual({
+      source: 'triage',
+      decision: 'retry',
+      confidence: 'high',
+      reason: 'Runtime-local crash after recoverable work.',
+    });
     expect(error.message).toContain('Retry triage: retry/high');
   });
 
@@ -182,6 +189,69 @@ describe('finalizeTask', () => {
     });
 
     expect(stub.failAttempt.mock.calls[0][2].error.retryable).toBe(false);
+    expect(stub.failAttempt.mock.calls[0][2].error.retry).toEqual({
+      source: 'triage',
+      decision: 'retry',
+      confidence: 'low',
+      reason: 'Weak signal.',
+    });
+  });
+
+  it('classifies transient completion reporting failures as retryable attempt failures', async () => {
+    const output = makeOutput('completed', { branch: 'feat/x' });
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+    stub.complete.mockRejectedValueOnce(new Error('ECONNRESET'));
+
+    await finalizeTask(stub.agent, output, { task });
+
+    expect(stub.failAttempt).toHaveBeenCalledTimes(1);
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error).toMatchObject({
+      code: 'complete_call_failed',
+      retryable: true,
+      retry: {
+        source: 'deterministic',
+        decision: 'retry',
+        confidence: 'high',
+      },
+    });
+  });
+
+  it('keeps server output validation rejections non-retryable', async () => {
+    const output = makeOutput('completed', { branch: 'feat/x' });
+    stub.complete.mockRejectedValueOnce(
+      new MoltNetError('Validation failed', {
+        code: 'VALIDATION_FAILED',
+        statusCode: 400,
+        detail: 'output.verification is required',
+        validationErrors: [
+          {
+            field: 'output.verification',
+            message: 'is required because successCriteria is set',
+          },
+        ],
+      }),
+    );
+
+    await finalizeTask(stub.agent, output);
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error).toMatchObject({
+      code: 'output_rejected_by_server',
+      retryable: false,
+      retry: {
+        source: 'explicit',
+        decision: 'do_not_retry',
+        confidence: 'high',
+      },
+    });
+    expect(error.message).toContain('output.verification');
   });
 
   it('does not call /fail when the startup heartbeat observes cancellation', async () => {

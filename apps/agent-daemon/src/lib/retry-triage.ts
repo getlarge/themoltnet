@@ -41,6 +41,8 @@ export interface ClassifiedAttemptFailure {
   triage?: RetryTriageResult;
 }
 
+type RetrySource = ClassifiedAttemptFailure['source'];
+
 const MAX_TRIAGE_JSON_CHARS = 12_000;
 const MAX_TRIAGE_FIELD_CHARS = 2_000;
 const REDACTED = '[redacted]';
@@ -111,7 +113,13 @@ export async function classifyAttemptFailure(
   ) {
     if (input.remainingAttempts <= 0) {
       return {
-        error: { ...input.error, retryable: false },
+        error: withRetryInfo(input.error, {
+          retryable: false,
+          source: 'attempts_exhausted',
+          reason: `Attempt budget exhausted at attempt ${input.attemptN}${
+            input.maxAttempts ? ` of ${input.maxAttempts}` : ''
+          }.`,
+        }),
         source: 'attempts_exhausted',
       };
     }
@@ -119,18 +127,31 @@ export async function classifyAttemptFailure(
 
   const deterministic = classifyDeterministically(input.error);
   if (deterministic !== 'ambiguous') {
+    const retryable = deterministic === 'retryable';
+    const source =
+      input.error.retryable === retryable ? 'explicit' : 'deterministic';
     return {
-      error: { ...input.error, retryable: deterministic === 'retryable' },
-      source:
-        input.error.retryable === (deterministic === 'retryable')
-          ? 'explicit'
-          : 'deterministic',
+      error: withRetryInfo(input.error, {
+        retryable,
+        source,
+        decision: retryable ? 'retry' : 'do_not_retry',
+        confidence: 'high',
+        reason: retryable
+          ? 'Matched deterministic retry policy.'
+          : 'Matched deterministic no-retry policy.',
+      }),
+      source,
     };
   }
 
   if (!input.triage) {
     return {
-      error: { ...input.error, retryable: false },
+      error: withRetryInfo(input.error, {
+        retryable: false,
+        source: 'triage_failed',
+        reason:
+          'Failure was ambiguous and no retry triage agent was configured; defaulted to no retry.',
+      }),
       source: 'triage_failed',
     };
   }
@@ -141,21 +162,35 @@ export async function classifyAttemptFailure(
       triage.decision === 'retry' &&
       (triage.confidence === 'medium' || triage.confidence === 'high');
     return {
-      error: {
-        ...input.error,
-        retryable,
-        message: appendTriageReason(input.error.message, triage),
-      },
+      error: withRetryInfo(
+        {
+          ...input.error,
+          message: appendTriageReason(input.error.message, triage),
+        },
+        {
+          retryable,
+          source: 'triage',
+          decision: triage.decision,
+          confidence: triage.confidence,
+          reason: triage.reason,
+        },
+      ),
       source: 'triage',
       triage,
     };
   } catch (err) {
     return {
-      error: {
-        ...input.error,
-        retryable: false,
-        message: appendTriageFailure(input.error.message, err),
-      },
+      error: withRetryInfo(
+        {
+          ...input.error,
+          message: appendTriageFailure(input.error.message, err),
+        },
+        {
+          retryable: false,
+          source: 'triage_failed',
+          reason: `Retry triage failed: ${sanitizeReason(err)}`,
+        },
+      ),
       source: 'triage_failed',
     };
   }
@@ -285,9 +320,35 @@ function appendTriageReason(
 
 function appendTriageFailure(message: string, err: unknown): string {
   if (message.includes('Retry triage failed:')) return message;
-  const raw = err instanceof Error ? err.message : String(err);
-  const sanitized = String(prepareTriagePayload(raw));
+  const sanitized = sanitizeReason(err);
   return `${message} Retry triage failed: ${sanitized}`.slice(0, 4000);
+}
+
+function sanitizeReason(value: unknown): string {
+  const raw = value instanceof Error ? value.message : String(value);
+  return String(prepareTriagePayload(raw)).slice(0, 500);
+}
+
+function withRetryInfo(
+  error: TaskError,
+  info: {
+    retryable: boolean;
+    source: RetrySource;
+    decision?: RetryTriageDecision;
+    confidence?: RetryTriageConfidence;
+    reason?: string;
+  },
+): TaskError {
+  return {
+    ...error,
+    retryable: info.retryable,
+    retry: {
+      source: info.source,
+      ...(info.decision ? { decision: info.decision } : {}),
+      ...(info.confidence ? { confidence: info.confidence } : {}),
+      ...(info.reason ? { reason: info.reason.slice(0, 500) } : {}),
+    },
+  };
 }
 
 export function buildTriagePromptForTest(input: RetryTriageInput): string {

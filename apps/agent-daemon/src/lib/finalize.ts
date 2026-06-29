@@ -108,9 +108,16 @@ export async function finalizeTask(
       // attempt carries the actual server-side reason — the next proposer
       // (retry, judge, etc.) can read the failure code and act.
       const reason = errorToFailReason(err);
+      const classified = await prepareAttemptFailure(
+        agent,
+        output,
+        reason,
+        ctx,
+      );
       ctx.log?.('complete-rejected-falling-back-to-fail', err);
+      ctx.log?.(`attempt-failure-classified:${classified.source}`);
       await agent.tasks.failAttempt(output.taskId, output.attemptN, {
-        error: reason,
+        error: classified.error,
       });
       return;
     }
@@ -142,6 +149,14 @@ function errorToFailReason(
   err: unknown,
 ): NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'] {
   if (err instanceof MoltNetError) {
+    if (err.code !== 'VALIDATION_FAILED' && err.statusCode !== 400) {
+      return {
+        code: 'complete_call_failed',
+        message:
+          `Failed to report task completion (${err.code}, status ${err.statusCode ?? '?'}): ` +
+          `${err.detail ?? err.message}`,
+      };
+    }
     // VALIDATION_FAILED from the server carries field-level details that
     // are extremely useful for diagnosing a malformed output. Surface
     // them in the `message` so the failure record is self-contained.

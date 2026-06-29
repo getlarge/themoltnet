@@ -64,6 +64,17 @@ export interface TaskError {
   message: string;
   stack?: string;
   retryable?: boolean;
+  retry?: {
+    source:
+      | 'explicit'
+      | 'deterministic'
+      | 'attempts_exhausted'
+      | 'triage'
+      | 'triage_failed';
+    decision?: 'retry' | 'do_not_retry';
+    confidence?: 'low' | 'medium' | 'high';
+    reason?: string;
+  };
 }
 
 export type ClaimCondition =
