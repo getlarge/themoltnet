@@ -1,11 +1,9 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
-
-import { moltnetNodeRedThemeCss } from './src/theme-css.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -17,12 +15,19 @@ export default defineConfig({
     }),
     {
       name: 'write-node-red-theme-css',
-      closeBundle() {
-        mkdirSync(resolve(here, 'dist'), { recursive: true });
+      async closeBundle() {
+        const themeCssPath = resolve(here, 'dist/theme-css.js');
+        const themeCssModule = (await import(
+          `${pathToFileURL(themeCssPath).href}?t=${Date.now()}`
+        )) as {
+          moltnetNodeRedThemeCss: string;
+        };
+
         writeFileSync(
           resolve(here, 'dist/moltnet-node-red-theme.css'),
-          moltnetNodeRedThemeCss,
+          themeCssModule.moltnetNodeRedThemeCss,
         );
+        rmSync(themeCssPath, { force: true });
       },
     },
   ],
@@ -33,6 +38,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: resolve(here, 'src/index.ts'),
+        'theme-css': resolve(here, 'src/theme-css.ts'),
       },
       output: {
         format: 'es',

@@ -42,9 +42,7 @@
     "!dist/*.tsbuildinfo"
   ],
   "scripts": {
-    "build": "vite build",
-    "check:pack": "tsx scripts/check-pack.ts",
-    "test": "vitest run"
+    "check:pack": "tsx scripts/check-pack.ts"
   },
   "devDependencies": {
     "@themoltnet/design-system": "workspace:*",
