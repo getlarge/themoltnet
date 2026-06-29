@@ -225,6 +225,12 @@ included but blank: leave them blank for any eligible daemon to claim both
 tasks, or set producer/judge profile IDs and run one daemon per profile. The
 example uses `maxAttempts=2` for producer and judge tasks so transient
 tool/model failures retry at the task layer before the lane is marked failed.
+Callers can also route per scenario or variant without editing the subflow:
+set `msg.evalRuntimeProfiles.producer`, `msg.evalRuntimeProfiles.judge`,
+`msg.evalScenario.runtimeProfiles.producer`, `msg.evalScenario.runtimeProfiles.judge`,
+or the variant-level `runtimeProfile` / `producerRuntimeProfile` /
+`judgeRuntimeProfile`. Each value may be a profile id string, `{ profileId }`,
+or a full `allowedProfiles` array.
 
 ## Freeform deep review workflow
 

@@ -12,12 +12,16 @@
             "id": "sf_ab_build_run_eval"
           }
         ],
-        "x": 40,
-        "y": 120
+        "x": 90,
+        "y": 40
       }
     ],
     "info": "Generic run_eval -> local score -> judge_eval_attempt lane. Parent flow supplies msg.evalScenario, one msg.evalVariant, msg.evalSkillContext, msg.evalJudgeCriteria, and msg.correlationId. The subflow emits one lane result; parent flows own fan-out/fan-in and group completion.",
-    "meta": {},
+    "inputLabels": ["eval config"],
+    "meta": {
+      "author": "ed@getlarge.eu",
+      "license": "Apache-2.0"
+    },
     "name": "A/B eval with judge",
     "out": [
       {
@@ -35,14 +39,35 @@
             "port": 0
           }
         ],
-        "x": 1280,
-        "y": 280
+        "x": 1320,
+        "y": 360
+      },
+      {
+        "wires": [
+          {
+            "id": "1f190a60c144f6ec",
+            "port": 0
+          }
+        ],
+        "x": 1320,
+        "y": 80
       }
     ],
+    "outputLabels": ["workflow state", "task tail events"],
+    "status": {
+      "wires": [
+        {
+          "id": "a72acb578ef0ea20",
+          "port": 0
+        }
+      ],
+      "x": 1280,
+      "y": 720
+    },
     "type": "subflow"
   },
   {
-    "func": "const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst scenario = msg.evalScenario;\nif (!scenario || typeof scenario !== 'object') {\n  node.error('Missing msg.evalScenario', msg);\n  return null;\n}\nconst variant = msg.evalVariant && typeof msg.evalVariant === 'object'\n  ? msg.evalVariant\n  : { label: msg.evalVariantLabel || msg.payload?.variantLabel || 'with-context' };\nconst variantLabel = variant.label || msg.evalVariantLabel || 'with-context';\nconst correlationId = msg.correlationId || msg.evalGroupCorrelationId || msg.payload?.correlationId;\nif (!uuidRe.test(String(correlationId || ''))) {\n  node.error('Missing valid correlationId for eval group', msg);\n  return null;\n}\nconst evidence = scenario.evidence || {};\nconst expected = scenario.expected || {};\nconst basePrompt = variant.prompt || scenario.prompt || [\n  'Run this eval scenario.',\n  '',\n  'Return ONLY one valid JSON object. Do not use Markdown, headings, prose, tables, or code fences.',\n  'Use only the supplied evidence. Do not browse. Do not invent facts. Mark unknowns explicitly.',\n  '',\n  'Scenario: ' + (scenario.title || scenario.id || 'unknown'),\n  'Variant: ' + variantLabel,\n  '',\n  'Evidence JSON:',\n  JSON.stringify(evidence, null, 2)\n].join('\\n');\nconst taskContexts = [];\nif (Array.isArray(variant.context)) {\n  taskContexts.push(...variant.context);\n} else if (variant.includeSkill !== false && msg.evalSkillContext?.content) {\n  taskContexts.push({\n    slug: msg.evalSkillContext.slug || 'eval-skill-context',\n    binding: msg.evalSkillContext.binding || 'skill',\n    content: msg.evalSkillContext.content\n  });\n}\ntaskContexts.push(\n  { slug: 'eval-evidence', binding: 'context_inline', content: JSON.stringify(evidence, null, 2) },\n  { slug: 'eval-expectations', binding: 'context_inline', content: JSON.stringify(expected, null, 2) }\n);\nmsg.correlationId = correlationId;\nmsg.evalGroupCorrelationId = correlationId;\nmsg.evalScenario = scenario;\nmsg.evalVariant = variant;\nmsg.evalVariantLabel = variantLabel;\nmsg.payload = {\n  taskType: 'run_eval',\n  title: 'Eval: ' + (scenario.id || 'scenario') + ' / ' + variantLabel,\n  tags: ['eval', scenario.id || 'scenario', variantLabel],\n  correlationId,\n  maxAttempts: msg.evalMaxAttempts || msg.payload?.maxAttempts || 2,\n  input: {\n    scenario: { prompt: basePrompt },\n    variantLabel,\n    execution: variant.execution || msg.evalExecution || { mode: 'vitro', workspace: 'none' },\n    context: taskContexts\n  }\n};\nnode.status({ fill: 'blue', shape: 'dot', text: variantLabel });\nreturn msg;",
+    "func": "function allowedProfilesFrom(value) {\n  if (!value) return undefined;\n  if (Array.isArray(value)) return value;\n  if (typeof value === 'string') return [{ profileId: value }];\n  if (typeof value === 'object') {\n    if (Array.isArray(value.allowedProfiles)) return value.allowedProfiles;\n    if (typeof value.profileId === 'string' && value.profileId) return [{ profileId: value.profileId }];\n  }\n  return undefined;\n}\nconst uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst scenario = msg.evalScenario;\nif (!scenario || typeof scenario !== 'object') {\n  node.error('Missing msg.evalScenario', msg);\n  return null;\n}\nconst variant = msg.evalVariant && typeof msg.evalVariant === 'object'\n  ? msg.evalVariant\n  : { label: msg.evalVariantLabel || msg.payload?.variantLabel || 'with-context' };\nconst variantLabel = variant.label || msg.evalVariantLabel || 'with-context';\nconst correlationId = msg.correlationId || msg.evalGroupCorrelationId || msg.payload?.correlationId;\nif (!uuidRe.test(String(correlationId || ''))) {\n  node.error('Missing valid correlationId for eval group', msg);\n  return null;\n}\nconst evidence = scenario.evidence || {};\nconst expected = scenario.expected || {};\nconst basePrompt = variant.prompt || scenario.prompt || [\n  'Run this eval scenario.',\n  '',\n  'Return ONLY one valid JSON object. Do not use Markdown, headings, prose, tables, or code fences.',\n  'Use only the supplied evidence. Do not browse. Do not invent facts. Mark unknowns explicitly.',\n  '',\n  'Scenario: ' + (scenario.title || scenario.id || 'unknown'),\n  'Variant: ' + variantLabel,\n  '',\n  'Evidence JSON:',\n  JSON.stringify(evidence, null, 2)\n].join('\\n');\nconst taskContexts = [];\nif (Array.isArray(variant.context)) {\n  taskContexts.push(...variant.context);\n} else if (variant.includeSkill !== false && msg.evalSkillContext?.content) {\n  taskContexts.push({\n    slug: msg.evalSkillContext.slug || 'eval-skill-context',\n    binding: msg.evalSkillContext.binding || 'skill',\n    content: msg.evalSkillContext.content\n  });\n}\ntaskContexts.push(\n  { slug: 'eval-evidence', binding: 'context_inline', content: JSON.stringify(evidence, null, 2) },\n  { slug: 'eval-expectations', binding: 'context_inline', content: JSON.stringify(expected, null, 2) }\n);\nconst producerAllowedProfiles = allowedProfilesFrom(\n  variant.allowedProfiles ||\n  variant.producerAllowedProfiles ||\n  variant.producerRuntimeProfile ||\n  variant.runtimeProfile ||\n  scenario.runtimeProfiles?.producer ||\n  scenario.producerRuntimeProfile ||\n  msg.evalProducerAllowedProfiles ||\n  msg.evalRuntimeProfiles?.producer\n);\nmsg.correlationId = correlationId;\nmsg.evalGroupCorrelationId = correlationId;\nmsg.evalScenario = scenario;\nmsg.evalVariant = variant;\nmsg.evalVariantLabel = variantLabel;\nmsg.payload = {\n  taskType: 'run_eval',\n  title: 'Eval: ' + (scenario.id || 'scenario') + ' / ' + variantLabel,\n  tags: ['eval', scenario.id || 'scenario', variantLabel],\n  correlationId,\n  maxAttempts: msg.evalMaxAttempts || msg.payload?.maxAttempts || 2,\n  input: {\n    scenario: { prompt: basePrompt },\n    variantLabel,\n    execution: variant.execution || msg.evalExecution || { mode: 'vitro', workspace: 'none' },\n    context: taskContexts\n  }\n};\nif (producerAllowedProfiles) msg.payload.allowedProfiles = producerAllowedProfiles;\nnode.status({ fill: 'blue', shape: 'dot', text: variantLabel });\nreturn msg;",
     "id": "sf_ab_build_run_eval",
     "name": "build run_eval",
     "outputs": 1,
@@ -116,14 +141,14 @@
     "z": "subflow_ab_eval_with_judge"
   },
   {
-    "func": "const targetTaskId = msg.evalTaskId || msg.payload?.taskId;\nconst targetAttemptN = msg.evalAcceptedAttemptN || msg.payload?.acceptedAttemptN || 1;\nif (!targetTaskId) {\n  node.error('Missing target run_eval task id for judge_eval_attempt', msg);\n  return null;\n}\nconst criteria = msg.evalJudgeCriteria || [];\nif (!Array.isArray(criteria) || criteria.length === 0) {\n  node.error('Missing msg.evalJudgeCriteria', msg);\n  return null;\n}\nmsg.evalJudgeTargetTaskId = targetTaskId;\nmsg.evalJudgeTargetAttemptN = targetAttemptN;\nmsg.payload = {\n  taskType: 'judge_eval_attempt',\n  title: 'Judge eval: ' + (msg.evalScenario?.id || 'unknown') + ' / ' + (msg.evalVariantLabel || 'unknown'),\n  tags: ['eval-judge', msg.evalScenario?.id || 'unknown', msg.evalVariantLabel || 'unknown'],\n  correlationId: msg.correlationId,\n  maxAttempts: msg.evalMaxAttempts || 2,\n  input: {\n    targetTaskId,\n    targetAttemptN,\n    successCriteria: {\n      version: 1,\n      rubric: {\n        rubricId: msg.evalJudgeRubricId || 'ab-eval-rubric',\n        version: msg.evalJudgeRubricVersion || '1',\n        contentHash: msg.evalJudgeRubricHash || 'node-red-rubric',\n        criteria\n      }\n    }\n  }\n};\nreturn msg;",
+    "func": "function allowedProfilesFrom(value) {\n  if (!value) return undefined;\n  if (Array.isArray(value)) return value;\n  if (typeof value === 'string') return [{ profileId: value }];\n  if (typeof value === 'object') {\n    if (Array.isArray(value.allowedProfiles)) return value.allowedProfiles;\n    if (typeof value.profileId === 'string' && value.profileId) return [{ profileId: value.profileId }];\n  }\n  return undefined;\n}\nconst targetTaskId = msg.evalTaskId || msg.payload?.taskId;\nconst targetAttemptN = msg.evalAcceptedAttemptN || msg.payload?.acceptedAttemptN || 1;\nif (!targetTaskId) {\n  node.error('Missing target run_eval task id for judge_eval_attempt', msg);\n  return null;\n}\nconst criteria = msg.evalJudgeCriteria || [];\nif (!Array.isArray(criteria) || criteria.length === 0) {\n  node.error('Missing msg.evalJudgeCriteria', msg);\n  return null;\n}\nconst judgeAllowedProfiles = allowedProfilesFrom(\n  msg.evalVariant?.judgeAllowedProfiles ||\n  msg.evalVariant?.judgeRuntimeProfile ||\n  msg.evalScenario?.runtimeProfiles?.judge ||\n  msg.evalScenario?.judgeRuntimeProfile ||\n  msg.evalJudgeAllowedProfiles ||\n  msg.evalRuntimeProfiles?.judge\n);\nmsg.evalJudgeTargetTaskId = targetTaskId;\nmsg.evalJudgeTargetAttemptN = targetAttemptN;\nmsg.payload = {\n  taskType: 'judge_eval_attempt',\n  title: 'Judge eval: ' + (msg.evalScenario?.id || 'unknown') + ' / ' + (msg.evalVariantLabel || 'unknown'),\n  tags: ['eval-judge', msg.evalScenario?.id || 'unknown', msg.evalVariantLabel || 'unknown'],\n  correlationId: msg.correlationId,\n  maxAttempts: msg.evalMaxAttempts || 2,\n  input: {\n    targetTaskId,\n    targetAttemptN,\n    successCriteria: {\n      version: 1,\n      rubric: {\n        rubricId: msg.evalJudgeRubricId || 'ab-eval-rubric',\n        version: msg.evalJudgeRubricVersion || '1',\n        contentHash: msg.evalJudgeRubricHash || 'node-red-rubric',\n        criteria\n      }\n    }\n  }\n};\nif (judgeAllowedProfiles) msg.payload.allowedProfiles = judgeAllowedProfiles;\nreturn msg;",
     "id": "sf_ab_build_judge_eval",
     "name": "build judge_eval_attempt",
     "outputs": 1,
     "type": "function",
     "wires": [["sf_ab_create_judge_eval"]],
-    "x": 460,
-    "y": 210,
+    "x": 910,
+    "y": 220,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -136,7 +161,7 @@
     "type": "moltnet-tasks-create",
     "wires": [["sf_ab_wait_judge_eval"]],
     "x": 220,
-    "y": 290,
+    "y": 360,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -149,9 +174,9 @@
     "taskId": "",
     "timeoutSec": 1800,
     "type": "moltnet-task-wait",
-    "wires": [["sf_ab_tail_out"], ["sf_ab_gate_judge_eval"]],
+    "wires": [["0f5c72247640f952"], ["sf_ab_gate_judge_eval"]],
     "x": 430,
-    "y": 290,
+    "y": 360,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -161,8 +186,8 @@
     "outputs": 1,
     "type": "function",
     "wires": [["sf_ab_read_judge_eval"]],
-    "x": 660,
-    "y": 290,
+    "x": 210,
+    "y": 500,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -174,8 +199,8 @@
     "source": "payload",
     "type": "moltnet-task-reader",
     "wires": [["sf_ab_store_delta"]],
-    "x": 880,
-    "y": 290,
+    "x": 470,
+    "y": 500,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -185,8 +210,8 @@
     "outputs": 1,
     "type": "function",
     "wires": [[]],
-    "x": 1110,
-    "y": 290,
+    "x": 730,
+    "y": 500,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -232,7 +257,7 @@
     "z": "ab_eval_demo_tab"
   },
   {
-    "func": "function uuid() {\n  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>\n    (Number(c) ^ Math.floor(Math.random() * 16) >> Number(c) / 4).toString(16)\n  );\n}\nmsg.correlationId = uuid();\nmsg.evalSkillContext = {\n  slug: 'example-skill-context',\n  binding: 'skill',\n  content: 'Prefer concise structured analysis. Ground every recommendation in supplied evidence.'\n};\nmsg.evalScenario = {\n  id: 'demo-readiness',\n  title: 'Demo traffic-fit readiness scenario',\n  evidence: {\n    offer: 'Trial subscription for a niche productivity tool',\n    landingPage: 'Mentions benefits but lacks pricing and proof',\n    tracking: ['page_view'],\n    constraints: ['No browsing', 'Use evidence only']\n  },\n  expected: {\n    acceptableDecisions: ['needs_work', 'not_ready'],\n    requiredFindings: ['pricing', 'proof', 'tracking'],\n    forbidden: ['ready to scale']\n  }\n};\nmsg.evalJudgeCriteria = [\n  { id: 'json-validity', title: 'Valid structured output', weight: 0.2, description: 'Response is parseable and includes the required fields.' },\n  { id: 'evidence-grounding', title: 'Evidence grounding', weight: 0.4, description: 'Findings use only supplied evidence and mark unknowns.' },\n  { id: 'decision-quality', title: 'Decision quality', weight: 0.4, description: 'Decision and actions match the scenario expectations.' }\n];\nmsg.evalVariants = [\n  { label: 'baseline-no-skill', baseline: true, includeSkill: false },\n  { label: 'skill-rubric-v1', includeSkill: true }\n];\nreturn msg;",
+    "func": "function uuid() {\n  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>\n    (Number(c) ^ Math.floor(Math.random() * 16) >> Number(c) / 4).toString(16)\n  );\n}\nmsg.correlationId = uuid();\nmsg.evalSkillContext = {\n  slug: 'example-skill-context',\n  binding: 'skill',\n  content: 'Prefer concise structured analysis. Ground every recommendation in supplied evidence.'\n};\nmsg.evalScenario = {\n  id: 'demo-readiness',\n  title: 'Demo traffic-fit readiness scenario',\n  evidence: {\n    offer: 'Trial subscription for a niche productivity tool',\n    landingPage: 'Mentions benefits but lacks pricing and proof',\n    tracking: ['page_view'],\n    constraints: ['No browsing', 'Use evidence only']\n  },\n  expected: {\n    acceptableDecisions: ['needs_work', 'not_ready'],\n    requiredFindings: ['pricing', 'proof', 'tracking'],\n    forbidden: ['ready to scale']\n  }\n};\nmsg.evalJudgeCriteria = [\n  { id: 'json-validity', title: 'Valid structured output', weight: 0.2, description: 'Response is parseable and includes the required fields.' },\n  { id: 'evidence-grounding', title: 'Evidence grounding', weight: 0.4, description: 'Findings use only supplied evidence and mark unknowns.' },\n  { id: 'decision-quality', title: 'Decision quality', weight: 0.4, description: 'Decision and actions match the scenario expectations.' }\n];\nmsg.evalRuntimeProfiles = {\n  producer: '',\n  judge: ''\n};\nmsg.evalVariants = [\n  { label: 'baseline-no-skill', baseline: true, includeSkill: false },\n  { label: 'skill-rubric-v1', includeSkill: true }\n];\nreturn msg;",
     "id": "ab_eval_seed",
     "name": "seed eval group",
     "outputs": 1,
@@ -267,7 +292,7 @@
     "id": "ab_eval_subflow",
     "name": "A/B eval with judge",
     "type": "subflow:subflow_ab_eval_with_judge",
-    "wires": [["ab_eval_gate_group"]],
+    "wires": [["ab_eval_gate_group"], ["ab_eval_tail_debug"]],
     "x": 670,
     "y": 120,
     "z": "ab_eval_demo_tab"
@@ -359,19 +384,19 @@
     ],
     "type": "switch",
     "wires": [["sf_ab_stash_judge_eval"], ["sf_ab_pack_lane_failure"]],
-    "x": 660,
+    "x": 650,
     "y": 360,
     "z": "subflow_ab_eval_with_judge"
   },
   {
     "id": "sf_ab_tail_out",
-    "links": ["ab_eval_tail_in"],
+    "links": ["1f190a60c144f6ec"],
     "mode": "link",
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 830,
-    "y": 40,
+    "x": 735,
+    "y": 80,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -381,8 +406,8 @@
     "outputs": 1,
     "type": "function",
     "wires": [[]],
-    "x": 910,
-    "y": 410,
+    "x": 930,
+    "y": 360,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -399,8 +424,8 @@
     "type": "catch",
     "uncaught": false,
     "wires": [["sf_ab_pack_node_error"]],
-    "x": 650,
-    "y": 470,
+    "x": 640,
+    "y": 600,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -410,19 +435,9 @@
     "outputs": 1,
     "type": "function",
     "wires": [[]],
-    "x": 900,
-    "y": 470,
+    "x": 920,
+    "y": 600,
     "z": "subflow_ab_eval_with_judge"
-  },
-  {
-    "id": "ab_eval_tail_in",
-    "links": ["sf_ab_tail_out"],
-    "name": "tail events",
-    "type": "link in",
-    "wires": [["ab_eval_tail_debug"]],
-    "x": 375,
-    "y": 220,
-    "z": "ab_eval_demo_tab"
   },
   {
     "active": true,
@@ -437,8 +452,46 @@
     "tostatus": false,
     "type": "debug",
     "wires": [],
-    "x": 560,
-    "y": 220,
+    "x": 900,
+    "y": 180,
     "z": "ab_eval_demo_tab"
+  },
+  {
+    "id": "a72acb578ef0ea20",
+    "name": "",
+    "scope": [
+      "sf_ab_wait_judge_eval",
+      "sf_ab_wait_run_eval",
+      "sf_ab_create_run_eval",
+      "sf_ab_read_run_eval",
+      "sf_ab_read_judge_eval",
+      "sf_ab_create_judge_eval"
+    ],
+    "type": "status",
+    "wires": [[]],
+    "x": 920,
+    "y": 720,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "id": "0f5c72247640f952",
+    "links": ["1f190a60c144f6ec"],
+    "mode": "link",
+    "name": "tail events",
+    "type": "link out",
+    "wires": [],
+    "x": 655,
+    "y": 320,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "id": "1f190a60c144f6ec",
+    "links": ["0f5c72247640f952", "sf_ab_tail_out"],
+    "name": "tail events",
+    "type": "link in",
+    "wires": [[]],
+    "x": 1125,
+    "y": 80,
+    "z": "subflow_ab_eval_with_judge"
   }
 ]

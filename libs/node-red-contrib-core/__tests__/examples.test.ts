@@ -11,6 +11,7 @@ type FlowNode = {
   func?: string;
   maxAttempts?: number;
   out?: unknown;
+  outputLabels?: unknown;
   wires?: unknown;
 };
 
@@ -40,12 +41,24 @@ describe('example flows', () => {
       "laneStatus: 'failed'",
     );
     expect(nodes.get('sf_ab_tail_out')?.type).toBe('link out');
+    expect(nodes.get('sf_ab_build_run_eval')?.func).toContain(
+      'producerAllowedProfiles',
+    );
+    expect(nodes.get('sf_ab_build_run_eval')?.func).toContain(
+      'scenario.runtimeProfiles?.producer',
+    );
+    expect(nodes.get('sf_ab_build_judge_eval')?.func).toContain(
+      'judgeAllowedProfiles',
+    );
+    expect(nodes.get('sf_ab_build_judge_eval')?.func).toContain(
+      'msg.evalScenario?.runtimeProfiles?.judge',
+    );
     expect(nodes.get('sf_ab_wait_run_eval')?.wires).toEqual([
       ['sf_ab_tail_out'],
       ['sf_ab_gate_run_eval'],
     ]);
     expect(nodes.get('sf_ab_wait_judge_eval')?.wires).toEqual([
-      ['sf_ab_tail_out'],
+      ['0f5c72247640f952'],
       ['sf_ab_gate_judge_eval'],
     ]);
     expect(nodes.get('subflow_ab_eval_with_judge')?.out).toEqual([
@@ -55,10 +68,24 @@ describe('example flows', () => {
           { id: 'sf_ab_pack_lane_failure', port: 0 },
           { id: 'sf_ab_pack_node_error', port: 0 },
         ],
-        x: 1280,
-        y: 280,
+        x: 1320,
+        y: 360,
+      },
+      {
+        wires: [{ id: '1f190a60c144f6ec', port: 0 }],
+        x: 1320,
+        y: 80,
       },
     ]);
+    expect(nodes.get('subflow_ab_eval_with_judge')?.outputLabels).toEqual([
+      'workflow state',
+      'task tail events',
+    ]);
+    expect(nodes.get('ab_eval_subflow')?.wires).toEqual([
+      ['ab_eval_gate_group'],
+      ['ab_eval_tail_debug'],
+    ]);
+    expect(nodes.has('ab_eval_tail_in')).toBe(false);
 
     expect(nodes.get('sf_ab_create_run_eval')?.maxAttempts).toBe(2);
     expect(nodes.get('sf_ab_create_judge_eval')?.maxAttempts).toBe(2);
