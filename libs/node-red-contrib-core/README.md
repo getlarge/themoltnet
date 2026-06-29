@@ -220,6 +220,12 @@ runner pattern: initialize one correlation id, fan out configured variants in
 parallel, record successful or failed lanes, and emit a group result only once
 all expected variants have settled.
 
+The bundled seed uses `evals/moltnet-practices/dbos-after-commit` and compares
+`baseline-no-context` against `rendered-pack-dbos-rule`, a rendered-pack-style
+context excerpt that teaches the DBOS/Drizzle transaction boundary. Replace
+that inline context with a rendered MoltNet pack or skill content to evaluate a
+real candidate context source against the same hidden judge rubric.
+
 Fill the `moltnet-agent` config after import. Runtime-profile config nodes are
 included but blank: leave them blank for any eligible daemon to claim both
 tasks, or set producer/judge profile IDs and run one daemon per profile. The

@@ -32,6 +32,15 @@ describe('example flows', () => {
     const nodes = byId(flow);
 
     expect(nodes.get('ab_eval_seed')?.func).toContain('msg.evalVariants');
+    expect(nodes.get('ab_eval_seed')?.func).toContain(
+      'moltnet-practices/dbos-after-commit',
+    );
+    expect(nodes.get('ab_eval_seed')?.func).toContain(
+      'rendered-pack-dbos-rule',
+    );
+    expect(nodes.get('sf_ab_score_run_eval')?.func).toContain(
+      'expected.requireJson !== false',
+    );
     expect(nodes.get('ab_eval_init_group')?.func).toContain('expectedVariants');
     expect(nodes.get('ab_eval_gate_group')?.func).toContain('groupComplete');
     expect(nodes.get('sf_ab_pack_lane_failure')?.func).toContain(
