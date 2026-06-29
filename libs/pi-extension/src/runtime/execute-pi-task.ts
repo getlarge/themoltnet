@@ -16,7 +16,6 @@
  */
 import { homedir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
-import { Readable } from 'node:stream';
 
 import type { VM } from '@earendil-works/gondolin';
 import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
@@ -117,6 +116,30 @@ export type TurnEventHandlerFactory = (
 ) => TurnEventHandler;
 
 const noopTurnEventHandler: TurnEventHandler = () => {};
+
+export async function openVmWorkspaceFileForRead(config: {
+  vm: VM;
+  cwdPath: string;
+  guestWorkspace: string;
+  filePath: string;
+}) {
+  const localPath = isAbsolute(config.filePath)
+    ? config.filePath
+    : resolve(config.cwdPath, config.filePath);
+  const guestPath = toGuestPath(
+    config.cwdPath,
+    localPath,
+    config.guestWorkspace,
+  );
+  const info = await config.vm.fs.stat(guestPath);
+  const stream = await config.vm.fs.readFileStream(guestPath);
+  return {
+    stream,
+    isFile: info.isFile(),
+    sizeBytes: typeof info.size === 'number' ? info.size : undefined,
+    displayPath: config.filePath,
+  };
+}
 
 export function createGondolinToolDefinitions(config: {
   vm: VM;
@@ -704,29 +727,13 @@ export async function executePiTask(
           /* no-op in headless mode */
         },
         getHostCwd: () => cwdPath,
-        openWorkspaceFileForRead: async (filePath) => {
-          const localPath = isAbsolute(filePath)
-            ? filePath
-            : resolve(cwdPath, filePath);
-          const guestPath = toGuestPath(
+        openWorkspaceFileForRead: (filePath) =>
+          openVmWorkspaceFileForRead({
+            vm: activeManaged.vm,
             cwdPath,
-            localPath,
-            activeManaged.guestWorkspace,
-          );
-          const info = await activeManaged.vm.fs.stat(guestPath);
-          const content = await activeManaged.vm.fs.readFile(guestPath);
-          const buffer =
-            typeof content === 'string'
-              ? Buffer.from(content, 'utf8')
-              : Buffer.from(content);
-          return {
-            stream: Readable.from([buffer]),
-            isFile: info.isFile(),
-            sizeBytes:
-              typeof info.size === 'number' ? info.size : buffer.byteLength,
-            displayPath: filePath,
-          };
-        },
+            guestWorkspace: activeManaged.guestWorkspace,
+            filePath,
+          }),
         hostExecBaseEnv,
         hostExecAutoApprove:
           opts.hostExecAutoApprove ??
