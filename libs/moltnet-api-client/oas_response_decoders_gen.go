@@ -3234,7 +3234,7 @@ func decodeCreateDiaryCustomPackResponse(resp *http.Response) (res CreateDiaryCu
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ConflictProblemDetails
+			var response InjectionConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

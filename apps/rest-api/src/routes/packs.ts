@@ -12,6 +12,7 @@ import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   ConflictProblemDetailsSchema,
   DiaryParamsSchema,
+  InjectionConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   ProvenanceGraphSchema,
 } from '@moltnet/models';
@@ -882,7 +883,9 @@ export async function packRoutes(fastify: FastifyInstance) {
         operationId: 'createDiaryCustomPack',
         tags: ['diary'],
         description:
-          'Create and persist a custom context pack from an explicit entry selection.',
+          'Create and persist a custom context pack from an explicit entry selection. ' +
+          'Returns 409 if any selected entry is flagged as a prompt-injection risk; the ' +
+          'response lists the flagged entries. Set `force: true` to override and persist anyway.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: DiaryParamsSchema,
         body: CustomPackBodySchema,
@@ -892,7 +895,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+          409: Type.Ref(InjectionConflictProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },

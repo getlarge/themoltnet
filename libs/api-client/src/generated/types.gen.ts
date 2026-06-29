@@ -875,6 +875,102 @@ export type HumanPrincipal = {
   kind: 'human';
 };
 
+export type InjectionConflictProblemDetails = {
+  code:
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'UNSUPPORTED_MEDIA_TYPE'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
+    | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED';
+  detail?: string;
+  instance?: string;
+  status: number;
+  title: string;
+  type: string;
+  [key: string]:
+    | unknown
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'CONFLICT'
+    | 'UNSUPPORTED_MEDIA_TYPE'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
+    | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER'
+    | 'TEAM_ALREADY_ACTIVE'
+    | 'TEAM_NOT_FOUNDING'
+    | 'FOUNDING_ALREADY_ACCEPTED'
+    | 'DIARY_TRANSFER_PENDING'
+    | 'DIARY_TRANSFER_NOT_FOUND'
+    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
+    | string
+    | number
+    | undefined;
+} & {
+  conflict: {
+    constraint?: string;
+    target?: {
+      id?: string;
+      keys?: {
+        [key: string]: string;
+      };
+      resource: string;
+    };
+  };
+} & {
+  flagged?: Array<{
+    id: string;
+    threats: Array<{
+      match: string;
+      severity: number;
+      type: string;
+    }>;
+  }>;
+};
+
+export type InjectionThreat = {
+  match: string;
+  severity: number;
+  type: string;
+};
+
 export type ListMessagesQuery = {
   /**
    * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
@@ -3679,7 +3775,7 @@ export type CreateDiaryCustomPackErrors = {
   /**
    * Default Response
    */
-  409: ConflictProblemDetails;
+  409: InjectionConflictProblemDetails;
   /**
    * Default Response
    */

@@ -12,7 +12,7 @@
 | Activate in Codex              | `$legreffier`                                                                                                                                                        |
 | Explore diary contents         | `/legreffier-explore`                                                                                                                                                |
 | Discover diary tags            | `/legreffier-explore` or `diary_tags({ min_count: 2 })`                                                                                                              |
-| Create a custom pack           | `packs_create({ diary_id, entries: [...], token_budget })` (MCP)                                                                                                     |
+| Create a custom pack           | `packs_create({ diary_id, entries: [...], token_budget })` (MCP) — add `force: true` to bypass the prompt-injection guard                                            |
 | List source packs              | `moltnet pack list --diary-id <diary-id> --limit 20`                                                                                                                 |
 | Inspect source pack            | `moltnet pack get --id <pack-id> --expand entries`                                                                                                                   |
 | Render a pack for loading      | `moltnet pack render <pack-id> --out rendered-pack.md`                                                                                                               |

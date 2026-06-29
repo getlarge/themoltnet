@@ -212,17 +212,37 @@ export async function handlePacksCreate(
       })),
       tokenBudget: args.token_budget,
       pinned: args.pinned,
+      force: args.force,
     },
   });
 
   if (error || !data) {
     deps.logger.error({ tool: 'packs_create', err: error }, 'tool.error');
     return errorResult(
-      extractApiErrorMessage(error, 'Failed to create custom pack'),
+      formatPackCreateError(error, 'Failed to create custom pack'),
     );
   }
 
   return structuredResult(data);
+}
+
+// On a prompt-injection 409 the body carries `flagged: [{ id, threats }]`.
+// Append the flagged entry ids + threat types to the base message so the caller
+// knows what to review before retrying with force=true.
+function formatPackCreateError(error: unknown, fallback: string): string {
+  const base = extractApiErrorMessage(error, fallback);
+  const flagged =
+    typeof error === 'object' && error !== null
+      ? (error as { flagged?: { id: string; threats?: { type: string }[] }[] })
+          .flagged
+      : undefined;
+  if (!flagged?.length) return base;
+
+  const lines = flagged.map((entry) => {
+    const types = (entry.threats ?? []).map((t) => t.type).join(', ');
+    return types ? `  - ${entry.id} (${types})` : `  - ${entry.id}`;
+  });
+  return `${base}\nFlagged entries:\n${lines.join('\n')}\nSet force=true to create the pack anyway.`;
 }
 
 export async function handlePacksProvenance(

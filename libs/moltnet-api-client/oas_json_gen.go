@@ -43738,6 +43738,916 @@ func (s *InitiateTransferUnauthorized) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode implements json.Marshaler.
+func (s *InjectionConflictProblemDetails) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *InjectionConflictProblemDetails) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("conflict")
+		s.Conflict.Encode(e)
+	}
+	{
+		if s.Flagged != nil {
+			e.FieldStart("flagged")
+			e.ArrStart()
+			for _, elem := range s.Flagged {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfInjectionConflictProblemDetails = [8]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "conflict",
+	7: "flagged",
+}
+
+// Decode decodes InjectionConflictProblemDetails from json.
+func (s *InjectionConflictProblemDetails) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode InjectionConflictProblemDetails to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "conflict":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.Conflict.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"conflict\"")
+			}
+		case "flagged":
+			if err := func() error {
+				s.Flagged = make([]InjectionConflictProblemDetailsFlaggedItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem InjectionConflictProblemDetailsFlaggedItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Flagged = append(s.Flagged, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"flagged\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode InjectionConflictProblemDetails")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfInjectionConflictProblemDetails) {
+					name = jsonFieldsNameOfInjectionConflictProblemDetails[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *InjectionConflictProblemDetails) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *InjectionConflictProblemDetails) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s InjectionConflictProblemDetailsAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s InjectionConflictProblemDetailsAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes InjectionConflictProblemDetailsAdditional from json.
+func (s *InjectionConflictProblemDetailsAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode InjectionConflictProblemDetailsAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode InjectionConflictProblemDetailsAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s InjectionConflictProblemDetailsAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *InjectionConflictProblemDetailsAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes InjectionConflictProblemDetailsCode as json.
+func (s InjectionConflictProblemDetailsCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes InjectionConflictProblemDetailsCode from json.
+func (s *InjectionConflictProblemDetailsCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode InjectionConflictProblemDetailsCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch InjectionConflictProblemDetailsCode(v) {
+	case InjectionConflictProblemDetailsCodeUNAUTHORIZED:
+		*s = InjectionConflictProblemDetailsCodeUNAUTHORIZED
+	case InjectionConflictProblemDetailsCodeFORBIDDEN:
+		*s = InjectionConflictProblemDetailsCodeFORBIDDEN
+	case InjectionConflictProblemDetailsCodeNOTFOUND:
+		*s = InjectionConflictProblemDetailsCodeNOTFOUND
+	case InjectionConflictProblemDetailsCodeCONFLICT:
+		*s = InjectionConflictProblemDetailsCodeCONFLICT
+	case InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
+		*s = InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE
+	case InjectionConflictProblemDetailsCodeVALIDATIONFAILED:
+		*s = InjectionConflictProblemDetailsCodeVALIDATIONFAILED
+	case InjectionConflictProblemDetailsCodeINVALIDCHALLENGE:
+		*s = InjectionConflictProblemDetailsCodeINVALIDCHALLENGE
+	case InjectionConflictProblemDetailsCodeINVALIDSIGNATURE:
+		*s = InjectionConflictProblemDetailsCodeINVALIDSIGNATURE
+	case InjectionConflictProblemDetailsCodeVOUCHERLIMIT:
+		*s = InjectionConflictProblemDetailsCodeVOUCHERLIMIT
+	case InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED:
+		*s = InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED
+	case InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED:
+		*s = InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED
+	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED:
+		*s = InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED
+	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+	case InjectionConflictProblemDetailsCodeREGISTRATIONFAILED:
+		*s = InjectionConflictProblemDetailsCodeREGISTRATIONFAILED
+	case InjectionConflictProblemDetailsCodeUPSTREAMERROR:
+		*s = InjectionConflictProblemDetailsCodeUPSTREAMERROR
+	case InjectionConflictProblemDetailsCodeSERVICEUNAVAILABLE:
+		*s = InjectionConflictProblemDetailsCodeSERVICEUNAVAILABLE
+	case InjectionConflictProblemDetailsCodeINTERNALSERVERERROR:
+		*s = InjectionConflictProblemDetailsCodeINTERNALSERVERERROR
+	case InjectionConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		*s = InjectionConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE
+	case InjectionConflictProblemDetailsCodeTEAMNOTACTIVE:
+		*s = InjectionConflictProblemDetailsCodeTEAMNOTACTIVE
+	case InjectionConflictProblemDetailsCodeINVITEEXPIRED:
+		*s = InjectionConflictProblemDetailsCodeINVITEEXPIRED
+	case InjectionConflictProblemDetailsCodeINVITEEXHAUSTED:
+		*s = InjectionConflictProblemDetailsCodeINVITEEXHAUSTED
+	case InjectionConflictProblemDetailsCodeTEAMLASTOWNER:
+		*s = InjectionConflictProblemDetailsCodeTEAMLASTOWNER
+	case InjectionConflictProblemDetailsCodeTEAMALREADYACTIVE:
+		*s = InjectionConflictProblemDetailsCodeTEAMALREADYACTIVE
+	case InjectionConflictProblemDetailsCodeTEAMNOTFOUNDING:
+		*s = InjectionConflictProblemDetailsCodeTEAMNOTFOUNDING
+	case InjectionConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		*s = InjectionConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED
+	case InjectionConflictProblemDetailsCodeDIARYTRANSFERPENDING:
+		*s = InjectionConflictProblemDetailsCodeDIARYTRANSFERPENDING
+	case InjectionConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		*s = InjectionConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND
+	case InjectionConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = InjectionConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = InjectionConflictProblemDetailsCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s InjectionConflictProblemDetailsCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *InjectionConflictProblemDetailsCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *InjectionConflictProblemDetailsConflict) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *InjectionConflictProblemDetailsConflict) encodeFields(e *jx.Encoder) {
+	{
+		if s.Constraint.Set {
+			e.FieldStart("constraint")
+			s.Constraint.Encode(e)
+		}
+	}
+	{
+		if s.Target.Set {
+			e.FieldStart("target")
+			s.Target.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfInjectionConflictProblemDetailsConflict = [2]string{
+	0: "constraint",
+	1: "target",
+}
+
+// Decode decodes InjectionConflictProblemDetailsConflict from json.
+func (s *InjectionConflictProblemDetailsConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode InjectionConflictProblemDetailsConflict to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "constraint":
+			if err := func() error {
+				s.Constraint.Reset()
+				if err := s.Constraint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"constraint\"")
+			}
+		case "target":
+			if err := func() error {
+				s.Target.Reset()
+				if err := s.Target.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"target\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode InjectionConflictProblemDetailsConflict")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *InjectionConflictProblemDetailsConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *InjectionConflictProblemDetailsConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *InjectionConflictProblemDetailsConflictTarget) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *InjectionConflictProblemDetailsConflictTarget) encodeFields(e *jx.Encoder) {
+	{
+		if s.ID.Set {
+			e.FieldStart("id")
+			s.ID.Encode(e)
+		}
+	}
+	{
+		if s.Keys.Set {
+			e.FieldStart("keys")
+			s.Keys.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("resource")
+		e.Str(s.Resource)
+	}
+}
+
+var jsonFieldsNameOfInjectionConflictProblemDetailsConflictTarget = [3]string{
+	0: "id",
+	1: "keys",
+	2: "resource",
+}
+
+// Decode decodes InjectionConflictProblemDetailsConflictTarget from json.
+func (s *InjectionConflictProblemDetailsConflictTarget) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode InjectionConflictProblemDetailsConflictTarget to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			if err := func() error {
+				s.ID.Reset()
+				if err := s.ID.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "keys":
+			if err := func() error {
+				s.Keys.Reset()
+				if err := s.Keys.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"keys\"")
+			}
+		case "resource":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Resource = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resource\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode InjectionConflictProblemDetailsConflictTarget")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfInjectionConflictProblemDetailsConflictTarget) {
+					name = jsonFieldsNameOfInjectionConflictProblemDetailsConflictTarget[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *InjectionConflictProblemDetailsConflictTarget) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *InjectionConflictProblemDetailsConflictTarget) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s InjectionConflictProblemDetailsConflictTargetKeys) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s InjectionConflictProblemDetailsConflictTargetKeys) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		e.Str(elem)
+	}
+}
+
+// Decode decodes InjectionConflictProblemDetailsConflictTargetKeys from json.
+func (s *InjectionConflictProblemDetailsConflictTargetKeys) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode InjectionConflictProblemDetailsConflictTargetKeys to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem string
+		if err := func() error {
+			v, err := d.Str()
+			elem = string(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode InjectionConflictProblemDetailsConflictTargetKeys")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s InjectionConflictProblemDetailsConflictTargetKeys) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *InjectionConflictProblemDetailsConflictTargetKeys) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *InjectionConflictProblemDetailsFlaggedItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *InjectionConflictProblemDetailsFlaggedItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("threats")
+		e.ArrStart()
+		for _, elem := range s.Threats {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+}
+
+var jsonFieldsNameOfInjectionConflictProblemDetailsFlaggedItem = [2]string{
+	0: "id",
+	1: "threats",
+}
+
+// Decode decodes InjectionConflictProblemDetailsFlaggedItem from json.
+func (s *InjectionConflictProblemDetailsFlaggedItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode InjectionConflictProblemDetailsFlaggedItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "threats":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				s.Threats = make([]InjectionConflictProblemDetailsFlaggedItemThreatsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem InjectionConflictProblemDetailsFlaggedItemThreatsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Threats = append(s.Threats, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"threats\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode InjectionConflictProblemDetailsFlaggedItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfInjectionConflictProblemDetailsFlaggedItem) {
+					name = jsonFieldsNameOfInjectionConflictProblemDetailsFlaggedItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *InjectionConflictProblemDetailsFlaggedItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *InjectionConflictProblemDetailsFlaggedItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("match")
+		e.Str(s.Match)
+	}
+	{
+		e.FieldStart("severity")
+		e.Float64(s.Severity)
+	}
+	{
+		e.FieldStart("type")
+		e.Str(s.Type)
+	}
+}
+
+var jsonFieldsNameOfInjectionConflictProblemDetailsFlaggedItemThreatsItem = [3]string{
+	0: "match",
+	1: "severity",
+	2: "type",
+}
+
+// Decode decodes InjectionConflictProblemDetailsFlaggedItemThreatsItem from json.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode InjectionConflictProblemDetailsFlaggedItemThreatsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "match":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Match = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"match\"")
+			}
+		case "severity":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.Severity = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"severity\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Type = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode InjectionConflictProblemDetailsFlaggedItemThreatsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfInjectionConflictProblemDetailsFlaggedItemThreatsItem) {
+					name = jsonFieldsNameOfInjectionConflictProblemDetailsFlaggedItemThreatsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes IssueVoucherBadRequest as json.
 func (s *IssueVoucherBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -60507,6 +61417,73 @@ func (s OptGetContextPackProvenanceByCidOKEdgesItemMeta) MarshalJSON() ([]byte, 
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptGetContextPackProvenanceByCidOKEdgesItemMeta) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes InjectionConflictProblemDetailsConflictTarget as json.
+func (o OptInjectionConflictProblemDetailsConflictTarget) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes InjectionConflictProblemDetailsConflictTarget from json.
+func (o *OptInjectionConflictProblemDetailsConflictTarget) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptInjectionConflictProblemDetailsConflictTarget to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptInjectionConflictProblemDetailsConflictTarget) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptInjectionConflictProblemDetailsConflictTarget) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes InjectionConflictProblemDetailsConflictTargetKeys as json.
+func (o OptInjectionConflictProblemDetailsConflictTargetKeys) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes InjectionConflictProblemDetailsConflictTargetKeys from json.
+func (o *OptInjectionConflictProblemDetailsConflictTargetKeys) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptInjectionConflictProblemDetailsConflictTargetKeys to nil")
+	}
+	o.Set = true
+	o.Value = make(InjectionConflictProblemDetailsConflictTargetKeys)
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptInjectionConflictProblemDetailsConflictTargetKeys) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptInjectionConflictProblemDetailsConflictTargetKeys) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

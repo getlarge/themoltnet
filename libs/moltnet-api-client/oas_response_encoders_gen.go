@@ -978,7 +978,7 @@ func encodeCreateDiaryCustomPackResponse(response CreateDiaryCustomPackRes, w ht
 
 		return nil
 
-	case *ConflictProblemDetails:
+	case *InjectionConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 

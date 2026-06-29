@@ -84,7 +84,9 @@ type Handler interface {
 	CreateDiary(ctx context.Context, req *CreateDiaryReq, params CreateDiaryParams) (CreateDiaryRes, error)
 	// CreateDiaryCustomPack implements createDiaryCustomPack operation.
 	//
-	// Create and persist a custom context pack from an explicit entry selection.
+	// Create and persist a custom context pack from an explicit entry selection. Returns 409 if any
+	// selected entry is flagged as a prompt-injection risk; the response lists the flagged entries. Set
+	// `force: true` to override and persist anyway.
 	//
 	// POST /diaries/{id}/packs
 	CreateDiaryCustomPack(ctx context.Context, req *CreateDiaryCustomPackReq, params CreateDiaryCustomPackParams) (CreateDiaryCustomPackRes, error)

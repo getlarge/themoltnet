@@ -182,6 +182,14 @@ export const PackCreateSchema = Type.Object({
       description: 'Whether the persisted pack should be pinned.',
     }),
   ),
+  force: Type.Optional(
+    Type.Boolean({
+      description:
+        'Override the prompt-injection guard. When omitted/false, a pack ' +
+        'containing entries flagged as injection risks is rejected and the ' +
+        'flagged entries are listed. Set true to create the pack anyway.',
+    }),
+  ),
 });
 export type PackCreateInput = {
   diary_id: PathOf<CreateDiaryCustomPackData>['id'];
@@ -192,6 +200,7 @@ export type PackCreateInput = {
   }>;
   token_budget?: CreateCustomPackBody['tokenBudget'];
   pinned?: CreateCustomPackBody['pinned'];
+  force?: CreateCustomPackBody['force'];
 };
 
 export const PackProvenanceSchema = Type.Object({
