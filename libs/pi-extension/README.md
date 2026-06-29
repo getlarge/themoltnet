@@ -185,6 +185,7 @@ the base snapshot is used (Alpine + git + gh + MoltNet CLI + agent user).
     ]
   },
   "vfs": {
+    "nodeModulesTmpfs": true,
     "shadow": ["node_modules"],
     "shadowMode": "tmpfs"
   }
@@ -216,8 +217,7 @@ Shell commands that run on every VM resume, after platform setup and before the
 agent session starts.
 
 Use this for per-session bootstrap that should not invalidate the snapshot
-cache: mounting tmpfs, warming package-manager state, lightweight repo-local
-setup.
+cache: warming package-manager state and lightweight repo-local setup.
 
 Important properties:
 
@@ -291,11 +291,11 @@ but it does not solve the hot-path problem by itself. For fast pnpm setup, move
 both endpoints off the FUSE bridge:
 
 - package store on guest-local disk, e.g. `NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
-- install target on guest tmpfs via `resumeCommands`
+- install target on guest tmpfs via `vfs.nodeModulesTmpfs: true`
 
-Current themoltnet `sandbox.json` does this by mounting tmpfs over the root and
-per-workspace `node_modules` directories before running `pnpm install
---frozen-lockfile`.
+When `vfs.nodeModulesTmpfs` is enabled, `vm-manager` mounts tmpfs over root and
+per-workspace `node_modules` directories for both `MOLTNET_GUEST_WORKSPACE` and
+`MOLTNET_GUEST_CWD` before running `resumeCommands`.
 
 ### `env`
 

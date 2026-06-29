@@ -127,6 +127,26 @@ export function shouldRunResumeCommand(
   return true;
 }
 
+export function buildNodeModulesTmpfsCommand(): string {
+  return [
+    'mount_node_modules_tmpfs() {',
+    '  root="$1"',
+    '  [ -d "$root" ] || return 0',
+    '  for d in "$root" "$root"/apps/* "$root"/libs/* "$root"/packages/* "$root"/tools "$root"/docs; do',
+    '    [ -d "$d" ] || continue',
+    '    nm="$d/node_modules"',
+    '    mkdir -p "$nm"',
+    '    if [ "$d" = "$root" ]; then sz=6G; else sz=64M; fi',
+    '    mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs "$nm" 2>/dev/null || true',
+    '  done',
+    '}',
+    'mount_node_modules_tmpfs "${MOLTNET_GUEST_WORKSPACE}"',
+    'if [ "${MOLTNET_GUEST_CWD}" != "${MOLTNET_GUEST_WORKSPACE}" ]; then',
+    '  mount_node_modules_tmpfs "${MOLTNET_GUEST_CWD}"',
+    'fi',
+  ].join('\n');
+}
+
 /**
  * Resolve the main worktree root (where .moltnet/ lives — it's untracked,
  * only exists in the main worktree, not in git worktrees).
@@ -478,11 +498,19 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       config.signal,
     );
 
+    if (vfsConfig?.nodeModulesTmpfs === true) {
+      await vmRun(
+        vm,
+        'node_modules tmpfs mounts',
+        buildNodeModulesTmpfsCommand(),
+        config.signal,
+      );
+    }
+
     // Consumer-provided per-resume commands. Repo-specific bootstrap
-    // (corepack-install a pinned pnpm, `pnpm fetch`, kernel tmpfs mounts
-    // for paths the consumer wants out of the Gondolin FUSE hot path —
-    // see diary 17f0ac6f for the pnpm-install-100×-faster recipe) belongs
-    // here, not in vm-manager. pi-extension stays repo-agnostic.
+    // (corepack-install a pinned pnpm, `pnpm fetch`, lightweight repo-local
+    // setup) belongs here, not in vm-manager. pi-extension stays
+    // package-manager-agnostic.
     // Sequential, first failure aborts resume via vmRun. Per-step opt-in
     // retries (object form: `{ run, retries, retryBackoffMs }`) cover
     // network-bound idempotent steps that race DHCP/registry availability

@@ -104,6 +104,7 @@ describe('Runtime Profiles API', () => {
         ],
         hostExec: { autoApprove: false as const },
         resources: { cpus: 2, memory: '2G' },
+        vfs: { nodeModulesTmpfs: true },
       },
       defaultWorkspaceMode: 'dedicated_worktree' as const,
       allowedWorkspaceModes: ['none' as const, 'dedicated_worktree' as const],

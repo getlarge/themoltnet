@@ -140,7 +140,7 @@ describe('resumeVm task-context mount', () => {
     expect(resumeOptions.env.NODE_OPTIONS).toBe('--dns-result-order=ipv4first');
   });
 
-  it('exposes the mounted workspace and active cwd to resume commands', async () => {
+  it('mounts node_modules tmpfs for both mounted root and active worktree cwd', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-cwd-'));
     tempRoots.push(root);
     const workspace = path.join(root, 'workspace');
@@ -165,9 +165,10 @@ describe('resumeVm task-context mount', () => {
       cwdPath: cwd,
       workspaceMode: 'dedicated_worktree',
       sandboxConfig: {
+        vfs: { nodeModulesTmpfs: true },
         resumeCommands: [
           {
-            run: 'test "$MOLTNET_GUEST_CWD" != "$MOLTNET_GUEST_WORKSPACE"',
+            run: 'cd "$MOLTNET_GUEST_CWD" && pnpm install --frozen-lockfile',
             when: { workspaceMode: ['dedicated_worktree'] },
           },
         ],
@@ -180,15 +181,31 @@ describe('resumeVm task-context mount', () => {
     };
     expect(resumeOptions.env.MOLTNET_GUEST_WORKSPACE).toBe(workspace);
     expect(resumeOptions.env.MOLTNET_GUEST_CWD).toBe(cwd);
-    expect(gondolinMock.vm.exec).toHaveBeenCalledWith(
-      [
-        'sh',
-        '-c',
-        expect.stringContaining(
-          'test "$MOLTNET_GUEST_CWD" != "$MOLTNET_GUEST_WORKSPACE"',
-        ),
-      ],
-      expect.any(Object),
+
+    const execCalls = gondolinMock.vm.exec.mock.calls as unknown as [
+      unknown,
+      unknown?,
+    ][];
+    const shellCommands = execCalls
+      .map(([argv]) => (Array.isArray(argv) ? argv[2] : argv))
+      .filter((command): command is string => typeof command === 'string');
+    const tmpfsCommandIndex = shellCommands.findIndex((command) =>
+      command.includes('mount_node_modules_tmpfs'),
+    );
+    const profileCommandIndex = shellCommands.findIndex((command) =>
+      command.includes('pnpm install --frozen-lockfile'),
+    );
+
+    expect(tmpfsCommandIndex).toBeGreaterThanOrEqual(0);
+    expect(profileCommandIndex).toBeGreaterThan(tmpfsCommandIndex);
+    expect(shellCommands[tmpfsCommandIndex]).toContain(
+      'mount_node_modules_tmpfs "${MOLTNET_GUEST_WORKSPACE}"',
+    );
+    expect(shellCommands[tmpfsCommandIndex]).toContain(
+      'mount_node_modules_tmpfs "${MOLTNET_GUEST_CWD}"',
+    );
+    expect(shellCommands[profileCommandIndex]).toContain(
+      'cd "$MOLTNET_GUEST_CWD" && pnpm install --frozen-lockfile',
     );
   });
 });

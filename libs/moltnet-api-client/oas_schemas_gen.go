@@ -6189,8 +6189,14 @@ func (s *CreateRuntimeProfileBodySandboxSnapshot) SetSetupCommands(val []string)
 }
 
 type CreateRuntimeProfileBodySandboxVfs struct {
-	Shadow     []string                                        `json:"shadow"`
-	ShadowMode OptCreateRuntimeProfileBodySandboxVfsShadowMode `json:"shadowMode"`
+	NodeModulesTmpfs OptBool                                         `json:"nodeModulesTmpfs"`
+	Shadow           []string                                        `json:"shadow"`
+	ShadowMode       OptCreateRuntimeProfileBodySandboxVfsShadowMode `json:"shadowMode"`
+}
+
+// GetNodeModulesTmpfs returns the value of NodeModulesTmpfs.
+func (s *CreateRuntimeProfileBodySandboxVfs) GetNodeModulesTmpfs() OptBool {
+	return s.NodeModulesTmpfs
 }
 
 // GetShadow returns the value of Shadow.
@@ -6201,6 +6207,11 @@ func (s *CreateRuntimeProfileBodySandboxVfs) GetShadow() []string {
 // GetShadowMode returns the value of ShadowMode.
 func (s *CreateRuntimeProfileBodySandboxVfs) GetShadowMode() OptCreateRuntimeProfileBodySandboxVfsShadowMode {
 	return s.ShadowMode
+}
+
+// SetNodeModulesTmpfs sets the value of NodeModulesTmpfs.
+func (s *CreateRuntimeProfileBodySandboxVfs) SetNodeModulesTmpfs(val OptBool) {
+	s.NodeModulesTmpfs = val
 }
 
 // SetShadow sets the value of Shadow.
@@ -40219,8 +40230,14 @@ func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) SetSetupCommands(va
 }
 
 type RuntimeProfileListResponseItemsItemSandboxVfs struct {
-	Shadow     []string                                                   `json:"shadow"`
-	ShadowMode OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode `json:"shadowMode"`
+	NodeModulesTmpfs OptBool                                                    `json:"nodeModulesTmpfs"`
+	Shadow           []string                                                   `json:"shadow"`
+	ShadowMode       OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode `json:"shadowMode"`
+}
+
+// GetNodeModulesTmpfs returns the value of NodeModulesTmpfs.
+func (s *RuntimeProfileListResponseItemsItemSandboxVfs) GetNodeModulesTmpfs() OptBool {
+	return s.NodeModulesTmpfs
 }
 
 // GetShadow returns the value of Shadow.
@@ -40231,6 +40248,11 @@ func (s *RuntimeProfileListResponseItemsItemSandboxVfs) GetShadow() []string {
 // GetShadowMode returns the value of ShadowMode.
 func (s *RuntimeProfileListResponseItemsItemSandboxVfs) GetShadowMode() OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode {
 	return s.ShadowMode
+}
+
+// SetNodeModulesTmpfs sets the value of NodeModulesTmpfs.
+func (s *RuntimeProfileListResponseItemsItemSandboxVfs) SetNodeModulesTmpfs(val OptBool) {
+	s.NodeModulesTmpfs = val
 }
 
 // SetShadow sets the value of Shadow.
@@ -40818,8 +40840,14 @@ func (s *RuntimeProfileSandboxSnapshot) SetSetupCommands(val []string) {
 }
 
 type RuntimeProfileSandboxVfs struct {
-	Shadow     []string                              `json:"shadow"`
-	ShadowMode OptRuntimeProfileSandboxVfsShadowMode `json:"shadowMode"`
+	NodeModulesTmpfs OptBool                               `json:"nodeModulesTmpfs"`
+	Shadow           []string                              `json:"shadow"`
+	ShadowMode       OptRuntimeProfileSandboxVfsShadowMode `json:"shadowMode"`
+}
+
+// GetNodeModulesTmpfs returns the value of NodeModulesTmpfs.
+func (s *RuntimeProfileSandboxVfs) GetNodeModulesTmpfs() OptBool {
+	return s.NodeModulesTmpfs
 }
 
 // GetShadow returns the value of Shadow.
@@ -40830,6 +40858,11 @@ func (s *RuntimeProfileSandboxVfs) GetShadow() []string {
 // GetShadowMode returns the value of ShadowMode.
 func (s *RuntimeProfileSandboxVfs) GetShadowMode() OptRuntimeProfileSandboxVfsShadowMode {
 	return s.ShadowMode
+}
+
+// SetNodeModulesTmpfs sets the value of NodeModulesTmpfs.
+func (s *RuntimeProfileSandboxVfs) SetNodeModulesTmpfs(val OptBool) {
+	s.NodeModulesTmpfs = val
 }
 
 // SetShadow sets the value of Shadow.
@@ -45533,8 +45566,14 @@ func (s *UpdateRuntimeProfileBodySandboxSnapshot) SetSetupCommands(val []string)
 }
 
 type UpdateRuntimeProfileBodySandboxVfs struct {
-	Shadow     []string                                        `json:"shadow"`
-	ShadowMode OptUpdateRuntimeProfileBodySandboxVfsShadowMode `json:"shadowMode"`
+	NodeModulesTmpfs OptBool                                         `json:"nodeModulesTmpfs"`
+	Shadow           []string                                        `json:"shadow"`
+	ShadowMode       OptUpdateRuntimeProfileBodySandboxVfsShadowMode `json:"shadowMode"`
+}
+
+// GetNodeModulesTmpfs returns the value of NodeModulesTmpfs.
+func (s *UpdateRuntimeProfileBodySandboxVfs) GetNodeModulesTmpfs() OptBool {
+	return s.NodeModulesTmpfs
 }
 
 // GetShadow returns the value of Shadow.
@@ -45545,6 +45584,11 @@ func (s *UpdateRuntimeProfileBodySandboxVfs) GetShadow() []string {
 // GetShadowMode returns the value of ShadowMode.
 func (s *UpdateRuntimeProfileBodySandboxVfs) GetShadowMode() OptUpdateRuntimeProfileBodySandboxVfsShadowMode {
 	return s.ShadowMode
+}
+
+// SetNodeModulesTmpfs sets the value of NodeModulesTmpfs.
+func (s *UpdateRuntimeProfileBodySandboxVfs) SetNodeModulesTmpfs(val OptBool) {
+	s.NodeModulesTmpfs = val
 }
 
 // SetShadow sets the value of Shadow.

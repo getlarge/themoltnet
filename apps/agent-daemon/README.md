@@ -168,7 +168,7 @@ For `themoltnet`, prefer a profile sandbox equivalent to this minimal policy:
 That's only a starting point. `vfs.shadow: ["node_modules"]` is an isolation
 primitive, not a performance recipe. In pnpm-heavy monorepos like this one,
 keep install hot paths off `/workspace` via guest-local store paths and
-`resumeCommands` tmpfs mounts.
+`vfs.nodeModulesTmpfs: true`.
 
 If a resume step assumes `/workspace` is a repo checkout, gate it on
 `resumeCommands[].when.workspaceMode` rather than on task type. Use:

@@ -114,6 +114,7 @@ describe('runtime profile routes', () => {
             },
           ],
           hostExec: { autoApprove: false },
+          vfs: { nodeModulesTmpfs: true },
         },
         defaultWorkspaceMode: 'dedicated_worktree',
         allowedWorkspaceModes: ['none', 'dedicated_worktree'],
@@ -169,6 +170,9 @@ describe('runtime profile routes', () => {
         maxBatchSize: 10,
         maxTurns: 30,
         maxBashTimeouts: 2,
+        sandbox: expect.objectContaining({
+          vfs: { nodeModulesTmpfs: true },
+        }),
         defaultWorkspaceMode: 'dedicated_worktree',
         allowedWorkspaceModes: ['none', 'dedicated_worktree'],
         createdByAgentId: OWNER_ID,

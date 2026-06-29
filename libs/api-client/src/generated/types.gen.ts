@@ -463,6 +463,7 @@ export type CreateRuntimeProfileBody = {
       setupCommands?: Array<string>;
     };
     vfs?: {
+      nodeModulesTmpfs?: boolean;
       shadow?: Array<string>;
       shadowMode?: 'deny' | 'tmpfs';
     };
@@ -1776,6 +1777,7 @@ export type RuntimeProfile = {
       setupCommands?: Array<string>;
     };
     vfs?: {
+      nodeModulesTmpfs?: boolean;
       shadow?: Array<string>;
       shadowMode?: 'deny' | 'tmpfs';
     };
@@ -1858,6 +1860,7 @@ export type RuntimeProfileListResponse = {
         setupCommands?: Array<string>;
       };
       vfs?: {
+        nodeModulesTmpfs?: boolean;
         shadow?: Array<string>;
         shadowMode?: 'deny' | 'tmpfs';
       };
@@ -1916,6 +1919,7 @@ export type RuntimeProfileSandbox = {
     setupCommands?: Array<string>;
   };
   vfs?: {
+    nodeModulesTmpfs?: boolean;
     shadow?: Array<string>;
     shadowMode?: 'deny' | 'tmpfs';
   };
@@ -2419,6 +2423,7 @@ export type UpdateRuntimeProfileBody = {
       setupCommands?: Array<string>;
     };
     vfs?: {
+      nodeModulesTmpfs?: boolean;
       shadow?: Array<string>;
       shadowMode?: 'deny' | 'tmpfs';
     };

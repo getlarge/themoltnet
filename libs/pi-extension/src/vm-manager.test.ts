@@ -5,7 +5,6 @@
  */
 import { execFileSync } from 'node:child_process';
 import {
-  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -21,6 +20,7 @@ import { describe, expect, it } from 'vitest';
 
 import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
+  buildNodeModulesTmpfsCommand,
   loadCredentials,
   resolveVmAgentDir,
   rewriteGitconfigPaths,
@@ -314,66 +314,18 @@ describe('shouldRunResumeCommand', () => {
   });
 });
 
-describe('themoltnet sandbox tmpfs resume command', () => {
-  it('mounts node_modules for both the mounted repo and active worktree cwd', () => {
-    const sandbox = JSON.parse(
-      readFileSync(path.resolve('../..', 'sandbox.json'), 'utf8'),
-    ) as {
-      resumeCommands: { run: string }[];
-    };
-    const command = sandbox.resumeCommands[0]?.run;
-    expect(command).toBeTruthy();
-    expect(command).not.toContain('pnpm m ls');
-    expect(command).toContain('MOLTNET_GUEST_CWD');
-    expect(sandbox.resumeCommands[1]?.run).toContain(
-      'cd "${MOLTNET_GUEST_CWD:-${MOLTNET_GUEST_WORKSPACE}}"',
+describe('buildNodeModulesTmpfsCommand', () => {
+  it('uses VM-provided workspace env instead of sandbox.json paths', () => {
+    const command = buildNodeModulesTmpfsCommand();
+
+    expect(command).toContain(
+      'mount_node_modules_tmpfs "${MOLTNET_GUEST_WORKSPACE}"',
     );
-
-    const root = mkdtempSync(path.join(tmpdir(), 'pi-sandbox-root-'));
-    const cwd = path.join(root, '.worktrees', 'task-1');
-    const bin = path.join(root, 'bin');
-    const mountLog = path.join(root, 'mount.log');
-    try {
-      for (const base of [root, cwd]) {
-        mkdirSync(path.join(base, 'apps', 'rest-api'), { recursive: true });
-        mkdirSync(path.join(base, 'libs', 'pi-extension'), {
-          recursive: true,
-        });
-        mkdirSync(path.join(base, 'packages', 'cli'), { recursive: true });
-        mkdirSync(path.join(base, 'tools'), { recursive: true });
-      }
-      mkdirSync(bin, { recursive: true });
-      const fakeMount = path.join(bin, 'mount');
-      writeFileSync(
-        fakeMount,
-        '#!/bin/sh\nprintf "%s\\n" "$*" >> "$MOUNT_LOG"\n',
-        'utf8',
-      );
-      chmodSync(fakeMount, 0o755);
-
-      execFileSync('sh', ['-c', `set -eu\n${command}`], {
-        env: {
-          ...process.env,
-          PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}`,
-          MOLTNET_GUEST_WORKSPACE: root,
-          MOLTNET_GUEST_CWD: cwd,
-          MOUNT_LOG: mountLog,
-        },
-        stdio: 'pipe',
-      });
-
-      const mounts = readFileSync(mountLog, 'utf8');
-      expect(mounts).toContain(`${root}/node_modules`);
-      expect(mounts).toContain(`${root}/apps/rest-api/node_modules`);
-      expect(mounts).toContain(`${root}/libs/pi-extension/node_modules`);
-      expect(mounts).toContain(`${cwd}/node_modules`);
-      expect(mounts).toContain(`${cwd}/apps/rest-api/node_modules`);
-      expect(mounts).toContain(`${cwd}/libs/pi-extension/node_modules`);
-      expect(mounts).toContain(`${cwd}/packages/cli/node_modules`);
-      expect(mounts).toContain(`${cwd}/tools/node_modules`);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    expect(command).toContain(
+      'mount_node_modules_tmpfs "${MOLTNET_GUEST_CWD}"',
+    );
+    expect(command).not.toContain('sandbox.json');
+    expect(command).not.toContain('pnpm');
   });
 });
 
