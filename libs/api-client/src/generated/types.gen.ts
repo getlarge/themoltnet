@@ -2116,6 +2116,17 @@ export type TaskAttempt = {
   error: {
     code: string;
     message: string;
+    retry?: {
+      confidence?: 'low' | 'medium' | 'high';
+      decision?: 'retry' | 'do_not_retry';
+      reason?: string;
+      source:
+        | 'explicit'
+        | 'deterministic'
+        | 'attempts_exhausted'
+        | 'triage'
+        | 'triage_failed';
+    };
     retryable?: boolean;
     stack?: string;
   } | null;
@@ -2163,6 +2174,17 @@ export type TaskAttemptStatus =
 export type TaskError = {
   code: string;
   message: string;
+  retry?: {
+    confidence?: 'low' | 'medium' | 'high';
+    decision?: 'retry' | 'do_not_retry';
+    reason?: string;
+    source:
+      | 'explicit'
+      | 'deterministic'
+      | 'attempts_exhausted'
+      | 'triage'
+      | 'triage_failed';
+  };
   retryable?: boolean;
   stack?: string;
 };
@@ -2224,6 +2246,18 @@ export type TaskRef = {
   outputCid: string;
   role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
   taskId: string | null;
+};
+
+export type TaskRetryInfo = {
+  confidence?: 'low' | 'medium' | 'high';
+  decision?: 'retry' | 'do_not_retry';
+  reason?: string;
+  source:
+    | 'explicit'
+    | 'deterministic'
+    | 'attempts_exhausted'
+    | 'triage'
+    | 'triage_failed';
 };
 
 export type TaskStatus =

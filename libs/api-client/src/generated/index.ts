@@ -772,6 +772,7 @@ export type {
   TaskMessageKind,
   TaskParams,
   TaskRef,
+  TaskRetryInfo,
   TaskStatus,
   TaskTypeDescriptor,
   TaskUsage,

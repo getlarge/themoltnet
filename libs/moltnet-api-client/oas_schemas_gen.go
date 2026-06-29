@@ -32956,6 +32956,282 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
+// NewOptTaskAttemptErrorRetry returns new OptTaskAttemptErrorRetry with value set to v.
+func NewOptTaskAttemptErrorRetry(v TaskAttemptErrorRetry) OptTaskAttemptErrorRetry {
+	return OptTaskAttemptErrorRetry{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskAttemptErrorRetry is optional TaskAttemptErrorRetry.
+type OptTaskAttemptErrorRetry struct {
+	Value TaskAttemptErrorRetry
+	Set   bool
+}
+
+// IsSet returns true if OptTaskAttemptErrorRetry was set.
+func (o OptTaskAttemptErrorRetry) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskAttemptErrorRetry) Reset() {
+	var v TaskAttemptErrorRetry
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskAttemptErrorRetry) SetTo(v TaskAttemptErrorRetry) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskAttemptErrorRetry) Get() (v TaskAttemptErrorRetry, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskAttemptErrorRetry) Or(d TaskAttemptErrorRetry) TaskAttemptErrorRetry {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskAttemptErrorRetryConfidence returns new OptTaskAttemptErrorRetryConfidence with value set to v.
+func NewOptTaskAttemptErrorRetryConfidence(v TaskAttemptErrorRetryConfidence) OptTaskAttemptErrorRetryConfidence {
+	return OptTaskAttemptErrorRetryConfidence{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskAttemptErrorRetryConfidence is optional TaskAttemptErrorRetryConfidence.
+type OptTaskAttemptErrorRetryConfidence struct {
+	Value TaskAttemptErrorRetryConfidence
+	Set   bool
+}
+
+// IsSet returns true if OptTaskAttemptErrorRetryConfidence was set.
+func (o OptTaskAttemptErrorRetryConfidence) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskAttemptErrorRetryConfidence) Reset() {
+	var v TaskAttemptErrorRetryConfidence
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskAttemptErrorRetryConfidence) SetTo(v TaskAttemptErrorRetryConfidence) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskAttemptErrorRetryConfidence) Get() (v TaskAttemptErrorRetryConfidence, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskAttemptErrorRetryConfidence) Or(d TaskAttemptErrorRetryConfidence) TaskAttemptErrorRetryConfidence {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskAttemptErrorRetryDecision returns new OptTaskAttemptErrorRetryDecision with value set to v.
+func NewOptTaskAttemptErrorRetryDecision(v TaskAttemptErrorRetryDecision) OptTaskAttemptErrorRetryDecision {
+	return OptTaskAttemptErrorRetryDecision{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskAttemptErrorRetryDecision is optional TaskAttemptErrorRetryDecision.
+type OptTaskAttemptErrorRetryDecision struct {
+	Value TaskAttemptErrorRetryDecision
+	Set   bool
+}
+
+// IsSet returns true if OptTaskAttemptErrorRetryDecision was set.
+func (o OptTaskAttemptErrorRetryDecision) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskAttemptErrorRetryDecision) Reset() {
+	var v TaskAttemptErrorRetryDecision
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskAttemptErrorRetryDecision) SetTo(v TaskAttemptErrorRetryDecision) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskAttemptErrorRetryDecision) Get() (v TaskAttemptErrorRetryDecision, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskAttemptErrorRetryDecision) Or(d TaskAttemptErrorRetryDecision) TaskAttemptErrorRetryDecision {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskErrorRetry returns new OptTaskErrorRetry with value set to v.
+func NewOptTaskErrorRetry(v TaskErrorRetry) OptTaskErrorRetry {
+	return OptTaskErrorRetry{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskErrorRetry is optional TaskErrorRetry.
+type OptTaskErrorRetry struct {
+	Value TaskErrorRetry
+	Set   bool
+}
+
+// IsSet returns true if OptTaskErrorRetry was set.
+func (o OptTaskErrorRetry) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskErrorRetry) Reset() {
+	var v TaskErrorRetry
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskErrorRetry) SetTo(v TaskErrorRetry) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskErrorRetry) Get() (v TaskErrorRetry, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskErrorRetry) Or(d TaskErrorRetry) TaskErrorRetry {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskErrorRetryConfidence returns new OptTaskErrorRetryConfidence with value set to v.
+func NewOptTaskErrorRetryConfidence(v TaskErrorRetryConfidence) OptTaskErrorRetryConfidence {
+	return OptTaskErrorRetryConfidence{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskErrorRetryConfidence is optional TaskErrorRetryConfidence.
+type OptTaskErrorRetryConfidence struct {
+	Value TaskErrorRetryConfidence
+	Set   bool
+}
+
+// IsSet returns true if OptTaskErrorRetryConfidence was set.
+func (o OptTaskErrorRetryConfidence) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskErrorRetryConfidence) Reset() {
+	var v TaskErrorRetryConfidence
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskErrorRetryConfidence) SetTo(v TaskErrorRetryConfidence) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskErrorRetryConfidence) Get() (v TaskErrorRetryConfidence, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskErrorRetryConfidence) Or(d TaskErrorRetryConfidence) TaskErrorRetryConfidence {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskErrorRetryDecision returns new OptTaskErrorRetryDecision with value set to v.
+func NewOptTaskErrorRetryDecision(v TaskErrorRetryDecision) OptTaskErrorRetryDecision {
+	return OptTaskErrorRetryDecision{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskErrorRetryDecision is optional TaskErrorRetryDecision.
+type OptTaskErrorRetryDecision struct {
+	Value TaskErrorRetryDecision
+	Set   bool
+}
+
+// IsSet returns true if OptTaskErrorRetryDecision was set.
+func (o OptTaskErrorRetryDecision) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskErrorRetryDecision) Reset() {
+	var v TaskErrorRetryDecision
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskErrorRetryDecision) SetTo(v TaskErrorRetryDecision) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskErrorRetryDecision) Get() (v TaskErrorRetryDecision, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskErrorRetryDecision) Or(d TaskErrorRetryDecision) TaskErrorRetryDecision {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptTaskHeartbeatReq returns new OptTaskHeartbeatReq with value set to v.
 func NewOptTaskHeartbeatReq(v TaskHeartbeatReq) OptTaskHeartbeatReq {
 	return OptTaskHeartbeatReq{
@@ -42198,10 +42474,11 @@ func (s *TaskAttemptDaemonState) SetSlotResumableUntil(val NilDateTime) {
 }
 
 type TaskAttemptError struct {
-	Code      string    `json:"code"`
-	Message   string    `json:"message"`
-	Retryable OptBool   `json:"retryable"`
-	Stack     OptString `json:"stack"`
+	Code      string                   `json:"code"`
+	Message   string                   `json:"message"`
+	Retry     OptTaskAttemptErrorRetry `json:"retry"`
+	Retryable OptBool                  `json:"retryable"`
+	Stack     OptString                `json:"stack"`
 }
 
 // GetCode returns the value of Code.
@@ -42212,6 +42489,11 @@ func (s *TaskAttemptError) GetCode() string {
 // GetMessage returns the value of Message.
 func (s *TaskAttemptError) GetMessage() string {
 	return s.Message
+}
+
+// GetRetry returns the value of Retry.
+func (s *TaskAttemptError) GetRetry() OptTaskAttemptErrorRetry {
+	return s.Retry
 }
 
 // GetRetryable returns the value of Retryable.
@@ -42234,6 +42516,11 @@ func (s *TaskAttemptError) SetMessage(val string) {
 	s.Message = val
 }
 
+// SetRetry sets the value of Retry.
+func (s *TaskAttemptError) SetRetry(val OptTaskAttemptErrorRetry) {
+	s.Retry = val
+}
+
 // SetRetryable sets the value of Retryable.
 func (s *TaskAttemptError) SetRetryable(val OptBool) {
 	s.Retryable = val
@@ -42242,6 +42529,204 @@ func (s *TaskAttemptError) SetRetryable(val OptBool) {
 // SetStack sets the value of Stack.
 func (s *TaskAttemptError) SetStack(val OptString) {
 	s.Stack = val
+}
+
+type TaskAttemptErrorRetry struct {
+	Confidence OptTaskAttemptErrorRetryConfidence `json:"confidence"`
+	Decision   OptTaskAttemptErrorRetryDecision   `json:"decision"`
+	Reason     OptString                          `json:"reason"`
+	Source     TaskAttemptErrorRetrySource        `json:"source"`
+}
+
+// GetConfidence returns the value of Confidence.
+func (s *TaskAttemptErrorRetry) GetConfidence() OptTaskAttemptErrorRetryConfidence {
+	return s.Confidence
+}
+
+// GetDecision returns the value of Decision.
+func (s *TaskAttemptErrorRetry) GetDecision() OptTaskAttemptErrorRetryDecision {
+	return s.Decision
+}
+
+// GetReason returns the value of Reason.
+func (s *TaskAttemptErrorRetry) GetReason() OptString {
+	return s.Reason
+}
+
+// GetSource returns the value of Source.
+func (s *TaskAttemptErrorRetry) GetSource() TaskAttemptErrorRetrySource {
+	return s.Source
+}
+
+// SetConfidence sets the value of Confidence.
+func (s *TaskAttemptErrorRetry) SetConfidence(val OptTaskAttemptErrorRetryConfidence) {
+	s.Confidence = val
+}
+
+// SetDecision sets the value of Decision.
+func (s *TaskAttemptErrorRetry) SetDecision(val OptTaskAttemptErrorRetryDecision) {
+	s.Decision = val
+}
+
+// SetReason sets the value of Reason.
+func (s *TaskAttemptErrorRetry) SetReason(val OptString) {
+	s.Reason = val
+}
+
+// SetSource sets the value of Source.
+func (s *TaskAttemptErrorRetry) SetSource(val TaskAttemptErrorRetrySource) {
+	s.Source = val
+}
+
+type TaskAttemptErrorRetryConfidence string
+
+const (
+	TaskAttemptErrorRetryConfidenceLow    TaskAttemptErrorRetryConfidence = "low"
+	TaskAttemptErrorRetryConfidenceMedium TaskAttemptErrorRetryConfidence = "medium"
+	TaskAttemptErrorRetryConfidenceHigh   TaskAttemptErrorRetryConfidence = "high"
+)
+
+// AllValues returns all TaskAttemptErrorRetryConfidence values.
+func (TaskAttemptErrorRetryConfidence) AllValues() []TaskAttemptErrorRetryConfidence {
+	return []TaskAttemptErrorRetryConfidence{
+		TaskAttemptErrorRetryConfidenceLow,
+		TaskAttemptErrorRetryConfidenceMedium,
+		TaskAttemptErrorRetryConfidenceHigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskAttemptErrorRetryConfidence) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskAttemptErrorRetryConfidenceLow:
+		return []byte(s), nil
+	case TaskAttemptErrorRetryConfidenceMedium:
+		return []byte(s), nil
+	case TaskAttemptErrorRetryConfidenceHigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskAttemptErrorRetryConfidence) UnmarshalText(data []byte) error {
+	switch TaskAttemptErrorRetryConfidence(data) {
+	case TaskAttemptErrorRetryConfidenceLow:
+		*s = TaskAttemptErrorRetryConfidenceLow
+		return nil
+	case TaskAttemptErrorRetryConfidenceMedium:
+		*s = TaskAttemptErrorRetryConfidenceMedium
+		return nil
+	case TaskAttemptErrorRetryConfidenceHigh:
+		*s = TaskAttemptErrorRetryConfidenceHigh
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskAttemptErrorRetryDecision string
+
+const (
+	TaskAttemptErrorRetryDecisionRetry      TaskAttemptErrorRetryDecision = "retry"
+	TaskAttemptErrorRetryDecisionDoNotRetry TaskAttemptErrorRetryDecision = "do_not_retry"
+)
+
+// AllValues returns all TaskAttemptErrorRetryDecision values.
+func (TaskAttemptErrorRetryDecision) AllValues() []TaskAttemptErrorRetryDecision {
+	return []TaskAttemptErrorRetryDecision{
+		TaskAttemptErrorRetryDecisionRetry,
+		TaskAttemptErrorRetryDecisionDoNotRetry,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskAttemptErrorRetryDecision) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskAttemptErrorRetryDecisionRetry:
+		return []byte(s), nil
+	case TaskAttemptErrorRetryDecisionDoNotRetry:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskAttemptErrorRetryDecision) UnmarshalText(data []byte) error {
+	switch TaskAttemptErrorRetryDecision(data) {
+	case TaskAttemptErrorRetryDecisionRetry:
+		*s = TaskAttemptErrorRetryDecisionRetry
+		return nil
+	case TaskAttemptErrorRetryDecisionDoNotRetry:
+		*s = TaskAttemptErrorRetryDecisionDoNotRetry
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskAttemptErrorRetrySource string
+
+const (
+	TaskAttemptErrorRetrySourceExplicit          TaskAttemptErrorRetrySource = "explicit"
+	TaskAttemptErrorRetrySourceDeterministic     TaskAttemptErrorRetrySource = "deterministic"
+	TaskAttemptErrorRetrySourceAttemptsExhausted TaskAttemptErrorRetrySource = "attempts_exhausted"
+	TaskAttemptErrorRetrySourceTriage            TaskAttemptErrorRetrySource = "triage"
+	TaskAttemptErrorRetrySourceTriageFailed      TaskAttemptErrorRetrySource = "triage_failed"
+)
+
+// AllValues returns all TaskAttemptErrorRetrySource values.
+func (TaskAttemptErrorRetrySource) AllValues() []TaskAttemptErrorRetrySource {
+	return []TaskAttemptErrorRetrySource{
+		TaskAttemptErrorRetrySourceExplicit,
+		TaskAttemptErrorRetrySourceDeterministic,
+		TaskAttemptErrorRetrySourceAttemptsExhausted,
+		TaskAttemptErrorRetrySourceTriage,
+		TaskAttemptErrorRetrySourceTriageFailed,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskAttemptErrorRetrySource) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskAttemptErrorRetrySourceExplicit:
+		return []byte(s), nil
+	case TaskAttemptErrorRetrySourceDeterministic:
+		return []byte(s), nil
+	case TaskAttemptErrorRetrySourceAttemptsExhausted:
+		return []byte(s), nil
+	case TaskAttemptErrorRetrySourceTriage:
+		return []byte(s), nil
+	case TaskAttemptErrorRetrySourceTriageFailed:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskAttemptErrorRetrySource) UnmarshalText(data []byte) error {
+	switch TaskAttemptErrorRetrySource(data) {
+	case TaskAttemptErrorRetrySourceExplicit:
+		*s = TaskAttemptErrorRetrySourceExplicit
+		return nil
+	case TaskAttemptErrorRetrySourceDeterministic:
+		*s = TaskAttemptErrorRetrySourceDeterministic
+		return nil
+	case TaskAttemptErrorRetrySourceAttemptsExhausted:
+		*s = TaskAttemptErrorRetrySourceAttemptsExhausted
+		return nil
+	case TaskAttemptErrorRetrySourceTriage:
+		*s = TaskAttemptErrorRetrySourceTriage
+		return nil
+	case TaskAttemptErrorRetrySourceTriageFailed:
+		*s = TaskAttemptErrorRetrySourceTriageFailed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type TaskAttemptOutput map[string]jx.Raw
@@ -42414,10 +42899,11 @@ func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
 
 // Ref: #/components/schemas/TaskError
 type TaskError struct {
-	Code      string    `json:"code"`
-	Message   string    `json:"message"`
-	Retryable OptBool   `json:"retryable"`
-	Stack     OptString `json:"stack"`
+	Code      string            `json:"code"`
+	Message   string            `json:"message"`
+	Retry     OptTaskErrorRetry `json:"retry"`
+	Retryable OptBool           `json:"retryable"`
+	Stack     OptString         `json:"stack"`
 }
 
 // GetCode returns the value of Code.
@@ -42428,6 +42914,11 @@ func (s *TaskError) GetCode() string {
 // GetMessage returns the value of Message.
 func (s *TaskError) GetMessage() string {
 	return s.Message
+}
+
+// GetRetry returns the value of Retry.
+func (s *TaskError) GetRetry() OptTaskErrorRetry {
+	return s.Retry
 }
 
 // GetRetryable returns the value of Retryable.
@@ -42450,6 +42941,11 @@ func (s *TaskError) SetMessage(val string) {
 	s.Message = val
 }
 
+// SetRetry sets the value of Retry.
+func (s *TaskError) SetRetry(val OptTaskErrorRetry) {
+	s.Retry = val
+}
+
 // SetRetryable sets the value of Retryable.
 func (s *TaskError) SetRetryable(val OptBool) {
 	s.Retryable = val
@@ -42458,6 +42954,204 @@ func (s *TaskError) SetRetryable(val OptBool) {
 // SetStack sets the value of Stack.
 func (s *TaskError) SetStack(val OptString) {
 	s.Stack = val
+}
+
+type TaskErrorRetry struct {
+	Confidence OptTaskErrorRetryConfidence `json:"confidence"`
+	Decision   OptTaskErrorRetryDecision   `json:"decision"`
+	Reason     OptString                   `json:"reason"`
+	Source     TaskErrorRetrySource        `json:"source"`
+}
+
+// GetConfidence returns the value of Confidence.
+func (s *TaskErrorRetry) GetConfidence() OptTaskErrorRetryConfidence {
+	return s.Confidence
+}
+
+// GetDecision returns the value of Decision.
+func (s *TaskErrorRetry) GetDecision() OptTaskErrorRetryDecision {
+	return s.Decision
+}
+
+// GetReason returns the value of Reason.
+func (s *TaskErrorRetry) GetReason() OptString {
+	return s.Reason
+}
+
+// GetSource returns the value of Source.
+func (s *TaskErrorRetry) GetSource() TaskErrorRetrySource {
+	return s.Source
+}
+
+// SetConfidence sets the value of Confidence.
+func (s *TaskErrorRetry) SetConfidence(val OptTaskErrorRetryConfidence) {
+	s.Confidence = val
+}
+
+// SetDecision sets the value of Decision.
+func (s *TaskErrorRetry) SetDecision(val OptTaskErrorRetryDecision) {
+	s.Decision = val
+}
+
+// SetReason sets the value of Reason.
+func (s *TaskErrorRetry) SetReason(val OptString) {
+	s.Reason = val
+}
+
+// SetSource sets the value of Source.
+func (s *TaskErrorRetry) SetSource(val TaskErrorRetrySource) {
+	s.Source = val
+}
+
+type TaskErrorRetryConfidence string
+
+const (
+	TaskErrorRetryConfidenceLow    TaskErrorRetryConfidence = "low"
+	TaskErrorRetryConfidenceMedium TaskErrorRetryConfidence = "medium"
+	TaskErrorRetryConfidenceHigh   TaskErrorRetryConfidence = "high"
+)
+
+// AllValues returns all TaskErrorRetryConfidence values.
+func (TaskErrorRetryConfidence) AllValues() []TaskErrorRetryConfidence {
+	return []TaskErrorRetryConfidence{
+		TaskErrorRetryConfidenceLow,
+		TaskErrorRetryConfidenceMedium,
+		TaskErrorRetryConfidenceHigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskErrorRetryConfidence) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskErrorRetryConfidenceLow:
+		return []byte(s), nil
+	case TaskErrorRetryConfidenceMedium:
+		return []byte(s), nil
+	case TaskErrorRetryConfidenceHigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskErrorRetryConfidence) UnmarshalText(data []byte) error {
+	switch TaskErrorRetryConfidence(data) {
+	case TaskErrorRetryConfidenceLow:
+		*s = TaskErrorRetryConfidenceLow
+		return nil
+	case TaskErrorRetryConfidenceMedium:
+		*s = TaskErrorRetryConfidenceMedium
+		return nil
+	case TaskErrorRetryConfidenceHigh:
+		*s = TaskErrorRetryConfidenceHigh
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskErrorRetryDecision string
+
+const (
+	TaskErrorRetryDecisionRetry      TaskErrorRetryDecision = "retry"
+	TaskErrorRetryDecisionDoNotRetry TaskErrorRetryDecision = "do_not_retry"
+)
+
+// AllValues returns all TaskErrorRetryDecision values.
+func (TaskErrorRetryDecision) AllValues() []TaskErrorRetryDecision {
+	return []TaskErrorRetryDecision{
+		TaskErrorRetryDecisionRetry,
+		TaskErrorRetryDecisionDoNotRetry,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskErrorRetryDecision) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskErrorRetryDecisionRetry:
+		return []byte(s), nil
+	case TaskErrorRetryDecisionDoNotRetry:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskErrorRetryDecision) UnmarshalText(data []byte) error {
+	switch TaskErrorRetryDecision(data) {
+	case TaskErrorRetryDecisionRetry:
+		*s = TaskErrorRetryDecisionRetry
+		return nil
+	case TaskErrorRetryDecisionDoNotRetry:
+		*s = TaskErrorRetryDecisionDoNotRetry
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskErrorRetrySource string
+
+const (
+	TaskErrorRetrySourceExplicit          TaskErrorRetrySource = "explicit"
+	TaskErrorRetrySourceDeterministic     TaskErrorRetrySource = "deterministic"
+	TaskErrorRetrySourceAttemptsExhausted TaskErrorRetrySource = "attempts_exhausted"
+	TaskErrorRetrySourceTriage            TaskErrorRetrySource = "triage"
+	TaskErrorRetrySourceTriageFailed      TaskErrorRetrySource = "triage_failed"
+)
+
+// AllValues returns all TaskErrorRetrySource values.
+func (TaskErrorRetrySource) AllValues() []TaskErrorRetrySource {
+	return []TaskErrorRetrySource{
+		TaskErrorRetrySourceExplicit,
+		TaskErrorRetrySourceDeterministic,
+		TaskErrorRetrySourceAttemptsExhausted,
+		TaskErrorRetrySourceTriage,
+		TaskErrorRetrySourceTriageFailed,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskErrorRetrySource) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskErrorRetrySourceExplicit:
+		return []byte(s), nil
+	case TaskErrorRetrySourceDeterministic:
+		return []byte(s), nil
+	case TaskErrorRetrySourceAttemptsExhausted:
+		return []byte(s), nil
+	case TaskErrorRetrySourceTriage:
+		return []byte(s), nil
+	case TaskErrorRetrySourceTriageFailed:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskErrorRetrySource) UnmarshalText(data []byte) error {
+	switch TaskErrorRetrySource(data) {
+	case TaskErrorRetrySourceExplicit:
+		*s = TaskErrorRetrySourceExplicit
+		return nil
+	case TaskErrorRetrySourceDeterministic:
+		*s = TaskErrorRetrySourceDeterministic
+		return nil
+	case TaskErrorRetrySourceAttemptsExhausted:
+		*s = TaskErrorRetrySourceAttemptsExhausted
+		return nil
+	case TaskErrorRetrySourceTriage:
+		*s = TaskErrorRetrySourceTriage
+		return nil
+	case TaskErrorRetrySourceTriageFailed:
+		*s = TaskErrorRetrySourceTriageFailed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type TaskHeartbeatForbidden ProblemDetails
