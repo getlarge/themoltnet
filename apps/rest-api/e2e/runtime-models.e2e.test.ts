@@ -22,8 +22,11 @@
 import {
   createClient,
   createRuntimeModel,
+  createTeam,
+  createTeamInvite,
   deleteRuntimeModel,
   getRuntimeModel,
+  joinTeam,
   listRuntimeModels,
   updateRuntimeModel,
 } from '@moltnet/api-client';
@@ -36,7 +39,9 @@ describe('Runtime Models Catalog API', () => {
   let harness: TestHarness;
   let client: ReturnType<typeof createClient>;
   let owner: TestAgent;
+  let manager: TestAgent;
   let outsider: TestAgent;
+  let managedTeamId: string;
 
   // 16 hex chars ≈ 64 bits of entropy — enough to avoid collisions with
   // the rest of the suite running in parallel on the same e2e stack.
@@ -47,7 +52,12 @@ describe('Runtime Models Catalog API', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    [owner, outsider] = await Promise.all([
+    [owner, manager, outsider] = await Promise.all([
+      createAgent({
+        baseUrl: harness.baseUrl,
+        db: harness.db,
+        bootstrapIdentityId: harness.bootstrapIdentityId,
+      }),
       createAgent({
         baseUrl: harness.baseUrl,
         db: harness.db,
@@ -59,6 +69,29 @@ describe('Runtime Models Catalog API', () => {
         bootstrapIdentityId: harness.bootstrapIdentityId,
       }),
     ]);
+
+    const { data: team, error: teamError } = await createTeam({
+      client,
+      auth: () => owner.accessToken,
+      body: { name: `runtime-models-managed-${Date.now()}` },
+    });
+    expect(teamError).toBeUndefined();
+    managedTeamId = team!.id;
+
+    const { data: invite, error: inviteError } = await createTeamInvite({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: managedTeamId },
+      body: { role: 'manager' },
+    });
+    expect(inviteError).toBeUndefined();
+
+    const { error: joinError } = await joinTeam({
+      client,
+      auth: () => manager.accessToken,
+      body: { code: invite!.code },
+    });
+    expect(joinError).toBeUndefined();
   });
 
   afterAll(async () => {
@@ -206,6 +239,52 @@ describe('Runtime Models Catalog API', () => {
   });
 
   describe('access rules', () => {
+    it('allows a team manager to create, update, and delete catalog entries', async () => {
+      const tag = suffix();
+      const {
+        data: created,
+        error: createError,
+        response: createResponse,
+      } = await createRuntimeModel({
+        client,
+        auth: () => manager.accessToken,
+        headers: { 'x-moltnet-team-id': managedTeamId },
+        body: createBody(tag),
+      });
+
+      expect(createError).toBeUndefined();
+      expect(createResponse.status).toBe(201);
+      expect(created).toMatchObject({
+        teamId: managedTeamId,
+        provider: `e2e-${tag}`,
+      });
+
+      const {
+        data: updated,
+        error: updateError,
+        response: updateResponse,
+      } = await updateRuntimeModel({
+        client,
+        auth: () => manager.accessToken,
+        path: { modelId: created!.id },
+        body: { displayName: `e2e ${tag} managed` },
+      });
+
+      expect(updateError).toBeUndefined();
+      expect(updateResponse.status).toBe(200);
+      expect(updated!.displayName).toBe(`e2e ${tag} managed`);
+
+      const { error: deleteError, response: deleteResponse } =
+        await deleteRuntimeModel({
+          client,
+          auth: () => manager.accessToken,
+          path: { modelId: created!.id },
+        });
+
+      expect(deleteError).toBeUndefined();
+      expect(deleteResponse.status).toBe(204);
+    });
+
     it('rejects an outsider creating an entry in a team they do not belong to', async () => {
       const tag = suffix();
       const { response } = await createRuntimeModel({
@@ -250,10 +329,9 @@ describe('Runtime Models Catalog API', () => {
         path: { modelId: created!.id },
         body: { displayName: 'pwned' },
       });
-      // Owner-only mutation. PATCH through the public API is gated by
-      // `canManageTeam`; an outsider is not a member, so the check fails
-      // with 403. The route does not pre-check team membership for the
-      // PATCH path (see runtime-profiles.e2e.test.ts for the same pattern).
+      // Runtime mutation requires the team-scoped runtime management permit.
+      // An outsider is not a member, so the check fails with 403. The route
+      // does not pre-check team membership for the PATCH path.
       expect(updateResponse.status).toBe(403);
 
       const { response: deleteResponse } = await deleteRuntimeModel({

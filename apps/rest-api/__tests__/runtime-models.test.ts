@@ -100,7 +100,7 @@ describe('runtime model catalog routes', () => {
   describe('POST /runtime-models', () => {
     it('creates a team-scoped entry when the caller can manage the team', async () => {
       mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
-      mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+      mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
       mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
       mocks.runtimeModelRepository.create.mockResolvedValue(mockModel());
 
@@ -146,7 +146,7 @@ describe('runtime model catalog routes', () => {
     });
 
     it('rejects when the caller cannot manage the team', async () => {
-      mocks.permissionChecker.canManageTeam.mockResolvedValue(false);
+      mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(false);
 
       const response = await app.inject({
         method: 'POST',
@@ -164,7 +164,7 @@ describe('runtime model catalog routes', () => {
 
     it('maps a unique violation to 409', async () => {
       mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
-      mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+      mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
       mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
       mocks.runtimeModelRepository.create.mockRejectedValue(
         new UniqueViolationError({
@@ -210,7 +210,7 @@ describe('runtime model catalog routes', () => {
 
   describe('PATCH /runtime-models/:modelId', () => {
     it('updates a team-scoped entry', async () => {
-      mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+      mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
       mocks.runtimeModelRepository.findById.mockResolvedValue(mockModel());
       mocks.runtimeModelRepository.update.mockResolvedValue(
         mockModel({ displayName: 'Renamed' }),
@@ -232,7 +232,7 @@ describe('runtime model catalog routes', () => {
     });
 
     it('maps a duplicate provider/model update to 409', async () => {
-      mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+      mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
       mocks.runtimeModelRepository.findById.mockResolvedValue(mockModel());
       mocks.runtimeModelRepository.update.mockRejectedValue(
         new UniqueViolationError({
@@ -301,7 +301,7 @@ describe('runtime model catalog routes', () => {
 
   describe('DELETE /runtime-models/:modelId', () => {
     it('deletes a team-scoped entry', async () => {
-      mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+      mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
       mocks.runtimeModelRepository.findById.mockResolvedValue(mockModel());
       mocks.runtimeModelRepository.delete.mockResolvedValue(true);
 

@@ -115,8 +115,8 @@ type Handler interface {
 	CreateGroup(ctx context.Context, req *CreateGroupReq, params CreateGroupParams) (CreateGroupRes, error)
 	// CreateRuntimeModel implements createRuntimeModel operation.
 	//
-	// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam`
-	// on the active team.
+	// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and runtime
+	// management permission on the active team.
 	//
 	// POST /runtime-models
 	CreateRuntimeModel(ctx context.Context, req OptCreateRuntimeModelBody, params CreateRuntimeModelParams) (CreateRuntimeModelRes, error)

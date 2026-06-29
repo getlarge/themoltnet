@@ -230,8 +230,9 @@ client until a tools block ships; a follow-up issue tracks the rollout.
 ### Add or update a team entry
 
 Writing to the catalog is team-scoped: the `x-moltnet-team-id` header is
-required, the caller must be a manager of that team (`canManageTeam`), and
-global rows are read-only through the public API. Mixed-case `provider` and
+required, the caller must be an owner or manager of that team
+(`Team.manage_runtime`), and global rows are read-only through the public API.
+Mixed-case `provider` and
 `model` are accepted on the way in and lowercased on write.
 
 ::: code-group

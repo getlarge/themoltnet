@@ -68,7 +68,7 @@ describe('runtime profile routes', () => {
 
   it('creates a runtime profile for a managed team', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
-    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
     mocks.runtimeProfileRepository.create.mockResolvedValue(
       mockProfile({
@@ -171,7 +171,7 @@ describe('runtime profile routes', () => {
 
   it('rejects runtime profiles whose default workspace mode is not allowed', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
-    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
 
     const response = await app.inject({
@@ -207,7 +207,7 @@ describe('runtime profile routes', () => {
 
   it('rejects invalid model option boundaries', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
-    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
 
     const cases = [
@@ -269,7 +269,7 @@ describe('runtime profile routes', () => {
 
   it('rejects sandbox configs with host exec auto-approval', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
-    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
 
     const response = await app.inject({
@@ -295,7 +295,7 @@ describe('runtime profile routes', () => {
 
   it('returns typed conflict details for duplicate profile names', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
-    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
     mocks.runtimeProfileRepository.create.mockRejectedValue(
       new UniqueViolationError({
@@ -351,7 +351,7 @@ describe('runtime profile routes', () => {
   });
 
   it('returns typed conflict details for duplicate profile names on update', async () => {
-    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
     mocks.runtimeProfileRepository.findById.mockResolvedValue(mockProfile());
     mocks.runtimeProfileRepository.update.mockRejectedValue(
       new UniqueViolationError({
@@ -398,7 +398,7 @@ describe('runtime profile routes', () => {
   });
 
   it('preserves model options when update omits them', async () => {
-    mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
     mocks.runtimeProfileRepository.findById.mockResolvedValue(
       mockProfile({
         thinkingLevel: 'medium',

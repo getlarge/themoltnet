@@ -108,6 +108,7 @@ function createMockPermissionChecker(): {
     canAccessTeam: vi.fn().mockResolvedValue(false),
     canWriteTeam: vi.fn().mockResolvedValue(false),
     canManageTeam: vi.fn().mockResolvedValue(false),
+    canManageTeamRuntime: vi.fn().mockResolvedValue(false),
     canManageTeamMembers: vi.fn().mockResolvedValue(false),
   };
 }

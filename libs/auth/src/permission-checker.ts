@@ -112,6 +112,11 @@ export interface PermissionChecker {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
+  canManageTeamRuntime(
+    teamId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
   canManageTeamMembers(
     teamId: string,
     subjectId: string,
@@ -520,6 +525,22 @@ export function createPermissionChecker(
         KetoNamespace.Team,
         teamId,
         TeamPermission.Manage,
+        subjectNs,
+        subjectId,
+        log,
+      );
+    },
+
+    canManageTeamRuntime(
+      teamId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.ManageRuntime,
         subjectNs,
         subjectId,
         log,

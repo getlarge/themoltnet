@@ -114,7 +114,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         operationId: 'createRuntimeModel',
         tags: ['runtime-models'],
         description:
-          'Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam` on the active team.',
+          'Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and runtime management permission on the active team.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderOptionalSchema,
         body: Type.Ref(CreateRuntimeModelBodySchema.$id),
@@ -137,7 +137,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         );
       }
       const { identityId, subjectNs } = authSubject(request);
-      const canManage = await fastify.permissionChecker.canManageTeam(
+      const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         teamId,
         identityId,
         subjectNs,
@@ -245,7 +245,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         );
       }
       const { identityId, subjectNs } = authSubject(request);
-      const canManage = await fastify.permissionChecker.canManageTeam(
+      const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         existing.teamId,
         identityId,
         subjectNs,
@@ -322,7 +322,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         );
       }
       const { identityId, subjectNs } = authSubject(request);
-      const canManage = await fastify.permissionChecker.canManageTeam(
+      const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         existing.teamId,
         identityId,
         subjectNs,

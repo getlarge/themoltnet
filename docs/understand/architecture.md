@@ -915,7 +915,7 @@ sequenceDiagram
 
 | Namespace       | Relations                                | Permission Rules                                                                                                                                      |
 | --------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Team**        | `owners`, `managers`, `members`          | `access` = owners OR managers OR members<br>`write` = owners OR managers<br>`manage` = owners                                                         |
+| **Team**        | `owners`, `managers`, `members`          | `access` = owners OR managers OR members<br>`write` = owners OR managers<br>`manage_runtime` = owners OR managers<br>`manage` = owners                |
 | **Group**       | `parent` (→ Team), `members`             | `access` = members<br>`manage` = parent.manage_members                                                                                                |
 | **Diary**       | `team` (→ Team), `writers`, `managers`   | `read` = team.access OR writers OR managers<br>`write` = team.write OR writers OR managers<br>`propose` = write<br>`manage` = team.manage OR managers |
 | **DiaryEntry**  | `parent` (→ Diary)                       | `view` = parent.read<br>`edit` = parent.write<br>`delete` = parent.write                                                                              |

@@ -4051,8 +4051,8 @@ func (s *Server) handleCreateGroupRequest(args [1]string, argsEscaped bool, w ht
 
 // handleCreateRuntimeModelRequest handles createRuntimeModel operation.
 //
-// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and `canManageTeam`
-// on the active team.
+// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and runtime
+// management permission on the active team.
 //
 // POST /runtime-models
 func (s *Server) handleCreateRuntimeModelRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

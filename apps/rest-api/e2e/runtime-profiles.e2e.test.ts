@@ -11,8 +11,11 @@ import {
   createClient,
   createRuntimeProfile,
   createTask,
+  createTeam,
+  createTeamInvite,
   deleteRuntimeProfile,
   getRuntimeProfile,
+  joinTeam,
   listRuntimeProfiles,
   listTasks,
   updateRuntimeProfile,
@@ -26,13 +29,20 @@ describe('Runtime Profiles API', () => {
   let harness: TestHarness;
   let client: Client;
   let owner: TestAgent;
+  let manager: TestAgent;
   let outsider: TestAgent;
+  let managedTeamId: string;
 
   beforeAll(async () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    [owner, outsider] = await Promise.all([
+    [owner, manager, outsider] = await Promise.all([
+      createAgent({
+        baseUrl: harness.baseUrl,
+        db: harness.db,
+        bootstrapIdentityId: harness.bootstrapIdentityId,
+      }),
       createAgent({
         baseUrl: harness.baseUrl,
         db: harness.db,
@@ -44,6 +54,29 @@ describe('Runtime Profiles API', () => {
         bootstrapIdentityId: harness.bootstrapIdentityId,
       }),
     ]);
+
+    const { data: team, error: teamError } = await createTeam({
+      client,
+      auth: () => owner.accessToken,
+      body: { name: `runtime-profiles-managed-${Date.now()}` },
+    });
+    expect(teamError).toBeUndefined();
+    managedTeamId = team!.id;
+
+    const { data: invite, error: inviteError } = await createTeamInvite({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: managedTeamId },
+      body: { role: 'manager' },
+    });
+    expect(inviteError).toBeUndefined();
+
+    const { error: joinError } = await joinTeam({
+      client,
+      auth: () => manager.accessToken,
+      body: { code: invite!.code },
+    });
+    expect(joinError).toBeUndefined();
   });
 
   afterAll(async () => {
@@ -241,6 +274,56 @@ describe('Runtime Profiles API', () => {
       path: { profileId: created!.id },
     });
     expect(getDeletedResponse.status).toBe(404);
+  });
+
+  it('allows a team manager to create, update, and delete runtime profiles', async () => {
+    const name = `manager-profile-${Date.now()}`;
+    const {
+      data: created,
+      error: createError,
+      response: createResponse,
+    } = await createRuntimeProfile({
+      client,
+      auth: () => manager.accessToken,
+      headers: { 'x-moltnet-team-id': managedTeamId },
+      body: profileBody(name),
+    });
+
+    expect(createError).toBeUndefined();
+    expect(createResponse.status).toBe(201);
+    expect(created).toMatchObject({
+      name,
+      teamId: managedTeamId,
+    });
+
+    const {
+      data: updated,
+      error: updateError,
+      response: updateResponse,
+    } = await updateRuntimeProfile({
+      client,
+      auth: () => manager.accessToken,
+      path: { profileId: created!.id },
+      body: { model: 'Claude-Opus-4-1' },
+    });
+
+    expect(updateError).toBeUndefined();
+    expect(updateResponse.status).toBe(200);
+    expect(updated).toMatchObject({
+      id: created!.id,
+      model: 'claude-opus-4-1',
+      revision: 2,
+    });
+
+    const { error: deleteError, response: deleteResponse } =
+      await deleteRuntimeProfile({
+        client,
+        auth: () => manager.accessToken,
+        path: { profileId: created!.id },
+      });
+
+    expect(deleteError).toBeUndefined();
+    expect(deleteResponse.status).toBe(204);
   });
 
   it('does not leak profiles across team boundaries', async () => {
