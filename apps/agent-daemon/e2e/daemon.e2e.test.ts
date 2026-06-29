@@ -116,11 +116,14 @@ describe('Agent daemon (e2e)', () => {
     await harness?.teardown();
   });
 
-  function proposeCuratePackTask() {
+  function proposeCuratePackTask(opts: { maxAttempts?: number } = {}) {
     return agent.tasks.create(
       {
         taskType: 'curate_pack',
         diaryId,
+        ...(opts.maxAttempts === undefined
+          ? {}
+          : { maxAttempts: opts.maxAttempts }),
         input: {
           diaryId,
           taskPrompt: 'e2e daemon smoke',
@@ -564,6 +567,95 @@ describe('Agent daemon (e2e)', () => {
 
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('failed');
+  }, 60_000);
+
+  it('retries a transient daemon failure and completes the next attempt', async () => {
+    const created = await proposeCuratePackTask({ maxAttempts: 2 });
+    let executions = 0;
+
+    const runtime = new AgentRuntime({
+      source: new PollingApiTaskSource({
+        agent: agent,
+        teamId: teamId,
+        taskTypes: ['curate_pack'],
+        leaseTtlSec: 60,
+        stopWhenEmpty: true,
+        logger: silentLogger,
+      }),
+      makeReporter: () =>
+        new ApiTaskReporter({
+          tasks: agent.tasks,
+          leaseTtlSec: 60,
+          heartbeatIntervalMs: 0,
+        }),
+      onTaskFinished: (output) => finalizeTask(agent, output),
+      executeTask: async (claimedTask, reporter) => {
+        executions += 1;
+        await reporter.open({
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+        });
+        if (claimedTask.attemptN === 1) {
+          const usage = { inputTokens: 1, outputTokens: 0 };
+          await reporter.finalize(usage);
+          await reporter.close();
+          return {
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
+            status: 'failed' as const,
+            output: null,
+            outputCid: null,
+            usage,
+            durationMs: 1,
+            error: {
+              code: 'timeout',
+              message: 'provider request timed out',
+            },
+          };
+        }
+
+        const stubOutput = {
+          packId: '00000000-0000-4000-8000-000000000001',
+          packCid:
+            'bafyreidlnv7nu7y4kdxkxv5e2onbpoq5o3i6gw7r6xkk7d3w5b3xrylkqe',
+          entries: [
+            {
+              entryId: '00000000-0000-4000-8000-000000000002',
+              rank: 1,
+              rationale: 'e2e retry stub entry',
+            },
+          ],
+          recipeParams: {},
+          summary:
+            'e2e retry stub curation summary, two sentences satisfy minLength.',
+          verification: buildProducerVerification(claimedTask.task.inputCid),
+        };
+        const output = {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          status: 'completed' as const,
+          output: stubOutput,
+          outputCid: await computeJsonCid(stubOutput),
+          usage: { inputTokens: 1, outputTokens: 1 },
+          durationMs: 1,
+        };
+        await reporter.finalize(output.usage);
+        await reporter.close();
+        return output;
+      },
+    });
+
+    const outputs = await runtime.start();
+    expect(outputs.map((output) => output.status)).toEqual([
+      'failed',
+      'completed',
+    ]);
+    expect(outputs.map((output) => output.attemptN)).toEqual([1, 2]);
+    expect(executions).toBe(2);
+
+    const final = await agent.tasks.get(created.id);
+    expect(final.status).toBe('completed');
+    expect(final.acceptedAttemptN).toBe(2);
   }, 60_000);
 
   it('honors proposer-side cancel — reporter heartbeat trips cancelSignal, runtime returns cancelled', async () => {

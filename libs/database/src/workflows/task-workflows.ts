@@ -456,9 +456,10 @@ export function initTaskWorkflows(): void {
         ): Promise<TaskAttemptFinalEvent> {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
           // `aborted` (intentional claimant abandonment, e.g. daemon
-          // shutdown) is retryable like `failed`: the task requeues so
-          // another daemon can reclaim it. Only when retries are exhausted
-          // does it settle the task terminally (see status mapping below).
+          // shutdown) always requeues while attempts remain. `failed`
+          // only requeues when the caller/service marked the error
+          // retryable. When retries are exhausted, both settle the task
+          // terminally (see status mapping below).
           const canRetry =
             attemptCount < maxAttempts &&
             (evt.kind === 'aborted' ||

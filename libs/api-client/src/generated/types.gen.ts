@@ -830,7 +830,7 @@ export type ExpandedRelations = {
 };
 
 export type FailTaskBody = {
-  error: TaskError;
+  error: TaskFailureError;
 };
 
 export type FindLatestRuntimeSlotForAttemptQuery = {
@@ -1602,6 +1602,12 @@ export type ResolvedRuntimeSlot = {
   } | null;
 };
 
+export type RetryTriage = {
+  confidence: 'low' | 'medium' | 'high';
+  decision: 'retry' | 'do_not_retry';
+  reason: string;
+};
+
 export type RotateSecretResponse = {
   clientId: string;
   clientSecret: string;
@@ -2112,11 +2118,7 @@ export type TaskAttempt = {
   error: {
     code: string;
     message: string;
-    retryTriage?: {
-      confidence: 'low' | 'medium' | 'high';
-      decision: 'retry' | 'do_not_retry';
-      reason: string;
-    };
+    retryTriage?: RetryTriage;
     retryable?: boolean;
     stack?: string;
   } | null;
@@ -2164,11 +2166,14 @@ export type TaskAttemptStatus =
 export type TaskError = {
   code: string;
   message: string;
-  retryTriage?: {
-    confidence: 'low' | 'medium' | 'high';
-    decision: 'retry' | 'do_not_retry';
-    reason: string;
-  };
+  retryTriage?: RetryTriage;
+  retryable?: boolean;
+  stack?: string;
+};
+
+export type TaskFailureError = {
+  code: string;
+  message: string;
   retryable?: boolean;
   stack?: string;
 };
@@ -9562,7 +9567,7 @@ export type CompleteTaskResponse =
 
 export type FailTaskData = {
   body: {
-    error: TaskError;
+    error: TaskFailureError;
   };
   path: {
     id: string;

@@ -19,7 +19,7 @@ import {
   vi,
 } from 'vitest';
 
-import { createTaskService } from './task.service.js';
+import { createTaskService, type RetryTriageInput } from './task.service.js';
 
 const TEAM_ID = '00000000-0000-0000-0000-000000000001';
 const DIARY_ID = 'd0000000-0000-0000-0000-000000000001';
@@ -622,8 +622,9 @@ describe('createTaskService.fail — retry policy', () => {
     mocks.taskRepository.findById
       .mockResolvedValueOnce(running)
       .mockResolvedValueOnce(queued);
-    mocks.taskRepository.findAttempt.mockResolvedValue(makeTaskAttempt());
-    mocks.taskRepository.countAttempts.mockResolvedValue(1);
+    mocks.taskRepository.findAttempt
+      .mockResolvedValueOnce(makeTaskAttempt())
+      .mockResolvedValue(makeTaskAttempt('failed'));
     send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
 
     return createTaskService({
@@ -673,6 +674,65 @@ describe('createTaskService.fail — retry policy', () => {
     });
   });
 
+  it('retries obvious transient errors when retryable is omitted', async () => {
+    const triageRetry = vi.fn();
+    const service = setup({ triageRetry });
+
+    const task = await service.fail(
+      JUDGE_TASK,
+      1,
+      AGENT_ID,
+      KetoNamespace.Agent,
+      {
+        code: 'timeout',
+        message: 'provider request timed out',
+      },
+    );
+
+    expect(task.status).toBe('queued');
+    expect(triageRetry).not.toHaveBeenCalled();
+    expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
+      error: { code: 'timeout', retryable: true },
+    });
+  });
+
+  it('preserves legacy retries for ambiguous failures when triage is not configured', async () => {
+    const service = setup();
+
+    await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
+      code: 'agent_error',
+      message: 'model stream ended unexpectedly',
+    });
+
+    expect(mocks.taskRepository.listMessages).not.toHaveBeenCalled();
+    expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
+      error: { code: 'agent_error', retryable: true },
+    });
+  });
+
+  it('strips caller-provided retry triage metadata before persistence', async () => {
+    const service = setup();
+
+    await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
+      code: 'custom',
+      message: 'recoverable',
+      retryable: true,
+      retryTriage: {
+        decision: 'retry',
+        confidence: 'high',
+        reason: 'forged by caller',
+      },
+    });
+
+    expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
+      error: { code: 'custom', retryable: true },
+    });
+    expect(
+      (send.mock.calls.at(-1)?.[1] as { error?: { retryTriage?: unknown } })
+        .error?.retryTriage,
+    ).toBeUndefined();
+  });
+
   it.each(['medium', 'high'] as const)(
     'lets %s-confidence triage retry ambiguous failures',
     async (confidence) => {
@@ -688,12 +748,16 @@ describe('createTaskService.fail — retry policy', () => {
         message: 'model stream ended unexpectedly',
       });
 
-      expect(triageRetry.mock.calls.at(-1)?.[0]).toMatchObject({
+      const triageInput = triageRetry.mock.calls.at(-1)?.[0] as
+        | RetryTriageInput
+        | undefined;
+      expect(triageInput).toMatchObject({
         attemptN: 1,
         remainingAttempts: 1,
         callerId: AGENT_ID,
         error: { code: 'agent_error' },
       });
+      expect(triageInput?.abortSignal).toBeInstanceOf(AbortSignal);
       expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
         error: {
           retryable: true,
@@ -725,6 +789,31 @@ describe('createTaskService.fail — retry policy', () => {
     });
   });
 
+  it('does not retry medium-confidence triage do_not_retry decisions', async () => {
+    const service = setup({
+      triageRetry: vi.fn().mockResolvedValue({
+        decision: 'do_not_retry',
+        confidence: 'medium',
+        reason: 'looks deterministic',
+      }),
+    });
+
+    await service.fail(JUDGE_TASK, 1, AGENT_ID, KetoNamespace.Agent, {
+      code: 'agent_error',
+      message: 'unclear failure',
+    });
+
+    expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
+      error: {
+        retryable: false,
+        retryTriage: {
+          decision: 'do_not_retry',
+          confidence: 'medium',
+        },
+      },
+    });
+  });
+
   it('does not retry when triage fails', async () => {
     const service = setup({
       triageRetry: vi.fn().mockRejectedValue(new Error('triage down')),
@@ -736,8 +825,43 @@ describe('createTaskService.fail — retry policy', () => {
     });
 
     expect(send.mock.calls.at(-1)?.[1]).toMatchObject({
-      error: { retryable: false },
+      error: {
+        retryable: false,
+        retryTriage: {
+          decision: 'do_not_retry',
+          reason: 'Retry triage failed: triage down',
+        },
+      },
     });
+  });
+
+  it('waits for the failed attempt row before returning a requeued task', async () => {
+    const running = { ...makeJudgeTask(JUDGE_TASK, 'running'), maxAttempts: 2 };
+    const queued = { ...running, status: 'queued' as const };
+    mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: running } });
+    mocks.taskRepository.findById
+      .mockResolvedValueOnce(running)
+      .mockResolvedValueOnce(queued)
+      .mockResolvedValueOnce(queued);
+    mocks.taskRepository.findAttempt
+      .mockResolvedValueOnce(makeTaskAttempt())
+      .mockResolvedValueOnce(makeTaskAttempt())
+      .mockResolvedValueOnce(makeTaskAttempt('failed'));
+    send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const task = await service.fail(
+      JUDGE_TASK,
+      1,
+      AGENT_ID,
+      KetoNamespace.Agent,
+      { code: 'custom', message: 'recoverable', retryable: true },
+    );
+
+    expect(task.status).toBe('queued');
+    expect(mocks.taskRepository.findAttempt).toHaveBeenCalledTimes(3);
   });
 });
 

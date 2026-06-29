@@ -6,12 +6,14 @@ import {
   type DaemonState as DaemonStateType,
   ExecutorTrustLevel,
   type ExecutorTrustLevel as ExecutorTrustLevelType,
+  RetryTriage,
   RuntimeProfileRef,
   type RuntimeProfileRef as RuntimeProfileRefType,
   Task,
   TaskAttempt,
   TaskError,
-  type TaskError as TaskErrorType,
+  TaskFailureError,
+  type TaskFailureError as TaskFailureErrorType,
   TaskMessage,
   TaskMessageKind,
   type TaskMessageKind as TaskMessageKindType,
@@ -215,7 +217,7 @@ export const CompleteTaskBodySchema = Type.Object(
 
 export const FailTaskBodySchema = Type.Object(
   {
-    error: Type.Unsafe<TaskErrorType>(Type.Ref(TaskError.$id)),
+    error: Type.Unsafe<TaskFailureErrorType>(Type.Ref('TaskFailureError')),
   },
   { $id: 'FailTaskBody' },
 );
@@ -330,10 +332,12 @@ export const taskSchemas = [
   TaskStatus,
   ClaimConditionDefinition,
   ExecutorTrustLevel,
+  RetryTriage,
   RuntimeProfileRef,
   TaskMessageKind,
   TaskRef,
   TaskUsage,
+  TaskFailureError,
   TaskError,
   DaemonState,
   // Composite types

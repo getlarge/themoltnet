@@ -14733,16 +14733,16 @@ type FailTaskNotFound ProblemDetails
 func (*FailTaskNotFound) failTaskRes() {}
 
 type FailTaskReq struct {
-	Error TaskError `json:"error"`
+	Error TaskFailureError `json:"error"`
 }
 
 // GetError returns the value of Error.
-func (s *FailTaskReq) GetError() TaskError {
+func (s *FailTaskReq) GetError() TaskFailureError {
 	return s.Error
 }
 
 // SetError sets the value of Error.
-func (s *FailTaskReq) SetError(val TaskError) {
+func (s *FailTaskReq) SetError(val TaskFailureError) {
 	s.Error = val
 }
 
@@ -31860,6 +31860,52 @@ func (o OptRelationType) Or(d RelationType) RelationType {
 	return d
 }
 
+// NewOptRetryTriage returns new OptRetryTriage with value set to v.
+func NewOptRetryTriage(v RetryTriage) OptRetryTriage {
+	return OptRetryTriage{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRetryTriage is optional RetryTriage.
+type OptRetryTriage struct {
+	Value RetryTriage
+	Set   bool
+}
+
+// IsSet returns true if OptRetryTriage was set.
+func (o OptRetryTriage) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRetryTriage) Reset() {
+	var v RetryTriage
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRetryTriage) SetTo(v RetryTriage) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRetryTriage) Get() (v RetryTriage, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRetryTriage) Or(d RetryTriage) RetryTriage {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptRuntimeProfileListResponseItemsItemSandboxEnv returns new OptRuntimeProfileListResponseItemsItemSandboxEnv with value set to v.
 func NewOptRuntimeProfileListResponseItemsItemSandboxEnv(v RuntimeProfileListResponseItemsItemSandboxEnv) OptRuntimeProfileListResponseItemsItemSandboxEnv {
 	return OptRuntimeProfileListResponseItemsItemSandboxEnv{
@@ -37664,6 +37710,132 @@ func (s *RequestRecoveryChallengeReq) SetPublicKey(val string) {
 	s.PublicKey = val
 }
 
+// Ref: #/components/schemas/RetryTriage
+type RetryTriage struct {
+	Confidence RetryTriageConfidence `json:"confidence"`
+	Decision   RetryTriageDecision   `json:"decision"`
+	Reason     string                `json:"reason"`
+}
+
+// GetConfidence returns the value of Confidence.
+func (s *RetryTriage) GetConfidence() RetryTriageConfidence {
+	return s.Confidence
+}
+
+// GetDecision returns the value of Decision.
+func (s *RetryTriage) GetDecision() RetryTriageDecision {
+	return s.Decision
+}
+
+// GetReason returns the value of Reason.
+func (s *RetryTriage) GetReason() string {
+	return s.Reason
+}
+
+// SetConfidence sets the value of Confidence.
+func (s *RetryTriage) SetConfidence(val RetryTriageConfidence) {
+	s.Confidence = val
+}
+
+// SetDecision sets the value of Decision.
+func (s *RetryTriage) SetDecision(val RetryTriageDecision) {
+	s.Decision = val
+}
+
+// SetReason sets the value of Reason.
+func (s *RetryTriage) SetReason(val string) {
+	s.Reason = val
+}
+
+type RetryTriageConfidence string
+
+const (
+	RetryTriageConfidenceLow    RetryTriageConfidence = "low"
+	RetryTriageConfidenceMedium RetryTriageConfidence = "medium"
+	RetryTriageConfidenceHigh   RetryTriageConfidence = "high"
+)
+
+// AllValues returns all RetryTriageConfidence values.
+func (RetryTriageConfidence) AllValues() []RetryTriageConfidence {
+	return []RetryTriageConfidence{
+		RetryTriageConfidenceLow,
+		RetryTriageConfidenceMedium,
+		RetryTriageConfidenceHigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RetryTriageConfidence) MarshalText() ([]byte, error) {
+	switch s {
+	case RetryTriageConfidenceLow:
+		return []byte(s), nil
+	case RetryTriageConfidenceMedium:
+		return []byte(s), nil
+	case RetryTriageConfidenceHigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RetryTriageConfidence) UnmarshalText(data []byte) error {
+	switch RetryTriageConfidence(data) {
+	case RetryTriageConfidenceLow:
+		*s = RetryTriageConfidenceLow
+		return nil
+	case RetryTriageConfidenceMedium:
+		*s = RetryTriageConfidenceMedium
+		return nil
+	case RetryTriageConfidenceHigh:
+		*s = RetryTriageConfidenceHigh
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RetryTriageDecision string
+
+const (
+	RetryTriageDecisionRetry      RetryTriageDecision = "retry"
+	RetryTriageDecisionDoNotRetry RetryTriageDecision = "do_not_retry"
+)
+
+// AllValues returns all RetryTriageDecision values.
+func (RetryTriageDecision) AllValues() []RetryTriageDecision {
+	return []RetryTriageDecision{
+		RetryTriageDecisionRetry,
+		RetryTriageDecisionDoNotRetry,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RetryTriageDecision) MarshalText() ([]byte, error) {
+	switch s {
+	case RetryTriageDecisionRetry:
+		return []byte(s), nil
+	case RetryTriageDecisionDoNotRetry:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RetryTriageDecision) UnmarshalText(data []byte) error {
+	switch RetryTriageDecision(data) {
+	case RetryTriageDecisionRetry:
+		*s = RetryTriageDecisionRetry
+		return nil
+	case RetryTriageDecisionDoNotRetry:
+		*s = RetryTriageDecisionDoNotRetry
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type RevokeDiaryGrantBadRequest ProblemDetails
 
 func (*RevokeDiaryGrantBadRequest) revokeDiaryGrantRes() {}
@@ -41925,10 +42097,11 @@ func (s *TaskAttemptDaemonState) SetSlotResumableUntil(val NilDateTime) {
 }
 
 type TaskAttemptError struct {
-	Code      string    `json:"code"`
-	Message   string    `json:"message"`
-	Retryable OptBool   `json:"retryable"`
-	Stack     OptString `json:"stack"`
+	Code        string         `json:"code"`
+	Message     string         `json:"message"`
+	RetryTriage OptRetryTriage `json:"retryTriage"`
+	Retryable   OptBool        `json:"retryable"`
+	Stack       OptString      `json:"stack"`
 }
 
 // GetCode returns the value of Code.
@@ -41939,6 +42112,11 @@ func (s *TaskAttemptError) GetCode() string {
 // GetMessage returns the value of Message.
 func (s *TaskAttemptError) GetMessage() string {
 	return s.Message
+}
+
+// GetRetryTriage returns the value of RetryTriage.
+func (s *TaskAttemptError) GetRetryTriage() OptRetryTriage {
+	return s.RetryTriage
 }
 
 // GetRetryable returns the value of Retryable.
@@ -41959,6 +42137,11 @@ func (s *TaskAttemptError) SetCode(val string) {
 // SetMessage sets the value of Message.
 func (s *TaskAttemptError) SetMessage(val string) {
 	s.Message = val
+}
+
+// SetRetryTriage sets the value of RetryTriage.
+func (s *TaskAttemptError) SetRetryTriage(val OptRetryTriage) {
+	s.RetryTriage = val
 }
 
 // SetRetryable sets the value of Retryable.
@@ -42139,8 +42322,8 @@ func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
 	s.ToolCalls = val
 }
 
-// Ref: #/components/schemas/TaskError
-type TaskError struct {
+// Ref: #/components/schemas/TaskFailureError
+type TaskFailureError struct {
 	Code      string    `json:"code"`
 	Message   string    `json:"message"`
 	Retryable OptBool   `json:"retryable"`
@@ -42148,42 +42331,42 @@ type TaskError struct {
 }
 
 // GetCode returns the value of Code.
-func (s *TaskError) GetCode() string {
+func (s *TaskFailureError) GetCode() string {
 	return s.Code
 }
 
 // GetMessage returns the value of Message.
-func (s *TaskError) GetMessage() string {
+func (s *TaskFailureError) GetMessage() string {
 	return s.Message
 }
 
 // GetRetryable returns the value of Retryable.
-func (s *TaskError) GetRetryable() OptBool {
+func (s *TaskFailureError) GetRetryable() OptBool {
 	return s.Retryable
 }
 
 // GetStack returns the value of Stack.
-func (s *TaskError) GetStack() OptString {
+func (s *TaskFailureError) GetStack() OptString {
 	return s.Stack
 }
 
 // SetCode sets the value of Code.
-func (s *TaskError) SetCode(val string) {
+func (s *TaskFailureError) SetCode(val string) {
 	s.Code = val
 }
 
 // SetMessage sets the value of Message.
-func (s *TaskError) SetMessage(val string) {
+func (s *TaskFailureError) SetMessage(val string) {
 	s.Message = val
 }
 
 // SetRetryable sets the value of Retryable.
-func (s *TaskError) SetRetryable(val OptBool) {
+func (s *TaskFailureError) SetRetryable(val OptBool) {
 	s.Retryable = val
 }
 
 // SetStack sets the value of Stack.
-func (s *TaskError) SetStack(val OptString) {
+func (s *TaskFailureError) SetStack(val OptString) {
 	s.Stack = val
 }
 

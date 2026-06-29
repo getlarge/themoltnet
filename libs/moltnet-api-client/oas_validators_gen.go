@@ -18497,6 +18497,64 @@ func (s *RequestRecoveryChallengeReq) Validate() error {
 	return nil
 }
 
+func (s *RetryTriage) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Confidence.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "confidence",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Decision.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "decision",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s RetryTriageConfidence) Validate() error {
+	switch s {
+	case "low":
+		return nil
+	case "medium":
+		return nil
+	case "high":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s RetryTriageDecision) Validate() error {
+	switch s {
+	case "retry":
+		return nil
+	case "do_not_retry":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *RevokeDiaryGrantBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -23187,6 +23245,24 @@ func (s *TaskAttempt) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.Error.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "error",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.OutputCid.Get(); ok {
 			if err := func() error {
 				if err := (validate.String{
@@ -23242,6 +23318,36 @@ func (s *TaskAttempt) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "usage",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *TaskAttemptError) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.RetryTriage.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "retryTriage",
 			Error: err,
 		})
 	}

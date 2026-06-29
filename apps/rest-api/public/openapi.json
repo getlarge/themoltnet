@@ -3518,7 +3518,7 @@
       "FailTaskBody": {
         "properties": {
           "error": {
-            "$ref": "#/components/schemas/TaskError"
+            "$ref": "#/components/schemas/TaskFailureError"
           }
         },
         "required": [
@@ -6514,6 +6514,58 @@
         "required": [
           "slot",
           "workspace"
+        ],
+        "type": "object"
+      },
+      "RetryTriage": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "enum": [
+                  "low"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "medium"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "high"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "enum": [
+                  "retry"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "do_not_retry"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "confidence",
+          "reason"
         ],
         "type": "object"
       },
@@ -9769,56 +9821,7 @@
                     "type": "string"
                   },
                   "retryTriage": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "confidence": {
-                        "anyOf": [
-                          {
-                            "enum": [
-                              "low"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "medium"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "high"
-                            ],
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "decision": {
-                        "anyOf": [
-                          {
-                            "enum": [
-                              "retry"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "do_not_retry"
-                            ],
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "reason": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "decision",
-                      "confidence",
-                      "reason"
-                    ],
-                    "type": "object"
+                    "$ref": "#/components/schemas/RetryTriage"
                   },
                   "retryable": {
                     "type": "boolean"
@@ -10083,56 +10086,29 @@
             "type": "string"
           },
           "retryTriage": {
-            "additionalProperties": false,
-            "properties": {
-              "confidence": {
-                "anyOf": [
-                  {
-                    "enum": [
-                      "low"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "medium"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "high"
-                    ],
-                    "type": "string"
-                  }
-                ]
-              },
-              "decision": {
-                "anyOf": [
-                  {
-                    "enum": [
-                      "retry"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "do_not_retry"
-                    ],
-                    "type": "string"
-                  }
-                ]
-              },
-              "reason": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "decision",
-              "confidence",
-              "reason"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/RetryTriage"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "stack": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "TaskFailureError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
           },
           "retryable": {
             "type": "boolean"
@@ -31137,7 +31113,7 @@
               "schema": {
                 "properties": {
                   "error": {
-                    "$ref": "#/components/schemas/TaskError"
+                    "$ref": "#/components/schemas/TaskFailureError"
                   }
                 },
                 "required": [

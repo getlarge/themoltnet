@@ -260,6 +260,36 @@ export const TaskUsage = Type.Object(
 );
 export type TaskUsage = Static<typeof TaskUsage>;
 
+export const RetryTriage = Type.Object(
+  {
+    decision: Type.Union([Type.Literal('retry'), Type.Literal('do_not_retry')]),
+    confidence: Type.Union([
+      Type.Literal('low'),
+      Type.Literal('medium'),
+      Type.Literal('high'),
+    ]),
+    reason: Type.String(),
+  },
+  { $id: 'RetryTriage', additionalProperties: false },
+);
+export type RetryTriage = Static<typeof RetryTriage>;
+
+/**
+ * Structured error accepted from a daemon when reporting a failed attempt.
+ * Server-owned retry triage metadata is intentionally excluded from this
+ * inbound shape.
+ */
+export const TaskFailureError = Type.Object(
+  {
+    code: Type.String(),
+    message: Type.String(),
+    stack: Type.Optional(Type.String()),
+    retryable: Type.Optional(Type.Boolean()),
+  },
+  { $id: 'TaskFailureError', additionalProperties: false },
+);
+export type TaskFailureError = Static<typeof TaskFailureError>;
+
 /**
  * Structured error returned from a failed attempt.
  */
@@ -269,23 +299,7 @@ export const TaskError = Type.Object(
     message: Type.String(),
     stack: Type.Optional(Type.String()),
     retryable: Type.Optional(Type.Boolean()),
-    retryTriage: Type.Optional(
-      Type.Object(
-        {
-          decision: Type.Union([
-            Type.Literal('retry'),
-            Type.Literal('do_not_retry'),
-          ]),
-          confidence: Type.Union([
-            Type.Literal('low'),
-            Type.Literal('medium'),
-            Type.Literal('high'),
-          ]),
-          reason: Type.String(),
-        },
-        { additionalProperties: false },
-      ),
-    ),
+    retryTriage: Type.Optional(Type.Ref('RetryTriage')),
   },
   { $id: 'TaskError', additionalProperties: false },
 );

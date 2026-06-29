@@ -1,3 +1,5 @@
+import { Buffer } from 'node:buffer';
+
 import type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
 import { KetoNamespace } from '@moltnet/auth';
 import {
@@ -91,10 +93,13 @@ export interface RetryTriageInput {
   remainingAttempts: number;
   callerId: string;
   callerNs: KetoNamespace;
+  abortSignal: AbortSignal;
 }
 
 const EVENT_TIMEOUT_SECONDS = 10;
 const RETRY_TRIAGE_TIMEOUT_MS = 5_000;
+const RETRY_TRIAGE_MESSAGE_LIMIT = 20;
+const RETRY_TRIAGE_MAX_MESSAGE_BYTES = 16_384;
 const DEFAULT_LEASE_TTL_SEC = 300;
 const TERMINAL_STATUSES = new Set<DbTask['status']>([
   'completed',
@@ -208,30 +213,59 @@ function classifyRetryableError(error: TaskError): boolean | null {
   return null;
 }
 
-function retryableFromTriage(decision: RetryTriageDecision | null): boolean {
+function retryableFromTriage(triage: RetryTriageDecision | null): boolean {
   return (
-    decision?.decision === 'retry' &&
-    (decision.confidence === 'medium' || decision.confidence === 'high')
+    triage?.decision === 'retry' &&
+    (triage.confidence === 'medium' || triage.confidence === 'high')
   );
 }
 
 async function withRetryTriageTimeout(
-  promise: Promise<RetryTriageDecision>,
+  fn: (abortSignal: AbortSignal) => Promise<RetryTriageDecision>,
 ): Promise<RetryTriageDecision> {
+  const abort = new AbortController();
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
-      promise,
+      fn(abort.signal),
       new Promise<RetryTriageDecision>((_, reject) => {
-        timeout = setTimeout(
-          () => reject(new Error('retry triage timed out')),
-          RETRY_TRIAGE_TIMEOUT_MS,
-        );
+        timeout = setTimeout(() => {
+          abort.abort();
+          reject(new Error('retry triage timed out'));
+        }, RETRY_TRIAGE_TIMEOUT_MS);
       }),
     ]);
   } finally {
     if (timeout) clearTimeout(timeout);
   }
+}
+
+function sanitizeTaskError(error: TaskError): TaskError {
+  return {
+    code: error.code,
+    message: error.message,
+    ...(error.stack === undefined ? {} : { stack: error.stack }),
+    ...(error.retryable === undefined ? {} : { retryable: error.retryable }),
+  };
+}
+
+function boundedRetryTriageMessages(messages: TaskMessage[]): TaskMessage[] {
+  let bytes = 0;
+  const selected: TaskMessage[] = [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages.at(i);
+    if (!message) continue;
+    const messageBytes = Buffer.byteLength(JSON.stringify(message), 'utf8');
+    if (
+      selected.length > 0 &&
+      bytes + messageBytes > RETRY_TRIAGE_MAX_MESSAGE_BYTES
+    ) {
+      break;
+    }
+    selected.unshift(message);
+    bytes += messageBytes;
+  }
+  return selected;
 }
 
 export class TaskServiceError extends Error {
@@ -678,46 +712,72 @@ export function createTaskService(deps: TaskServiceDeps) {
     callerNs: KetoNamespace,
     error: TaskError,
   ): Promise<TaskError> {
-    const deterministic = classifyRetryableError(error);
+    const sanitizedError = sanitizeTaskError(error);
+    const deterministic = classifyRetryableError(sanitizedError);
     if (deterministic !== null) {
-      return { ...error, retryable: deterministic };
+      return { ...sanitizedError, retryable: deterministic };
     }
 
-    const attemptCount = await taskRepository.countAttempts(task.id);
-    const remainingAttempts = Math.max(0, task.maxAttempts - attemptCount);
-    if (!triageRetry || remainingAttempts <= 0) {
-      return { ...error, retryable: false };
+    const remainingAttempts = Math.max(0, task.maxAttempts - attemptN);
+    if (remainingAttempts <= 0) {
+      return { ...sanitizedError, retryable: false };
+    }
+    if (!triageRetry) {
+      return { ...sanitizedError, retryable: true };
     }
 
     let triage: RetryTriageDecision;
     try {
       const { items } = await taskRepository.listMessages(task.id, attemptN, {
-        limit: 20,
+        limit: RETRY_TRIAGE_MESSAGE_LIMIT,
       });
-      triage = await withRetryTriageTimeout(
+      triage = await withRetryTriageTimeout((abortSignal) =>
         triageRetry({
           task: dbTaskToWire(task),
           attemptN,
-          error,
-          recentMessages: items.map(dbMessageToWire),
+          error: sanitizedError,
+          recentMessages: boundedRetryTriageMessages(
+            items.map(dbMessageToWire),
+          ),
           remainingAttempts,
           callerId,
           callerNs,
+          abortSignal,
         }),
       );
     } catch (err) {
+      const failureTriage: RetryTriageDecision = {
+        decision: 'do_not_retry',
+        confidence: 'high',
+        reason:
+          err instanceof Error
+            ? `Retry triage failed: ${err.message}`
+            : 'Retry triage failed.',
+      };
       logger.warn(
         { taskId: task.id, attemptN, err },
         'task.fail.retry_triage_failed',
       );
-      return { ...error, retryable: false };
+      return {
+        ...sanitizedError,
+        retryable: false,
+        retryTriage: failureTriage,
+      };
     }
 
     return {
-      ...error,
+      ...sanitizedError,
       retryable: retryableFromTriage(triage),
       retryTriage: triage,
     };
+  }
+
+  async function failEventApplied(
+    taskId: string,
+    attemptN: number,
+  ): Promise<boolean> {
+    const attempt = await taskRepository.findAttempt(taskId, attemptN);
+    return attempt?.status === 'failed';
   }
 
   return {
@@ -1752,6 +1812,12 @@ export function createTaskService(deps: TaskServiceDeps) {
           // A retryable fail with attempts left moves task→queued. That is
           // the expected successful outcome for this /fail call.
           if (updated.status === 'queued') {
+            if (!(await failEventApplied(taskId, attemptN))) {
+              await new Promise<void>((resolve) => {
+                setTimeout(resolve, 250);
+              });
+              continue;
+            }
             logger.info(
               { taskId, attemptN, status: updated.status },
               'task.fail.retry_requeued',

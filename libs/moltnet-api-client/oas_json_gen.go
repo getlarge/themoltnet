@@ -61120,6 +61120,39 @@ func (s *OptRelationType) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes RetryTriage as json.
+func (o OptRetryTriage) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes RetryTriage from json.
+func (o *OptRetryTriage) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptRetryTriage to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptRetryTriage) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptRetryTriage) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes RuntimeProfileListResponseItemsItemSandboxEnv as json.
 func (o OptRuntimeProfileListResponseItemsItemSandboxEnv) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -71241,6 +71274,214 @@ func (s *RequestRecoveryChallengeReq) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode implements json.Marshaler.
+func (s *RetryTriage) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RetryTriage) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("confidence")
+		s.Confidence.Encode(e)
+	}
+	{
+		e.FieldStart("decision")
+		s.Decision.Encode(e)
+	}
+	{
+		e.FieldStart("reason")
+		e.Str(s.Reason)
+	}
+}
+
+var jsonFieldsNameOfRetryTriage = [3]string{
+	0: "confidence",
+	1: "decision",
+	2: "reason",
+}
+
+// Decode decodes RetryTriage from json.
+func (s *RetryTriage) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RetryTriage to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "confidence":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Confidence.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"confidence\"")
+			}
+		case "decision":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Decision.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"decision\"")
+			}
+		case "reason":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Reason = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reason\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RetryTriage")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfRetryTriage) {
+					name = jsonFieldsNameOfRetryTriage[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RetryTriage) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RetryTriage) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RetryTriageConfidence as json.
+func (s RetryTriageConfidence) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes RetryTriageConfidence from json.
+func (s *RetryTriageConfidence) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RetryTriageConfidence to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch RetryTriageConfidence(v) {
+	case RetryTriageConfidenceLow:
+		*s = RetryTriageConfidenceLow
+	case RetryTriageConfidenceMedium:
+		*s = RetryTriageConfidenceMedium
+	case RetryTriageConfidenceHigh:
+		*s = RetryTriageConfidenceHigh
+	default:
+		*s = RetryTriageConfidence(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RetryTriageConfidence) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RetryTriageConfidence) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RetryTriageDecision as json.
+func (s RetryTriageDecision) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes RetryTriageDecision from json.
+func (s *RetryTriageDecision) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RetryTriageDecision to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch RetryTriageDecision(v) {
+	case RetryTriageDecisionRetry:
+		*s = RetryTriageDecisionRetry
+	case RetryTriageDecisionDoNotRetry:
+		*s = RetryTriageDecisionDoNotRetry
+	default:
+		*s = RetryTriageDecision(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RetryTriageDecision) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RetryTriageDecision) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes RevokeDiaryGrantBadRequest as json.
 func (s *RevokeDiaryGrantBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -80063,6 +80304,12 @@ func (s *TaskAttemptError) encodeFields(e *jx.Encoder) {
 		e.Str(s.Message)
 	}
 	{
+		if s.RetryTriage.Set {
+			e.FieldStart("retryTriage")
+			s.RetryTriage.Encode(e)
+		}
+	}
+	{
 		if s.Retryable.Set {
 			e.FieldStart("retryable")
 			s.Retryable.Encode(e)
@@ -80076,11 +80323,12 @@ func (s *TaskAttemptError) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfTaskAttemptError = [4]string{
+var jsonFieldsNameOfTaskAttemptError = [5]string{
 	0: "code",
 	1: "message",
-	2: "retryable",
-	3: "stack",
+	2: "retryTriage",
+	3: "retryable",
+	4: "stack",
 }
 
 // Decode decodes TaskAttemptError from json.
@@ -80115,6 +80363,16 @@ func (s *TaskAttemptError) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"message\"")
+			}
+		case "retryTriage":
+			if err := func() error {
+				s.RetryTriage.Reset()
+				if err := s.RetryTriage.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryTriage\"")
 			}
 		case "retryable":
 			if err := func() error {
@@ -80499,14 +80757,14 @@ func (s *TaskAttemptUsage) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *TaskError) Encode(e *jx.Encoder) {
+func (s *TaskFailureError) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *TaskError) encodeFields(e *jx.Encoder) {
+func (s *TaskFailureError) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("code")
 		e.Str(s.Code)
@@ -80529,17 +80787,17 @@ func (s *TaskError) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfTaskError = [4]string{
+var jsonFieldsNameOfTaskFailureError = [4]string{
 	0: "code",
 	1: "message",
 	2: "retryable",
 	3: "stack",
 }
 
-// Decode decodes TaskError from json.
-func (s *TaskError) Decode(d *jx.Decoder) error {
+// Decode decodes TaskFailureError from json.
+func (s *TaskFailureError) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode TaskError to nil")
+		return errors.New("invalid: unable to decode TaskFailureError to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -80594,7 +80852,7 @@ func (s *TaskError) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode TaskError")
+		return errors.Wrap(err, "decode TaskFailureError")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -80611,8 +80869,8 @@ func (s *TaskError) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfTaskError) {
-					name = jsonFieldsNameOfTaskError[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfTaskFailureError) {
+					name = jsonFieldsNameOfTaskFailureError[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -80633,14 +80891,14 @@ func (s *TaskError) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *TaskError) MarshalJSON() ([]byte, error) {
+func (s *TaskFailureError) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *TaskError) UnmarshalJSON(data []byte) error {
+func (s *TaskFailureError) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
