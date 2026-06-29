@@ -34,6 +34,7 @@ import {
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { ensurePiAgentDir } from '../lib/pi-agent-dir.js';
+import { createPiRetryTriage } from '../lib/retry-triage.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import {
   resolveProfileWarmSessionTtlSec,
@@ -466,6 +467,13 @@ export async function runOnce(argv: string[]): Promise<number> {
         return finalizeTask(ctx.agent, terminalOutput, {
           task: claimedTask.task,
           slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
+          retryTriage: createPiRetryTriage({
+            provider: profile.provider,
+            model: profile.model,
+            thinkingLevel: profile.thinkingLevel,
+            piAgentDir: piAgentDir.path,
+            cwd: ctx.agentRootDir,
+          }),
           writeCorrelationAnchors,
           log: (msg, err) => rootLogger.warn({ err }, msg),
         });

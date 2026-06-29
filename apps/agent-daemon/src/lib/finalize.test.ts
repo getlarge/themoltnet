@@ -56,16 +56,22 @@ type HeartbeatMock = (
 function makeAgent() {
   const complete = vi.fn<CompleteMock>().mockResolvedValue(undefined);
   const fail = vi.fn<FailMock>().mockResolvedValue(undefined);
+  const failAttempt = vi.fn<FailMock>().mockResolvedValue(undefined);
   const heartbeat = vi.fn<HeartbeatMock>().mockResolvedValue({
     claimExpiresAt: new Date(0).toISOString(),
     cancelled: false,
     cancelReason: null,
   });
+  const listMessages = vi.fn().mockResolvedValue([]);
   return {
     complete,
     fail,
+    failAttempt,
     heartbeat,
-    agent: { tasks: { complete, fail, heartbeat } } as unknown as Agent,
+    listMessages,
+    agent: {
+      tasks: { complete, fail, failAttempt, heartbeat, listMessages },
+    } as unknown as Agent,
   };
 }
 
@@ -116,15 +122,66 @@ describe('finalizeTask', () => {
     expect(stub.complete.mock.calls[0][2].contentSignature).toBe('sig-abc');
   });
 
-  it('calls /fail with the executor-provided error', async () => {
+  it('calls /failAttempt with the executor-provided error', async () => {
     const failed = makeOutput('failed', null);
     failed.error = { code: 'oops', message: 'broke' };
     await finalizeTask(stub.agent, failed);
 
     expect(stub.heartbeat).toHaveBeenCalledWith('t1', 1, {});
-    expect(stub.fail).toHaveBeenCalledTimes(1);
-    const error = stub.fail.mock.calls[0][2].error;
+    expect(stub.fail).not.toHaveBeenCalled();
+    expect(stub.failAttempt).toHaveBeenCalledTimes(1);
+    const error = stub.failAttempt.mock.calls[0][2].error;
     expect(error.code).toBe('oops');
+  });
+
+  it('uses retry triage for ambiguous failed outputs', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+
+    await finalizeTask(stub.agent, failed, {
+      task,
+      retryTriage: () =>
+        Promise.resolve({
+          decision: 'retry',
+          confidence: 'high',
+          reason: 'Runtime-local crash after recoverable work.',
+        }),
+    });
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error.retryable).toBe(true);
+    expect(error.message).toContain('Retry triage: retry/high');
+  });
+
+  it('does not retry low-confidence triage', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+
+    await finalizeTask(stub.agent, failed, {
+      task,
+      retryTriage: () =>
+        Promise.resolve({
+          decision: 'retry',
+          confidence: 'low',
+          reason: 'Weak signal.',
+        }),
+    });
+
+    expect(stub.failAttempt.mock.calls[0][2].error.retryable).toBe(false);
   });
 
   it('does not call /fail when the startup heartbeat observes cancellation', async () => {
@@ -136,7 +193,7 @@ describe('finalizeTask', () => {
     await finalizeTask(stub.agent, makeOutput('failed', null));
 
     expect(stub.heartbeat).toHaveBeenCalledWith('t1', 1, {});
-    expect(stub.fail).not.toHaveBeenCalled();
+    expect(stub.failAttempt).not.toHaveBeenCalled();
   });
 
   it('is a no-op for cancelled outputs', async () => {
