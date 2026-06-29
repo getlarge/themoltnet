@@ -2898,7 +2898,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 													// Leaf node.
 													switch r.Method {
 													case "POST":
-														s.handleFailTaskAttemptRequest([2]string{
+														s.handleFailTaskRequest([2]string{
 															args[0],
 															args[1],
 														}, elemIsEscaped, w, r)
@@ -6292,9 +6292,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 													// Leaf node.
 													switch method {
 													case "POST":
-														r.name = FailTaskAttemptOperation
+														r.name = FailTaskOperation
 														r.summary = ""
-														r.operationID = "failTaskAttempt"
+														r.operationID = "failTask"
 														r.operationGroup = ""
 														r.pathPattern = "/tasks/{id}/attempts/{n}/fail"
 														r.args = args

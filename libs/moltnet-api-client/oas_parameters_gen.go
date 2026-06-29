@@ -2746,13 +2746,13 @@ func decodeDownloadTaskArtifactParams(args [3]string, argsEscaped bool, r *http.
 	return params, nil
 }
 
-// FailTaskAttemptParams is parameters of failTaskAttempt operation.
-type FailTaskAttemptParams struct {
+// FailTaskParams is parameters of failTask operation.
+type FailTaskParams struct {
 	ID uuid.UUID
 	N  int
 }
 
-func unpackFailTaskAttemptParams(packed middleware.Parameters) (params FailTaskAttemptParams) {
+func unpackFailTaskParams(packed middleware.Parameters) (params FailTaskParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "id",
@@ -2770,7 +2770,7 @@ func unpackFailTaskAttemptParams(packed middleware.Parameters) (params FailTaskA
 	return params
 }
 
-func decodeFailTaskAttemptParams(args [2]string, argsEscaped bool, r *http.Request) (params FailTaskAttemptParams, _ error) {
+func decodeFailTaskParams(args [2]string, argsEscaped bool, r *http.Request) (params FailTaskParams, _ error) {
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]

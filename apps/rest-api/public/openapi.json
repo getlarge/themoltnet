@@ -31228,7 +31228,7 @@
     "/tasks/{id}/attempts/{n}/fail": {
       "post": {
         "description": "Mark an attempt as failed with error details.",
-        "operationId": "failTaskAttempt",
+        "operationId": "failTask",
         "parameters": [
           {
             "in": "path",

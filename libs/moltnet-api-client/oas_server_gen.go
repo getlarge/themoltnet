@@ -224,12 +224,12 @@ type Handler interface {
 	//
 	// GET /tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content
 	DownloadTaskArtifact(ctx context.Context, params DownloadTaskArtifactParams) (DownloadTaskArtifactRes, error)
-	// FailTaskAttempt implements failTaskAttempt operation.
+	// FailTask implements failTask operation.
 	//
 	// Mark an attempt as failed with error details.
 	//
 	// POST /tasks/{id}/attempts/{n}/fail
-	FailTaskAttempt(ctx context.Context, req *FailTaskAttemptReq, params FailTaskAttemptParams) (FailTaskAttemptRes, error)
+	FailTask(ctx context.Context, req *FailTaskReq, params FailTaskParams) (FailTaskRes, error)
 	// FindLatestRuntimeSlotForAttempt implements findLatestRuntimeSlotForAttempt operation.
 	//
 	// Find the latest team-scoped runtime slot for a task attempt.

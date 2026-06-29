@@ -245,12 +245,12 @@ type Invoker interface {
 	//
 	// GET /tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content
 	DownloadTaskArtifact(ctx context.Context, params DownloadTaskArtifactParams) (DownloadTaskArtifactRes, error)
-	// FailTaskAttempt invokes failTaskAttempt operation.
+	// FailTask invokes failTask operation.
 	//
 	// Mark an attempt as failed with error details.
 	//
 	// POST /tasks/{id}/attempts/{n}/fail
-	FailTaskAttempt(ctx context.Context, request *FailTaskAttemptReq, params FailTaskAttemptParams) (FailTaskAttemptRes, error)
+	FailTask(ctx context.Context, request *FailTaskReq, params FailTaskParams) (FailTaskRes, error)
 	// FindLatestRuntimeSlotForAttempt invokes findLatestRuntimeSlotForAttempt operation.
 	//
 	// Find the latest team-scoped runtime slot for a task attempt.
@@ -6479,19 +6479,19 @@ func (c *Client) sendDownloadTaskArtifact(ctx context.Context, params DownloadTa
 	return result, nil
 }
 
-// FailTaskAttempt invokes failTaskAttempt operation.
+// FailTask invokes failTask operation.
 //
 // Mark an attempt as failed with error details.
 //
 // POST /tasks/{id}/attempts/{n}/fail
-func (c *Client) FailTaskAttempt(ctx context.Context, request *FailTaskAttemptReq, params FailTaskAttemptParams) (FailTaskAttemptRes, error) {
-	res, err := c.sendFailTaskAttempt(ctx, request, params)
+func (c *Client) FailTask(ctx context.Context, request *FailTaskReq, params FailTaskParams) (FailTaskRes, error) {
+	res, err := c.sendFailTask(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendFailTaskAttempt(ctx context.Context, request *FailTaskAttemptReq, params FailTaskAttemptParams) (res FailTaskAttemptRes, err error) {
+func (c *Client) sendFailTask(ctx context.Context, request *FailTaskReq, params FailTaskParams) (res FailTaskRes, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("failTaskAttempt"),
+		otelogen.OperationID("failTask"),
 		semconv.HTTPRequestMethodKey.String("POST"),
 		semconv.URLTemplateKey.String("/tasks/{id}/attempts/{n}/fail"),
 	}
@@ -6509,7 +6509,7 @@ func (c *Client) sendFailTaskAttempt(ctx context.Context, request *FailTaskAttem
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, FailTaskAttemptOperation,
+	ctx, span := c.cfg.Tracer.Start(ctx, FailTaskOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -6573,7 +6573,7 @@ func (c *Client) sendFailTaskAttempt(ctx context.Context, request *FailTaskAttem
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
 	}
-	if err := encodeFailTaskAttemptRequest(request, r); err != nil {
+	if err := encodeFailTaskRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
 	}
 
@@ -6582,7 +6582,7 @@ func (c *Client) sendFailTaskAttempt(ctx context.Context, request *FailTaskAttem
 		var satisfied bitset
 		{
 			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, FailTaskAttemptOperation, r); {
+			switch err := c.securityBearerAuth(ctx, FailTaskOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6593,7 +6593,7 @@ func (c *Client) sendFailTaskAttempt(ctx context.Context, request *FailTaskAttem
 		}
 		{
 			stage = "Security:SessionAuth"
-			switch err := c.securitySessionAuth(ctx, FailTaskAttemptOperation, r); {
+			switch err := c.securitySessionAuth(ctx, FailTaskOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 1
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6604,7 +6604,7 @@ func (c *Client) sendFailTaskAttempt(ctx context.Context, request *FailTaskAttem
 		}
 		{
 			stage = "Security:CookieAuth"
-			switch err := c.securityCookieAuth(ctx, FailTaskAttemptOperation, r); {
+			switch err := c.securityCookieAuth(ctx, FailTaskOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -6649,7 +6649,7 @@ func (c *Client) sendFailTaskAttempt(ctx context.Context, request *FailTaskAttem
 	}()
 
 	stage = "DecodeResponse"
-	result, err := decodeFailTaskAttemptResponse(resp)
+	result, err := decodeFailTaskResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

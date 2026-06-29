@@ -3691,7 +3691,7 @@ func (*ConflictProblemDetails) createDiaryGrantRes()       {}
 func (*ConflictProblemDetails) createGroupRes()            {}
 func (*ConflictProblemDetails) createRuntimeModelRes()     {}
 func (*ConflictProblemDetails) createRuntimeProfileRes()   {}
-func (*ConflictProblemDetails) failTaskAttemptRes()        {}
+func (*ConflictProblemDetails) failTaskRes()               {}
 func (*ConflictProblemDetails) initiateTransferRes()       {}
 func (*ConflictProblemDetails) joinTeamRes()               {}
 func (*ConflictProblemDetails) previewDiaryCustomPackRes() {}
@@ -14832,35 +14832,35 @@ func (s *ExpandedRelations) SetRequestedDepth(val int) {
 	s.RequestedDepth = val
 }
 
-type FailTaskAttemptBadRequest ProblemDetails
+type FailTaskBadRequest ProblemDetails
 
-func (*FailTaskAttemptBadRequest) failTaskAttemptRes() {}
+func (*FailTaskBadRequest) failTaskRes() {}
 
-type FailTaskAttemptForbidden ProblemDetails
+type FailTaskForbidden ProblemDetails
 
-func (*FailTaskAttemptForbidden) failTaskAttemptRes() {}
+func (*FailTaskForbidden) failTaskRes() {}
 
-type FailTaskAttemptNotFound ProblemDetails
+type FailTaskNotFound ProblemDetails
 
-func (*FailTaskAttemptNotFound) failTaskAttemptRes() {}
+func (*FailTaskNotFound) failTaskRes() {}
 
-type FailTaskAttemptReq struct {
+type FailTaskReq struct {
 	Error TaskError `json:"error"`
 }
 
 // GetError returns the value of Error.
-func (s *FailTaskAttemptReq) GetError() TaskError {
+func (s *FailTaskReq) GetError() TaskError {
 	return s.Error
 }
 
 // SetError sets the value of Error.
-func (s *FailTaskAttemptReq) SetError(val TaskError) {
+func (s *FailTaskReq) SetError(val TaskError) {
 	s.Error = val
 }
 
-type FailTaskAttemptUnauthorized ProblemDetails
+type FailTaskUnauthorized ProblemDetails
 
-func (*FailTaskAttemptUnauthorized) failTaskAttemptRes() {}
+func (*FailTaskUnauthorized) failTaskRes() {}
 
 // Merged schema.
 type FindLatestRuntimeSlotForAttemptBadRequest struct {
@@ -41919,7 +41919,7 @@ func (*Task) abortTaskAttemptRes()   {}
 func (*Task) cancelTaskRes()         {}
 func (*Task) completeTaskRes()       {}
 func (*Task) createTaskRes()         {}
-func (*Task) failTaskAttemptRes()    {}
+func (*Task) failTaskRes()           {}
 func (*Task) getTaskRes()            {}
 func (*Task) updateTaskMetadataRes() {}
 

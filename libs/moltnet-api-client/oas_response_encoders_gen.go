@@ -2662,7 +2662,7 @@ func encodeDownloadTaskArtifactResponse(response DownloadTaskArtifactRes, w http
 	}
 }
 
-func encodeFailTaskAttemptResponse(response FailTaskAttemptRes, w http.ResponseWriter, span trace.Span) error {
+func encodeFailTaskResponse(response FailTaskRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *Task:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -2676,7 +2676,7 @@ func encodeFailTaskAttemptResponse(response FailTaskAttemptRes, w http.ResponseW
 
 		return nil
 
-	case *FailTaskAttemptBadRequest:
+	case *FailTaskBadRequest:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 
@@ -2688,7 +2688,7 @@ func encodeFailTaskAttemptResponse(response FailTaskAttemptRes, w http.ResponseW
 
 		return nil
 
-	case *FailTaskAttemptUnauthorized:
+	case *FailTaskUnauthorized:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(401)
 
@@ -2700,7 +2700,7 @@ func encodeFailTaskAttemptResponse(response FailTaskAttemptRes, w http.ResponseW
 
 		return nil
 
-	case *FailTaskAttemptForbidden:
+	case *FailTaskForbidden:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(403)
 
@@ -2712,7 +2712,7 @@ func encodeFailTaskAttemptResponse(response FailTaskAttemptRes, w http.ResponseW
 
 		return nil
 
-	case *FailTaskAttemptNotFound:
+	case *FailTaskNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
 

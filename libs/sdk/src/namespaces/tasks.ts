@@ -7,7 +7,7 @@ import {
   claimTask,
   completeTask,
   createTask,
-  failTaskAttempt,
+  failTask,
   getTask,
   listTaskArtifacts,
   listTaskAttempts,
@@ -240,7 +240,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
 
     async failAttempt(id, n, body) {
       return unwrapResult(
-        await failTaskAttempt({ client, auth, path: { id, n }, body }),
+        await failTask({ client, auth, path: { id, n }, body }),
       );
     },
 

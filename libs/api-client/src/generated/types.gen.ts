@@ -9623,7 +9623,7 @@ export type CompleteTaskResponses = {
 export type CompleteTaskResponse =
   CompleteTaskResponses[keyof CompleteTaskResponses];
 
-export type FailTaskAttemptData = {
+export type FailTaskData = {
   body: {
     error: TaskError;
   };
@@ -9635,7 +9635,7 @@ export type FailTaskAttemptData = {
   url: '/tasks/{id}/attempts/{n}/fail';
 };
 
-export type FailTaskAttemptErrors = {
+export type FailTaskErrors = {
   /**
    * Default Response
    */
@@ -9658,18 +9658,16 @@ export type FailTaskAttemptErrors = {
   409: ConflictProblemDetails;
 };
 
-export type FailTaskAttemptError =
-  FailTaskAttemptErrors[keyof FailTaskAttemptErrors];
+export type FailTaskError = FailTaskErrors[keyof FailTaskErrors];
 
-export type FailTaskAttemptResponses = {
+export type FailTaskResponses = {
   /**
    * Default Response
    */
   200: Task;
 };
 
-export type FailTaskAttemptResponse =
-  FailTaskAttemptResponses[keyof FailTaskAttemptResponses];
+export type FailTaskResponse = FailTaskResponses[keyof FailTaskResponses];
 
 export type TaskHeartbeatData = {
   body?: {

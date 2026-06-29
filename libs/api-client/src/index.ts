@@ -17,15 +17,7 @@
 
 // Re-export everything from generated SDK — stays in sync automatically
 // when new endpoints are added and the client is regenerated.
-export type {
-  FailTaskAttemptData as FailTaskData,
-  FailTaskAttemptError as FailTaskError,
-  FailTaskAttemptErrors as FailTaskErrors,
-  FailTaskAttemptResponse as FailTaskResponse,
-  FailTaskAttemptResponses as FailTaskResponses,
-} from './generated/index.js';
 export * from './generated/index.js';
-export { failTaskAttempt as failTask } from './generated/index.js';
 
 // Client creation and types
 export type {

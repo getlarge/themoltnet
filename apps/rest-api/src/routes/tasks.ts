@@ -536,7 +536,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     '/tasks/:id/attempts/:n/fail',
     {
       schema: {
-        operationId: 'failTaskAttempt',
+        operationId: 'failTask',
         tags: ['tasks'],
         description: 'Mark an attempt as failed with error details.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],

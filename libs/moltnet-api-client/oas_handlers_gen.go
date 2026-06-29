@@ -8162,16 +8162,16 @@ func (s *Server) handleDownloadTaskArtifactRequest(args [3]string, argsEscaped b
 	}
 }
 
-// handleFailTaskAttemptRequest handles failTaskAttempt operation.
+// handleFailTaskRequest handles failTask operation.
 //
 // Mark an attempt as failed with error details.
 //
 // POST /tasks/{id}/attempts/{n}/fail
-func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleFailTaskRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("failTaskAttempt"),
+		otelogen.OperationID("failTask"),
 		semconv.HTTPRequestMethodKey.String("POST"),
 		semconv.HTTPRouteKey.String("/tasks/{id}/attempts/{n}/fail"),
 	}
@@ -8179,7 +8179,7 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
-	ctx, span := s.cfg.Tracer.Start(r.Context(), FailTaskAttemptOperation,
+	ctx, span := s.cfg.Tracer.Start(r.Context(), FailTaskOperation,
 		trace.WithAttributes(otelAttrs...),
 		serverSpanKind,
 	)
@@ -8234,15 +8234,15 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 		}
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: FailTaskAttemptOperation,
-			ID:   "failTaskAttempt",
+			Name: FailTaskOperation,
+			ID:   "failTask",
 		}
 	)
 	{
 		type bitset = [1]uint8
 		var satisfied bitset
 		{
-			sctx, ok, err := s.securityBearerAuth(ctx, FailTaskAttemptOperation, r)
+			sctx, ok, err := s.securityBearerAuth(ctx, FailTaskOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -8259,7 +8259,7 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 			}
 		}
 		{
-			sctx, ok, err := s.securitySessionAuth(ctx, FailTaskAttemptOperation, r)
+			sctx, ok, err := s.securitySessionAuth(ctx, FailTaskOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -8276,7 +8276,7 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 			}
 		}
 		{
-			sctx, ok, err := s.securityCookieAuth(ctx, FailTaskAttemptOperation, r)
+			sctx, ok, err := s.securityCookieAuth(ctx, FailTaskOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
 					OperationContext: opErrContext,
@@ -8318,7 +8318,7 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 			return
 		}
 	}
-	params, err := decodeFailTaskAttemptParams(args, argsEscaped, r)
+	params, err := decodeFailTaskParams(args, argsEscaped, r)
 	if err != nil {
 		err = &ogenerrors.DecodeParamsError{
 			OperationContext: opErrContext,
@@ -8330,7 +8330,7 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 	}
 
 	var rawBody []byte
-	request, rawBody, close, err := s.decodeFailTaskAttemptRequest(r)
+	request, rawBody, close, err := s.decodeFailTaskRequest(r)
 	if err != nil {
 		err = &ogenerrors.DecodeRequestError{
 			OperationContext: opErrContext,
@@ -8346,13 +8346,13 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 		}
 	}()
 
-	var response FailTaskAttemptRes
+	var response FailTaskRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    FailTaskAttemptOperation,
+			OperationName:    FailTaskOperation,
 			OperationSummary: "",
-			OperationID:      "failTaskAttempt",
+			OperationID:      "failTask",
 			Body:             request,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
@@ -8369,9 +8369,9 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 		}
 
 		type (
-			Request  = *FailTaskAttemptReq
-			Params   = FailTaskAttemptParams
-			Response = FailTaskAttemptRes
+			Request  = *FailTaskReq
+			Params   = FailTaskParams
+			Response = FailTaskRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -8380,14 +8380,14 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 		](
 			m,
 			mreq,
-			unpackFailTaskAttemptParams,
+			unpackFailTaskParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.FailTaskAttempt(ctx, request, params)
+				response, err = s.h.FailTask(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.FailTaskAttempt(ctx, request, params)
+		response, err = s.h.FailTask(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -8395,7 +8395,7 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 		return
 	}
 
-	if err := encodeFailTaskAttemptResponse(response, w, span); err != nil {
+	if err := encodeFailTaskResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)

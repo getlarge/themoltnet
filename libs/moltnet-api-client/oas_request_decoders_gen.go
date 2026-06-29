@@ -1805,8 +1805,8 @@ func (s *Server) decodeCreateTeamInviteRequest(r *http.Request) (
 	}
 }
 
-func (s *Server) decodeFailTaskAttemptRequest(r *http.Request) (
-	req *FailTaskAttemptReq,
+func (s *Server) decodeFailTaskRequest(r *http.Request) (
+	req *FailTaskReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -1853,7 +1853,7 @@ func (s *Server) decodeFailTaskAttemptRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request FailTaskAttemptReq
+		var request FailTaskReq
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err
