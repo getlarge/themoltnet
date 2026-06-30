@@ -55,6 +55,11 @@ const NON_RETRYABLE_CODES = new Set([
   // the Pi submit tool. If it reaches daemon retry triage, that correction
   // budget is exhausted and a fresh attempt is not the right recovery.
   'output_validation_failed',
+  // The model never produced a submit call. The Pi runtime already
+  // re-prompts within the attempt to recover this (#1528); reaching triage
+  // means those re-prompts were spent, so a fresh attempt against the same
+  // model is unlikely to differ.
+  'submit_output_missing',
   'producer_context_missing',
   'running_max_bash_timeouts_exceeded',
   'running_max_turns_exceeded',

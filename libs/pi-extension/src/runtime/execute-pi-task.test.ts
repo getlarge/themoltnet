@@ -17,6 +17,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  buildSubmitMissingPrompt,
   computeProviderErrorRetryDelay,
   createGondolinToolDefinitions,
   describeToolErrorMessage,
@@ -25,6 +26,7 @@ import {
   isBashTimeoutResult,
   notifyProviderErrorRetryUi,
   openVmWorkspaceFileForRead,
+  promptUntilSubmitted,
   promptWithProviderErrorRetries,
   sanitizeProviderErrorRetryReason,
   shouldEmitToolCallError,
@@ -346,6 +348,195 @@ describe('provider error same-session retry helpers', () => {
     expect(sanitizeProviderErrorRetryReason(null)).toBe(
       'Pi turn ended with stopReason=error',
     );
+  });
+});
+
+describe('buildSubmitMissingPrompt', () => {
+  it('names the submit tool and demands a tool call over prose', () => {
+    const prompt = buildSubmitMissingPrompt('submit_freeform_output');
+    expect(prompt).toContain('submit_freeform_output');
+    expect(prompt.toLowerCase()).toContain('did not call');
+    expect(prompt.toLowerCase()).toContain('do not');
+  });
+});
+
+describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
+  function gateThatCapturesAfter(passes: number) {
+    let calls = 0;
+    return () => {
+      // Reflect state AFTER each runPrompt: the gate is read once per loop
+      // iteration following a prompt pass.
+      calls += 1;
+      return { captured: calls > passes, exhausted: false };
+    };
+  }
+
+  it('re-prompts the same session when the model ends without a submit call', async () => {
+    const prompts: string[] = [];
+    const events: number[] = [];
+    // Model ignores the first nudge, then submits on the second.
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return { runError: null };
+      },
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit_freeform_output now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: gateThatCapturesAfter(2),
+      isStopped: () => false,
+      onSubmitReprompt: (e) => {
+        events.push(e.retry);
+      },
+    });
+
+    expect(result).toEqual({ runError: null, submitReprompts: 2 });
+    expect(prompts).toEqual([
+      'do the task',
+      'call submit_freeform_output now',
+      'call submit_freeform_output now',
+    ]);
+    expect(events).toEqual([1, 2]);
+  });
+
+  it('does not re-prompt when the first pass already captured output', async () => {
+    const prompts: string[] = [];
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return { runError: null };
+      },
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({ captured: true, exhausted: false }),
+      isStopped: () => false,
+    });
+
+    expect(result).toEqual({ runError: null, submitReprompts: 0 });
+    expect(prompts).toEqual(['do the task']);
+  });
+
+  it('does not re-prompt once the invalid-args correction budget is exhausted', async () => {
+    const prompts: string[] = [];
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return { runError: null };
+      },
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({ captured: false, exhausted: true }),
+      isStopped: () => false,
+    });
+
+    expect(result).toEqual({ runError: null, submitReprompts: 0 });
+    expect(prompts).toEqual(['do the task']);
+  });
+
+  it('stops after the re-prompt budget and lets the caller fail submit-missing', async () => {
+    const prompts: string[] = [];
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return { runError: null };
+      },
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 2,
+      getSubmitState: () => ({ captured: false, exhausted: false }),
+      isStopped: () => false,
+    });
+
+    expect(result).toEqual({ runError: null, submitReprompts: 2 });
+    expect(prompts).toEqual([
+      'do the task',
+      'call submit now',
+      'call submit now',
+    ]);
+  });
+
+  it('propagates a provider runError from the initial pass without re-prompting', async () => {
+    const prompts: string[] = [];
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return {
+          runError: { code: 'session_prompt_failed', message: 'boom' },
+        };
+      },
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({ captured: false, exhausted: false }),
+      isStopped: () => false,
+    });
+
+    expect(result).toEqual({
+      runError: { code: 'session_prompt_failed', message: 'boom' },
+      submitReprompts: 0,
+    });
+    expect(prompts).toEqual(['do the task']);
+  });
+
+  it('propagates a provider runError raised during a re-prompt pass', async () => {
+    const prompts: string[] = [];
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return prompts.length === 1
+          ? { runError: null }
+          : { runError: { code: 'session_prompt_failed', message: 'boom' } };
+      },
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({ captured: false, exhausted: false }),
+      isStopped: () => false,
+    });
+
+    expect(result).toEqual({
+      runError: { code: 'session_prompt_failed', message: 'boom' },
+      submitReprompts: 1,
+    });
+    expect(prompts).toEqual(['do the task', 'call submit now']);
+  });
+
+  it('stops re-prompting when cancel or cap-abort intervenes', async () => {
+    const prompts: string[] = [];
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return { runError: null };
+      },
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({ captured: false, exhausted: false }),
+      isStopped: () => true,
+    });
+
+    expect(result).toEqual({ runError: null, submitReprompts: 0 });
+    expect(prompts).toEqual(['do the task']);
+  });
+
+  it('runs a single pass with no re-prompt when no submit tool is registered', async () => {
+    const prompts: string[] = [];
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return { runError: null };
+      },
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => null,
+      isStopped: () => false,
+    });
+
+    expect(result).toEqual({ runError: null, submitReprompts: 0 });
+    expect(prompts).toEqual(['do the task']);
   });
 });
 

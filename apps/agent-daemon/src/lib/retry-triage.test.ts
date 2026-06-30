@@ -48,6 +48,20 @@ describe('retry triage classification', () => {
     ).toBe('non_retryable');
   });
 
+  it('keeps submit-missing failures non-retryable once in-session re-prompts are spent', () => {
+    // The Pi runtime already re-prompts within the attempt to coax a submit
+    // call (#1528). If it still reaches daemon triage as submit_output_missing,
+    // a fresh attempt with the same model is unlikely to behave differently.
+    expect(
+      classifyDeterministically({
+        code: 'submit_output_missing',
+        message:
+          'Agent did not satisfy the promised submit-output criterion: ' +
+          'no valid task submit tool call was captured before the session ended.',
+      }),
+    ).toBe('non_retryable');
+  });
+
   it('marks credentials failures non-retryable', () => {
     expect(
       classifyDeterministically({

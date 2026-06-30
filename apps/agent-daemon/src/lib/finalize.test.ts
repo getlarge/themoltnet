@@ -250,6 +250,39 @@ describe('finalizeTask', () => {
     expect(error.message).toContain('output.verification');
   });
 
+  it('logs the classification verdict (code, retryability, triage decision) as structured fields', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+    const log = vi.fn();
+
+    await finalizeTask(stub.agent, failed, {
+      task,
+      log,
+      retryTriage: () =>
+        Promise.resolve({
+          decision: 'retry',
+          confidence: 'high',
+          reason: 'Runtime-local crash after recoverable work.',
+        }),
+    });
+
+    expect(log).toHaveBeenCalledWith('attempt-failure-classified', {
+      source: 'triage',
+      code: 'executor_unexpected_error',
+      retryable: true,
+      decision: 'retry',
+      confidence: 'high',
+      reason: 'Runtime-local crash after recoverable work.',
+    });
+  });
+
   it('does not call /failAttempt when the startup heartbeat observes cancellation', async () => {
     stub.heartbeat.mockResolvedValueOnce({
       claimExpiresAt: new Date(0).toISOString(),
@@ -386,10 +419,9 @@ describe('finalizeTask — fulfill_brief correlation hook', () => {
     ).resolves.toBeUndefined();
 
     expect(m.complete).toHaveBeenCalled();
-    expect(log).toHaveBeenCalledWith(
-      'correlation-anchor-write-failed',
-      expect.any(Error),
-    );
+    expect(log).toHaveBeenCalledWith('correlation-anchor-write-failed', {
+      err: expect.any(Error) as unknown,
+    });
   });
 
   it('cancelled output short-circuits before complete/fail/writer', async () => {

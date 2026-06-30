@@ -79,6 +79,12 @@ export interface SubmitOutputToolHandle {
   /** ToolDefinition to register via `customTools` on the agent session. */
   tool: ToolDefinition<any, any>;
   /**
+   * Registered tool name (`submit_<task_type>_output`). Exposed so the
+   * executor can name the exact tool in the submit-missing re-prompt without
+   * re-resolving the contract. See #1528.
+   */
+  toolName: string;
+  /**
    * Latest validated payload submitted by the model, or `null` if the
    * model never produced a valid call. Read after `session.prompt()`
    * resolves — the executor prefers this over `parseStructuredTaskOutput`.
@@ -385,6 +391,7 @@ export function createSubmitOutputTool(
 
   return {
     tool,
+    toolName: contract.toolName,
     getCaptured: () => captured,
     getCallCount: () => callCount,
     getInvalidCallCount: () => invalidCallCount,

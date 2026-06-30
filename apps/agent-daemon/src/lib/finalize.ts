@@ -3,6 +3,7 @@ import type { Agent, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 
 import {
+  type ClassifiedAttemptFailure,
   classifyAttemptFailure,
   classifyDeterministically,
   type RetryTriage,
@@ -46,7 +47,32 @@ export interface FinalizeContext {
   slot?: { expiresAtMs: number | null } | null;
   retryTriage?: RetryTriage;
   writeCorrelationAnchors?: WriteCorrelationAnchors;
-  log?: (msg: string, err?: unknown) => void;
+  /**
+   * Structured logger. `fields` is merged into the log record (pino-style)
+   * so the daemon emits queryable classification verdicts and error
+   * context, not just an opaque message. Pass `{ err }` for error context.
+   */
+  log?: (msg: string, fields?: Record<string, unknown>) => void;
+}
+
+/**
+ * Flatten a classified attempt failure into the structured fields logged
+ * alongside `attempt-failure-classified`. Surfaces the triage verdict that
+ * was previously buried in `error.retry` so operators can see WHAT was
+ * decided and WHY without decoding the attempt row. See #1528.
+ */
+function classificationLogFields(
+  classified: ClassifiedAttemptFailure,
+): Record<string, unknown> {
+  const retry = classified.error.retry;
+  return {
+    source: classified.source,
+    code: classified.error.code,
+    retryable: classified.error.retryable,
+    ...(retry?.decision ? { decision: retry.decision } : {}),
+    ...(retry?.confidence ? { confidence: retry.confidence } : {}),
+    ...(retry?.reason ? { reason: retry.reason } : {}),
+  };
 }
 
 /**
@@ -114,8 +140,11 @@ export async function finalizeTask(
         reason,
         ctx,
       );
-      ctx.log?.('complete-rejected-falling-back-to-fail', err);
-      ctx.log?.(`attempt-failure-classified:${classified.source}`);
+      ctx.log?.('complete-rejected-falling-back-to-fail', { err });
+      ctx.log?.(
+        'attempt-failure-classified',
+        classificationLogFields(classified),
+      );
       await agent.tasks.failAttempt(output.taskId, output.attemptN, {
         error: classified.error,
       });
@@ -139,7 +168,7 @@ export async function finalizeTask(
   );
   if (heartbeat.cancelled) return;
   const classified = await prepareAttemptFailure(agent, output, error, ctx);
-  ctx.log?.(`attempt-failure-classified:${classified.source}`);
+  ctx.log?.('attempt-failure-classified', classificationLogFields(classified));
   await agent.tasks.failAttempt(output.taskId, output.attemptN, {
     error: classified.error,
   });
@@ -204,7 +233,7 @@ async function prepareAttemptFailure(
           .listMessages(output.taskId, output.attemptN)
           .then((messages) => messages.slice(-12))
           .catch((err) => {
-            ctx.log?.('attempt-failure-message-fetch-failed', err);
+            ctx.log?.('attempt-failure-message-fetch-failed', { err });
             return [];
           })
       : [];
@@ -242,6 +271,6 @@ async function maybeWriteAnchors(
       pullRequestUrl: pr,
     });
   } catch (err) {
-    log?.('correlation-anchor-write-failed', err);
+    log?.('correlation-anchor-write-failed', { err });
   }
 }

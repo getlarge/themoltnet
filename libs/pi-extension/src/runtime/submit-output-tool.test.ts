@@ -100,6 +100,11 @@ describe('createSubmitOutputTool', () => {
     );
   });
 
+  it('exposes the submit tool name on the handle for re-prompt copy', () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    expect(handle.toolName).toBe('submit_fulfill_brief_output');
+  });
+
   it('registers permissive Pi parameters while keeping submit guidance visible', () => {
     const handle = createSubmitOutputTool('judge_eval_attempt');
     const tool = handle.tool as unknown as {

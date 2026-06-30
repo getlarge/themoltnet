@@ -319,6 +319,22 @@ export interface ExecutePiTaskOptions {
    */
   maxSubmitValidationRetries?: number;
   /**
+   * Number of same-session re-prompts when the model ends its turn WITHOUT
+   * calling the submit-output tool at all (no captured payload and no
+   * exhausted validation budget). Distinct from
+   * `maxSubmitValidationRetries`, which recovers *invalid-args* submit calls.
+   * Each re-prompt names the submit tool and forbids a prose reply. When the
+   * budget is spent the attempt still fails with `submit_output_missing`.
+   * Only applies to task types that register a submit tool. Default `3`. Set
+   * to `0` to disable. See #1528.
+   */
+  maxSubmitMissingReprompts?: number;
+  /**
+   * Continuation prompt sent when a turn ends without a submit call. Defaults
+   * to `buildSubmitMissingPrompt(<tool name>)`.
+   */
+  submitMissingPrompt?: string;
+  /**
    * Cap provider-error retries inside the same Pi session. A retry is attempted
    * only after a Pi assistant turn ends with `stopReason: "error"` and the
    * provider diagnostic is not a known credential/model/config failure. This is
@@ -1096,22 +1112,50 @@ export async function executePiTask(
     });
 
     let runError: { code: string; message: string } | null = null;
-    const promptResult = await promptWithProviderErrorRetries({
-      session,
+    // One provider-error-tolerant prompt pass. Reused for both the initial
+    // task prompt and each submit-missing re-prompt so every pass inherits
+    // the same provider-retry / cancel / cap handling.
+    const runPrompt = (promptText: string) =>
+      promptWithProviderErrorRetries({
+        session: liveSession,
+        initialPrompt: promptText,
+        cancelSignal: reporter.cancelSignal,
+        isCapAborted: () => capAbort !== null,
+        getProviderErrorState: () => ({ llmAbort, llmErrorMessage }),
+        maxRetries: opts.maxProviderErrorRetries ?? 2,
+        baseDelayMs: opts.providerErrorRetryBaseDelayMs ?? 2_000,
+        maxDelayMs: opts.providerErrorRetryMaxDelayMs ?? 30_000,
+        retryPrompt: opts.providerErrorRetryPrompt ?? 'Go on',
+        onRetry: async (event) => {
+          await emit('info', event);
+          await notifyProviderErrorRetryUi(opts.providerErrorRetryUi, event);
+        },
+        onPromptError: (message) =>
+          emit('error', { message, phase: 'session_prompt' }),
+      });
+    const promptResult = await promptUntilSubmitted({
+      runPrompt,
       initialPrompt: taskPrompt,
-      cancelSignal: reporter.cancelSignal,
-      isCapAborted: () => capAbort !== null,
-      getProviderErrorState: () => ({ llmAbort, llmErrorMessage }),
-      maxRetries: opts.maxProviderErrorRetries ?? 2,
-      baseDelayMs: opts.providerErrorRetryBaseDelayMs ?? 2_000,
-      maxDelayMs: opts.providerErrorRetryMaxDelayMs ?? 30_000,
-      retryPrompt: opts.providerErrorRetryPrompt ?? 'Go on',
-      onRetry: async (event) => {
+      submitMissingPrompt:
+        opts.submitMissingPrompt ??
+        (submitToolHandle
+          ? buildSubmitMissingPrompt(submitToolHandle.toolName)
+          : 'Go on'),
+      maxSubmitMissingReprompts: submitToolHandle
+        ? (opts.maxSubmitMissingReprompts ?? 3)
+        : 0,
+      getSubmitState: () =>
+        submitToolHandle
+          ? {
+              captured: submitToolHandle.getCaptured() !== null,
+              exhausted:
+                submitToolHandle.getExhaustedValidationFailure() !== null,
+            }
+          : null,
+      isStopped: () => reporter.cancelSignal.aborted || capAbort !== null,
+      onSubmitReprompt: async (event) => {
         await emit('info', event);
-        await notifyProviderErrorRetryUi(opts.providerErrorRetryUi, event);
       },
-      onPromptError: (message) =>
-        emit('error', { message, phase: 'session_prompt' }),
     });
     runError = promptResult.runError;
 
@@ -1653,6 +1697,123 @@ export async function promptWithProviderErrorRetries(
     }
     promptText = args.retryPrompt;
   }
+}
+
+/**
+ * Continuation prompt used to recover a session that ended without calling
+ * the submit-output tool. Names the exact tool and forbids a prose reply so a
+ * model that "answered" in text is pushed to actually emit the tool call.
+ */
+export function buildSubmitMissingPrompt(toolName: string): string {
+  return (
+    `You ended your turn but did not call the required \`${toolName}\` tool, ` +
+    'so no output was captured and the task is not yet complete. ' +
+    `Call \`${toolName}\` now with the final structured output exactly as ` +
+    'described in the task prompt. Do not reply with prose, a summary, or an ' +
+    'apology — the only way to finish is to call the tool.'
+  );
+}
+
+/** Snapshot of the submit-output gate read between prompt passes. */
+export interface SubmitGateState {
+  /** A valid submit-tool call captured a payload. */
+  captured: boolean;
+  /** The invalid-args correction budget was exhausted. */
+  exhausted: boolean;
+}
+
+export interface SubmitMissingRepromptEvent extends Record<string, unknown> {
+  event: 'submit_missing_reprompt';
+  retry: number;
+  maxReprompts: number;
+}
+
+export interface PromptUntilSubmittedArgs {
+  /**
+   * Runs one provider-error-tolerant prompt pass with the given text and
+   * resolves with any terminal run error. Normally wraps
+   * `promptWithProviderErrorRetries` so every pass — initial and re-prompt —
+   * inherits the same provider-error retry, cancel, and cap handling.
+   */
+  runPrompt: (
+    promptText: string,
+  ) => Promise<{ runError: { code: string; message: string } | null }>;
+  /** First prompt sent to the session (the task prompt). */
+  initialPrompt: string;
+  /**
+   * Continuation sent when a pass ends without a captured submit call. It
+   * must instruct the model to call the submit tool now.
+   */
+  submitMissingPrompt: string;
+  /**
+   * Number of extra "you forgot to submit" nudges allowed after the initial
+   * pass. `0` disables submit-missing recovery (single pass). The caller
+   * still surfaces `submit_output_missing` when the budget is spent.
+   */
+  maxSubmitMissingReprompts: number;
+  /**
+   * Reads the submit gate after each pass. Returns `null` when no submit
+   * tool is registered (legacy parser path) — recovery is skipped.
+   */
+  getSubmitState: () => SubmitGateState | null;
+  /** True when cancel or cap-abort fired; halts further re-prompts. */
+  isStopped: () => boolean;
+  onSubmitReprompt?: (
+    event: SubmitMissingRepromptEvent,
+  ) => Promise<void> | void;
+}
+
+/**
+ * Drive a Pi session until it either captures a valid submit-output call or
+ * exhausts the submit-missing re-prompt budget.
+ *
+ * This is the third same-session recovery path, complementing the two that
+ * already existed:
+ *   1. Invalid submit args → the submit tool returns `isError`, the model
+ *      re-calls within the same turn (see `submit-output-tool.ts`).
+ *   2. Provider/LLM API errors → `promptWithProviderErrorRetries` re-prompts.
+ *
+ * The gap this closes: a model (typically a weaker one) that ends its turn
+ * cleanly with a prose answer and *never calls the submit tool at all*. With
+ * neither a captured payload nor an exhausted validation budget, the executor
+ * would otherwise fail straight to `submit_output_missing` with no chance to
+ * recover. Here we nudge the model — up to `maxSubmitMissingReprompts` times —
+ * to call the submit tool. Pi cannot force `toolChoice`, so this re-prompt is
+ * the only in-session lever short of patching Pi. See issue #1528.
+ */
+export async function promptUntilSubmitted(
+  args: PromptUntilSubmittedArgs,
+): Promise<{
+  runError: { code: string; message: string } | null;
+  submitReprompts: number;
+}> {
+  const first = await args.runPrompt(args.initialPrompt);
+  if (first.runError) {
+    return { runError: first.runError, submitReprompts: 0 };
+  }
+
+  let submitReprompts = 0;
+  while (submitReprompts < args.maxSubmitMissingReprompts) {
+    if (args.isStopped()) break;
+    const state = args.getSubmitState();
+    // Nothing to recover: no submit tool, output already captured, or the
+    // invalid-args correction budget is already spent (its own terminal
+    // error wins — a fresh nudge would only burn turns).
+    if (!state || state.captured || state.exhausted) break;
+
+    submitReprompts += 1;
+    await args.onSubmitReprompt?.({
+      event: 'submit_missing_reprompt',
+      retry: submitReprompts,
+      maxReprompts: args.maxSubmitMissingReprompts,
+    });
+    const pass = await args.runPrompt(args.submitMissingPrompt);
+    if (pass.runError) {
+      return { runError: pass.runError, submitReprompts };
+    }
+  }
+
+  return { runError: null, submitReprompts };
 }
 
 export function sanitizeProviderErrorRetryReason(
