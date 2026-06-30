@@ -48,8 +48,8 @@ vi.mock('@earendil-works/gondolin', () => gondolinMock);
 
 import {
   GUEST_TASK_CONTEXT_MOUNT,
-  PACKAGE_MANAGER_TMPFS_ENV_KEYS,
-  resolvePackageManagerTmpfsMounts,
+  PACKAGE_MANAGER_STORE_ENV_KEYS,
+  resolvePackageManagerStoreDirs,
   resumeVm,
 } from './vm-manager.js';
 
@@ -107,7 +107,7 @@ describe('resumeVm task-context mount', () => {
     );
   });
 
-  it('mounts configured package-manager stores and caches as native guest tmpfs', async () => {
+  it('prepares configured package-manager stores and caches as guest-local directories', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-pm-cache-'));
     tempRoots.push(root);
     const workspace = path.join(root, 'workspace');
@@ -141,7 +141,7 @@ describe('resumeVm task-context mount', () => {
       env: Record<string, string>;
       vfs: { mounts: Record<string, unknown> };
     };
-    for (const key of PACKAGE_MANAGER_TMPFS_ENV_KEYS) {
+    for (const key of PACKAGE_MANAGER_STORE_ENV_KEYS) {
       expect(resumeOptions.env[key]).toBeDefined();
     }
     for (const mountPath of [
@@ -159,20 +159,20 @@ describe('resumeVm task-context mount', () => {
     const shellCommands = execCalls
       .map(([argv]) => (Array.isArray(argv) ? argv[2] : argv))
       .filter((command): command is string => typeof command === 'string');
-    const tmpfsCommand = shellCommands.find((command) =>
-      command.includes('mount -t tmpfs'),
+    const storeCommand = shellCommands.find((command) =>
+      command.includes("chown 501:501 '/opt/pnpm-store'"),
     );
-    expect(tmpfsCommand).toContain("mkdir -p '/opt/npm-cache'");
-    expect(tmpfsCommand).toContain(
-      "mount -t tmpfs -o mode=0755,uid=501,gid=501 tmpfs '/opt/npm-cache'",
-    );
-    expect(tmpfsCommand).toContain("mkdir -p '/opt/pnpm-store'");
-    expect(tmpfsCommand).toContain("mkdir -p '/opt/yarn-cache'");
+    expect(storeCommand).toContain("mkdir -p '/opt/npm-cache'");
+    expect(storeCommand).toContain("chown 501:501 '/opt/npm-cache'");
+    expect(storeCommand).toContain("chmod 0755 '/opt/npm-cache'");
+    expect(storeCommand).toContain("mkdir -p '/opt/pnpm-store'");
+    expect(storeCommand).toContain("mkdir -p '/opt/yarn-cache'");
+    expect(storeCommand).not.toContain('mount -t tmpfs');
   });
 
   it('ignores relative and interpolated package-manager paths', () => {
     expect(
-      resolvePackageManagerTmpfsMounts({
+      resolvePackageManagerStoreDirs({
         NPM_CONFIG_STORE_DIR: '.pnpm-store',
         NPM_CONFIG_CACHE: '${MOLTNET_GUEST_CWD}/.npm-cache',
         YARN_CACHE_FOLDER: '/opt/yarn-cache',

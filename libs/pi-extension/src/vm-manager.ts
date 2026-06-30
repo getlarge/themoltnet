@@ -41,7 +41,7 @@ export const GUEST_TASK_CONTEXT_MOUNT = '/moltnet-task-context';
 /** @deprecated Use GUEST_TASK_CONTEXT_MOUNT. */
 export const GUEST_TASK_SKILLS_MOUNT = GUEST_TASK_CONTEXT_MOUNT;
 
-export const PACKAGE_MANAGER_TMPFS_ENV_KEYS = [
+export const PACKAGE_MANAGER_STORE_ENV_KEYS = [
   'NPM_CONFIG_STORE_DIR',
   'NPM_CONFIG_CACHE',
   'YARN_CACHE_FOLDER',
@@ -174,36 +174,35 @@ export class AutoParentMemoryProvider extends MemoryProvider {
   }
 }
 
-export function resolvePackageManagerTmpfsMounts(
+export function resolvePackageManagerStoreDirs(
   env: Record<string, string>,
 ): string[] {
-  const mounts = new Set<string>();
-  for (const key of PACKAGE_MANAGER_TMPFS_ENV_KEYS) {
+  const dirs = new Set<string>();
+  for (const key of PACKAGE_MANAGER_STORE_ENV_KEYS) {
     const value = env[key];
     if (!value || !path.posix.isAbsolute(value) || value.includes('$')) {
       continue;
     }
     const normalized = path.posix.normalize(value);
     if (normalized === '/') continue;
-    mounts.add(normalized);
+    dirs.add(normalized);
   }
-  return [...mounts].sort();
+  return [...dirs].sort();
 }
 
 function shQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-function buildNativeTmpfsMountCommand(mounts: string[]): string {
-  if (mounts.length === 0) return '';
-  return mounts
-    .map((mountPath) => {
-      const quoted = shQuote(mountPath);
+function buildPackageManagerStoreCommand(dirs: string[]): string {
+  if (dirs.length === 0) return '';
+  return dirs
+    .map((storePath) => {
+      const quoted = shQuote(storePath);
       return [
         `mkdir -p ${quoted}`,
-        `if ! awk '{print $2}' /proc/mounts | grep -Fx ${quoted} >/dev/null; then`,
-        `  mount -t tmpfs -o mode=0755,uid=501,gid=501 tmpfs ${quoted}`,
-        'fi',
+        `chown 501:501 ${quoted}`,
+        `chmod 0755 ${quoted}`,
       ].join('\n');
     })
     .join('\n');
@@ -485,8 +484,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     MOLTNET_GUEST_WORKSPACE: guestWorkspace,
     MOLTNET_GUEST_CWD: guestCwd,
   };
-  const packageManagerTmpfsMounts =
-    resolvePackageManagerTmpfsMounts(envOverrides);
+  const packageManagerStoreDirs = resolvePackageManagerStoreDirs(envOverrides);
 
   const resources = config.sandboxConfig?.resources;
   const workspaceMode = config.workspaceMode ?? 'shared_mount';
@@ -575,14 +573,14 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       config.signal,
     );
 
-    const packageManagerTmpfsCommand = buildNativeTmpfsMountCommand(
-      packageManagerTmpfsMounts,
+    const packageManagerStoreCommand = buildPackageManagerStoreCommand(
+      packageManagerStoreDirs,
     );
-    if (packageManagerTmpfsCommand) {
+    if (packageManagerStoreCommand) {
       await vmRun(
         vm,
-        'package-manager tmpfs mounts',
-        packageManagerTmpfsCommand,
+        'package-manager store directories',
+        packageManagerStoreCommand,
         config.signal,
       );
     }

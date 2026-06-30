@@ -45,7 +45,7 @@ async function execGuest(
 }
 
 describeVm('resumeVm real Gondolin VM integration', () => {
-  it('uses native tmpfs for configured package-manager stores and node_modules shadows', async () => {
+  it('uses guest-local package-manager stores and node_modules shadows', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-integration-'));
     const workspace = path.join(root, 'workspace');
     const agentDir = path.join(root, '.moltnet', 'legreffier');
@@ -102,7 +102,7 @@ import time
 workspace = os.environ["MOLTNET_GUEST_WORKSPACE"]
 store = os.environ["NPM_CONFIG_STORE_DIR"]
 workspace_dir = os.path.join(workspace, ".worktrees/testing/.bench-workspace")
-tmpfs_dir = os.path.join(store, "bench")
+store_dir = os.path.join(store, "bench")
 
 def mount_type(mount_path):
     with open("/proc/mounts", "r", encoding="utf8") as f:
@@ -125,23 +125,23 @@ def median_bench(directory):
     return statistics.median(bench(directory) for _ in range(3))
 
 print(json.dumps({
-    "mountType": mount_type(store),
+    "storeMountType": mount_type(store),
     "workspaceMs": median_bench(workspace_dir),
-    "tmpfsMs": median_bench(tmpfs_dir),
+    "storeMs": median_bench(store_dir),
 }, sort_keys=True))
 PY
 `,
       );
 
       const benchmark = JSON.parse(output.trim()) as {
-        mountType: string | null;
-        tmpfsMs: number;
+        storeMountType: string | null;
+        storeMs: number;
         workspaceMs: number;
       };
-      expect(benchmark.mountType).toBe('tmpfs');
-      if (!(benchmark.tmpfsMs * 2 < benchmark.workspaceMs)) {
+      expect(benchmark.storeMountType).not.toBe('tmpfs');
+      if (!(benchmark.storeMs * 2 < benchmark.workspaceMs)) {
         throw new Error(
-          `expected tmpfs writes to be at least 2x faster than workspace writes: ${JSON.stringify(
+          `expected guest-local store writes to be at least 2x faster than workspace writes: ${JSON.stringify(
             benchmark,
           )}`,
         );

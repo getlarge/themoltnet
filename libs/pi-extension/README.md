@@ -314,21 +314,22 @@ setup needs both endpoints off the FUSE bridge:
 - package store/cache on VM-managed tmpfs
 - install target on VM-managed `node_modules` tmpfs
 
-`vm-manager` backs configured absolute package-manager store/cache paths with
-native guest tmpfs for the lifetime of the resumed VM. Runtime profiles or
-`sandbox.json` can point common managers at those paths:
+`vm-manager` prepares configured absolute package-manager store/cache paths as
+agent-writable guest-local directories. Runtime profiles or `sandbox.json` can
+point common managers at those paths:
 
-| Env var                | Typical tmpfs-backed value |
-| ---------------------- | -------------------------- |
-| `NPM_CONFIG_STORE_DIR` | `/opt/pnpm-store`          |
-| `NPM_CONFIG_CACHE`     | `/opt/npm-cache`           |
-| `YARN_CACHE_FOLDER`    | `/opt/yarn-cache`          |
+| Env var                | Typical guest-local value |
+| ---------------------- | ------------------------- |
+| `NPM_CONFIG_STORE_DIR` | `/opt/pnpm-store`         |
+| `NPM_CONFIG_CACHE`     | `/opt/npm-cache`          |
+| `YARN_CACHE_FOLDER`    | `/opt/yarn-cache`         |
 
 The extension does not invent those env vars when they are absent; the sandbox
-or runtime profile remains the package-manager policy owner. When those paths
-are configured, they are mounted inside the guest with Linux `tmpfs`, not
-Gondolin's host-served `MemoryProvider`, because package managers need the
-kernel-local fast path for high file counts. The extension also always shadows
+or runtime profile remains the package-manager policy owner. Those paths stay
+off Gondolin's host-served workspace mount, because package managers need the
+kernel-local fast path for high file counts and a reusable content-addressed
+store. Warm the store with a resume command such as `pnpm fetch` when later
+agent-created worktrees need fast installs. The extension also always shadows
 any `node_modules` path with VM-local tmpfs. This is VFS policy, not a resume
 command, so it covers `node_modules` paths created later by the live agent
 session, including inside worktrees the agent creates after resume.

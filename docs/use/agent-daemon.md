@@ -752,13 +752,13 @@ The current themoltnet pattern is:
 
 - point the pnpm store at an absolute guest path with
   `env.NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
-- let the Pi VM mount configured package-manager store/cache paths as native
-  VM-lifetime tmpfs
+- let the Pi VM prepare configured package-manager store/cache paths as
+  agent-writable guest-local directories
 - rely on the built-in `node_modules` shadow, which covers root packages,
   workspace packages, and worktrees created after resume
-- keep `resumeCommands` to lightweight bootstrap such as `corepack enable`;
-  avoid full installs there for interactive sessions because the install
-  output is intentionally VM-local
+- warm the store from the mounted repo lockfile with `pnpm fetch`; avoid full
+  installs during resume for interactive sessions because the install output is
+  intentionally VM-local
 
 Current repo example:
 
@@ -774,14 +774,22 @@ Current repo example:
       "when": {
         "workspaceMode": ["shared_mount", "dedicated_worktree"]
       }
+    },
+    {
+      "retries": 3,
+      "retryBackoffMs": 5000,
+      "run": "cd \"${MOLTNET_GUEST_WORKSPACE}\" && pnpm fetch --frozen-lockfile",
+      "when": {
+        "workspaceMode": ["shared_mount", "dedicated_worktree"]
+      }
     }
   ]
 }
 ```
 
-The extension stays generic: it only turns explicit package-manager env paths
-into tmpfs mounts and shadows `node_modules`. The consumer repo still owns
-package-manager policy through its runtime profile or `sandbox.json`.
+The extension stays generic: it only prepares explicit package-manager env
+paths and shadows `node_modules`. The consumer repo still owns package-manager
+policy through its runtime profile or `sandbox.json`.
 
 The important layering rule is that profile sandbox policy should not branch on
 task types. If a bootstrap step assumes a repo exists under `/workspace`, gate it
