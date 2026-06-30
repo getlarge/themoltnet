@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { access, readdir, readFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 
 import type { ProjectGraph, Tree } from '@nx/devkit';
@@ -55,8 +55,8 @@ export function readGoModulePath(
   return match[1];
 }
 
-function readGoModulePathFromDisk(goModPath: string) {
-  const goMod = readFileSync(goModPath, 'utf-8');
+async function readGoModulePathFromFile(goModPath: string) {
+  const goMod = await readFile(goModPath, 'utf-8');
   const match = goMod.match(/^module\s+(\S+)/m);
   return match?.[1] ?? null;
 }
@@ -244,8 +244,17 @@ export function parseGoWorkUseDirs(goWork: string) {
   return dirs;
 }
 
-function discoverGoModDirs(cwd: string, dir = cwd): string[] {
-  const entries = readdirSync(dir, { withFileTypes: true });
+async function pathExists(path: string) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function discoverGoModDirs(cwd: string, dir = cwd): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true });
   const dirs: string[] = [];
 
   for (const entry of entries) {
@@ -263,26 +272,34 @@ function discoverGoModDirs(cwd: string, dir = cwd): string[] {
     }
 
     const child = join(dir, entry.name);
-    if (existsSync(join(child, 'go.mod'))) {
+    if (await pathExists(join(child, 'go.mod'))) {
       dirs.push(child);
       continue;
     }
-    dirs.push(...discoverGoModDirs(cwd, child));
+    dirs.push(...(await discoverGoModDirs(cwd, child)));
   }
 
   return dirs;
 }
 
-export function discoverGoWorkspaceModules(cwd: string): GoWorkspaceModule[] {
+export async function discoverGoWorkspaceModules(
+  cwd: string,
+): Promise<GoWorkspaceModule[]> {
   const goWorkPath = join(cwd, 'go.work');
-  const dirs = existsSync(goWorkPath)
-    ? parseGoWorkUseDirs(readFileSync(goWorkPath, 'utf-8')).map((dir) =>
+  const dirs = (await pathExists(goWorkPath))
+    ? parseGoWorkUseDirs(await readFile(goWorkPath, 'utf-8')).map((dir) =>
         resolve(cwd, dir),
       )
-    : discoverGoModDirs(cwd);
+    : await discoverGoModDirs(cwd);
 
-  return dirs.flatMap((root) => {
-    const modulePath = readGoModulePathFromDisk(join(root, 'go.mod'));
+  const modules = await Promise.all(
+    dirs.map(async (root) => {
+      const modulePath = await readGoModulePathFromFile(join(root, 'go.mod'));
+      return { modulePath, root };
+    }),
+  );
+
+  return modules.flatMap(({ modulePath, root }) => {
     return modulePath ? [{ modulePath, root }] : [];
   });
 }
@@ -323,15 +340,15 @@ function hasReplaceDirective(goMod: string, modulePath: string) {
   return false;
 }
 
-export function createGoReleaseValidationLocalReplaces(
+export async function createGoReleaseValidationLocalReplaces(
   cwd: string,
   root: string,
 ) {
   const rootDir = resolve(cwd, root);
   const goModPath = join(rootDir, 'go.mod');
-  const goMod = readFileSync(goModPath, 'utf-8');
+  const goMod = await readFile(goModPath, 'utf-8');
 
-  return discoverGoWorkspaceModules(cwd)
+  return (await discoverGoWorkspaceModules(cwd))
     .filter((module) => module.root !== rootDir)
     .filter((module) => goMod.includes(module.modulePath))
     .filter((module) => !hasReplaceDirective(goMod, module.modulePath))
@@ -564,7 +581,7 @@ export async function afterAllProjectsVersioned(
     const rootDir = join(cwd, root);
     const localReplaces = dryRun
       ? []
-      : createGoReleaseValidationLocalReplaces(cwd, root);
+      : await createGoReleaseValidationLocalReplaces(cwd, root);
 
     try {
       for (const localReplace of localReplaces) {

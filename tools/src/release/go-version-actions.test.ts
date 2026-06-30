@@ -172,7 +172,7 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
     ]);
   });
 
-  it('discovers local Go modules from go.work for validation replaces', () => {
+  it('discovers local Go modules from go.work for validation replaces', async () => {
     const cwd = mkdtempSync(join(tmpdir(), 'go-release-validation-'));
     mkdirSync(join(cwd, 'apps/cli'), { recursive: true });
     mkdirSync(join(cwd, 'libs/api'), { recursive: true });
@@ -206,7 +206,7 @@ go 1.25
     expect(
       parseGoWorkUseDirs(readFileSync(join(cwd, 'go.work'), 'utf-8')),
     ).toEqual(['./apps/cli', './libs/api']);
-    expect(discoverGoWorkspaceModules(cwd)).toEqual([
+    await expect(discoverGoWorkspaceModules(cwd)).resolves.toEqual([
       {
         modulePath: 'example.com/repo/apps/cli',
         root: join(cwd, 'apps/cli'),
@@ -216,7 +216,9 @@ go 1.25
         root: join(cwd, 'libs/api'),
       },
     ]);
-    expect(createGoReleaseValidationLocalReplaces(cwd, 'apps/cli')).toEqual([
+    await expect(
+      createGoReleaseValidationLocalReplaces(cwd, 'apps/cli'),
+    ).resolves.toEqual([
       {
         modulePath: 'example.com/repo/libs/api',
         replacementPath: '../../libs/api',
@@ -224,7 +226,7 @@ go 1.25
     ]);
   });
 
-  it('does not create validation replaces for modules already replaced in a block', () => {
+  it('does not create validation replaces for modules already replaced in a block', async () => {
     const cwd = mkdtempSync(join(tmpdir(), 'go-release-validation-'));
     mkdirSync(join(cwd, 'apps/cli'), { recursive: true });
     mkdirSync(join(cwd, 'libs/api'), { recursive: true });
@@ -259,7 +261,9 @@ go 1.25
 `,
     );
 
-    expect(createGoReleaseValidationLocalReplaces(cwd, 'apps/cli')).toEqual([]);
+    await expect(
+      createGoReleaseValidationLocalReplaces(cwd, 'apps/cli'),
+    ).resolves.toEqual([]);
   });
 
   it('does not infer repository-specific validation roots by default', () => {
