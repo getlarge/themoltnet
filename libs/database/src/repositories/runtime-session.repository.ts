@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -26,6 +26,13 @@ export interface UpsertRuntimeSessionInput {
   sha256: string;
   storageClass: string;
   checkpointKind?: RuntimeSessionCheckpointKind;
+}
+
+export interface RuntimeSessionCleanupRef {
+  id: string;
+  taskId: string;
+  objectKey: string;
+  sizeBytes: number;
 }
 
 export function createRuntimeSessionRepository(db: Database) {
@@ -85,6 +92,34 @@ export function createRuntimeSessionRepository(db: Database) {
         )
         .limit(1);
       return row ?? null;
+    },
+
+    async listCleanupRefsForTasks(
+      taskIds: string[],
+    ): Promise<RuntimeSessionCleanupRef[]> {
+      if (taskIds.length === 0) return [];
+      return getExecutor(db)
+        .select({
+          id: runtimeSessions.id,
+          taskId: runtimeSessions.taskId,
+          objectKey: runtimeSessions.objectKey,
+          sizeBytes: runtimeSessions.sizeBytes,
+        })
+        .from(runtimeSessions)
+        .where(
+          and(
+            inArray(runtimeSessions.taskId, taskIds),
+            isNull(runtimeSessions.deletedAt),
+          ),
+        );
+    },
+
+    async detachChildren(sessionIds: string[]): Promise<void> {
+      if (sessionIds.length === 0) return;
+      await getExecutor(db)
+        .update(runtimeSessions)
+        .set({ parentSessionId: null, updatedAt: sql`now()` })
+        .where(inArray(runtimeSessions.parentSessionId, sessionIds));
     },
   };
 }

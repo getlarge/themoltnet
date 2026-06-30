@@ -42,7 +42,6 @@ import {
   createRuntimeSlotRepository,
   createSigningRequestRepository,
   createTaskArtifactRepository,
-  createTaskCleanupJobRepository,
   createTaskRepository,
   createTeamRepository,
   createVoucherRepository,
@@ -256,9 +255,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const taskArtifactRepository = createTaskArtifactRepository(dbConnection.db);
-  const taskCleanupJobRepository = createTaskCleanupJobRepository(
-    dbConnection.db,
-  );
   const runtimeModelRepository = createRuntimeModelRepository(dbConnection.db);
   const groupRepository = createGroupRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
@@ -419,7 +415,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           contextPackRepository,
           renderedPackRepository,
           taskRepository,
-          taskCleanupJobRepository,
+          runtimeSessionRepository,
+          taskArtifactRepository,
           runtimeSessionStorage,
           taskArtifactStorage,
           dataSource: getDataSource(),

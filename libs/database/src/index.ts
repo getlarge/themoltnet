@@ -120,6 +120,7 @@ export {
 export {
   createRuntimeSessionRepository,
   type RuntimeSessionCheckpointKind,
+  type RuntimeSessionCleanupRef,
   type RuntimeSessionKind,
   type RuntimeSessionRepository,
   type UpsertRuntimeSessionInput,
@@ -147,16 +148,10 @@ export {
   decodeTaskArtifactCursor,
   type ListTaskArtifactsInput,
   type ListTaskArtifactsResult,
+  type TaskArtifactCleanupRef,
   TaskArtifactConflictError,
   type TaskArtifactRepository,
 } from './repositories/task-artifact.repository.js';
-export {
-  createTaskCleanupJobRepository,
-  type TaskCleanupJobRepository,
-  type TaskCleanupJobWithManifest,
-  type TaskCleanupManifest,
-  type TaskCleanupObjectRef,
-} from './repositories/task-cleanup-job.repository.js';
 export {
   type CreateFoundingAcceptanceInput,
   type CreateInviteInput,

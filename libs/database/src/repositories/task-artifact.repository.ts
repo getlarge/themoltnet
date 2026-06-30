@@ -1,4 +1,4 @@
-import { and, asc, eq, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, or, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -43,6 +43,13 @@ export interface ListTaskArtifactsResult {
 export interface CreateTaskArtifactResult {
   artifact: TaskArtifact;
   created: boolean;
+}
+
+export interface TaskArtifactCleanupRef {
+  id: string;
+  taskId: string;
+  objectKey: string;
+  sizeBytes: number;
 }
 
 export class TaskArtifactConflictError extends Error {
@@ -167,6 +174,21 @@ export function createTaskArtifactRepository(db: Database) {
             ? encodeTaskArtifactCursor(last)
             : null,
       };
+    },
+
+    async listCleanupRefsForTasks(
+      taskIds: string[],
+    ): Promise<TaskArtifactCleanupRef[]> {
+      if (taskIds.length === 0) return [];
+      return getExecutor(db)
+        .select({
+          id: taskArtifacts.id,
+          taskId: taskArtifacts.taskId,
+          objectKey: taskArtifacts.objectKey,
+          sizeBytes: taskArtifacts.sizeBytes,
+        })
+        .from(taskArtifacts)
+        .where(inArray(taskArtifacts.taskId, taskIds));
     },
   };
 }

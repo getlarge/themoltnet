@@ -182,16 +182,16 @@ work whose lifetime has already elapsed.
 Terminal retention is operator-owned deployment policy. The retention sweeper
 selects `completed` / `failed` / `cancelled` / `expired` tasks whose
 status-specific retention window has elapsed, skips sealed correlation tasks,
-and creates private `task_cleanup_jobs` rows for the remaining candidates. Each
-job is processed by a dedicated DBOS workflow with immutable steps: persist the
-manifest of task artifact objects and runtime session objects, delete those
-objects, delete task rows in one database transaction, remove Keto task
-relations, and mark the job `completed` or `failed` with object counts/bytes and
-error details. Later maintenance ticks also restart pending or failed cleanup
-jobs, so recovery does not depend on the original task row still being present.
-No public cleanup API is exposed; operators control the policy through
-deployment configuration and the maintenance schedules trigger the workflow
-automatically.
+and enqueues a DBOS `task-retention-cleanup` workflow. The queue has global
+concurrency `1` and uses the `task-retention-cleanup` deduplication ID so
+maintenance ticks cannot pile up overlapping cleanup batches. The cleanup
+workflow is split into immutable steps: build the manifest of task artifact
+objects and runtime session objects, delete those objects, delete task rows in
+one database transaction, and remove Keto task relations. DBOS workflow state
+and logs are the operational cleanup record; MoltNet does not keep a separate
+application cleanup-job table. No public cleanup API is exposed; operators
+control the policy through deployment configuration and the maintenance
+schedules trigger the workflow automatically.
 
 ### Task types
 
