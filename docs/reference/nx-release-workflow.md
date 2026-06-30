@@ -36,6 +36,16 @@ A dry-run is useful for a quick config sanity check, but it is not enough to
 prove that Nx can replace release-please. The migration needs at least one full
 release rehearsal with cleanup prepared before running the command.
 
+Prefer two rehearsal stages:
+
+1. Local registries: Verdaccio for npm and a local Docker registry for images.
+2. Real remote services: npm, GHCR, GitHub releases/assets, and GitHub tags.
+
+The local-registry rehearsal catches most Nx orchestration, build, pack, Docker,
+and npm publish failures without publishing public artifacts. It does not prove
+GitHub release creation, GitHub release asset upload, npm provenance/OIDC, or
+GHCR package permissions.
+
 Run the rehearsal from a disposable worktree on a dedicated branch. Do not run
 it from the main development worktree:
 
@@ -62,6 +72,67 @@ This command intentionally exercises real side effects:
 Before running it, prepare cleanup for every surface below. If any publish step
 gets far enough to create immutable public state, do not pretend the rehearsal
 was atomic.
+
+## Local Registry Rehearsal
+
+Start local registries:
+
+```bash
+docker run --rm --name nx-release-verdaccio -p 4873:4873 verdaccio/verdaccio
+docker run --rm --name nx-release-registry -p 5001:5000 registry:2
+```
+
+Use a disposable worktree and patch only that worktree so Docker release refs
+point to the local registry:
+
+```bash
+git worktree add --detach .worktrees/nx-release-local-registry origin/main
+cd .worktrees/nx-release-local-registry
+pnpm install --frozen-lockfile
+node -e "const fs=require('node:fs'); const nx=JSON.parse(fs.readFileSync('nx.json','utf8')); nx.release.docker.registryUrl='localhost:5001'; fs.writeFileSync('nx.json', JSON.stringify(nx, null, 2) + '\n')"
+mkdir -p tmp/npm-cache
+export NPM_CONFIG_CACHE="$PWD/tmp/npm-cache"
+```
+
+Run the Nx phases explicitly. Top-level `nx release patch` does not expose the
+npm `--registry` option, but `nx release publish` does. Nx forwards publish
+options to every `nx-release-publish` target, so custom publishers must tolerate
+generic publish flags such as `--registry`, `--tag`, `--access`, and `--dryRun`.
+
+```bash
+pnpm exec nx release version patch --verbose
+pnpm exec nx release changelog --verbose
+pnpm exec nx release publish --verbose --registry http://localhost:4873
+```
+
+This publishes npm packages to Verdaccio and Docker images to the local Docker
+registry. It still creates local release commits and local tags. It may also
+attempt GitHub release operations depending on the release changelog/artifact
+configuration. For the safest local rehearsal, temporarily set the Go CLI
+artifact store to `provider: "none"` in
+`apps/moltnet-cli/nx-release-artifacts.json`; this still builds archives and
+stages npm platform binaries, but skips GitHub release asset upload.
+
+Inspect local npm publishes:
+
+```bash
+npm view @themoltnet/sdk --registry http://localhost:4873 versions
+npm view @themoltnet/cli --registry http://localhost:4873 versions
+```
+
+Inspect local Docker publishes:
+
+```bash
+curl http://localhost:5001/v2/_catalog
+curl http://localhost:5001/v2/getlarge/themoltnet/rest-api/tags/list
+```
+
+Cleanup local registries:
+
+```bash
+docker rm -f nx-release-verdaccio nx-release-registry
+git worktree remove --force .worktrees/nx-release-local-registry
+```
 
 ## Rehearsal Cleanup
 

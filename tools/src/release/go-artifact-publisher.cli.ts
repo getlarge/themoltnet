@@ -12,9 +12,29 @@ export function resolveConfigPath(cwd: string, configPath: string) {
   return isAbsolute(configPath) ? configPath : join(cwd, configPath);
 }
 
+function normalizeBooleanOptionValues(args: string[]) {
+  // Nx forwards booleans as --dryRun=true, while node:util parseArgs expects
+  // boolean options without explicit values.
+  const booleanOptions = new Set([
+    'dry-run',
+    'dryRun',
+    'skip-upload',
+    'skipUpload',
+    'verbose',
+    'yes',
+  ]);
+  return args.flatMap((arg) => {
+    const match = /^--([^=]+)=(true|false)$/.exec(arg);
+    if (!match || !booleanOptions.has(match[1])) {
+      return [arg];
+    }
+    return match[2] === 'true' ? [`--${match[1]}`] : [];
+  });
+}
+
 export function createCliRunOptions(argv = process.argv, env = process.env) {
   const { values } = parseArgs({
-    args: argv.slice(2),
+    args: normalizeBooleanOptionValues(argv.slice(2)),
     allowPositionals: false,
     options: {
       config: {
@@ -23,10 +43,31 @@ export function createCliRunOptions(argv = process.argv, env = process.env) {
       'dry-run': {
         type: 'boolean',
       },
+      dryRun: {
+        type: 'boolean',
+      },
       'skip-upload': {
         type: 'boolean',
       },
+      skipUpload: {
+        type: 'boolean',
+      },
       verbose: {
+        type: 'boolean',
+      },
+      registry: {
+        type: 'string',
+      },
+      tag: {
+        type: 'string',
+      },
+      access: {
+        type: 'string',
+      },
+      otp: {
+        type: 'string',
+      },
+      yes: {
         type: 'boolean',
       },
     },
@@ -34,9 +75,12 @@ export function createCliRunOptions(argv = process.argv, env = process.env) {
 
   return {
     configPath: values.config ?? null,
-    dryRun: values['dry-run'] === true || env.NX_DRY_RUN === 'true',
+    dryRun:
+      values['dry-run'] === true ||
+      values.dryRun === true ||
+      env.NX_DRY_RUN === 'true',
     verbose: values.verbose === true,
-    skipUpload: values['skip-upload'] === true,
+    skipUpload: values['skip-upload'] === true || values.skipUpload === true,
   };
 }
 

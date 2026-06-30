@@ -418,6 +418,26 @@ describe('go artifact publisher', () => {
       verbose: false,
       skipUpload: true,
     });
+    expect(
+      createCliRunOptions(
+        [
+          'node',
+          'script',
+          '--config=release.json',
+          '--registry=http://localhost:4873',
+          '--dryRun=true',
+          '--tag=next',
+          '--access=public',
+          '--skipUpload',
+        ],
+        {},
+      ),
+    ).toEqual({
+      configPath: 'release.json',
+      dryRun: true,
+      verbose: false,
+      skipUpload: true,
+    });
   });
 
   it('resolves absolute config paths without making them cwd-relative', () => {
