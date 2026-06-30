@@ -222,6 +222,9 @@ export function initMaintenanceWorkflows(
     orphanSweeperConfig.TASK_ORPHAN_SWEEPER_GRACE_SEC;
   const orphanBatchSize = orphanSweeperConfig.TASK_ORPHAN_SWEEPER_BATCH_SIZE;
   const orphanCron = orphanSweeperConfig.TASK_ORPHAN_SWEEPER_CRON;
+  const expiredTaskBatchSize =
+    orphanSweeperConfig.TASK_ORPHAN_SWEEPER_BATCH_SIZE;
+  const expiredTaskCron = orphanSweeperConfig.TASK_ORPHAN_SWEEPER_CRON;
 
   const listOrphansStep = DBOS.registerStep(
     async (now: Date, gracePeriodSec: number, batchSize: number) => {
@@ -461,5 +464,84 @@ export function initMaintenanceWorkflows(
   DBOS.registerScheduled(taskOrphanSweeperSchedulerWorkflow, {
     name: 'maintenance.taskOrphanSweeperScheduler',
     crontab: orphanCron,
+  });
+
+  // ── Task Expiry Sweeper ──────────────────────────────────────
+  // Retention cleanup applies only to terminal tasks. This sweeper
+  // terminalizes waiting/queued tasks whose task-level lifetime elapsed,
+  // so expiresAt cannot be used as a long-term retention bypass.
+  const listExpiredTasksStep = DBOS.registerStep(
+    async (now: Date, batchSize: number) => {
+      const { taskRepository } = getDeps();
+      return taskRepository.listExpiredNonTerminalTasks(now, batchSize);
+    },
+    { name: 'maintenance.taskExpirySweeper.listExpired' },
+  );
+
+  const expireTaskStep = DBOS.registerStep(
+    async (taskId: string) => {
+      const { taskRepository } = getDeps();
+      return taskRepository.expireIfStillNonTerminal(taskId);
+    },
+    {
+      name: 'maintenance.taskExpirySweeper.expireTask',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const taskExpirySweeperWorkflow = DBOS.registerWorkflow(
+    async (input: {
+      batchSize: number;
+    }): Promise<{ examined: number; expired: number }> => {
+      const { logger, notifyTaskStatusChanged } = getDeps();
+      const expiredCandidates = await listExpiredTasksStep(
+        new Date(),
+        input.batchSize,
+      );
+
+      let expired = 0;
+      for (const task of expiredCandidates) {
+        try {
+          const updated = await expireTaskStep(task.id);
+          if (!updated) continue;
+          expired += 1;
+          if (notifyTaskStatusChanged) {
+            await notifyTaskStatusChanged(task.id);
+          }
+        } catch (err) {
+          logger.error(
+            { taskId: task.id, err },
+            'maintenance: task expiry — expire failed',
+          );
+        }
+      }
+
+      if (expiredCandidates.length > 0) {
+        logger.info(
+          { examined: expiredCandidates.length, expired },
+          'maintenance: task expiry complete',
+        );
+      }
+
+      return { examined: expiredCandidates.length, expired };
+    },
+    { name: 'maintenance.taskExpirySweeper' },
+  );
+
+  const taskExpirySweeperSchedulerWorkflow = DBOS.registerWorkflow(
+    async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
+      await DBOS.startWorkflow(taskExpirySweeperWorkflow)({
+        batchSize: expiredTaskBatchSize,
+      });
+    },
+    { name: 'maintenance.taskExpirySweeperScheduler' },
+  );
+
+  DBOS.registerScheduled(taskExpirySweeperSchedulerWorkflow, {
+    name: 'maintenance.taskExpirySweeperScheduler',
+    crontab: expiredTaskCron,
   });
 }

@@ -810,6 +810,55 @@ describe('createTaskService.create — producer input normalization', () => {
     expect(newTask.proposedByAgentId).toBe(AGENT_ID);
     expect(newTask.proposedByHumanId).toBeNull();
   });
+
+  it('applies the configured default task lifetime when expiresInSec is omitted', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T12:00:00Z'));
+    try {
+      service = createTaskService({
+        ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+        taskLifetime: {
+          defaultExpiresInSec: 3600,
+          maxExpiresInSec: 7200,
+        },
+      });
+
+      await service.create(fulfillCreateInput() as never);
+
+      const newTask = mocks.taskRepository.create.mock.calls[0][0] as {
+        expiresAt: Date | null;
+      };
+      expect(newTask.expiresAt?.toISOString()).toBe('2026-06-30T13:00:00.000Z');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('rejects caller-requested task lifetimes above the configured cap', async () => {
+    service = createTaskService({
+      ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+      taskLifetime: {
+        defaultExpiresInSec: 3600,
+        maxExpiresInSec: 7200,
+      },
+    });
+
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        expiresInSec: 7201,
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+      validationErrors: [
+        {
+          field: 'expiresInSec',
+          message: 'expiresInSec must be <= 7200',
+        },
+      ],
+    });
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
 });
 
 describe('createTaskService.updateMetadata', () => {

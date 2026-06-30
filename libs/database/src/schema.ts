@@ -1121,6 +1121,9 @@ export const tasks = pgTable(
     index('tasks_claim_expires_idx')
       .on(table.claimExpiresAt)
       .where(sql`claim_expires_at IS NOT NULL`),
+    index('tasks_non_terminal_expires_idx')
+      .on(table.expiresAt)
+      .where(sql`expires_at IS NOT NULL`),
     index('tasks_allowed_profiles_gin_idx').using(
       'gin',
       sql`${table.allowedProfiles} jsonb_path_ops`,

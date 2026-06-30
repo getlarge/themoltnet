@@ -59,6 +59,7 @@ const WORKFLOW_ID = `task:${TASK_ID}:1`;
 const AGENT_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const GRACE_PERIOD_SEC = 300;
 const BATCH_SIZE = 50;
+const EXPIRED_TASK_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
 
 function makeOrphan(claimExpiresAt: Date): {
   task: Task;
@@ -98,6 +99,8 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
   };
   const taskRepository = {
     listOrphanedTasks: vi.fn().mockResolvedValue(orphans),
+    listExpiredNonTerminalTasks: vi.fn().mockResolvedValue([]),
+    expireIfStillNonTerminal: vi.fn().mockResolvedValue(null),
     countAttempts: vi.fn().mockResolvedValue(1),
     getMaxAttempts: vi.fn().mockResolvedValue(1),
     findById: vi
@@ -126,6 +129,7 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
     transactionRunner,
     relationshipWriter,
     logger,
+    notifyTaskStatusChanged: vi.fn().mockResolvedValue(undefined),
   } as unknown as MaintenanceDeps;
   return { deps, logger };
 }
@@ -144,6 +148,20 @@ async function runSweep(): Promise<{
     examined: number;
     resumed: number;
     forceReleased: number;
+  };
+}
+
+async function runExpirySweep(): Promise<{
+  examined: number;
+  expired: number;
+}> {
+  const sweeper = registeredWorkflows['maintenance.taskExpirySweeper'];
+  if (!sweeper) throw new Error('expiry sweeper workflow not registered');
+  return (await sweeper({
+    batchSize: BATCH_SIZE,
+  })) as {
+    examined: number;
+    expired: number;
   };
 }
 
@@ -172,6 +190,8 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
         TASK_ORPHAN_SWEEPER_CRON: '*/2 * * * *',
         TASK_ORPHAN_SWEEPER_GRACE_SEC: GRACE_PERIOD_SEC,
         TASK_ORPHAN_SWEEPER_BATCH_SIZE: BATCH_SIZE,
+        TASK_DEFAULT_EXPIRES_IN_SEC: 90 * 24 * 60 * 60,
+        TASK_MAX_EXPIRES_IN_SEC: 90 * 24 * 60 * 60,
       },
     );
     return DBOS;
@@ -285,6 +305,38 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
 
     await expect(runSweep()).rejects.toThrow('ECONNREFUSED');
     expect(deps.taskRepository.updateAttempt).not.toHaveBeenCalled();
+  });
+
+  it('task expiry sweeper marks expired waiting or queued tasks as expired', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const candidate = {
+      id: EXPIRED_TASK_ID,
+      status: 'waiting',
+      expiresAt: new Date('2026-06-30T00:00:00Z'),
+    } as unknown as Task;
+    vi.mocked(
+      deps.taskRepository.listExpiredNonTerminalTasks,
+    ).mockResolvedValue([candidate]);
+    vi.mocked(deps.taskRepository.expireIfStillNonTerminal).mockResolvedValue({
+      ...candidate,
+      status: 'expired',
+      completedAt: new Date('2026-07-01T00:00:00Z'),
+    } as unknown as Task);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const result = await runExpirySweep();
+
+    expect(
+      deps.taskRepository.listExpiredNonTerminalTasks,
+    ).toHaveBeenCalledWith(expect.any(Date), BATCH_SIZE);
+    expect(deps.taskRepository.expireIfStillNonTerminal).toHaveBeenCalledWith(
+      EXPIRED_TASK_ID,
+    );
+    expect(deps.notifyTaskStatusChanged).toHaveBeenCalledWith(EXPIRED_TASK_ID);
+    expect(result).toEqual({ examined: 1, expired: 1 });
   });
 
   // Suppress unused-variable warning on imports we use only via dynamic re-import.

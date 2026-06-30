@@ -94,6 +94,22 @@ export const TaskOrphanSweeperConfigSchema = Type.Object({
   TASK_ORPHAN_SWEEPER_GRACE_SEC: Type.Number({ default: 300 }),
   /** Max tasks force-released per sweep run. */
   TASK_ORPHAN_SWEEPER_BATCH_SIZE: Type.Number({ default: 50 }),
+  /**
+   * Default task lifetime in seconds when callers omit expiresInSec.
+   * Retention cleanup applies only after terminalization, so this bounds
+   * how long non-terminal waiting/queued work can bypass terminal retention.
+   */
+  TASK_DEFAULT_EXPIRES_IN_SEC: Type.Number({
+    default: 90 * 24 * 60 * 60,
+  }),
+  /**
+   * Maximum caller-requested task lifetime in seconds. Hosted deployments
+   * should keep this below their longest acceptable non-terminal storage
+   * window so expiresAt cannot be used as a retention bypass.
+   */
+  TASK_MAX_EXPIRES_IN_SEC: Type.Number({
+    default: 90 * 24 * 60 * 60,
+  }),
 });
 
 export const RuntimeSessionStorageConfigSchema = Type.Object({

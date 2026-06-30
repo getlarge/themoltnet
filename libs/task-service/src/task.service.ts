@@ -242,6 +242,10 @@ interface TaskServiceDeps {
    */
   transactionRunner: TransactionRunner;
   logger: Logger;
+  taskLifetime?: {
+    defaultExpiresInSec: number;
+    maxExpiresInSec: number;
+  };
 }
 
 function normalizeTaskTitle(title: string | null | undefined): string | null {
@@ -274,7 +278,10 @@ export function createTaskService(deps: TaskServiceDeps) {
     relationshipWriter,
     transactionRunner,
     logger,
+    taskLifetime,
   } = deps;
+  const defaultExpiresInSec = taskLifetime?.defaultExpiresInSec ?? null;
+  const maxExpiresInSec = taskLifetime?.maxExpiresInSec ?? null;
 
   /**
    * Build the async validation context (#1096) for one create call.
@@ -670,9 +677,29 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
       const inputCid = await computeJsonCid(normalizedInput);
 
-      const expiresAt = input.expiresInSec
-        ? new Date(Date.now() + input.expiresInSec * 1000)
-        : null;
+      if (
+        input.expiresInSec !== undefined &&
+        maxExpiresInSec !== null &&
+        input.expiresInSec > maxExpiresInSec
+      ) {
+        throw new TaskServiceError(
+          'invalid',
+          `expiresInSec exceeds maximum task lifetime (${maxExpiresInSec}s)`,
+          [
+            {
+              field: 'expiresInSec',
+              message: `expiresInSec must be <= ${maxExpiresInSec}`,
+            },
+          ],
+        );
+      }
+
+      const effectiveExpiresInSec =
+        input.expiresInSec ?? defaultExpiresInSec ?? null;
+      const expiresAt =
+        effectiveExpiresInSec !== null
+          ? new Date(Date.now() + effectiveExpiresInSec * 1000)
+          : null;
       const conditionSatisfied = input.claimCondition
         ? await isClaimConditionSatisfied(input.claimCondition)
         : true;

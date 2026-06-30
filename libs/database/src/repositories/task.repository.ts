@@ -224,6 +224,38 @@ export function createTaskRepository(db: Database) {
       return deleted.map((row) => row.id);
     },
 
+    async listExpiredNonTerminalTasks(
+      now: Date,
+      limit: number,
+    ): Promise<Task[]> {
+      return getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            inArray(tasks.status, ['waiting', 'queued']),
+            lt(tasks.expiresAt, now),
+          ),
+        )
+        .orderBy(asc(tasks.expiresAt))
+        .limit(limit);
+    },
+
+    async expireIfStillNonTerminal(id: string): Promise<Task | null> {
+      const [row] = await getExecutor(db)
+        .update(tasks)
+        .set({
+          status: 'expired',
+          completedAt: sql`now()`,
+          updatedAt: sql`now()`,
+        })
+        .where(
+          and(eq(tasks.id, id), inArray(tasks.status, ['waiting', 'queued'])),
+        )
+        .returning();
+      return row ?? null;
+    },
+
     async updateMetadata(
       id: string,
       metadata: { title?: string | null; tags?: string[] },

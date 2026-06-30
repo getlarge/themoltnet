@@ -319,6 +319,10 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     relationshipWriter,
     transactionRunner,
     logger: app.log,
+    taskLifetime: {
+      defaultExpiresInSec: config.taskOrphanSweeper.TASK_DEFAULT_EXPIRES_IN_SEC,
+      maxExpiresInSec: config.taskOrphanSweeper.TASK_MAX_EXPIRES_IN_SEC,
+    },
   });
   const notifyTaskStatusChanged = async (taskId: string): Promise<void> => {
     try {

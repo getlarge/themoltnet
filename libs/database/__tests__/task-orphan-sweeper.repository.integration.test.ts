@@ -1,12 +1,14 @@
 /**
- * Integration tests for the orphan-detection query used by the
- * task orphan sweeper (#937).
+ * Integration tests for the task maintenance queries used by the
+ * orphan and expiry sweepers.
  *
  * Spins up an ephemeral pgvector/pgvector:pg16 container via
  * testcontainers, applies all Drizzle migrations, seeds the FK rows
  * (team, agent, diary) needed by the tasks table, and verifies that
  * `listOrphanedTasks` returns exactly the rows whose claim_expires_at
- * is older than the supplied cutoff and whose status is non-terminal.
+ * is older than the supplied cutoff and whose status is non-terminal,
+ * and `listExpiredNonTerminalTasks` / `expireIfStillNonTerminal` handle
+ * task-level lifetime expiry for waiting/queued tasks.
  *
  * The `forceReleaseAttempt` step is straight-line code over existing
  * repository methods (`updateAttempt`, `updateStatus`, `findById`)
@@ -24,11 +26,11 @@ import { runMigrations } from '../src/migrate.js';
 import { createTaskRepository } from '../src/repositories/task.repository.js';
 import { agents, diaries, taskAttempts, tasks, teams } from '../src/schema.js';
 
-describe('TaskRepository.listOrphanedTasks (integration)', () => {
+describe('TaskRepository maintenance sweeper queries (integration)', () => {
   let db: Database;
   let pool: Pool;
   let repo: ReturnType<typeof createTaskRepository>;
-  let stopContainer: () => Promise<void>;
+  let stopContainer: (() => Promise<void>) | undefined;
 
   const TEAM_ID = '11111111-1111-4111-8111-111111111101';
   const AGENT_ID = '22222222-2222-4222-8222-222222222202';
@@ -78,13 +80,21 @@ describe('TaskRepository.listOrphanedTasks (integration)', () => {
       await db.delete(agents);
     }
     await pool?.end();
-    await stopContainer();
+    await stopContainer?.();
   });
 
   async function seedTask(opts: {
     id: string;
-    status: 'queued' | 'dispatched' | 'running' | 'completed' | 'failed';
+    status:
+      | 'waiting'
+      | 'queued'
+      | 'dispatched'
+      | 'running'
+      | 'completed'
+      | 'failed'
+      | 'expired';
     claimExpiresAt: Date | null;
+    expiresAt?: Date | null;
     createAttempt?: boolean;
     attemptStatus?: 'claimed' | 'running' | 'timed_out' | 'completed';
   }): Promise<void> {
@@ -104,6 +114,7 @@ describe('TaskRepository.listOrphanedTasks (integration)', () => {
           ? AGENT_ID
           : null,
       claimExpiresAt: opts.claimExpiresAt,
+      expiresAt: opts.expiresAt ?? null,
       maxAttempts: 1,
     });
     if (opts.createAttempt) {
@@ -238,6 +249,92 @@ describe('TaskRepository.listOrphanedTasks (integration)', () => {
 
     const result = await repo.listOrphanedTasks(CUTOFF, 2);
     expect(result).toHaveLength(2);
+
+    await db.delete(taskAttempts);
+    await db.delete(tasks);
+  });
+
+  it('lists only waiting or queued tasks whose task lifetime elapsed', async () => {
+    const NOW = new Date('2026-04-26T10:00:00Z');
+    const EXPIRED_WAITING = '88888888-8888-4888-8888-888888888801';
+    const EXPIRED_QUEUED = '88888888-8888-4888-8888-888888888802';
+    const FUTURE_WAITING = '88888888-8888-4888-8888-888888888803';
+    const EXPIRED_RUNNING = '88888888-8888-4888-8888-888888888804';
+    const TERMINAL_EXPIRED = '88888888-8888-4888-8888-888888888805';
+
+    await seedTask({
+      id: EXPIRED_WAITING,
+      status: 'waiting',
+      claimExpiresAt: null,
+      expiresAt: new Date(NOW.getTime() - 60_000),
+    });
+    await seedTask({
+      id: EXPIRED_QUEUED,
+      status: 'queued',
+      claimExpiresAt: null,
+      expiresAt: new Date(NOW.getTime() - 30_000),
+    });
+    await seedTask({
+      id: FUTURE_WAITING,
+      status: 'waiting',
+      claimExpiresAt: null,
+      expiresAt: new Date(NOW.getTime() + 60_000),
+    });
+    await seedTask({
+      id: EXPIRED_RUNNING,
+      status: 'running',
+      claimExpiresAt: null,
+      expiresAt: new Date(NOW.getTime() - 60_000),
+      createAttempt: true,
+      attemptStatus: 'running',
+    });
+    await seedTask({
+      id: TERMINAL_EXPIRED,
+      status: 'expired',
+      claimExpiresAt: null,
+      expiresAt: new Date(NOW.getTime() - 60_000),
+    });
+
+    const result = await repo.listExpiredNonTerminalTasks(NOW, 100);
+    const ids = result.map((task) => task.id);
+    expect(ids).toEqual([EXPIRED_WAITING, EXPIRED_QUEUED]);
+    expect(ids).not.toContain(FUTURE_WAITING);
+    expect(ids).not.toContain(EXPIRED_RUNNING);
+    expect(ids).not.toContain(TERMINAL_EXPIRED);
+
+    await db.delete(taskAttempts);
+    await db.delete(tasks);
+  });
+
+  it('expires waiting or queued tasks with a conditional update only', async () => {
+    const NOW = new Date('2026-04-26T10:00:00Z');
+    const WAITING_TASK = '99999999-9999-4999-8999-999999999901';
+    const RUNNING_TASK = '99999999-9999-4999-8999-999999999902';
+
+    await seedTask({
+      id: WAITING_TASK,
+      status: 'waiting',
+      claimExpiresAt: null,
+      expiresAt: new Date(NOW.getTime() - 60_000),
+    });
+    await seedTask({
+      id: RUNNING_TASK,
+      status: 'running',
+      claimExpiresAt: null,
+      expiresAt: new Date(NOW.getTime() - 60_000),
+      createAttempt: true,
+      attemptStatus: 'running',
+    });
+
+    const expired = await repo.expireIfStillNonTerminal(WAITING_TASK);
+    const skipped = await repo.expireIfStillNonTerminal(RUNNING_TASK);
+
+    expect(expired?.status).toBe('expired');
+    expect(expired?.completedAt).toBeInstanceOf(Date);
+    expect(skipped).toBeNull();
+
+    const running = await repo.findById(RUNNING_TASK);
+    expect(running?.status).toBe('running');
 
     await db.delete(taskAttempts);
     await db.delete(tasks);
