@@ -49,6 +49,8 @@ describe('getSubmitOutputContract', () => {
       // Description is shared, so the model sees the same advertised
       // purpose regardless of which executor registers the tool.
       expect(c!.description).toMatch(/Submit the structured output/);
+      expect(c!.description).toMatch(/captures the payload/);
+      expect(c!.description).not.toMatch(/ends the session/);
     }
   });
 

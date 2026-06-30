@@ -70,7 +70,7 @@ export function getSubmitOutputContract(
       'schema directly. The runtime validates the args against the ' +
       'schema; mismatches return a tool error you can recover from in ' +
       'the same session. On a valid call the runtime captures the ' +
-      'payload and ends the session — you do not need to repeat the ' +
+      'payload for attempt completion — you do not need to repeat the ' +
       'JSON in your final assistant message.',
     parametersSchema: schema,
   };

@@ -443,7 +443,7 @@ async function runLiveTask(input: {
       '--warm-session-ttl-sec',
       '600',
       '--max-turns',
-      String(input.maxTurns ?? 6),
+      String(input.maxTurns ?? 14),
       '--max-bash-timeouts',
       '1',
     ]);
