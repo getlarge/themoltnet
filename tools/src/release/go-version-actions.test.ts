@@ -266,6 +266,51 @@ go 1.25
     ).resolves.toEqual([]);
   });
 
+  it('discovers Go modules through Nx ignore-aware file visiting', async () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'go-release-validation-'));
+    mkdirSync(join(cwd, 'apps/cli'), { recursive: true });
+    mkdirSync(join(cwd, 'dist/generated'), { recursive: true });
+    mkdirSync(join(cwd, 'ignored/tools'), { recursive: true });
+    mkdirSync(join(cwd, '.worktrees/rehearsal'), { recursive: true });
+    writeFileSync(join(cwd, '.gitignore'), 'dist/\n.worktrees/\n');
+    writeFileSync(join(cwd, '.nxignore'), 'ignored/\n');
+    writeFileSync(
+      join(cwd, 'apps/cli/go.mod'),
+      `module example.com/repo/apps/cli
+
+go 1.25
+`,
+    );
+    writeFileSync(
+      join(cwd, 'dist/generated/go.mod'),
+      `module example.com/repo/dist/generated
+
+go 1.25
+`,
+    );
+    writeFileSync(
+      join(cwd, 'ignored/tools/go.mod'),
+      `module example.com/repo/ignored/tools
+
+go 1.25
+`,
+    );
+    writeFileSync(
+      join(cwd, '.worktrees/rehearsal/go.mod'),
+      `module example.com/repo/rehearsal
+
+go 1.25
+`,
+    );
+
+    await expect(discoverGoWorkspaceModules(cwd)).resolves.toEqual([
+      {
+        modulePath: 'example.com/repo/apps/cli',
+        root: join(cwd, 'apps/cli'),
+      },
+    ]);
+  });
+
   it('does not infer repository-specific validation roots by default', () => {
     expect(
       shouldRunGoReleaseValidation({}, [

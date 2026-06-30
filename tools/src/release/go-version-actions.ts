@@ -1,11 +1,13 @@
 import { execFileSync } from 'node:child_process';
-import { access, readdir, readFile } from 'node:fs/promises';
-import { join, relative, resolve } from 'node:path';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { access, readFile } from 'node:fs/promises';
+import { dirname, join, relative, resolve } from 'node:path';
 
-import type { ProjectGraph, Tree } from '@nx/devkit';
+import { type ProjectGraph, type Tree, visitNotIgnoredFiles } from '@nx/devkit';
 import { VersionActions } from 'nx/release';
 
 type TreeLike = Pick<Tree, 'read' | 'write'>;
+type VisitTree = Pick<Tree, 'children' | 'exists' | 'isFile' | 'read' | 'root'>;
 type CurrentVersionResolverMetadata =
   | {
       registry?: unknown;
@@ -253,44 +255,57 @@ async function pathExists(path: string) {
   }
 }
 
-async function discoverGoModDirs(cwd: string, dir = cwd): Promise<string[]> {
-  const entries = await readdir(dir, { withFileTypes: true });
-  const dirs: string[] = [];
-
-  for (const entry of entries) {
-    if (!entry.isDirectory()) {
-      continue;
+function createFileSystemVisitTree(root: string): VisitTree {
+  const read = ((path: string, encoding?: BufferEncoding) => {
+    const file = resolve(root, path);
+    if (!existsSync(file)) {
+      return null;
     }
-    if (
-      entry.name === '.git' ||
-      entry.name === '.nx' ||
-      entry.name === '.worktrees' ||
-      entry.name === 'dist' ||
-      entry.name === 'node_modules'
-    ) {
-      continue;
-    }
+    const content = readFileSync(file);
+    return encoding ? content.toString(encoding) : content;
+  }) as VisitTree['read'];
 
-    const child = join(dir, entry.name);
-    if (await pathExists(join(child, 'go.mod'))) {
-      dirs.push(child);
-      continue;
-    }
-    dirs.push(...(await discoverGoModDirs(cwd, child)));
-  }
+  return {
+    root,
+    children(path) {
+      const dir = resolve(root, path);
+      return existsSync(dir) ? readdirSync(dir) : [];
+    },
+    exists(path) {
+      return existsSync(resolve(root, path));
+    },
+    isFile(path) {
+      return statSync(resolve(root, path)).isFile();
+    },
+    read,
+  };
+}
 
-  return dirs;
+function discoverGoModDirs(cwd: string, tree?: VisitTree) {
+  const dirs = new Set<string>();
+  const visitTree = tree ?? createFileSystemVisitTree(cwd);
+
+  visitNotIgnoredFiles(visitTree as Tree, '.', (path) => {
+    if (path.split(/[\\/]/).at(-1) === 'go.mod') {
+      dirs.add(resolve(visitTree.root, dirname(path)));
+    }
+  });
+
+  return Array.from(dirs).sort((a, b) =>
+    relative(cwd, a).localeCompare(relative(cwd, b)),
+  );
 }
 
 export async function discoverGoWorkspaceModules(
   cwd: string,
+  tree?: VisitTree,
 ): Promise<GoWorkspaceModule[]> {
   const goWorkPath = join(cwd, 'go.work');
   const dirs = (await pathExists(goWorkPath))
     ? parseGoWorkUseDirs(await readFile(goWorkPath, 'utf-8')).map((dir) =>
         resolve(cwd, dir),
       )
-    : await discoverGoModDirs(cwd);
+    : discoverGoModDirs(cwd, tree);
 
   const modules = await Promise.all(
     dirs.map(async (root) => {
