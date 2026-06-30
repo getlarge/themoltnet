@@ -597,6 +597,50 @@ export function createTaskService(deps: TaskServiceDeps) {
     }
   }
 
+  async function planDeleteMany(input: {
+    ids: string[];
+    callerId: string;
+    callerNs: KetoNamespace;
+    force?: boolean;
+    reason?: string;
+  }): Promise<{ accepted: string[]; skipped: string[] }> {
+    const force = input.force ?? false;
+    if (force && !input.reason?.trim()) {
+      throw new TaskServiceError('invalid', 'force cleanup requires a reason');
+    }
+
+    const uniqueIds = [...new Set(input.ids)];
+    const allowedMap = await permissionChecker.canDeleteTasks(
+      uniqueIds,
+      input.callerId,
+      input.callerNs,
+    );
+    const allowedIds = uniqueIds.filter((id) => allowedMap.get(id));
+    if (allowedIds.length === 0) {
+      return { accepted: [], skipped: uniqueIds };
+    }
+
+    const rows = await taskRepository.findByIds(allowedIds);
+    const terminalIds = rows
+      .filter(
+        (row) =>
+          TERMINAL_STATUSES.has(row.status) && !LIVE_STATUSES.has(row.status),
+      )
+      .map((row) => row.id);
+    const sealedIds = new Set(
+      await taskRepository.findSealedTaskIds(terminalIds),
+    );
+    const accepted = force
+      ? terminalIds
+      : terminalIds.filter((id) => !sealedIds.has(id));
+    const acceptedSet = new Set(accepted);
+
+    return {
+      accepted: uniqueIds.filter((id) => acceptedSet.has(id)),
+      skipped: uniqueIds.filter((id) => !acceptedSet.has(id)),
+    };
+  }
+
   return {
     async create(input: CreateTaskInput): Promise<Task> {
       const normalizedInput = normalizeTaskInputForCreate(
@@ -1847,50 +1891,34 @@ export function createTaskService(deps: TaskServiceDeps) {
       return dbTaskToWire(updated);
     },
 
+    async planDeleteMany(input: {
+      ids: string[];
+      callerId: string;
+      callerNs: KetoNamespace;
+      force?: boolean;
+      reason?: string;
+    }): Promise<{ accepted: string[]; skipped: string[] }> {
+      return planDeleteMany(input);
+    },
+
     async deleteMany(input: {
       ids: string[];
       callerId: string;
       callerNs: KetoNamespace;
-      mode?: 'safe' | 'accept-risk';
+      force?: boolean;
       reason?: string;
     }): Promise<{ deleted: string[]; skipped: string[] }> {
-      const mode = input.mode ?? 'safe';
-      if (mode === 'accept-risk' && !input.reason?.trim()) {
-        throw new TaskServiceError(
-          'invalid',
-          'accept-risk cleanup requires a reason',
-        );
+      const force = input.force ?? false;
+      const plan = await planDeleteMany(input);
+      const deletableIds = plan.accepted;
+      if (deletableIds.length === 0) {
+        return { deleted: [], skipped: plan.skipped };
       }
-
-      const uniqueIds = [...new Set(input.ids)];
-      const allowedMap = await permissionChecker.canDeleteTasks(
-        uniqueIds,
-        input.callerId,
-        input.callerNs,
-      );
-      const allowedIds = uniqueIds.filter((id) => allowedMap.get(id));
-      if (allowedIds.length === 0) {
-        return { deleted: [], skipped: uniqueIds };
-      }
-
-      const rows = await taskRepository.findByIds(allowedIds);
-      const terminalIds = rows
-        .filter(
-          (row) =>
-            TERMINAL_STATUSES.has(row.status) && !LIVE_STATUSES.has(row.status),
-        )
-        .map((row) => row.id);
-      const sealedIds = new Set(
-        await taskRepository.findSealedTaskIds(terminalIds),
-      );
-      const deletableIds =
-        mode === 'accept-risk'
-          ? terminalIds
-          : terminalIds.filter((id) => !sealedIds.has(id));
+      const rows = await taskRepository.findByIds(deletableIds);
 
       const deleted = await transactionRunner.runInTransaction(
         async () => {
-          if (mode === 'accept-risk') {
+          if (force) {
             await taskRepository.deleteCorrelationSealsForTasks(deletableIds);
           }
           const deletedTaskIds = await taskRepository.deleteMany(deletableIds);
@@ -1925,18 +1953,20 @@ export function createTaskService(deps: TaskServiceDeps) {
       );
 
       const deletedSet = new Set(deleted);
-      const skipped = uniqueIds.filter((id) => !deletedSet.has(id));
+      const skipped = [
+        ...plan.skipped,
+        ...deletableIds.filter((id) => !deletedSet.has(id)),
+      ];
 
       if (deleted.length > 0) {
         logger.info(
           {
             deleted: deleted.length,
             taskIds: deleted,
-            mode,
-            acceptedRisk: mode === 'accept-risk',
+            force,
             callerId: input.callerId,
             callerNs: input.callerNs,
-            reason: mode === 'accept-risk' ? input.reason?.trim() : undefined,
+            reason: force ? input.reason?.trim() : undefined,
           },
           'task.delete-many',
         );

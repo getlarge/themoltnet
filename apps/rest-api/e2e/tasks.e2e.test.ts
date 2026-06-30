@@ -2340,13 +2340,14 @@ describe('Tasks API', () => {
         auth: () => claimer.accessToken,
         body: {
           ids: [taskId],
-          mode: 'accept-risk',
+          force: true,
           reason: 'try to escalate cancel into delete',
         },
       });
       expect(claimantCleanup.error).toBeUndefined();
       expect(claimantCleanup.data).toEqual({
-        deleted: [],
+        workflowId: null,
+        accepted: [],
         skipped: [taskId],
       });
 
@@ -2361,13 +2362,25 @@ describe('Tasks API', () => {
       const ownerCleanup = await batchDeleteTasks({
         client,
         auth: () => proposer.accessToken,
-        body: { ids: [taskId], mode: 'safe' },
+        body: { ids: [taskId] },
       });
       expect(ownerCleanup.error).toBeUndefined();
-      expect(ownerCleanup.data).toEqual({ deleted: [taskId], skipped: [] });
+      expect(ownerCleanup.data?.workflowId).toEqual(expect.any(String));
+      expect(ownerCleanup.data?.accepted).toEqual([taskId]);
+      expect(ownerCleanup.data?.skipped).toEqual([]);
+      await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: taskId },
+          }),
+        (result) => result.response.status === 404,
+        { label: 'owner cleanup deletes cancelled task' },
+      );
     });
 
-    it('safe mode deletes terminal unsealed tasks and accept-risk gates sealed terminal cleanup', async () => {
+    it('safe deletion queues terminal unsealed tasks and force gates sealed terminal cleanup', async () => {
       const terminal = await createTask({
         client,
         auth: () => proposer.accessToken,
@@ -2431,21 +2444,31 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         body: {
           ids: [terminal.data!.id, live.data!.id, sealed.data!.id, missingId],
-          mode: 'safe',
         },
       });
       expect(safe.error).toBeUndefined();
-      expect(safe.data?.deleted).toEqual([terminal.data!.id]);
+      expect(safe.data?.workflowId).toEqual(expect.any(String));
+      expect(safe.data?.accepted).toEqual([terminal.data!.id]);
       expect(safe.data?.skipped).toEqual([
         live.data!.id,
         sealed.data!.id,
         missingId,
       ]);
+      await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: terminal.data!.id },
+          }),
+        (result) => result.response.status === 404,
+        { label: 'safe cleanup deletes terminal task' },
+      );
 
       const rejected = await batchDeleteTasks({
         client,
         auth: () => proposer.accessToken,
-        body: { ids: [sealed.data!.id], mode: 'accept-risk' },
+        body: { ids: [sealed.data!.id], force: true },
       });
       expect(rejected.response.status).toBe(400);
 
@@ -2454,13 +2477,24 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         body: {
           ids: [sealed.data!.id, live.data!.id],
-          mode: 'accept-risk',
+          force: true,
           reason: 'operator reviewed terminal sealed task',
         },
       });
       expect(accepted.error).toBeUndefined();
-      expect(accepted.data?.deleted).toEqual([sealed.data!.id]);
+      expect(accepted.data?.workflowId).toEqual(expect.any(String));
+      expect(accepted.data?.accepted).toEqual([sealed.data!.id]);
       expect(accepted.data?.skipped).toEqual([live.data!.id]);
+      await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: sealed.data!.id },
+          }),
+        (result) => result.response.status === 404,
+        { label: 'force cleanup deletes sealed terminal task' },
+      );
 
       expect(
         (

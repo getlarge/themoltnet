@@ -24,6 +24,7 @@ import {
   type TaskArtifactRepository,
   type TaskRepository,
   type TransactionRunner,
+  type WorkflowHandle,
   WorkflowQueue,
 } from '@moltnet/database';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
@@ -64,6 +65,25 @@ interface TaskCleanupManifest {
   skippedProtected: number;
   batchFull: boolean;
   createdAt: string;
+}
+
+export interface TaskDeletionWorkflowInput {
+  ids: string[];
+  force: boolean;
+  reason?: string;
+  requestedBy: {
+    id: string;
+    ns: 'agent' | 'human';
+  };
+}
+
+export interface TaskDeletionWorkflowResult {
+  requested: number;
+  accepted: number;
+  skipped: string[];
+  deletedTaskCount: number;
+  deletedObjectCount: number;
+  skippedProtected: number;
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -110,6 +130,24 @@ export function setMaintenanceDeps(deps: MaintenanceDeps): void {
 // ── Lazy Registration ──────────────────────────────────────────
 
 let _initialized = false;
+let _taskDeletionWorkflow:
+  | ((input: TaskDeletionWorkflowInput) => Promise<TaskDeletionWorkflowResult>)
+  | null = null;
+
+const TASK_DELETION_QUEUE_NAME = 'task-deletion-cleanup';
+
+export async function startTaskDeletionWorkflow(
+  input: TaskDeletionWorkflowInput,
+  workflowId: string,
+): Promise<WorkflowHandle<TaskDeletionWorkflowResult>> {
+  if (!_taskDeletionWorkflow) {
+    throw new Error('Task deletion workflow not registered');
+  }
+  return DBOS.startWorkflow(_taskDeletionWorkflow, {
+    workflowID: workflowId,
+    queueName: TASK_DELETION_QUEUE_NAME,
+  })(input);
+}
 
 /**
  * Register all maintenance workflows with DBOS.
@@ -639,6 +677,7 @@ export function initMaintenanceWorkflows(
     'task-retention-cleanup',
     { concurrency: 1 },
   );
+  new WorkflowQueue(TASK_DELETION_QUEUE_NAME, { concurrency: 2 });
 
   const buildRetentionCleanupManifestStep = DBOS.registerStep(
     async (
@@ -740,7 +779,10 @@ export function initMaintenanceWorkflows(
   );
 
   const deleteTaskRowsStep = DBOS.registerStep(
-    async (manifest: TaskCleanupManifest): Promise<TaskCleanupManifest> => {
+    async (
+      manifest: TaskCleanupManifest,
+      opts?: { deleteCorrelationSeals?: boolean },
+    ): Promise<TaskCleanupManifest> => {
       const {
         relationshipWriter,
         runtimeSessionRepository,
@@ -750,6 +792,9 @@ export function initMaintenanceWorkflows(
       const sessionIds = manifest.runtimeSessions.map((session) => session.id);
       const taskIds = manifest.tasks.map((task) => task.id);
       const deletedIds = await transactionRunner.runInTransaction(async () => {
+        if (opts?.deleteCorrelationSeals) {
+          await taskRepository.deleteCorrelationSealsForTasks(taskIds);
+        }
         await runtimeSessionRepository.detachChildren(sessionIds);
         const deletedTaskIds = await taskRepository.deleteMany(taskIds);
         const deletedTaskIdSet = new Set(deletedTaskIds);
@@ -774,6 +819,111 @@ export function initMaintenanceWorkflows(
       intervalSeconds: 2,
       backoffRate: 2,
     },
+  );
+
+  const buildTaskDeletionManifestStep = DBOS.registerStep(
+    async (
+      input: TaskDeletionWorkflowInput,
+    ): Promise<TaskCleanupManifest & { skipped: string[] }> => {
+      const {
+        taskArtifactRepository,
+        runtimeSessionRepository,
+        taskRepository,
+      } = getDeps();
+      const uniqueIds = [...new Set(input.ids)];
+      const rows = await taskRepository.findByIds(uniqueIds);
+      const terminalTasks = rows.filter((task) =>
+        ['completed', 'failed', 'cancelled', 'expired'].includes(task.status),
+      );
+      const sealedIds = new Set(
+        await taskRepository.findSealedTaskIds(
+          terminalTasks.map((task) => task.id),
+        ),
+      );
+      const tasksForCleanup = terminalTasks
+        .filter((task) => input.force || !sealedIds.has(task.id))
+        .map(toCleanupManifestTask);
+      const taskIds = tasksForCleanup.map((task) => task.id);
+      const [taskArtifacts, runtimeSessions] = await Promise.all([
+        taskArtifactRepository.listCleanupRefsForTasks(taskIds),
+        runtimeSessionRepository.listCleanupRefsForTasks(taskIds),
+      ]);
+      const cleanupSet = new Set(taskIds);
+
+      return {
+        tasks: tasksForCleanup,
+        taskArtifacts,
+        runtimeSessions,
+        skipped: uniqueIds.filter((id) => !cleanupSet.has(id)),
+        skippedProtected: input.force
+          ? 0
+          : terminalTasks.filter((task) => sealedIds.has(task.id)).length,
+        batchFull: false,
+        createdAt: new Date().toISOString(),
+      };
+    },
+    {
+      name: 'maintenance.taskDeletion.buildManifest',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  _taskDeletionWorkflow = DBOS.registerWorkflow(
+    async (
+      input: TaskDeletionWorkflowInput,
+    ): Promise<TaskDeletionWorkflowResult> => {
+      const { logger } = getDeps();
+      if (input.force && !input.reason?.trim()) {
+        throw new Error('force task deletion requires a reason');
+      }
+      const manifest = await buildTaskDeletionManifestStep(input);
+      if (manifest.tasks.length === 0) {
+        return {
+          requested: input.ids.length,
+          accepted: 0,
+          skipped: manifest.skipped,
+          deletedTaskCount: 0,
+          deletedObjectCount: 0,
+          skippedProtected: manifest.skippedProtected,
+        };
+      }
+
+      const deletedManifest = await deleteTaskRowsStep(manifest, {
+        deleteCorrelationSeals: input.force,
+      });
+      const deletedArtifactObjects =
+        await deleteTaskArtifactObjectsStep(deletedManifest);
+      const deletedRuntimeSessionObjects =
+        await deleteRuntimeSessionObjectsStep(deletedManifest);
+      const deletedObjectCount =
+        deletedArtifactObjects + deletedRuntimeSessionObjects;
+
+      logger.info(
+        {
+          requested: input.ids.length,
+          deletedTaskCount: deletedManifest.tasks.length,
+          deletedObjectCount,
+          skipped: manifest.skipped.length,
+          skippedProtected: manifest.skippedProtected,
+          force: input.force,
+          requestedBy: input.requestedBy,
+        },
+        'maintenance: task deletion complete',
+      );
+
+      return {
+        requested: input.ids.length,
+        accepted: manifest.tasks.length,
+        skipped: manifest.skipped,
+        deletedTaskCount: deletedManifest.tasks.length,
+        deletedObjectCount,
+        skippedProtected: manifest.skippedProtected,
+      };
+    },
+    { name: 'maintenance.taskDeletion' },
   );
 
   const taskRetentionCleanupWorkflow = DBOS.registerWorkflow(

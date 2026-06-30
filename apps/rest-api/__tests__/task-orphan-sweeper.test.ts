@@ -115,7 +115,17 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
     expireIfStillNonTerminal: vi.fn().mockResolvedValue(null),
     expireManyIfStillNonTerminal: vi.fn().mockResolvedValue([]),
     listTerminalTasksPastRetention: vi.fn().mockResolvedValue([]),
+    findByIds: vi
+      .fn()
+      .mockImplementation((ids: string[]) =>
+        Promise.resolve(
+          ids
+            .map((id) => orphans.find((o) => o.task.id === id)?.task)
+            .filter(Boolean),
+        ),
+      ),
     findSealedTaskIds: vi.fn().mockResolvedValue([]),
+    deleteCorrelationSealsForTasks: vi.fn().mockResolvedValue(undefined),
     deleteMany: vi.fn().mockResolvedValue([]),
     countAttempts: vi.fn().mockResolvedValue(1),
     getMaxAttempts: vi.fn().mockResolvedValue(1),
@@ -663,6 +673,104 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
       deletedObjectCount: 2,
       skippedProtected: 0,
       batchFull: false,
+    });
+  });
+
+  it('task deletion workflow removes seals, task dependencies, objects, and relations', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const deletedTask = {
+      id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee5',
+      status: 'cancelled',
+      teamId: '99999999-9999-9999-9999-999999999999',
+      diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff5',
+      claimAgentId: AGENT_ID,
+    } as unknown as Task;
+    const liveTask = {
+      id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee6',
+      status: 'queued',
+      teamId: '99999999-9999-9999-9999-999999999999',
+      diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff6',
+      claimAgentId: null,
+    } as unknown as Task;
+    vi.mocked(deps.taskRepository.findByIds).mockResolvedValue([
+      deletedTask,
+      liveTask,
+    ]);
+    vi.mocked(deps.taskRepository.findSealedTaskIds).mockResolvedValue([
+      deletedTask.id,
+    ]);
+    vi.mocked(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '22222222-2222-2222-2222-222222222225',
+        taskId: deletedTask.id,
+        objectKey: 'teams/t/artifacts/deleted-by-api',
+        sizeBytes: 123,
+      },
+    ]);
+    vi.mocked(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '33333333-3333-3333-3333-333333333336',
+        taskId: deletedTask.id,
+        objectKey: 'teams/t/sessions/deleted-by-api',
+        sizeBytes: 456,
+      },
+    ]);
+    vi.mocked(deps.taskRepository.deleteMany).mockResolvedValue([
+      deletedTask.id,
+    ]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskDeletion'];
+    if (!workflow) {
+      throw new Error('task deletion workflow not registered');
+    }
+    const result = await workflow({
+      ids: [deletedTask.id, liveTask.id],
+      force: true,
+      reason: 'operator confirmed sealed terminal cleanup',
+      requestedBy: { id: AGENT_ID, ns: 'agent' },
+    });
+
+    expect(
+      deps.taskRepository.deleteCorrelationSealsForTasks,
+    ).toHaveBeenCalledWith([deletedTask.id]);
+    expect(deps.runtimeSessionRepository.detachChildren).toHaveBeenCalledWith([
+      '33333333-3333-3333-3333-333333333336',
+    ]);
+    expect(deps.taskRepository.deleteMany).toHaveBeenCalledWith([
+      deletedTask.id,
+    ]);
+    expect(deps.taskArtifactStorage.deleteObjects).toHaveBeenCalledWith([
+      'teams/t/artifacts/deleted-by-api',
+    ]);
+    expect(deps.runtimeSessionStorage.deleteObjects).toHaveBeenCalledWith([
+      'teams/t/sessions/deleted-by-api',
+    ]);
+    expect(deps.taskArtifactStorage.deleteObject).not.toHaveBeenCalled();
+    expect(deps.runtimeSessionStorage.deleteObject).not.toHaveBeenCalled();
+    expect(
+      deps.relationshipWriter.removeTaskRelationsBatch,
+    ).toHaveBeenCalledWith([
+      {
+        id: deletedTask.id,
+        diaryId: deletedTask.diaryId,
+        claimAgentId: deletedTask.claimAgentId,
+      },
+    ]);
+    expect(result).toEqual({
+      requested: 2,
+      accepted: 1,
+      skipped: [liveTask.id],
+      deletedTaskCount: 1,
+      deletedObjectCount: 2,
+      skippedProtected: 0,
     });
   });
 
