@@ -7,6 +7,7 @@ import type { VM } from '@earendil-works/gondolin';
 import {
   createHttpHooks,
   createShadowPathPredicate,
+  isWriteFlag,
   MemoryProvider,
   RealFSProvider,
   ShadowProvider,
@@ -39,6 +40,12 @@ import type { ResumeCommand, SandboxConfig } from './snapshot.js';
 export const GUEST_TASK_CONTEXT_MOUNT = '/moltnet-task-context';
 /** @deprecated Use GUEST_TASK_CONTEXT_MOUNT. */
 export const GUEST_TASK_SKILLS_MOUNT = GUEST_TASK_CONTEXT_MOUNT;
+
+export const PACKAGE_MANAGER_STORE_ENV_KEYS = [
+  'NPM_CONFIG_STORE_DIR',
+  'NPM_CONFIG_CACHE',
+  'YARN_CACHE_FOLDER',
+] as const;
 
 export interface VmConfig {
   /** Absolute path to the qcow2 checkpoint. */
@@ -116,6 +123,101 @@ export function shouldRunResumeCommand(
     return false;
   }
   return true;
+}
+
+export function shouldShadowNodeModulesPath(pathname: string): boolean {
+  const normalized = path.posix.normalize(pathname);
+  return (
+    normalized === '/node_modules' ||
+    normalized.startsWith('/node_modules/') ||
+    normalized.endsWith('/node_modules') ||
+    normalized.includes('/node_modules/')
+  );
+}
+
+function isNodeModulesBinPath(pathname: string): boolean {
+  const normalized = path.posix.normalize(pathname);
+  return (
+    normalized.includes('/node_modules/.bin/') ||
+    normalized.startsWith('/node_modules/.bin/')
+  );
+}
+
+export class AutoParentMemoryProvider extends MemoryProvider {
+  private ensureParentDir(pathname: string): void {
+    const parent = path.posix.dirname(path.posix.normalize(pathname));
+    if (!parent || parent === '/' || parent === '.') return;
+    this.mkdirSync(parent, { recursive: true });
+  }
+
+  override async mkdir(
+    pathname: string,
+    options?: object,
+  ): Promise<void | string> {
+    this.ensureParentDir(pathname);
+    return super.mkdir(pathname, options);
+  }
+
+  override mkdirSync(pathname: string, options?: object): void | string {
+    this.ensureParentDir(pathname);
+    return super.mkdirSync(pathname, options);
+  }
+
+  override async open(pathname: string, flags: string, mode?: number) {
+    if (isWriteFlag(flags)) this.ensureParentDir(pathname);
+    return super.open(
+      pathname,
+      flags,
+      isWriteFlag(flags) && isNodeModulesBinPath(pathname)
+        ? (mode ?? 0o755) | 0o111
+        : mode,
+    );
+  }
+
+  override openSync(pathname: string, flags: string, mode?: number) {
+    if (isWriteFlag(flags)) this.ensureParentDir(pathname);
+    return super.openSync(
+      pathname,
+      flags,
+      isWriteFlag(flags) && isNodeModulesBinPath(pathname)
+        ? (mode ?? 0o755) | 0o111
+        : mode,
+    );
+  }
+}
+
+export function resolvePackageManagerStoreDirs(
+  env: Record<string, string>,
+): string[] {
+  const dirs = new Set<string>();
+  for (const key of PACKAGE_MANAGER_STORE_ENV_KEYS) {
+    const value = env[key];
+    if (!value || !path.posix.isAbsolute(value) || value.includes('$')) {
+      continue;
+    }
+    const normalized = path.posix.normalize(value);
+    if (normalized === '/') continue;
+    dirs.add(normalized);
+  }
+  return [...dirs].sort();
+}
+
+function shQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+function buildPackageManagerStoreCommand(dirs: string[]): string {
+  if (dirs.length === 0) return '';
+  return dirs
+    .map((storePath) => {
+      const quoted = shQuote(storePath);
+      return [
+        `mkdir -p ${quoted}`,
+        `chown 501:501 ${quoted}`,
+        `chmod 0755 ${quoted}`,
+      ].join('\n');
+    })
+    .join('\n');
 }
 
 /**
@@ -346,11 +448,24 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   // .moltnet/<agent>/ dirs that confuse auto-discovery).
   vmAgentEnv.MOLTNET_CREDENTIALS_PATH = `${vmAgentDir}/moltnet.json`;
 
-  // Build workspace VFS provider (with optional shadows)
+  // Build workspace VFS provider.
+  //
+  // `node_modules` is always shadowed into guest-local memory because host
+  // dependencies are platform-specific and slow through the mounted workspace
+  // bridge. Keep this layer closest to RealFSProvider so stricter caller
+  // shadows, such as read-only `shadowMode: 'deny'` workspace attachments,
+  // still wrap it and remain authoritative.
   const vfsConfig = config.sandboxConfig?.vfs;
   let workspaceProvider: RealFSProvider | ShadowProvider = new RealFSProvider(
     config.mountPath,
   );
+  workspaceProvider = new ShadowProvider(workspaceProvider, {
+    shouldShadow: ({ path: shadowPath }) =>
+      shouldShadowNodeModulesPath(shadowPath),
+    denySymlinkBypass: false,
+    tmpfs: new AutoParentMemoryProvider(),
+    writeMode: 'tmpfs',
+  });
   if (vfsConfig?.shadow?.length) {
     const predicate = createShadowPathPredicate(vfsConfig.shadow);
     workspaceProvider = new ShadowProvider(workspaceProvider, {
@@ -379,6 +494,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     ...envOverrides,
     MOLTNET_GUEST_WORKSPACE: guestWorkspace,
   };
+  const packageManagerStoreDirs = resolvePackageManagerStoreDirs(envOverrides);
 
   const resources = config.sandboxConfig?.resources;
   const workspaceMode = config.workspaceMode ?? 'shared_mount';
@@ -467,11 +583,22 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       config.signal,
     );
 
+    const packageManagerStoreCommand = buildPackageManagerStoreCommand(
+      packageManagerStoreDirs,
+    );
+    if (packageManagerStoreCommand) {
+      await vmRun(
+        vm,
+        'package-manager store directories',
+        packageManagerStoreCommand,
+        config.signal,
+      );
+    }
+
     // Consumer-provided per-resume commands. Repo-specific bootstrap
-    // (corepack-install a pinned pnpm, `pnpm fetch`, kernel tmpfs mounts
-    // for paths the consumer wants out of the Gondolin FUSE hot path —
-    // see diary 17f0ac6f for the pnpm-install-100×-faster recipe) belongs
-    // here, not in vm-manager. pi-extension stays repo-agnostic.
+    // (corepack-install a pinned pnpm, `pnpm fetch`, lightweight repo-local
+    // setup) belongs here, not in vm-manager. pi-extension stays
+    // package-manager-agnostic.
     // Sequential, first failure aborts resume via vmRun. Per-step opt-in
     // retries (object form: `{ run, retries, retryBackoffMs }`) cover
     // network-bound idempotent steps that race DHCP/registry availability

@@ -284,16 +284,21 @@ Dogfood trail:
 - `17f0ac6f-07f0-4e12-b5e5-d35a0fa2df6c` — first 100x pnpm recipe
 - `2e4e25a9-ef4b-46bf-a55d-6c2b1159ee61` — follow-up fix for per-workspace `node_modules`
 
-`vfs.shadow: ["node_modules"]` is still useful to hide host-built artifacts,
-but it does not solve the hot-path problem by itself. For fast pnpm setup, move
-both endpoints off the FUSE bridge:
+The extension now always shadows any `node_modules` path into VM-local
+executable storage. That is VFS policy rather than a resume command, so it also
+covers worktrees the live agent creates after resume. Package-manager stores
+are different: pnpm's content-addressed store should remain a reusable
+guest-local directory, e.g. `NPM_CONFIG_STORE_DIR=/opt/pnpm-store`, not tmpfs.
+Runtime profiles or `sandbox.json` can warm that store with `pnpm fetch` from
+the mounted repo lockfile; avoid full `pnpm install` during resume for
+interactive sessions because install outputs are intentionally VM-local.
 
-- package store on guest-local disk, e.g. `NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
-- install target on guest tmpfs via `resumeCommands`
+Run the real VM integration check locally with:
 
-Current themoltnet `sandbox.json` does this by mounting tmpfs over the root and
-per-workspace `node_modules` directories before running `pnpm install
---frozen-lockfile`.
+```bash
+MOLTNET_PI_VM_INTEGRATION=1 \
+  pnpm exec nx run @themoltnet/pi-extension:test-ci--src/vm-manager.integration.test.ts
+```
 
 ### `env`
 

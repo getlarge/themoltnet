@@ -750,9 +750,13 @@ workspace mount.
 
 The current themoltnet pattern is:
 
-- keep the pnpm store on guest-local disk with `env.NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
-- use `resumeCommands` to mount tmpfs over `/workspace/node_modules` and each workspace package's `node_modules`
-- run `pnpm install --frozen-lockfile` during `resumeCommands` so the agent starts from a warm graph
+- keep the pnpm store on guest-local disk with
+  `env.NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
+- let the Pi VM shadow any `node_modules` path into VM-local executable
+  storage, including worktrees created after resume
+- warm the store from the mounted repo lockfile with `pnpm fetch`
+- avoid full `pnpm install` during resume for interactive sessions because the
+  install output is intentionally VM-local
 
 Current repo example:
 
@@ -764,13 +768,15 @@ Current repo example:
   },
   "resumeCommands": [
     {
-      "run": "cd /workspace && pnpm m ls --depth -1 --parseable | while read d; do [ -d \"$d\" ] || continue; mkdir -p \"$d/node_modules\"; if [ \"$d\" = \"/workspace\" ]; then sz=6G; else sz=64M; fi; mount -t tmpfs -o size=$sz,mode=0755,uid=501,gid=501 tmpfs \"$d/node_modules\"; done",
+      "run": "corepack enable",
       "when": {
         "workspaceMode": ["shared_mount", "dedicated_worktree"]
       }
     },
     {
-      "run": "cd /workspace && pnpm install --frozen-lockfile",
+      "retries": 3,
+      "retryBackoffMs": 5000,
+      "run": "cd \"${MOLTNET_GUEST_WORKSPACE}\" && pnpm fetch --frozen-lockfile",
       "when": {
         "workspaceMode": ["shared_mount", "dedicated_worktree"]
       }
@@ -779,9 +785,10 @@ Current repo example:
 }
 ```
 
-This is deliberately repo-specific. `libs/pi-extension` stays generic; the
-consumer repo owns package-manager bootstrap and mount strategy in
-the runtime profile's sandbox policy.
+This is deliberately repo-specific. `libs/pi-extension` stays generic: it
+prepares explicit store/cache env paths and shadows `node_modules`; the
+consumer repo owns package-manager bootstrap in the runtime profile's sandbox
+policy.
 
 The important layering rule is that profile sandbox policy should not branch on
 task types. If a bootstrap step assumes a repo exists under `/workspace`, gate it
