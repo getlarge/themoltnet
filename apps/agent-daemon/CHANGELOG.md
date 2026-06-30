@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.29.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.29.0...agent-daemon-v0.29.1) (2026-06-30)
+
+
+### Bug Fixes
+
+* **agent-daemon:** align live smoke turn cap ([0b34ce6](https://github.com/getlarge/themoltnet/commit/0b34ce62d9ebb9e1f99969af7b4451784c4b44cb))
+* **pi-extension:** keep dependency fetch out of resume ([ea4e19e](https://github.com/getlarge/themoltnet/commit/ea4e19e8f0f7c46c47ca8021bedb4fd582a2e53a))
+* **pi-extension:** keep node modules vm-local ([d8b788f](https://github.com/getlarge/themoltnet/commit/d8b788ff51bf28d763befc0a8dab4117d3387e42))
+* **pi-extension:** keep node_modules VM-local ([aec41f8](https://github.com/getlarge/themoltnet/commit/aec41f8d42ece3c3bb667f066972690be1e0726c))
+* **pi:** recover submit validation in session ([01b03b2](https://github.com/getlarge/themoltnet/commit/01b03b2133e17356799e409957abd8bd14cf5797))
+* **pi:** recover submit validation in session ([367a1ad](https://github.com/getlarge/themoltnet/commit/367a1adc0fae6108e0e26f06f3234bf138eda996))
+* **pi:** repair freeform submit gate output ([f298a64](https://github.com/getlarge/themoltnet/commit/f298a64d8bc6cfd35ddb3a6b87fbc45675defb02))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.33.2
+    * @themoltnet/pi-extension bumped to 0.31.1
+
 ## [0.29.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.28.0...agent-daemon-v0.29.0) (2026-06-30)
 
 

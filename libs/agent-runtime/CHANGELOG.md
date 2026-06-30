@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.33.2](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.33.1...agent-runtime-v0.33.2) (2026-06-30)
+
+
+### Bug Fixes
+
+* **agent-daemon:** align live smoke turn cap ([0b34ce6](https://github.com/getlarge/themoltnet/commit/0b34ce62d9ebb9e1f99969af7b4451784c4b44cb))
+* **pi:** keep submit output non-terminal ([402d2f2](https://github.com/getlarge/themoltnet/commit/402d2f2902bc37fb674cdbc872ab588b4fd5ab79))
+* **pi:** make submit exhaustion sticky ([0f1f0ad](https://github.com/getlarge/themoltnet/commit/0f1f0ad097b8a6a6650edc2dfea8904add0ef185))
+* **pi:** recover submit validation in session ([01b03b2](https://github.com/getlarge/themoltnet/commit/01b03b2133e17356799e409957abd8bd14cf5797))
+* **pi:** recover submit validation in session ([367a1ad](https://github.com/getlarge/themoltnet/commit/367a1adc0fae6108e0e26f06f3234bf138eda996))
+
 ## [0.33.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.33.0...agent-runtime-v0.33.1) (2026-06-30)
 
 
