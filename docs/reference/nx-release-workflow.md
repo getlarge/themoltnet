@@ -44,9 +44,11 @@ NX_DRY_RUN=true pnpm exec nx release version patch --groups docker-images --dry-
 The Docker dry-run sets `NX_DRY_RUN=true` because `docker.preVersionCommand`
 would otherwise build images before Nx retags them.
 
-The manual `Nx Release Candidate` GitHub Actions workflow runs these checks in
-CI against a full checkout with tags. Use it before replacing release-please or
-before enabling any non-dry-run Nx release automation:
+The `Nx Release Candidate` GitHub Actions workflow runs these checks in CI
+against a full checkout with tags. Pull requests that change release wiring run
+a dry-run matrix for every release group. The manual dispatch path lets an
+operator re-run one selected group before replacing release-please or enabling
+any non-dry-run Nx release automation:
 
 ```text
 workflow: Nx Release Candidate
@@ -54,9 +56,10 @@ groups: github-actions | go-modules,cli | npm-packages | docker-images | all
 specifier: patch | minor | major
 ```
 
-The candidate workflow is intentionally dry-run-only. It validates the selected
-Nx release group and, when requested, runs custom `nx-release-publish` dry-runs
-for the Go CLI artifact publisher and the GitHub Action stable-tag publisher.
+The candidate workflow is intentionally dry-run-only. It validates selected Nx
+release groups and, when requested or when the PR matrix covers `cli` or
+`github-actions`, runs custom `nx-release-publish` dry-runs for the Go CLI
+artifact publisher and the GitHub Action stable-tag publisher.
 
 ## Go Modules
 
