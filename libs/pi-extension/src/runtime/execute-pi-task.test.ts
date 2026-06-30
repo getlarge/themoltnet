@@ -20,10 +20,12 @@ import {
   buildSubmitMissingPrompt,
   computeProviderErrorRetryDelay,
   createGondolinToolDefinitions,
+  createSessionTurnState,
   describeToolErrorMessage,
   formatProviderErrorRetryNotification,
   formatProviderErrorRetryStatus,
   isBashTimeoutResult,
+  makeSessionEventHandler,
   notifyProviderErrorRetryUi,
   openVmWorkspaceFileForRead,
   promptUntilSubmitted,
@@ -350,6 +352,140 @@ describe('provider error same-session retry helpers', () => {
     expect(sanitizeProviderErrorRetryReason(null)).toBe(
       'Pi turn ended with stopReason=error',
     );
+  });
+});
+
+describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
+  type Ev = Parameters<ReturnType<typeof makeSessionEventHandler>>[0];
+
+  function makeDeps(overrides?: {
+    maxTurns?: number;
+    maxBashTimeouts?: number;
+  }) {
+    const emitted: Array<{ kind: string; payload: Record<string, unknown> }> =
+      [];
+    const caps: Array<{ code: string; message: string }> = [];
+    const state = createSessionTurnState();
+    const usage = {
+      provider: 'p',
+      model: 'm',
+      inputTokens: 0,
+      outputTokens: 0,
+    } as Parameters<typeof makeSessionEventHandler>[0]['usage'];
+    const deps = {
+      state,
+      usage,
+      maxTurns: overrides?.maxTurns ?? 0,
+      maxBashTimeouts: overrides?.maxBashTimeouts ?? 3,
+      emit: (kind: string, payload: Record<string, unknown>) => {
+        emitted.push({ kind, payload });
+        return Promise.resolve();
+      },
+      emitError: (
+        phase: string,
+        message: string,
+        extra: Record<string, unknown> = {},
+      ) => {
+        emitted.push({ kind: 'error', payload: { phase, message, ...extra } });
+        return Promise.resolve();
+      },
+      track: () => {},
+      triggerCapAbort: (code: string, message: string) => {
+        caps.push({ code, message });
+      },
+    } as Parameters<typeof makeSessionEventHandler>[0];
+    return { deps, emitted, caps, state, usage };
+  }
+
+  function turnEnd(stopReason: string, extra?: Record<string, unknown>): Ev {
+    return {
+      type: 'turn_end',
+      message: { role: 'assistant', stopReason, ...extra },
+    } as unknown as Ev;
+  }
+
+  it('accumulates streamed assistant text', () => {
+    const { deps, state } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler({
+      type: 'message_update',
+      assistantMessageEvent: { type: 'text_delta', delta: 'Hello ' },
+    } as unknown as Ev);
+    handler({
+      type: 'message_update',
+      assistantMessageEvent: { type: 'text_delta', delta: 'world' },
+    } as unknown as Ev);
+    expect(state.assistantText).toBe('Hello world');
+  });
+
+  it('accumulates token usage from assistant turn_end events', () => {
+    const { deps, usage } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler(
+      turnEnd('end_turn', {
+        usage: { input: 10, output: 5, cacheRead: 3, cacheWrite: 2 },
+      }),
+    );
+    handler(turnEnd('end_turn', { usage: { input: 1, output: 1 } }));
+    expect(usage.inputTokens).toBe(11);
+    expect(usage.outputTokens).toBe(6);
+    expect(usage.cacheReadTokens).toBe(3);
+    expect(usage.cacheWriteTokens).toBe(2);
+  });
+
+  it('applies last-turn-wins for the provider-error stop reason', () => {
+    const { deps, state } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    // An error turn sets the abort + diagnostic...
+    handler(turnEnd('error', { errorMessage: 'model not found' }));
+    expect(state.llmAbort).toBe(true);
+    expect(state.llmErrorMessage).toBe('model not found');
+    // ...a later clean turn (pi recovered) clears both.
+    handler(turnEnd('end_turn'));
+    expect(state.llmAbort).toBe(false);
+    expect(state.llmErrorMessage).toBeNull();
+  });
+
+  it('counts only tool-use turns toward the max-turns cap', () => {
+    const { deps, caps, state } = makeDeps({ maxTurns: 2 });
+    const handler = makeSessionEventHandler(deps);
+    handler(turnEnd('end_turn')); // text-only: not counted
+    handler(turnEnd('aborted')); // not counted
+    handler(turnEnd('error')); // not counted
+    expect(state.toolUseTurnCount).toBe(0);
+    handler(turnEnd('tool_use'));
+    handler(turnEnd('tool_use'));
+    expect(state.toolUseTurnCount).toBe(2);
+    expect(caps).toEqual([
+      {
+        code: 'max_turns_exceeded',
+        message: 'Aborted after 2 tool-use turns (cap 2).',
+      },
+    ]);
+  });
+
+  it('triggers the bash-timeout cap on repeated bash timeouts', () => {
+    const { deps, caps, state } = makeDeps({ maxBashTimeouts: 2 });
+    const handler = makeSessionEventHandler(deps);
+    const timeout = {
+      type: 'tool_execution_end',
+      toolName: 'bash',
+      isError: true,
+      result: {
+        content: [{ type: 'text', text: 'Command timed out after 30 seconds' }],
+      },
+    } as unknown as Ev;
+    handler(timeout);
+    expect(state.bashTimeoutCount).toBe(1);
+    expect(caps).toHaveLength(0);
+    handler(timeout);
+    expect(state.bashTimeoutCount).toBe(2);
+    expect(caps).toEqual([
+      {
+        code: 'max_bash_timeouts_exceeded',
+        message: 'Aborted after 2 bash timeouts in this attempt (cap 2).',
+      },
+    ]);
   });
 });
 
