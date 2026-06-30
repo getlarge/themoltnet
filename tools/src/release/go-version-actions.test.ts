@@ -1,11 +1,18 @@
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   afterAllProjectsVersioned,
   createGoReleaseValidationCommands,
+  createGoReleaseValidationLocalReplaces,
+  discoverGoWorkspaceModules,
   escapeGoProxyPath,
   findGoRequireVersion,
   normalizeGoModuleVersion,
+  parseGoWorkUseDirs,
   readLatestVersionFromGoProxy,
   resolveGoProxyUrl,
   shouldRunGoReleaseValidation,
@@ -161,6 +168,58 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
           GOPROXY: 'direct',
         },
         changedFiles: [],
+      },
+    ]);
+  });
+
+  it('discovers local Go modules from go.work for validation replaces', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'go-release-validation-'));
+    mkdirSync(join(cwd, 'apps/cli'), { recursive: true });
+    mkdirSync(join(cwd, 'libs/api'), { recursive: true });
+    writeFileSync(
+      join(cwd, 'go.work'),
+      `go 1.25.0
+
+use (
+\t./apps/cli
+\t"./libs/api"
+)
+`,
+    );
+    writeFileSync(
+      join(cwd, 'apps/cli/go.mod'),
+      `module example.com/repo/apps/cli
+
+go 1.25
+
+require example.com/repo/libs/api v1.2.3
+`,
+    );
+    writeFileSync(
+      join(cwd, 'libs/api/go.mod'),
+      `module example.com/repo/libs/api
+
+go 1.25
+`,
+    );
+
+    expect(
+      parseGoWorkUseDirs(readFileSync(join(cwd, 'go.work'), 'utf-8')),
+    ).toEqual(['./apps/cli', './libs/api']);
+    expect(discoverGoWorkspaceModules(cwd)).toEqual([
+      {
+        modulePath: 'example.com/repo/apps/cli',
+        root: join(cwd, 'apps/cli'),
+      },
+      {
+        modulePath: 'example.com/repo/libs/api',
+        root: join(cwd, 'libs/api'),
+      },
+    ]);
+    expect(createGoReleaseValidationLocalReplaces(cwd, 'apps/cli')).toEqual([
+      {
+        modulePath: 'example.com/repo/libs/api',
+        replacementPath: '../../libs/api',
       },
     ]);
   });

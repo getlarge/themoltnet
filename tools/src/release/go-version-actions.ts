@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { join } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
 
 import type { ProjectGraph, Tree } from '@nx/devkit';
 import { VersionActions } from 'nx/release';
@@ -28,6 +29,14 @@ type GoProxyLookupOptions = {
   fetchImpl?: FetchLike;
   retryDelaysMs?: number[];
 };
+type GoWorkspaceModule = {
+  modulePath: string;
+  root: string;
+};
+type GoLocalReplace = {
+  modulePath: string;
+  replacementPath: string;
+};
 
 export function readText(tree: Pick<Tree, 'read'>, path: string) {
   return tree.read(path, 'utf-8') ?? null;
@@ -44,6 +53,12 @@ export function readGoModulePath(
     throw new Error(`Unable to read Go module path from ${goModPath}`);
   }
   return match[1];
+}
+
+function readGoModulePathFromDisk(goModPath: string) {
+  const goMod = readFileSync(goModPath, 'utf-8');
+  const match = goMod.match(/^module\s+(\S+)/m);
+  return match?.[1] ?? null;
 }
 
 function parseRequireLine(line: string) {
@@ -191,6 +206,114 @@ export function resolveGoReleaseValidationRoots(
   }
 
   return [];
+}
+
+function unquoteGoPath(value: string) {
+  return value.replace(/^"|"$/g, '');
+}
+
+export function parseGoWorkUseDirs(goWork: string) {
+  const dirs: string[] = [];
+  let inUseBlock = false;
+
+  for (const rawLine of goWork.split('\n')) {
+    const line = rawLine.replace(/\/\/.*$/, '').trim();
+    if (!line) {
+      continue;
+    }
+
+    if (line === 'use (') {
+      inUseBlock = true;
+      continue;
+    }
+    if (inUseBlock && line === ')') {
+      inUseBlock = false;
+      continue;
+    }
+    if (inUseBlock) {
+      dirs.push(unquoteGoPath(line));
+      continue;
+    }
+
+    const singleUse = line.match(/^use\s+(.+)$/);
+    if (singleUse) {
+      dirs.push(unquoteGoPath(singleUse[1].trim()));
+    }
+  }
+
+  return dirs;
+}
+
+function discoverGoModDirs(cwd: string, dir = cwd): string[] {
+  const entries = readdirSync(dir, { withFileTypes: true });
+  const dirs: string[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    if (
+      entry.name === '.git' ||
+      entry.name === '.nx' ||
+      entry.name === '.worktrees' ||
+      entry.name === 'dist' ||
+      entry.name === 'node_modules'
+    ) {
+      continue;
+    }
+
+    const child = join(dir, entry.name);
+    if (existsSync(join(child, 'go.mod'))) {
+      dirs.push(child);
+      continue;
+    }
+    dirs.push(...discoverGoModDirs(cwd, child));
+  }
+
+  return dirs;
+}
+
+export function discoverGoWorkspaceModules(cwd: string): GoWorkspaceModule[] {
+  const goWorkPath = join(cwd, 'go.work');
+  const dirs = existsSync(goWorkPath)
+    ? parseGoWorkUseDirs(readFileSync(goWorkPath, 'utf-8')).map((dir) =>
+        resolve(cwd, dir),
+      )
+    : discoverGoModDirs(cwd);
+
+  return dirs.flatMap((root) => {
+    const modulePath = readGoModulePathFromDisk(join(root, 'go.mod'));
+    return modulePath ? [{ modulePath, root }] : [];
+  });
+}
+
+function hasReplaceDirective(goMod: string, modulePath: string) {
+  return goMod
+    .split('\n')
+    .some((line) => line.trim().startsWith(`replace ${modulePath} =>`));
+}
+
+export function createGoReleaseValidationLocalReplaces(
+  cwd: string,
+  root: string,
+) {
+  const rootDir = resolve(cwd, root);
+  const goModPath = join(rootDir, 'go.mod');
+  const goMod = readFileSync(goModPath, 'utf-8');
+
+  return discoverGoWorkspaceModules(cwd)
+    .filter((module) => module.root !== rootDir)
+    .filter((module) => goMod.includes(module.modulePath))
+    .filter((module) => !hasReplaceDirective(goMod, module.modulePath))
+    .map((module): GoLocalReplace => {
+      const replacementPath = relative(rootDir, module.root);
+      return {
+        modulePath: module.modulePath,
+        replacementPath: replacementPath.startsWith('.')
+          ? replacementPath
+          : `./${replacementPath}`,
+      };
+    });
 }
 
 function parseOptionList(value: unknown) {
@@ -400,38 +523,87 @@ export async function afterAllProjectsVersioned(
   }
 
   const changedFiles = new Set<string>();
+  const commandsByRoot = new Map<string, typeof commands>();
   for (const command of commands) {
-    const displayCommand = `${Object.entries(command.env)
-      .map(([key, value]) => `${key}=${value}`)
-      .join(' ')} ${command.command} ${command.args.join(' ')}`;
+    const rootCommands = commandsByRoot.get(command.root) ?? [];
+    rootCommands.push(command);
+    commandsByRoot.set(command.root, rootCommands);
+  }
 
-    if (dryRun) {
-      if (verbose) {
-        console.log(
-          `Would run Go release validation in ${command.root}, but --dry-run was set:`,
+  for (const [root, rootCommands] of commandsByRoot) {
+    const rootDir = join(cwd, root);
+    const localReplaces = dryRun
+      ? []
+      : createGoReleaseValidationLocalReplaces(cwd, root);
+
+    try {
+      for (const localReplace of localReplaces) {
+        if (verbose) {
+          console.log(
+            `Temporarily replacing ${localReplace.modulePath} => ${localReplace.replacementPath} for Go release validation in ${root}`,
+          );
+        }
+        execFileSync(
+          'go',
+          [
+            'mod',
+            'edit',
+            `-replace=${localReplace.modulePath}=${localReplace.replacementPath}`,
+          ],
+          {
+            cwd: rootDir,
+            stdio: verbose ? 'inherit' : 'ignore',
+            windowsHide: true,
+          },
         );
-        console.log(displayCommand);
       }
-      continue;
-    }
 
-    if (verbose) {
-      console.log(`Running Go release validation in ${command.root}:`);
-      console.log(displayCommand);
-    }
+      for (const command of rootCommands) {
+        const displayCommand = `${Object.entries(command.env)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(' ')} ${command.command} ${command.args.join(' ')}`;
 
-    execFileSync(command.command, command.args, {
-      cwd: join(cwd, command.root),
-      env: {
-        ...process.env,
-        ...command.env,
-      },
-      stdio: 'inherit',
-      windowsHide: true,
-    });
+        if (dryRun) {
+          if (verbose) {
+            console.log(
+              `Would run Go release validation in ${command.root}, but --dry-run was set:`,
+            );
+            console.log(displayCommand);
+          }
+          continue;
+        }
 
-    for (const file of command.changedFiles) {
-      changedFiles.add(file);
+        if (verbose) {
+          console.log(`Running Go release validation in ${command.root}:`);
+          console.log(displayCommand);
+        }
+
+        execFileSync(command.command, command.args, {
+          cwd: rootDir,
+          env: {
+            ...process.env,
+            ...command.env,
+          },
+          stdio: 'inherit',
+          windowsHide: true,
+        });
+
+        for (const file of command.changedFiles) {
+          changedFiles.add(file);
+        }
+      }
+    } finally {
+      for (const localReplace of localReplaces) {
+        execFileSync(
+          'go',
+          ['mod', 'edit', `-dropreplace=${localReplace.modulePath}`],
+          {
+            cwd: rootDir,
+            stdio: verbose ? 'inherit' : 'ignore',
+            windowsHide: true,
+          },
+        );
+      }
     }
   }
 
