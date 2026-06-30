@@ -7,6 +7,7 @@ import type { VM } from '@earendil-works/gondolin';
 import {
   createHttpHooks,
   createShadowPathPredicate,
+  isWriteFlag,
   MemoryProvider,
   RealFSProvider,
   ShadowProvider,
@@ -140,6 +141,37 @@ export function shouldShadowNodeModulesPath(pathname: string): boolean {
     pathname.endsWith('/node_modules') ||
     pathname.includes('/node_modules/')
   );
+}
+
+export class AutoParentMemoryProvider extends MemoryProvider {
+  private ensureParentDir(pathname: string): void {
+    const parent = path.posix.dirname(path.posix.normalize(pathname));
+    if (!parent || parent === '/' || parent === '.') return;
+    this.mkdirSync(parent, { recursive: true });
+  }
+
+  override async mkdir(
+    pathname: string,
+    options?: object,
+  ): Promise<void | string> {
+    this.ensureParentDir(pathname);
+    return super.mkdir(pathname, options);
+  }
+
+  override mkdirSync(pathname: string, options?: object): void | string {
+    this.ensureParentDir(pathname);
+    return super.mkdirSync(pathname, options);
+  }
+
+  override async open(pathname: string, flags: string, mode?: number) {
+    if (isWriteFlag(flags)) this.ensureParentDir(pathname);
+    return super.open(pathname, flags, mode);
+  }
+
+  override openSync(pathname: string, flags: string, mode?: number) {
+    if (isWriteFlag(flags)) this.ensureParentDir(pathname);
+    return super.openSync(pathname, flags, mode);
+  }
 }
 
 export function resolvePackageManagerTmpfsMounts(
@@ -402,6 +434,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     shouldShadow: ({ path: shadowPath }) =>
       shouldShadowNodeModulesPath(shadowPath),
     denySymlinkBypass: false,
+    tmpfs: new AutoParentMemoryProvider(),
     writeMode: 'tmpfs',
   });
   if (vfsConfig?.shadow?.length) {

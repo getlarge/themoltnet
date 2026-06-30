@@ -21,6 +21,7 @@ import { describe, expect, it } from 'vitest';
 
 import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
+  AutoParentMemoryProvider,
   loadCredentials,
   resolveVmAgentDir,
   rewriteGitconfigPaths,
@@ -346,6 +347,7 @@ describe('shouldShadowNodeModulesPath', () => {
       const provider = new ShadowProvider(new RealFSProvider(root), {
         shouldShadow: ({ path: shadowPath }) =>
           shouldShadowNodeModulesPath(shadowPath),
+        tmpfs: new AutoParentMemoryProvider(),
         writeMode: 'tmpfs',
       });
 
@@ -355,6 +357,8 @@ describe('shouldShadowNodeModulesPath', () => {
 
       const packageBin = '/.worktrees/later/packages/web/node_modules/.bin';
       const guestTool = `${packageBin}/vite`;
+      provider.mkdirSync('/.worktrees/later/packages/web/node_modules');
+      provider.mkdirSync('/.worktrees/later/packages/web/node_modules/.bin');
       provider.mkdirSync(packageBin, { recursive: true });
       const nodeModulesHandle = provider.openSync(guestTool, 'w');
       nodeModulesHandle.writeFileSync('guest tool');
