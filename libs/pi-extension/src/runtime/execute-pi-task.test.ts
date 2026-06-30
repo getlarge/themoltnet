@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   buildSubmitMissingPrompt,
+  captureAttemptOutput,
   computeProviderErrorRetryDelay,
   createGondolinToolDefinitions,
   createSessionTurnState,
@@ -352,6 +353,117 @@ describe('provider error same-session retry helpers', () => {
     expect(sanitizeProviderErrorRetryReason(null)).toBe(
       'Pi turn ended with stopReason=error',
     );
+  });
+});
+
+describe('captureAttemptOutput (output-capture characterization)', () => {
+  function fakeHandle(opts: {
+    captured?: Record<string, unknown> | null;
+    exhausted?: { code: string; message: string } | null;
+  }) {
+    return {
+      getCaptured: () => opts.captured ?? null,
+      getExhaustedValidationFailure: () => opts.exhausted ?? null,
+    };
+  }
+  function makeEmit() {
+    const emitted: Array<{ kind: string; payload: Record<string, unknown> }> =
+      [];
+    const emit = (kind: string, payload: Record<string, unknown>) => {
+      emitted.push({ kind, payload });
+      return Promise.resolve();
+    };
+    return { emit, emitted };
+  }
+
+  it('prefers the submit-tool captured payload and computes its CID', async () => {
+    const { emit, emitted } = makeEmit();
+    const payload = { summary: 'done', artifacts: [] };
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: 'ignored prose',
+      submitToolHandle: fakeHandle({ captured: payload }),
+      emit: emit as never,
+    });
+    expect(result.output).toEqual(payload);
+    expect(typeof result.outputCid).toBe('string');
+    expect(result.outputCid).not.toBeNull();
+    expect(result.error).toBeNull();
+    expect(emitted).toHaveLength(0);
+  });
+
+  it('fails with output_cid_compute_failed when the captured payload cannot be canonicalized', async () => {
+    const { emit, emitted } = makeEmit();
+    // BigInt is not JSON/canonicalization-serializable → CID compute throws.
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: '',
+      submitToolHandle: fakeHandle({ captured: { n: 1n } as never }),
+      emit: emit as never,
+    });
+    expect(result.output).toBeNull();
+    expect(result.outputCid).toBeNull();
+    expect(result.error?.code).toBe('output_cid_compute_failed');
+    expect(emitted).toEqual([
+      {
+        kind: 'error',
+        payload: {
+          message: expect.stringContaining('could not be canonicalized'),
+          phase: 'output_validation',
+        },
+      },
+    ]);
+  });
+
+  it('reports submit_output_missing when the tool was never called', async () => {
+    const { emit, emitted } = makeEmit();
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: 'just prose, no tool call',
+      submitToolHandle: fakeHandle({ captured: null, exhausted: null }),
+      emit: emit as never,
+    });
+    expect(result.output).toBeNull();
+    expect(result.error?.code).toBe('submit_output_missing');
+    expect(emitted[0].payload.phase).toBe('output_validation');
+  });
+
+  it('surfaces the exhausted-validation failure verbatim (no submit_output_missing)', async () => {
+    const { emit } = makeEmit();
+    const exhausted = {
+      code: 'output_validation_failed',
+      message: 'budget spent',
+    };
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: '',
+      submitToolHandle: fakeHandle({ captured: null, exhausted }),
+      emit: emit as never,
+    });
+    expect(result.error).toEqual(exhausted);
+  });
+
+  it('falls back to parsing assistant text when no submit tool is registered', async () => {
+    const { emit } = makeEmit();
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: 'no structured output here',
+      submitToolHandle: null,
+      emit: emit as never,
+    });
+    // Routed to the parser path, which rejects unparseable prose.
+    expect(result.output).toBeNull();
+    expect(result.error).not.toBeNull();
   });
 });
 

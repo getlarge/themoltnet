@@ -615,6 +615,120 @@ export function makeSessionEventHandler(
   };
 }
 
+export interface CaptureAttemptOutputDeps {
+  taskType: string;
+  model?: string;
+  /** Original task input, threaded to the parser path for cross-field rules. */
+  input: unknown;
+  /** Streamed assistant text, used only by the legacy parser fallback. */
+  assistantText: string;
+  /** Submit-output handle, or null for task types with no registered schema. */
+  submitToolHandle: Pick<
+    SubmitOutputToolHandle,
+    'getCaptured' | 'getExhaustedValidationFailure'
+  > | null;
+  emit: (
+    kind: TurnEventKind,
+    payload: Record<string, unknown>,
+  ) => Promise<void>;
+}
+
+export interface CapturedAttemptOutput {
+  output: Record<string, unknown> | null;
+  outputCid: string | null;
+  error: { code: string; message: string } | null;
+}
+
+/**
+ * Resolve the attempt's structured output once the session has finished
+ * cleanly (no run error / provider abort / cancel / cap). Three mutually
+ * exclusive paths, in precedence order:
+ *
+ *   1. Submit tool captured a payload → trust it, compute its CID. A
+ *      canonicalization failure becomes `output_cid_compute_failed`.
+ *   2. Submit tool registered but nothing captured → the exhausted-validation
+ *      failure wins if present, else `submit_output_missing` (recording the
+ *      `output_missing` counter so the never-called path is observable).
+ *   3. No submit tool (legacy task type) → parse the trailing assistant text.
+ *
+ * Extracted from `executePiTask` so this precedence — the part a refactor is
+ * most likely to silently reorder — is unit-tested directly. The caller
+ * still owns the guard deciding whether output capture runs at all.
+ */
+export async function captureAttemptOutput(
+  deps: CaptureAttemptOutputDeps,
+): Promise<CapturedAttemptOutput> {
+  const { taskType, model, input, assistantText, submitToolHandle, emit } =
+    deps;
+  // Prefer the submit-tool's captured payload over the parser path.
+  // The submit-tool already validated args against the task type's
+  // output schema; if the model called it successfully we trust the
+  // captured value and skip parsing the trailing assistant text.
+  const captured = submitToolHandle?.getCaptured() ?? null;
+  if (captured) {
+    try {
+      const outputCid = await computeJsonCid(captured);
+      recordTaskOutputParseResult({
+        taskType,
+        model,
+        code: 'captured_via_tool',
+      });
+      return { output: captured, outputCid, error: null };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const error = {
+        code: 'output_cid_compute_failed',
+        message: `Captured submit-tool output could not be canonicalized: ${message}`,
+      };
+      recordTaskOutputParseResult({
+        taskType,
+        model,
+        code: 'output_cid_compute_failed',
+      });
+      await emit('error', {
+        message: error.message,
+        phase: 'output_validation',
+      });
+      return { output: null, outputCid: null, error };
+    }
+  }
+
+  if (submitToolHandle) {
+    const exhausted = submitToolHandle.getExhaustedValidationFailure();
+    const error = exhausted ?? {
+      code: 'submit_output_missing',
+      message:
+        'Agent did not satisfy the promised submit-output criterion: ' +
+        'no valid task submit tool call was captured before the session ended.',
+    };
+    // The invalid-args path already records `output_validation_failed`
+    // from inside the submit tool. The pure never-called path has no such
+    // record, so count it here (dimensioned by model) — otherwise
+    // submit-missing failures are invisible to the parse-result counter.
+    if (!exhausted) {
+      recordTaskOutputParseResult({ taskType, model, code: 'output_missing' });
+    }
+    await emit('error', { message: error.message, phase: 'output_validation' });
+    return { output: null, outputCid: null, error };
+  }
+
+  const parsed = await parseStructuredTaskOutput(assistantText, taskType, {
+    model,
+    input,
+  });
+  if (parsed.error) {
+    await emit('error', {
+      message: parsed.error.message,
+      phase: 'output_validation',
+    });
+  }
+  return {
+    output: parsed.output,
+    outputCid: parsed.outputCid,
+    error: parsed.error,
+  };
+}
+
 /**
  * Run one attempt of `task` in a freshly-resumed Gondolin VM. Owns the full
  * lifecycle: resume VM → wire tools → pi session → close VM. Always returns
@@ -1291,77 +1405,17 @@ export async function executePiTask(
     let parsedOutputCid: string | null = null;
     let parseError: { code: string; message: string } | null = null;
     if (!runError && !turnState.llmAbort && !cancelled && !capAbort) {
-      // Prefer the submit-tool's captured payload over the parser path.
-      // The submit-tool already validated args against the task type's
-      // output schema; if the model called it successfully we trust the
-      // captured value and skip parsing the trailing assistant text.
-      const captured = submitToolHandle?.getCaptured() ?? null;
-      if (captured) {
-        try {
-          parsedOutput = captured;
-          parsedOutputCid = await computeJsonCid(captured);
-          recordTaskOutputParseResult({
-            taskType: task.taskType,
-            model: opts.model,
-            code: 'captured_via_tool',
-          });
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          parsedOutput = null;
-          parsedOutputCid = null;
-          parseError = {
-            code: 'output_cid_compute_failed',
-            message: `Captured submit-tool output could not be canonicalized: ${message}`,
-          };
-          recordTaskOutputParseResult({
-            taskType: task.taskType,
-            model: opts.model,
-            code: 'output_cid_compute_failed',
-          });
-          await emit('error', {
-            message: parseError.message,
-            phase: 'output_validation',
-          });
-        }
-      } else if (submitToolHandle) {
-        const exhausted = submitToolHandle.getExhaustedValidationFailure();
-        parseError = exhausted ?? {
-          code: 'submit_output_missing',
-          message:
-            'Agent did not satisfy the promised submit-output criterion: ' +
-            'no valid task submit tool call was captured before the session ended.',
-        };
-        // The invalid-args path already records `output_validation_failed`
-        // from inside the submit tool. The pure never-called path has no such
-        // record, so count it here (dimensioned by model) — otherwise
-        // submit-missing failures are invisible to the parse-result counter.
-        if (!exhausted) {
-          recordTaskOutputParseResult({
-            taskType: task.taskType,
-            model: opts.model,
-            code: 'output_missing',
-          });
-        }
-        await emit('error', {
-          message: parseError.message,
-          phase: 'output_validation',
-        });
-      } else {
-        const parsed = await parseStructuredTaskOutput(
-          turnState.assistantText,
-          task.taskType,
-          { model: opts.model, input: task.input },
-        );
-        parsedOutput = parsed.output;
-        parsedOutputCid = parsed.outputCid;
-        parseError = parsed.error;
-        if (parseError) {
-          await emit('error', {
-            message: parseError.message,
-            phase: 'output_validation',
-          });
-        }
-      }
+      const captured = await captureAttemptOutput({
+        taskType: task.taskType,
+        model: opts.model,
+        input: task.input,
+        assistantText: turnState.assistantText,
+        submitToolHandle,
+        emit,
+      });
+      parsedOutput = captured.output;
+      parsedOutputCid = captured.outputCid;
+      parseError = captured.error;
     }
 
     if (cancelled) {
