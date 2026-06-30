@@ -4,11 +4,10 @@
  * Assumes Docker Compose is already running (started by CI or the developer).
  * Verifies all services are healthy before tests run.
  *
- * To start the stack locally:
- *   docker compose -f docker-compose.e2e.yaml up -d --build
- *
- * To start in CI (pre-built images):
- *   docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+ * Both locally and in CI the stack uses the single docker-compose.e2e.yaml;
+ * CI selects pre-built images via the *_IMAGE env vars rather than a separate
+ * override file (see #1498). To start the stack:
+ *   docker compose -f docker-compose.e2e.yaml up -d
  */
 
 async function waitForHealthy(url: string, maxAttempts = 60): Promise<void> {

@@ -6,11 +6,10 @@
  * and restarts the rest-api container with SPONSOR_AGENT_ID set so that
  * LeGreffier onboarding e2e tests can exercise the full happy path.
  *
- * To start the stack locally:
- *   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
- *
- * To start in CI (pre-built images):
- *   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+ * Both locally and in CI the stack uses the single docker-compose.e2e.yaml;
+ * CI selects pre-built images via the *_IMAGE env vars rather than a separate
+ * override file (see #1498). To start the stack:
+ *   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d
  */
 
 import { execFileSync } from 'node:child_process';
@@ -40,8 +39,6 @@ const KRATOS_ADMIN_URL =
 // Resolve repo root for docker compose -f path
 const REPO_ROOT = resolve(import.meta.dirname, '../../..');
 const COMPOSE_FILE = resolve(REPO_ROOT, 'docker-compose.e2e.yaml');
-const COMPOSE_CI_FILE = resolve(REPO_ROOT, 'docker-compose.e2e.ci.yaml');
-const IS_CI = !!process.env['CI'];
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -110,15 +107,12 @@ function restartRestApi(sponsorAgentId: string): void {
   process.env['SPONSOR_AGENT_ID'] = sponsorAgentId;
   process.env['COMPOSE_DISABLE_ENV_FILE'] = 'true';
 
-  const composeFileArgs = IS_CI
-    ? ['-f', COMPOSE_FILE, '-f', COMPOSE_CI_FILE]
-    : ['-f', COMPOSE_FILE];
-
   execFileSync(
     'docker',
     [
       'compose',
-      ...composeFileArgs,
+      '-f',
+      COMPOSE_FILE,
       'up',
       '-d',
       '--no-deps',
