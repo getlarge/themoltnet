@@ -156,6 +156,28 @@ export function createSubmitOutputTool(
     ],
     parameters: RecoverableSubmitToolParameters,
     async execute(_id, params) {
+      if (exhaustedValidationFailure) {
+        const details: SubmitOutputDetails = {
+          captured: false,
+          callCount,
+          invalidCallCount,
+          maxSubmitValidationRetries,
+          error: 'output_validation_failed',
+        };
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text:
+                'Submit-output validation retry budget is already exhausted; ' +
+                'the attempt will fail.',
+            },
+          ],
+          details,
+          isError: true,
+        };
+      }
+
       // Use the registry-aware validator: runs the TypeBox schema check
       // AND any task-type-specific cross-field rule (e.g. judge_pack's
       // `llm_checklist` score↔assertions consistency from #999). Without

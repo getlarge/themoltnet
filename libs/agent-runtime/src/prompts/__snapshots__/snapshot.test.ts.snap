@@ -65,7 +65,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`AssessBriefOutput\`.
 
 Call \`submit_assess_brief_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_assess_brief_output\`, the
 attempt is recorded as failing the promised submit-output criterion
@@ -263,7 +263,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`CuratePackOutput\`.
 
 Call \`submit_curate_pack_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_curate_pack_output\`, the
 attempt is recorded as failing the promised submit-output criterion
@@ -458,7 +458,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`CuratePackOutput\`.
 
 Call \`submit_curate_pack_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_curate_pack_output\`, the
 attempt is recorded as failing the promised submit-output criterion
@@ -608,7 +608,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`FulfillBriefOutput\`.
 
 Call \`submit_fulfill_brief_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_fulfill_brief_output\`, the
 attempt is recorded as failing the promised submit-output criterion
@@ -735,7 +735,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`FulfillBriefOutput\`.
 
 Call \`submit_fulfill_brief_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_fulfill_brief_output\`, the
 attempt is recorded as failing the promised submit-output criterion
@@ -819,7 +819,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`JudgeEvalAttemptOutput\`.
 
 Call \`submit_judge_eval_attempt_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_judge_eval_attempt_output\`, the
 attempt is recorded as failing the promised submit-output criterion
@@ -945,7 +945,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`JudgePackOutput\`.
 
 Call \`submit_judge_pack_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_judge_pack_output\`, the
 attempt is recorded as failing the promised submit-output criterion
@@ -1063,7 +1063,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`PrReviewOutput\`.
 
 Call \`submit_pr_review_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_pr_review_output\`, the
 attempt is recorded as failing the promised submit-output criterion
@@ -1216,7 +1216,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`RenderPackOutput\`.
 
 Call \`submit_render_pack_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_render_pack_output\`, the
 attempt is recorded as failing the promised submit-output criterion
@@ -1272,7 +1272,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`RunEvalOutput\`.
 
 Call \`submit_run_eval_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_run_eval_output\`, the
 attempt is recorded as failing the promised submit-output criterion
@@ -1399,7 +1399,7 @@ Your VERY LAST action in this conversation MUST report the structured
 output matching \`RunEvalOutput\`.
 
 Call \`submit_run_eval_output\` exactly once with the payload.
-The runtime captures the validated arguments and ends the session.
+The runtime captures the validated arguments for attempt completion.
 Do NOT emit the output as plain assistant text. Do NOT rely on a
 JSON-in-message fallback. If you do not call \`submit_run_eval_output\`, the
 attempt is recorded as failing the promised submit-output criterion

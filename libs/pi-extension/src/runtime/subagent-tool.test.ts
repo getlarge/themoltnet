@@ -54,7 +54,7 @@ const stubArgs = (
  * BuildAgentSessionArgs for assertion.
  */
 function makeFakeSessionFactory(
-  innerSubmitArgs: Record<string, unknown> | null,
+  innerSubmitArgs: Record<string, unknown> | Record<string, unknown>[] | null,
 ): {
   build: (args: BuildAgentSessionArgs) => Promise<AgentSession>;
   capturedBuildArgs: BuildAgentSessionArgs | null;
@@ -81,7 +81,9 @@ function makeFakeSessionFactory(
         // Simulate a session that ends without calling submit at all.
         return;
       }
-      state.innerSubmitInvocations += 1;
+      const submissions = Array.isArray(innerSubmitArgs)
+        ? innerSubmitArgs
+        : [innerSubmitArgs];
       const exec = (
         submitTool as unknown as {
           execute: (
@@ -93,13 +95,16 @@ function makeFakeSessionFactory(
           ) => Promise<unknown>;
         }
       ).execute;
-      await exec(
-        'fake-call-id',
-        innerSubmitArgs,
-        undefined,
-        undefined,
-        {} as unknown,
-      );
+      for (const submission of submissions) {
+        state.innerSubmitInvocations += 1;
+        await exec(
+          'fake-call-id',
+          submission,
+          undefined,
+          undefined,
+          {} as unknown,
+        );
+      }
     });
 
     return {
@@ -326,6 +331,35 @@ describe('createSubagentTool', () => {
     // Inner tool returned isError:true; capture stayed null; outer
     // surfaces "never submitted" because no successful capture happened.
     expect(result.isError).toBe(true);
+  });
+
+  it('keeps exhausted inner submit validation from being overwritten by a later valid submit', async () => {
+    const badPayload = { score: 0.5 } as Record<string, unknown>;
+    const validPayload = { verdict: 'late success', score: 1 };
+    const factory = makeFakeSessionFactory([
+      badPayload,
+      badPayload,
+      badPayload,
+      validPayload,
+    ]);
+    const handle = createSubagentTool({
+      ...stubArgs(),
+      buildAgentSession: factory.build,
+    });
+
+    const result = await callOuter(handle.tool, {
+      task: 'work',
+      output_schema: 'sample',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('Validation retry budget');
+    expect(result.details).toMatchObject({
+      captured: false,
+      error: 'output_validation_failed',
+      invalidCallCount: 3,
+    });
+    expect(factory.innerSubmitInvocations).toBe(4);
   });
 
   describe('contractRegistry injection — tests that a custom registry works', () => {

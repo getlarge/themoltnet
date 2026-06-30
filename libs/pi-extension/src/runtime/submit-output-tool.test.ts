@@ -199,6 +199,29 @@ describe('createSubmitOutputTool', () => {
       code: 'output_validation_failed',
       message: expect.stringContaining('output/scores/0/evidence'),
     });
+
+    const validAfterExhaustion = await exec({
+      targetTaskId: '11111111-1111-4111-8111-111111111111',
+      targetAttemptN: 1,
+      variantLabel: 'candidate',
+      scores: [
+        {
+          criterionId: 'json-validity',
+          score: 1,
+          rationale: 'shape is now correct',
+          evidence: { text: 'The shape is now correct.' },
+        },
+      ],
+      composite: 1,
+      verdict: 'Valid output shape.',
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+    });
+
+    expect(validAfterExhaustion.isError).toBe(true);
+    expect(validAfterExhaustion.terminate).not.toBe(true);
+    expect(validAfterExhaustion.content[0].text).toContain('already exhausted');
+    expect(handle.getCaptured()).toBeNull();
+    expect(handle.getCallCount()).toBe(0);
   });
 
   it('rejects producer output missing verification when input.successCriteria is set', async () => {

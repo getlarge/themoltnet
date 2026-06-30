@@ -253,6 +253,19 @@ export function createSubagentTool(
         ],
         parameters: RecoverableSubagentSubmitParameters as TObject,
         async execute(_innerId, innerParams) {
+          if (innerValidationExhausted) {
+            return toolError(
+              'submit_subagent_output validation retry budget is already exhausted.',
+              {
+                captured: false,
+                error: 'output_validation_failed',
+                invalidCallCount: innerInvalidSubmitCount,
+                maxSubmitValidationRetries:
+                  DEFAULT_SUBAGENT_SUBMIT_VALIDATION_RETRIES,
+              },
+            );
+          }
+
           if (!Value.Check(contract.parametersSchema, innerParams)) {
             innerInvalidSubmitCount += 1;
             const maxInvalidCalls =
