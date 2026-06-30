@@ -10,11 +10,6 @@ on:
         required: false
         type: boolean
         default: false
-      groups:
-        description: 'Optional comma-separated Nx release groups. Empty means affected groups.'
-        required: false
-        type: string
-        default: ''
 
 permissions:
   contents: write
@@ -61,32 +56,49 @@ jobs:
           echo 'Non-dry-run releases must run from main.'
           exit 1
 
+      - id: shas
+        uses: nrwl/nx-set-shas@v5
+        with:
+          main-branch-name: main
+
+      - name: Fallback base SHA
+        id: shas-fallback
+        env:
+          INITIAL_BASE: ${{ steps.shas.outputs.base }}
+          INITIAL_HEAD: ${{ steps.shas.outputs.head }}
+        run: |
+          set -euo pipefail
+
+          BASE="$INITIAL_BASE"
+          HEAD="$INITIAL_HEAD"
+          if [ -z "$BASE" ]; then
+            BASE="$(git rev-parse HEAD~1)"
+            echo "::notice::nx-set-shas returned empty base; falling back to $BASE"
+          fi
+          if [ -z "$HEAD" ]; then
+            HEAD="${{ github.sha }}"
+          fi
+
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "NX_BASE=$BASE" >> "$GITHUB_ENV"
+          echo "NX_HEAD=$HEAD" >> "$GITHUB_ENV"
+
       - name: Detect release groups
         id: release-groups
         shell: bash
         env:
-          BASE_SHA: ${{ github.event.before || '' }}
-          MANUAL_GROUPS: ${{ inputs.groups || '' }}
           PNPM_CONFIG_LOGLEVEL: error
         run: |
           set -euo pipefail
 
-          if [ -n "$MANUAL_GROUPS" ]; then
-            AFFECTED_JSON='[]'
-          else
-            BASE="$BASE_SHA"
-            if [ -z "$BASE" ] || [ "$BASE" = '0000000000000000000000000000000000000000' ]; then
-              BASE="$(git rev-parse HEAD~1)"
-            fi
-            AFFECTED_JSON="$(pnpm --silent exec nx show projects --affected --base="$BASE" --head=HEAD --json)"
-          fi
+          AFFECTED_JSON="$(pnpm --silent exec nx show projects --affected --json)"
 
-          node - "$AFFECTED_JSON" "$MANUAL_GROUPS" >> "$GITHUB_OUTPUT" <<'NODE'
+          node - "$AFFECTED_JSON" >> "$GITHUB_OUTPUT" <<'NODE'
           const { readFileSync } = require('node:fs');
 
           const nx = JSON.parse(readFileSync('nx.json', 'utf8'));
           const releaseGroups = nx.release?.groups ?? {};
-          const knownGroups = new Set(Object.keys(releaseGroups));
           const projectToGroup = new Map();
           for (const [groupName, group] of Object.entries(releaseGroups)) {
             for (const project of group.projects ?? []) {
@@ -95,24 +107,10 @@ jobs:
           }
 
           const affected = JSON.parse(process.argv[2] || '[]');
-          const manualGroups = process.argv[3]
-            .split(',')
-            .map((group) => group.trim())
-            .filter(Boolean);
-
           const groups = new Set();
-          for (const group of manualGroups) {
-            if (!knownGroups.has(group)) {
-              throw new Error(`Unknown Nx release group: ${group}`);
-            }
-            groups.add(group);
-          }
-
-          if (manualGroups.length === 0) {
-            for (const project of affected) {
-              const group = projectToGroup.get(project);
-              if (group) groups.add(group);
-            }
+          for (const project of affected) {
+            const group = projectToGroup.get(project);
+            if (group) groups.add(group);
           }
 
           const goCliGroups = [];

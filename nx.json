@@ -168,6 +168,9 @@
         "production": "{versionActionsVersion}"
       }
     },
+    "git": {
+      "commitMessage": "chore(release): publish [skip ci] {version}"
+    },
     "groups": {
       "cli": {
         "projects": [

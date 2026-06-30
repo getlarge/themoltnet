@@ -32,9 +32,9 @@ should derive project ordering and dependent updates.
 
 Production releases run from `.github/workflows/release.yml` on every push to
 `main`, except for release commits created by the workflow itself. The workflow
-uses conventional commits and the affected project graph to decide which release
-groups need to run. A manual dispatch can also pass a comma-separated `groups`
-override.
+uses `nrwl/nx-set-shas`, conventional commits, and the affected project graph to
+decide which release groups need to run. Release groups are not manually
+selected in CI; Nx's base/head SHAs define the release candidate set.
 
 ```bash
 pnpm exec nx release --groups <release-groups> --verbose --skip-publish
@@ -43,7 +43,7 @@ pnpm exec nx release publish --groups <release-groups> --verbose
 ```
 
 The workflow also supports a manual `dry-run` dispatch. Dry-runs use the same
-group detection or manual group override, but skip release commits, tags,
+`nx-set-shas` affected-project detection, but skip release commits, tags,
 GitHub Releases, Docker pushes, and package publishes:
 
 ```bash
@@ -79,6 +79,10 @@ Important production details:
 - Release groups run in separate GitHub Actions jobs connected with `needs`.
   This keeps push/publish side effects serialized while still letting each group
   skip independently when it has no affected release projects.
+- Nx release commits include `[skip ci]` and the release workflow also skips
+  commits whose message starts with `chore(release): publish`. Keep both guards:
+  the skip token suppresses unrelated CI workflows, and the release workflow
+  guard prevents recursive release attempts.
 - The GitHub Action release target moves the stable major tag, for example
   `v0`, after its bundled `dist/main.js` has been committed by the release.
 
