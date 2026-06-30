@@ -872,10 +872,10 @@ jobs:
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         env:
           MOLTNET_PI_VM_INTEGRATION: '1'
-        run: pnpm exec nx run @themoltnet/pi-extension:test-ci--src/vm-manager.integration.test.ts --skipNxCache
+        run: pnpm exec nx run @themoltnet/pi-extension:test-ci--src/vm-manager.integration.test.ts
       - name: Run agent-daemon E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
-        run: pnpm exec nx run @themoltnet/agent-daemon:e2e --skipNxCache
+        run: pnpm exec nx run @themoltnet/agent-daemon:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-agent-daemon == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
