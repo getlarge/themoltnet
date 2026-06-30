@@ -780,8 +780,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     const {
       setMaintenanceDeps: setDeps,
       startTaskDeletionWorkflow: startDeletion,
-    } =
-      await import('../src/workflows/maintenance.js');
+    } = await import('../src/workflows/maintenance.js');
     setDeps(deps);
 
     await startDeletion(

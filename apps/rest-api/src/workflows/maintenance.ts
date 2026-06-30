@@ -147,9 +147,7 @@ export async function startTaskDeletionWorkflow(
   return DBOS.startWorkflow(_taskDeletionWorkflow, {
     workflowID: workflowId,
     queueName: TASK_DELETION_QUEUE_NAME,
-    ...(deduplicationID
-      ? { enqueueOptions: { deduplicationID } }
-      : undefined),
+    ...(deduplicationID ? { enqueueOptions: { deduplicationID } } : undefined),
   })(input);
 }
 
