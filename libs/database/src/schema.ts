@@ -134,6 +134,17 @@ export const taskAttemptStatusEnum = pgEnum('task_attempt_status', [
   'timed_out',
 ]);
 
+export const taskCleanupJobStatusEnum = pgEnum('task_cleanup_job_status', [
+  'pending',
+  'running',
+  'completed',
+  'failed',
+]);
+
+export const taskCleanupJobReasonEnum = pgEnum('task_cleanup_job_reason', [
+  'retention',
+]);
+
 export const executorTrustLevelEnum = pgEnum('executor_trust_level', [
   'self_declared',
   'agent_signed',
@@ -1582,6 +1593,58 @@ export const taskArtifacts = pgTable(
 
 export type TaskArtifact = typeof taskArtifacts.$inferSelect;
 export type NewTaskArtifact = typeof taskArtifacts.$inferInsert;
+
+export const taskCleanupJobs = pgTable(
+  'task_cleanup_jobs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    taskId: uuid('task_id').notNull(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    reason: taskCleanupJobReasonEnum('reason').notNull(),
+    status: taskCleanupJobStatusEnum('status').notNull().default('pending'),
+    workflowId: text('workflow_id'),
+    manifest: jsonb('manifest'),
+    error: jsonb('error'),
+    objectCount: integer('object_count').notNull().default(0),
+    objectBytes: bigint('object_bytes', { mode: 'number' })
+      .notNull()
+      .default(0),
+    deletedTaskCount: integer('deleted_task_count').notNull().default(0),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('task_cleanup_jobs_task_idx').on(table.taskId),
+    uniqueIndex('task_cleanup_jobs_workflow_idx')
+      .on(table.workflowId)
+      .where(sql`workflow_id IS NOT NULL`),
+    index('task_cleanup_jobs_status_idx').on(table.status, table.createdAt),
+    index('task_cleanup_jobs_team_idx').on(table.teamId),
+    check(
+      'task_cleanup_jobs_object_count_non_negative',
+      sql`object_count >= 0`,
+    ),
+    check(
+      'task_cleanup_jobs_object_bytes_non_negative',
+      sql`object_bytes >= 0`,
+    ),
+    check(
+      'task_cleanup_jobs_deleted_task_count_non_negative',
+      sql`deleted_task_count >= 0`,
+    ),
+  ],
+);
+
+export type TaskCleanupJob = typeof taskCleanupJobs.$inferSelect;
+export type NewTaskCleanupJob = typeof taskCleanupJobs.$inferInsert;
 
 // ── Task Messages ──────────────────────────────────────────
 

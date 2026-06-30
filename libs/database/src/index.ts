@@ -151,6 +151,13 @@ export {
   type TaskArtifactRepository,
 } from './repositories/task-artifact.repository.js';
 export {
+  createTaskCleanupJobRepository,
+  type TaskCleanupJobRepository,
+  type TaskCleanupJobWithManifest,
+  type TaskCleanupManifest,
+  type TaskCleanupObjectRef,
+} from './repositories/task-cleanup-job.repository.js';
+export {
   type CreateFoundingAcceptanceInput,
   type CreateInviteInput,
   type CreateTeamInput,

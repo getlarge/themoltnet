@@ -181,11 +181,17 @@ work whose lifetime has already elapsed.
 
 Terminal retention is operator-owned deployment policy. The retention sweeper
 selects `completed` / `failed` / `cancelled` / `expired` tasks whose
-status-specific retention window has elapsed and deletes them through the same
-safe task deletion path as explicit bulk deletion. Sealed correlation tasks are
-skipped by default. This first slice applies retention to MoltNet task rows and
-Keto task relations; durable object-store cleanup for task artifacts and runtime
-sessions remains separate retention-policy work.
+status-specific retention window has elapsed, skips sealed correlation tasks,
+and creates private `task_cleanup_jobs` rows for the remaining candidates. Each
+job is processed by a dedicated DBOS workflow with immutable steps: persist the
+manifest of task artifact objects and runtime session objects, delete those
+objects, delete task rows in one database transaction, remove Keto task
+relations, and mark the job `completed` or `failed` with object counts/bytes and
+error details. Later maintenance ticks also restart pending or failed cleanup
+jobs, so recovery does not depend on the original task row still being present.
+No public cleanup API is exposed; operators control the policy through
+deployment configuration and the maintenance schedules trigger the workflow
+automatically.
 
 ### Task types
 

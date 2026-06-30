@@ -18,18 +18,30 @@
  */
 
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import { eq } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
 import { createTaskRepository } from '../src/repositories/task.repository.js';
-import { agents, diaries, taskAttempts, tasks, teams } from '../src/schema.js';
+import { createTaskCleanupJobRepository } from '../src/repositories/task-cleanup-job.repository.js';
+import {
+  agents,
+  diaries,
+  runtimeSessions,
+  taskArtifacts,
+  taskAttempts,
+  taskCleanupJobs,
+  tasks,
+  teams,
+} from '../src/schema.js';
 
 describe('TaskRepository maintenance sweeper queries (integration)', () => {
   let db: Database;
   let pool: Pool;
   let repo: ReturnType<typeof createTaskRepository>;
+  let cleanupJobRepo: ReturnType<typeof createTaskCleanupJobRepository>;
   let stopContainer: (() => Promise<void>) | undefined;
 
   const TEAM_ID = '11111111-1111-4111-8111-111111111101';
@@ -49,6 +61,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     await runMigrations(databaseUrl);
     ({ db, pool } = createDatabase(databaseUrl));
     repo = createTaskRepository(db);
+    cleanupJobRepo = createTaskCleanupJobRepository(db);
 
     // Seed FK rows once — task inserts cascade through these.
     // Note: agents must exist before teams reference them via createdBy.
@@ -73,6 +86,9 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
 
   afterAll(async () => {
     if (db) {
+      await db.delete(taskCleanupJobs);
+      await db.delete(taskArtifacts);
+      await db.delete(runtimeSessions);
       await db.delete(taskAttempts);
       await db.delete(tasks);
       await db.delete(diaries);
@@ -450,6 +466,123 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     expect(ids).not.toContain(FRESH_FAILED);
     expect(ids).not.toContain(OLD_QUEUED);
 
+    await db.delete(taskAttempts);
+    await db.delete(tasks);
+  });
+
+  it('creates immutable cleanup jobs with artifact and runtime session manifests', async () => {
+    const TASK_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccc01';
+    const CHILD_TASK_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccc02';
+    const PARENT_SESSION_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddd01';
+    const CHILD_SESSION_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddd02';
+
+    await seedTask({
+      id: TASK_ID,
+      status: 'completed',
+      claimExpiresAt: null,
+      completedAt: new Date('2026-04-26T10:00:00Z'),
+      createAttempt: true,
+      attemptStatus: 'completed',
+    });
+    await seedTask({
+      id: CHILD_TASK_ID,
+      status: 'completed',
+      claimExpiresAt: null,
+      completedAt: new Date('2026-04-26T10:00:00Z'),
+      createAttempt: true,
+      attemptStatus: 'completed',
+    });
+    await db.insert(taskArtifacts).values({
+      teamId: TEAM_ID,
+      taskId: TASK_ID,
+      attemptN: 1,
+      kind: 'json',
+      title: 'result.json',
+      objectKey: `teams/${TEAM_ID}/artifacts/result.json`,
+      contentType: 'application/json',
+      sizeBytes: 123,
+      sha256: 'a'.repeat(64),
+      cid: 'bafkreicleanup',
+      createdByAgentId: AGENT_ID,
+    });
+    await db.insert(runtimeSessions).values([
+      {
+        id: PARENT_SESSION_ID,
+        teamId: TEAM_ID,
+        taskId: TASK_ID,
+        attemptN: 1,
+        sessionKind: 'root',
+        objectKey: `teams/${TEAM_ID}/sessions/root.jsonl.gz`,
+        contentType: 'application/x-ndjson',
+        contentEncoding: 'gzip',
+        sizeBytes: 456,
+        sha256: 'b'.repeat(64),
+        storageClass: 'runtime-session',
+      },
+      {
+        id: CHILD_SESSION_ID,
+        teamId: TEAM_ID,
+        taskId: CHILD_TASK_ID,
+        attemptN: 1,
+        sessionKind: 'fork',
+        parentSessionId: PARENT_SESSION_ID,
+        objectKey: `teams/${TEAM_ID}/sessions/fork.jsonl.gz`,
+        contentType: 'application/x-ndjson',
+        contentEncoding: 'gzip',
+        sizeBytes: 789,
+        sha256: 'c'.repeat(64),
+        storageClass: 'runtime-session',
+      },
+    ]);
+
+    const jobs = await cleanupJobRepo.createRetentionJobsForTasks([
+      { id: TASK_ID, teamId: TEAM_ID },
+    ]);
+    const duplicateJobs = await cleanupJobRepo.createRetentionJobsForTasks([
+      { id: TASK_ID, teamId: TEAM_ID },
+    ]);
+
+    expect(jobs).toHaveLength(1);
+    expect(duplicateJobs).toHaveLength(1);
+    expect(duplicateJobs[0].id).toBe(jobs[0].id);
+    await expect(
+      cleanupJobRepo.listPendingOrFailedRetentionJobs(10),
+    ).resolves.toEqual([expect.objectContaining({ id: jobs[0].id })]);
+    const manifest = await cleanupJobRepo.getOrCreateManifest(jobs[0].id);
+    expect(manifest?.task).toEqual({
+      id: TASK_ID,
+      teamId: TEAM_ID,
+      diaryId: DIARY_ID,
+      claimAgentId: null,
+    });
+    expect(manifest?.taskArtifacts).toEqual([
+      expect.objectContaining({
+        objectKey: `teams/${TEAM_ID}/artifacts/result.json`,
+        sizeBytes: 123,
+      }),
+    ]);
+    expect(manifest?.runtimeSessions).toEqual([
+      expect.objectContaining({
+        id: PARENT_SESSION_ID,
+        objectKey: `teams/${TEAM_ID}/sessions/root.jsonl.gz`,
+        sizeBytes: 456,
+      }),
+    ]);
+
+    const job = await cleanupJobRepo.findById(jobs[0].id);
+    expect(job?.objectCount).toBe(2);
+    expect(job?.objectBytes).toBe(579);
+
+    await cleanupJobRepo.detachRuntimeSessionChildren([PARENT_SESSION_ID]);
+    const [child] = await db
+      .select()
+      .from(runtimeSessions)
+      .where(eq(runtimeSessions.id, CHILD_SESSION_ID));
+    expect(child.parentSessionId).toBeNull();
+
+    await db.delete(taskCleanupJobs);
+    await db.delete(taskArtifacts);
+    await db.delete(runtimeSessions);
     await db.delete(taskAttempts);
     await db.delete(tasks);
   });

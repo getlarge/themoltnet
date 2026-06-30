@@ -124,11 +124,29 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
     removeTaskClaimant: vi.fn().mockResolvedValue(undefined),
     removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
   };
+  const taskCleanupJobRepository = {
+    createRetentionJobsForTasks: vi.fn().mockResolvedValue([]),
+    listPendingOrFailedRetentionJobs: vi.fn().mockResolvedValue([]),
+    start: vi.fn().mockResolvedValue(null),
+    getOrCreateManifest: vi.fn().mockResolvedValue(null),
+    detachRuntimeSessionChildren: vi.fn().mockResolvedValue(undefined),
+    complete: vi.fn().mockResolvedValue(undefined),
+    fail: vi.fn().mockResolvedValue(undefined),
+  };
+  const taskArtifactStorage = {
+    deleteObject: vi.fn().mockResolvedValue(undefined),
+  };
+  const runtimeSessionStorage = {
+    deleteObject: vi.fn().mockResolvedValue(undefined),
+  };
   const deps = {
     nonceRepository: {} as unknown,
     contextPackRepository: {} as unknown,
     renderedPackRepository: {} as unknown,
     taskRepository,
+    taskCleanupJobRepository,
+    taskArtifactStorage,
+    runtimeSessionStorage,
     dataSource,
     transactionRunner,
     relationshipWriter,
@@ -171,7 +189,7 @@ async function runExpirySweep(): Promise<{
 
 async function runRetentionSweep(): Promise<{
   examined: number;
-  deleted: number;
+  cleanupJobsStarted: number;
   skippedProtected: number;
 }> {
   const sweeper = registeredWorkflows['maintenance.taskRetentionSweeper'];
@@ -186,7 +204,7 @@ async function runRetentionSweep(): Promise<{
     },
   })) as {
     examined: number;
-    deleted: number;
+    cleanupJobsStarted: number;
     skippedProtected: number;
   };
 }
@@ -371,19 +389,21 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     expect(result).toEqual({ examined: 1, expired: 1 });
   });
 
-  it('task retention sweeper deletes old terminal tasks and skips sealed tasks', async () => {
+  it('task retention sweeper starts cleanup jobs and skips sealed tasks', async () => {
     await init();
     const { deps } = makeDeps([]);
     const retained = [
       {
         id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1',
         status: 'completed',
+        teamId: '99999999-9999-9999-9999-999999999999',
         diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff1',
         claimAgentId: null,
       },
       {
         id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2',
         status: 'failed',
+        teamId: '99999999-9999-9999-9999-999999999999',
         diaryId: null,
         claimAgentId: AGENT_ID,
       },
@@ -394,9 +414,17 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     vi.mocked(deps.taskRepository.findSealedTaskIds).mockResolvedValue([
       retained[1].id,
     ]);
-    vi.mocked(deps.taskRepository.deleteMany).mockResolvedValue([
-      retained[0].id,
+    vi.mocked(
+      deps.taskCleanupJobRepository.createRetentionJobsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        taskId: retained[0].id,
+      },
     ]);
+    vi.mocked(
+      deps.taskCleanupJobRepository.listPendingOrFailedRetentionJobs,
+    ).mockResolvedValue([{ id: '11111111-1111-1111-1111-111111111111' }]);
     const { setMaintenanceDeps: setDeps } =
       await import('../src/workflows/maintenance.js');
     setDeps(deps);
@@ -414,22 +442,97 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
       }),
       BATCH_SIZE,
     );
+    expect(
+      deps.taskCleanupJobRepository.createRetentionJobsForTasks,
+    ).toHaveBeenCalledWith([
+      expect.objectContaining({
+        id: retained[0].id,
+        teamId: retained[0].teamId,
+      }),
+    ]);
+    expect(
+      deps.taskCleanupJobRepository.listPendingOrFailedRetentionJobs,
+    ).toHaveBeenCalledWith(BATCH_SIZE);
+    expect(result).toEqual({
+      examined: 2,
+      cleanupJobsStarted: 1,
+      skippedProtected: 1,
+    });
+  });
+
+  it('task cleanup workflow deletes objects, rows, relations, then completes the job', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const jobId = '11111111-1111-1111-1111-111111111111';
+    const manifest = {
+      task: {
+        id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1',
+        teamId: '99999999-9999-9999-9999-999999999999',
+        diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff1',
+        claimAgentId: AGENT_ID,
+      },
+      taskArtifacts: [
+        {
+          id: '22222222-2222-2222-2222-222222222222',
+          objectKey: 'teams/t/artifacts/a',
+          sizeBytes: 123,
+        },
+      ],
+      runtimeSessions: [
+        {
+          id: '33333333-3333-3333-3333-333333333333',
+          objectKey: 'teams/t/sessions/s',
+          sizeBytes: 456,
+        },
+      ],
+      createdAt: '2026-06-30T00:00:00.000Z',
+    };
+    vi.mocked(deps.taskCleanupJobRepository.start).mockResolvedValue(
+      {} as never,
+    );
+    vi.mocked(
+      deps.taskCleanupJobRepository.getOrCreateManifest,
+    ).mockResolvedValue(manifest);
+    vi.mocked(deps.taskRepository.deleteMany).mockResolvedValue([
+      manifest.task.id,
+    ]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskCleanup'];
+    if (!workflow) throw new Error('task cleanup workflow not registered');
+    const result = await workflow({ jobId });
+
+    expect(deps.taskArtifactStorage.deleteObject).toHaveBeenCalledWith(
+      'teams/t/artifacts/a',
+    );
+    expect(deps.runtimeSessionStorage.deleteObject).toHaveBeenCalledWith(
+      'teams/t/sessions/s',
+    );
+    expect(
+      deps.taskCleanupJobRepository.detachRuntimeSessionChildren,
+    ).toHaveBeenCalledWith([manifest.runtimeSessions[0].id]);
     expect(deps.taskRepository.deleteMany).toHaveBeenCalledWith([
-      retained[0].id,
+      manifest.task.id,
     ]);
     expect(
       deps.relationshipWriter.removeTaskRelationsBatch,
     ).toHaveBeenCalledWith([
       {
-        id: retained[0].id,
-        diaryId: retained[0].diaryId,
-        claimAgentId: retained[0].claimAgentId,
+        id: manifest.task.id,
+        diaryId: manifest.task.diaryId,
+        claimAgentId: manifest.task.claimAgentId,
       },
     ]);
+    expect(deps.taskCleanupJobRepository.complete).toHaveBeenCalledWith(
+      jobId,
+      1,
+    );
     expect(result).toEqual({
-      examined: 2,
-      deleted: 1,
-      skippedProtected: 1,
+      jobId,
+      deletedTaskCount: 1,
+      deletedObjectCount: 2,
     });
   });
 
