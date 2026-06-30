@@ -36,11 +36,12 @@ jobs:
 
       - name: Deploy to Ory Network
         env:
-          DOTENV_PRIVATE_KEY: ${{ secrets.DOTENV_PRIVATE_KEY }}
+          OIDC_PAIRWISE_SALT: ${{ secrets.OIDC_PAIRWISE_SALT }}
+          ORY_ACTION_API_KEY: ${{ secrets.ORY_ACTION_API_KEY }}
           ORY_PROJECT_ID: ${{ secrets.ORY_PROJECT_ID }}
           ORY_WORKSPACE_API_KEY: ${{ secrets.ORY_WORKSPACE_API_KEY }}
           SELFSERVICE_OIDC_GITHUB_CLIENT_ID: ${{ secrets.SELFSERVICE_OIDC_GITHUB_CLIENT_ID }}
           SELFSERVICE_OIDC_GITHUB_CLIENT_SECRET: ${{ secrets.SELFSERVICE_OIDC_GITHUB_CLIENT_SECRET }}
           SMTP_CONNECTION_URI: ${{ secrets.SMTP_CONNECTION_URI }}
           SMTP_FROM_ADDRESS: ${{ secrets.SMTP_FROM_ADDRESS }}
-        run: npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/deploy.mjs --apply
+        run: node --env-file=env.public infra/ory/deploy.mjs --apply

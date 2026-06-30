@@ -32,7 +32,7 @@ import { Agent as UndiciAgent } from 'undici';
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
-config({ path: ['.env', 'env.public'], override: true });
+config({ path: ['env.public', '.env.infra.local'], override: false });
 
 const oryProjectUrl = process.env.ORY_PROJECT_URL;
 const oryApiKey = process.env.ORY_PROJECT_API_KEY;
@@ -43,7 +43,7 @@ if (!oryProjectUrl) {
 }
 if (!oryApiKey || oryApiKey.startsWith('encrypted:')) {
   console.error(
-    'ORY_PROJECT_API_KEY not set or still encrypted — check DOTENV_PRIVATE_KEY',
+    'ORY_PROJECT_API_KEY not set or still encrypted - check .env.infra.local',
   );
   process.exit(1);
 }

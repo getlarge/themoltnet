@@ -9,11 +9,12 @@
  * 5. (--apply) Pushes OPL permissions via `ory update opl`
  *
  * Usage:
- *   npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/deploy.mjs
- *   npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/deploy.mjs --apply
+ *   npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs
+ *   npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs --apply
  *
  * In CI:
- *   DOTENV_PRIVATE_KEY="<key>" npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/deploy.mjs --apply
+ *   Secrets are provided via GitHub Actions env and public config comes from
+ *   `node --env-file=env.public`.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -114,8 +115,8 @@ const missing = TEMPLATE_VARS.filter((v) => !process.env[v]);
 if (missing.length > 0) {
   fatal(
     `Missing environment variables: ${missing.join(', ')}\n\n` +
-      `Run this script through dotenvx:\n` +
-      `  npx @dotenvx/dotenvx run -f env.public -f .env -- node ${process.argv[1]}`,
+      `Run this script through dotenvx locally:\n` +
+      `  npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs`,
   );
 }
 
@@ -145,7 +146,7 @@ log(`  HUMAN_SCHEMA:     ${humanSchemaB64.length} bytes (base64)\n`);
 if (!apply) {
   log('Dry run — not applying to Ory Network.');
   log(
-    `To apply: npx @dotenvx/dotenvx run -f env.public -f .env -- node ${process.argv[1]} --apply`,
+    `To apply locally: npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs --apply`,
   );
   process.exit(0);
 }

@@ -17,8 +17,8 @@
  *   pnpm exec tsx tools/db/backfill-content-hashes.ts --dry-run
  *   pnpm exec tsx tools/db/backfill-content-hashes.ts
  *
- * The script loads .env via dotenvx and rewrites DATABASE_URL to point
- * at localhost:15432 (fly mpg proxy). Override with --port and --host.
+ * The script loads .env.infra.local via dotenvx and rewrites DATABASE_URL to point at localhost:15432 (fly mpg
+ * proxy). Override with --port and --host.
  */
 
 import { config } from '@dotenvx/dotenvx';
@@ -45,22 +45,21 @@ function resolveUrl(): string {
     return explicit;
   }
 
-  // Load encrypted .env via dotenvx
-  config({ path: ['.env', 'env.public'], override: true });
+  config({ path: ['env.public', '.env.infra.local'], override: false });
 
-  const decrypted = process.env.DATABASE_URL;
-  if (!decrypted) {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
     console.error('DATABASE_URL not found after dotenvx decryption');
     process.exit(1);
   }
 
-  if (decrypted.startsWith('encrypted:')) {
-    console.error('DATABASE_URL is still encrypted — check DOTENV_PRIVATE_KEY');
+  if (databaseUrl.startsWith('encrypted:')) {
+    console.error('DATABASE_URL is still encrypted - check .env.infra.local');
     process.exit(1);
   }
 
   // Rewrite host/port to point at local fly mpg proxy
-  const url = new URL(decrypted);
+  const url = new URL(databaseUrl);
   url.hostname = proxyHost;
   url.port = proxyPort;
   url.searchParams.set('sslmode', 'disable');

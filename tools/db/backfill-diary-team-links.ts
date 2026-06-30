@@ -36,6 +36,8 @@ const proxyHost =
 const proxyPort =
   args.find((a) => a.startsWith('--port='))?.split('=')[1] ?? '15432';
 
+config({ path: ['env.public', '.env.infra.local'], override: false });
+
 // ── Resolve DATABASE_URL ─────────────────────────────────────────────────────
 
 function resolveUrl(): string {
@@ -45,20 +47,18 @@ function resolveUrl(): string {
     return explicit;
   }
 
-  config({ path: ['.env', 'env.public'], override: true });
-
-  const decrypted = process.env.DATABASE_URL;
-  if (!decrypted) {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
     console.error('DATABASE_URL not found after dotenvx decryption');
     process.exit(1);
   }
 
-  if (decrypted.startsWith('encrypted:')) {
-    console.error('DATABASE_URL is still encrypted — check DOTENV_PRIVATE_KEY');
+  if (databaseUrl.startsWith('encrypted:')) {
+    console.error('DATABASE_URL is still encrypted - check .env.infra.local');
     process.exit(1);
   }
 
-  const url = new URL(decrypted);
+  const url = new URL(databaseUrl);
   url.hostname = proxyHost;
   url.port = proxyPort;
   url.searchParams.set('sslmode', 'disable');

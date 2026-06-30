@@ -8,11 +8,11 @@
  * the project key.
  *
  * Usage:
- *   npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/backup.mjs
+ *   npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/backup.mjs
  *
  *   ORY_JWK_SET_IDS=hydra.jwt.access-token \
  *   ORY_BACKUP_PASSPHRASE='...' \
- *   npx @dotenvx/dotenvx run -f env.public -f .env -- \
+ *   npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
  *     node infra/ory/backup.mjs --output-dir .ory-backups/manual
  */
 

@@ -10,7 +10,7 @@
  *   pnpm exec tsx tools/db/backfill-keto-subject-set.ts --dry-run
  *   pnpm exec tsx tools/db/backfill-keto-subject-set.ts
  *
- * The script loads .env + env.public via dotenvx for ORY_PROJECT_URL
+ * The script loads env.public + .env.infra.local via dotenvx for ORY_PROJECT_URL
  * and ORY_PROJECT_API_KEY. No database access needed (Keto-only).
  *
  * Phases:
@@ -32,7 +32,7 @@ const dryRun = args.includes('--dry-run');
 
 // ── Resolve Ory/Keto config ──────────────────────────────────────────────────
 
-config({ path: ['.env', 'env.public'], override: true });
+config({ path: ['env.public', '.env.infra.local'], override: false });
 
 const ORY_PROJECT_URL = process.env.ORY_PROJECT_URL;
 const ORY_API_KEY = process.env.ORY_PROJECT_API_KEY ?? process.env.ORY_API_KEY;
@@ -40,7 +40,7 @@ const ORY_API_KEY = process.env.ORY_PROJECT_API_KEY ?? process.env.ORY_API_KEY;
 if (!ORY_PROJECT_URL || !ORY_API_KEY) {
   console.error(
     'ORY_PROJECT_URL and ORY_PROJECT_API_KEY are required.\n' +
-      'Ensure .env.keys is present for dotenvx decryption.',
+      'Ensure .env.infra.local is present for dotenvx decryption.',
   );
   process.exit(1);
 }

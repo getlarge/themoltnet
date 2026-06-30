@@ -27,9 +27,7 @@ resolve_bin() {
   return 1
 }
 
-dotenvx_bin="$(resolve_bin dotenvx)"
 lint_staged_bin="$(resolve_bin lint-staged)"
 
 cd "$top_level"
-"$dotenvx_bin" ext precommit
 "$lint_staged_bin" --cwd "$top_level"

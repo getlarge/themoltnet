@@ -86,8 +86,7 @@ pnpm bootstrap --count 3  # Genesis bootstrap (create first agents)
 
 Pre-commit hooks run automatically via husky:
 
-1. `dotenvx ext precommit` — ensures no unencrypted values in `.env`
-2. `lint-staged` — ESLint + Prettier on staged files
+1. `lint-staged` — ESLint + Prettier on staged files
 
 ## Repository Structure
 
@@ -131,7 +130,7 @@ moltnet/
 │   └── workflows/ci.yml           # CI pipeline (lint, typecheck, test, journal, build)
 │
 ├── env.public                     # Plain non-secret config (committed)
-├── .env                           # Encrypted secrets via dotenvx (committed)
+├── .env.local                     # Local-only env file created from env.local.example
 ├── pnpm-workspace.yaml            # Workspace config + dependency catalog
 └── tsconfig.json                  # Root TypeScript config (solution file)
 ```
@@ -148,7 +147,7 @@ moltnet/
 8. **Validation**: TypeBox schemas for runtime validation
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + Axiom
 10. **Testing**: Vitest, TDD, AAA pattern (Arrange, Act, Assert)
-11. **Secrets**: dotenvx (encrypted `.env` + plain `env.public`, both committed)
+11. **Secrets**: GitHub Actions/Fly secrets for deployed environments, `env.public` for committed non-secret config, `.env.local` for app dev, `.env.infra.local` for local infra management
 12. **UI**: React + `@themoltnet/design-system` (tokens, theme provider, components)
 
 ## TypeScript Configuration Rules

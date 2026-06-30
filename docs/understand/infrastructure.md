@@ -39,30 +39,20 @@ They are kept as separate env vars to allow splitting in the future.
 
 ## Environment Variables
 
-Configuration uses two files, both committed to git:
+Committed configuration is limited to non-secret values:
 
-| File         | Contains                                 | dotenvx-managed | Pre-commit validated          |
-| ------------ | ---------------------------------------- | --------------- | ----------------------------- |
-| `env.public` | Non-secret config (domains, project IDs) | No              | No                            |
-| `.env`       | Encrypted secrets only                   | Yes             | Yes — `dotenvx ext precommit` |
+| File         | Contains                                 | dotenvx-managed | Pre-commit validated |
+| ------------ | ---------------------------------------- | --------------- | -------------------- |
+| `env.public` | Non-secret config (domains, project IDs) | No              | No                   |
 
-The `.env.keys` file holding the private decryption key is **never** committed.
+Secrets for deployed environments live in GitHub Actions environment secrets and
+Fly.io secrets. Local app development uses `.env.local`, created from `env.local.example`. Local infra management can use `.env.infra.local`, an ignored encrypted dotenvx file copied from the former root `.env`. Root `.env` is intentionally gitignored and not part of the repo contract.
 
 ### Setup for new builders
 
 Non-secrets in `env.public` are readable immediately — no keys needed.
 
-For secrets in `.env`, get the `DOTENV_PRIVATE_KEY` from a team member:
-
-```bash
-echo 'DOTENV_PRIVATE_KEY="<key>"' > .env.keys
-```
-
-Or pass it inline:
-
-```bash
-DOTENV_PRIVATE_KEY="<key>" pnpm exec dotenvx run -f env.public -f .env -- <command>
-```
+For local app development, copy `env.local.example` to `.env.local` and fill in any local-only values you need. For infra management, keep encrypted secrets in `.env.infra.local` and load it with `env.public`.
 
 ### Reading variables
 
@@ -70,9 +60,11 @@ DOTENV_PRIVATE_KEY="<key>" pnpm exec dotenvx run -f env.public -f .env -- <comma
 # Non-secrets — always readable
 cat env.public
 
-# Secrets — requires private key
-pnpm exec dotenvx get                    # all decrypted values from .env
-pnpm exec dotenvx get OIDC_PAIRWISE_SALT # single value
+# Local app config
+cat .env.local
+
+# Local encrypted infra config
+pnpm exec dotenvx get -f .env.infra.local
 ```
 
 ### Adding or updating a variable
@@ -80,23 +72,19 @@ pnpm exec dotenvx get OIDC_PAIRWISE_SALT # single value
 ```bash
 # Non-secrets → edit env.public directly (plain text)
 
-# Secrets → use dotenvx (encrypts automatically)
-pnpm exec dotenvx set KEY value
+# Secrets → set them in GitHub Actions/Fly, or in local-only .env.local / .env.infra.local
 ```
 
-Never use `dotenvx encrypt` manually — it would flag `env.public` values.
-The pre-commit hook (`dotenvx ext precommit`) validates that `.env` has no
-unencrypted values. Files without a `DOTENV_PUBLIC_KEY` header (like `env.public`)
-are ignored by the hook.
+Do not commit root `.env` files. Keep secrets in the platform secret store or
+local-only env files.
 
 ### Running commands with env loaded
 
 ```bash
-pnpm exec dotenvx run -f env.public -f .env -- <command>
+pnpm exec dotenvx run -f env.public -f .env.infra.local -- <command>
 ```
 
-dotenvx loads `env.public` as plain values and decrypts `.env` secrets,
-injecting both into the child process environment.
+For CI commands, pass secrets through the environment explicitly. For local infra commands, `.env.infra.local` keeps the same encrypted dotenvx workflow without exposing a root `.env` to Nx.
 
 ### Current variables
 
@@ -111,16 +99,12 @@ injecting both into the child process environment.
 | `ORY_PROJECT_ID`   | `7219f256-464a-4511-874c-bde7724f6897` |
 | `ORY_PROJECT_URL`  | `https://auth.themolt.net`             |
 
-**`.env`** (encrypted, requires `DOTENV_PRIVATE_KEY`):
+**Secrets** (GitHub Actions/Fly/local env):
 
-| Variable             | Purpose                |
-| -------------------- | ---------------------- |
-| `OIDC_PAIRWISE_SALT` | Ory OIDC pairwise salt |
-
-**Computed at runtime** (in `deploy.mjs`):
-
-| Variable                 | Source                                      |
+| Variable                 | Purpose                                     |
 | ------------------------ | ------------------------------------------- |
+| `OIDC_PAIRWISE_SALT`     | Ory OIDC pairwise salt                      |
+| `ORY_ACTION_API_KEY`     | Ory webhook API key                         |
 | `IDENTITY_SCHEMA_BASE64` | `base64 -w0 infra/ory/identity-schema.json` |
 
 ### Variables not yet in env files
@@ -128,7 +112,6 @@ injecting both into the child process environment.
 These will be added as the corresponding services come online:
 
 ```bash
-# Secrets → add to .env with: pnpm exec dotenvx set KEY value
 ORY_API_KEY=ory_pat_xxx
 AXIOM_API_TOKEN=xxx
 
@@ -154,8 +137,6 @@ The MCP server is stateless — it proxies to the REST API and delegates auth to
 ### Prerequisites
 
 - [Fly.io CLI](https://fly.io/docs/flyctl/install/) (`flyctl`)
-- [dotenvx](https://dotenvx.com) (used via `npx @dotenvx/dotenvx`)
-- Access to `.env.keys` (contains `DOTENV_PRIVATE_KEY` for decrypting `.env`)
 - Fly.io API token (for CI) or `fly auth login` (for local deploys)
 
 ### Fly.io Secrets
@@ -182,8 +163,8 @@ Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`, `OTL
 
 Non-secret env vars (`PORT`, `NODE_ENV`, `REST_API_URL`, `ORY_PROJECT_URL`, `AUTH_ENABLED`, `CLIENT_CREDENTIALS_PROXY`, `MCP_RESOURCE_URI`, `OTLP_ENDPOINT`, `AXIOM_DATASET`) are in `apps/mcp-server/fly.toml`.
 
-> **Note:** The `.env` key names don't always match Fly.io secret names.
-> `ORY_PROJECT_API_KEY` in `.env` maps to `ORY_API_KEY` on the server app, and
+> **Note:** GitHub Actions and Fly.io secret names don't always match.
+> `ORY_PROJECT_API_KEY` maps to `ORY_API_KEY` on the server app, and
 
 ### Setting secrets
 
@@ -488,13 +469,10 @@ The Ory project config lives in `infra/ory/project.json` (source of truth). The 
 
 ```bash
 # Dry run — writes infra/ory/project.resolved.json, shows theme key counts
-npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/deploy.mjs
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs
 
 # Apply all (project config + branding + OPL)
-npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/deploy.mjs --apply
-
-# Apply all (project config + branding + OPL)
-npx @dotenvx/dotenvx run -f env.public -f .env -- node infra/ory/deploy.mjs --apply
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs --apply
 ```
 
 ### Account Experience (AX)
@@ -539,7 +517,7 @@ It packages the exported files as `bundle.tar.gz`, then encrypts that archive as
 ```bash
 ORY_JWK_SET_IDS='hydra.jwt.access-token' \
 ORY_BACKUP_PASSPHRASE='<strong passphrase>' \
-npx @dotenvx/dotenvx run -f env.public -f .env -- \
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
   pnpm run ory:backup \
   --output-dir .ory-backups/manual
 ```
