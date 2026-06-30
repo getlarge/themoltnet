@@ -105,7 +105,11 @@
   "release": {
     "changelog": {
       "automaticFromRef": true,
-      "projectChangelogs": true,
+      "projectChangelogs": {
+        "renderOptions": {
+          "applyUsernameToAuthors": false
+        }
+      },
       "workspaceChangelog": false
     },
     "conventionalCommits": {

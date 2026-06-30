@@ -32,32 +32,36 @@ should derive project ordering and dependent updates.
 
 Production releases run from `.github/workflows/release.yml` on every push to
 `main`, except for release commits created by the workflow itself. The workflow
-uses `nrwl/nx-set-shas`, conventional commits, and the affected project graph to
-decide which release groups need to run. Release groups are not manually
-selected in CI; Nx's base/head SHAs define the release candidate set.
+does not preselect release groups with `nx affected`. Nx release reads
+conventional commits since each project's previous release tag and decides which
+projects need a new version. This avoids missing unreleased changes from earlier
+pushes when a previous release run failed or was skipped.
 
 ```bash
-pnpm exec nx release --groups <release-groups> --verbose --skip-publish
+pnpm exec nx release --verbose --skip-publish
 git push origin HEAD:main --follow-tags --no-verify --atomic
-pnpm exec nx release publish --groups <release-groups> --verbose
+pnpm exec nx release publish --verbose
 ```
 
-The workflow also supports a manual `dry-run` dispatch. Dry-runs use the same
-`nx-set-shas` affected-project detection, but skip release commits, tags,
-GitHub Releases, Docker pushes, and package publishes:
+The workflow also supports manual `dry-run` and `first-release` dispatch
+inputs. Dry-runs use the same Nx release detection, but skip release commits,
+tags, GitHub Releases, Docker pushes, and package publishes. `first-release`
+passes Nx's `--first-release` flag for bootstrap cases where selected projects
+do not yet have release tags.
 
 ```bash
-pnpm exec nx release --groups <release-groups> --dry-run --verbose --skip-publish
+pnpm exec nx release --dry-run --verbose --skip-publish
+pnpm exec nx release --first-release --verbose --skip-publish
 ```
 
 Important production details:
 
 - The explicit git push happens between versioning and publishing so Go module
   tags are visible to GOPROXY before publish targets run.
-- Go library modules and the Go CLI release in the same workflow job when a Go
-  library module changes. This keeps Nx's dependency propagation in one
-  versioning pass, so `apps/moltnet-cli/go.mod` consumes the just-released
-  `moltnet-api-client` and `dspy-adapters` versions.
+- Go library modules and the Go CLI release in the same top-level Nx release
+  invocation. This keeps Nx's dependency propagation in one versioning pass, so
+  `apps/moltnet-cli/go.mod` consumes the just-released `moltnet-api-client` and
+  `dspy-adapters` versions when those modules move.
 - The Go CLI artifact publisher creates the draft `cli-v{version}` GitHub
   Release, uploads archives and checksums, then undrafts it.
 - Go module publish targets verify the pushed module tags through
@@ -65,6 +69,8 @@ Important production details:
 - Project changelogs are enabled, but the workspace changelog is disabled.
   `automaticFromRef` stays enabled because Nx 22.7 still resolves a workspace
   changelog range internally before it skips writing the workspace changelog.
+  Author sections stay enabled, but GitHub username lookup is disabled so
+  changelog rendering does not depend on rate-limited GitHub email search calls.
 - Current versions resolve from git tags, with a temporary disk fallback for
   projects that do not yet have Nx-shaped release tags. After their first Nx
   release, the generated tags become the source of truth.
@@ -76,9 +82,6 @@ Important production details:
 - Docker release dry-runs still need a working Docker daemon. Nx Docker retags
   local images during versioning even when `--dry-run` is set, so the Docker
   pre-version hook builds local images before Nx applies release tags.
-- Release groups run in separate GitHub Actions jobs connected with `needs`.
-  This keeps push/publish side effects serialized while still letting each group
-  skip independently when it has no affected release projects.
 - Nx release commits include `[skip ci]` and the release workflow also skips
   commits whose message starts with `chore(release): publish`. Keep both guards:
   the skip token suppresses unrelated CI workflows, and the release workflow
@@ -455,7 +458,7 @@ NX_RELEASE_DOCKER_PROJECTS=@moltnet/rest-api pnpm exec nx release version patch 
 ## Expected Operator Flow
 
 1. Confirm release groups and tag patterns in `nx.json`.
-2. Run a dry-run for the affected group or groups.
+2. Run a top-level dry-run and let Nx release decide the changed projects.
 3. Inspect planned file changes, tags, and Go validation commands.
 4. Run focused tests for any changed release helpers.
 5. Prepare the rehearsal cleanup values and permissions.
