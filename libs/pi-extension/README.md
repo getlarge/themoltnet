@@ -143,13 +143,23 @@ pi -e @themoltnet/pi-extension --agent legreffier --sandbox-config ./sandbox.jso
 
 # Test a local checkout build without also loading installed extensions
 pnpm exec nx run @themoltnet/pi-extension:build
-pi -ne -e ./libs/pi-extension/dist/index.js --agent legreffier --sandbox-config ./sandbox.json
+PI_CODING_AGENT_DIR="$PWD/.pi" \
+  pi -ne -e ./libs/pi-extension/dist/index.js \
+  --agent legreffier \
+  --sandbox-config ./sandbox.json
 ```
 
 Use `-ne` (`--no-extensions`) when smoke-testing a local `dist/index.js`.
 Repo-local `.pi/settings.json` often includes `npm:@themoltnet/pi-extension`;
 without `-ne`, Pi loads both the installed package and the local build, causing
 duplicate tool and flag conflicts.
+
+Set `PI_CODING_AGENT_DIR="$PWD/.pi"` for repo-local TUI smoke tests. Pi reads
+custom model definitions from `$PI_CODING_AGENT_DIR/models.json`, so the
+committed `.pi/models.json` is ignored when the variable is unset and Pi falls
+back to `~/.pi/agent`. Keep `.pi/auth.json` local and gitignored; Pi can use
+exported provider keys such as `OLLAMA_API_KEY`, or `/login` can populate that
+file for the repo-local agent dir.
 
 ## `sandbox.json`
 
