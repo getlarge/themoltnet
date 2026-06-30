@@ -55,6 +55,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAgent, pollUntil, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
+const TASK_DELETION_POLL_OPTIONS = {
+  maxAttempts: 80,
+  intervalMs: 250,
+};
+
+function taskNoLongerVisible(result: { response: { status: number } }) {
+  return result.response.status === 403 || result.response.status === 404;
+}
+
 describe('Tasks API', () => {
   let harness: TestHarness;
   let client: Client;
@@ -2376,8 +2385,80 @@ describe('Tasks API', () => {
             auth: () => proposer.accessToken,
             path: { id: taskId },
           }),
-        (result) => result.response.status === 404,
-        { label: 'owner cleanup deletes cancelled task' },
+        taskNoLongerVisible,
+        {
+          ...TASK_DELETION_POLL_OPTIONS,
+          label: 'owner cleanup deletes cancelled task',
+        },
+      );
+    });
+
+    it('duplicate terminal deletion requests stay accepted while cleanup is queued', async () => {
+      const task = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+        body: {
+          taskType: 'freeform',
+          title: 'duplicate cleanup',
+          diaryId: proposer.privateDiaryId,
+          input: { brief: 'delete me once' },
+        },
+      });
+      expect(task.error).toBeUndefined();
+
+      await cancelTask({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: task.data!.id },
+        body: { reason: 'make terminal for duplicate cleanup' },
+      });
+
+      const [first, second] = await Promise.all([
+        batchDeleteTasks({
+          client,
+          auth: () => proposer.accessToken,
+          body: { ids: [task.data!.id] },
+        }),
+        batchDeleteTasks({
+          client,
+          auth: () => proposer.accessToken,
+          body: { ids: [task.data!.id] },
+        }),
+      ]);
+
+      expect(first.error).toBeUndefined();
+      expect(second.error).toBeUndefined();
+      expect(first.response.status).toBe(202);
+      expect(second.response.status).toBe(202);
+
+      const responses = [first.data!, second.data!];
+      expect(responses).toContainEqual(
+        expect.objectContaining({
+          workflowId: expect.any(String),
+          accepted: [task.data!.id],
+          skipped: [],
+        }),
+      );
+      for (const response of responses) {
+        expect(response.accepted.length + response.skipped.length).toBe(1);
+        expect([...response.accepted, ...response.skipped]).toEqual([
+          task.data!.id,
+        ]);
+      }
+
+      await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: task.data!.id },
+          }),
+        taskNoLongerVisible,
+        {
+          ...TASK_DELETION_POLL_OPTIONS,
+          label: 'duplicate cleanup deletes terminal task once',
+        },
       );
     });
 
@@ -2463,8 +2544,11 @@ describe('Tasks API', () => {
             auth: () => proposer.accessToken,
             path: { id: terminal.data!.id },
           }),
-        (result) => result.response.status === 404,
-        { label: 'safe cleanup deletes terminal task' },
+        taskNoLongerVisible,
+        {
+          ...TASK_DELETION_POLL_OPTIONS,
+          label: 'safe cleanup deletes terminal task',
+        },
       );
 
       const rejected = await batchDeleteTasks({
@@ -2495,8 +2579,11 @@ describe('Tasks API', () => {
             auth: () => proposer.accessToken,
             path: { id: sealed.data!.id },
           }),
-        (result) => result.response.status === 404,
-        { label: 'force cleanup deletes sealed terminal task' },
+        taskNoLongerVisible,
+        {
+          ...TASK_DELETION_POLL_OPTIONS,
+          label: 'force cleanup deletes sealed terminal task',
+        },
       );
 
       expect(
