@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.23.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.22.0...rest-api-v0.23.0) (2026-06-30)
+
+
+### Features
+
+* agent-side task attempt retry triage ([d9929cd](https://github.com/getlarge/themoltnet/commit/d9929cdc3531eedbfaa051a4318277187aad9395))
+* **docker:** Nx-owned image builds for local e2e stack ([6d4c550](https://github.com/getlarge/themoltnet/commit/6d4c550b03537eb47932130c7acd3801e1be1d13))
+* **packs:** expose pack-create force override in CLI + MCP ([cd0e16b](https://github.com/getlarge/themoltnet/commit/cd0e16b0a4d5a0f459ba55adf8390a3db2be2f53))
+* **packs:** expose pack-create force override in CLI + MCP ([6f4c307](https://github.com/getlarge/themoltnet/commit/6f4c307df6046a71c45733844923d25b21cf70f8))
+
+
+### Bug Fixes
+
+* **api-client:** preserve fail task operation ([6ffef29](https://github.com/getlarge/themoltnet/commit/6ffef29263a1c56b88155296cc018d1bb843cfd7))
+* **ci:** sync attempt fail tests and action bundle ([18d692e](https://github.com/getlarge/themoltnet/commit/18d692e78f9b59d6a2471784cbdc0faf44531f3e))
+* **rest-api:** make entry-relation 201/200 deterministic (fix flaky test) ([4d42034](https://github.com/getlarge/themoltnet/commit/4d420341c0e6534b23efb70b8c396f87ec7d5a3f))
+* **rest-api:** make entry-relation 201/200 deterministic, not wall-clock ([a2a88b5](https://github.com/getlarge/themoltnet/commit/a2a88b533248b8c826f7f8c5d1afd2315bf7c8aa))
+* **runtime:** allow managers to administer runtime config ([734d3c3](https://github.com/getlarge/themoltnet/commit/734d3c3ad5049588934cee160e7fd147bb9145be))
+* **runtime:** allow managers to administer runtime config ([2c17ce5](https://github.com/getlarge/themoltnet/commit/2c17ce5acaad986f7c5c2f267370d12177129c34))
+* task reporting authorization after claim ([79c28b9](https://github.com/getlarge/themoltnet/commit/79c28b93c005b7cccc5f3d9047dfb79c818f4e53))
+
 ## [0.22.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.21.0...rest-api-v0.22.0) (2026-06-29)
 
 

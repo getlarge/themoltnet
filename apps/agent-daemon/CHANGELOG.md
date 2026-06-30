@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.29.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.28.0...agent-daemon-v0.29.0) (2026-06-30)
+
+
+### Features
+
+* **agent-daemon:** add attempt retry triage ([a86bfc1](https://github.com/getlarge/themoltnet/commit/a86bfc1a5aa928b800a5b4cff475ce61ee1192c2))
+* agent-side task attempt retry triage ([d9929cd](https://github.com/getlarge/themoltnet/commit/d9929cdc3531eedbfaa051a4318277187aad9395))
+
+
+### Bug Fixes
+
+* **agent-daemon:** harden retry triage ([433f410](https://github.com/getlarge/themoltnet/commit/433f410db4068607cf879f30f4ca9e20ba82de9b))
+* **agent-daemon:** persist retry triage context ([e9b5b78](https://github.com/getlarge/themoltnet/commit/e9b5b78e0dfa435993ad8f83bb011078bc7a7629))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.33.1
+    * @themoltnet/pi-extension bumped to 0.31.0
+    * @themoltnet/sdk bumped to 0.117.0
+
 ## [0.28.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.27.2...agent-daemon-v0.28.0) (2026-06-29)
 
 

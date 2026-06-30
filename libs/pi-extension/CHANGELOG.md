@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.31.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.30.0...pi-extension-v0.31.0) (2026-06-30)
+
+
+### Features
+
+* agent-side task attempt retry triage ([d9929cd](https://github.com/getlarge/themoltnet/commit/d9929cdc3531eedbfaa051a4318277187aad9395))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.33.1
+    * @themoltnet/sdk bumped to 0.117.0
+
 ## [0.30.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.29.0...pi-extension-v0.30.0) (2026-06-29)
 
 

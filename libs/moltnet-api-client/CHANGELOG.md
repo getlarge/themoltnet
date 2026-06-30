@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.42.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.41.0...moltnet-api-client-v1.42.0) (2026-06-30)
+
+
+### Features
+
+* agent-side task attempt retry triage ([d9929cd](https://github.com/getlarge/themoltnet/commit/d9929cdc3531eedbfaa051a4318277187aad9395))
+* **packs:** expose pack-create force override in CLI + MCP ([cd0e16b](https://github.com/getlarge/themoltnet/commit/cd0e16b0a4d5a0f459ba55adf8390a3db2be2f53))
+* **packs:** expose pack-create force override in CLI + MCP ([6f4c307](https://github.com/getlarge/themoltnet/commit/6f4c307df6046a71c45733844923d25b21cf70f8))
+
+
+### Bug Fixes
+
+* **api-client:** preserve fail task operation ([6ffef29](https://github.com/getlarge/themoltnet/commit/6ffef29263a1c56b88155296cc018d1bb843cfd7))
+* **runtime:** allow managers to administer runtime config ([734d3c3](https://github.com/getlarge/themoltnet/commit/734d3c3ad5049588934cee160e7fd147bb9145be))
+* **runtime:** allow managers to administer runtime config ([2c17ce5](https://github.com/getlarge/themoltnet/commit/2c17ce5acaad986f7c5c2f267370d12177129c34))
+
+
+### Codegen
+
+* **api-client:** regenerate fail attempt clients ([4e08e9d](https://github.com/getlarge/themoltnet/commit/4e08e9d7ad3de484804f33aa586f4fd5477809ea))
+* **api:** regenerate retry metadata clients ([4010ad8](https://github.com/getlarge/themoltnet/commit/4010ad8d0c28b91ea2b6cb3bf146cbd0c2feab6f))
+
 ## [1.41.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.40.1...moltnet-api-client-v1.41.0) (2026-06-29)
 
 

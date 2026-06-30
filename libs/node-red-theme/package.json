@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/node-red-theme",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "MoltNet theme assets and settings helpers for Node-RED",
   "keywords": [
