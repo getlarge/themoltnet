@@ -362,20 +362,27 @@ export async function createGoReleaseValidationLocalReplaces(
   const rootDir = resolve(cwd, root);
   const goModPath = join(rootDir, 'go.mod');
   const goMod = await readFile(goModPath, 'utf-8');
+  const localReplaces: GoLocalReplace[] = [];
 
-  return (await discoverGoWorkspaceModules(cwd))
-    .filter((module) => module.root !== rootDir)
-    .filter((module) => goMod.includes(module.modulePath))
-    .filter((module) => !hasReplaceDirective(goMod, module.modulePath))
-    .map((module): GoLocalReplace => {
-      const replacementPath = relative(rootDir, module.root);
-      return {
-        modulePath: module.modulePath,
-        replacementPath: replacementPath.startsWith('.')
-          ? replacementPath
-          : `./${replacementPath}`,
-      };
+  for (const module of await discoverGoWorkspaceModules(cwd)) {
+    if (
+      module.root === rootDir ||
+      !goMod.includes(module.modulePath) ||
+      hasReplaceDirective(goMod, module.modulePath)
+    ) {
+      continue;
+    }
+
+    const replacementPath = relative(rootDir, module.root);
+    localReplaces.push({
+      modulePath: module.modulePath,
+      replacementPath: replacementPath.startsWith('.')
+        ? replacementPath
+        : `./${replacementPath}`,
     });
+  }
+
+  return localReplaces;
 }
 
 function parseOptionList(value: unknown) {
