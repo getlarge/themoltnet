@@ -106,16 +106,16 @@ export type ConflictProblemDetails = Static<
 
 // A single prompt-injection threat detected on a diary entry, as stored on
 // diary_entries.injection_threats and surfaced in the pack-create 409 below.
-// Embedded by object reference into InjectionConflictProblemDetailsSchema (same
-// convention as ConflictTargetSchema → ConflictErrorSchema); registered as a
-// shared schema so it emits as a named $ref in the OpenAPI + generated clients.
+// Embedded by value into InjectionConflictProblemDetailsSchema (same convention
+// as ConflictTargetSchema → ConflictErrorSchema). No $id: it is an inline leaf,
+// not a standalone component, so it does not emit a dangling named schema.
 export const InjectionThreatSchema = Type.Object(
   {
     type: Type.String(),
     severity: Type.Number(),
     match: Type.String(),
   },
-  { $id: 'InjectionThreat', additionalProperties: false },
+  { additionalProperties: false },
 );
 
 export type InjectionThreat = Static<typeof InjectionThreatSchema>;

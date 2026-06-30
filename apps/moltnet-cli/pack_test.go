@@ -6,6 +6,9 @@ import (
 	"io"
 	"strings"
 	"testing"
+
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
+	"github.com/google/uuid"
 )
 
 func TestDeflateBase64URL(t *testing.T) {
@@ -71,5 +74,61 @@ func TestRunPackProvenance_NegativeDepth(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "non-negative") {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestFormatInjectionConflict(t *testing.T) {
+	t.Parallel()
+
+	id1 := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	id2 := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+
+	conflict := &moltnetapi.InjectionConflictProblemDetails{
+		Title:  "Conflict",
+		Detail: moltnetapi.NewOptString("Pack contains 2 entry(ies) flagged as prompt-injection risk; pass force: true to override."),
+		Flagged: []moltnetapi.InjectionConflictProblemDetailsFlaggedItem{
+			{
+				ID: id1,
+				Threats: []moltnetapi.InjectionConflictProblemDetailsFlaggedItemThreatsItem{
+					{Type: "instruction_override", Severity: 0.9, Match: "ignore previous"},
+					{Type: "role_hijack", Severity: 0.7, Match: "you are now"},
+				},
+			},
+			// An entry flagged with no enumerated threats still gets listed.
+			{ID: id2, Threats: nil},
+		},
+	}
+
+	err := formatInjectionConflict(conflict)
+	if err == nil {
+		t.Fatal("expected a non-nil error")
+	}
+	msg := err.Error()
+
+	for _, want := range []string{
+		"flagged as prompt-injection risk", // the detail message
+		id1.String(),
+		"instruction_override, role_hijack", // threat types joined
+		id2.String(),
+		"Re-run with --force",
+	} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("expected message to contain %q, got:\n%s", want, msg)
+		}
+	}
+}
+
+// Falls back to Title when Detail is unset.
+func TestFormatInjectionConflict_NoDetail(t *testing.T) {
+	t.Parallel()
+
+	conflict := &moltnetapi.InjectionConflictProblemDetails{
+		Title:   "Conflict",
+		Flagged: []moltnetapi.InjectionConflictProblemDetailsFlaggedItem{},
+	}
+
+	msg := formatInjectionConflict(conflict).Error()
+	if !strings.Contains(msg, "Conflict") {
+		t.Errorf("expected fallback to Title, got:\n%s", msg)
 	}
 }

@@ -5,6 +5,7 @@
  * passing the agent's bearer token from the MCP handler context.
  */
 
+import type { InjectionConflictProblemDetails } from '@moltnet/api-client';
 import {
   createDiaryCustomPack,
   diffContextPacksByCid,
@@ -226,15 +227,18 @@ export async function handlePacksCreate(
   return structuredResult(data);
 }
 
-// On a prompt-injection 409 the body carries `flagged: [{ id, threats }]`.
-// Append the flagged entry ids + threat types to the base message so the caller
-// knows what to review before retrying with force=true.
-function formatPackCreateError(error: unknown, fallback: string): string {
+// On a prompt-injection 409 the body is an InjectionConflictProblemDetails
+// carrying `flagged: [{ id, threats }]`. Append the flagged entry ids + threat
+// types to the base message so the caller knows what to review before retrying
+// with force=true.
+export function formatPackCreateError(
+  error: unknown,
+  fallback: string,
+): string {
   const base = extractApiErrorMessage(error, fallback);
   const flagged =
     typeof error === 'object' && error !== null
-      ? (error as { flagged?: { id: string; threats?: { type: string }[] }[] })
-          .flagged
+      ? (error as Partial<InjectionConflictProblemDetails>).flagged
       : undefined;
   if (!flagged?.length) return base;
 

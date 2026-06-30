@@ -3981,26 +3981,6 @@
           }
         ]
       },
-      "InjectionThreat": {
-        "additionalProperties": false,
-        "properties": {
-          "match": {
-            "type": "string"
-          },
-          "severity": {
-            "type": "number"
-          },
-          "type": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "severity",
-          "match"
-        ],
-        "type": "object"
-      },
       "ListMessagesQuery": {
         "properties": {
           "afterSeq": {

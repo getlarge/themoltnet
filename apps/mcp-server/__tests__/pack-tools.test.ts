@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  formatPackCreateError,
   handlePacksCreate,
   handlePacksGet,
   handlePacksList,
@@ -887,5 +888,51 @@ describe('Pack tools', () => {
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('Not authenticated');
     });
+  });
+});
+
+describe('formatPackCreateError', () => {
+  it('lists flagged entries and their threat types from an injection 409', () => {
+    const message = formatPackCreateError(
+      {
+        detail:
+          'Pack contains 2 entry(ies) flagged as prompt-injection risk; pass force: true to override.',
+        flagged: [
+          {
+            id: '11111111-1111-1111-1111-111111111111',
+            threats: [
+              { type: 'instruction_override', severity: 0.9, match: 'ignore' },
+              { type: 'role_hijack', severity: 0.7, match: 'you are now' },
+            ],
+          },
+          // An entry flagged with no enumerated threats is still listed.
+          { id: '22222222-2222-2222-2222-222222222222', threats: [] },
+        ],
+      },
+      'Failed to create custom pack',
+    );
+
+    expect(message).toContain('flagged as prompt-injection risk');
+    expect(message).toContain(
+      '11111111-1111-1111-1111-111111111111 (instruction_override, role_hijack)',
+    );
+    expect(message).toContain('22222222-2222-2222-2222-222222222222');
+    expect(message).toContain('Set force=true');
+  });
+
+  it('returns just the base message when there are no flagged entries', () => {
+    const message = formatPackCreateError(
+      { detail: 'Some other conflict' },
+      'Failed to create custom pack',
+    );
+
+    expect(message).toBe('Some other conflict');
+    expect(message).not.toContain('Flagged entries');
+  });
+
+  it('falls back to the provided message when the error has no detail', () => {
+    expect(
+      formatPackCreateError(undefined, 'Failed to create custom pack'),
+    ).toBe('Failed to create custom pack');
   });
 });

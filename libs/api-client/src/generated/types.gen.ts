@@ -965,12 +965,6 @@ export type InjectionConflictProblemDetails = {
   }>;
 };
 
-export type InjectionThreat = {
-  match: string;
-  severity: number;
-  type: string;
-};
-
 export type ListMessagesQuery = {
   /**
    * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
