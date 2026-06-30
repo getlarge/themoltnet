@@ -28,6 +28,7 @@ import {
   buildAttemptResult,
   buildSubmitMissingPrompt,
   captureAttemptOutput,
+  cleanupAttempt,
   computeProviderErrorRetryDelay,
   createGondolinToolDefinitions,
   createSessionTurnState,
@@ -363,6 +364,152 @@ describe('provider error same-session retry helpers', () => {
     expect(sanitizeProviderErrorRetryReason(null)).toBe(
       'Pi turn ended with stopReason=error',
     );
+  });
+});
+
+describe('cleanupAttempt (teardown characterization)', () => {
+  function makeDeps(overrides?: Partial<Parameters<typeof cleanupAttempt>[0]>) {
+    const order: string[] = [];
+    const logged: string[] = [];
+    const signal = new AbortController().signal;
+    const cancelListener = vi.fn();
+    const removeSpy = vi
+      .spyOn(signal, 'removeEventListener')
+      .mockImplementation(() => {
+        order.push('removeListener');
+      });
+    const deps = {
+      cancelSignal: signal,
+      cancelListener,
+      session: {
+        dispose: vi.fn(() => {
+          order.push('dispose');
+        }),
+      },
+      reporterOpen: true,
+      reporter: {
+        finalize: vi.fn(async () => {
+          order.push('finalize');
+        }),
+        close: vi.fn(async () => {
+          order.push('close');
+        }),
+      },
+      finalUsage: {
+        provider: 'p',
+        model: 'm',
+        inputTokens: 0,
+        outputTokens: 0,
+      },
+      managed: {
+        vm: {
+          close: vi.fn(async () => {
+            order.push('vmClose');
+          }),
+        },
+      },
+      workspace: {
+        cleanup: vi.fn(() => {
+          order.push('cleanup');
+        }),
+      },
+      taskId: 't1',
+      attemptN: 1,
+      logError: (m: string) => {
+        logged.push(m);
+      },
+      ...overrides,
+    } as Parameters<typeof cleanupAttempt>[0];
+    return { deps, order, logged, removeSpy };
+  }
+
+  it('tears down in order: listener → session → reporter → vm → workspace', async () => {
+    const { deps, order } = makeDeps();
+    await cleanupAttempt(deps);
+    expect(order).toEqual([
+      'removeListener',
+      'dispose',
+      'finalize',
+      'close',
+      'vmClose',
+      'cleanup',
+    ]);
+  });
+
+  it('skips reporter finalize/close when the reporter was never opened', async () => {
+    const { deps, order } = makeDeps({ reporterOpen: false });
+    await cleanupAttempt(deps);
+    expect(order).not.toContain('finalize');
+    expect(order).not.toContain('close');
+    expect(order).toContain('vmClose');
+  });
+
+  it('swallows a session.dispose() throw and continues teardown', async () => {
+    const { deps, order } = makeDeps({
+      session: {
+        dispose: () => {
+          throw new Error('dispose boom');
+        },
+      },
+    });
+    await expect(cleanupAttempt(deps)).resolves.toBeUndefined();
+    expect(order).toContain('finalize'); // continued past dispose
+  });
+
+  it('logs a reporter.finalize() failure but still closes the reporter', async () => {
+    const { deps, order, logged } = makeDeps({
+      reporter: {
+        finalize: async () => {
+          throw new Error('finalize boom');
+        },
+        close: vi.fn(async () => {
+          order.push('close');
+        }),
+      },
+    });
+    await cleanupAttempt(deps);
+    expect(order).toContain('close');
+    expect(logged.some((m) => m.includes('reporter.finalize() failed'))).toBe(
+      true,
+    );
+  });
+
+  it('logs a workspace cleanup failure instead of throwing', async () => {
+    const { deps, logged } = makeDeps({
+      workspace: {
+        cleanup: () => {
+          throw new Error('cleanup boom');
+        },
+      },
+    });
+    await expect(cleanupAttempt(deps)).resolves.toBeUndefined();
+    expect(logged.some((m) => m.includes('workspace cleanup failed'))).toBe(
+      true,
+    );
+  });
+
+  it('lets a vm.close() failure propagate (not swallowed)', async () => {
+    const { deps } = makeDeps({
+      managed: {
+        vm: {
+          close: async () => {
+            throw new Error('vm boom');
+          },
+        },
+      },
+    });
+    await expect(cleanupAttempt(deps)).rejects.toThrow('vm boom');
+  });
+
+  it('no-ops on null session / managed / workspace / listener', async () => {
+    const { deps } = makeDeps({
+      cancelListener: null,
+      session: null,
+      reporterOpen: false,
+      managed: null,
+      workspace: null,
+    });
+    await expect(cleanupAttempt(deps)).resolves.toBeUndefined();
   });
 });
 

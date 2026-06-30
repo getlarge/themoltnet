@@ -788,6 +788,89 @@ export function buildAttemptResult(input: BuildAttemptResultArgs): TaskOutput {
   };
 }
 
+export interface CleanupAttemptDeps {
+  cancelSignal: AbortSignal;
+  cancelListener: (() => void) | null;
+  session: { dispose: () => void } | null;
+  /** Whether the reporter was opened (finalize/close only run if so). */
+  reporterOpen: boolean;
+  reporter: Pick<TaskReporter, 'finalize' | 'close'>;
+  finalUsage: TaskUsage;
+  managed: { vm: { close: () => Promise<void> } } | null;
+  workspace: { cleanup: () => void } | null;
+  taskId: string;
+  attemptN: number;
+  /** Sink for swallowed-failure diagnostics. Defaults to `console.error`. */
+  logError?: (message: string) => void;
+}
+
+/**
+ * Tear down one attempt's resources, in order: detach the cancel listener →
+ * dispose the pi session → finalize+close the reporter → close the VM →
+ * clean the workspace. Extracted from `executePiTask`'s `finally` so the
+ * swallow-vs-log-vs-propagate policy is pinned by tests.
+ *
+ * Failure handling is deliberately asymmetric and preserved exactly:
+ * `session.dispose()` throws are silently swallowed; reporter finalize/close
+ * and workspace cleanup failures are logged but non-fatal (the task is about
+ * to be reported anyway); a `vm.close()` failure is the one teardown error
+ * allowed to propagate.
+ */
+export async function cleanupAttempt(deps: CleanupAttemptDeps): Promise<void> {
+  const log = deps.logError ?? ((m: string) => console.error(m));
+  // Remove the cancel listener before disposing the session so it can't fire
+  // after `dispose()` has torn the session down. `once` makes this redundant
+  // when the listener already fired, but removeEventListener is a no-op then.
+  if (deps.cancelListener) {
+    deps.cancelSignal.removeEventListener('abort', deps.cancelListener);
+  }
+  if (deps.session) {
+    try {
+      deps.session.dispose();
+    } catch {
+      /* swallow */
+    }
+  }
+  if (deps.reporterOpen) {
+    try {
+      await deps.reporter.finalize(deps.finalUsage);
+    } catch (err) {
+      // finalize() drains the reporter's buffer, so a failure here means
+      // buffered messages were lost or a retry restored them to the buffer —
+      // either way the task is about to be marked complete. Log so the loss
+      // is visible in the worker log instead of hidden inside an empty catch.
+      const detail = err instanceof Error ? err.message : String(err);
+      log(
+        `executePiTask: reporter.finalize() failed for task ${deps.taskId} ` +
+          `attempt ${deps.attemptN}: ${detail}`,
+      );
+    }
+    try {
+      await deps.reporter.close();
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      log(
+        `executePiTask: reporter.close() failed for task ${deps.taskId} ` +
+          `attempt ${deps.attemptN}: ${detail}`,
+      );
+    }
+  }
+  if (deps.managed) {
+    await deps.managed.vm.close();
+  }
+  if (deps.workspace) {
+    try {
+      deps.workspace.cleanup();
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      log(
+        `executePiTask: workspace cleanup failed for task ${deps.taskId} ` +
+          `attempt ${deps.attemptN}: ${detail}`,
+      );
+    }
+  }
+}
+
 /**
  * Run one attempt of `task` in a freshly-resumed Gondolin VM. Owns the full
  * lifecycle: resume VM → wire tools → pi session → close VM. Always returns
@@ -1541,59 +1624,18 @@ export async function executePiTask(
     const message = err instanceof Error ? err.message : String(err);
     return makeFailedOutput('executor_unexpected_error', message);
   } finally {
-    // Remove the cancel listener before disposing the session so it
-    // can't fire after `dispose()` has torn the session down. `once`
-    // makes this redundant when the listener has already fired, but
-    // removeEventListener is a no-op in that case.
-    if (cancelListener) {
-      reporter.cancelSignal.removeEventListener('abort', cancelListener);
-    }
-    if (session) {
-      try {
-        session.dispose();
-      } catch {
-        /* swallow */
-      }
-    }
-    if (reporterOpen) {
-      try {
-        await reporter.finalize(finalUsage);
-      } catch (err) {
-        // finalize() drains the reporter's buffer, so a failure here means
-        // buffered messages were lost or a retry restored them to the
-        // buffer — either way the task is about to be marked complete.
-        // Log to stderr so the loss is visible in the worker log instead
-        // of hidden inside an empty catch.
-        const detail = err instanceof Error ? err.message : String(err);
-        console.error(
-          `executePiTask: reporter.finalize() failed for task ${task.id} ` +
-            `attempt ${attemptN}: ${detail}`,
-        );
-      }
-      try {
-        await reporter.close();
-      } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
-        console.error(
-          `executePiTask: reporter.close() failed for task ${task.id} ` +
-            `attempt ${attemptN}: ${detail}`,
-        );
-      }
-    }
-    if (managed) {
-      await managed.vm.close();
-    }
-    if (workspace) {
-      try {
-        workspace.cleanup();
-      } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
-        console.error(
-          `executePiTask: workspace cleanup failed for task ${task.id} ` +
-            `attempt ${attemptN}: ${detail}`,
-        );
-      }
-    }
+    await cleanupAttempt({
+      cancelSignal: reporter.cancelSignal,
+      cancelListener,
+      session,
+      reporterOpen,
+      reporter,
+      finalUsage,
+      managed,
+      workspace,
+      taskId: task.id,
+      attemptN,
+    });
   }
 }
 
