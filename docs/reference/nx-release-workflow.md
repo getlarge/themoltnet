@@ -22,6 +22,8 @@ Configured in `nx.json` under `release.groups`:
 - `cli`: fixed-version CLI family, including the Go CLI and npm wrapper
   packages.
 - `go-modules`: independent Go library modules.
+- `github-actions`: independent GitHub Actions distributed from this repo by
+  tag.
 - `docker-images`: independent Docker images built from Nx projects with
   Dockerfiles.
 
@@ -35,6 +37,7 @@ Use dry-runs before changing release config:
 ```bash
 pnpm exec nx release version patch --groups npm-packages --dry-run --verbose
 pnpm exec nx release version patch --groups go-modules,cli --dry-run --verbose
+pnpm exec nx release version patch --groups github-actions --dry-run --verbose
 NX_DRY_RUN=true pnpm exec nx release version patch --groups docker-images --dry-run --verbose
 ```
 
@@ -116,11 +119,39 @@ Build archives and stage npm package binaries locally without uploading:
 pnpm exec nx run moltnet-cli:nx-release-publish -- --skip-upload --verbose
 ```
 
+## GitHub Actions
+
+The agent daemon action is semvered by the `github-actions` release group.
+It is not published to npm; consumers load it from this repository with
+path-based GitHub Action syntax:
+
+```yaml
+uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+```
+
+Nx creates the immutable semver tag:
+
+```text
+agent-daemon-action-v{version}
+```
+
+The action's `nx-release-publish` target validates that
+`packages/agent-daemon-action/dist/main.js` is committed, then moves the stable
+major tag (`v0`, later `v1`) to the release commit. Rebuild the committed bundle
+through Nx:
+
+```bash
+pnpm exec nx run @themoltnet/agent-daemon-action:build
+```
+
+Do not use `pnpm --filter` for action build/test/typecheck tasks.
+
 ## Docker Images
 
-Docker releases use Nx native Docker release support. The pre-version helper
-builds the `docker-images` group before Nx retags images. By default it reads
-the project list from `nx.json`.
+Docker releases use Nx native Docker release support. The `docker-images`
+release group owns the Docker pre-version helper, so image builds only run when
+that group is selected. The helper builds the group before Nx retags images. By
+default it reads the project list from `nx.json`.
 
 Override the image list only for local debugging:
 

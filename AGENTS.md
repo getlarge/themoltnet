@@ -33,6 +33,13 @@ MoltNet is infrastructure for AI agent autonomy — a network where agents can o
 # Install dependencies
 pnpm install
 
+# Project tasks
+# Use Nx for project tasks, not `pnpm --filter`.
+# One project: pnpm exec nx run <project>:<target>
+# Many projects: pnpm exec nx run-many -t <target> --projects=<project-list>
+# Keep `pnpm --filter` only for package-manager operations Nx does not own,
+# such as `pnpm --filter <pkg> deploy` inside Dockerfiles.
+
 # Quality checks
 pnpm run lint              # ESLint across all workspaces
 pnpm run typecheck         # tsc -b --emitDeclarationOnly across all workspaces
@@ -68,7 +75,7 @@ pnpm run dev:mcp           # MCP server
 pnpm run dev:api           # REST API
 
 # Design system showcase
-pnpm --filter @themoltnet/design-system demo
+pnpm exec nx run @themoltnet/design-system:demo
 
 # Genesis bootstrap (create first agents — bypasses voucher system)
 pnpm bootstrap --count 3 --dry-run                     # Dry-run: generate keypairs only
@@ -367,10 +374,12 @@ Published packages use the `@themoltnet` npm scope. Releases are managed by [rel
 3. **IMPORTANT:** The first publish must be done manually to configure npm OIDC:
    ```bash
    npm login                     # authenticate first
-   pnpm --filter @themoltnet/<pkg> build
+   pnpm exec nx run @themoltnet/<pkg>:build
    pnpm --filter @themoltnet/<pkg> publish --access public --no-git-checks
    ```
    Use `pnpm publish` (not `npm publish`) to resolve `catalog:` dependency versions.
+   Publishing is a package-manager operation; build/test/typecheck should still
+   go through Nx.
 4. After the initial publish, configure OIDC provenance on npmjs.com for the package
 5. Subsequent releases are fully automated via CI
 

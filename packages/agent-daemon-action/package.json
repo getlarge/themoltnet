@@ -39,6 +39,18 @@
     "node": ">=22"
   },
   "nx": {
+    "targets": {
+      "nx-release-publish": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/agent-daemon-action"
+        }
+      }
+    },
     "tags": [
       "type:client",
       "scope:agent",

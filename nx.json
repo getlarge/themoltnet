@@ -165,7 +165,7 @@
       }
     },
     "docker": {
-      "preVersionCommand": "node tools/release/docker-preversion.mjs",
+      "preVersionCommand": "",
       "registryUrl": "ghcr.io",
       "skipVersionActions": false,
       "versionSchemes": {
@@ -190,6 +190,9 @@
         }
       },
       "docker-images": {
+        "docker": {
+          "groupPreVersionCommand": "node tools/release/docker-preversion.mjs"
+        },
         "projects": [
           "@moltnet/console",
           "@moltnet/database",
@@ -201,6 +204,13 @@
         "projectsRelationship": "independent",
         "releaseTag": {
           "pattern": "{projectName}-v{version}"
+        }
+      },
+      "github-actions": {
+        "projects": ["@themoltnet/agent-daemon-action"],
+        "projectsRelationship": "independent",
+        "releaseTag": {
+          "pattern": "agent-daemon-action-v{version}"
         }
       },
       "go-modules": {

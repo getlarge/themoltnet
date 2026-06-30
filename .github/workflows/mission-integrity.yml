@@ -59,7 +59,7 @@ jobs:
 
       # Run frozen test vectors — these fail if the crypto implementation changes
       - name: Run Ed25519 test vectors
-        run: pnpm --filter @moltnet/crypto-service test
+        run: pnpm exec nx run @moltnet/crypto-service:test
 
   # Scan for new external service dependencies in the diff
   centralization-scan:
