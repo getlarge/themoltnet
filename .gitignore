@@ -2,6 +2,12 @@
 .eval-env.json
 .moltnet/eval-agent/
 .pi/auth.json
+.pi/bin/
+.pi/npm/node_modules/
+.pi/npm/package-lock.json
+.pi/npm/package.json
+.pi/sessions/
+.pi/trust.json
 
 # Logs
 logs
