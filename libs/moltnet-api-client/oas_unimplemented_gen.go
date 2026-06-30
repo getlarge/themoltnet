@@ -71,7 +71,8 @@ func (UnimplementedHandler) BatchDeleteDiaryEntries(ctx context.Context, req *Ba
 
 // BatchDeleteTasks implements batchDeleteTasks operation.
 //
-// Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+// Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing,
+// and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
 //
 // DELETE /tasks
 func (UnimplementedHandler) BatchDeleteTasks(ctx context.Context, req *BatchDeleteTasksReq) (r BatchDeleteTasksRes, _ error) {

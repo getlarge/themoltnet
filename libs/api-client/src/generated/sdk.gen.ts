@@ -2368,7 +2368,7 @@ export const findLatestRuntimeSlotForAttempt = <
   });
 
 /**
- * Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+ * Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
  */
 export const batchDeleteTasks = <ThrowOnError extends boolean = false>(
   options: Options<BatchDeleteTasksData, ThrowOnError>,

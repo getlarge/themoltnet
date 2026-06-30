@@ -526,6 +526,40 @@ func (s *BatchDeleteResponse) Validate() error {
 	return nil
 }
 
+func (s *BatchDeleteTasksAcceptedResponse) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Accepted == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "accepted",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if s.Skipped == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "skipped",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s *BatchDeleteTasksForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -571,24 +605,6 @@ func (s *BatchDeleteTasksReq) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.Mode.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "mode",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.Reason.Get(); ok {
 			if err := func() error {
 				if err := (validate.String{
@@ -622,17 +638,6 @@ func (s *BatchDeleteTasksReq) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
-}
-
-func (s BatchDeleteTasksReqMode) Validate() error {
-	switch s {
-	case "safe":
-		return nil
-	case "accept-risk":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
 }
 
 func (s *BatchDeleteTasksUnauthorized) Validate() error {

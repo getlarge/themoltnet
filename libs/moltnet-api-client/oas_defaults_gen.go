@@ -5,8 +5,8 @@ package moltnetapi
 // setDefaults set default value of fields.
 func (s *BatchDeleteTasksReq) setDefaults() {
 	{
-		val := BatchDeleteTasksReqMode("safe")
-		s.Mode.SetTo(val)
+		val := bool(false)
+		s.Force.SetTo(val)
 	}
 }
 
