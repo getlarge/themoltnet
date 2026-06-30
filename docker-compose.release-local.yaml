@@ -1,0 +1,39 @@
+# MoltNet Docker Compose — Local Release Rehearsal
+#
+# Ephemeral registry services used to exercise Nx release locally without
+# publishing npm packages or Docker images to public registries.
+#
+# Usage:
+#   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.release-local.yaml up -d
+#   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.release-local.yaml down -v
+
+services:
+  npm-registry:
+    image: verdaccio/verdaccio:6
+    ports:
+      - '4873:4873'
+    volumes:
+      - ./tools/release/verdaccio-local/config.yaml:/verdaccio/conf/config.yaml:ro
+      - npm-registry-data:/verdaccio/storage
+
+  docker-registry:
+    image: registry:2
+    ports:
+      - '5001:5000'
+    volumes:
+      - docker-registry-data:/var/lib/registry
+
+  go-proxy:
+    image: gomods/athens:v0.15.1
+    ports:
+      - '3000:3000'
+    environment:
+      ATHENS_STORAGE_TYPE: disk
+      ATHENS_DISK_STORAGE_ROOT: /var/lib/athens
+    volumes:
+      - go-proxy-data:/var/lib/athens
+
+volumes:
+  npm-registry-data:
+  docker-registry-data:
+  go-proxy-data:

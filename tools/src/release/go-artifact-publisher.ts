@@ -12,6 +12,8 @@ import { basename, dirname, join, relative } from 'node:path';
 import { Uint8ArrayReader, Uint8ArrayWriter, ZipWriter } from '@zip.js/zip.js';
 import { create as createTar } from 'tar';
 
+import { createGoReleaseValidationLocalReplaces } from './go-version-actions';
+
 type ArchiveFormat = 'tar.gz' | 'zip';
 type ArtifactStore =
   | {
@@ -93,6 +95,7 @@ type RunOptions = CreatePlanOptions & {
   verbose?: boolean;
   commandRunner?: CommandRunner;
   toolChecker?: ToolChecker;
+  useLocalReplaces?: boolean;
 };
 type CommandRunner = (
   command: GoArtifactCommand,
@@ -111,6 +114,14 @@ const defaultBuilds: GoReleaseBuild[] = [
 
 function readJsonFile<T>(path: string): T {
   return JSON.parse(readFileSync(path, 'utf-8')) as T;
+}
+
+function tryReadFile(path: string) {
+  try {
+    return readFileSync(path, 'utf-8');
+  } catch {
+    return null;
+  }
 }
 
 function resolveVersion(
@@ -410,6 +421,51 @@ function checkRequiredTools(
   }
 }
 
+async function applyLocalGoReplaces(
+  cwd: string,
+  projectRoot: string,
+  commandRunner: CommandRunner,
+) {
+  const replaces = await createGoReleaseValidationLocalReplaces(
+    cwd,
+    projectRoot,
+  );
+  const projectCwd = join(cwd, projectRoot);
+  for (const replacement of replaces) {
+    process.stdout.write(
+      `Temporarily replacing ${replacement.modulePath} => ${replacement.replacementPath} for Go artifact build in ${projectRoot}\n`,
+    );
+    commandRunner(
+      {
+        command: 'go',
+        args: [
+          'mod',
+          'edit',
+          '-replace',
+          `${replacement.modulePath}=${replacement.replacementPath}`,
+        ],
+        cwd: projectCwd,
+      },
+      { GOWORK: 'off' },
+    );
+  }
+}
+
+function restoreGoModuleFiles(cwd: string, projectRoot: string) {
+  const goModPath = join(cwd, projectRoot, 'go.mod');
+  const goSumPath = join(cwd, projectRoot, 'go.sum');
+  const goMod = tryReadFile(goModPath);
+  const goSum = tryReadFile(goSumPath);
+  return () => {
+    if (goMod !== null) {
+      writeFileSync(goModPath, goMod);
+    }
+    if (goSum !== null) {
+      writeFileSync(goSumPath, goSum);
+    }
+  };
+}
+
 async function archiveBinary(step: GoArtifactBuildStep) {
   mkdirSync(dirname(step.archivePath), { recursive: true });
   if (step.archiveFormat === 'tar.gz') {
@@ -510,14 +566,29 @@ export async function runGoArtifactPublisher(
 
   checkRequiredTools(plan, toolChecker);
 
-  for (const step of plan.buildSteps) {
-    if (options.verbose) {
-      process.stdout.write(`${formatCommand(step.command, step.env)}\n`);
+  const restoreGoFiles = options.useLocalReplaces
+    ? restoreGoModuleFiles(options.cwd ?? process.cwd(), config.projectRoot)
+    : null;
+  try {
+    if (options.useLocalReplaces) {
+      await applyLocalGoReplaces(
+        options.cwd ?? process.cwd(),
+        config.projectRoot,
+        commandRunner,
+      );
     }
-    mkdirSync(dirname(step.binaryPath), { recursive: true });
-    commandRunner(step.command, step.env);
-    await archiveBinary(step);
-    copyPackageBinary(step);
+
+    for (const step of plan.buildSteps) {
+      if (options.verbose) {
+        process.stdout.write(`${formatCommand(step.command, step.env)}\n`);
+      }
+      mkdirSync(dirname(step.binaryPath), { recursive: true });
+      commandRunner(step.command, step.env);
+      await archiveBinary(step);
+      copyPackageBinary(step);
+    }
+  } finally {
+    restoreGoFiles?.();
   }
 
   if (plan.checksumFile) {

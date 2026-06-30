@@ -18,17 +18,65 @@ type Options = {
   dryRun: boolean;
 };
 
+function normalizeBooleanOptionValues(args: string[]) {
+  const booleanOptions = new Set([
+    'dry-run',
+    'dryRun',
+    'firstRelease',
+    'first-release',
+    'verbose',
+    'yes',
+  ]);
+  return args.flatMap((arg) => {
+    const match = /^--([^=]+)=(true|false)$/.exec(arg);
+    if (!match || !booleanOptions.has(match[1])) {
+      return [arg];
+    }
+    return match[2] === 'true' ? [`--${match[1]}`] : [];
+  });
+}
+
 function parsePublisherArgs(argv = process.argv.slice(2)): Options {
   const { values } = parseArgs({
-    args: argv,
+    args: normalizeBooleanOptionValues(argv),
     options: {
+      access: {
+        type: 'string',
+      },
+      dryRun: {
+        type: 'boolean',
+      },
+      'first-release': {
+        type: 'boolean',
+      },
+      firstRelease: {
+        type: 'boolean',
+      },
+      otp: {
+        type: 'string',
+      },
       project: {
+        type: 'string',
+      },
+      registry: {
         type: 'string',
       },
       'stable-major-tag': {
         type: 'string',
       },
+      tag: {
+        type: 'string',
+      },
+      userconfig: {
+        type: 'string',
+      },
       'dry-run': {
+        type: 'boolean',
+      },
+      verbose: {
+        type: 'boolean',
+      },
+      yes: {
         type: 'boolean',
       },
     },
@@ -41,7 +89,10 @@ function parsePublisherArgs(argv = process.argv.slice(2)): Options {
   return {
     project: values.project,
     stableMajorTag: values['stable-major-tag'] ?? null,
-    dryRun: values['dry-run'] === true || process.env.NX_DRY_RUN === 'true',
+    dryRun:
+      values['dry-run'] === true ||
+      values.dryRun === true ||
+      process.env.NX_DRY_RUN === 'true',
   };
 }
 
@@ -123,6 +174,13 @@ async function main() {
     process.stdout.write(
       `(dry-run) git tag -f ${stableMajorTag} ${target}\n` +
         `(dry-run) git push origin refs/tags/${stableMajorTag}:refs/tags/${stableMajorTag} --force\n`,
+    );
+    return;
+  }
+
+  if (process.env.GITHUB_ACTION_RELEASE_SKIP_PUSH === 'true') {
+    process.stdout.write(
+      `Skipped moving ${stableMajorTag}; GITHUB_ACTION_RELEASE_SKIP_PUSH=true\n`,
     );
     return;
   }

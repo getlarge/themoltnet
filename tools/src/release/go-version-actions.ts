@@ -1,10 +1,13 @@
 import { execFileSync } from 'node:child_process';
-import { join } from 'node:path';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { access, readFile } from 'node:fs/promises';
+import { dirname, join, relative, resolve } from 'node:path';
 
-import type { ProjectGraph, Tree } from '@nx/devkit';
+import { type ProjectGraph, type Tree, visitNotIgnoredFiles } from '@nx/devkit';
 import { VersionActions } from 'nx/release';
 
 type TreeLike = Pick<Tree, 'read' | 'write'>;
+type VisitTree = Pick<Tree, 'children' | 'exists' | 'isFile' | 'read' | 'root'>;
 type CurrentVersionResolverMetadata =
   | {
       registry?: unknown;
@@ -28,6 +31,14 @@ type GoProxyLookupOptions = {
   fetchImpl?: FetchLike;
   retryDelaysMs?: number[];
 };
+type GoWorkspaceModule = {
+  modulePath: string;
+  root: string;
+};
+type GoLocalReplace = {
+  modulePath: string;
+  replacementPath: string;
+};
 
 export function readText(tree: Pick<Tree, 'read'>, path: string) {
   return tree.read(path, 'utf-8') ?? null;
@@ -44,6 +55,12 @@ export function readGoModulePath(
     throw new Error(`Unable to read Go module path from ${goModPath}`);
   }
   return match[1];
+}
+
+async function readGoModulePathFromFile(goModPath: string) {
+  const goMod = await readFile(goModPath, 'utf-8');
+  const match = goMod.match(/^module\s+(\S+)/m);
+  return match?.[1] ?? null;
 }
 
 function parseRequireLine(line: string) {
@@ -191,6 +208,181 @@ export function resolveGoReleaseValidationRoots(
   }
 
   return [];
+}
+
+function unquoteGoPath(value: string) {
+  return value.replace(/^"|"$/g, '');
+}
+
+export function parseGoWorkUseDirs(goWork: string) {
+  const dirs: string[] = [];
+  let inUseBlock = false;
+
+  for (const rawLine of goWork.split('\n')) {
+    const line = rawLine.replace(/\/\/.*$/, '').trim();
+    if (!line) {
+      continue;
+    }
+
+    if (line === 'use (') {
+      inUseBlock = true;
+      continue;
+    }
+    if (inUseBlock && line === ')') {
+      inUseBlock = false;
+      continue;
+    }
+    if (inUseBlock) {
+      dirs.push(unquoteGoPath(line));
+      continue;
+    }
+
+    const singleUse = line.match(/^use\s+(.+)$/);
+    if (singleUse) {
+      dirs.push(unquoteGoPath(singleUse[1].trim()));
+    }
+  }
+
+  return dirs;
+}
+
+async function pathExists(path: string) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function createFileSystemVisitTree(root: string): VisitTree {
+  const read = ((path: string, encoding?: BufferEncoding) => {
+    const file = resolve(root, path);
+    if (!existsSync(file)) {
+      return null;
+    }
+    const content = readFileSync(file);
+    return encoding ? content.toString(encoding) : content;
+  }) as VisitTree['read'];
+
+  return {
+    root,
+    children(path) {
+      const dir = resolve(root, path);
+      return existsSync(dir) ? readdirSync(dir) : [];
+    },
+    exists(path) {
+      return existsSync(resolve(root, path));
+    },
+    isFile(path) {
+      return statSync(resolve(root, path)).isFile();
+    },
+    read,
+  };
+}
+
+function discoverGoModDirs(cwd: string, tree?: VisitTree) {
+  const dirs = new Set<string>();
+  const visitTree = tree ?? createFileSystemVisitTree(cwd);
+
+  visitNotIgnoredFiles(visitTree as Tree, '.', (path) => {
+    if (path.split(/[\\/]/).at(-1) === 'go.mod') {
+      dirs.add(resolve(visitTree.root, dirname(path)));
+    }
+  });
+
+  return Array.from(dirs).sort((a, b) =>
+    relative(cwd, a).localeCompare(relative(cwd, b)),
+  );
+}
+
+export async function discoverGoWorkspaceModules(
+  cwd: string,
+  tree?: VisitTree,
+): Promise<GoWorkspaceModule[]> {
+  const goWorkPath = join(cwd, 'go.work');
+  const dirs = (await pathExists(goWorkPath))
+    ? parseGoWorkUseDirs(await readFile(goWorkPath, 'utf-8')).map((dir) =>
+        resolve(cwd, dir),
+      )
+    : discoverGoModDirs(cwd, tree);
+
+  const modules = await Promise.all(
+    dirs.map(async (root) => {
+      const modulePath = await readGoModulePathFromFile(join(root, 'go.mod'));
+      return { modulePath, root };
+    }),
+  );
+
+  return modules.flatMap(({ modulePath, root }) => {
+    return modulePath ? [{ modulePath, root }] : [];
+  });
+}
+
+function hasReplaceDirective(goMod: string, modulePath: string) {
+  let inReplaceBlock = false;
+  const replacePattern = new RegExp(
+    `^${modulePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\s+v\\S+)?\\s+=>`,
+  );
+
+  for (const line of goMod.split('\n')) {
+    const trimmed = line.trim();
+
+    if (/^replace\s*\(\s*$/.test(trimmed)) {
+      inReplaceBlock = true;
+      continue;
+    }
+    if (inReplaceBlock && trimmed === ')') {
+      inReplaceBlock = false;
+      continue;
+    }
+
+    if (inReplaceBlock) {
+      if (replacePattern.test(trimmed)) {
+        return true;
+      }
+      continue;
+    }
+
+    if (
+      trimmed.startsWith('replace ') &&
+      replacePattern.test(trimmed.slice(8))
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export async function createGoReleaseValidationLocalReplaces(
+  cwd: string,
+  root: string,
+) {
+  const rootDir = resolve(cwd, root);
+  const goModPath = join(rootDir, 'go.mod');
+  const goMod = await readFile(goModPath, 'utf-8');
+  const localReplaces: GoLocalReplace[] = [];
+
+  for (const module of await discoverGoWorkspaceModules(cwd)) {
+    if (
+      module.root === rootDir ||
+      !goMod.includes(module.modulePath) ||
+      hasReplaceDirective(goMod, module.modulePath)
+    ) {
+      continue;
+    }
+
+    const replacementPath = relative(rootDir, module.root);
+    localReplaces.push({
+      modulePath: module.modulePath,
+      replacementPath: replacementPath.startsWith('.')
+        ? replacementPath
+        : `./${replacementPath}`,
+    });
+  }
+
+  return localReplaces;
 }
 
 function parseOptionList(value: unknown) {
@@ -366,6 +558,52 @@ export async function readLatestVersionFromGoProxy(
   throw new Error(`Go proxy lookup failed for ${modulePath}: no response`);
 }
 
+export async function readVersionFromGoProxy(
+  modulePath: string,
+  version: string,
+  proxyUrl: string,
+  options: GoProxyLookupOptions = {},
+) {
+  const goVersion = version.startsWith('v') ? version : `v${version}`;
+  const url = `${proxyUrl}/${escapeGoProxyPath(modulePath)}/@v/${goVersion}.info`;
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const retryDelaysMs = options.retryDelaysMs ?? [250, 1_000];
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetchImpl(url);
+    } catch (error) {
+      lastError = error;
+      await waitForGoProxyRetry(retryDelaysMs, attempt);
+      continue;
+    }
+
+    if (response.status === 404 || response.status === 410) {
+      return null;
+    }
+    if (!response.ok) {
+      const error = createGoProxyLookupError(modulePath, response);
+      if (!shouldRetryGoProxyResponse(response.status)) {
+        throw error;
+      }
+      lastError = error;
+      await waitForGoProxyRetry(retryDelaysMs, attempt);
+      continue;
+    }
+
+    const payload = (await response.json()) as { Version?: string };
+    return payload.Version ? normalizeGoModuleVersion(payload.Version) : null;
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error(`Go proxy lookup failed for ${modulePath}: no response`);
+}
+
 export async function afterAllProjectsVersioned(
   cwd: string,
   {
@@ -400,38 +638,87 @@ export async function afterAllProjectsVersioned(
   }
 
   const changedFiles = new Set<string>();
+  const commandsByRoot = new Map<string, typeof commands>();
   for (const command of commands) {
-    const displayCommand = `${Object.entries(command.env)
-      .map(([key, value]) => `${key}=${value}`)
-      .join(' ')} ${command.command} ${command.args.join(' ')}`;
+    const rootCommands = commandsByRoot.get(command.root) ?? [];
+    rootCommands.push(command);
+    commandsByRoot.set(command.root, rootCommands);
+  }
 
-    if (dryRun) {
-      if (verbose) {
-        console.log(
-          `Would run Go release validation in ${command.root}, but --dry-run was set:`,
+  for (const [root, rootCommands] of commandsByRoot) {
+    const rootDir = join(cwd, root);
+    const localReplaces = dryRun
+      ? []
+      : await createGoReleaseValidationLocalReplaces(cwd, root);
+
+    try {
+      for (const localReplace of localReplaces) {
+        if (verbose) {
+          console.log(
+            `Temporarily replacing ${localReplace.modulePath} => ${localReplace.replacementPath} for Go release validation in ${root}`,
+          );
+        }
+        execFileSync(
+          'go',
+          [
+            'mod',
+            'edit',
+            `-replace=${localReplace.modulePath}=${localReplace.replacementPath}`,
+          ],
+          {
+            cwd: rootDir,
+            stdio: verbose ? 'inherit' : 'ignore',
+            windowsHide: true,
+          },
         );
-        console.log(displayCommand);
       }
-      continue;
-    }
 
-    if (verbose) {
-      console.log(`Running Go release validation in ${command.root}:`);
-      console.log(displayCommand);
-    }
+      for (const command of rootCommands) {
+        const displayCommand = `${Object.entries(command.env)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(' ')} ${command.command} ${command.args.join(' ')}`;
 
-    execFileSync(command.command, command.args, {
-      cwd: join(cwd, command.root),
-      env: {
-        ...process.env,
-        ...command.env,
-      },
-      stdio: 'inherit',
-      windowsHide: true,
-    });
+        if (dryRun) {
+          if (verbose) {
+            console.log(
+              `Would run Go release validation in ${command.root}, but --dry-run was set:`,
+            );
+            console.log(displayCommand);
+          }
+          continue;
+        }
 
-    for (const file of command.changedFiles) {
-      changedFiles.add(file);
+        if (verbose) {
+          console.log(`Running Go release validation in ${command.root}:`);
+          console.log(displayCommand);
+        }
+
+        execFileSync(command.command, command.args, {
+          cwd: rootDir,
+          env: {
+            ...process.env,
+            ...command.env,
+          },
+          stdio: 'inherit',
+          windowsHide: true,
+        });
+
+        for (const file of command.changedFiles) {
+          changedFiles.add(file);
+        }
+      }
+    } finally {
+      for (const localReplace of localReplaces) {
+        execFileSync(
+          'go',
+          ['mod', 'edit', `-dropreplace=${localReplace.modulePath}`],
+          {
+            cwd: rootDir,
+            stdio: verbose ? 'inherit' : 'ignore',
+            windowsHide: true,
+          },
+        );
+      }
     }
   }
 

@@ -30,9 +30,246 @@ Configured in `nx.json` under `release.groups`:
 Use groups when invoking release commands. Avoid hand-ordering projects; Nx
 should derive project ordering and dependent updates.
 
+## Full Rehearsal
+
+A dry-run is useful for a quick config sanity check, but it is not enough to
+prove that Nx can replace release-please. The migration needs at least one full
+release rehearsal with cleanup prepared before running the command.
+
+Prefer two rehearsal stages:
+
+1. Local registries: Verdaccio for npm and a local Docker registry for images.
+2. Real remote services: npm, GHCR, GitHub releases/assets, and GitHub tags.
+
+The local-registry rehearsal catches most Nx orchestration, build, pack, Docker,
+and npm publish failures without publishing public artifacts. It does not prove
+GitHub release creation, GitHub release asset upload, npm provenance/OIDC, or
+GHCR package permissions.
+
+Run the rehearsal from a disposable worktree on a dedicated branch. Do not run
+it from the main development worktree:
+
+```bash
+git worktree add --detach .worktrees/nx-release-rehearsal origin/main
+cd .worktrees/nx-release-rehearsal
+pnpm install --frozen-lockfile
+pnpm exec nx release patch --verbose --yes
+```
+
+This command intentionally exercises real side effects:
+
+- version file writes and Go dependency propagation
+- Go validation with `GOWORK=off`
+- Docker image build, retag, and push
+- project changelog generation
+- release commit creation
+- annotated git tag creation
+- GitHub release creation
+- Go CLI archive build and GitHub release asset upload
+- npm package publish
+- GitHub Action stable major tag movement
+
+Before running it, prepare cleanup for every surface below. If any publish step
+gets far enough to create immutable public state, do not pretend the rehearsal
+was atomic.
+
+## Local Registry Rehearsal
+
+Start the local release rehearsal services:
+
+```bash
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.release-local.yaml up -d
+```
+
+This starts:
+
+- Verdaccio at `http://localhost:4873` for npm publishes.
+- A local Docker registry at `localhost:5001` for Docker image pushes.
+- Athens at `http://localhost:3000` for GOPROXY-compatible Go module lookups.
+
+Go modules are not uploaded to Athens like npm packages are uploaded to
+Verdaccio. The release surface is still the git tag; the proxy is primed and
+verified by resolving the tagged module through `GOPROXY`.
+
+Use a disposable worktree and patch only that worktree so Docker release refs
+point to the local registry and Go validation resolves through the local proxy:
+
+```bash
+git worktree add --detach .worktrees/nx-release-local-registry origin/main
+cd .worktrees/nx-release-local-registry
+pnpm install --frozen-lockfile
+node -e "const fs=require('node:fs'); const nx=JSON.parse(fs.readFileSync('nx.json','utf8')); nx.release.docker.registryUrl='localhost:5001'; nx.release.version.versionActionsOptions.goReleaseGoproxy='http://localhost:3000,direct'; fs.writeFileSync('nx.json', JSON.stringify(nx, null, 2) + '\n')"
+mkdir -p tmp/npm-cache
+export NPM_CONFIG_CACHE="$PWD/tmp/npm-cache"
+export GOPROXY="http://localhost:3000,direct"
+```
+
+Run the top-level release command for versioning and changelog generation, then
+run publish separately. Top-level `nx release patch` does not expose the npm
+`--registry` option, but `nx release publish` does. Nx forwards publish options
+to every `nx-release-publish` target, so custom publishers must tolerate generic
+publish flags such as `--registry`, `--tag`, `--access`, and `--dryRun`.
+
+```bash
+pnpm exec nx release patch --skip-publish --verbose
+GO_RELEASE_SKIP_PROXY=true GO_RELEASE_USE_LOCAL_REPLACES=true GITHUB_ACTION_RELEASE_SKIP_PUSH=true pnpm exec nx release publish --verbose --registry http://localhost:4873
+```
+
+This publishes npm packages to Verdaccio and Docker images to the local Docker
+registry. It still creates local release commits and local tags.
+
+The local Go module publish targets verify that the release tags exist at
+`HEAD`, but `GO_RELEASE_SKIP_PROXY=true` skips the GOPROXY lookup because the
+local tags have not been pushed to a Git remote visible to Athens. In the real
+release, do not set `GO_RELEASE_SKIP_PROXY`; the Go publish targets must verify
+the tagged modules through GOPROXY after the release commit and tags are pushed.
+`GO_RELEASE_USE_LOCAL_REPLACES=true` is also local-only; it lets the Go CLI
+artifact build resolve sibling Go modules from the worktree while the rehearsal
+tags are still local-only.
+`GITHUB_ACTION_RELEASE_SKIP_PUSH=true` is local-only and prevents the GitHub
+Action publisher from moving the stable major tag such as `v0`.
+
+If Verdaccio requires an npm token, create a throwaway local user and write a
+root `.npmrc` in the disposable worktree. Nx forwards `--userconfig` to custom
+targets, but the inferred npm publish targets do not reliably pass it through to
+`pnpm publish`, so use a root `.npmrc` for the rehearsal.
+
+```bash
+curl -X PUT http://localhost:4873/-/user/org.couchdb.user:local-release \
+  -H 'content-type: application/json' \
+  --data '{"name":"local-release","password":"local-release-pass","email":"local-release@example.test","type":"user","roles":[]}'
+npm config set //localhost:4873/:_authToken '<token-from-verdaccio>' --userconfig .npmrc
+GO_RELEASE_SKIP_PROXY=true GO_RELEASE_USE_LOCAL_REPLACES=true GITHUB_ACTION_RELEASE_SKIP_PUSH=true pnpm exec nx release publish --verbose --registry http://localhost:4873
+```
+
+The publish phase may also attempt GitHub release operations depending on the
+release changelog/artifact configuration. For the safest local rehearsal,
+temporarily set the Go CLI artifact store to `provider: "none"` in
+`apps/moltnet-cli/nx-release-artifacts.json`; this still builds archives and
+stages npm platform binaries, but skips GitHub release asset upload.
+
+Do not run `nx release changelog patch` as a substitute for the top-level
+release command. The direct `changelog` command requires an exact target version
+and treats `patch` literally as the version.
+
+Inspect local npm publishes:
+
+```bash
+npm view @themoltnet/sdk --registry http://localhost:4873 versions
+npm view @themoltnet/cli --registry http://localhost:4873 versions
+```
+
+Inspect local Docker publishes:
+
+```bash
+curl http://localhost:5001/v2/_catalog
+curl http://localhost:5001/v2/getlarge/themoltnet/rest-api/tags/list
+```
+
+Prime or inspect local Go proxy resolution after release tags exist:
+
+```bash
+GOPROXY=http://localhost:3000,direct GONOSUMDB=github.com/getlarge/themoltnet go list -m github.com/getlarge/themoltnet/libs/moltnet-api-client@vX.Y.Z
+GOPROXY=http://localhost:3000,direct GONOSUMDB=github.com/getlarge/themoltnet go list -m github.com/getlarge/themoltnet/libs/dspy-adapters@vX.Y.Z
+```
+
+Cleanup local release services:
+
+```bash
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.release-local.yaml down -v
+git worktree remove --force .worktrees/nx-release-local-registry
+```
+
+## Rehearsal Cleanup
+
+Capture these values from the rehearsal output:
+
+```bash
+RELEASE_COMMIT=<commit-created-by-nx-release>
+TAGS='<space-separated-tags-created-by-nx-release>'
+DOCKER_TAGS='<space-separated-docker-image-tags>'
+NPM_PACKAGES='<space-separated-package@version-values>'
+```
+
+Delete local test tags:
+
+```bash
+git tag -d $TAGS
+```
+
+Delete remote test tags if they were pushed:
+
+```bash
+for tag in $TAGS; do
+  git push origin ":refs/tags/$tag"
+done
+```
+
+Delete GitHub releases created for those tags:
+
+```bash
+for tag in $TAGS; do
+  gh release delete "$tag" --cleanup-tag --yes || true
+done
+```
+
+Delete GitHub Action stable major tags only if the rehearsal moved them:
+
+```bash
+git push origin :refs/tags/v0
+```
+
+Remove the rehearsal release commit from the rehearsal branch or discard the
+worktree. If it was pushed to a branch, delete the branch instead of reverting
+unless a reviewer needs the release commit for audit:
+
+```bash
+git worktree remove --force .worktrees/nx-release-rehearsal
+git push origin :refs/heads/<rehearsal-branch>
+```
+
+Delete local Docker tags:
+
+```bash
+for image in \
+  ghcr.io/getlarge/themoltnet/console \
+  ghcr.io/getlarge/themoltnet/db-migrate \
+  ghcr.io/getlarge/themoltnet/landing \
+  ghcr.io/getlarge/themoltnet/mcp-host \
+  ghcr.io/getlarge/themoltnet/mcp-server \
+  ghcr.io/getlarge/themoltnet/rest-api
+do
+  for tag in $DOCKER_TAGS; do
+    docker image rm "$image:$tag" || true
+  done
+done
+```
+
+Delete pushed GHCR package versions from GitHub Packages. There is no simple
+`gh release` equivalent for container package cleanup; use the GitHub Packages
+UI or API and delete only versions created by the rehearsal.
+
+Unpublish npm packages only if the rehearsal published throwaway versions and
+npm still allows unpublish for those package versions. Otherwise deprecate them
+as rehearsal artifacts:
+
+```bash
+for package_version in $NPM_PACKAGES; do
+  npm deprecate "$package_version" "Nx release rehearsal artifact; do not use"
+done
+```
+
+Remove generated local artifacts if the worktree is kept for inspection:
+
+```bash
+rm -rf apps/moltnet-cli/dist/nx-release
+git restore .
+git clean -fd
+```
+
 ## Dry Runs
 
-Use dry-runs before changing release config:
+Use dry-runs only as a fast preflight before the full rehearsal:
 
 ```bash
 pnpm exec nx release version patch --groups npm-packages --dry-run --verbose
@@ -165,7 +402,9 @@ NX_RELEASE_DOCKER_PROJECTS=@moltnet/rest-api pnpm exec nx release version patch 
 2. Run a dry-run for the affected group or groups.
 3. Inspect planned file changes, tags, and Go validation commands.
 4. Run focused tests for any changed release helpers.
-5. Only then run the non-dry release command.
+5. Prepare the rehearsal cleanup values and permissions.
+6. Run the full non-dry release rehearsal from a disposable worktree.
+7. Clean up rehearsal side effects before merging release automation.
 
 Do not manually edit generated changelogs, release tags, or dependent version
 bumps unless Nx release output is wrong and the release helper/config is being

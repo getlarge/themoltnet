@@ -1,12 +1,20 @@
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   afterAllProjectsVersioned,
   createGoReleaseValidationCommands,
+  createGoReleaseValidationLocalReplaces,
+  discoverGoWorkspaceModules,
   escapeGoProxyPath,
   findGoRequireVersion,
   normalizeGoModuleVersion,
+  parseGoWorkUseDirs,
   readLatestVersionFromGoProxy,
+  readVersionFromGoProxy,
   resolveGoProxyUrl,
   shouldRunGoReleaseValidation,
   updateGoRequireVersions,
@@ -165,6 +173,145 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
     ]);
   });
 
+  it('discovers local Go modules from go.work for validation replaces', async () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'go-release-validation-'));
+    mkdirSync(join(cwd, 'apps/cli'), { recursive: true });
+    mkdirSync(join(cwd, 'libs/api'), { recursive: true });
+    writeFileSync(
+      join(cwd, 'go.work'),
+      `go 1.25.0
+
+use (
+\t./apps/cli
+\t"./libs/api"
+)
+`,
+    );
+    writeFileSync(
+      join(cwd, 'apps/cli/go.mod'),
+      `module example.com/repo/apps/cli
+
+go 1.25
+
+require example.com/repo/libs/api v1.2.3
+`,
+    );
+    writeFileSync(
+      join(cwd, 'libs/api/go.mod'),
+      `module example.com/repo/libs/api
+
+go 1.25
+`,
+    );
+
+    expect(
+      parseGoWorkUseDirs(readFileSync(join(cwd, 'go.work'), 'utf-8')),
+    ).toEqual(['./apps/cli', './libs/api']);
+    await expect(discoverGoWorkspaceModules(cwd)).resolves.toEqual([
+      {
+        modulePath: 'example.com/repo/apps/cli',
+        root: join(cwd, 'apps/cli'),
+      },
+      {
+        modulePath: 'example.com/repo/libs/api',
+        root: join(cwd, 'libs/api'),
+      },
+    ]);
+    await expect(
+      createGoReleaseValidationLocalReplaces(cwd, 'apps/cli'),
+    ).resolves.toEqual([
+      {
+        modulePath: 'example.com/repo/libs/api',
+        replacementPath: '../../libs/api',
+      },
+    ]);
+  });
+
+  it('does not create validation replaces for modules already replaced in a block', async () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'go-release-validation-'));
+    mkdirSync(join(cwd, 'apps/cli'), { recursive: true });
+    mkdirSync(join(cwd, 'libs/api'), { recursive: true });
+    writeFileSync(
+      join(cwd, 'go.work'),
+      `go 1.25.0
+
+use (
+\t./apps/cli
+\t./libs/api
+)
+`,
+    );
+    writeFileSync(
+      join(cwd, 'apps/cli/go.mod'),
+      `module example.com/repo/apps/cli
+
+go 1.25
+
+require example.com/repo/libs/api v1.2.3
+
+replace (
+\texample.com/repo/libs/api v1.2.3 => ../../libs/api
+)
+`,
+    );
+    writeFileSync(
+      join(cwd, 'libs/api/go.mod'),
+      `module example.com/repo/libs/api
+
+go 1.25
+`,
+    );
+
+    await expect(
+      createGoReleaseValidationLocalReplaces(cwd, 'apps/cli'),
+    ).resolves.toEqual([]);
+  });
+
+  it('discovers Go modules through Nx ignore-aware file visiting', async () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'go-release-validation-'));
+    mkdirSync(join(cwd, 'apps/cli'), { recursive: true });
+    mkdirSync(join(cwd, 'dist/generated'), { recursive: true });
+    mkdirSync(join(cwd, 'ignored/tools'), { recursive: true });
+    mkdirSync(join(cwd, '.worktrees/rehearsal'), { recursive: true });
+    writeFileSync(join(cwd, '.gitignore'), 'dist/\n.worktrees/\n');
+    writeFileSync(join(cwd, '.nxignore'), 'ignored/\n');
+    writeFileSync(
+      join(cwd, 'apps/cli/go.mod'),
+      `module example.com/repo/apps/cli
+
+go 1.25
+`,
+    );
+    writeFileSync(
+      join(cwd, 'dist/generated/go.mod'),
+      `module example.com/repo/dist/generated
+
+go 1.25
+`,
+    );
+    writeFileSync(
+      join(cwd, 'ignored/tools/go.mod'),
+      `module example.com/repo/ignored/tools
+
+go 1.25
+`,
+    );
+    writeFileSync(
+      join(cwd, '.worktrees/rehearsal/go.mod'),
+      `module example.com/repo/rehearsal
+
+go 1.25
+`,
+    );
+
+    await expect(discoverGoWorkspaceModules(cwd)).resolves.toEqual([
+      {
+        modulePath: 'example.com/repo/apps/cli',
+        root: join(cwd, 'apps/cli'),
+      },
+    ]);
+  });
+
   it('does not infer repository-specific validation roots by default', () => {
     expect(
       shouldRunGoReleaseValidation({}, [
@@ -292,6 +439,33 @@ replace github.com/getlarge/themoltnet/libs/moltnet-api-client => ../../libs/mol
       ),
     ).resolves.toBeNull();
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('verifies exact Go proxy versions with retries', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(goProxyResponse(503, 'Service Unavailable'))
+      .mockResolvedValueOnce(
+        goProxyResponse(200, 'OK', {
+          Version: 'v1.2.3',
+        }),
+      );
+
+    await expect(
+      readVersionFromGoProxy(
+        'github.com/getlarge/themoltnet/libs/moltnet-api-client',
+        '1.2.3',
+        'https://proxy.example.test',
+        {
+          fetchImpl,
+          retryDelaysMs: [0],
+        },
+      ),
+    ).resolves.toBe('1.2.3');
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://proxy.example.test/github.com/getlarge/themoltnet/libs/moltnet-api-client/@v/v1.2.3.info',
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it('does not run Go release validation during dry-run', async () => {
