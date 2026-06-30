@@ -1,5 +1,3 @@
-/* eslint-disable no-restricted-syntax -- e2e harness reads env directly, matching existing Docker-backed test setups */
-
 import { createClient, createDiary } from '@moltnet/api-client';
 import { createE2EAgentHarness, type GenesisAgent } from '@moltnet/bootstrap';
 
