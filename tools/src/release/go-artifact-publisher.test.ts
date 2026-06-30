@@ -406,6 +406,7 @@ describe('go artifact publisher', () => {
       dryRun: true,
       verbose: true,
       skipUpload: false,
+      useLocalReplaces: false,
     });
     expect(
       createCliRunOptions(
@@ -417,6 +418,7 @@ describe('go artifact publisher', () => {
       dryRun: false,
       verbose: false,
       skipUpload: true,
+      useLocalReplaces: false,
     });
     expect(
       createCliRunOptions(
@@ -428,6 +430,7 @@ describe('go artifact publisher', () => {
           '--dryRun=true',
           '--tag=next',
           '--access=public',
+          '--provenance',
           '--skipUpload',
         ],
         {},
@@ -437,6 +440,7 @@ describe('go artifact publisher', () => {
       dryRun: true,
       verbose: false,
       skipUpload: true,
+      useLocalReplaces: false,
     });
   });
 

@@ -5,14 +5,12 @@ It records how this branch expects Nx release to be used.
 
 ## Intent
 
-Nx release should replace release-please as the release orchestration layer.
-The goal is to let the Nx project graph and release groups decide ordering,
-dependency bumps, changelog/tag generation, Docker image tagging, and Go module
-dependency propagation.
+Nx release is the release orchestration layer. The goal is to let the Nx project
+graph and release groups decide ordering, dependency bumps, changelog/tag
+generation, Docker image tagging, and Go module dependency propagation.
 
-Release-please remains the historical workflow until the migration lands. Do
-not update release-please configuration for new release behavior on this branch
-unless the migration is being rolled back.
+Do not add new release-please configuration. The release-please workflow and
+manifest were removed when this workflow became authoritative.
 
 ## Release Groups
 
@@ -30,11 +28,47 @@ Configured in `nx.json` under `release.groups`:
 Use groups when invoking release commands. Avoid hand-ordering projects; Nx
 should derive project ordering and dependent updates.
 
+## Production Workflow
+
+Production releases run from `.github/workflows/release.yml` on every push to
+`main` when `.nx/version-plans/*.md` files exist. The workflow scopes commands
+to the release groups named by those version plans:
+
+```bash
+pnpm exec nx release --groups <plan-groups> --verbose --skip-publish
+git push origin HEAD:main --follow-tags --no-verify --atomic
+pnpm exec nx release publish --groups <plan-groups> --verbose
+```
+
+The workflow also supports a manual `dry-run` dispatch:
+
+```bash
+pnpm exec nx release --groups <plan-groups> --dry-run --verbose --skip-publish
+```
+
+Important production details:
+
+- The explicit git push happens between versioning and publishing so Go module
+  tags are visible to GOPROXY before publish targets run.
+- The Go CLI artifact publisher creates the draft `cli-v{version}` GitHub
+  Release, uploads archives and checksums, then undrafts it.
+- Go module publish targets verify the pushed module tags through
+  `GOPROXY=https://proxy.golang.org,direct` with `GOWORK=off`.
+- npm packages publish with public access and provenance through npm config
+  environment variables plus GitHub Actions OIDC/trusted publishing. The
+  workflow must keep `permissions.id-token: write`.
+- Docker image publish targets push to GHCR. The workflow must keep
+  `permissions.packages: write` and the GHCR login step.
+- The workflow passes `--groups` from version plans so a CLI-only release does
+  not run Docker image release logic.
+- The GitHub Action release target moves the stable major tag, for example
+  `v0`, after its bundled `dist/main.js` has been committed by the release.
+
 ## Full Rehearsal
 
 A dry-run is useful for a quick config sanity check, but it is not enough to
-prove that Nx can replace release-please. The migration needs at least one full
-release rehearsal with cleanup prepared before running the command.
+prove the production release path. This workflow needs at least one full release
+rehearsal with cleanup prepared before running the command.
 
 Prefer two rehearsal stages:
 
@@ -46,8 +80,8 @@ and npm publish failures without publishing public artifacts. It does not prove
 GitHub release creation, GitHub release asset upload, npm provenance/OIDC, or
 GHCR package permissions.
 
-Run the rehearsal from a disposable worktree on a dedicated branch. Do not run
-it from the main development worktree:
+Run rehearsals from a disposable worktree on a dedicated branch. Do not run them
+from the main development worktree:
 
 ```bash
 git worktree add --detach .worktrees/nx-release-rehearsal origin/main

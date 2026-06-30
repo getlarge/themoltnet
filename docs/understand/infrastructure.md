@@ -234,8 +234,8 @@ Both call the reusable `_deploy.yml` workflow (build Docker image, push to GHCR 
 
 ### Deployable app versions
 
-Server apps that expose a public contract are release-please components. The
-package version in each app's `package.json` is the source of truth and must be
+Server apps that expose a public contract are Nx release projects. The package
+version in each app's `package.json` is the source of truth and must be
 propagated into public metadata and OpenTelemetry:
 
 - REST API: OpenAPI `info.version` and OTel `service.version`
@@ -351,24 +351,30 @@ The e5-small-v2 ONNX model (~33MB) is lazy-loaded on first embedding request. Fi
 
 ## Release Pipeline
 
-Releases are automated via [release-please](https://github.com/googleapis/release-please) + GitHub Actions (`.github/workflows/release.yml`). A push to `main` triggers the pipeline:
+Releases are automated via Nx Release + GitHub Actions
+(`.github/workflows/release.yml`). A push to `main` with Nx version plans runs
+Nx release for the plan groups, pushes the release commit and tags, then runs
+`nx release publish` for the same groups. Nx uses the project graph and release
+groups in `nx.json` to decide version ordering, changelog generation, git tags,
+dependency updates, Docker image tags, and publish targets.
 
-1. **Release Please** — creates/updates a release PR. The config uses the `node-workspace` plugin so Node packages that depend on other workspace packages (for example `apps/agent-daemon` bundling `@themoltnet/pi-extension`, `@themoltnet/agent-runtime`, and `@themoltnet/sdk`) are pulled into the same release round when those deps bump. The CLI packages remain in their own `linked-versions` group.
-2. **Publish SDK to npm** — builds, tests, publishes `@themoltnet/sdk` with provenance, then publishes the draft release
-3. **Release CLI binaries** — cross-compiles Go binaries via GoReleaser, pushes Homebrew formula, uploads assets to the draft release, then publishes it
-4. **Publish CLI to npm** — publishes the `@themoltnet/cli` npm wrapper (thin binary downloader)
-5. **Publish bundled Node apps/libs** — jobs such as `publish-agent-daemon`, `publish-agent-runtime`, and `publish-pi-extension` publish the packages selected by the release PR
-
-Releases are created as drafts (`"draft": true` in `release-please-config.json`) to support [GitHub immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases). Assets are uploaded while the release is still a draft, then each job publishes its release as the final step. Once published, the release and its assets become immutable.
+The Go artifact publisher creates the draft `cli-v{version}` GitHub Release,
+cross-compiles the CLI, uploads the archives/checksums to that release, then
+publishes the release. Go library module releases are git tags and are verified
+through the public Go proxy during publish.
 
 ### Release configuration files
 
-| File                               | Purpose                                                                                                                        |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `release-please-config.json`       | Defines releasable packages and plugins (`node-workspace` for workspace-dep propagation, `linked-versions` for the CLI family) |
-| `.release-please-manifest.json`    | Tracks current versions                                                                                                        |
-| `apps/moltnet-cli/.goreleaser.yml` | Cross-compilation targets, archive format, Homebrew formula publisher                                                          |
-| `packages/cli/`                    | npm wrapper — postinstall downloads the correct Go binary                                                                      |
+| File                                           | Purpose                                                                      |
+| ---------------------------------------------- | ---------------------------------------------------------------------------- |
+| `nx.json`                                      | Release groups, tag patterns, version actions, Docker release settings       |
+| `.github/workflows/release.yml`                | Production Nx release workflow                                               |
+| `apps/moltnet-cli/nx-release-artifacts.json`   | Go CLI build matrix, archive/checksum settings, GitHub Release upload target |
+| `tools/src/release/go-version-actions.ts`      | Go module version/dependency propagation during Nx versioning                |
+| `tools/src/release/go-artifact-publisher.ts`   | Go CLI cross-compile/archive/upload publisher                                |
+| `tools/src/release/go-module-publisher.cli.ts` | Go module publish verification through GOPROXY                               |
+| `tools/src/release/github-action-publisher.ts` | GitHub Action release publisher that moves the stable major tag              |
+| `packages/cli/`                                | npm wrapper — postinstall downloads the correct Go binary                    |
 
 ### npm trusted publishing (OIDC)
 
@@ -385,51 +391,18 @@ The SDK and CLI npm packages use [npm trusted publishing](https://docs.npmjs.com
 
 The workflow uses `permissions: id-token: write` so GitHub Actions can mint OIDC tokens, and `actions/setup-node` with `registry-url` to configure the `.npmrc`.
 
-### Homebrew tap (GitHub App)
-
-The CLI is distributed via `brew install --cask getlarge/moltnet/moltnet`. GoReleaser pushes the cask to the [getlarge/homebrew-moltnet](https://github.com/getlarge/homebrew-moltnet) repository using a short-lived token from a GitHub App.
-
-**GitHub App setup:**
-
-1. Create a GitHub App (org or personal) with **Repository permissions > Contents: Read and write**
-2. **Install the app** on the `getlarge` organization — select **"Only select repositories"** and choose `homebrew-moltnet`
-3. Store the app credentials as repository secrets on `getlarge/themoltnet`:
-
-| Secret                    | Value                                     |
-| ------------------------- | ----------------------------------------- |
-| `MOLTNET_RELEASE_APP_ID`  | The GitHub App's numeric App ID           |
-| `MOLTNET_RELEASE_APP_KEY` | The GitHub App's private key (PEM format) |
-
-The workflow uses `actions/create-github-app-token@v1` to mint a scoped installation token at runtime, passed to GoReleaser as `HOMEBREW_TAP_TOKEN`. The token is short-lived and limited to the `homebrew-moltnet` repository.
-
-> **Troubleshooting:** If the token step fails with `404 Not Found` on `/repos/getlarge/homebrew-moltnet/installation`, the app is **not installed** on the repository. Go to the app's settings page > **Install App** and grant it access to `homebrew-moltnet`.
-
 ### CI secrets summary
 
-| Secret                    | Used by                 | Purpose                             |
-| ------------------------- | ----------------------- | ----------------------------------- |
-| `MOLTNET_RELEASE_APP_ID`  | `release-cli` job       | GitHub App ID for Homebrew tap push |
-| `MOLTNET_RELEASE_APP_KEY` | `release-cli` job       | GitHub App private key (PEM)        |
-| `CLAWHUB_TOKEN`           | `publish-skill-clawhub` | ClawHub CLI auth for skill publish  |
-| `FLY_API_TOKEN`           | Deploy workflows        | Fly.io deployment                   |
+| Secret          | Used by          | Purpose           |
+| --------------- | ---------------- | ----------------- |
+| `FLY_API_TOKEN` | Deploy workflows | Fly.io deployment |
 
 npm publishing requires no secrets — it uses OIDC trusted publishing.
 
 ### OpenClaw skill publishing
 
-The MoltNet OpenClaw skill (`packages/openclaw-skill/`) is a markdown bundle — not an npm package. It's distributed through two channels:
-
-| Channel              | Installation                                              | Automated by                |
-| -------------------- | --------------------------------------------------------- | --------------------------- |
-| **ClawHub registry** | `clawhub install moltnet`                                 | `publish-skill-clawhub` job |
-| **GitHub Release**   | `tar -xzf moltnet-skill-v*.tar.gz -C ~/.openclaw/skills/` | `release-skill` job         |
-
-Both are triggered by the same Release Please cycle. The skill uses `release-type: simple` with a `version.txt` file (not `package.json`).
-
-**CI jobs in `release.yml`:**
-
-1. **`release-skill`** — runs `packages/openclaw-skill/scripts/package.sh` to create a tarball, uploads it to the GitHub Release, then undrafts
-2. **`publish-skill-clawhub`** — installs `clawhub` CLI, authenticates with `CLAWHUB_TOKEN`, runs `packages/openclaw-skill/scripts/publish-clawhub.sh`
+The MoltNet OpenClaw skill (`packages/openclaw-skill/`) is a legacy markdown
+bundle and is not part of the Nx release workflow.
 
 **CI validation in `ci.yml`:**
 
@@ -439,12 +412,6 @@ The `skill-check` job validates on every PR:
 - `mcp.json` is valid JSON
 - `version.txt` contains valid semver
 - Tarball packaging succeeds
-
-**Required secret:**
-
-| Secret          | Used by                 | Purpose                            | How to obtain                                            |
-| --------------- | ----------------------- | ---------------------------------- | -------------------------------------------------------- |
-| `CLAWHUB_TOKEN` | `publish-skill-clawhub` | ClawHub CLI auth for CI publishing | Run `clawhub login` locally, copy token from config file |
 
 **Manual usage:**
 

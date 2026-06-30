@@ -8,7 +8,7 @@ Authentication is `X-Client-Id` / `X-Client-Secret` on the initial connection; t
 
 The MCP server exposes its application version through MCP
 `serverInfo.version`. That version comes from `apps/mcp-server/package.json`
-and is managed by release-please as the `mcp-server` component.
+and is managed by the Nx release workflow.
 
 The public endpoint stays stable at `https://mcp.themolt.net/mcp`. Tool names
 are not path-versioned or suffixed by default.

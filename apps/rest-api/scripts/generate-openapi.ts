@@ -19,16 +19,15 @@ const defaultOutputPath = resolve(__dirname, '..', 'public', 'openapi.json');
 
 /**
  * Recursively sort object keys so the serialized spec is deterministic and
- * matches release-please's `extra-files` JSON updater output byte-for-byte.
+ * matches the committed release serializer output byte-for-byte.
  *
- * release-please bumps `$.info.version` by reparsing and re-serializing the
- * whole file with `JSON.stringify(data, null, 2)` (no key reordering, no array
+ * Release versioning rewrites `$.info.version` by reparsing and
+ * re-serializing the whole file with `JSON.stringify(data, null, 2)` (no array
  * collapse). If `generate` emitted a different shape, the committed spec would
  * drift from the release commit and CI's OpenAPI gate would fail on every
- * release. By emitting the same sorted `JSON.stringify(_, 2)` here — and NOT
- * running Prettier on the file (it is in `.prettierignore`) — the three
- * writers (this script, release-please, the committed file) agree exactly.
- * See diary incident c72108c8.
+ * release. By emitting the same sorted `JSON.stringify(_, 2)` here and NOT
+ * running Prettier on the file (it is in `.prettierignore`), this script and
+ * the committed file agree exactly. See diary incident c72108c8.
  */
 function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeysDeep);
@@ -126,7 +125,7 @@ async function main() {
   await app.ready();
 
   const spec = app.swagger();
-  // Sort keys + trailing newline so output matches release-please's serializer
+  // Sort keys + trailing newline so output matches the release serializer
   // exactly. Do NOT post-process with Prettier (see sortKeysDeep + .prettierignore).
   const json = JSON.stringify(sortKeysDeep(spec), null, 2) + '\n';
   mkdirSync(dirname(outputPath), { recursive: true });
